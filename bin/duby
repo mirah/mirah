@@ -1,5 +1,5 @@
 #!/usr/bin/env jruby
-$: << File.dirname(__FILE__) + '/lib'
+$: << File.dirname(File.dirname(__FILE__)) + '/lib'
 require 'duby'
 
 if __FILE__ == $0
