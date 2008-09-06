@@ -3,3 +3,7 @@ and a heavily Ruby-inspired syntax, while allowing both the inference engine and
 entirely customizable for any platform or type system. Duby currently includes a typer/compiler backend for the 
 JVM.
 
+This project depends on JRuby (since it still uses the parser) and on JVMScript.
+
+JRuby is at http://www.jruby.org
+JVMScript is at http://kenai.com/projects/jvmscript
