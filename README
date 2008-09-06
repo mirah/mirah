@@ -1,0 +1,5 @@
+Duby is a highly customizable programming language (or a structured assembly language) featuring type inference 
+and a heavily Ruby-inspired syntax, while allowing both the inference engine and the compiler backends to be 
+entirely customizable for any platform or type system. Duby currently includes a typer/compiler backend for the 
+JVM.
+
