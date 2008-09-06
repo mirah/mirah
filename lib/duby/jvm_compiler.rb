@@ -3,7 +3,7 @@ require 'duby/jvm/method_lookup'
 require 'duby/typer'
 require 'duby/plugin/math'
 require 'duby/plugin/java'
-require 'compiler/builder'
+require 'jvmscript'
 
 module Duby
   module Compiler
