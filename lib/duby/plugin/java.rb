@@ -23,6 +23,14 @@ module Duby
         type_mapper[type] || type
       end
       
+      def java_to_duby(java_class)
+        if java_class.array?
+          AST::type(java_class.component_type.name, true)
+        else
+          AST::type(java_class.name)
+        end
+      end
+      
       def method_type(typer, target_type, name, parameter_types)
         case target_type
         when AST.type(:long)
@@ -48,9 +56,9 @@ module Duby
           method = find_method(java_type, name, arg_types, mapped_target.meta?)
 
           if Java::JavaConstructor === method
-            result = AST::type(method.declaring_class.name)
+            result = java_to_duby(method.declaring_class)
           else
-            result = AST::type(method.return_type.name)
+            result = java_to_duby(method.return_type)
           end
 
           if result
