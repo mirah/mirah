@@ -54,23 +54,55 @@ module Duby
         # TODO for now this just tries immediate supertypes, which
         # obviously wouldn't work on primitives; need to implement JLS
         # method selection here
-        applicable_methods = []
-
-        by_name_and_arity.each do |m|
+        by_name_and_arity.select do |m|
           method_params = m.argument_types
-          if each_is_exact_or_subtype(mapped_params, method_params)
-            applicable_methods << m
-          end
+          each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
         end
       end
       
-      def each_is_exact_or_subtype(incoming, target)
+      def each_is_exact_or_subtype_or_convertible(incoming, target)
         incoming.each_with_index do |in_type, i|
           target_type = target[i]
-          return false if target_type.primitive? || in_type.primitive? && target_type != in_type
-          return false unless target_type.assignable_from? in_type
+          
+          # exact match
+          next if target_type == in_type
+          
+          # primitive is safely convertible
+          if target_type.primitive?
+            if in_type.primitive?
+              next if primitive_convertible? in_type, target_type
+            end
+            return false
+          end
+          
+          # object type is assignable
+          next if target_type.assignable_from? in_type
         end
         return true
+      end
+      
+      BOOLEAN = Java::boolean.java_class
+      BYTE = Java::byte.java_class
+      SHORT = Java::short.java_class
+      CHAR = Java::char.java_class
+      INT = Java::int.java_class
+      LONG = Java::long.java_class
+      FLOAT = Java::float.java_class
+      DOUBLE = Java::double.java_class
+      
+      PrimitiveConversions = {
+        BOOLEAN => [BOOLEAN],
+        BYTE => [BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE],
+        SHORT => [SHORT, INT, LONG, FLOAT, DOUBLE],
+        CHAR => [CHAR, INT, LONG, FLOAT, DOUBLE],
+        INT => [INT, LONG, FLOAT, DOUBLE],
+        LONG => [LONG, DOUBLE],
+        FLOAT => [FLOAT, DOUBLE],
+        DOUBLE => [DOUBLE]
+      }
+      
+      def primitive_convertible?(in_type, target_type)
+        PrimitiveConversions[in_type].include?(target_type)
       end
     end
   end
