@@ -115,11 +115,9 @@ module Duby
         if !simple_type
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} not found."
           
-          # allow plugins a go
-          Duby.typer_plugins.each do |plugin|
-            log "Invoking plugin: #{plugin}"
-            
-            break if simple_type = plugin.method_type(self, target_type, name, parameter_types)
+          # allow plugins a go if we're in the inference phase
+          simple_type = plugins do |plugin|
+            plugin.method_type(self, target_type, name, parameter_types)
           end
           
         else
@@ -127,6 +125,41 @@ module Duby
         end
         
         simple_type
+      end
+      
+      def plugins
+        if cycling?
+          Duby.typer_plugins.each do |plugin|
+            log "Invoking plugin: #{plugin}"
+
+            result = yield plugin
+            return result if result
+          end
+        end
+        
+        nil
+      end
+      
+      def cycling?
+        @cycling
+      end
+      
+      def cycling=(c)
+        @cycling = c
+      end
+      
+      def cycle(count)
+        @cycling = true
+        count.times do |i|
+          begin
+            log "[Cycle #{i}]: Started..."
+            yield i
+          ensure
+            log "[Cycle #{i}]: Complete!"
+          end
+        end
+      ensure
+        @cycling = false
       end
       
       def method_types
@@ -164,8 +197,8 @@ module Duby
         count = deferred_nodes.size + 1
         
         log "Entering type inference cycle"
-            
-        count.times do |i|
+        
+        cycle(count) do |i|
           old_deferred = @deferred_nodes
           @deferred_nodes = deferred_nodes.select do |node|
             type = node.infer(self)
@@ -176,10 +209,10 @@ module Duby
           end
           
           if @deferred_nodes.size == 0
-            log "Inference cycle #{i} resolved all types, exiting"
+            log "[Cycle #{i}]:  Resolved all types, exiting"
             break
           elsif old_deferred == @deferred_nodes
-            log "Inference cycle #{i} made no progress, bailing out"
+            log "[Cycle #{i}]: Made no progress, bailing out"
             break
           end
         end
