@@ -22,23 +22,7 @@ module Duby
             # exact args failed, do a deeper search
             log "Failed to locate method #{mapped_type}.#{name}(#{mapped_params})"
 
-            if meta
-              all_methods = mapped_type.declared_class_methods
-            else
-              all_methods = []
-              cls = mapped_type
-              while cls
-                all_methods += cls.declared_instance_methods
-                cls = cls.superclass
-              end
-            end
-            by_name = all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
-            by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
-            
-            applicable_methods = phase1(mapped_params, by_name_and_arity)
-            
-            # dumb, pick first applicable after phase 1
-            method = applicable_methods[0]
+            method = find_jls(mapped_type, name, mapped_params, meta)
           end
           unless method
             log "Failed to locate method #{name}(#{mapped_params}) on #{mapped_type}"
@@ -49,15 +33,65 @@ module Duby
         log "Found method #{method.declaring_class}.#{name}(#{method.parameter_types}) from #{mapped_type}"
         return method
       end
-        
-      def phase1(mapped_params, by_name_and_arity)
-        # TODO for now this just tries immediate supertypes, which
-        # obviously wouldn't work on primitives; need to implement JLS
-        # method selection here
-        by_name_and_arity.select do |m|
-          method_params = m.argument_types
-          each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
+      
+      def find_jls(mapped_type, name, mapped_params, meta)
+        if meta
+          all_methods = mapped_type.declared_class_methods
+        else
+          all_methods = []
+          cls = mapped_type
+          while cls
+            all_methods += cls.declared_instance_methods
+            cls = cls.superclass
+          end
         end
+        by_name = all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
+        by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
+
+        phase1(mapped_params, by_name_and_arity) ||
+          phase2(mapped_params, by_name) ||
+          phase3(mapped_params, by_name)
+      end
+        
+      def phase1(mapped_params, potentials)
+        potentials.inject(nil) do |current, potential|
+          method_params = potential.argument_types
+          
+          # exact match always wins
+          return potential if each_is_exact(mapped_params, method_params)
+          
+          # otherwise, check for potential match and compare to current
+          if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
+            if current
+              current = potential if is_more_specific?(potential, current)
+            else
+              current = potential
+            end
+          end
+          
+          # this gives up on first potential; no specific check yet
+          return current if current
+          
+          current
+        end
+      end
+      
+      def phase2(mapped_params, potentials)
+        nil
+      end
+      
+      def phase3(mapped_params, potentials)
+        nil
+      end
+      
+      def each_is_exact(incoming, target)
+        incoming.each_with_index do |in_type, i|
+          target_type = target[i]
+          
+          # exact match
+          return false unless target_type == in_type
+        end
+        return true
       end
       
       def each_is_exact_or_subtype_or_convertible(incoming, target)
@@ -76,7 +110,7 @@ module Duby
           end
           
           # object type is assignable
-          next if target_type.assignable_from? in_type
+          return false unless target_type.assignable_from? in_type
         end
         return true
       end
