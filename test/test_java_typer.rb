@@ -49,7 +49,7 @@ class TestJavaTyper < Test::Unit::TestCase
     assert_equal(byte_array, return_type)
   end
   
-  def test_overtyped_method
+  def test_simple_overtyped_method
     string_meta = AST::type('java.lang.String', false, true)
     string = AST::type('java.lang.String')
     
@@ -71,6 +71,22 @@ class TestJavaTyper < Test::Unit::TestCase
   end
   
   include Duby::JVM::MethodLookup
+  
+  def test_complex_overtyped_method
+    printstream = java.io.PrintStream.java_class
+    object = java.lang.Object.java_class
+    string = java.lang.String.java_class
+    
+    # best match is Object
+    method = find_method(printstream, "println", [object], false)
+    assert_match('println(java.lang.Object)', method.to_s)
+    # best match is String
+    method = find_method(printstream, "println", [string], false)
+    assert_match('println(java.lang.String)', method.to_s)
+    # only match is Object
+    method = find_method(printstream, "println", [printstream], false)
+    assert_match('println(java.lang.Object)', method.to_s)
+  end
   
   def test_primitive_convertible
     boolean = Java::boolean.java_class

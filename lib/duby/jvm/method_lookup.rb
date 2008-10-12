@@ -1,6 +1,9 @@
 module Duby
   module JVM
     module MethodLookup
+      # dummy log; it's expected the inclusion target will have it
+      def log(msg); end
+      
       def find_method(mapped_type, name, mapped_params, meta)
         if name == 'new'
           if meta
@@ -61,6 +64,7 @@ module Duby
           return potential if each_is_exact(mapped_params, method_params)
           
           # otherwise, check for potential match and compare to current
+          # TODO: missing ambiguity check; picks last method of equal specificity
           if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
             if current
               current = potential if is_more_specific?(potential, current)
@@ -69,11 +73,12 @@ module Duby
             end
           end
           
-          # this gives up on first potential; no specific check yet
-          return current if current
-          
           current
         end
+      end
+      
+      def is_more_specific(potential, current)
+        each_is_exact_or_subtype_or_convertible(potential, current)
       end
       
       def phase2(mapped_params, potentials)
