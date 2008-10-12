@@ -19,27 +19,26 @@ module Duby
           end
         rescue NameError
           unless constructor
-            log "Failed to locate method #{mapped_type}.#{name}(#{mapped_params})"
             # exact args failed, do a deeper search
-            # TODO for now this just tries immediate supertypes, which
-            # obviously wouldn't work on primitives; need to implement JLS
-            # method selection here
-            mapped_params.size.times do |i|
-              tmp_args = mapped_params.dup
-              while tmp_args[i] != Java::java.lang.Object.java_class
-                tmp_args[i] = tmp_args[i].superclass
+            log "Failed to locate method #{mapped_type}.#{name}(#{mapped_params})"
 
-                log "Trying #{mapped_type}.#{name}(#{tmp_args})"
-                if constructor
-                  method = mapped_type.constructor(*tmp_args) rescue nil
-                else
-                  method = mapped_type.java_method(name, *tmp_args) rescue nil
-                end
-
-                break if method
+            if meta
+              all_methods = mapped_type.declared_class_methods
+            else
+              all_methods = []
+              cls = mapped_type
+              while cls
+                all_methods += cls.declared_instance_methods
+                cls = cls.superclass
               end
-              break if method
             end
+            by_name = all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
+            by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
+            
+            applicable_methods = phase1(mapped_params, by_name_and_arity)
+            
+            # dumb, pick first applicable after phase 1
+            method = applicable_methods[0]
           end
           unless method
             log "Failed to locate method #{name}(#{mapped_params}) on #{mapped_type}"
@@ -49,6 +48,29 @@ module Duby
 
         log "Found method #{method.declaring_class}.#{name}(#{method.parameter_types}) from #{mapped_type}"
         return method
+      end
+        
+      def phase1(mapped_params, by_name_and_arity)
+        # TODO for now this just tries immediate supertypes, which
+        # obviously wouldn't work on primitives; need to implement JLS
+        # method selection here
+        applicable_methods = []
+
+        by_name_and_arity.each do |m|
+          method_params = m.argument_types
+          if each_is_exact_or_subtype(mapped_params, method_params)
+            applicable_methods << m
+          end
+        end
+      end
+      
+      def each_is_exact_or_subtype(incoming, target)
+        incoming.each_with_index do |in_type, i|
+          target_type = target[i]
+          return false if target_type.primitive? || in_type.primitive? && target_type != in_type
+          return false unless target_type.assignable_from? in_type
+        end
+        return true
       end
     end
   end
