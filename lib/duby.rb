@@ -2,8 +2,14 @@ require 'duby/transform'
 require 'duby/ast'
 require 'duby/typer'
 require 'duby/compiler'
+begin
+  require 'jvmscript'
+rescue LoadError
+  $: << File.dirname(__FILE__) + '/../../jvmscript/lib'
+  require 'jvmscript'
+end
 require 'duby/jvm_compiler'
-Dir.open(File.dirname(__FILE__) + "/duby/plugin").each {|file| require "duby/plugin/#{file}" if file =~ /\.rb$/}
+Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
 module Duby
