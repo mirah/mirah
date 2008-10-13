@@ -189,29 +189,7 @@ module Duby
         # this is ugly...need a better way to abstract the idea of compiling a
         # conditional branch while still fitting into JVM opcodes
         predicate = iff.condition.predicate
-        case iff.condition.predicate
-        when AST::Call
-          case predicate.target.inferred_type
-          when AST.type(:fixnum)
-            # fixnum conditional, so we need to use JVM opcodes
-            case predicate.parameters[0].inferred_type
-            when AST.type(:fixnum)
-              # fixnum on fixnum, easy
-              case predicate.name
-              when '<'
-                predicate.target.compile(self)
-                predicate.parameters[0].compile(self)
-                @method.if_icmpge(elselabel)
-              else
-                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
-              end
-            else
-              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
-            end
-          else
-            raise "Unknown " + predicate.target.inferred_type + " on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
-          end
-        end
+        jump_if_not(predicate, elselabel)
 
         iff.body.compile(self)
 
