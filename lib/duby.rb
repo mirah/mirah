@@ -31,6 +31,29 @@ module Duby
       main_method.invoke(nil, [args.to_java(:string)].to_java)
     }
   end
+  
+  def self.compile(filename, *args)
+    java.lang.System.set_property("jruby.duby.enabled", "true")
+    
+    if filename == '-e'
+      filename = 'dash_e'
+      ast = Duby::AST.parse(args[0])
+    else
+      ast = Duby::AST.parse(File.read(filename))
+    end
+
+    typer = Duby::Typer::Simple.new(:script)
+    ast.infer(typer)
+    typer.resolve(true)
+
+    compiler = Duby::Compiler::JVM.new(filename)
+    ast.compile(compiler)
+
+    compiler.generate {|filename, builder|
+      bytes = builder.generate
+      File.open(filename, 'w') {|f| f.write(bytes)}
+    }
+  end
 end
 
 if __FILE__ == $0

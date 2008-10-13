@@ -1,0 +1,7 @@
+#!/usr/bin/env jruby
+$: << File.dirname(File.dirname(__FILE__)) + '/lib'
+require 'duby'
+
+if __FILE__ == $0
+  Duby.compile(ARGV[0], *ARGV[1..-1])
+end

@@ -111,5 +111,11 @@ module Duby
         compiler.call(self)
       end
     end
+    
+    class Loop
+      def compile(compiler)
+        compiler.loop(self)
+      end
+    end
   end
 end

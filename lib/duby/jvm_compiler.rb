@@ -224,6 +224,93 @@ module Duby
         donelabel.set!
       end
       
+      def loop(loop)
+        donelabel = @method.label
+        beforelabel = @method.label
+        
+        # TODO: not checking "check first" or "negative"
+        predicate = loop.condition.predicate
+
+        beforelabel.set!        
+        if loop.check_first
+          if loop.negative
+            # if condition, exit
+            jump_if(predicate, donelabel)
+          else
+            # if not condition, exit
+            jump_if_not(predicate, donelabel)
+          end
+        end
+        
+        loop.body.compile(self)
+        
+        unless loop.check_first
+          if loop.negative
+            # if not condition, continue
+            jump_if_not(predicate, beforelabel)
+          else
+            # if condition, continue
+            jump_if(predicate, beforelabel)
+          end
+        else
+          @method.goto(beforelabel)
+        end
+        
+        donelabel.set!
+      end
+      
+      def jump_if(predicate, target)
+        case predicate
+        when AST::Call
+          case predicate.target.inferred_type
+          when AST.type(:fixnum)
+            # fixnum conditional, so we need to use JVM opcodes
+            case predicate.parameters[0].inferred_type
+            when AST.type(:fixnum)
+              # fixnum on fixnum, easy
+              case predicate.name
+              when '<'
+                predicate.target.compile(self)
+                predicate.parameters[0].compile(self)
+                @method.if_icmplt(target)
+              else
+                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
+              end
+            else
+              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+            end
+          else
+            raise "Unknown " + predicate.target.inferred_type + " on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+          end
+        end
+      end
+      
+      def jump_if_not(predicate, target)
+        case predicate
+        when AST::Call
+          case predicate.target.inferred_type
+          when AST.type(:fixnum)
+            # fixnum conditional, so we need to use JVM opcodes
+            case predicate.parameters[0].inferred_type
+            when AST.type(:fixnum)
+              # fixnum on fixnum, easy
+              case predicate.name
+              when '<'
+                predicate.target.compile(self)
+                predicate.parameters[0].compile(self)
+                @method.if_icmpge(target)
+              else
+                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
+              end
+            else
+              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+            end
+          else
+            raise "Unknown " + predicate.target.inferred_type + " on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+          end
+        end
+      end
+      
       def call(call)
         call_compilers[call.target.inferred_type].call(self, call)
       end

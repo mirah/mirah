@@ -104,6 +104,18 @@ module Duby
       def to_s
         "Loop(check_first = #{check_first?}, negative = #{negative?})"
       end
+      
+      def infer(typer)
+        unless resolved?
+          @inferred_type = body.infer(typer)
+          
+          condition.infer(typer)
+          
+          resolved! if @inferred_type && condition.resolved?
+        end
+        
+        @inferred_type
+      end
     end
 
     class Not < Node
