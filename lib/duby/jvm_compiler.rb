@@ -102,10 +102,18 @@ module Duby
             method = find_method(mapped_target, call.name, mapped_params, meta)
             call.target.compile(compiler)
             call.parameters.each {|param| param.compile(compiler)}
-            compiler.method.invokevirtual(
-              compiler.mapped_type(call.target.inferred_type),
-              call.name,
-              [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+            target_type = compiler.mapped_type(call.target.inferred_type)
+            if target_type.interface?
+              compiler.method.invokeinterface(
+                target_type,
+                call.name,
+                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+            else
+              compiler.method.invokevirtual(
+                target_type,
+                call.name,
+                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+            end
           end
         end
       end
@@ -258,7 +266,9 @@ module Duby
               raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
             end
           else
-            raise "Unknown " + predicate.target.inferred_type + " on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+            # try to compile as a normal call
+            predicate.compile(self)
+            @method.ifne(target)
           end
         end
       end
@@ -284,7 +294,9 @@ module Duby
               raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
             end
           else
-            raise "Unknown " + predicate.target.inferred_type + " on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+            # try to compile as a normal call
+            predicate.compile(self)
+            @method.ifeq(target)
           end
         end
       end
