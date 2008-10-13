@@ -88,6 +88,16 @@ class TestJavaTyper < Test::Unit::TestCase
     assert_match('println(java.lang.Object)', method.to_s)
   end
   
+  def test_is_more_specific
+    object = java.lang.Object.java_class
+    charseq = java.lang.CharSequence.java_class
+    string = java.lang.String.java_class
+    
+    assert @java_typer.is_more_specific?([string], [object])
+    assert @java_typer.is_more_specific?([charseq], [object])
+    assert @java_typer.is_more_specific?([string], [charseq])
+  end
+  
   def test_primitive_convertible
     boolean = Java::boolean.java_class
     byte = Java::byte.java_class

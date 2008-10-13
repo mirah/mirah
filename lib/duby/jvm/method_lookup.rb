@@ -67,7 +67,7 @@ module Duby
           # TODO: missing ambiguity check; picks last method of equal specificity
           if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
             if current
-              current = potential if is_more_specific?(potential, current)
+              current = potential if is_more_specific?(potential.argument_types, current.argument_types)
             else
               current = potential
             end
@@ -77,7 +77,7 @@ module Duby
         end
       end
       
-      def is_more_specific(potential, current)
+      def is_more_specific?(potential, current)
         each_is_exact_or_subtype_or_convertible(potential, current)
       end
       
