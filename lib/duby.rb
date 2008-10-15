@@ -16,15 +16,7 @@ module Duby
   def self.run(*args)
     java.lang.System.set_property("jruby.duby.enabled", "true")
     
-    case args[0]
-    when '-V'
-      Duby::Typer.verbose = true
-      Duby::AST.verbose = true
-      Duby::Compiler::JVM.verbose = true
-      args.shift
-    else
-      break
-    end
+    process_flags!(args)
     filename = args.shift
     
     if filename == '-e'
@@ -52,17 +44,8 @@ module Duby
   def self.compile(*args)
     java.lang.System.set_property("jruby.duby.enabled", "true")
     
-    case args[0]
-    when '-V'
-      Duby::Typer.verbose = true
-      Duby::AST.verbose = true
-      Duby::Compiler::JVM.verbose = true
-      args.shift
-    else
-      break
-    end
+    process_flags!(args)
     filename = args.shift
-    
     
     if filename == '-e'
       filename = 'dash_e'
@@ -82,6 +65,20 @@ module Duby
       bytes = builder.generate
       File.open(filename, 'w') {|f| f.write(bytes)}
     }
+  end
+  
+  def self.process_flags!(args)
+    while args.length > 0
+      case args[0]
+      when '-V'
+        Duby::Typer.verbose = true
+        Duby::AST.verbose = true
+        Duby::Compiler::JVM.verbose = true
+        args.shift
+      else
+        break
+      end
+    end
   end
 end
 

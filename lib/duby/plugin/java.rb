@@ -57,7 +57,7 @@ module Duby
           end
           
           method = find_method(java_type, name, arg_types, mapped_target.meta?)
-          puts method
+          
           if method
             if Java::JavaConstructor === method
               result = java_to_duby(method.declaring_class)
