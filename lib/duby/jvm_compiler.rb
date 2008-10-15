@@ -28,9 +28,9 @@ module Duby
       class MathCompiler
         include JVMLogger
         
-        def call(compiler, call)
-          call.target.compile(compiler)
-          call.parameters.each {|param| param.compile(compiler)}
+        def call(compiler, call, expression)
+          call.target.compile(compiler, true)
+          call.parameters.each {|param| param.compile(compiler, true)}
 
           target_type = call.target.inferred_type
           case target_type
@@ -41,10 +41,7 @@ module Duby
             when '+'
               compiler.method.iadd
             else
-              compiler.method.invokevirtual(
-                compiler.mapped_type(call.target.inferred_type),
-                call.name,
-                [compiler.mapped_type(call.inferred_type), *call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}])
+              raise "Unknown math operation #{call.name} on fixnum"
             end
           when AST.type(:long)
             case call.name
@@ -53,17 +50,14 @@ module Duby
             when '+'
               compiler.method.ladd
             else
-              compiler.method.invokevirtual(
-                compiler.mapped_type(call.target.inferred_type),
-                call.name,
-                [compiler.mapped_type(call.inferred_type), *call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}])
+              raise "Unknown math operation #{call.name} on long"
             end
           else
-            compiler.method.invokevirtual(
-              compiler.mapped_type(call.target.inferred_type),
-              call.name,
-              [compiler.mapped_type(call.inferred_type), *call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}])
+            raise "Unknown math operation #{call.name} on #{target_type}"
           end
+          
+          # math expressions always return a value, so if we're not an expression we pop the result
+          compiler.method.pop unless expression
         end
       end
 
@@ -71,7 +65,7 @@ module Duby
         include JVMLogger
         include Duby::JVM::MethodLookup
         
-        def call(compiler, call)
+        def call(compiler, call, expression)
           meta = call.target.inferred_type.meta?
           
           mapped_target = compiler.mapped_type(call.target.inferred_type)
@@ -85,29 +79,31 @@ module Duby
               constructor = find_method(mapped_target, call.name, mapped_params, meta)
               compiler.method.new mapped_target
               compiler.method.dup
-              call.parameters.each {|param| param.compile(compiler)}
+              call.parameters.each {|param| param.compile(compiler, true)}
               compiler.method.invokespecial(
                 mapped_target,
                 "<init>",
                 [nil, *constructor.parameter_types])
             else
               method = find_method(mapped_target, call.name, mapped_params, meta)
-              call.parameters.each {|param| param.compile(compiler)}
+              call.parameters.each {|param| param.compile(compiler, true)}
               compiler.method.invokestatic(
                 mapped_target,
                 call.name,
                 [compiler.mapped_type(call.inferred_type), *method.parameter_types])
-              # void static methods return null, for consistency
+              # if expression, void static methods return null, for consistency
               # TODO: inference phase needs to track that signature is void but actual type is null object
-              compiler.method.aconst_null if call.inferred_type == AST::TypeReference::NoType
+              compiler.method.aconst_null if expression && call.inferred_type == AST::TypeReference::NoType
             end
           else
             method = find_method(mapped_target, call.name, mapped_params, meta)
-            call.target.compile(compiler)
-            # void methods return the called object, for consistency and chaining
+            call.target.compile(compiler, true)
+            
+            # if expression, void methods return the called object, for consistency and chaining
             # TODO: inference phase needs to track that signature is void but actual type is callee
-            compiler.method.dup if call.inferred_type == AST::TypeReference::NoType
-            call.parameters.each {|param| param.compile(compiler)}
+            compiler.method.dup if expression && call.inferred_type == AST::TypeReference::NoType
+            
+            call.parameters.each {|param| param.compile(compiler, true)}
             target_type = compiler.mapped_type(call.target.inferred_type)
             if target_type.interface?
               compiler.method.invokeinterface(
@@ -143,8 +139,8 @@ module Duby
         @class = @file.public_class(filename.split('.')[0])
       end
 
-      def compile(ast)
-        ast.compile(self)
+      def compile(ast, expression)
+        ast.compile(self, expression)
         log "Compilation successful!"
       end
 
@@ -155,7 +151,7 @@ module Duby
 
         @method.start
 
-        body.compile(self)
+        body.compile(self, false)
 
         @method.returnvoid
         @method.stop
@@ -173,7 +169,8 @@ module Duby
 
         @method.start
         
-        body.compile(self)
+        expression = signature[:return] != AST.type(:notype)
+        body.compile(self, expression)
 
         case signature[:return]
         when AST.type(:notype)
@@ -196,7 +193,7 @@ module Duby
         # declare local vars for arguments here
       end
       
-      def branch(iff)
+      def branch(iff, expression)
         elselabel = @method.label
         donelabel = @method.label
         
@@ -205,25 +202,30 @@ module Duby
         predicate = iff.condition.predicate
         jump_if_not(predicate, elselabel)
 
-        iff.body.compile(self)
+        iff.body.compile(self, expression)
 
         @method.goto(donelabel)
 
         elselabel.set!
 
-        iff.else.compile(self) if iff.else
+        iff.else.compile(self, expression) if iff.else
 
         donelabel.set!
       end
       
-      def loop(loop)
+      def loop(loop, expression)
         donelabel = @method.label
         beforelabel = @method.label
         
         # TODO: not checking "check first" or "negative"
         predicate = loop.condition.predicate
+        
+        # if an expression, make sure it will at least result in a null
+        # TODO: make this result appropriate for primitive types as well
+        @method.aconst_null if expression
 
-        beforelabel.set!        
+        beforelabel.set!
+        
         if loop.check_first
           if loop.negative
             # if condition, exit
@@ -234,7 +236,13 @@ module Duby
           end
         end
         
-        loop.body.compile(self)
+        # if expression, before each entry into the loop, pop previous result (or default null from above)
+        # this leaves a result on the stack at the end
+        @method.pop if expression
+        
+        loop.body.compile(self, expression)
+        
+        # if not an expression, we don't need to pop result each time
         
         unless loop.check_first
           if loop.negative
@@ -262,8 +270,8 @@ module Duby
               # fixnum on fixnum, easy
               case predicate.name
               when '<'
-                predicate.target.compile(self)
-                predicate.parameters[0].compile(self)
+                predicate.target.compile(self, true)
+                predicate.parameters[0].compile(self, true)
                 @method.if_icmplt(target)
               else
                 raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
@@ -273,7 +281,7 @@ module Duby
             end
           else
             # try to compile as a normal call
-            predicate.compile(self)
+            predicate.compile(self, true)
             @method.ifne(target)
           end
         end
@@ -290,8 +298,8 @@ module Duby
               # fixnum on fixnum, easy
               case predicate.name
               when '<'
-                predicate.target.compile(self)
-                predicate.parameters[0].compile(self)
+                predicate.target.compile(self, true)
+                predicate.parameters[0].compile(self, true)
                 @method.if_icmpge(target)
               else
                 raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
@@ -301,26 +309,41 @@ module Duby
             end
           else
             # try to compile as a normal call
-            predicate.compile(self)
+            predicate.compile(self, true)
             @method.ifeq(target)
           end
         end
       end
       
-      def call(call)
-        call_compilers[call.target.inferred_type].call(self, call)
+      def call(call, expression)
+        call_compilers[call.target.inferred_type].call(self, call, expression)
       end
       
       def call_compilers
         @call_compilers ||= {}
       end
       
-      def self_call(fcall)
-        fcall.parameters.each {|param| param.compile(self)}
+      def self_call(fcall, expression)
+        fcall.parameters.each {|param| param.compile(self, true)}
+        # TODO: self calls for instance methods
         @method.invokestatic(
           @method.this,
           fcall.name,
           [mapped_type(fcall.inferred_type), *fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+        # if expression, we need something on the stack
+        if expression
+          # if void return...
+          if mapped_type(fcall.inferred_type) == Java::void
+            # push a null?
+            @method.aconst_null
+          end
+        else
+          # if not void return...
+          if mapped_type(fcall.inferred_type) == Java::void
+            # pop result
+            @method.pop
+          end
+        end
       end
       
       def local(name, type)
@@ -334,8 +357,12 @@ module Duby
         end
       end
 
-      def local_assign(name, type)
+      def local_assign(name, type, expression)
         yield
+        
+        # if expression, dup the value we're assigning
+        @method.dup if expression
+        
         case type
         when AST.type(:fixnum)
           @method.istore(@method.local(name))
@@ -388,7 +415,7 @@ module Duby
 
       def println(printline)
         @method.getstatic System, "out", PrintStream
-        printline.parameters.each {|param| param.compile(self)}
+        printline.parameters.each {|param| param.compile(self, true)}
         mapped_params = printline.parameters.map {|param| mapped_type(param.inferred_type)}
         method = find_method(PrintStream.java_class, "println", mapped_params, false)
         if (method)

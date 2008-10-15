@@ -13,7 +13,7 @@ class TestAst < Test::Unit::TestCase
       @calls = []
     end
     def compile(ast)
-      ast.compile(self)
+      ast.compile(self, true)
     end
     
     def method_missing(sym, *args, &block)
@@ -29,7 +29,7 @@ class TestAst < Test::Unit::TestCase
   def test_fixnum
     new_ast = AST.parse("1").body
     
-    new_ast.compile(@compiler)
+    new_ast.compile(@compiler, true)
     
     assert_equal([[:fixnum, 1]], @compiler.calls)
   end
@@ -37,7 +37,7 @@ class TestAst < Test::Unit::TestCase
   def test_string
     new_ast = AST.parse("'foo'").body
     
-    new_ast.compile(@compiler)
+    new_ast.compile(@compiler, true)
     
     assert_equal([[:string, "foo"]], @compiler.calls)
   end
@@ -45,7 +45,7 @@ class TestAst < Test::Unit::TestCase
   def test_float
     new_ast = AST.parse("1.0").body
     
-    new_ast.compile(@compiler)
+    new_ast.compile(@compiler, true)
     
     assert_equal([[:float, 1.0]], @compiler.calls)
   end
@@ -53,7 +53,7 @@ class TestAst < Test::Unit::TestCase
   def test_boolean
     new_ast = AST.parse("true").body
     
-    new_ast.compile(@compiler)
+    new_ast.compile(@compiler, true)
     
     assert_equal([[:boolean, true]], @compiler.calls)
   end
@@ -61,18 +61,18 @@ class TestAst < Test::Unit::TestCase
   def test_local
     new_ast = AST.parse("a = 1; a").body
     
-    new_ast.compile(@compiler)
+    new_ast.compile(@compiler, true)
     
-    assert_equal([[:local_assign, "a", nil], [:fixnum, 1], [:local, "a", nil]], @compiler.calls)
+    assert_equal([[:local_assign, "a", nil, false], [:fixnum, 1], [:local, "a", nil]], @compiler.calls)
   end
   
   def test_local_typed
     new_ast = AST.parse("a = 1; a").body
     typer = Typer::Simple.new(:bar)
     new_ast.infer(typer)
-    new_ast.compile(@compiler)
+    new_ast.compile(@compiler, true)
     
-    assert_equal([[:local_assign, "a", AST.type(:fixnum)], [:fixnum, 1], [:local, "a", AST.type(:fixnum)]], @compiler.calls)
+    assert_equal([[:local_assign, "a", AST.type(:fixnum), false], [:fixnum, 1], [:local, "a", AST.type(:fixnum)]], @compiler.calls)
   end
 =begin
   def test_args

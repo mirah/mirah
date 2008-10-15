@@ -31,7 +31,7 @@ module Duby
     typer.resolve(true)
 
     compiler = Duby::Compiler::JVM.new(filename)
-    ast.compile(compiler)
+    ast.compile(compiler, false)
 
     compiler.generate {|filename, builder|
       bytes = builder.generate
@@ -59,7 +59,7 @@ module Duby
     typer.resolve(true)
 
     compiler = Duby::Compiler::JVM.new(filename)
-    ast.compile(compiler)
+    ast.compile(compiler, false)
 
     compiler.generate {|filename, builder|
       bytes = builder.generate
