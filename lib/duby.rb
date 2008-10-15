@@ -13,8 +13,19 @@ Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if
 require 'jruby'
 
 module Duby
-  def self.run(filename, *args)
+  def self.run(*args)
     java.lang.System.set_property("jruby.duby.enabled", "true")
+    
+    case args[0]
+    when '-V'
+      Duby::Typer.verbose = true
+      Duby::AST.verbose = true
+      Duby::Compiler::JVM.verbose = true
+      args.shift
+    else
+      break
+    end
+    filename = args.shift
     
     if filename == '-e'
       filename = 'dash_e'
@@ -38,8 +49,20 @@ module Duby
     }
   end
   
-  def self.compile(filename, *args)
+  def self.compile(*args)
     java.lang.System.set_property("jruby.duby.enabled", "true")
+    
+    case args[0]
+    when '-V'
+      Duby::Typer.verbose = true
+      Duby::AST.verbose = true
+      Duby::Compiler::JVM.verbose = true
+      args.shift
+    else
+      break
+    end
+    filename = args.shift
+    
     
     if filename == '-e'
       filename = 'dash_e'
