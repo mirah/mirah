@@ -97,10 +97,16 @@ module Duby
                 mapped_target,
                 call.name,
                 [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+              # void static methods return null, for consistency
+              # TODO: inference phase needs to track that signature is void but actual type is null object
+              compiler.method.aconst_null if call.inferred_type == AST::TypeReference::NoType
             end
           else
             method = find_method(mapped_target, call.name, mapped_params, meta)
             call.target.compile(compiler)
+            # void methods return the called object, for consistency and chaining
+            # TODO: inference phase needs to track that signature is void but actual type is callee
+            compiler.method.dup if call.inferred_type == AST::TypeReference::NoType
             call.parameters.each {|param| param.compile(compiler)}
             target_type = compiler.mapped_type(call.target.inferred_type)
             if target_type.interface?

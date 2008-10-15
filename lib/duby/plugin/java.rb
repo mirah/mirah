@@ -9,6 +9,7 @@ module Duby
       
       def initialize
         type_mapper[AST::type(:string)] = AST::type("java.lang.String")
+        type_mapper[AST::type(:fixnum)] = AST::type("int")
       end
       
       def name
@@ -24,6 +25,8 @@ module Duby
       end
       
       def java_to_duby(java_class)
+        return AST::TypeReference::NoType unless java_class
+        
         if java_class.array?
           AST::type(java_class.component_type.name, true)
         else
@@ -54,7 +57,7 @@ module Duby
           end
           
           method = find_method(java_type, name, arg_types, mapped_target.meta?)
-
+          puts method
           if method
             if Java::JavaConstructor === method
               result = java_to_duby(method.declaring_class)
