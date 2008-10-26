@@ -8,7 +8,7 @@ rescue LoadError
   $: << File.dirname(__FILE__) + '/../../jvmscript/lib'
   require 'jvmscript'
 end
-require 'duby/jvm_compiler'
+require 'duby/jvm/compiler'
 Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
