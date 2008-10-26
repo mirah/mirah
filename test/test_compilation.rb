@@ -74,7 +74,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_equal([[:local_assign, "a", AST.type(:fixnum), false], [:fixnum, 1], [:local, "a", AST.type(:fixnum)]], @compiler.calls)
   end
-=begin
+
   def test_args
     new_ast = AST.parse("def foo(a, b = 1, *c, &d); end").body
     arguments = new_ast.arguments
@@ -404,5 +404,4 @@ class TestAst < Test::Unit::TestCase
     assert_not_nil(new_ast)
     assert(AST::Fixnum === new_ast)
   end
-=end
 end

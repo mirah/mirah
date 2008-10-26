@@ -4,7 +4,7 @@ require 'rake/rdoctask'
 
 task :default => :test
 
-Rake::TestTask.new do |t|
+Rake::TestTask.new :test do |t|
   t.libs << "lib"
   t.libs << "../jvmscript/lib"
   t.test_files = FileList["test/**/*.rb"]
