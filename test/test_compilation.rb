@@ -1,5 +1,5 @@
 require 'duby'
-require 'duby/jvm_compiler'
+require 'duby/compiler'
 require 'test/unit'
 require 'jruby'
 
