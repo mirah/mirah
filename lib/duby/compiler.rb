@@ -143,5 +143,11 @@ module Duby
         compiler.loop(self, expression)
       end
     end
+
+    class ClassDefinition
+      def compile(compiler, expression)
+        compiler.define_class(self, expression)
+      end
+    end
   end
 end

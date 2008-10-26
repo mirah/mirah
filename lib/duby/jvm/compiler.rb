@@ -120,11 +120,12 @@ module Duby
         end
       end
       
-      attr_accessor :filename, :src, :method
+      attr_accessor :filename, :src, :method, :static
 
       def initialize(filename)
         @filename = filename
         @src = ""
+        @static = true
 
         self.type_mapper[AST.type(:fixnum)] = Java::int.java_class
         self.type_mapper[AST.type(:long)] = Java::long.java_class
@@ -163,7 +164,17 @@ module Duby
       
       def define_method(name, signature, args, body)
         arg_types = args.args ? args.args.map {|arg| mapped_type(arg.inferred_type)} : []
-        oldmethod, @method = @method, @class.public_static_method(name.to_s, mapped_type(signature[:return]), *arg_types)
+        if @static
+          oldmethod, @method = @method, @class.public_static_method(name.to_s, mapped_type(signature[:return]), *arg_types)
+        else
+          if name == "initialize"
+            oldmethod, @method = @method, @class.public_constructor(*arg_types)
+            @method.aload 0
+            @method.invokespecial @method.object, "<init>", [@method.void]
+          else
+            oldmethod, @method = @method, @class.public_method(name.to_s, mapped_type(signature[:return]), *arg_types)
+          end
+        end
 
         log "Starting new method #{name}(#{arg_types})"
 
@@ -187,6 +198,14 @@ module Duby
         @method = oldmethod
 
         log "Method #{name}(#{arg_types}) complete!"
+      end
+
+      def define_class(class_def, expression)
+        prev_class, @class = @class, @file.public_class(class_def.name)
+        old_static, @static = @static, false
+        class_def.body.compile(self, false)
+        @class = prev_class
+        @static = old_static
       end
       
       def declare_argument(name, type)
