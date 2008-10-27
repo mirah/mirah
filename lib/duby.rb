@@ -34,14 +34,13 @@ module Duby
     ast.compile(compiler, false)
 
     main_method = nil
-    compiler.generate {|outfile, builder|
+    compiler.generate do |outfile, builder|
       bytes = builder.generate
       cls = JRuby.runtime.jruby_class_loader.define_class(builder.class_name.gsub(/\//, '.'), bytes.to_java_bytes)
-      if
-        outfile =~ /#{filename}.class/
-        main_method ||= cls.get_method("main", [java.lang.String[].java_class].to_java(java.lang.Class))
-      end
-    }
+      # TODO: using first main; find correct one
+      main_method ||= cls.get_method("main", [java.lang.String[].java_class].to_java(java.lang.Class))
+    end
+    
     if main_method
       main_method.invoke(nil, [args.to_java(:string)].to_java)
     else
