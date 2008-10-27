@@ -149,5 +149,21 @@ module Duby
         compiler.define_class(self, expression)
       end
     end
+
+    class FieldAssignment
+      def compile(compiler, expression)
+        compiler.field_assign(name, inferred_type, expression) {
+          value.compile(compiler, true)
+        }
+      end
+    end
+
+    class Field
+      def compile(compiler, expression)
+        if expression
+          compiler.field(name, inferred_type)
+        end
+      end
+    end
   end
 end

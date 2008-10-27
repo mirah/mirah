@@ -12,11 +12,7 @@ module Duby
         unless resolved?
           @inferred_type = predicate.infer(typer)
 
-          if @inferred_type
-            resolved!
-          else
-            typer.defer(self)
-          end
+          @inferred_type ? resolved! : typer.defer(self)
         end
 
         @inferred_type
@@ -111,7 +107,7 @@ module Duby
           
           condition.infer(typer)
           
-          resolved! if @inferred_type && condition.resolved?
+          (@inferred_type && condition.resolved?) ? resolved! : typer.defer(self)
         end
         
         @inferred_type

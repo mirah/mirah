@@ -1,10 +1,11 @@
 class Foo
   def initialize
     puts 'constructor'
+    @hello = 'Hello, '
   end
 
   def hello(a => :string)
-    puts 'Hello, '; puts a
+    puts @hello; puts a
   end
 end
 

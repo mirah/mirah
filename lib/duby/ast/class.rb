@@ -14,8 +14,10 @@ module Duby::AST
         @inferred_type ||= typer.define_type(name, superclass) do
           body.infer(typer)
         end
-        resolved! if @inferred_type
+        @inferred_type ? resolved! : typer.defer(self)
       end
+
+      @inferred_type
     end
   end
       

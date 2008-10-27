@@ -183,14 +183,18 @@ module Duby
         expression = signature[:return] != AST.type(:notype)
         body.compile(self, expression)
 
-        case signature[:return]
-        when AST.type(:notype)
+        if name == "initialize"
           @method.returnvoid
-        when AST.type(:fixnum)
-          @method.ireturn
         else
-          @method.aload 0
-          @method.areturn
+          case signature[:return]
+          when AST.type(:notype)
+            @method.returnvoid
+          when AST.type(:fixnum)
+            @method.ireturn
+          else
+            @method.aload 0
+            @method.areturn
+          end
         end
         
         @method.stop
@@ -400,6 +404,51 @@ module Duby
           @method.lstore(@method.local(name))
         else
           @method.astore(@method.local(name))
+        end
+      end
+
+      def field(name, type)
+        name = name[1..-1]
+
+        # load self object unless static
+        method.aload 0 unless static
+        
+        real_type = mapped_type(type)
+
+        if static
+          @method.getstatic(@class, name, real_type)
+        else
+          @method.getfield(@class, name, real_type)
+        end
+      end
+
+      def field_assign(name, type, expression)
+        name = name[1..-1]
+        
+        real_type = mapped_type(type)
+
+        if static
+          @class.private_static_field name, real_type
+        else
+          @class.private_field name, real_type
+        end
+
+        if expression
+          yield
+          @method.dup
+          unless static
+            method.aload 0
+            @method.swap
+          end
+        else
+          method.aload 0 unless static
+          yield
+        end
+
+        if static
+          @method.putstatic(@class, name, real_type)
+        else
+          @method.putfield(@class, name, real_type)
         end
       end
       

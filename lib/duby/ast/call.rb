@@ -17,11 +17,7 @@ module Duby::AST
         parameter_types = parameters.map {|param| param.infer(typer)}
         @inferred_type = typer.method_type(receiver_type, name, parameter_types)
           
-        if @inferred_type
-          resolved!
-        else
-          typer.defer(self)
-        end
+        @inferred_type ? resolved! : typer.defer(self)
       end
         
       @inferred_type
@@ -44,11 +40,7 @@ module Duby::AST
         parameter_types = parameters.map {|param| param.infer(typer)}
         @inferred_type = typer.method_type(receiver_type, name, parameter_types)
           
-        if @inferred_type
-          resolved!
-        else
-          typer.defer(self)
-        end
+        @inferred_type ? resolved! : typer.defer(self)
       end
         
       @inferred_type

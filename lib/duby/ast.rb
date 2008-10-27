@@ -63,6 +63,14 @@ module Duby
       end
 
       def resolved?; @resolved end
+
+      def resolve_if(typer)
+        unless resolved?
+          @inferred_type = yield
+          @inferred_type ? resolved! : typer.defer(self)
+        end
+        @inferred_type
+      end
     end
 
     module Named
@@ -133,7 +141,7 @@ module Duby
 
     class VoidType < Node; end
 
-    class TypeReference
+    class TypeReference < Node
       include Named
       attr_accessor :array
       alias array? array
@@ -141,6 +149,7 @@ module Duby
       alias meta? meta
       
       def initialize(name, array = false, meta = false)
+        super(nil)
         @name = name
         @array = array
         @meta = meta
