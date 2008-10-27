@@ -345,10 +345,17 @@ module Duby
       def self_call(fcall, expression)
         fcall.parameters.each {|param| param.compile(self, true)}
         # TODO: self calls for instance methods
-        @method.invokestatic(
-          @method.this,
-          fcall.name,
-          [mapped_type(fcall.inferred_type), *fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+        if @static
+          @method.invokestatic(
+            @method.this,
+            fcall.name,
+            [mapped_type(fcall.inferred_type), *fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+        else
+          @method.invokevirtual(
+            @method.this,
+            fcall.name,
+            [mapped_type(fcall.inferred_type), @fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+        end
         # if expression, we need something on the stack
         if expression
           # if void return...
