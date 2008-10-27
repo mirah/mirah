@@ -89,9 +89,9 @@ module Duby::AST
     attr_accessor :signature, :arguments, :body
         
     def initialize(parent, name)
-      @signature, @arguments, @body = children = yield(self)
+      super(parent, yield(self))
+      @signature, @arguments, @body = children
       @name = name
-      super(parent, children)
     end
         
     def infer(typer)

@@ -193,6 +193,12 @@ class TestAst < Test::Unit::TestCase
     assert(AST::Constant === new_ast.superclass)
     assert(AST::Body === new_ast.body)
     assert(AST::Fixnum === new_ast.body[0])
+
+    new_ast = AST.parse("class Foo < Bar; def foo; end; end").body
+
+    assert_not_nil(new_ast)
+    assert_equal("ClassDefinition(Foo)\n Constant(Bar)\n MethodDefinition(foo)\n  {:return=>Type(notype)}\n  Arguments", new_ast.inspect)
+    assert_equal(new_ast, new_ast.body.parent)
   end
   
   def test_defn

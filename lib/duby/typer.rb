@@ -82,21 +82,39 @@ module Duby
       def learn_local_type(scope, name, type)
         log "Learned local type under #{scope} : #{name} = #{type}"
 
-        get_local_type_hash(scope)[name] = known_types[type] || type
+        local_type_hash(scope)[name] = known_types[type] || type
       end
       
       def local_type(scope, name)
-        log "Retrieved local type in #{scope} : #{name} = #{get_local_type_hash(scope)[name]}"
+        log "Retrieved local type in #{scope} : #{name} = #{local_type_hash(scope)[name]}"
 
-        get_local_type_hash(scope)[name]
+        local_type_hash(scope)[name]
       end
       
       def local_types
         @local_types ||= {}
       end
       
-      def get_local_type_hash(scope)
+      def local_type_hash(scope)
         local_types[scope] ||= {}
+      end
+
+      def field_types
+        @field_types ||= {}
+      end
+
+      def field_type_hash(cls)
+        field_types[cls] ||= {}
+      end
+
+      def learn_field_type(cls, name, type)
+        log "Learned field type under #{cls} : #{name} = #{type}"
+        
+        field_type_hash(cls)[name] = type
+      end
+
+      def field_type(cls, name)
+        field_type_hash(cls)[name]
       end
       
       def learn_method_type(target_type, name, parameter_types, type)

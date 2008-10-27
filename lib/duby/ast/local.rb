@@ -15,12 +15,10 @@ module Duby::AST
     end
     
     def infer(typer)
-      unless @inferred_type
+      unless resolved?
         @inferred_type = typer.learn_local_type(scope, name, value.infer(typer))
 
-        unless @inferred_type
-          typer.defer(self)
-        end
+        @inferred_type ? resolved! : typer.defer(self)
       end
 
       @inferred_type
@@ -41,7 +39,7 @@ module Duby::AST
     end
     
     def infer(typer)
-      unless @inferred_type
+      unless resolved?
         @inferred_type = typer.local_type(scope, name)
 
         unless @inferred_type

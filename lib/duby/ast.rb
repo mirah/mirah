@@ -101,6 +101,16 @@ module Duby
       end
     end
 
+    module ClassScoped
+      def scope
+        @scope ||= begin
+          scope = parent
+          scope = scope.parent until ClassDefinition === scope
+          scope
+        end
+      end
+    end
+
     module Scope; end
 
     class Colon2 < Node; end
@@ -123,7 +133,7 @@ module Duby
 
     class VoidType < Node; end
 
-    class TypeReference < Node
+    class TypeReference
       include Named
       attr_accessor :array
       alias array? array
@@ -134,7 +144,6 @@ module Duby
         @name = name
         @array = array
         @meta = meta
-        super(nil)
       end
 
       def to_s
