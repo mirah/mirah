@@ -168,6 +168,14 @@ module Duby
         self
       end
 
+      def unmeta
+        TypeReference.new(name, array, false)
+      end
+
+      def meta
+        TypeReference.new(name, array, true)
+      end
+
       NoType = TypeReference.new(:notype)
     end
 

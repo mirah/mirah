@@ -110,21 +110,34 @@ module Duby
       end
       
       def method_type(target_type, name, parameter_types)
+        constructor = (name == 'new' && target_type.meta?)
+
+        if constructor
+          # constructor handled different from other methods
+          target_type = target_type.unmeta
+          name = "initialize"
+        end
+
         simple_type = get_method_type_hash(target_type, name, parameter_types)[:type]
-        
+
         if !simple_type
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} not found."
-          
+
           # allow plugins a go if we're in the inference phase
           simple_type = plugins do |plugin|
             plugin.method_type(self, target_type, name, parameter_types)
           end
-          
+        end
+
+        nil unless simple_type
+
+        if constructor
+          log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{target_type}"
+          target_type
         else
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{simple_type}"
+          simple_type
         end
-        
-        simple_type
       end
       
       def plugins

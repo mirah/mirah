@@ -203,7 +203,11 @@ module Duby
       def define_class(class_def, expression)
         prev_class, @class = @class, @file.public_class(class_def.name)
         old_static, @static = @static, false
+
+        type_mapper[AST::type(class_def.name)] = @class
+        type_mapper[AST::type(class_def.name, false, true)] = @class
         class_def.body.compile(self, false)
+        
         @class = prev_class
         @static = old_static
       end

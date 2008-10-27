@@ -33,12 +33,20 @@ module Duby
     compiler = Duby::Compiler::JVM.new(filename)
     ast.compile(compiler, false)
 
-    compiler.generate {|filename, builder|
+    main_method = nil
+    compiler.generate {|outfile, builder|
       bytes = builder.generate
       cls = JRuby.runtime.jruby_class_loader.define_class(builder.class_name.gsub(/\//, '.'), bytes.to_java_bytes)
-      main_method = cls.get_method("main", [java.lang.String[].java_class].to_java(java.lang.Class))
-      main_method.invoke(nil, [args.to_java(:string)].to_java)
+      if
+        outfile =~ /#{filename}.class/
+        main_method ||= cls.get_method("main", [java.lang.String[].java_class].to_java(java.lang.Class))
+      end
     }
+    if main_method
+      main_method.invoke(nil, [args.to_java(:string)].to_java)
+    else
+      puts "No main found"
+    end
   end
   
   def self.compile(*args)
