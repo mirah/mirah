@@ -136,7 +136,7 @@ module Duby
           self.call_compilers[AST.type(:long)] = MathCompiler.new
         self.call_compilers.default = InvokeCompiler.new
 
-        @file = ::Compiler::FileBuilder.new(filename)
+        @file = JVMScript::FileBuilder.new(filename)
         @class = @file.public_class(filename.split('.')[0])
       end
 

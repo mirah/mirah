@@ -823,7 +823,7 @@ end
 
 if $0 == __FILE__
   n = JRuby.parse(File.read(ARGV[0]), ARGV[0])
-  compiler = Compiler::FileBuilder.new(ARGV[0])
+  compiler = JVMScript::FileBuilder.new(ARGV[0])
   begin
     n.compile(compiler)
 
