@@ -9,41 +9,51 @@ module Duby
       
       def method_type(typer, target_type, name, parameter_types)
         return nil unless parameter_types.size == 1
-        
-        result = case target_type
-        when typer.fixnum_type
-          case name
-          when '-'
+
+        result = case name
+        when '-', '+', '*', '/', '%', '<<', '>>', '>>>', '&', '|', '^'
+          case target_type
+          when typer.fixnum_type
             case parameter_types[0]
             when typer.fixnum_type
               typer.fixnum_type
             else
               nil
             end
-          when '+'
+          when typer.float_type
+            case parameter_types[0]
+            when typer.float_type
+              typer.float_type
+            else
+              nil
+            end
+          else
+            nil
+          end
+        when '<<', '>>', '>>>', '&', '|', '^'
+          case target_type
+          when typer.fixnum_type
             case parameter_types[0]
             when typer.fixnum_type
               typer.fixnum_type
             else
               nil
             end
-          when '*'
+          else
+            nil
+          end
+        when '<', '>', '<=', '>=', '=='
+          case target_type
+          when typer.fixnum_type
             case parameter_types[0]
             when typer.fixnum_type
-              typer.fixnum_type
+              typer.boolean_type
             else
               nil
             end
-          when '/'
+          when typer.float_type
             case parameter_types[0]
-            when typer.fixnum_type
-              typer.fixnum_type
-            else
-              nil
-            end
-          when '<'
-            case parameter_types[0]
-            when typer.fixnum_type
+            when typer.float_type
               typer.boolean_type
             else
               nil

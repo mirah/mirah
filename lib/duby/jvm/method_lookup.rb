@@ -51,30 +51,49 @@ module Duby
         by_name = all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
 
-        phase1(mapped_params, by_name_and_arity) ||
+        phase1_methods = phase1(mapped_params, by_name_and_arity)
+
+        if phase1_methods.size > 1
+          raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{phase1_methods}"
+        end
+
+        phase1_methods[0] ||
           phase2(mapped_params, by_name) ||
           phase3(mapped_params, by_name)
       end
         
       def phase1(mapped_params, potentials)
-        potentials.inject(nil) do |current, potential|
+        # cycle through methods looking for more specific matches; gather matches of equal specificity
+        methods = potentials.inject([]) do |currents, potential|
           method_params = potential.argument_types
           
-          # exact match always wins
+          # exact match always wins; duplicates not possible
           return potential if each_is_exact(mapped_params, method_params)
           
           # otherwise, check for potential match and compare to current
           # TODO: missing ambiguity check; picks last method of equal specificity
           if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
-            if current
-              current = potential if is_more_specific?(potential.argument_types, current.argument_types)
+            if currents.size > 0
+              if is_more_specific?(potential.argument_types, currents[0].argument_types)
+                # potential is better, dump all currents
+                currents = [potential]
+              elsif is_more_specific?(currents[0].argument_types, potential.argument_types)
+                # currents are better, try next potential
+                next
+              else
+                # equal specificity, append to currents
+                currents << potential
+              end
             else
-              current = potential
+              # no previous matches, use potential
+              currents = [potential]
             end
           end
           
-          current
+          currents
         end
+
+        methods
       end
       
       def is_more_specific?(potential, current)
