@@ -118,13 +118,74 @@ module Duby
         
         def call(compiler, call, expression)
           meta = call.target.inferred_type.meta?
+          array = call.target.inferred_type.array?
           
           mapped_target = compiler.mapped_type(call.target.inferred_type)
           mapped_params = call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}
 
           raise "Invoke attempted on primitive type: #{call.target.inferred_type}" if (mapped_target.primitive?)
 
-          if meta
+          if array
+            case call.name
+            when "[]"
+              raise "Array slicing not yet supported" if mapped_params.size > 1
+              raise "Only fixnum array indexing supported" if mapped_params[0] != compiler.method.int
+
+              call.target.compile(compiler, true)
+              call.parameters[0].compile(compiler, true)
+
+              if mapped_target.component_type.primitive?
+                case mapped_target.component_type
+                when compiler.method.byte, compiler.method.boolean
+                  compiler.method.baload
+                when compiler.method.short
+                  compiler.method.saload
+                when compiler.method.char
+                  compiler.method.caload
+                when compiler.method.int
+                  compiler.method.iaload
+                when compiler.method.float
+                  compiler.method.faload
+                when compiler.method.double
+                  compiler.method.daload
+                end
+              else
+                compiler.method.aaload
+              end
+            when "[]="
+              raise "Array assignment requires an index and a value" if mapped_params.size != 2
+              raise "Only fixnum array indexing supported" if mapped_params[0] != compiler.method.int
+
+              call.target.compile(compiler, true)
+              call.parameters[0].compile(compiler, true)
+              call.parameters[1].compile(compiler, true)
+
+              if mapped_target.component_type.primitive?
+                case mapped_target.component_type
+                when compiler.method.byte, compiler.method.boolean
+                  compiler.method.bastore
+                when compiler.method.short
+                  compiler.method.sastore
+                when compiler.method.char
+                  compiler.method.castore
+                when compiler.method.int
+                  compiler.method.iastore
+                when compiler.method.float
+                  compiler.method.fastore
+                when compiler.method.double
+                  compiler.method.dastore
+                end
+              else
+                compiler.method.aastore
+              end
+            when "length"
+              raise "Array length does not take an argument" if mapped_params.size != 0
+
+              call.target.compile(compiler, true)
+
+              compiler.method.arraylength
+            end
+          elsif meta
             if call.name == 'new'
               # object construction
               constructor = find_method(mapped_target, call.name, mapped_params, meta)
@@ -584,7 +645,7 @@ module Duby
       end
       
       def fixnum(value)
-        @method.push_fnt(value)
+        @method.push_int(value)
       end
 
       def float(value)
