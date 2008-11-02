@@ -11,7 +11,7 @@ module Duby
         return nil unless parameter_types.size == 1
 
         result = case name
-        when '-', '+', '*', '/', '%', '<<', '>>', '>>>', '&', '|', '^'
+        when '-', '+', '*', '/', '%'
           case target_type
           when typer.fixnum_type
             case parameter_types[0]

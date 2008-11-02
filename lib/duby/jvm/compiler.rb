@@ -40,6 +40,24 @@ module Duby
               compiler.method.isub
             when '+'
               compiler.method.iadd
+            when '*'
+              compiler.method.imul
+            when '/'
+              compiler.method.idiv
+            when '%'
+              compiler.method.irem
+            when '<<'
+              compiler.method.ishl
+            when '>>'
+              compiler.method.ishr
+            when '>>>'
+              compiler.method.iushr
+            when '&'
+              compiler.method.iand
+            when '|'
+              compiler.method.ior
+            when '^'
+              compiler.method.ixor
             else
               raise "Unknown math operation #{call.name} on fixnum"
             end
@@ -49,6 +67,39 @@ module Duby
               compiler.method.lsub
             when '+'
               compiler.method.ladd
+            when '*'
+              compiler.method.lmul
+            when '/'
+              compiler.method.ldiv
+            when '%'
+              compiler.method.lrem
+            when '<<'
+              compiler.method.lshl
+            when '>>'
+              compiler.method.lshr
+            when '>>>'
+              compiler.method.lushr
+            when '&'
+              compiler.method.land
+            when '|'
+              compiler.method.lor
+            when '^'
+              compiler.method.lxor
+            else
+              raise "Unknown math operation #{call.name} on long"
+            end
+          when AST.type(:float)
+            case call.name
+            when '-'
+              compiler.method.fsub
+            when '+'
+              compiler.method.fadd
+            when '*'
+              compiler.method.fmul
+            when '/'
+              compiler.method.fdiv
+            when '%'
+              compiler.method.frem
             else
               raise "Unknown math operation #{call.name} on long"
             end
@@ -129,11 +180,13 @@ module Duby
 
         self.type_mapper[AST.type(:fixnum)] = Java::int.java_class
         self.type_mapper[AST.type(:long)] = Java::long.java_class
+        self.type_mapper[AST.type(:float)] = Java::float.java_class
         self.type_mapper[AST.type(:string)] = Java::java.lang.String.java_class
         self.type_mapper[AST.type(:string, true)] = Java::java.lang.String[].java_class
         
         self.call_compilers[AST.type(:fixnum)] =
           self.call_compilers[AST.type(:long)] = MathCompiler.new
+          self.call_compilers[AST.type(:float)] = MathCompiler.new
         self.call_compilers.default = InvokeCompiler.new
 
         @file = JVMScript::FileBuilder.new(filename)
@@ -191,6 +244,10 @@ module Duby
             @method.returnvoid
           when AST.type(:fixnum)
             @method.ireturn
+          when AST.type(:load)
+            @method.lreturn
+          when AST.type(:float)
+            @method.freturn
           else
             @method.aload 0
             @method.areturn
@@ -295,11 +352,48 @@ module Duby
             case predicate.parameters[0].inferred_type
             when AST.type(:fixnum)
               # fixnum on fixnum, easy
+              predicate.target.compile(self, true)
+              predicate.parameters[0].compile(self, true)
               case predicate.name
               when '<'
-                predicate.target.compile(self, true)
-                predicate.parameters[0].compile(self, true)
                 @method.if_icmplt(target)
+              when '>'
+                @method.if_icmpgt(target)
+              when '<='
+                @method.if_icmple(target)
+              when '>='
+                @method.if_icmpge(target)
+              when '=='
+                @method.if_icmpeq(target)
+              else
+                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
+              end
+            else
+              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+            end
+          when AST.type(:float)
+            # fixnum conditional, so we need to use JVM opcodes
+            case predicate.parameters[0].inferred_type
+            when AST.type(:float)
+              # fixnum on fixnum, easy
+              predicate.target.compile(self, true)
+              predicate.parameters[0].compile(self, true)
+              case predicate.name
+              when '<'
+                @method.fcmpl()
+                @method.iflt(target)
+              when '>'
+                @method.fcmpl()
+                @method.ifgt(target)
+              when '<='
+                @method.fcmpl()
+                @method.ifle(target)
+              when '>='
+                @method.fcmpl()
+                @method.ifge(target)
+              when '=='
+                @method.fcmpl()
+                @method.ifeq(target)
               else
                 raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
               end
@@ -323,11 +417,48 @@ module Duby
             case predicate.parameters[0].inferred_type
             when AST.type(:fixnum)
               # fixnum on fixnum, easy
+              predicate.target.compile(self, true)
+              predicate.parameters[0].compile(self, true)
               case predicate.name
               when '<'
-                predicate.target.compile(self, true)
-                predicate.parameters[0].compile(self, true)
                 @method.if_icmpge(target)
+              when '>'
+                @method.if_icmple(target)
+              when '<='
+                @method.if_icmpgt(target)
+              when '>='
+                @method.if_icmplt(target)
+              when '=='
+                @method.if_icmpne(target)
+              else
+                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
+              end
+            else
+              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
+            end
+          when AST.type(:float)
+            # fixnum conditional, so we need to use JVM opcodes
+            case predicate.parameters[0].inferred_type
+            when AST.type(:float)
+              # fixnum on fixnum, easy
+              predicate.target.compile(self, true)
+              predicate.parameters[0].compile(self, true)
+              case predicate.name
+              when '<'
+                @method.fcmpl()
+                @method.ifge(target)
+              when '>'
+                @method.fcmpl()
+                @method.ifle(target)
+              when '<='
+                @method.fcmpl()
+                @method.ifgt(target)
+              when '>='
+                @method.fcmpl()
+                @method.iflt(target)
+              when '=='
+                @method.fcmpl()
+                @method.ifne(target)
               else
                 raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
               end
@@ -453,7 +584,11 @@ module Duby
       end
       
       def fixnum(value)
-        @method.push_int(value)
+        @method.push_fnt(value)
+      end
+
+      def float(value)
+        @method.ldc_float(value)
       end
 
       def string(value)
