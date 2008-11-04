@@ -208,6 +208,17 @@ module Duby
               compiler.method.aconst_null if expression && call.inferred_type == AST::TypeReference::NoType
             end
           else
+            case call.name
+            when '+'
+              case call.target.inferred_type
+              when AST.type(:string)
+                raise "String concat takes one argument" if call.parameters.size != 1
+                call.target.compile(compiler, true)
+                call.parameters[0].compile(compiler, true)
+                compiler.method.invokevirtual(mapped_target, "concat", [compiler.method.string, compiler.method.string])
+                return
+              end
+            end
             method = find_method(mapped_target, call.name, mapped_params, meta)
             call.target.compile(compiler, true)
             
@@ -216,15 +227,14 @@ module Duby
             compiler.method.dup if expression && call.inferred_type == AST::TypeReference::NoType
             
             call.parameters.each {|param| param.compile(compiler, true)}
-            target_type = compiler.mapped_type(call.target.inferred_type)
             if target_type.interface?
               compiler.method.invokeinterface(
-                target_type,
+                mapped_target,
                 call.name,
                 [compiler.mapped_type(call.inferred_type), *method.parameter_types])
             else
               compiler.method.invokevirtual(
-                target_type,
+                mapped_target,
                 call.name,
                 [compiler.mapped_type(call.inferred_type), *method.parameter_types])
             end

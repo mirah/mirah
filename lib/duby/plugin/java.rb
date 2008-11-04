@@ -35,15 +35,20 @@ module Duby
       end
       
       def method_type(typer, target_type, name, parameter_types)
-        case target_type
-        when AST.type(:long)
-          case name
-          when '-'
+        case name
+        when '-'
+          case target_type
+          when AST.type(:long)
             return nil if parameter_types.length != 1
             return nil if parameter_types[0] != AST.type(:long)
             return AST.type(:long)
           else
             log "Unknown method \"#{name}\" on type long"
+          end
+        when '+'
+          case target_type
+          when AST.type(:string)
+            return AST.type(:string)
           end
         else
           mapped_target = mapped_type(target_type)
