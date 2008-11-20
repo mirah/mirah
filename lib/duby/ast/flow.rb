@@ -127,6 +127,16 @@ module Duby
         @value = (children = yield(self))[0]
         super(parent, children)
       end
+
+      def infer(typer)
+        unless resolved?
+          @inferred_type = value.infer(typer)
+
+          (@inferred_type && value.resolved?) ? resolved! : typer.defer(self)
+        end
+
+        @inferred_type
+      end
     end
 
     class While < Node; end

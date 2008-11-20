@@ -165,5 +165,11 @@ module Duby
         end
       end
     end
+
+    class Return
+      def compile(compiler, expression)
+        compiler.return(self)
+      end
+    end
   end
 end

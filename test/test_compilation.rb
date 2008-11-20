@@ -74,4 +74,13 @@ class TestAst < Test::Unit::TestCase
     
     assert_equal([[:local_assign, "a", AST.type(:fixnum), false], [:fixnum, 1], [:local, "a", AST.type(:fixnum)]], @compiler.calls)
   end
+
+  def test_return
+    new_ast = AST.parse("return 1").body
+    typer = Typer::Simple.new(:bar)
+    new_ast.infer(typer)
+    new_ast.compile(@compiler, true)
+
+    assert_equal([[:return, new_ast]], @compiler.calls)
+  end
 end

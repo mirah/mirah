@@ -264,7 +264,7 @@ module Duby
         @class = @file.public_class(filename.split('.')[0])
       end
 
-      def compile(ast, expression)
+      def compile(ast, expression = false)
         ast.compile(self, expression)
         log "Compilation successful!"
       end
@@ -586,6 +586,10 @@ module Duby
         case type
         when AST.type(:fixnum)
           @method.iload(@method.local(name))
+        when AST.type(:int)
+          @method.iload(@method.local(name))
+        when AST.type(:float)
+          @method.fload(@method.local(name))
         when AST.type(:long)
           @method.lload(@method.local(name))
         else
@@ -602,6 +606,10 @@ module Duby
         case type
         when AST.type(:fixnum)
           @method.istore(@method.local(name))
+        when AST.type(:int)
+          @method.istore(@method.local(name))
+        when AST.type(:float)
+          @method.fstore(@method.local(name))
         when AST.type(:long)
           @method.lstore(@method.local(name))
         else
@@ -711,6 +719,23 @@ module Duby
         else
           log "Could not find a match for #{PrintStream}.println(#{mapped_params})"
           fail "Could not compile"
+        end
+      end
+
+      def return(return_node)
+        return_node.value.compile(self, true)
+
+        case return_node.inferred_type
+        when AST.type(:fixnum)
+          @method.ireturn
+        when AST.type(:int)
+          @method.ireturn
+        when AST.type(:float)
+          @method.freturn
+        when AST.type(:long)
+          @method.lreturn
+        else
+          @method.areturn
         end
       end
     end
