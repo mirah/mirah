@@ -83,8 +83,30 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('bar', cls.foo)
   end
 
-  def test_array
-    cls, = compile("def foo; a = int[2]; a; end")
+  def test_primitive_array
+    cls, = compile("def foo; a = boolean[2]; a; end")
+    assert_equal(Java::boolean[].java_class, cls.foo.class.java_class)
+    assert_equal([false,false], cls.foo.to_a)
+    cls, = compile("def foo; a = byte[2]; a; end")
+    assert_equal(Java::byte[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = short[2]; a; end")
+    assert_equal(Java::short[].java_class, cls.foo.class.java_class)
+    assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = char[2]; a; end")
+    assert_equal(Java::char[].java_class, cls.foo.class.java_class)
+    assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = int[2]; a; end")
+    assert_equal(Java::int[].java_class, cls.foo.class.java_class)
+    assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = long[2]; a; end")
+    assert_equal(Java::long[].java_class, cls.foo.class.java_class)
+    assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = float[2]; a; end")
+    assert_equal(Java::float[].java_class, cls.foo.class.java_class)
+    assert_equal([0.0,0.0], cls.foo.to_a)
+    cls, = compile("def foo; a = double[2]; a; end")
+    assert_equal(Java::double[].java_class, cls.foo.class.java_class)
+    assert_equal([0.0,0.0], cls.foo.to_a)
   end
 end

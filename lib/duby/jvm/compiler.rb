@@ -749,12 +749,30 @@ module Duby
         when AST.type(:fixnum)
           @method.ldc(size)
           @method.newintarray
+        when AST.type(:boolean)
+          @method.ldc(size)
+          @method.newbooleanarray
+        when AST.type(:byte)
+          @method.ldc(size)
+          @method.newbytearray
+        when AST.type(:short)
+          @method.ldc(size)
+          @method.newshortarray
+        when AST.type(:char)
+          @method.ldc(size)
+          @method.newchararray
         when AST.type(:int)
           @method.ldc(size)
           @method.newintarray
+        when AST.type(:long)
+          @method.ldc(size)
+          @method.newlongarray
         when AST.type(:float)
           @method.ldc(size)
           @method.newfloatarray
+        when AST.type(:double)
+          @method.ldc(size)
+          @method.newdoublearray
         else
           @method.ldc(size)
           @method.anewarray mapped_type(type).java_class
