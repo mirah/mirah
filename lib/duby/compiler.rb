@@ -171,5 +171,13 @@ module Duby
         compiler.return(self)
       end
     end
+
+    class EmptyArray
+      def compile(compiler, expression)
+        if expression
+          compiler.empty_array(component_type, size)
+        end
+      end
+    end
   end
 end

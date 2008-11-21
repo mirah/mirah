@@ -82,4 +82,9 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; return 'bar'; end")
     assert_equal('bar', cls.foo)
   end
+
+  def test_array
+    cls, = compile("def foo; a = int[2]; a; end")
+    assert_equal([0,0], cls.foo.to_a)
+  end
 end

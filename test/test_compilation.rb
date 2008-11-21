@@ -77,10 +77,15 @@ class TestAst < Test::Unit::TestCase
 
   def test_return
     new_ast = AST.parse("return 1").body
-    typer = Typer::Simple.new(:bar)
-    new_ast.infer(typer)
     new_ast.compile(@compiler, true)
 
     assert_equal([[:return, new_ast]], @compiler.calls)
+  end
+
+  def test_empty_array
+    new_ast = AST.parse("int[5]").body
+    new_ast.compile(@compiler, true)
+
+    assert_equal([[:empty_array, AST.type(:int), 5]], @compiler.calls)
   end
 end

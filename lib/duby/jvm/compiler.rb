@@ -697,7 +697,12 @@ module Duby
 
       def mapped_type(type)
         return nil if type == AST::TypeReference::NoType
-        type_mapper[type] || Java::JavaClass.for_name(type.name)
+        return type_mapper[type] if type_mapper[type]
+        if type.array?
+          Java::JavaClass.for_name(type.name).array_class
+        else
+          Java::JavaClass.for_name(type.name)
+        end
       end
 
       def import(short, long)
@@ -736,6 +741,23 @@ module Duby
           @method.lreturn
         else
           @method.areturn
+        end
+      end
+
+      def empty_array(type, size)
+        case type
+        when AST.type(:fixnum)
+          @method.ldc(size)
+          @method.newintarray
+        when AST.type(:int)
+          @method.ldc(size)
+          @method.newintarray
+        when AST.type(:float)
+          @method.ldc(size)
+          @method.newfloatarray
+        else
+          @method.ldc(size)
+          @method.anewarray mapped_type(type).java_class
         end
       end
     end

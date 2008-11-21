@@ -19,4 +19,21 @@ module Duby::AST
       TypeReference::NoType
     end
   end
+
+  class EmptyArray < Node
+    attr_accessor :size
+    attr_accessor :component_type
+    def initialize(parent, type, size)
+      super(parent, [])
+
+      @size = size
+      @component_type = type
+      @inferred_type = TypeReference.new(type.name, true)
+      resolved!
+    end
+
+    def infer(typer)
+      return @inferred_type
+    end
+  end
 end

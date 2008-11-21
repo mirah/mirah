@@ -83,6 +83,17 @@ module Duby
 
       class CallNode
         def transform(parent)
+          if name == '[]'
+            # could be array instantiation
+            case receiver_node
+            when VCallNode
+              case receiver_node.name
+              when 'boolean', 'byte', 'short', 'char', 'int', 'long', 'float', 'double'
+                return EmptyArray.new(parent, TypeReference.new(receiver_node.name), args_node.get(0).value)
+              end
+            end
+          end
+          
           Call.new(parent, name) do |call|
             [
               receiver_node.transform(call),

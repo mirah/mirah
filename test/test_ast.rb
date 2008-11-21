@@ -379,4 +379,22 @@ class TestAst < Test::Unit::TestCase
     assert(new_ast1.literal)
     assert(!new_ast2.literal)
   end
+
+  def test_return
+    new_ast = AST.parse("return 1").body
+
+    assert_not_nil(new_ast)
+    assert(AST::Return === new_ast)
+    assert(AST::Fixnum === new_ast.value)
+    assert(1, new_ast.value.literal)
+  end
+
+  def test_empty_array
+    new_ast = AST.parse("int[5]").body
+
+    assert_not_nil(new_ast)
+    assert(AST::EmptyArray === new_ast)
+    assert_equal(5, new_ast.size)
+    assert_equal(AST.type(:int), new_ast.inferred_type)
+  end
 end
