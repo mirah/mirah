@@ -87,26 +87,60 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = boolean[2]; a; end")
     assert_equal(Java::boolean[].java_class, cls.foo.class.java_class)
     assert_equal([false,false], cls.foo.to_a)
+    cls, = compile("def foo; a = boolean[2]; a[0] = true; a[0]; end")
+    assert_equal(TrueClass, cls.foo.class)
+    assert_equal(true, cls.foo)
+    
     cls, = compile("def foo; a = byte[2]; a; end")
     assert_equal(Java::byte[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = byte[2]; a[0] = 1; a[0]; end")
+    assert_equal(Fixnum, cls.foo.class)
+    assert_equal(1, cls.foo)
+
     cls, = compile("def foo; a = short[2]; a; end")
     assert_equal(Java::short[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = short[2]; a[0] = 1; a[0]; end")
+    assert_equal(Fixnum, cls.foo.class)
+    assert_equal(1, cls.foo)
+
     cls, = compile("def foo; a = char[2]; a; end")
     assert_equal(Java::char[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = char[2]; a[0] = 1; a[0]; end")
+    assert_equal(Fixnum, cls.foo.class)
+    assert_equal(1, cls.foo)
+
     cls, = compile("def foo; a = int[2]; a; end")
     assert_equal(Java::int[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
+    cls, = compile("def foo; a = int[2]; a[0] = 1; a[0]; end")
+    assert_equal(Fixnum, cls.foo.class)
+    assert_equal(1, cls.foo)
+
     cls, = compile("def foo; a = long[2]; a; end")
     assert_equal(Java::long[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
+    # awaiting implicit I2L
+#    cls, = compile("def foo; a = long[2]; a[0] = 1; a[0]; end")
+#    assert_equal(Fixnum, cls.foo.class)
+#    assert_equal(1, cls.foo)
+
     cls, = compile("def foo; a = float[2]; a; end")
     assert_equal(Java::float[].java_class, cls.foo.class.java_class)
     assert_equal([0.0,0.0], cls.foo.to_a)
+    cls, = compile("def foo; a = float[2]; a[0] = 1.0; a[0]; end")
+    assert_equal(Float, cls.foo.class)
+    assert_equal(1.0, cls.foo)
+
     cls, = compile("def foo; a = double[2]; a; end")
     assert_equal(Java::double[].java_class, cls.foo.class.java_class)
     assert_equal([0.0,0.0], cls.foo.to_a)
+    # awaiting implicit F2D
+#    cls, = compile("def foo; a = double[2]; a[0] = 1.0; a[0]; end")
+#    assert_equal(Float, cls.foo.class)
+#    assert_equal(1.0, cls.foo)
+
   end
 end

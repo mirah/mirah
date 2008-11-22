@@ -129,24 +129,26 @@ module Duby
             case call.name
             when "[]"
               raise "Array slicing not yet supported" if mapped_params.size > 1
-              raise "Only fixnum array indexing supported" if mapped_params[0] != compiler.method.int
+              raise "Only fixnum array indexing supported" if mapped_params[0] != Java::int.java_class
 
               call.target.compile(compiler, true)
               call.parameters[0].compile(compiler, true)
 
               if mapped_target.component_type.primitive?
                 case mapped_target.component_type
-                when compiler.method.byte, compiler.method.boolean
+                when Java::byte.java_class, Java::boolean.java_class
                   compiler.method.baload
-                when compiler.method.short
+                when Java::short.java_class
                   compiler.method.saload
-                when compiler.method.char
+                when Java::char.java_class
                   compiler.method.caload
-                when compiler.method.int
+                when Java::int.java_class
                   compiler.method.iaload
-                when compiler.method.float
+                when Java::long.java_class
+                  compiler.method.laload
+                when Java::float.java_class
                   compiler.method.faload
-                when compiler.method.double
+                when Java::double.java_class
                   compiler.method.daload
                 end
               else
@@ -154,7 +156,7 @@ module Duby
               end
             when "[]="
               raise "Array assignment requires an index and a value" if mapped_params.size != 2
-              raise "Only fixnum array indexing supported" if mapped_params[0] != compiler.method.int
+              raise "Only fixnum array indexing supported" if mapped_params[0] != Java::int.java_class
 
               call.target.compile(compiler, true)
               call.parameters[0].compile(compiler, true)
@@ -162,17 +164,19 @@ module Duby
 
               if mapped_target.component_type.primitive?
                 case mapped_target.component_type
-                when compiler.method.byte, compiler.method.boolean
+                when Java::byte.java_class, Java::boolean.java_class
                   compiler.method.bastore
-                when compiler.method.short
+                when Java::short.java_class
                   compiler.method.sastore
-                when compiler.method.char
+                when Java::char.java_class
                   compiler.method.castore
-                when compiler.method.int
+                when Java::int.java_class
                   compiler.method.iastore
-                when compiler.method.float
+                when Java::long.java_class
+                  compiler.method.lastore
+                when Java::float.java_class
                   compiler.method.fastore
-                when compiler.method.double
+                when Java::double.java_class
                   compiler.method.dastore
                 end
               else
@@ -315,10 +319,22 @@ module Duby
             @method.returnvoid
           when AST.type(:fixnum)
             @method.ireturn
-          when AST.type(:load)
+          when AST.type(:boolean)
+            @method.ireturn
+          when AST.type(:byte)
+            @method.ireturn
+          when AST.type(:short)
+            @method.ireturn
+          when AST.type(:char)
+            @method.ireturn
+          when AST.type(:int)
+            @method.ireturn
+          when AST.type(:long)
             @method.lreturn
           when AST.type(:float)
             @method.freturn
+          when AST.type(:float)
+            @method.dreturn
           else
             @method.aload 0
             @method.areturn
@@ -672,6 +688,10 @@ module Duby
 
       def string(value)
         @method.ldc(value)
+      end
+
+      def boolean(value)
+        value ? @method.iconst_1 : @method.iconst_0
       end
       
       def newline

@@ -56,6 +56,21 @@ module Duby
         end
       end
 
+      class AttrAssignNode
+        def transform(parent)
+          case name
+          when '[]='
+            Call.new(parent, name) do |call|
+              [
+                receiver_node.transform(call),
+                args_node ? args_node.child_nodes.map {|arg| arg.transform(call)} : [],
+                nil
+              ]
+            end
+          end
+        end
+      end
+
       class BeginNode
         def transform(parent)
           body_node.transform(parent)

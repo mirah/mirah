@@ -180,4 +180,13 @@ class TestJavaTyper < Test::Unit::TestCase
     assert !primitive_convertible?(double, float)
     assert primitive_convertible?(double, double)
   end
+
+  def test_primitive_array
+    ary = AST.type('byte', true)
+    int = AST.type('int', true)
+
+    java_typer = Typer::JavaTyper.new
+
+    assert_equal(AST.type('byte'), java_typer.method_type(nil, ary, "[]", [int]))
+  end
 end

@@ -44,6 +44,7 @@ module Duby
             return AST.type(:long)
           else
             log "Unknown method \"#{name}\" on type long"
+            return nil
           end
         when '+'
           case target_type
@@ -51,6 +52,20 @@ module Duby
             return AST.type(:string)
           end
         else
+          if name == 'length'
+            if target_type.array?
+              return AST.type(:int)
+            end
+          elsif name == '[]'
+            if target_type.array?
+              return AST.type(target_type.name)
+            end
+          elsif name == '[]='
+            # needs more checks for numbe of args, etc
+            if target_type.array? && parameter_types.size == 2
+              return parameter_types[1]
+            end
+          end
           mapped_target = mapped_type(target_type)
           mapped_parameters = parameter_types.map {|type| mapped_type(type)}
           begin
