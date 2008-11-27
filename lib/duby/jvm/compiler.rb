@@ -231,7 +231,7 @@ module Duby
             compiler.method.dup if expression && call.inferred_type == AST::TypeReference::NoType
             
             call.parameters.each {|param| param.compile(compiler, true)}
-            if target_type.interface?
+            if mapped_target.interface?
               compiler.method.invokeinterface(
                 mapped_target,
                 call.name,

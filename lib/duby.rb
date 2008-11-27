@@ -33,16 +33,20 @@ module Duby
     compiler = Duby::Compiler::JVM.new(filename)
     ast.compile(compiler, false)
 
-    main_method = nil
+    main_cls = nil
     compiler.generate do |outfile, builder|
       bytes = builder.generate
-      cls = JRuby.runtime.jruby_class_loader.define_class(builder.class_name.gsub(/\//, '.'), bytes.to_java_bytes)
+      name = builder.class_name.gsub(/\//, '.')
+      cls = JRuby.runtime.jruby_class_loader.define_class(name, bytes.to_java_bytes)
+      proxy_cls = JavaUtilities.get_proxy_class(name)
       # TODO: using first main; find correct one
-      main_method ||= cls.get_method("main", [java.lang.String[].java_class].to_java(java.lang.Class))
+      if proxy_cls.respond_to? :main
+        main_cls ||= proxy_cls
+      end
     end
     
-    if main_method
-      main_method.invoke(nil, [args.to_java(:string)].to_java)
+    if main_cls
+      main_cls.main(args.to_java(:string))
     else
       puts "No main found"
     end
