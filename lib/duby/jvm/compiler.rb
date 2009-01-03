@@ -307,6 +307,9 @@ module Duby
         log "Starting new method #{name}(#{arg_types})"
 
         @method.start
+
+        # declare all args so they get their values
+        args.args.each {|arg| @method.local arg.name}
         
         expression = signature[:return] != AST.type(:notype)
         body.compile(self, expression)
@@ -591,7 +594,7 @@ module Duby
           end
         else
           # if not void return...
-          if mapped_type(fcall.inferred_type) == Java::void
+          if mapped_type(fcall.inferred_type) != Java::void
             # pop result
             @method.pop
           end
