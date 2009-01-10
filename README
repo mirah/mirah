@@ -7,3 +7,12 @@ This project depends on JRuby (since it still uses the parser) and on JVMScript.
 
 JRuby is at http://www.jruby.org
 JVMScript is at http://kenai.com/projects/jvmscript
+
+=====
+TO DO
+=====
+
+Currently I'm stuck on type inference for null. I need a way to represent types that are initially
+declared = null, so I need to add some syntax to be able to specify their real type (type decls for
+e.g. fields and such) or I need some other magic that defers typing until it's first assigned
+elsewhere in the class.
