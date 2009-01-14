@@ -309,7 +309,7 @@ module Duby
         @method.start
 
         # declare all args so they get their values
-        args.args.each {|arg| @method.local arg.name}
+        args.args.each {|arg| @method.local arg.name} if args.args
         
         expression = signature[:return] != AST.type(:notype)
         body.compile(self, expression)
@@ -588,13 +588,13 @@ module Duby
         # if expression, we need something on the stack
         if expression
           # if void return...
-          if mapped_type(fcall.inferred_type) == Java::void
+          if mapped_type(fcall.inferred_type) == Java::void || mapped_type(fcall.inferred_type) == AST::TypeReference::NoType
             # push a null?
             @method.aconst_null
           end
         else
           # if not void return...
-          if mapped_type(fcall.inferred_type) != Java::void
+          if mapped_type(fcall.inferred_type) != Java::void && mapped_type(fcall.inferred_type) != AST::TypeReference::NoType
             # pop result
             @method.pop
           end
@@ -719,7 +719,7 @@ module Duby
       end
 
       def mapped_type(type)
-        return nil if type == AST::TypeReference::NoType
+        return Java::void if type == AST::TypeReference::NoType
         return type_mapper[type] if type_mapper[type]
         if type.array?
           Java::JavaClass.for_name(type.name).array_class

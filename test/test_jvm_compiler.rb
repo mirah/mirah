@@ -143,4 +143,9 @@ class TestJVMCompiler < Test::Unit::TestCase
 #    assert_equal(1.0, cls.foo)
 
   end
+
+  def test_void_selfcall
+    cls, = compile("import 'System', 'java.lang.System'; def foo; System.gc; end; foo")
+    assert_nothing_raised {cls.foo}
+  end
 end
