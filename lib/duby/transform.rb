@@ -312,7 +312,12 @@ module Duby
       class InstAsgnNode
         def transform(parent)
           # TODO: first encounter or explicit decl should be a FieldDeclaration
-          FieldAssignment.new(parent, name) {|field| [value_node.transform(field)]}
+          case value_node
+          when SymbolNode
+            FieldDeclaration.new(parent, name, TypeReference.new(value_node.name))
+          else
+            FieldAssignment.new(parent, name) {|field| [value_node.transform(field)]}
+          end
         end
       end
 

@@ -150,6 +150,12 @@ module Duby
       end
     end
 
+    class FieldDeclaration
+      def compile(compiler, expression)
+        compiler.field_declare(name, inferred_type)
+      end
+    end
+
     class FieldAssignment
       def compile(compiler, expression)
         compiler.field_assign(name, inferred_type, expression) {

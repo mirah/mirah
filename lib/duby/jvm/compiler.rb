@@ -651,6 +651,17 @@ module Duby
         end
       end
 
+      def field_declare(name, type)
+        name = name[1..-1]
+        real_type = mapped_type(type)
+        
+        if static
+          @class.private_static_field name, real_type
+        else
+          @class.private_field name, real_type
+        end
+      end
+
       def field_assign(name, type, expression)
         name = name[1..-1]
         

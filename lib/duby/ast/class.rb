@@ -20,6 +20,25 @@ module Duby::AST
       @inferred_type
     end
   end
+
+  class FieldDeclaration < Node
+    include Named
+    include ClassScoped
+
+    def initialize(parent, name, type)
+      super(parent)
+      @name = name
+      @inferred_type = type
+    end
+
+    def infer(typer)
+      unless resolved?
+        resolved!
+        typer.learn_field_type(scope, name, @inferred_type)
+      end
+      @inferred_type
+    end
+  end
       
   class FieldAssignment < Node
     include Named
