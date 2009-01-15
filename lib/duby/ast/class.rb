@@ -24,17 +24,24 @@ module Duby::AST
   class FieldDeclaration < Node
     include Named
     include ClassScoped
+    include Typed
 
-    def initialize(parent, name, type)
-      super(parent)
+    def initialize(parent, name)
+      super(parent, yield(self))
       @name = name
-      @inferred_type = type
+      @type = children[0]
     end
 
     def infer(typer)
       unless resolved?
         resolved!
-        typer.learn_field_type(scope, name, @inferred_type)
+        @inferred_type = typer.known_types[type]
+        if @inferred_type
+          resolved!
+          typer.learn_field_type(scope, name, @inferred_type)
+        else
+          typer.defer(self)
+        end
       end
       @inferred_type
     end

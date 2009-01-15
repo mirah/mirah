@@ -110,7 +110,7 @@ module Duby
       def learn_field_type(cls, name, type)
         log "Learned field type under #{cls} : #{name} = #{type}"
         
-        field_type_hash(cls)[name] = type
+        field_type_hash(cls)[name] ||= type
       end
 
       def field_type(cls, name)

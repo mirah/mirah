@@ -339,7 +339,6 @@ module Duby
           when AST.type(:float)
             @method.dreturn
           else
-            @method.aload 0
             @method.areturn
           end
         end
@@ -651,27 +650,32 @@ module Duby
         end
       end
 
+      def declared_fields
+        @declared_fields ||= {}
+      end
+
+      def declare_field(name, type)
+        # TODO confirm types are compatible
+        unless declared_fields[name]
+          declared_fields[name] = type
+          if static
+            @class.private_static_field name, type
+          else
+            @class.private_field name, type
+          end
+        end
+      end
+
       def field_declare(name, type)
         name = name[1..-1]
         real_type = mapped_type(type)
-        
-        if static
-          @class.private_static_field name, real_type
-        else
-          @class.private_field name, real_type
-        end
+        declare_field(name, real_type)
       end
 
       def field_assign(name, type, expression)
         name = name[1..-1]
-        
         real_type = mapped_type(type)
-
-        if static
-          @class.private_static_field name, real_type
-        else
-          @class.private_field name, real_type
-        end
+        declare_field(name, real_type)
 
         if expression
           yield

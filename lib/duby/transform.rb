@@ -67,6 +67,15 @@ module Duby
                 nil
               ]
             end
+          else
+            new_name = name[0..-2] + '_set'
+            Call.new(parent, new_name) do |call|
+              [
+                receiver_node.transform(call),
+                args_node ? args_node.child_nodes.map {|arg| arg.transform(call)} : [],
+                nil
+              ]
+            end
           end
         end
       end
@@ -168,7 +177,11 @@ module Duby
 
       class DefnNode
         def transform(parent)
-          MethodDefinition.new(parent, name) do |defn|
+          actual_name = name
+          if name =~ /=$/
+            actual_name = name[0..-2] + '_set'
+          end
+          MethodDefinition.new(parent, actual_name) do |defn|
             signature = {:return => TypeReference::NoType}
 
             # TODO: Disabled until parser supports it
@@ -194,7 +207,11 @@ module Duby
 
       class DefsNode
         def transform(parent)
-          StaticMethodDefinition.new(parent, name) do |defn|
+          actual_name = name
+          if name =~ /=$/
+            actual_name = name[0..-2] + '_set'
+          end
+          StaticMethodDefinition.new(parent, actual_name) do |defn|
             signature = {:return => TypeReference::NoType}
 
             # TODO: Disabled until parser supports it
@@ -313,8 +330,8 @@ module Duby
         def transform(parent)
           # TODO: first encounter or explicit decl should be a FieldDeclaration
           case value_node
-          when SymbolNode
-            FieldDeclaration.new(parent, name, TypeReference.new(value_node.name))
+          when SymbolNode, ConstNode
+            FieldDeclaration.new(parent, name) {|field_decl| [value_node.type_reference(field_decl)]}
           else
             FieldAssignment.new(parent, name) {|field| [value_node.transform(field)]}
           end
