@@ -65,6 +65,10 @@ module Duby
       def boolean_type
         known_types["boolean"]
       end
+
+      def null_type
+        AST::TypeReference::NullType
+      end
       
       def define_type(name, superclass)
         raise InferenceError.new("Duplicate type definition: #{name} < #{superclass}") if known_types[name]
@@ -82,7 +86,10 @@ module Duby
       def learn_local_type(scope, name, type)
         log "Learned local type under #{scope} : #{name} = #{type}"
 
-        local_type_hash(scope)[name] = known_types[type] || type
+        # TODO check for compatibility?
+        local_type_hash(scope)[name] ||= known_types[type] || type
+
+        type
       end
       
       def local_type(scope, name)
@@ -109,8 +116,11 @@ module Duby
 
       def learn_field_type(cls, name, type)
         log "Learned field type under #{cls} : #{name} = #{type}"
-        
-        field_type_hash(cls)[name] ||= type
+
+        # TODO check for compatibility?
+        field_type_hash(cls)[name] ||= known_types[type] || type
+
+        type
       end
 
       def field_type(cls, name)

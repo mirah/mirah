@@ -280,6 +280,10 @@ module Duby
 
         @method.start
 
+        # declare argv variable
+        # TODO type as String[]
+        @method.local('argv')
+
         body.compile(self, false)
 
         @method.returnvoid
@@ -616,6 +620,16 @@ module Duby
       end
 
       def local_assign(name, type, expression)
+        # Handle null specially
+        if type == AST::TypeReference::NullType
+          @method.aconst_null
+          @method.astore(@method.local(name))
+          return
+        end
+        
+        real_type = mapped_type(type)
+        declare_local(name, real_type)
+        
         yield
         
         # if expression, dup the value we're assigning
@@ -631,6 +645,42 @@ module Duby
         when AST.type(:long)
           @method.lstore(@method.local(name))
         else
+          @method.astore(@method.local(name))
+        end
+      end
+
+      def declared_locals
+        @declared_locals ||= {}
+      end
+
+      def declare_local(name, type)
+        # TODO confirm types are compatible
+        unless declared_locals[name]
+          declared_locals[name] = type
+          # TODO local variable table for jvmscript
+          #@method.local_variable name, type
+        end
+      end
+
+      def local_declare(name, type)
+        real_type = mapped_type(type)
+        declare_local(name, real_type)
+
+        case type
+        when AST.type(:fixnum)
+          @method.push_int(0)
+          @method.istore(@method.local(name))
+        when AST.type(:int)
+          @method.push_int(0)
+          @method.istore(@method.local(name))
+        when AST.type(:float)
+          @method.ldc_float(0.0)
+          @method.fstore(@method.local(name))
+        when AST.type(:long)
+          @method.ldc_long(0)
+          @method.lstore(@method.local(name))
+        else
+          @method.aconst_null
           @method.astore(@method.local(name))
         end
       end
@@ -674,7 +724,21 @@ module Duby
 
       def field_assign(name, type, expression)
         name = name[1..-1]
-        real_type = mapped_type(type)
+
+        real_type = declared_fields[name] || mapped_type(type)
+        
+        # Handle null specially
+        if type == AST::TypeReference::NullType
+          @method.aload 0 unless static
+          @method.aconst_null
+          if static
+            @method.putstatic(@class, name, real_type)
+          else
+            @method.putfield(@class, name, real_type)
+          end
+          return
+        end
+        
         declare_field(name, real_type)
 
         if expression
@@ -735,6 +799,7 @@ module Duby
 
       def mapped_type(type)
         return Java::void if type == AST::TypeReference::NoType
+        return Java::java.lang.Object.java_class if type == AST::TypeReference::NullType
         return type_mapper[type] if type_mapper[type]
         if type.array?
           Java::JavaClass.for_name(type.name).array_class

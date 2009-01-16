@@ -68,4 +68,18 @@ module Duby::AST
       @inferred_type ||= typer.boolean_type
     end
   end
+
+  class Null < Node
+    include Literal
+
+    def initialize(parent)
+      super(parent)
+    end
+
+    def infer(typer)
+      return @inferred_type if resolved?
+      resolved!
+      @inferred_type ||= typer.null_type
+    end
+  end
 end

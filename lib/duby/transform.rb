@@ -107,7 +107,9 @@ module Duby
 
       class CallNode
         def transform(parent)
-          if name == '[]'
+          actual_name = name
+          case actual_name
+          when '[]'
             # could be array instantiation
             case receiver_node
             when VCallNode
@@ -116,6 +118,8 @@ module Duby
                 return EmptyArray.new(parent, TypeReference.new(receiver_node.name), args_node.get(0).value)
               end
             end
+          when /=$/
+            actual_name = name[0..-2] + '_set'
           end
           
           Call.new(parent, name) do |call|
@@ -171,7 +175,7 @@ module Duby
         end
 
         def type_reference(parent)
-          TypeReference.new(name)
+          TypeReference.new(name, false, true)
         end
       end
 
@@ -271,6 +275,8 @@ module Duby
             PrintLine.new(parent) do |println|
               args_node ? args_node.child_nodes.map {|arg| arg.transform(println)} : []
             end
+          when "null"
+            Null.new(parent)
           else
             FunctionalCall.new(parent, name) do |call|
               [
@@ -344,9 +350,14 @@ module Duby
         end
       end
 
+      class NilNode
+        def transform(parent)
+          Null.new(parent)
+        end
+      end
+
       class InstAsgnNode
         def transform(parent)
-          # TODO: first encounter or explicit decl should be a FieldDeclaration
           case value_node
           when SymbolNode, ConstNode
             FieldDeclaration.new(parent, name) {|field_decl| [value_node.type_reference(field_decl)]}
@@ -364,8 +375,12 @@ module Duby
 
       class LocalAsgnNode
         def transform(parent)
-          # TODO: first encounter should be a LocalDeclaration
-          LocalAssignment.new(parent, name) {|local| [value_node.transform(local)]}
+          case value_node
+          when SymbolNode, ConstNode
+            LocalDeclaration.new(parent, name) {|local_decl| [value_node.type_reference(local_decl)]}
+          else
+            LocalAssignment.new(parent, name) {|local| [value_node.transform(local)]}
+          end
         end
       end
 

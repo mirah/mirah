@@ -195,6 +195,7 @@ module Duby
       end
 
       NoType = TypeReference.new(:notype)
+      NullType = TypeReference.new(:null)
     end
 
     class TypeDefinition < TypeReference

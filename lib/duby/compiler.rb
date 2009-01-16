@@ -76,6 +76,12 @@ module Duby
         end
       end
     end
+
+    class LocalDeclaration
+      def compile(compiler, expression)
+        compiler.local_declare(name, type)
+      end
+    end
     
     class LocalAssignment
       def compile(compiler, expression)
