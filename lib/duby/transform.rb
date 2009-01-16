@@ -246,8 +246,26 @@ module Duby
           # TODO This should probably be pluggable
           case name
           when "import"
-            short = args_node.child_nodes[0].value
-            long = args_node.child_nodes[1].value
+            case args_node
+            when ArrayNode
+              case args_node.size
+              when 1
+                case args_node.get(0)
+                when StrNode
+                  long = args_node.get(0).value
+                  short = long[(long.rindex('.') + 1)..-1]
+                else
+                  raise "unknown import syntax at " + self
+                end
+              when 2
+                short = args_node.child_nodes[0].value
+                long = args_node.child_nodes[1].value
+              else
+                raise "unknown import syntax at " + self
+              end
+            else
+              raise "unknown import syntax at " + self
+            end
             Import.new(parent, short, long)
           when "puts"
             PrintLine.new(parent) do |println|

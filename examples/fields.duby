@@ -1,4 +1,4 @@
-import 'ArrayList', 'java.util.ArrayList'
+import 'java.util.ArrayList'
 
 class Bar
   def initialize

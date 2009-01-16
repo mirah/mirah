@@ -148,4 +148,21 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("import 'System', 'java.lang.System'; def foo; System.gc; end; foo")
     assert_nothing_raised {cls.foo}
   end
+
+  def test_import
+    cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
+    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
+
+    cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
+    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
+  end
+
+  def test_imported_decl
+    cls, = compile("import 'java.util.ArrayList'; def foo(a => ArrayList); a.size; end")
+    assert_equal 0, cls.foo(java.util.ArrayList.new)
+  end
+
+  def test_field_decl
+    # TODO
+  end
 end

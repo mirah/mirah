@@ -1,4 +1,4 @@
-import "System", "java.lang.System"
+import "java.lang.System"
 
 def foo
   home = System.getProperty "java.home"

@@ -1,4 +1,4 @@
-import "System", "java.lang.System"
+import "java.lang.System"
 
 def fib(a => :fixnum)
   if a < 2

@@ -1,5 +1,5 @@
-import "StringBuffer", "java.lang.StringBuffer"
-import "ArrayList", "java.util.ArrayList"
+import "java.lang.StringBuffer"
+import "java.util.ArrayList"
 
 list = ArrayList.new
 sb = StringBuffer.new("Hello")
