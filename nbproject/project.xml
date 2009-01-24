@@ -5,7 +5,7 @@
         <data xmlns="http://www.netbeans.org/ns/ruby-project/1">
             <name>Duby</name>
             <source-roots>
-                <root id="src.dir" name="src"/>
+                <root id="src.dir" name="lib"/>
                 <root id="bin.dir"/>
                 <root id="examples.dir"/>
             </source-roots>
