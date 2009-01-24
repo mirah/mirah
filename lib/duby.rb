@@ -3,10 +3,10 @@ require 'duby/ast'
 require 'duby/typer'
 require 'duby/compiler'
 begin
-  require 'jvmscript'
+  require 'bitescript'
 rescue LoadError
-  $: << File.dirname(__FILE__) + '/../../jvmscript/lib'
-  require 'jvmscript'
+  $: << File.dirname(__FILE__) + '/../../bitescript/lib'
+  require 'bitescript'
 end
 require 'duby/jvm/compiler'
 Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}

@@ -3,7 +3,7 @@ require 'duby/jvm/method_lookup'
 require 'duby/typer'
 require 'duby/plugin/math'
 require 'duby/plugin/java'
-require 'jvmscript'
+require 'bitescript'
 
 module Duby
   module Compiler
@@ -264,7 +264,7 @@ module Duby
           self.call_compilers[AST.type(:float)] = MathCompiler.new
         self.call_compilers.default = InvokeCompiler.new
 
-        @file = JVMScript::FileBuilder.new(filename)
+        @file = BiteScript::FileBuilder.new(filename)
         @class = @file.public_class(filename.split('.')[0])
       end
 
@@ -657,7 +657,7 @@ module Duby
         # TODO confirm types are compatible
         unless declared_locals[name]
           declared_locals[name] = type
-          # TODO local variable table for jvmscript
+          # TODO local variable table for BiteScript
           #@method.local_variable name, type
         end
       end
@@ -810,8 +810,11 @@ module Duby
 
       def import(short, long)
         # TODO hacky..we map both versions because some get expanded during inference
+        # TODO hacky again..meta and non-meta
         type_mapper[AST::type(short, false, true)] = Java::JavaClass.for_name(long)
         type_mapper[AST::type(long, false, true)] = Java::JavaClass.for_name(long)
+        type_mapper[AST::type(short, false, false)] = Java::JavaClass.for_name(long)
+        type_mapper[AST::type(long, false, false)] = Java::JavaClass.for_name(long)
       end
 
       def println(printline)

@@ -175,7 +175,7 @@ module Duby
         end
 
         def type_reference(parent)
-          TypeReference.new(name, false, true)
+          TypeReference.new(name, false, false)
         end
       end
 
