@@ -6,10 +6,12 @@ $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 require 'test/unit'
 require 'duby'
 require 'jruby'
+require 'stringio'
 
 class TestJVMCompiler < Test::Unit::TestCase
   include Duby
   import java.lang.System
+  import java.io.PrintStream
 
   def compile(code)
     ast = AST.parse(code)
@@ -22,8 +24,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     loader = JRuby.runtime.jruby_class_loader
     compiler.generate do |name, builder|
       bytes = builder.generate
+      open("#{name}", "w") do |f|
+        f << bytes
+      end
       cls = loader.define_class(name[0..-7], bytes.to_java_bytes)
       classes << JavaUtilities.get_proxy_class(cls.name)
+      File.unlink("#{name}")
     end
 
     classes
@@ -70,6 +76,49 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile("def foo; a = 6.0; b = 3.0; a / b; end")
     assert_equal(2.0, cls.foo)
+  end
+  
+  def test_rem
+    cls, = compile("def foo; a = 7; b = 3; a % b; end")
+    assert_equal(1, cls.foo)
+
+    cls, = compile("def foo; a = 8.0; b = 3.0; a % b; end")
+    assert_equal(2.0, cls.foo)
+  end
+
+  def test_shift_left
+    cls, = compile("def foo; a = 1; b = 3; a << b; end")
+    assert_equal(8, cls.foo)
+  end
+
+  def test_shift_right
+    cls, = compile("def foo; a = 7; b = 2; a >> b; end")
+    assert_equal(1, cls.foo)
+
+    cls, = compile("def foo; a = -1; b = 1; a >> b; end")
+    assert_equal(-1, cls.foo)
+  end
+
+  # TODO the parser doesn't like >>>
+
+  # def test_unsigned_shift_right
+  #   cls, = compile("def foo; a = -1; b = 31; a >>> b; end")
+  #   assert_equal(1, cls.foo)
+  # end
+
+  def test_binary_and
+    cls, = compile("def foo; a = 7; b = 3; a & b; end")
+    assert_equal(3, cls.foo)
+  end
+
+  def test_binary_or
+    cls, = compile("def foo; a = 4; b = 3; a | b; end")
+    assert_equal(7, cls.foo)
+  end
+
+  def test_binary_xor
+    cls, = compile("def foo; a = 5; b = 3; a ^ b; end")
+    assert_equal(6, cls.foo)
   end
 
   def test_return
@@ -122,10 +171,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = long[2]; a; end")
     assert_equal(Java::long[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
-    # awaiting implicit I2L
-#    cls, = compile("def foo; a = long[2]; a[0] = 1; a[0]; end")
-#    assert_equal(Fixnum, cls.foo.class)
-#    assert_equal(1, cls.foo)
+    cls, = compile(<<-EOF)
+      def foo
+        a = long[2]
+        # awaiting implicit I2L
+        # a[0] = 1
+        a[0]
+      end
+    EOF
+    assert_equal(Fixnum, cls.foo.class)
+    assert_equal(0, cls.foo)
 
     cls, = compile("def foo; a = float[2]; a; end")
     assert_equal(Java::float[].java_class, cls.foo.class.java_class)
@@ -137,11 +192,21 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = double[2]; a; end")
     assert_equal(Java::double[].java_class, cls.foo.class.java_class)
     assert_equal([0.0,0.0], cls.foo.to_a)
-    # awaiting implicit F2D
-#    cls, = compile("def foo; a = double[2]; a[0] = 1.0; a[0]; end")
-#    assert_equal(Float, cls.foo.class)
-#    assert_equal(1.0, cls.foo)
+    cls, = compile(<<-EOF)
+      def foo
+        a = double[2]
+        # awaiting implicit F2D
+        # a[0] = 1.0
+        a[0]
+      end
+    EOF
+    assert_equal(Float, cls.foo.class)
+    assert_equal(0.0, cls.foo)
+  end
 
+  def test_string_concat
+    cls, = compile("def foo; a = 'a'; b = 'b'; a + b; end")
+    assert_equal("ab", cls.foo)
   end
 
   def test_void_selfcall
@@ -160,6 +225,156 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_imported_decl
     cls, = compile("import 'java.util.ArrayList'; def foo(a => ArrayList); a.size; end")
     assert_equal 0, cls.foo(java.util.ArrayList.new)
+  end
+
+  def test_interface
+    cls, = compile("import 'java.util.concurrent.Callable'; def foo(a => Callable); a.call; end")
+    result = cls.foo {0}
+    assert_equal 0, result
+  end
+
+  def test_class_decl
+    script, foo = compile("class ClassDeclTest;end")
+    assert_equal('ClassDeclTest', foo.java_class.name)
+  end
+
+  def capture_output
+    saved_output = System.out
+    output = StringIO.new
+    System.setOut(PrintStream.new(output.to_outputstream))
+    begin
+      yield
+      output.rewind
+      output.read
+    ensure
+      System.setOut(saved_output)
+    end
+  end
+
+  def test_puts
+    cls, = compile("def foo;puts 'Hello World!';end")
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("Hello World!\n", output)
+  end
+
+  def test_constructor
+    script, cls = compile(
+        "class InitializeTest;def initialize;puts 'Constructed';end;end")
+    output = capture_output do
+      cls.new
+    end
+    assert_equal("Constructed\n", output)
+  end
+
+  def test_method
+    # TODO auto generate a constructor
+    script, cls = compile(
+      "class MethodTest; def initialize; ''; end; def foo; 'foo';end;end")
+    instance = cls.new
+    assert_equal(cls, instance.class)
+    assert_equal('foo', instance.foo)
+  end
+
+  def test_unless
+    cls, = compile(
+        "def foo(a => :fixnum); unless a <= 0; -1 + a; else; a; end; end")
+    assert_equal -1, cls.foo(-1)
+    assert_equal 0, cls.foo(0)
+    assert_equal 2, cls.foo(3)
+  end
+
+  def test_if_fixnum
+    cls, = compile(<<-EOF)
+      def foo(a => :fixnum)
+        if a < -5
+          -6
+        elsif a <= 0
+          0
+        elsif a == 1
+          1
+        elsif a > 4
+          5
+        elsif a >= 3
+          3
+        else
+          2
+        end
+      end
+    EOF
+    assert_equal(-6, cls.foo(-6))
+    assert_equal(0, cls.foo(-5))
+    assert_equal(0, cls.foo(0))
+    assert_equal(1, cls.foo(1))
+    assert_equal(2, cls.foo(2))
+    assert_equal(3, cls.foo(3))
+    assert_equal(3, cls.foo(4))
+    assert_equal(5, cls.foo(5))
+  end
+
+  def test_if_float
+    cls, = compile(<<-EOF)
+      def foo(a => :float)
+        if a < -5.0
+          -6
+        elsif a <= 0.0
+          0
+        elsif a == 1.0
+          1
+        elsif a > 4.0
+          5
+        elsif a >= 3.0
+          3
+        else
+          2
+        end
+      end
+    EOF
+    assert_equal(-6, cls.foo(-5.1))
+    assert_equal(0, cls.foo(-5.0))
+    assert_equal(0, cls.foo(0.0))
+    assert_equal(1, cls.foo(1.0))
+    assert_equal(2, cls.foo(2.5))
+    assert_equal(3, cls.foo(3.0))
+    assert_equal(3, cls.foo(3.5))
+    assert_equal(5, cls.foo(4.1))
+  end
+
+  def test_if_boolean
+    cls, = compile(<<-EOF)
+      def foo(a => :boolean)
+        if a
+          'true'
+        else
+          'false'
+        end
+      end
+    EOF
+    assert_equal('true', cls.foo(true))
+    assert_equal('false', cls.foo(false))
+  end
+
+  def test_if_int
+    # conditions don't work with :int
+    # cls, = compile("def foo(a => :int); if a < 0; -a; else; a; end; end")
+    # assert_equal 1, cls.foo(-1)
+    # assert_equal 3, cls.foo(3)
+  end
+
+  def test_trailing_conditions
+    cls, = compile(<<-EOF)
+      def foo(a => :fixnum)
+        return '+' if a >= 0
+        # return '-' unless a == 0
+        return '-1' if a == -1
+        '?'
+      end
+    EOF
+    assert_equal '+', cls.foo(3)
+    assert_equal '+', cls.foo(0)
+    assert_equal '-1', cls.foo(-1)
+    assert_equal '?', cls.foo(-3)
   end
 
   def test_field_decl

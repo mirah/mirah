@@ -340,7 +340,7 @@ module Duby
             @method.lreturn
           when AST.type(:float)
             @method.freturn
-          when AST.type(:float)
+          when AST.type(:double)
             @method.dreturn
           else
             @method.areturn
