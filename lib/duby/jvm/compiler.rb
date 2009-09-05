@@ -679,8 +679,7 @@ module Duby
           @method.istore(@method.local(name))
         when AST.type(:long)
           @method.ldc_long(0)
-          @method.lstore(@method.local(name))
-          @method.local"<#long #{name}>"
+          @method.lstore(@method.local(name, true))
         when AST.type(:float)
           @method.ldc_float(0.0)
           @method.fstore(@method.local(name))
