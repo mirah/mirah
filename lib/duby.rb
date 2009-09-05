@@ -20,7 +20,7 @@ module Duby
     ast.infer(typer)
     typer.resolve(true)
 
-    compiler = Duby::Compiler::JVM.new(filename)
+    compiler = Duby::Compiler::JVM.new($filename)
     ast.compile(compiler, false)
 
     main_cls = nil
@@ -49,7 +49,7 @@ module Duby
     ast.infer(typer)
     typer.resolve(true)
 
-    compiler = Duby::Compiler::JVM.new(filename)
+    compiler = Duby::Compiler::JVM.new($filename)
     ast.compile(compiler, false)
 
     compiler.generate {|filename, builder|
@@ -62,13 +62,13 @@ module Duby
     java.lang.System.set_property("jruby.duby.enabled", "true")
     
     process_flags!(args)
-    filename = args.shift
+    $filename = args.shift
     
-    if filename == '-e'
-      filename = 'dash_e'
+    if $filename == '-e'
+      $filename = 'dash_e'
       ast = Duby::AST.parse(args[0])
     else
-      ast = Duby::AST.parse(File.read(filename))
+      ast = Duby::AST.parse(File.read($filename))
     end
     ast
   end

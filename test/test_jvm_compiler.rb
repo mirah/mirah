@@ -408,11 +408,20 @@ class TestJVMCompiler < Test::Unit::TestCase
       a = :fixnum
       b = :int
       c = :long
-      c = :float
+      d = :float
       e = :string
       f = String
+      puts a
+      puts b
+      puts c
+      puts d
+      puts e
+      puts f
     EOF
-    # I'm not sure what else to test here, but at least we know it compiled
+    output = capture_output do
+      cls.main([].to_java(:string))
+    end
+    assert_equal("0\n0\n0\n0.0\nnull\nnull\n", output)
   end
 
   def test_field_decl
