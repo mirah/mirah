@@ -14,17 +14,7 @@ require 'jruby'
 
 module Duby
   def self.run(*args)
-    java.lang.System.set_property("jruby.duby.enabled", "true")
-    
-    process_flags!(args)
-    filename = args.shift
-    
-    if filename == '-e'
-      filename = 'dash_e'
-      ast = Duby::AST.parse(args[0])
-    else
-      ast = Duby::AST.parse(File.read(filename))
-    end
+    ast = parse(*args)
 
     typer = Duby::Typer::Simple.new(:script)
     ast.infer(typer)
@@ -53,17 +43,7 @@ module Duby
   end
   
   def self.compile(*args)
-    java.lang.System.set_property("jruby.duby.enabled", "true")
-    
-    process_flags!(args)
-    filename = args.shift
-    
-    if filename == '-e'
-      filename = 'dash_e'
-      ast = Duby::AST.parse(args[0])
-    else
-      ast = Duby::AST.parse(File.read(filename))
-    end
+    ast = parse(*args)
 
     typer = Duby::Typer::Simple.new(:script)
     ast.infer(typer)
@@ -76,6 +56,21 @@ module Duby
       bytes = builder.generate
       File.open(filename, 'w') {|f| f.write(bytes)}
     }
+  end
+  
+  def self.parse(*args)
+    java.lang.System.set_property("jruby.duby.enabled", "true")
+    
+    process_flags!(args)
+    filename = args.shift
+    
+    if filename == '-e'
+      filename = 'dash_e'
+      ast = Duby::AST.parse(args[0])
+    else
+      ast = Duby::AST.parse(File.read(filename))
+    end
+    ast
   end
   
   def self.process_flags!(args)
