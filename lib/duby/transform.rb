@@ -259,16 +259,16 @@ module Duby
                   long = args_node.get(0).value
                   short = long[(long.rindex('.') + 1)..-1]
                 else
-                  raise "unknown import syntax at " + self
+                  raise "unknown import syntax at #{self}"
                 end
               when 2
                 short = args_node.child_nodes[0].value
                 long = args_node.child_nodes[1].value
               else
-                raise "unknown import syntax at " + self
+                raise "unknown import syntax at #{self}"
               end
             else
-              raise "unknown import syntax at " + self
+              raise "unknown import syntax at #{self}"
             end
             Import.new(parent, short, long)
           when "puts"

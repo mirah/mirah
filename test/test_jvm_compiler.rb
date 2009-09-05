@@ -423,8 +423,50 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
     assert_equal("0\n0\n0\n0.0\nnull\nnull\n", output)
   end
+  
+  def test_loop
+    cls, = compile(
+        'def foo(a => :fixnum);while a > 0; a -= 1; puts ".";end;end')
+    assert_equal('', capture_output{cls.foo(0)})
+    assert_equal(".\n", capture_output{cls.foo(1)})
+    assert_equal(".\n.\n", capture_output{cls.foo(2)})
+    
+    cls, = compile(
+        'def foo(a => :fixnum);begin;a -= 1; puts ".";end while a > 0;end')
+    assert_equal(".\n", capture_output{cls.foo(0)})
+    assert_equal(".\n", capture_output{cls.foo(1)})
+    assert_equal(".\n.\n", capture_output{cls.foo(2)})
+    
+    cls, = compile(
+        'def foo(a => :fixnum);until a <= 0; a -= 1; puts ".";end;end')
+    assert_equal('', capture_output{cls.foo(0)})
+    assert_equal(".\n", capture_output{cls.foo(1)})
+    assert_equal(".\n.\n", capture_output{cls.foo(2)})
+    
+    cls, = compile(
+        'def foo(a => :fixnum);begin;a -= 1; puts ".";end until a <= 0;end')
+    assert_equal(".\n", capture_output{cls.foo(0)})
+    assert_equal(".\n", capture_output{cls.foo(1)})
+    assert_equal(".\n.\n", capture_output{cls.foo(2)})
+  end
 
-  def test_field_decl
-    # TODO
+  def test_fields
+    script, cls = compile(<<-EOF)
+      class FieldTest
+        def initialize(a => :fixnum)
+          @a = a
+        end
+        
+        def a
+          @a
+        end
+      end
+    EOF
+    first = cls.new(1)
+    assert_equal(1, first.a)
+
+    second = cls.new(2)
+    assert_equal(1, first.a)
+    assert_equal(2, second.a)
   end
 end
