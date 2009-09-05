@@ -530,6 +530,7 @@ module Duby
               else
                 raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
               end
+              return
             else
               raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
             end
@@ -559,15 +560,15 @@ module Duby
               else
                 raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
               end
+              return
             else
               raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
             end
-          else
-            # try to compile as a normal call
-            predicate.compile(self, true)
-            @method.ifeq(target)
           end
         end
+        # try to compile as a normal call
+        predicate.compile(self, true)
+        @method.ifeq(target)
       end
       
       def call(call, expression)
@@ -613,6 +614,8 @@ module Duby
         when AST.type(:fixnum)
           @method.iload(@method.local(name))
         when AST.type(:int)
+          @method.iload(@method.local(name))
+        when AST.type(:boolean)
           @method.iload(@method.local(name))
         when AST.type(:float)
           @method.fload(@method.local(name))
