@@ -677,12 +677,12 @@ module Duby
         when AST.type(:int)
           @method.push_int(0)
           @method.istore(@method.local(name))
-        when AST.type(:float)
-          @method.ldc_float(0.0)
-          @method.fstore(@method.local(name))
         when AST.type(:long)
           @method.ldc_long(0)
           @method.lstore(@method.local(name))
+        when AST.type(:float)
+          @method.ldc_float(0.0)
+          @method.fstore(@method.local(name))
         else
           @method.aconst_null
           @method.astore(@method.local(name))

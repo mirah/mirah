@@ -401,6 +401,20 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal '-', cls.foo(-1)
   end
 
+
+  def test_local_decl
+    cls, = compile(<<-EOF)
+      import 'java.lang.String'
+      a = :fixnum
+      b = :int
+      c = :long
+      c = :float
+      e = :string
+      f = String
+    EOF
+    # I'm not sure what else to test here, but at least we know it compiled
+  end
+
   def test_field_decl
     # TODO
   end

@@ -13,7 +13,7 @@ module Duby::AST
     def infer(typer)
       unless resolved?
         resolved!
-        @inferred_type = typer.known_types[type]
+        @inferred_type = typer.known_types[type] || type
         if @inferred_type
           resolved!
           typer.learn_local_type(scope, name, @inferred_type)
