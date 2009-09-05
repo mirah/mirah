@@ -277,12 +277,38 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('foo', instance.foo)
   end
 
-  def test_unless
-    cls, = compile(
-        "def foo(a => :fixnum); unless a <= 0; -1 + a; else; a; end; end")
-    assert_equal -1, cls.foo(-1)
-    assert_equal 0, cls.foo(0)
-    assert_equal 2, cls.foo(3)
+  def test_unless_fixnum
+    cls, = compile(<<-EOF)
+      def foo(a => :fixnum)
+        values = boolean[5]
+        values[0] = true unless a < 0
+        values[1] = true unless a <= 0
+        values[2] = true unless a == 0
+        values[3] = true unless a >= 0
+        values[4] = true unless a > 0
+        values
+      end
+    EOF
+    assert_equal [true, true, true, false, false], cls.foo(1).to_a
+    assert_equal [true, false, false, false, true], cls.foo(0).to_a
+    assert_equal [false, false, true, true, true], cls.foo(-1).to_a
+  end
+
+  def test_unless_float
+    cls, = compile(<<-EOF)
+      def foo(a => :float)
+        values = boolean[5]
+        values[0] = true unless a < 0.0
+        values[1] = true unless a <= 0.0
+        values[2] = true unless a == 0.0
+        values[3] = true unless a >= 0.0
+        values[4] = true unless a > 0.0
+        values
+      end
+    EOF
+    assert_equal [true, true, true, false, false], cls.foo(1.0).to_a
+    assert_equal [true, false, false, false, true], cls.foo(0.0).to_a
+    assert_equal [false, false, true, true, true], cls.foo(-1.0).to_a
   end
 
   def test_if_fixnum
