@@ -379,7 +379,7 @@ module Duby
         predicate = iff.condition.predicate
         jump_if_not(predicate, elselabel)
 
-        iff.body.compile(self, expression)
+        iff.body.compile(self, expression) if iff.body
 
         @method.goto(donelabel)
 

@@ -365,16 +365,14 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_trailing_conditions
     cls, = compile(<<-EOF)
       def foo(a => :fixnum)
-        return '+' if a >= 0
-        # return '-' unless a == 0
-        return '-1' if a == -1
-        '?'
+        return '+' if a > 0
+        return '0' unless a < 0
+        '-'
       end
     EOF
     assert_equal '+', cls.foo(3)
-    assert_equal '+', cls.foo(0)
-    assert_equal '-1', cls.foo(-1)
-    assert_equal '?', cls.foo(-3)
+    assert_equal '0', cls.foo(0)
+    assert_equal '-', cls.foo(-1)
   end
 
   def test_field_decl

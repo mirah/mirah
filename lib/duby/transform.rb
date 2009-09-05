@@ -337,7 +337,7 @@ module Duby
           If.new(parent) do |iff|
             [
               Condition.new(iff) {|cond| [condition.transform(cond)]},
-              then_body.transform(iff),
+              then_body ? then_body.transform(iff) : nil,
               else_body ? else_body.transform(iff) : nil
             ]
           end

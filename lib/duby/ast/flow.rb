@@ -35,7 +35,7 @@ module Duby
           end
 
           # condition type is unrelated to body types, so we proceed with bodies
-          then_type = body.infer(typer)
+          then_type = body.infer(typer) if body
 
           if !then_type
             # attempt to determine else branch
