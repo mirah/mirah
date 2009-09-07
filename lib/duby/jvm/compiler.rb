@@ -121,8 +121,8 @@ module Duby
           meta = call.target.inferred_type.meta?
           array = call.target.inferred_type.array?
 
-          mapped_target = compiler.get_java_type(compiler.mapped_type(call.target.inferred_type))
-          mapped_params = call.parameters.map {|param| compiler.get_java_type(compiler.mapped_type(param.inferred_type))}
+          mapped_target = compiler.mapped_type(call.target.inferred_type)
+          mapped_params = call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}
 
           raise "Invoke attempted on primitive type: #{call.target.inferred_type}" if (mapped_target.primitive?)
 
@@ -208,7 +208,7 @@ module Duby
               compiler.method.invokestatic(
                 mapped_target,
                 call.name,
-                [compiler.get_java_type(compiler.mapped_type(call.inferred_type)), *method.parameter_types])
+                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
               # if expression, void static methods return null, for consistency
               # TODO: inference phase needs to track that signature is void but actual type is null object
               compiler.method.aconst_null if expression && call.inferred_type == AST::TypeReference::NoType
@@ -237,12 +237,12 @@ module Duby
               compiler.method.invokeinterface(
                 mapped_target,
                 call.name,
-                [compiler.get_java_type(compiler.mapped_type(call.inferred_type)), *method.parameter_types])
+                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
             else
               compiler.method.invokevirtual(
                 mapped_target,
                 call.name,
-                [compiler.get_java_type(compiler.mapped_type(call.inferred_type)), *method.parameter_types])
+                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
             end
           end
         end
@@ -301,19 +301,15 @@ module Duby
         log "Main method complete!"
       end
       
-      def get_java_type(type)
-        type
-      end
-      
       def define_method(name, signature, args, body)
         arg_types = if args.args
           args.args.map do |arg|
-            get_java_type(mapped_type(arg.inferred_type))
+            mapped_type(arg.inferred_type)
           end
         else
           []
         end
-        return_type = get_java_type(mapped_type(signature[:return]))
+        return_type = mapped_type(signature[:return])
         if @static
           oldmethod, @method = @method, @class.public_static_method(name.to_s, return_type, *arg_types)
         else
@@ -591,6 +587,7 @@ module Duby
       end
       
       def call(call, expression)
+        
         call_compilers[call.target.inferred_type].call(self, call, expression)
       end
       
@@ -605,12 +602,12 @@ module Duby
           @method.invokestatic(
             @method.this,
             fcall.name,
-            [get_java_type(mapped_type(fcall.inferred_type)), *fcall.parameters.map {|param| get_java_type(mapped_type(param.inferred_type))}])
+            [mapped_type(fcall.inferred_type), *fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
         else
           @method.invokevirtual(
             @method.this,
             fcall.name,
-            [get_java_type(mapped_type(fcall.inferred_type)), @fcall.parameters.map {|param| get_java_type mapped_type(param.inferred_type)}])
+            [mapped_type(fcall.inferred_type), @fcall.parameters.map {|param| get_java_type mapped_type(param.inferred_type)}])
         end
         # if expression, we need something on the stack
         if expression
@@ -735,9 +732,9 @@ module Duby
         unless declared_fields[name]
           declared_fields[name] = type
           if static
-            @class.private_static_field name, get_java_type(type)
+            @class.private_static_field name, type
           else
-            @class.private_field name, get_java_type(type)
+            @class.private_field name, type
           end
         end
       end
@@ -856,7 +853,7 @@ module Duby
       def println(printline)
         @method.getstatic System, "out", PrintStream
         printline.parameters.each {|param| param.compile(self, true)}
-        mapped_params = printline.parameters.map {|param| get_java_type(mapped_type(param.inferred_type))}
+        mapped_params = printline.parameters.map {|param| mapped_type(param.inferred_type)}
         method = find_method(PrintStream.java_class, "println", mapped_params, false)
         if (method)
           @method.invokevirtual(
