@@ -1,5 +1,6 @@
 require 'duby'
 require 'duby/jvm/method_lookup'
+require 'duby/jvm/types'
 require 'duby/typer'
 require 'duby/plugin/math'
 require 'duby/plugin/java'
@@ -120,8 +121,8 @@ module Duby
           meta = call.target.inferred_type.meta?
           array = call.target.inferred_type.array?
           
-          mapped_target = compiler.mapped_type(call.target.inferred_type)
-          mapped_params = call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}
+          mapped_target = compiler.get_java_type(compiler.mapped_type(call.target.inferred_type))
+          mapped_params = call.parameters.map {|param| compiler.get_java_type(compiler.mapped_type(param.inferred_type))}
 
           raise "Invoke attempted on primitive type: #{call.target.inferred_type}" if (mapped_target.primitive?)
 
@@ -129,13 +130,13 @@ module Duby
             case call.name
             when "[]"
               raise "Array slicing not yet supported" if mapped_params.size > 1
-              raise "Only fixnum array indexing supported" if mapped_params[0] != Java::int.java_class
+              raise "Only int array indexing supported" if mapped_params[0] != Types::Int
 
               call.target.compile(compiler, true)
               call.parameters[0].compile(compiler, true)
 
               if mapped_target.component_type.primitive?
-                case mapped_target.component_type
+                case mapped_target.component_type.jvm_type
                 when Java::byte.java_class, Java::boolean.java_class
                   compiler.method.baload
                 when Java::short.java_class
@@ -156,14 +157,15 @@ module Duby
               end
             when "[]="
               raise "Array assignment requires an index and a value" if mapped_params.size != 2
-              raise "Only fixnum array indexing supported" if mapped_params[0] != Java::int.java_class
+              # TODO allow smaller types
+              raise "Only fixnum array indexing supported" if mapped_params[0] != Types::Int
 
               call.target.compile(compiler, true)
               call.parameters[0].compile(compiler, true)
               call.parameters[1].compile(compiler, true)
 
               if mapped_target.component_type.primitive?
-                case mapped_target.component_type
+                case mapped_target.component_type.jvm_type
                 when Java::byte.java_class, Java::boolean.java_class
                   compiler.method.bastore
                 when Java::short.java_class
@@ -206,7 +208,7 @@ module Duby
               compiler.method.invokestatic(
                 mapped_target,
                 call.name,
-                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+                [compiler.get_java_type(compiler.mapped_type(call.inferred_type)), *method.parameter_types])
               # if expression, void static methods return null, for consistency
               # TODO: inference phase needs to track that signature is void but actual type is null object
               compiler.method.aconst_null if expression && call.inferred_type == AST::TypeReference::NoType
@@ -235,12 +237,12 @@ module Duby
               compiler.method.invokeinterface(
                 mapped_target,
                 call.name,
-                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+                [compiler.get_java_type(compiler.mapped_type(call.inferred_type)), *method.parameter_types])
             else
               compiler.method.invokevirtual(
                 mapped_target,
                 call.name,
-                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+                [compiler.get_java_type(compiler.mapped_type(call.inferred_type)), *method.parameter_types])
             end
           end
         end
@@ -253,12 +255,17 @@ module Duby
         @src = ""
         @static = true
 
-        self.type_mapper[AST.type(:fixnum)] = Java::int.java_class
-        self.type_mapper[AST.type(:long)] = Java::long.java_class
-        self.type_mapper[AST.type(:float)] = Java::float.java_class
-        self.type_mapper[AST.type(:string)] = Java::java.lang.String.java_class
-        self.type_mapper[AST.type(:string, true)] = Java::java.lang.String[].java_class
-        
+        map_type(AST.type(:boolean), Types::Boolean)
+        map_type(AST.type(:byte), Types::Byte)
+        map_type(AST.type(:char), Types::Char)
+        map_type(AST.type(:short), Types::Short)
+        map_type(AST.type(:int), Types::Int)
+        map_type(AST.type(:long), Types::Long)
+        map_type(AST.type(:float), Types::Float)
+        map_type(AST.type(:double), Types::Double)
+        map_type(AST.type(:fixnum), Types::Int)
+        map_type(AST.type(:string), Types::String)
+
         self.call_compilers[AST.type(:fixnum)] =
           self.call_compilers[AST.type(:long)] = MathCompiler.new
           self.call_compilers[AST.type(:float)] = MathCompiler.new
@@ -274,7 +281,7 @@ module Duby
       end
 
       def define_main(body)
-        oldmethod, @method = @method, @class.public_static_method("main", nil, mapped_type(AST.type(:string, true)))
+        oldmethod, @method = @method, @class.main
 
         log "Starting main method"
 
@@ -294,17 +301,28 @@ module Duby
         log "Main method complete!"
       end
       
+      def get_java_type(type)
+        type
+      end
+      
       def define_method(name, signature, args, body)
-        arg_types = args.args ? args.args.map {|arg| mapped_type(arg.inferred_type)} : []
+        arg_types = if args.args
+          args.args.map do |arg|
+            get_java_type(mapped_type(arg.inferred_type))
+          end
+        else
+          []
+        end
+        return_type = get_java_type(mapped_type(signature[:return]))
         if @static
-          oldmethod, @method = @method, @class.public_static_method(name.to_s, mapped_type(signature[:return]), *arg_types)
+          oldmethod, @method = @method, @class.public_static_method(name.to_s, return_type, *arg_types)
         else
           if name == "initialize"
             oldmethod, @method = @method, @class.public_constructor(*arg_types)
             @method.aload 0
             @method.invokespecial @method.object, "<init>", [@method.void]
           else
-            oldmethod, @method = @method, @class.public_method(name.to_s, mapped_type(signature[:return]), *arg_types)
+            oldmethod, @method = @method, @class.public_method(name.to_s, return_type, *arg_types)
           end
         end
 
@@ -358,8 +376,9 @@ module Duby
         prev_class, @class = @class, @file.public_class(class_def.name)
         old_static, @static = @static, false
 
-        type_mapper[AST::type(class_def.name)] = @class
-        type_mapper[AST::type(class_def.name, false, true)] = @class
+        type = Types::Type.new(@class)
+        type_mapper[AST::type(class_def.name)] = type
+        type_mapper[AST::type(class_def.name, false, true)] = type
         class_def.body.compile(self, false)
         
         @class = prev_class
@@ -586,23 +605,23 @@ module Duby
           @method.invokestatic(
             @method.this,
             fcall.name,
-            [mapped_type(fcall.inferred_type), *fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+            [get_java_type(mapped_type(fcall.inferred_type)), *fcall.parameters.map {|param| get_java_type(mapped_type(param.inferred_type))}])
         else
           @method.invokevirtual(
             @method.this,
             fcall.name,
-            [mapped_type(fcall.inferred_type), @fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+            [get_java_type(mapped_type(fcall.inferred_type)), @fcall.parameters.map {|param| get_java_type mapped_type(param.inferred_type)}])
         end
         # if expression, we need something on the stack
         if expression
           # if void return...
-          if mapped_type(fcall.inferred_type) == Java::void || mapped_type(fcall.inferred_type) == AST::TypeReference::NoType
+          if mapped_type(fcall.inferred_type).void?
             # push a null?
             @method.aconst_null
           end
         else
           # if not void return...
-          if mapped_type(fcall.inferred_type) != Java::void && mapped_type(fcall.inferred_type) != AST::TypeReference::NoType
+          if !mapped_type(fcall.inferred_type).void?
             # pop result
             @method.pop
           end
@@ -716,9 +735,9 @@ module Duby
         unless declared_fields[name]
           declared_fields[name] = type
           if static
-            @class.private_static_field name, type
+            @class.private_static_field name, get_java_type(type)
           else
-            @class.private_field name, type
+            @class.private_field name, get_java_type(type)
           end
         end
       end
@@ -804,30 +823,40 @@ module Duby
         @type_mapper ||= {}
       end
 
+      def map_type(ast_type, compiler_type)
+        type_mapper[ast_type] = compiler_type
+        type_mapper[ast_type.meta] = compiler_type
+        type_mapper[compiler_type] = compiler_type
+      end
+
       def mapped_type(type)
-        return Java::void if type == AST::TypeReference::NoType
-        return Java::java.lang.Object.java_class if type == AST::TypeReference::NullType
+        # Why aren't these in the hash?
+        return Types::Void if type == AST::TypeReference::NoType
+        return Types::Object if type == AST::TypeReference::NullType
+        return type if type.kind_of? Types::Type
         return type_mapper[type] if type_mapper[type]
         if type.array?
-          Java::JavaClass.for_name(type.name).array_class
+          component = AST.type(type.name, false, type.meta)
+          map_type(type, mapped_type(component).array_type)
         else
-          Java::JavaClass.for_name(type.name)
+          map_type(type, Types::Type.new(Java::JavaClass.for_name(type.name)))
         end
       end
 
       def import(short, long)
         # TODO hacky..we map both versions because some get expanded during inference
         # TODO hacky again..meta and non-meta
-        type_mapper[AST::type(short, false, true)] = Java::JavaClass.for_name(long)
-        type_mapper[AST::type(long, false, true)] = Java::JavaClass.for_name(long)
-        type_mapper[AST::type(short, false, false)] = Java::JavaClass.for_name(long)
-        type_mapper[AST::type(long, false, false)] = Java::JavaClass.for_name(long)
+        type = Types::Type.new(Java::JavaClass.for_name(long))
+        type_mapper[AST::type(short, false, true)] = type
+        type_mapper[AST::type(long, false, true)] = type
+        type_mapper[AST::type(short, false, false)] = type
+        type_mapper[AST::type(long, false, false)] = type
       end
 
       def println(printline)
         @method.getstatic System, "out", PrintStream
         printline.parameters.each {|param| param.compile(self, true)}
-        mapped_params = printline.parameters.map {|param| mapped_type(param.inferred_type)}
+        mapped_params = printline.parameters.map {|param| get_java_type(mapped_type(param.inferred_type))}
         method = find_method(PrintStream.java_class, "println", mapped_params, false)
         if (method)
           @method.invokevirtual(

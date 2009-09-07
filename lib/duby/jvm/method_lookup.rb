@@ -4,7 +4,18 @@ module Duby
       # dummy log; it's expected the inclusion target will have it
       def log(msg); end
       
+      def jvm_type(type)
+        return type if type.kind_of? Java::JavaClass
+        return type.jvm_type
+      end
+
+      def convert_params(params)
+        params.map {|param| jvm_type(param)}
+      end
+
       def find_method(mapped_type, name, mapped_params, meta)
+        mapped_type = jvm_type(mapped_type)
+        mapped_params = convert_params(mapped_params)
         if name == 'new'
           if meta
             name = "<init>"
@@ -38,6 +49,8 @@ module Duby
       end
       
       def find_jls(mapped_type, name, mapped_params, meta)
+        mapped_type = jvm_type(mapped_type)
+        mapped_params = convert_params(mapped_params)
         if meta
           all_methods = mapped_type.declared_class_methods
         else
