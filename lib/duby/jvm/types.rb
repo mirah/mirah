@@ -1,3 +1,5 @@
+require 'bitescript'
+
 module Duby
   module Compiler
     class JVM
@@ -18,7 +20,7 @@ module Duby
           def jvm_type
             @type
           end
-          
+
           def void?
             false
           end
@@ -26,21 +28,25 @@ module Duby
           def array?
             false
           end
-          
+
           def primitive?
             false
           end
-          
+
           def interface?
             @type.interface?
           end
-          
+
           def array_type
             @array_type ||= ArrayType.new(self)
           end
-          
+
           def inspect
             "#<#{self.class.name} #{name}>"
+          end
+
+          def newarray(method)
+            method.anewarray(self)
           end
         end
         
@@ -56,6 +62,10 @@ module Duby
           
           def primitive_type
             @wrapper::TYPE
+          end
+
+          def newarray(method)
+            method.send "new#{name}array"
           end
         end
         

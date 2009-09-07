@@ -12,7 +12,7 @@ module Duby
       import java.lang.System
       import java.io.PrintStream
       include Duby::JVM::MethodLookup
-      
+
       class << self
         attr_accessor :verbose
 
@@ -25,10 +25,10 @@ module Duby
         def log(message); JVM.log(message); end
       end
       include JVMLogger
-      
+
       class MathCompiler
         include JVMLogger
-        
+
         def call(compiler, call, expression)
           call.target.compile(compiler, true)
           call.parameters.each {|param| param.compile(compiler, true)}
@@ -107,7 +107,7 @@ module Duby
           else
             raise "Unknown math operation #{call.name} on #{target_type}"
           end
-          
+
           # math expressions always return a value, so if we're not an expression we pop the result
           compiler.method.pop unless expression
         end
@@ -116,11 +116,11 @@ module Duby
       class InvokeCompiler
         include JVMLogger
         include Duby::JVM::MethodLookup
-        
+
         def call(compiler, call, expression)
           meta = call.target.inferred_type.meta?
           array = call.target.inferred_type.array?
-          
+
           mapped_target = compiler.get_java_type(compiler.mapped_type(call.target.inferred_type))
           mapped_params = call.parameters.map {|param| compiler.get_java_type(compiler.mapped_type(param.inferred_type))}
 
@@ -887,38 +887,8 @@ module Duby
       end
 
       def empty_array(type, size)
-        case type
-        when AST.type(:fixnum)
-          @method.ldc(size)
-          @method.newintarray
-        when AST.type(:boolean)
-          @method.ldc(size)
-          @method.newbooleanarray
-        when AST.type(:byte)
-          @method.ldc(size)
-          @method.newbytearray
-        when AST.type(:short)
-          @method.ldc(size)
-          @method.newshortarray
-        when AST.type(:char)
-          @method.ldc(size)
-          @method.newchararray
-        when AST.type(:int)
-          @method.ldc(size)
-          @method.newintarray
-        when AST.type(:long)
-          @method.ldc(size)
-          @method.newlongarray
-        when AST.type(:float)
-          @method.ldc(size)
-          @method.newfloatarray
-        when AST.type(:double)
-          @method.ldc(size)
-          @method.newdoublearray
-        else
-          @method.ldc(size)
-          @method.anewarray mapped_type(type).java_class
-        end
+        @method.ldc(size)
+        mapped_type(type).newarray(@method)
       end
     end
   end
