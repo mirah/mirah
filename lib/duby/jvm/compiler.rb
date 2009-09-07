@@ -587,8 +587,18 @@ module Duby
       end
       
       def call(call, expression)
-        
-        call_compilers[call.target.inferred_type].call(self, call, expression)
+        # TODO can we get the typer to automatically give us mapped types?
+        mapped_target = mapped_type(call.target.inferred_type)
+        mapped_params = call.parameters.map do |param|
+          mapped_type(param.inferred_type)
+        end
+        method = mapped_target.get_method(call.name, mapped_params,
+                                          call.target.inferred_type.meta?)
+        if method
+          method.call(mapped_params, expression)
+        else
+          call_compilers[call.target.inferred_type].call(self, call, expression)
+        end
       end
       
       def call_compilers
