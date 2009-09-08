@@ -121,22 +121,22 @@ module Duby
           meta = call.target.inferred_type.meta?
           array = call.target.inferred_type.array?
 
-          mapped_target = compiler.mapped_type(call.target.inferred_type)
-          mapped_params = call.parameters.map {|param| compiler.mapped_type(param.inferred_type)}
+          target = call.target.inferred_type
+          params = call.parameters.map {|param| param.inferred_type}
 
-          raise "Invoke attempted on primitive type: #{call.target.inferred_type}" if (mapped_target.primitive?)
+          raise "Invoke attempted on primitive type: #{target}" if (target.primitive?)
 
           if array
             case call.name
             when "[]"
-              raise "Array slicing not yet supported" if mapped_params.size > 1
-              raise "Only int array indexing supported" if mapped_params[0] != Types::Int
+              raise "Array slicing not yet supported" if params.size > 1
+              raise "Only int array indexing supported" if params[0] != Types::Int
 
               call.target.compile(compiler, true)
               call.parameters[0].compile(compiler, true)
 
-              if mapped_target.component_type.primitive?
-                case mapped_target.component_type.jvm_type
+              if target.component_type.primitive?
+                case target.component_type.jvm_type
                 when Java::byte.java_class, Java::boolean.java_class
                   compiler.method.baload
                 when Java::short.java_class
@@ -156,16 +156,16 @@ module Duby
                 compiler.method.aaload
               end
             when "[]="
-              raise "Array assignment requires an index and a value" if mapped_params.size != 2
+              raise "Array assignment requires an index and a value" if params.size != 2
               # TODO allow smaller types
-              raise "Only fixnum array indexing supported" if mapped_params[0] != Types::Int
+              raise "Only fixnum array indexing supported" if params[0] != Types::Int
 
               call.target.compile(compiler, true)
               call.parameters[0].compile(compiler, true)
               call.parameters[1].compile(compiler, true)
 
-              if mapped_target.component_type.primitive?
-                case mapped_target.component_type.jvm_type
+              if target.component_type.primitive?
+                case target.component_type.jvm_type
                 when Java::byte.java_class, Java::boolean.java_class
                   compiler.method.bastore
                 when Java::short.java_class
@@ -185,7 +185,7 @@ module Duby
                 compiler.method.aastore
               end
             when "length"
-              raise "Array length does not take an argument" if mapped_params.size != 0
+              raise "Array length does not take an argument" if params.size != 0
 
               call.target.compile(compiler, true)
 
@@ -194,21 +194,21 @@ module Duby
           elsif meta
             if call.name == 'new'
               # object construction
-              constructor = find_method(mapped_target, call.name, mapped_params, meta)
-              compiler.method.new mapped_target
+              constructor = find_method(target, call.name, params, meta)
+              compiler.method.new target
               compiler.method.dup
               call.parameters.each {|param| param.compile(compiler, true)}
               compiler.method.invokespecial(
-                mapped_target,
+                target,
                 "<init>",
                 [nil, *constructor.parameter_types])
             else
-              method = find_method(mapped_target, call.name, mapped_params, meta)
+              method = find_method(target, call.name, params, meta)
               call.parameters.each {|param| param.compile(compiler, true)}
               compiler.method.invokestatic(
-                mapped_target,
+                target,
                 call.name,
-                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+                [call.inferred_type, *method.parameter_types])
               # if expression, void static methods return null, for consistency
               # TODO: inference phase needs to track that signature is void but actual type is null object
               compiler.method.aconst_null if expression && call.inferred_type == Types::Void
@@ -221,11 +221,11 @@ module Duby
                 raise "String concat takes one argument" if call.parameters.size != 1
                 call.target.compile(compiler, true)
                 call.parameters[0].compile(compiler, true)
-                compiler.method.invokevirtual(mapped_target, "concat", [compiler.method.string, compiler.method.string])
+                compiler.method.invokevirtual(target, "concat", [compiler.method.string, compiler.method.string])
                 return
               end
             end
-            method = find_method(mapped_target, call.name, mapped_params, meta)
+            method = find_method(target, call.name, params, meta)
             call.target.compile(compiler, true)
             
             # if expression, void methods return the called object, for consistency and chaining
@@ -233,16 +233,16 @@ module Duby
             compiler.method.dup if expression && call.inferred_type == Types::Void
             
             call.parameters.each {|param| param.compile(compiler, true)}
-            if mapped_target.interface?
+            if target.interface?
               compiler.method.invokeinterface(
-                mapped_target,
+                target,
                 call.name,
-                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+                [call.inferred_type, *method.parameter_types])
             else
               compiler.method.invokevirtual(
-                mapped_target,
+                target,
                 call.name,
-                [compiler.mapped_type(call.inferred_type), *method.parameter_types])
+                [call.inferred_type, *method.parameter_types])
             end
           end
         end
@@ -292,13 +292,11 @@ module Duby
       
       def define_method(name, signature, args, body)
         arg_types = if args.args
-          args.args.map do |arg|
-            mapped_type(arg.inferred_type)
-          end
+          args.args.map { |arg| arg.inferred_type }
         else
           []
         end
-        return_type = mapped_type(signature[:return])
+        return_type = signature[:return]
         if @static
           oldmethod, @method = @method, @class.public_static_method(name.to_s, return_type, *arg_types)
         else
@@ -573,15 +571,15 @@ module Duby
       end
       
       def call(call, expression)
-        # TODO can we get the typer to automatically give us mapped types?
-        mapped_target = mapped_type(call.target.inferred_type)
-        mapped_params = call.parameters.map do |param|
-          mapped_type(param.inferred_type)
+
+        target = call.target.inferred_type
+        params = call.parameters.map do |param|
+          param.inferred_type
         end
-        method = mapped_target.get_method(call.name, mapped_params,
-                                          call.target.inferred_type.meta?)
+        method = target.get_method(call.name, params,
+                                   call.target.inferred_type.meta?)
         # if method
-        #   method.call(mapped_params, expression)
+        #   method.call(params, expression)
         # else
           call_compilers[call.target.inferred_type].call(self, call, expression)
         # end
@@ -598,23 +596,23 @@ module Duby
           @method.invokestatic(
             @method.this,
             fcall.name,
-            [mapped_type(fcall.inferred_type), *fcall.parameters.map {|param| mapped_type(param.inferred_type)}])
+            [fcall.inferred_type, *fcall.parameters.map {|param| param.inferred_type}])
         else
           @method.invokevirtual(
             @method.this,
             fcall.name,
-            [mapped_type(fcall.inferred_type), @fcall.parameters.map {|param| get_java_type mapped_type(param.inferred_type)}])
+            [fcall.inferred_type, @fcall.parameters.map {|param| param.inferred_type}])
         end
         # if expression, we need something on the stack
         if expression
           # if void return...
-          if mapped_type(fcall.inferred_type).void?
+          if fcall.inferred_type.void?
             # push a null?
             @method.aconst_null
           end
         else
           # if not void return...
-          if !mapped_type(fcall.inferred_type).void?
+          if !fcall.inferred_type.void?
             # pop result
             @method.pop
           end
@@ -646,8 +644,7 @@ module Duby
           return
         end
         
-        real_type = mapped_type(type)
-        declare_local(name, real_type)
+        declare_local(name, type)
         
         yield
         
@@ -682,8 +679,7 @@ module Duby
       end
 
       def local_declare(name, type)
-        real_type = mapped_type(type)
-        declare_local(name, real_type)
+        declare_local(name, type)
 
         case type
         when Types::Int
@@ -710,12 +706,10 @@ module Duby
         # load self object unless static
         method.aload 0 unless static
         
-        real_type = mapped_type(type)
-
         if static
-          @method.getstatic(@class, name, real_type)
+          @method.getstatic(@class, name, type)
         else
-          @method.getfield(@class, name, real_type)
+          @method.getfield(@class, name, type)
         end
       end
 
@@ -737,14 +731,13 @@ module Duby
 
       def field_declare(name, type)
         name = name[1..-1]
-        real_type = mapped_type(type)
-        declare_field(name, real_type)
+        declare_field(name, type)
       end
 
       def field_assign(name, type, expression)
         name = name[1..-1]
 
-        real_type = declared_fields[name] || mapped_type(type)
+        real_type = declared_fields[name] || type
         
         # Handle null specially
         if type == Types::Null
@@ -812,32 +805,21 @@ module Duby
         log "...done!"
       end
       
-      def type_mapper
-        @type_mapper ||= {}
-      end
-
-      def map_type(ast_type, compiler_type)
-      end
-
-      def mapped_type(type)
-        type
-      end
-
       def import(short, long)
       end
 
       def println(printline)
         @method.getstatic System, "out", PrintStream
         printline.parameters.each {|param| param.compile(self, true)}
-        mapped_params = printline.parameters.map {|param| mapped_type(param.inferred_type)}
-        method = find_method(PrintStream.java_class, "println", mapped_params, false)
+        params = printline.parameters.map {|param| param.inferred_type}
+        method = find_method(PrintStream.java_class, "println", params, false)
         if (method)
           @method.invokevirtual(
             PrintStream,
             "println",
             [method.return_type, *method.parameter_types])
         else
-          log "Could not find a match for #{PrintStream}.println(#{mapped_params})"
+          log "Could not find a match for #{PrintStream}.println(#{params})"
           fail "Could not compile"
         end
       end
@@ -861,7 +843,7 @@ module Duby
 
       def empty_array(type, size)
         @method.ldc(size)
-        mapped_type(type).newarray(@method)
+        type.newarray(@method)
       end
     end
   end
