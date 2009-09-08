@@ -35,7 +35,6 @@ class TestCompilerUsesTypes < Test::Unit::TestCase
       count = Object.new
       mock(@compiler.method).ldc(count)
       type = mock!.newarray(@compiler.method).subject
-      mock(@compiler).mapped_type(type) {type}
       @compiler.empty_array(type, count)
     }
     @compiler.define_main(ast.subject)

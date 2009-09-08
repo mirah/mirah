@@ -126,72 +126,7 @@ module Duby
 
           raise "Invoke attempted on primitive type: #{target}" if (target.primitive?)
 
-          if array
-            case call.name
-            when "[]"
-              raise "Array slicing not yet supported" if params.size > 1
-              raise "Only int array indexing supported" if params[0] != Types::Int
-
-              call.target.compile(compiler, true)
-              call.parameters[0].compile(compiler, true)
-
-              if target.component_type.primitive?
-                case target.component_type.jvm_type
-                when Java::byte.java_class, Java::boolean.java_class
-                  compiler.method.baload
-                when Java::short.java_class
-                  compiler.method.saload
-                when Java::char.java_class
-                  compiler.method.caload
-                when Java::int.java_class
-                  compiler.method.iaload
-                when Java::long.java_class
-                  compiler.method.laload
-                when Java::float.java_class
-                  compiler.method.faload
-                when Java::double.java_class
-                  compiler.method.daload
-                end
-              else
-                compiler.method.aaload
-              end
-            when "[]="
-              raise "Array assignment requires an index and a value" if params.size != 2
-              # TODO allow smaller types
-              raise "Only fixnum array indexing supported" if params[0] != Types::Int
-
-              call.target.compile(compiler, true)
-              call.parameters[0].compile(compiler, true)
-              call.parameters[1].compile(compiler, true)
-
-              if target.component_type.primitive?
-                case target.component_type.jvm_type
-                when Java::byte.java_class, Java::boolean.java_class
-                  compiler.method.bastore
-                when Java::short.java_class
-                  compiler.method.sastore
-                when Java::char.java_class
-                  compiler.method.castore
-                when Java::int.java_class
-                  compiler.method.iastore
-                when Java::long.java_class
-                  compiler.method.lastore
-                when Java::float.java_class
-                  compiler.method.fastore
-                when Java::double.java_class
-                  compiler.method.dastore
-                end
-              else
-                compiler.method.aastore
-              end
-            when "length"
-              raise "Array length does not take an argument" if params.size != 0
-
-              call.target.compile(compiler, true)
-
-              compiler.method.arraylength
-            end
-          elsif meta
+          if meta
             if call.name == 'new'
               # object construction
               constructor = find_method(target, call.name, params, meta)
@@ -226,6 +161,7 @@ module Duby
               end
             end
             method = find_method(target, call.name, params, meta)
+            raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})" unless method
             call.target.compile(compiler, true)
             
             # if expression, void methods return the called object, for consistency and chaining
@@ -576,13 +512,12 @@ module Duby
         params = call.parameters.map do |param|
           param.inferred_type
         end
-        method = target.get_method(call.name, params,
-                                   call.target.inferred_type.meta?)
-        # if method
-        #   method.call(params, expression)
-        # else
+        method = target.get_method(call.name, params)
+        if method
+          method.call(self, call, expression)
+        else
           call_compilers[call.target.inferred_type].call(self, call, expression)
-        # end
+        end
       end
       
       def call_compilers

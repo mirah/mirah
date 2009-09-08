@@ -2,6 +2,4 @@
 $: << File.dirname(File.dirname(__FILE__)) + '/lib'
 require 'duby'
 
-if __FILE__ == $0
-  Duby.compile(*ARGV)
-end
+Duby.compile(*ARGV)

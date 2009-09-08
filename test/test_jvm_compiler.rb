@@ -144,6 +144,9 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = boolean[2]; a[0] = true; a[0]; end")
     assert_equal(TrueClass, cls.foo.class)
     assert_equal(true, cls.foo)
+    cls, = compile("def foo; a = boolean[2]; a.length; end")
+    assert_equal(Fixnum, cls.foo.class)
+    assert_equal(2, cls.foo)
     
     cls, = compile("def foo; a = byte[2]; a; end")
     assert_equal(Java::byte[].java_class, cls.foo.class.java_class)
