@@ -13,12 +13,17 @@ class TestJVMCompiler < Test::Unit::TestCase
   import java.lang.System
   import java.io.PrintStream
 
+  def teardown
+    AST.type_factory = nil
+  end
+
   def compile(code)
+    AST.type_factory = Duby::JVM::TypeFactory.new
     ast = AST.parse(code)
-    typer = Typer::Simple.new(:script)
+    compiler = Compiler::JVM.new("script" + System.nano_time.to_s)
+    typer = Typer::JVM.new(compiler)
     ast.infer(typer)
     typer.resolve(true)
-    compiler = Compiler::JVM.new("script" + System.nano_time.to_s)
     compiler.compile(ast)
     classes = []
     loader = JRuby.runtime.jruby_class_loader

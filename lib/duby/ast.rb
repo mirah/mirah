@@ -132,7 +132,7 @@ module Duby
 
       def infer(typer)
         @inferred_type ||= begin
-          typer.known_types[AST::type(name, false, true)] || AST::type(name, false, true)
+          typer.type_reference(name, false, true)
         end
       end
     end
@@ -208,9 +208,31 @@ module Duby
       end
     end
     
+    def self.type_factory
+      Thread.current[:ast_type_factory]
+    end
+    
+    def self.type_factory=(factory)
+      Thread.current[:ast_type_factory] = factory
+    end
+    
     # Shortcut method to construct type references
     def self.type(typesym, array = false, meta = false)
-      TypeReference.new(typesym, array, meta)
+      factory = type_factory
+      if factory
+        factory.type(typesym, array, meta)
+      else
+        TypeReference.new(typesym, array, meta)
+      end
+    end
+    
+    def self.no_type
+      factory = type_factory
+      if factory
+        factory.no_type
+      else
+        TypeReference::NoType
+      end
     end
   end
 end

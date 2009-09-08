@@ -35,7 +35,7 @@ module Duby
 
           target_type = call.target.inferred_type
           case target_type
-          when AST.type(:fixnum)
+          when Types::Int
             case call.name
             when '-'
               compiler.method.isub
@@ -62,7 +62,7 @@ module Duby
             else
               raise "Unknown math operation #{call.name} on fixnum"
             end
-          when AST.type(:long)
+          when Types::Long
             case call.name
             when '-'
               compiler.method.lsub
@@ -89,7 +89,7 @@ module Duby
             else
               raise "Unknown math operation #{call.name} on long"
             end
-          when AST.type(:float)
+          when Types::Float
             case call.name
             when '-'
               compiler.method.fsub
@@ -211,7 +211,7 @@ module Duby
                 [compiler.mapped_type(call.inferred_type), *method.parameter_types])
               # if expression, void static methods return null, for consistency
               # TODO: inference phase needs to track that signature is void but actual type is null object
-              compiler.method.aconst_null if expression && call.inferred_type == AST::TypeReference::NoType
+              compiler.method.aconst_null if expression && call.inferred_type == Types::Void
             end
           else
             case call.name
@@ -230,7 +230,7 @@ module Duby
             
             # if expression, void methods return the called object, for consistency and chaining
             # TODO: inference phase needs to track that signature is void but actual type is callee
-            compiler.method.dup if expression && call.inferred_type == AST::TypeReference::NoType
+            compiler.method.dup if expression && call.inferred_type == Types::Void
             
             call.parameters.each {|param| param.compile(compiler, true)}
             if mapped_target.interface?
@@ -248,27 +248,16 @@ module Duby
         end
       end
       
-      attr_accessor :filename, :src, :method, :static
+      attr_accessor :filename, :src, :method, :static, :class
 
       def initialize(filename)
         @filename = filename
         @src = ""
         @static = true
 
-        map_type(AST.type(:boolean), Types::Boolean)
-        map_type(AST.type(:byte), Types::Byte)
-        map_type(AST.type(:char), Types::Char)
-        map_type(AST.type(:short), Types::Short)
-        map_type(AST.type(:int), Types::Int)
-        map_type(AST.type(:long), Types::Long)
-        map_type(AST.type(:float), Types::Float)
-        map_type(AST.type(:double), Types::Double)
-        map_type(AST.type(:fixnum), Types::Int)
-        map_type(AST.type(:string), Types::String)
-
-        self.call_compilers[AST.type(:fixnum)] =
-          self.call_compilers[AST.type(:long)] = MathCompiler.new
-          self.call_compilers[AST.type(:float)] = MathCompiler.new
+        self.call_compilers[Types::Int] =
+          self.call_compilers[Types::Long] = MathCompiler.new
+          self.call_compilers[Types::Float] = MathCompiler.new
         self.call_compilers.default = InvokeCompiler.new
 
         @file = BiteScript::FileBuilder.new(filename)
@@ -329,32 +318,32 @@ module Duby
         # declare all args so they get their values
         args.args.each {|arg| @method.local arg.name} if args.args
         
-        expression = signature[:return] != AST.type(:notype)
+        expression = signature[:return] != Types::Void
         body.compile(self, expression)
 
         if name == "initialize"
           @method.returnvoid
         else
           case signature[:return]
-          when AST.type(:notype)
+          when Types::Void
             @method.returnvoid
-          when AST.type(:fixnum)
+          when Types::Int
             @method.ireturn
-          when AST.type(:boolean)
+          when Types::Boolean
             @method.ireturn
-          when AST.type(:byte)
+          when Types::Byte
             @method.ireturn
-          when AST.type(:short)
+          when Types::Short
             @method.ireturn
-          when AST.type(:char)
+          when Types::Char
             @method.ireturn
-          when AST.type(:int)
+          when Types::Int
             @method.ireturn
-          when AST.type(:long)
+          when Types::Long
             @method.lreturn
-          when AST.type(:float)
+          when Types::Float
             @method.freturn
-          when AST.type(:double)
+          when Types::Double
             @method.dreturn
           else
             @method.areturn
@@ -369,12 +358,9 @@ module Duby
       end
 
       def define_class(class_def, expression)
-        prev_class, @class = @class, @file.public_class(class_def.name)
+        prev_class, @class = @class, class_def.inferred_type.define(@file)
         old_static, @static = @static, false
 
-        type = Types::Type.new(@class)
-        type_mapper[AST::type(class_def.name)] = type
-        type_mapper[AST::type(class_def.name, false, true)] = type
         class_def.body.compile(self, false)
         
         @class = prev_class
@@ -459,10 +445,10 @@ module Duby
         case predicate
         when AST::Call
           case predicate.target.inferred_type
-          when AST.type(:fixnum)
+          when Types::Int
             # fixnum conditional, so we need to use JVM opcodes
             case predicate.parameters[0].inferred_type
-            when AST.type(:fixnum)
+            when Types::Int
               # fixnum on fixnum, easy
               predicate.target.compile(self, true)
               predicate.parameters[0].compile(self, true)
@@ -483,10 +469,10 @@ module Duby
             else
               raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
             end
-          when AST.type(:float)
+          when Types::Float
             # fixnum conditional, so we need to use JVM opcodes
             case predicate.parameters[0].inferred_type
-            when AST.type(:float)
+            when Types::Float
               # fixnum on fixnum, easy
               predicate.target.compile(self, true)
               predicate.parameters[0].compile(self, true)
@@ -524,10 +510,10 @@ module Duby
         case predicate
         when AST::Call
           case predicate.target.inferred_type
-          when AST.type(:fixnum)
+          when Types::Int
             # fixnum conditional, so we need to use JVM opcodes
             case predicate.parameters[0].inferred_type
-            when AST.type(:fixnum)
+            when Types::Int
               # fixnum on fixnum, easy
               predicate.target.compile(self, true)
               predicate.parameters[0].compile(self, true)
@@ -549,10 +535,10 @@ module Duby
             else
               raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
             end
-          when AST.type(:float)
+          when Types::Float
             # fixnum conditional, so we need to use JVM opcodes
             case predicate.parameters[0].inferred_type
-            when AST.type(:float)
+            when Types::Float
               # fixnum on fixnum, easy
               predicate.target.compile(self, true)
               predicate.parameters[0].compile(self, true)
@@ -594,11 +580,11 @@ module Duby
         end
         method = mapped_target.get_method(call.name, mapped_params,
                                           call.target.inferred_type.meta?)
-        if method
-          method.call(mapped_params, expression)
-        else
+        # if method
+        #   method.call(mapped_params, expression)
+        # else
           call_compilers[call.target.inferred_type].call(self, call, expression)
-        end
+        # end
       end
       
       def call_compilers
@@ -637,15 +623,15 @@ module Duby
       
       def local(name, type)
         case type
-        when AST.type(:fixnum)
+        when Types::Int
           @method.iload(@method.local(name))
-        when AST.type(:int)
+        when Types::Int
           @method.iload(@method.local(name))
-        when AST.type(:boolean)
+        when Types::Boolean
           @method.iload(@method.local(name))
-        when AST.type(:float)
+        when Types::Float
           @method.fload(@method.local(name))
-        when AST.type(:long)
+        when Types::Long
           @method.lload(@method.local(name))
         else
           @method.aload(@method.local(name))
@@ -654,7 +640,7 @@ module Duby
 
       def local_assign(name, type, expression)
         # Handle null specially
-        if type == AST::TypeReference::NullType
+        if type == Types::Null
           @method.aconst_null
           @method.astore(@method.local(name))
           return
@@ -669,13 +655,13 @@ module Duby
         @method.dup if expression
         
         case type
-        when AST.type(:fixnum)
+        when Types::Int
           @method.istore(@method.local(name))
-        when AST.type(:int)
+        when Types::Int
           @method.istore(@method.local(name))
-        when AST.type(:float)
+        when Types::Float
           @method.fstore(@method.local(name))
-        when AST.type(:long)
+        when Types::Long
           @method.lstore(@method.local(name))
         else
           @method.astore(@method.local(name))
@@ -700,16 +686,16 @@ module Duby
         declare_local(name, real_type)
 
         case type
-        when AST.type(:fixnum)
+        when Types::Int
           @method.push_int(0)
           @method.istore(@method.local(name))
-        when AST.type(:int)
+        when Types::Int
           @method.push_int(0)
           @method.istore(@method.local(name))
-        when AST.type(:long)
+        when Types::Long
           @method.ldc_long(0)
           @method.lstore(@method.local(name, true))
-        when AST.type(:float)
+        when Types::Float
           @method.ldc_float(0.0)
           @method.fstore(@method.local(name))
         else
@@ -761,7 +747,7 @@ module Duby
         real_type = declared_fields[name] || mapped_type(type)
         
         # Handle null specially
-        if type == AST::TypeReference::NullType
+        if type == Types::Null
           @method.aload 0 unless static
           @method.aconst_null
           if static
@@ -831,33 +817,13 @@ module Duby
       end
 
       def map_type(ast_type, compiler_type)
-        type_mapper[ast_type] = compiler_type
-        type_mapper[ast_type.meta] = compiler_type
-        type_mapper[compiler_type] = compiler_type
       end
 
       def mapped_type(type)
-        # Why aren't these in the hash?
-        return Types::Void if type == AST::TypeReference::NoType
-        return Types::Object if type == AST::TypeReference::NullType
-        return type if type.kind_of? Types::Type
-        return type_mapper[type] if type_mapper[type]
-        if type.array?
-          component = AST.type(type.name, false, type.meta)
-          map_type(type, mapped_type(component).array_type)
-        else
-          map_type(type, Types::Type.new(Java::JavaClass.for_name(type.name)))
-        end
+        type
       end
 
       def import(short, long)
-        # TODO hacky..we map both versions because some get expanded during inference
-        # TODO hacky again..meta and non-meta
-        type = Types::Type.new(Java::JavaClass.for_name(long))
-        type_mapper[AST::type(short, false, true)] = type
-        type_mapper[AST::type(long, false, true)] = type
-        type_mapper[AST::type(short, false, false)] = type
-        type_mapper[AST::type(long, false, false)] = type
       end
 
       def println(printline)
@@ -880,13 +846,13 @@ module Duby
         return_node.value.compile(self, true)
 
         case return_node.inferred_type
-        when AST.type(:fixnum)
+        when Types::Int
           @method.ireturn
-        when AST.type(:int)
+        when Types::Int
           @method.ireturn
-        when AST.type(:float)
+        when Types::Float
           @method.freturn
-        when AST.type(:long)
+        when Types::Long
           @method.lreturn
         else
           @method.areturn

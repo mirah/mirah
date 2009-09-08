@@ -19,15 +19,13 @@ module Duby
           end
         end
 
-        class Type
-          attr_reader :name
-
+        class Type < AST::TypeReference
           def initialize(java_type)
             if !(java_type.kind_of?(Java::JavaClass) ||
                  java_type.kind_of?(BiteScript::ClassBuilder))
               java_type = java_type.java_class
             end
-            @name = java_type.name
+            super(java_type.name, false, false)
             @type = java_type
             raise ArgumentError if @name == 'boolean' && !(primitive?||array?)
           end
@@ -50,6 +48,14 @@ module Duby
 
           def interface?
             @type.interface?
+          end
+
+          def meta
+            @meta ||= MetaType.new(self)
+          end
+
+          def basic_type
+            self
           end
 
           def array_type
@@ -84,22 +90,7 @@ module Duby
           end
 
           def ==(other)
-            self.class == other.class && jvm_type == other.jvm_type
-          end
-
-          alias eql? ==
-
-          def hash
-            jvm_type.hash
-          end
-
-          class << self
-            def intrinsics
-            end
-
-            def intrinsic(name, args, type, &block)
-              @intrinsics[name][args] = Intrinsic.new(name, args, type, blo)
-            end
+            self.class == other.class && super
           end
         end
 
@@ -119,6 +110,42 @@ module Duby
 
           def newarray(method)
             method.send "new#{name}array"
+          end
+        end
+        
+        class MetaType < Type
+          attr_reader :unmeta
+
+          def initialize(unmeta)
+            @name = unmeta.name
+            @unmeta = unmeta
+          end
+
+          def basic_type
+            @unmeta.basic_type
+          end
+
+          def meta?
+            true
+          end
+
+          def meta
+            self
+          end
+          
+          def jvm_type
+            unmeta.jvm_type
+          end
+        end
+        
+        class NullType < Type
+          def initialize
+            @name = 'null'
+            @type = nil
+          end
+          
+          def compatible?(other)
+            !other.primitive?
           end
         end
 
@@ -154,6 +181,27 @@ module Duby
           def array?
             true
           end
+          
+          def basic_type
+            component_type.basic_type
+          end
+        end
+        
+        class TypeDefinition < Type
+          attr_reader :superclass
+          
+          def initialize(name, superclass)
+            if name.kind_of? BiteScript::ClassBuilder
+              super(name)
+            else
+              @name = name
+            end
+            @superclass = superclass
+          end
+          
+          def define(builder)
+            @type = builder.public_class(@name)
+          end
         end
 
         Boolean = PrimitiveType.new(Java::boolean, java.lang.Boolean)
@@ -165,10 +213,11 @@ module Duby
         Float = PrimitiveType.new(Java::float, java.lang.Float)
         Double = PrimitiveType.new(Java::double, java.lang.Double)
 
-        Void = VoidType.new
-
         Object = Type.new(Java::JavaLang.Object)
         String = Type.new(Java::JavaLang.String)        
+
+        Void = VoidType.new
+        Null = NullType.new
       end
     end
   end

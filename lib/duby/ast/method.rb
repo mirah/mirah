@@ -102,8 +102,8 @@ module Duby::AST
       if !inferred_type
         typer.defer(self)
       else
-        if forced_type != TypeReference::NoType && !forced_type.is_parent(inferred_type)
-          raise InferenceError.new("Inferred return type is incompatible with declared", self)
+        if forced_type != typer.no_type && !forced_type.is_parent(inferred_type)
+          raise Duby::Typer::InferenceError.new("Inferred return type #{inferred_type} is incompatible with declared #{forced_type}", self)
         end
 
         @inferred_type = typer.learn_method_type(typer.self_type, name, arguments.inferred_type, inferred_type)
@@ -133,8 +133,8 @@ module Duby::AST
       if !inferred_type
         typer.defer(self)
       else
-        if forced_type != TypeReference::NoType && !forced_type.is_parent(inferred_type)
-          raise InferenceError.new("Inferred return type is incompatible with declared", self)
+        if forced_type != typer.no_type && !forced_type.is_parent(inferred_type)
+          raise Duby::Typer::InferenceError.new("Inferred return type #{inferred_type} is incompatible with declared #{forced_type}", self)
         end
 
         # TODO: this doesn't separate static from instance

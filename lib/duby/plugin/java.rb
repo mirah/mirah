@@ -1,31 +1,23 @@
 require 'duby/typer'
 require 'duby/jvm/method_lookup'
+require 'duby/jvm/types'
 require 'java'
 
 module Duby
   module Typer
     class JavaTyper < BaseTyper
       include Duby::JVM::MethodLookup
+      include Duby::Compiler::JVM::Types
       
       def initialize
-        type_mapper[AST::type(:string)] = AST::type("java.lang.String")
-        type_mapper[AST::type(:fixnum)] = AST::type("int")
       end
       
       def name
         "Java"
       end
 
-      def type_mapper
-        @type_mapper ||= {}
-      end
-
-      def mapped_type(type)
-        type_mapper[type] || type
-      end
-      
       def java_to_duby(java_class)
-        return AST::TypeReference::NoType unless java_class
+        return Void unless java_class
         
         if java_class.array?
           AST::type(java_class.component_type.name, true)
@@ -38,27 +30,27 @@ module Duby
         case name
         when '-'
           case target_type
-          when AST.type(:long)
+          when Long
             return nil if parameter_types.length != 1
-            return nil if parameter_types[0] != AST.type(:long)
-            return AST.type(:long)
+            return nil if parameter_types[0] != Long
+            return Long
           else
             log "Unknown method \"#{name}\" on type long"
             return nil
           end
         when '+'
           case target_type
-          when AST.type(:string)
-            return AST.type(:string)
+          when String
+            return String
           end
         else
           if name == 'length'
             if target_type.array?
-              return AST.type(:int)
+              return Int
             end
           elsif name == '[]'
             if target_type.array?
-              return AST.type(target_type.name)
+              return target_type.component_type
             end
           elsif name == '[]='
             # needs more checks for numbe of args, etc
@@ -66,17 +58,15 @@ module Duby
               return parameter_types[1]
             end
           end
-          mapped_target = mapped_type(target_type)
-          mapped_parameters = parameter_types.map {|type| mapped_type(type)}
           begin
-            java_type = Java::JavaClass.for_name(mapped_target.name)
-            arg_types = mapped_parameters.map {|type| Java::JavaClass.for_name(type.name)}
+            java_type = target_type.jvm_type
+            arg_types = parameter_types.map {|type| type.jvm_type}
           rescue NameError
-            Typer.log "Failed to infer Java types for method \"#{name}\" #{mapped_parameters} on #{mapped_target}"
+            Typer.log "Failed to infer Java types for method \"#{name}\" #{parameter_types} on #{target_type}"
             return nil
           end
           
-          method = find_method(java_type, name, arg_types, mapped_target.meta?)
+          method = find_method(java_type, name, arg_types, target_type.meta?)
           
           if method
             if Java::JavaConstructor === method

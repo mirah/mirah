@@ -69,12 +69,16 @@ module Duby
       def null_type
         AST::TypeReference::NullType
       end
-      
+
+      def no_type
+        AST::TypeReference::NoType
+      end
+
       def define_type(name, superclass)
         raise InferenceError.new("Duplicate type definition: #{name} < #{superclass}") if known_types[name]
 
         log "New type defined: '#{name}' < '#{superclass}'"
-        known_types[name] = AST::TypeDefinition.new(name, AST::TypeReference.new(superclass))
+        known_types[name] = type_definition(name, superclass)
         
         old_self, known_types["self"] = known_types["self"], known_types[name]
         yield
@@ -219,8 +223,17 @@ module Duby
         current
       end
       
-      def type_reference(name)
-        AST::TypeReference.new(name)
+      def type_reference(name, array=false, meta=false)
+        AST::TypeReference.new(name, array, meta)
+      end
+
+      def type_definition(name, superclass)
+        AST::TypeDefinition.new(name, AST::TypeReference.new(superclass))
+      end
+
+      def alias_type(short, long)
+        @known_types[type_reference(short, false, false)] = type_reference(long, false, false)
+        @known_types[type_reference(short, false, true)] = type_reference(long, false, true)
       end
 
       def deferred_nodes

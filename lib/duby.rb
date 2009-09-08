@@ -9,6 +9,7 @@ rescue LoadError
   require 'bitescript'
 end
 require 'duby/jvm/compiler'
+require 'duby/jvm/typer'
 Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
@@ -16,15 +17,8 @@ module Duby
   def self.run(*args)
     ast = parse(*args)
 
-    typer = Duby::Typer::Simple.new(:script)
-    ast.infer(typer)
-    typer.resolve(true)
-
-    compiler = Duby::Compiler::JVM.new($filename)
-    ast.compile(compiler, false)
-
     main_cls = nil
-    compiler.generate do |outfile, builder|
+    compile_ast(ast) do |outfile, builder|
       bytes = builder.generate
       name = builder.class_name.gsub(/\//, '.')
       cls = JRuby.runtime.jruby_class_loader.define_class(name, bytes.to_java_bytes)
@@ -45,14 +39,7 @@ module Duby
   def self.compile(*args)
     ast = parse(*args)
 
-    typer = Duby::Typer::Simple.new(:script)
-    ast.infer(typer)
-    typer.resolve(true)
-
-    compiler = Duby::Compiler::JVM.new($filename)
-    ast.compile(compiler, false)
-
-    compiler.generate {|filename, builder|
+    compile_ast(ast) {|filename, builder|
       bytes = builder.generate
       File.open(filename, 'w') {|f| f.write(bytes)}
     }
@@ -63,7 +50,8 @@ module Duby
     
     process_flags!(args)
     $filename = args.shift
-    
+
+    Duby::AST.type_factory = Duby::JVM::TypeFactory.new
     if $filename == '-e'
       $filename = 'dash_e'
       ast = Duby::AST.parse(args[0])
@@ -71,6 +59,16 @@ module Duby
       ast = Duby::AST.parse(File.read($filename))
     end
     ast
+  end
+  
+  def self.compile_ast(ast, &block)
+    compiler = Duby::Compiler::JVM.new($filename)
+    typer = Duby::Typer::JVM.new(compiler)
+    ast.infer(typer)
+    typer.resolve(true)
+
+    ast.compile(compiler, false)
+    compiler.generate(&block)
   end
   
   def self.process_flags!(args)

@@ -3,18 +3,24 @@ $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 require 'test/unit'
 require 'duby/typer'
 require 'duby/plugin/java'
+require 'duby/jvm/compiler'
+require 'duby/jvm/typer'
 
 class TestJavaTyper < Test::Unit::TestCase
   include Duby
   
   def setup
-    @typer = Typer::Simple.new :foo
-    @typer.known_types[AST::type('string')] = AST::type('java.lang.String')
-    @typer.known_types[AST::type('string', false, true)] = AST::type('java.lang.String', false, true)
+    AST.type_factory = Duby::JVM::TypeFactory.new
+    compiler = Duby::Compiler::JVM.new('foobar')
+    @typer = Typer::JVM.new(compiler)
     
     @java_typer = Typer::JavaTyper.new
   end
-  
+
+  def teardown
+    AST.type_factory = nil
+  end
+
   def test_simple_overtyped_meta_method
     string_meta = AST::type('java.lang.String', false, true)
     string = AST::type('java.lang.String')

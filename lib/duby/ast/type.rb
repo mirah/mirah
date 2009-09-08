@@ -6,6 +6,7 @@ module Duby::AST
       @short = short
       @long = long
       super(parent, [])
+      Duby::AST.type_factory.alias(short, long) if Duby::AST.type_factory
     end
 
     def to_s
@@ -14,9 +15,8 @@ module Duby::AST
 
     def infer(typer)
       # add both the meta and non-meta imports
-      typer.known_types[TypeReference.new(short, false, true)] = TypeReference.new(long, false, true)
-      typer.known_types[TypeReference.new(short, false, false)] = TypeReference.new(long, false, false)
-      TypeReference::NoType
+      typer.alias_types(short, long)
+      typer.no_type
     end
   end
 
@@ -28,7 +28,7 @@ module Duby::AST
 
       @size = size
       @component_type = type
-      @inferred_type = TypeReference.new(type.name, true)
+      @inferred_type = Duby::AST::type(type.name, true)
       resolved!
     end
 

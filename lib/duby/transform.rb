@@ -115,7 +115,7 @@ module Duby
             when VCallNode
               case receiver_node.name
               when 'boolean', 'byte', 'short', 'char', 'int', 'long', 'float', 'double'
-                return EmptyArray.new(parent, TypeReference.new(receiver_node.name), args_node.get(0).value)
+                return EmptyArray.new(parent, AST::type(receiver_node.name), args_node.get(0).value)
               end
             end
           when /=$/
@@ -162,7 +162,7 @@ module Duby
 
           # join and load
           class_name = elements.join(".")
-          TypeReference.new(class_name, array)
+          AST::type(class_name, array)
         end
       end
 
@@ -175,7 +175,7 @@ module Duby
         end
 
         def type_reference(parent)
-          TypeReference.new(name, false, false)
+          AST::type(name, false, false)
         end
       end
 
@@ -186,7 +186,7 @@ module Duby
             actual_name = name[0..-2] + '_set'
           end
           MethodDefinition.new(parent, actual_name) do |defn|
-            signature = {:return => TypeReference::NoType}
+            signature = {:return => AST::no_type}
 
             # TODO: Disabled until parser supports it
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
@@ -216,7 +216,7 @@ module Duby
             actual_name = name[0..-2] + '_set'
           end
           StaticMethodDefinition.new(parent, actual_name) do |defn|
-            signature = {:return => TypeReference::NoType}
+            signature = {:return => AST::no_type}
 
             # TODO: Disabled until parser supports it
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
@@ -316,7 +316,7 @@ module Duby
           # flag this as a declaration, so it transforms to a noop
           @declaration = true
 
-          arg_types = {:return => TypeReference::NoType}
+          arg_types = {:return => AST::no_type}
 
           list = list_node.child_nodes.to_a
           list.each_index do |index|
@@ -435,13 +435,13 @@ module Duby
         end
         
         def type_reference(parent)
-          TypeReference.new(value)
+          AST::type(value)
         end
       end
 
       class SymbolNode
         def type_reference(parent)
-          TypeReference.new(name)
+          AST::type(name)
         end
       end
       

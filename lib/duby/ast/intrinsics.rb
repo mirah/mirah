@@ -10,7 +10,7 @@ module Duby::AST
     def infer(typer)
       resolved = parameters.select {|param| param.infer(typer); param.resolved?}
       resolved! if resolved.size == parameters.size
-      TypeReference::NoType
+      typer.no_type
     end
   end
 end
