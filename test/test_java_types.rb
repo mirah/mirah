@@ -5,7 +5,7 @@ require 'duby/jvm/compiler'
 
 class TestTypes < Test::Unit::TestCase
   include RR::Adapters::TestUnit
-  include Duby::Compiler::JVM::Types
+  include Duby::JVM::Types
 
   def test_newarray
     Boolean.newarray(mock!.newbooleanarray.subject)

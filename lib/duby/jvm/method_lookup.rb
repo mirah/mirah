@@ -4,18 +4,18 @@ module Duby
       # dummy log; it's expected the inclusion target will have it
       def log(msg); end
       
-      def jvm_type(type)
-        return type if type.kind_of? Java::JavaClass
-        return type.jvm_type
-      end
-
-      def convert_params(params)
-        params.map {|param| jvm_type(param)}
-      end
+      # def jvm_type(type)
+      #   return type if type.kind_of? Java::JavaClass
+      #   return type.jvm_type
+      # end
+      # 
+      # def convert_params(params)
+      #   params.map {|param| jvm_type(param)}
+      # end
 
       def find_method(mapped_type, name, mapped_params, meta)
-        mapped_type = jvm_type(mapped_type)
-        mapped_params = convert_params(mapped_params)
+        # mapped_type = jvm_type(mapped_type)
+        # mapped_params = convert_params(mapped_params)
         if name == 'new'
           if meta
             name = "<init>"
@@ -44,13 +44,13 @@ module Duby
           end
         end
 
-        log "Found method #{method.declaring_class}.#{name}(#{method.parameter_types}) from #{mapped_type}"
+        log "Found method #{method.declaring_class}.#{name}(#{method.argument_types}) from #{mapped_type}"
         return method
       end
       
       def find_jls(mapped_type, name, mapped_params, meta)
-        mapped_type = jvm_type(mapped_type)
-        mapped_params = convert_params(mapped_params)
+        # mapped_type = jvm_type(mapped_type)
+        # mapped_params = convert_params(mapped_params)
         if meta
           all_methods = mapped_type.declared_class_methods
         else
@@ -81,7 +81,7 @@ module Duby
           method_params = potential.argument_types
           
           # exact match always wins; duplicates not possible
-          return potential if each_is_exact(mapped_params, method_params)
+          return [potential] if each_is_exact(mapped_params, method_params)
           
           # otherwise, check for potential match and compare to current
           # TODO: missing ambiguity check; picks last method of equal specificity

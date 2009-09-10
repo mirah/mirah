@@ -12,6 +12,7 @@ module Duby
       import java.lang.System
       import java.io.PrintStream
       include Duby::JVM::MethodLookup
+      Types = Duby::JVM::Types
 
       class << self
         attr_accessor :verbose
@@ -127,27 +128,7 @@ module Duby
           raise "Invoke attempted on primitive type: #{target}" if (target.primitive?)
 
           if meta
-            if call.name == 'new'
-              # object construction
-              constructor = find_method(target, call.name, params, meta)
-              compiler.method.new target
-              compiler.method.dup
-              call.parameters.each {|param| param.compile(compiler, true)}
-              compiler.method.invokespecial(
-                target,
-                "<init>",
-                [nil, *constructor.parameter_types])
-            else
-              method = find_method(target, call.name, params, meta)
-              call.parameters.each {|param| param.compile(compiler, true)}
-              compiler.method.invokestatic(
-                target,
-                call.name,
-                [call.inferred_type, *method.parameter_types])
-              # if expression, void static methods return null, for consistency
-              # TODO: inference phase needs to track that signature is void but actual type is null object
-              compiler.method.aconst_null if expression && call.inferred_type == Types::Void
-            end
+            raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
           else
             case call.name
             when '+'
@@ -160,26 +141,7 @@ module Duby
                 return
               end
             end
-            method = find_method(target, call.name, params, meta)
-            raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})" unless method
-            call.target.compile(compiler, true)
-            
-            # if expression, void methods return the called object, for consistency and chaining
-            # TODO: inference phase needs to track that signature is void but actual type is callee
-            compiler.method.dup if expression && call.inferred_type == Types::Void
-            
-            call.parameters.each {|param| param.compile(compiler, true)}
-            if target.interface?
-              compiler.method.invokeinterface(
-                target,
-                call.name,
-                [call.inferred_type, *method.parameter_types])
-            else
-              compiler.method.invokevirtual(
-                target,
-                call.name,
-                [call.inferred_type, *method.parameter_types])
-            end
+            raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
           end
         end
       end
@@ -746,7 +708,7 @@ module Duby
       def println(printline)
         @method.getstatic System, "out", PrintStream
         printline.parameters.each {|param| param.compile(self, true)}
-        params = printline.parameters.map {|param| param.inferred_type}
+        params = printline.parameters.map {|param| param.inferred_type.jvm_type}
         method = find_method(PrintStream.java_class, "println", params, false)
         if (method)
           @method.invokevirtual(

@@ -7,7 +7,7 @@ module Duby
   module Typer
     class JavaTyper < BaseTyper
       include Duby::JVM::MethodLookup
-      include Duby::Compiler::JVM::Types
+      include Duby::JVM::Types
       
       def initialize
       end

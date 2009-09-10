@@ -4,7 +4,7 @@ require 'duby/jvm/types'
 module Duby
   module JVM
     class TypeFactory
-      include Duby::Compiler::JVM::Types
+      include Types
       
       BASIC_TYPES = {
         "boolean" => Boolean,
@@ -39,8 +39,8 @@ module Duby
       
       def basic_type(name)
         return name.basic_type if name.kind_of? Type
+        name = name.name if name.kind_of? Java::JavaClass
         name = name.java_class.name if name.respond_to? :java_class
-        name = name.name if name.respond_to? :name
         name = name.to_s unless name.kind_of?(::String)
         return @known_types[name].basic_type if @known_types[name]
         @known_types[name] = Type.new(Java::JavaClass.for_name(name))
@@ -58,6 +58,7 @@ module Duby
   
   module Typer
     class JVM < Simple
+      include Duby::JVM::Types
 
       def initialize(compiler)
         @factory = AST.type_factory
@@ -84,15 +85,15 @@ module Duby
       end
       
       def type_definition(name, superclass)
-        Duby::Compiler::JVM::Types::TypeDefinition.new(name, superclass)
+        TypeDefinition.new(name, superclass)
       end
 
       def null_type
-        Duby::Compiler::JVM::Types::Null
+        Null
       end
       
       def no_type
-        Duby::Compiler::JVM::Types::Void
+        Void
       end
     end
   end
