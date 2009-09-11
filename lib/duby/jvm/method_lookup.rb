@@ -92,7 +92,7 @@ module Duby
                 currents = [potential]
               elsif is_more_specific?(currents[0].argument_types, potential.argument_types)
                 # currents are better, try next potential
-                next
+                #next
               else
                 # equal specificity, append to currents
                 currents << potential
@@ -173,7 +173,11 @@ module Duby
       }
       
       def primitive_convertible?(in_type, target_type)
-        PrimitiveConversions[in_type].include?(target_type)
+        if PrimitiveConversions.include? in_type
+          PrimitiveConversions[in_type].include?(target_type)
+        else
+          in_type.convertible_to?(target_type)
+        end
       end
     end
   end

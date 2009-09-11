@@ -39,10 +39,19 @@ module Duby
       
       def basic_type(name)
         return name.basic_type if name.kind_of? Type
-        name = name.name if name.kind_of? Java::JavaClass
-        name = name.java_class.name if name.respond_to? :java_class
+        orig = name
+        if name.kind_of? Java::JavaClass
+          if name.array?
+            return type(name.component_type, true)
+          else
+            name = name.name
+          end
+        elsif name.respond_to? :java_class
+          name = name.java_class.name
+        end
         name = name.to_s unless name.kind_of?(::String)
         return @known_types[name].basic_type if @known_types[name]
+        raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
         @known_types[name] = Type.new(Java::JavaClass.for_name(name))
       end
 
@@ -52,7 +61,7 @@ module Duby
 
       def no_type
         Void
-      end      
+      end
     end
   end
   

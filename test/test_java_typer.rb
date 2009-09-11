@@ -72,8 +72,8 @@ class TestJavaTyper < Test::Unit::TestCase
     return_type = @java_typer.method_type(@typer, string, 'charAt', [byte])
     assert_equal(char, return_type)
     
-    return_type = @java_typer.method_type(@typer, string, 'charAt', [long])
-    assert_equal(nil, return_type)
+    l = lambda {@java_typer.method_type(@typer, string, 'charAt', [long])}
+    l.should raise_error NoMethodError
   end
   
   include Duby::JVM::MethodLookup
@@ -189,7 +189,7 @@ class TestJavaTyper < Test::Unit::TestCase
 
   def test_primitive_array
     ary = AST.type('byte', true)
-    int = AST.type('int', true)
+    int = AST.type('int')
 
     java_typer = Typer::JavaTyper.new
 

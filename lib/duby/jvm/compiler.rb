@@ -127,8 +127,9 @@ module Duby
 
           raise "Invoke attempted on primitive type: #{target}" if (target.primitive?)
 
+raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
           if meta
-            raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
+            
           else
             case call.name
             when '+'

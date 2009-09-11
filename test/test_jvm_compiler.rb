@@ -477,4 +477,26 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(1, first.a)
     assert_equal(2, second.a)
   end
+  
+  def test_object_intrinsics
+    cls, = compile(<<-EOF)
+      import 'java.lang.Object'
+      def nil(a => :Object)
+        a.nil?
+      end
+      
+      def equal(a => Object, b => Object)
+        a == b
+      end
+    EOF
+    
+    assert(cls.nil(nil))
+    assert(!cls.nil("abc"))
+    
+    a = "foobar".to_java_string
+    b = java.lang.Object.new
+    assert(cls.equal(a, a))
+    assert(cls.equal(b, b))
+    assert(!cls.equal(a, b))
+  end
 end

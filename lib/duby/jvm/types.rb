@@ -44,6 +44,7 @@ module Duby
         end
         
         def assignable_from?(other)
+          return true if !primitive? && other == Null
           jvm_type.assignable_from?(other.jvm_type)
         end
 

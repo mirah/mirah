@@ -1,6 +1,6 @@
 require 'duby/jvm/types'
 
-java.lang.reflect.Member.class_eval do
+class Java::JavaMethod
   def static?
     java.lang.reflect.Modifier.static?(modifiers)
   end
@@ -10,14 +10,14 @@ module Duby::JVM::Types
   AST ||= Duby::AST
 
   class Intrinsic
-    attr_reader :name, :argument_types, :type
+    attr_reader :name, :argument_types, :return_type
 
     def initialize(klass, name, args, type, &block)
       raise ArgumentError, "Block required" unless block_given?
       @class = klass
       @name = name
       @argument_types = args
-      @type = type
+      @return_type = type
       @block = block
     end
 
@@ -69,9 +69,11 @@ module Duby::JVM::Types
   class JavaMethod < JavaConstructor
     def return_type
       @return_type ||= begin
-        type = AST.type(@member.return_type)
-        type = declaring_class if type == Void
-        type
+        if @member.return_type
+          AST.type(@member.return_type)
+        else
+          declaring_class
+        end
       end
     end
     
@@ -99,13 +101,13 @@ module Duby::JVM::Types
       if target.interface?
         compiler.method.invokeinterface(
           target,
-          ast.name,
-          [ast.inferred_type, *@member.argument_types])
+          name,
+          [@member.return_type, *@member.argument_types])
       else
         compiler.method.invokevirtual(
           target,
-          ast.name,
-          [ast.inferred_type, *@member.argument_types])
+          name,
+          [@member.return_type, *@member.argument_types])
       end
       
       unless expression || void?
@@ -117,9 +119,11 @@ module Duby::JVM::Types
   class JavaStaticMethod < JavaMethod
     def return_type
       @return_type ||= begin
-        type = AST.type(@member.return_type)
-        type = Null if type == Void
-        type
+        if @member.return_type
+          AST.type(@member.return_type)
+        else
+          Void
+        end
       end
     end
 
@@ -128,8 +132,8 @@ module Duby::JVM::Types
       ast.parameters.each {|param| param.compile(compiler, true)}
       compiler.method.invokestatic(
         target,
-        ast.name,
-        [ast.inferred_type, *@member.argument_types])
+        name,
+        [@member.return_type, *@member.argument_types])
       # if expression, void static methods return null, for consistency
       # TODO: inference phase needs to track that signature is void
       # but actual type is null object
