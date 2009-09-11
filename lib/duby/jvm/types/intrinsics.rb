@@ -1,12 +1,29 @@
+require 'bitescript'
+
+class BiteScript::MethodBuilder
+  def op_to_bool
+    done_label = label
+    true_label = label
+
+    yield(true_label)
+    iconst_0
+    goto(done_label)
+    true_label.set!
+    iconst_1
+    done_label.set!
+  end
+end
+
 module Duby::JVM::Types
   class Type
     def intrinsics
-      @intrinsics ||= Hash.new {|h, k| h[k] = {}}
+      @intrinsics ||= begin
+        @intrinsics = Hash.new {|h, k| h[k] = {}}
+        add_intrinsics
+        @intrinsics
+      end
     end
     
-    def add_intrinsics
-    end
-
     def add_method(name, args, method_or_type=nil, &block)
       if block_given?
         method_or_type = Intrinsic.new(self, name, args,
@@ -23,6 +40,28 @@ module Duby::JVM::Types
         end
       end
       methods
+    end
+
+    def add_intrinsics
+      add_method('nil?', [], Boolean) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          compiler.method.op_to_bool do |target|
+            compiler.method.ifnull(target)
+          end
+        end
+      end
+      
+      add_method('==', [Object], Boolean) do |compiler, call, expression|
+        # Should this call Object.equals for consistency with Ruby?
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.op_to_bool do |target|
+            compiler.method.if_acmpeq(target)
+          end
+        end
+      end
     end
   end
   
@@ -62,6 +101,23 @@ module Duby::JVM::Types
         call.target.compile(compiler, true)
         compiler.method.arraylength              
       end
+    end
+  end
+  
+  class StringType < Type
+    def add_intrinsics
+      super
+      add_method('+', [String], String) do |compiler, call, expression| 
+        if expression
+          java_method('concat', String).call(compiler, call, expression)
+        end
+      end
+    end
+  end
+  
+  class PrimitiveType
+    # Primitives define their own intrinsics instead of getting the Object ones.
+    def add_intrinsics
     end
   end
 end

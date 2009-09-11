@@ -9,14 +9,14 @@ module Duby
         include Duby::JVM::MethodLookup
 
         def initialize(java_type)
+          orig_type = java_type
           if !(java_type.kind_of?(Java::JavaClass) ||
                java_type.kind_of?(BiteScript::ClassBuilder))
             java_type = java_type.java_class
           end
           super(java_type.name, false, false)
+          raise ArgumentError, "Bad type #{orig_type}" if name =~ /Java::/
           @type = java_type
-          
-          add_intrinsics
         end
 
         def jvm_type
@@ -41,6 +41,10 @@ module Duby
 
         def interface?
           @type.interface?
+        end
+        
+        def assignable_from?(other)
+          jvm_type.assignable_from?(other.jvm_type)
         end
 
         def meta
@@ -73,6 +77,8 @@ module Duby
       end
 
       class PrimitiveType < Type
+        COMPATIBLE_TYPES = []
+        
         def initialize(type, wrapper)
           @wrapper = wrapper
           super(type)
@@ -88,6 +94,10 @@ module Duby
 
         def newarray(method)
           method.send "new#{name}array"
+        end
+        
+        def convertible_to?(type)
+          PrimitiveConversions[self].include?(type)
         end
       end
       
@@ -164,6 +174,7 @@ module Duby
           else
             @name = name
           end
+          raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
           @superclass = superclass
         end
         
