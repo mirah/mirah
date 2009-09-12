@@ -290,13 +290,13 @@ module Duby
 
       class FixnumNode
         def transform(parent)
-          Fixnum.new(parent, value)
+          AST::fixnum(parent, value)
         end
       end
 
       class FloatNode
         def transform(parent)
-          Float.new(parent, value)
+          AST::float(parent, value)
         end
       end
 

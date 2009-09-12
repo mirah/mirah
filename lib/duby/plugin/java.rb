@@ -15,16 +15,6 @@ module Duby
       def name
         "Java"
       end
-
-      def java_to_duby(java_class)
-        return Void unless java_class
-        
-        if java_class.array?
-          AST::type(java_class.component_type.name, true)
-        else
-          AST::type(java_class.name)
-        end
-      end
       
       def method_type(typer, target_type, name, parameter_types)
         if target_type.respond_to? :get_method

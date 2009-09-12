@@ -234,6 +234,24 @@ module Duby
         TypeReference::NoType
       end
     end
+
+    def self.fixnum(parent, literal)
+      factory = type_factory
+      if factory
+        factory.fixnum(parent, literal)
+      else
+        Fixnum.new(parent, literal)
+      end      
+    end
+
+    def self.float(parent, literal)
+      factory = type_factory
+      if factory
+        factory.float(parent, literal)
+      else
+        Float.new(parent, literal)
+      end      
+    end
   end
 end
 

@@ -3,9 +3,37 @@ require 'duby/jvm/types'
 
 module Duby
   module JVM
+    class FixnumLiteralNode < AST::Fixnum
+      def infer(typer)
+        return @inferred_type if resolved?
+        resolved!
+        @inferred_type = Types::FixnumLiteral.new(@literal)
+      end
+
+      def compile(compiler, expression)
+        if expression
+          inferred_type.literal(compiler.method, @literal)
+        end
+      end
+    end
+
+    class FloatLiteralNode < AST::Float
+      def infer(typer)
+        return @inferred_type if resolved?
+        resolved!
+        @inferred_type = Types::FloatLiteral.new(@literal)
+      end
+
+      def compile(compiler, expression)
+        if expression
+          inferred_type.literal(compiler.method, @literal)
+        end
+      end
+    end
+
     class TypeFactory
       include Types
-      
+
       BASIC_TYPES = {
         "boolean" => Boolean,
         "byte" => Byte,
@@ -23,13 +51,13 @@ module Duby
         "notype" => Void,
         "null" => Null
       }.freeze
-      
+
       attr_reader :known_types
-      
+
       def initialize
         @known_types = BASIC_TYPES.dup
       end
-      
+
       def type(name, array=false, meta=false)
         type = basic_type(name)
         type = type.meta if meta
@@ -61,6 +89,14 @@ module Duby
 
       def no_type
         Void
+      end
+      
+      def fixnum(parent, literal)
+        FixnumLiteralNode.new(parent, literal)
+      end
+      
+      def float(parent, literal)
+        FloatLiteralNode.new(parent, literal)
       end
     end
   end

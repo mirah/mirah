@@ -71,10 +71,6 @@ module Duby
         def superclass
           AST.type(jvm_type.superclass) if jvm_type.superclass
         end
-
-        def ==(other)
-          self.class == other.class && super
-        end
       end
 
       class PrimitiveType < Type
@@ -189,4 +185,7 @@ end
 
 require 'duby/jvm/types/intrinsics'
 require 'duby/jvm/types/methods'
+require 'duby/jvm/types/integers'
+require 'duby/jvm/types/floats'
 require 'duby/jvm/types/basic_types'
+require 'duby/jvm/types/literals'

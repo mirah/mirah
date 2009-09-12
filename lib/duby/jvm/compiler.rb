@@ -154,9 +154,9 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         @src = ""
         @static = true
 
-        self.call_compilers[Types::Int] =
-          self.call_compilers[Types::Long] = MathCompiler.new
-          self.call_compilers[Types::Float] = MathCompiler.new
+        self.call_compilers['int'] =
+          self.call_compilers['long'] = MathCompiler.new
+          self.call_compilers['float'] = MathCompiler.new
         self.call_compilers.default = InvokeCompiler.new
 
         @file = BiteScript::FileBuilder.new(filename)
@@ -479,7 +479,7 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         if method
           method.call(self, call, expression)
         else
-          call_compilers[call.target.inferred_type].call(self, call, expression)
+          call_compilers[call.target.inferred_type.name].call(self, call, expression)
         end
       end
       
@@ -521,12 +521,12 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         case type
         when Types::Int
           @method.iload(@method.local(name))
-        when Types::Int
-          @method.iload(@method.local(name))
         when Types::Boolean
           @method.iload(@method.local(name))
         when Types::Float
           @method.fload(@method.local(name))
+        when Types::Double
+          @method.dload(@method.local(name))
         when Types::Long
           @method.lload(@method.local(name))
         else
@@ -552,10 +552,10 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         case type
         when Types::Int
           @method.istore(@method.local(name))
-        when Types::Int
-          @method.istore(@method.local(name))
         when Types::Float
           @method.fstore(@method.local(name))
+        when Types::Double
+          @method.dstore(@method.local(name))
         when Types::Long
           @method.lstore(@method.local(name))
         else
@@ -670,14 +670,6 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         end
       end
       
-      def fixnum(value)
-        @method.push_int(value)
-      end
-
-      def float(value)
-        @method.ldc_float(value)
-      end
-
       def string(value)
         @method.ldc(value)
       end
@@ -732,6 +724,8 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
           @method.ireturn
         when Types::Float
           @method.freturn
+        when Types::Double
+          @method.dreturn
         when Types::Long
           @method.lreturn
         else

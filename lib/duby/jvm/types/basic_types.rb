@@ -1,12 +1,12 @@
 module Duby::JVM::Types
   Boolean = PrimitiveType.new(Java::boolean, java.lang.Boolean)
-  Byte = PrimitiveType.new(Java::byte, java.lang.Byte)
-  Char = PrimitiveType.new(Java::char, java.lang.Character)
-  Short = PrimitiveType.new(Java::short, java.lang.Short)
-  Int = PrimitiveType.new(Java::int, java.lang.Integer)
-  Long = PrimitiveType.new(Java::long, java.lang.Long)
-  Float = PrimitiveType.new(Java::float, java.lang.Float)
-  Double = PrimitiveType.new(Java::double, java.lang.Double)
+  Byte = IntegerType.new(Java::byte, java.lang.Byte)
+  Char = IntegerType.new(Java::char, java.lang.Character)
+  Short = IntegerType.new(Java::short, java.lang.Short)
+  Int = IntegerType.new(Java::int, java.lang.Integer)
+  Long = LongType.new(Java::long, java.lang.Long)
+  Float = FloatType.new(Java::float, java.lang.Float)
+  Double = DoubleType.new(Java::double, java.lang.Double)
 
   Object = Type.new(Java::JavaLang.Object)
   String = StringType.new(Java::JavaLang.String)
@@ -16,7 +16,7 @@ module Duby::JVM::Types
   
   PrimitiveConversions = {
     Boolean => [Boolean],
-    Byte => [Byte, Short, Char, Int, Long, Float, Double],
+    Byte => [Byte, Short, Int, Long, Float, Double],
     Short => [Short, Int, Long, Float, Double],
     Char => [Char, Int, Long, Float, Double],
     Int => [Int, Long, Float, Double],

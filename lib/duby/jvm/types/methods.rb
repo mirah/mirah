@@ -144,7 +144,16 @@ module Duby::JVM::Types
   
   class Type
     def get_method(name, args)
-      find_method(self, name, args, meta?)
+      method = find_method(self, name, args, meta?)
+      unless method
+        # Allow constant narrowing for assignment methods
+        if name =~ /=$/ && args[-1].respond_to?(:narrow!)
+          if args[-1].narrow!
+            method = find_method(self, name, args, meta?)
+          end
+        end 
+      end
+      method
     end
     
     def constructor(*types)
@@ -170,7 +179,7 @@ module Duby::JVM::Types
       methods = jvm_type.declared_instance_methods.map do |method|
         JavaMethod.new(method)
       end
-      methods.concat(basic_type.declared_intrinsics)
+      methods.concat((meta? ? unmeta : self).declared_intrinsics)
     end
 
     def declared_class_methods
