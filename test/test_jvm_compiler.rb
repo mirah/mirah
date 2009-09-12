@@ -18,7 +18,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def compile(code)
-    AST.type_factory = Duby::JVM::TypeFactory.new
+    AST.type_factory = Duby::JVM::Types::TypeFactory.new
     ast = AST.parse(code)
     compiler = Compiler::JVM.new("script" + System.nano_time.to_s)
     typer = Typer::JVM.new(compiler)
@@ -499,5 +499,40 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert(cls.equal(a, a))
     assert(cls.equal(b, b))
     assert(!cls.equal(a, b))
+  end
+  
+  def test_argument_widening
+    cls, = compile(<<-EOF)
+      def Byte(a => :byte)
+        Short(a)
+      end
+    
+      def Short(a => :short)
+        Int(a)
+      end
+    
+      def Int(a => :int)
+        Long(a)
+      end
+    
+      def Long(a => :long)
+        Float(a)
+      end
+    
+      def Float(a => :float)
+        Double(a)
+      end
+    
+      def Double(a => :double)
+        a
+      end
+      EOF
+
+      assert_equal(1.0, cls.Byte(1))
+      assert_equal(127.0, cls.Byte(127))
+      assert_equal(128.0, cls.Short(128))
+      assert_equal(32767.0, cls.Short(32767))
+      assert_equal(32768.0, cls.Int(32768))
+      assert_equal(2147483648.0, cls.Long(2147483648))
   end
 end

@@ -7,6 +7,12 @@ require 'duby/plugin/java'
 require 'bitescript'
 
 module Duby
+  module AST
+    class FunctionalCall
+      attr_accessor :target
+    end
+  end
+  
   module Compiler
     class JVM
       import java.lang.System
@@ -26,6 +32,20 @@ module Duby
         def log(message); JVM.log(message); end
       end
       include JVMLogger
+
+      class ImplicitSelf
+        attr_reader :inferred_type
+        
+        def initialize(type)
+          @inferred_type = type
+        end
+        
+        def compile(compiler, expression)
+          if expression
+            compiler.method.this
+          end
+        end
+      end
 
       class MathCompiler
         include JVMLogger
@@ -488,50 +508,25 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
       end
       
       def self_call(fcall, expression)
-        fcall.parameters.each {|param| param.compile(self, true)}
-        # TODO: self calls for instance methods
-        if @static
-          @method.invokestatic(
-            @method.this,
-            fcall.name,
-            [fcall.inferred_type, *fcall.parameters.map {|param| param.inferred_type}])
-        else
-          @method.invokevirtual(
-            @method.this,
-            fcall.name,
-            [fcall.inferred_type, @fcall.parameters.map {|param| param.inferred_type}])
+        type = AST::type(@class.name)
+        type = type.meta if @static
+        fcall.target = ImplicitSelf.new(type)
+
+        params = fcall.parameters.map do |param|
+          param.inferred_type
         end
-        # if expression, we need something on the stack
-        if expression
-          # if void return...
-          if fcall.inferred_type.void?
-            # push a null?
-            @method.aconst_null
-          end
-        else
-          # if not void return...
-          if !fcall.inferred_type.void?
-            # pop result
-            @method.pop
-          end
+        method = type.get_method(fcall.name, params)
+        unless method
+          target = static ? @class.name : 'self'
+        
+          raise NameError, "No method %s.%s(%s)" %
+              [target, fcall.name, params.join(', ')]
         end
+        method.call(self, fcall, expression)
       end
       
       def local(name, type)
-        case type
-        when Types::Int
-          @method.iload(@method.local(name))
-        when Types::Boolean
-          @method.iload(@method.local(name))
-        when Types::Float
-          @method.fload(@method.local(name))
-        when Types::Double
-          @method.dload(@method.local(name))
-        when Types::Long
-          @method.lload(@method.local(name))
-        else
-          @method.aload(@method.local(name))
-        end
+        type.load(@method, @method.local(name))
       end
 
       def local_assign(name, type, expression)

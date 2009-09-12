@@ -16,6 +16,10 @@ end
 
 module Duby::JVM::Types
   class Type
+    def load(builder, index)
+      builder.aload(index)
+    end
+    
     def intrinsics
       @intrinsics ||= begin
         @intrinsics = Hash.new {|h, k| h[k] = {}}

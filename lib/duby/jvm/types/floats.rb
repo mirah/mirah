@@ -12,6 +12,21 @@ module Duby::JVM::Types
         builder.ldc_float(value)
       end
     end
+    
+    def load(builder, index)
+      builder.fload(index)
+    end
+
+    def widen(builder, type)
+      case type
+      when Float
+        # Do nothing
+      when Double
+        builder.f2d
+      else
+        raise ArgumentError, "Invalid widening conversion from Int to #{type}"
+      end
+    end
   end
   
   class DoubleType < PrimitiveType
@@ -23,6 +38,16 @@ module Duby::JVM::Types
         builder.dconst_1
       else
         builder.ldc_double(value)
+      end
+    end
+    
+    def load(builder, index)
+      builder.dload(index)
+    end
+    
+    def widen(builder, type)
+      if type != Double
+        raise ArgumentError, "Invalid widening conversion from Int to #{type}"
       end
     end
   end

@@ -23,6 +23,10 @@ module Duby
       include Duby
 
       def log(message); Typer.log(message); end
+      
+      def to_s
+        name
+      end
     end
     
     class Simple < BaseTyper
@@ -146,11 +150,11 @@ module Duby
 
         if constructor
           # constructor handled different from other methods
-          target_type = target_type.unmeta
-          name = "initialize"
+          simple_type = get_method_type_hash(target_type.unmeta, 'initialize', parameter_types)[:type]
+        else
+          simple_type = get_method_type_hash(target_type, name, parameter_types)[:type]
         end
 
-        simple_type = get_method_type_hash(target_type, name, parameter_types)[:type]
 
         if !simple_type
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} not found."
@@ -161,7 +165,7 @@ module Duby
           end
         end
 
-        nil unless simple_type
+        return nil unless simple_type
 
         if constructor
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{target_type}"

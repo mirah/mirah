@@ -9,7 +9,22 @@ end
 module Duby::JVM::Types
   AST ||= Duby::AST
 
+  module ArgumentConversion
+    def convert_args(compiler, values, types=nil)
+      # TODO boxing/unboxing
+      # TODO varargs
+      types ||= argument_types
+      values.zip(types).each do |value, type|
+        value.compile(compiler, true)
+        if type.primitive? && type != value.inferred_type
+            value.inferred_type.widen(compiler.method, type)
+        end
+      end
+    end
+  end
+
   class Intrinsic
+    include ArgumentConversion
     attr_reader :name, :argument_types, :return_type
 
     def initialize(klass, name, args, type, &block)
@@ -31,6 +46,7 @@ module Duby::JVM::Types
   end
   
   class JavaConstructor
+    include ArgumentConversion
     def initialize(member)
       @member = member
     end
@@ -54,11 +70,10 @@ module Duby::JVM::Types
     end
     
     def call(compiler, ast, expression)
-      return unless expression
       target = ast.target.inferred_type
       compiler.method.new target
-      compiler.method.dup
-      ast.parameters.each {|param| param.compile(compiler, true)}
+      compiler.method.dup if expression
+      convert_args(compiler, ast.parameters)
       compiler.method.invokespecial(
         target,
         "<init>",
@@ -97,7 +112,7 @@ module Duby::JVM::Types
         compiler.method.dup
       end
       
-      ast.parameters.each {|param| param.compile(compiler, true)}
+      convert_args(compiler, ast.parameters)
       if target.interface?
         compiler.method.invokeinterface(
           target,
@@ -129,7 +144,7 @@ module Duby::JVM::Types
 
     def call(compiler, ast, expression)
       target = ast.target.inferred_type
-      ast.parameters.each {|param| param.compile(compiler, true)}
+      convert_args(compiler, ast.parameters)
       compiler.method.invokestatic(
         target,
         name,
@@ -139,6 +154,25 @@ module Duby::JVM::Types
       # but actual type is null object
       compiler.method.aconst_null if expression && void?
       compiler.method.pop unless expression || void?
+    end
+  end
+  
+  class DubyMember
+    attr_reader :name, :argument_types, :declaring_class, :return_type
+    
+    def initialize(klass, name, args, return_type, static)
+      if return_type == Void
+        return_type = nil
+      end
+      @declaring_class = klass
+      @name = name
+      @argument_types = args
+      @return_type = return_type
+      @static = static
+    end
+    
+    def static?
+      @static
     end
   end
   
@@ -187,6 +221,78 @@ module Duby::JVM::Types
         JavaStaticMethod.new(method)
       end
       methods.concat(meta.declared_intrinsics)
+    end
+  end
+
+  class TypeDefinition
+    def java_method(name, *types)
+      method = instance_methods[name].find {|m| m.argument_types == types}
+      return method if method
+      raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
+    end
+    
+    def java_static_method(name, *types)
+      method = static_methods[name].find {|m| m.argument_types == types}
+      return method if method
+      raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
+    end
+    
+    def constructor(*types)
+      constructor = constructors.find {|c| c.argument_types == types}
+      return constructor if constructor
+      raise NameError, "No constructo #{name}(#{types.join ', '})"
+    end
+
+    def declared_instance_methods
+      instance_methods.values.flatten
+    end
+
+    def declared_class_methods
+      static_methods.values.flatten
+    end
+    
+    def constructors
+      @constructors ||= []
+    end
+    
+    def instance_methods
+      @instance_methods ||= Hash.new {|h, k| h[k] = []}
+    end
+    
+    def static_methods
+      @static_methods ||= Hash.new {|h, k| h[k] = []}
+    end
+    
+    def declare_method(name, arguments, type)
+      member = DubyMember.new(self, name, arguments, type, false)
+      if name == 'initialize'
+        constructors << JavaConstructor.new(member)
+      else
+        instance_methods[name] << JavaMethod.new(member)
+      end
+    end
+    
+    def declare_static_method(name, arguments, type)
+      member = DubyMember.new(self, name, arguments, type, true)
+      static_methods[name] << JavaStaticMethod.new(member)
+    end
+  end
+
+  class TypeDefMeta
+    def constructor(*args)
+      unmeta.constructor(*args)
+    end
+
+    def java_method(*args)
+      unmeta.java_static_method(*args)
+    end
+    
+    def declared_instance_methods
+      unmeta.declared_instance_methods
+    end
+    
+    def declared_class_methods
+      unmeta.declared_class_methods
     end
   end
 end

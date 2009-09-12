@@ -51,7 +51,7 @@ module Duby
     process_flags!(args)
     $filename = args.shift
 
-    Duby::AST.type_factory = Duby::JVM::TypeFactory.new
+    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
     if $filename == '-e'
       $filename = 'dash_e'
       ast = Duby::AST.parse(args[0])

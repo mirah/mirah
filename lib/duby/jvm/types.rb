@@ -51,6 +51,10 @@ module Duby
         def meta
           @meta ||= MetaType.new(self)
         end
+        
+        def unmeta
+          self
+        end
 
         def basic_type
           self
@@ -74,8 +78,6 @@ module Duby
       end
 
       class PrimitiveType < Type
-        COMPATIBLE_TYPES = []
-        
         def initialize(type, wrapper)
           @wrapper = wrapper
           super(type)
@@ -94,7 +96,9 @@ module Duby
         end
         
         def convertible_to?(type)
-          PrimitiveConversions[self].include?(type)
+          return true if type == self
+          a, b = TYPE_ORDERING.index(self), TYPE_ORDERING.index(type)
+          a && b && b > a
         end
       end
       
@@ -178,6 +182,13 @@ module Duby
         def define(builder)
           @type = builder.public_class(@name)
         end
+        
+        def meta
+          @meta ||= TypeDefMeta.new(self)
+        end
+      end
+      
+      class TypeDefMeta < MetaType
       end
     end
   end
@@ -186,6 +197,7 @@ end
 require 'duby/jvm/types/intrinsics'
 require 'duby/jvm/types/methods'
 require 'duby/jvm/types/integers'
+require 'duby/jvm/types/boolean'
 require 'duby/jvm/types/floats'
 require 'duby/jvm/types/basic_types'
 require 'duby/jvm/types/literals'
