@@ -19,6 +19,10 @@ module Duby::JVM::Types
       builder.push_int(value)
     end
     
+    def init_value(builder)
+      builder.iconst_0
+    end
+    
     def load(builder, index)
       builder.iload(index)
     end
@@ -69,6 +73,14 @@ module Duby::JVM::Types
 
     def literal(builder, value)
       builder.ldc_long(value)
+    end
+
+    def init_value(builder)
+      builder.lconst_0
+    end
+    
+    def wide?
+      true
     end
 
     def widen(builder, type)

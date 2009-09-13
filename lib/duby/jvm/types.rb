@@ -67,6 +67,11 @@ module Duby
         def prefix
           'a'
         end
+        
+        # is this a 64 bit type?
+        def wide?
+          false
+        end
 
         def inspect(indent=0)
           "#{' ' * indent}#<#{self.class.name} #{name}>"
@@ -150,6 +155,10 @@ module Duby
 
         def void?
           true
+        end
+        
+        def return(builder)
+          builder.returnvoid
         end
       end
 

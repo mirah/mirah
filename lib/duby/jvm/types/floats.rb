@@ -7,7 +7,11 @@ module Duby::JVM::Types
     def suffix
       'g'
     end
-    
+
+    def init_value(builder)
+      builder.fconst_0
+    end
+
     def literal(builder, value)
       case value
       when 0.0
@@ -36,6 +40,14 @@ module Duby::JVM::Types
   class DoubleType < FloatType
     def prefix
       'd'
+    end
+
+    def wide?
+      true
+    end
+
+    def init_value(builder)
+      builder.dconst_0
     end
 
     def literal(builder, value)

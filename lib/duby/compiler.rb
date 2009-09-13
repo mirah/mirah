@@ -191,5 +191,13 @@ module Duby
         end
       end
     end
+    
+    class Null
+      def compile(compiler, expression)
+        if expression
+          compiler.null
+        end
+      end
+    end
   end
 end

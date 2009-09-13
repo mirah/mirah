@@ -20,6 +20,18 @@ module Duby::JVM::Types
       builder.send "#{prefix}load", index
     end
     
+    def store(builder, index)
+      builder.send "#{prefix}store", index
+    end
+    
+    def return(builder)
+      builder.send "#{prefix}return"
+    end
+    
+    def init_value(builder)
+      builder.aconst_null
+    end
+    
     def intrinsics
       @intrinsics ||= begin
         @intrinsics = Hash.new {|h, k| h[k] = {}}

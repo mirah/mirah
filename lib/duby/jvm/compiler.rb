@@ -115,30 +115,7 @@ module Duby
         if name == "initialize"
           @method.returnvoid
         else
-          case signature[:return]
-          when Types::Void
-            @method.returnvoid
-          when Types::Int
-            @method.ireturn
-          when Types::Boolean
-            @method.ireturn
-          when Types::Byte
-            @method.ireturn
-          when Types::Short
-            @method.ireturn
-          when Types::Char
-            @method.ireturn
-          when Types::Int
-            @method.ireturn
-          when Types::Long
-            @method.lreturn
-          when Types::Float
-            @method.freturn
-          when Types::Double
-            @method.dreturn
-          else
-            @method.areturn
-          end
+          signature[:return].return(@method)
         end
         
         @method.stop
@@ -281,13 +258,6 @@ module Duby
       end
 
       def local_assign(name, type, expression)
-        # Handle null specially
-        if type == Types::Null
-          @method.aconst_null
-          @method.astore(@method.local(name))
-          return
-        end
-        
         declare_local(name, type)
         
         yield
@@ -295,18 +265,7 @@ module Duby
         # if expression, dup the value we're assigning
         @method.dup if expression
         
-        case type
-        when Types::Int
-          @method.istore(@method.local(name))
-        when Types::Float
-          @method.fstore(@method.local(name))
-        when Types::Double
-          @method.dstore(@method.local(name))
-        when Types::Long
-          @method.lstore(@method.local(name))
-        else
-          @method.astore(@method.local(name))
-        end
+        type.store(@method, @method.local(name))
       end
 
       def declared_locals
@@ -317,31 +276,14 @@ module Duby
         # TODO confirm types are compatible
         unless declared_locals[name]
           declared_locals[name] = type
-          # TODO local variable table for BiteScript
-          #@method.local_variable name, type
+          @method.local(name, type.wide?)
         end
       end
 
       def local_declare(name, type)
         declare_local(name, type)
-
-        case type
-        when Types::Int
-          @method.push_int(0)
-          @method.istore(@method.local(name))
-        when Types::Int
-          @method.push_int(0)
-          @method.istore(@method.local(name))
-        when Types::Long
-          @method.ldc_long(0)
-          @method.lstore(@method.local(name, true))
-        when Types::Float
-          @method.ldc_float(0.0)
-          @method.fstore(@method.local(name))
-        else
-          @method.aconst_null
-          @method.astore(@method.local(name))
-        end
+        type.init_value(@method)
+        type.store(@method, @method.local(name))
       end
 
       def field(name, type)
@@ -383,30 +325,15 @@ module Duby
 
         real_type = declared_fields[name] || type
         
-        # Handle null specially
-        if type == Types::Null
-          @method.aload 0 unless static
-          @method.aconst_null
-          if static
-            @method.putstatic(@class, name, real_type)
-          else
-            @method.putfield(@class, name, real_type)
-          end
-          return
-        end
-        
         declare_field(name, real_type)
 
+        method.aload 0 unless static
+        yield
         if expression
-          yield
-          @method.dup
-          unless static
-            method.aload 0
-            @method.swap
-          end
-        else
-          method.aload 0 unless static
-          yield
+          instruction = 'dup'
+          instruction << '2' if type.wide?
+          instruction << '_x1' unless static
+          method.send instruction
         end
 
         if static
@@ -422,6 +349,10 @@ module Duby
 
       def boolean(value)
         value ? @method.iconst_1 : @method.iconst_0
+      end
+      
+      def null
+        @method.aconst_null
       end
       
       def newline
@@ -463,20 +394,7 @@ module Duby
       def return(return_node)
         return_node.value.compile(self, true)
 
-        case return_node.inferred_type
-        when Types::Int
-          @method.ireturn
-        when Types::Int
-          @method.ireturn
-        when Types::Float
-          @method.freturn
-        when Types::Double
-          @method.dreturn
-        when Types::Long
-          @method.lreturn
-        else
-          @method.areturn
-        end
+        return_node.inferred_type.return(@method)
       end
 
       def empty_array(type, size)
