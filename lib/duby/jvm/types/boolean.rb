@@ -1,7 +1,7 @@
 module Duby::JVM::Types
   class BooleanType < PrimitiveType
-    def load(builder, index)
-      builder.iload(index)
+    def prefix
+      'i'
     end
   end
 end

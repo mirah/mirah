@@ -183,13 +183,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo
         a = long[2]
-        # awaiting implicit I2L
-        # a[0] = 1
+        a[0] = 1
         a[0]
       end
     EOF
     assert_equal(Fixnum, cls.foo.class)
-    assert_equal(0, cls.foo)
+    assert_equal(1, cls.foo)
 
     cls, = compile("def foo; a = float[2]; a; end")
     assert_equal(Java::float[].java_class, cls.foo.class.java_class)

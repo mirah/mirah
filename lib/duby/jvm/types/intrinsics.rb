@@ -17,7 +17,7 @@ end
 module Duby::JVM::Types
   class Type
     def load(builder, index)
-      builder.aload(index)
+      builder.send "#{prefix}load", index
     end
     
     def intrinsics
@@ -89,8 +89,7 @@ module Duby::JVM::Types
                  [Int, component_type],
                  component_type) do |compiler, call, expression| 
         call.target.compile(compiler, true)
-        call.parameters[0].compile(compiler, true)
-        call.parameters[1].compile(compiler, true)
+        convert_args(compiler, call.parameters, [Int, component_type])
         if component_type.primitive?
           compiler.method.send "#{name[0,1]}astore"
         else

@@ -22,6 +22,8 @@ module Duby::JVM::Types
       end
     end
   end
+  
+  Type.send :include, ArgumentConversion
 
   class Intrinsic
     include ArgumentConversion

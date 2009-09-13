@@ -1,5 +1,13 @@
 module Duby::JVM::Types
-  class FloatType < PrimitiveType
+  class FloatType < Number
+    def prefix
+      'f'
+    end
+    
+    def suffix
+      'g'
+    end
+    
     def literal(builder, value)
       case value
       when 0.0
@@ -13,10 +21,6 @@ module Duby::JVM::Types
       end
     end
     
-    def load(builder, index)
-      builder.fload(index)
-    end
-
     def widen(builder, type)
       case type
       when Float
@@ -29,7 +33,11 @@ module Duby::JVM::Types
     end
   end
   
-  class DoubleType < PrimitiveType
+  class DoubleType < FloatType
+    def prefix
+      'd'
+    end
+
     def literal(builder, value)
       case value
       when 0.0
@@ -39,10 +47,6 @@ module Duby::JVM::Types
       else
         builder.ldc_double(value)
       end
-    end
-    
-    def load(builder, index)
-      builder.dload(index)
     end
     
     def widen(builder, type)

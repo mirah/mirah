@@ -2,7 +2,6 @@ require 'duby'
 require 'duby/jvm/method_lookup'
 require 'duby/jvm/types'
 require 'duby/typer'
-require 'duby/plugin/math'
 require 'duby/plugin/java'
 require 'bitescript'
 
@@ -46,126 +45,6 @@ module Duby
           end
         end
       end
-
-      class MathCompiler
-        include JVMLogger
-
-        def call(compiler, call, expression)
-          call.target.compile(compiler, true)
-          call.parameters.each {|param| param.compile(compiler, true)}
-
-          target_type = call.target.inferred_type
-          case target_type
-          when Types::Int
-            case call.name
-            when '-'
-              compiler.method.isub
-            when '+'
-              compiler.method.iadd
-            when '*'
-              compiler.method.imul
-            when '/'
-              compiler.method.idiv
-            when '%'
-              compiler.method.irem
-            when '<<'
-              compiler.method.ishl
-            when '>>'
-              compiler.method.ishr
-            when '>>>'
-              compiler.method.iushr
-            when '&'
-              compiler.method.iand
-            when '|'
-              compiler.method.ior
-            when '^'
-              compiler.method.ixor
-            else
-              raise "Unknown math operation #{call.name} on fixnum"
-            end
-          when Types::Long
-            case call.name
-            when '-'
-              compiler.method.lsub
-            when '+'
-              compiler.method.ladd
-            when '*'
-              compiler.method.lmul
-            when '/'
-              compiler.method.ldiv
-            when '%'
-              compiler.method.lrem
-            when '<<'
-              compiler.method.lshl
-            when '>>'
-              compiler.method.lshr
-            when '>>>'
-              compiler.method.lushr
-            when '&'
-              compiler.method.land
-            when '|'
-              compiler.method.lor
-            when '^'
-              compiler.method.lxor
-            else
-              raise "Unknown math operation #{call.name} on long"
-            end
-          when Types::Float
-            case call.name
-            when '-'
-              compiler.method.fsub
-            when '+'
-              compiler.method.fadd
-            when '*'
-              compiler.method.fmul
-            when '/'
-              compiler.method.fdiv
-            when '%'
-              compiler.method.frem
-            else
-              raise "Unknown math operation #{call.name} on long"
-            end
-          else
-            raise "Unknown math operation #{call.name} on #{target_type}"
-          end
-
-          # math expressions always return a value, so if we're not an expression we pop the result
-          compiler.method.pop unless expression
-        end
-      end
-
-      class InvokeCompiler
-        include JVMLogger
-        include Duby::JVM::MethodLookup
-
-        def call(compiler, call, expression)
-          meta = call.target.inferred_type.meta?
-          array = call.target.inferred_type.array?
-
-          target = call.target.inferred_type
-          params = call.parameters.map {|param| param.inferred_type}
-
-          raise "Invoke attempted on primitive type: #{target}" if (target.primitive?)
-
-raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
-          if meta
-            
-          else
-            case call.name
-            when '+'
-              case call.target.inferred_type
-              when AST.type(:string)
-                raise "String concat takes one argument" if call.parameters.size != 1
-                call.target.compile(compiler, true)
-                call.parameters[0].compile(compiler, true)
-                compiler.method.invokevirtual(target, "concat", [compiler.method.string, compiler.method.string])
-                return
-              end
-            end
-            raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
-          end
-        end
-      end
       
       attr_accessor :filename, :src, :method, :static, :class
 
@@ -173,11 +52,6 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         @filename = filename
         @src = ""
         @static = true
-
-        self.call_compilers['int'] =
-          self.call_compilers['long'] = MathCompiler.new
-          self.call_compilers['float'] = MathCompiler.new
-        self.call_compilers.default = InvokeCompiler.new
 
         @file = BiteScript::FileBuilder.new(filename)
         @class = @file.public_class(filename.split('.')[0])
@@ -359,132 +233,13 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
       end
       
       def jump_if(predicate, target)
-        case predicate
-        when AST::Call
-          case predicate.target.inferred_type
-          when Types::Int
-            # fixnum conditional, so we need to use JVM opcodes
-            case predicate.parameters[0].inferred_type
-            when Types::Int
-              # fixnum on fixnum, easy
-              predicate.target.compile(self, true)
-              predicate.parameters[0].compile(self, true)
-              case predicate.name
-              when '<'
-                @method.if_icmplt(target)
-              when '>'
-                @method.if_icmpgt(target)
-              when '<='
-                @method.if_icmple(target)
-              when '>='
-                @method.if_icmpge(target)
-              when '=='
-                @method.if_icmpeq(target)
-              else
-                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
-              end
-            else
-              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
-            end
-          when Types::Float
-            # fixnum conditional, so we need to use JVM opcodes
-            case predicate.parameters[0].inferred_type
-            when Types::Float
-              # fixnum on fixnum, easy
-              predicate.target.compile(self, true)
-              predicate.parameters[0].compile(self, true)
-              case predicate.name
-              when '<'
-                @method.fcmpl()
-                @method.iflt(target)
-              when '>'
-                @method.fcmpl()
-                @method.ifgt(target)
-              when '<='
-                @method.fcmpl()
-                @method.ifle(target)
-              when '>='
-                @method.fcmpl()
-                @method.ifge(target)
-              when '=='
-                @method.fcmpl()
-                @method.ifeq(target)
-              else
-                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
-              end
-            else
-              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
-            end
-          else
-            # try to compile as a normal call
-            predicate.compile(self, true)
-            @method.ifne(target)
-          end
-        end
+        raise "Expected boolean, found #{predicate.inferred_type}" unless predicate.inferred_type == Types::Boolean
+        predicate.compile(self, true)
+        @method.ifne(target)
       end
       
       def jump_if_not(predicate, target)
-        case predicate
-        when AST::Call
-          case predicate.target.inferred_type
-          when Types::Int
-            # fixnum conditional, so we need to use JVM opcodes
-            case predicate.parameters[0].inferred_type
-            when Types::Int
-              # fixnum on fixnum, easy
-              predicate.target.compile(self, true)
-              predicate.parameters[0].compile(self, true)
-              case predicate.name
-              when '<'
-                @method.if_icmpge(target)
-              when '>'
-                @method.if_icmple(target)
-              when '<='
-                @method.if_icmpgt(target)
-              when '>='
-                @method.if_icmplt(target)
-              when '=='
-                @method.if_icmpne(target)
-              else
-                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
-              end
-              return
-            else
-              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
-            end
-          when Types::Float
-            # fixnum conditional, so we need to use JVM opcodes
-            case predicate.parameters[0].inferred_type
-            when Types::Float
-              # fixnum on fixnum, easy
-              predicate.target.compile(self, true)
-              predicate.parameters[0].compile(self, true)
-              case predicate.name
-              when '<'
-                @method.fcmpl()
-                @method.ifge(target)
-              when '>'
-                @method.fcmpl()
-                @method.ifle(target)
-              when '<='
-                @method.fcmpl()
-                @method.ifgt(target)
-              when '>='
-                @method.fcmpl()
-                @method.iflt(target)
-              when '=='
-                @method.fcmpl()
-                @method.ifne(target)
-              else
-                raise "Unknown :fixnum on :fixnum predicate operation: " + predicate.name
-              end
-              return
-            else
-              raise "Unknown :fixnum on " + predicate.parameters[0].inferred_type + " predicate operations: " + predicate.name
-            end
-          end
-        end
-        # try to compile as a normal call
+        raise "Expected boolean, found #{predicate.inferred_type}" unless predicate.inferred_type == Types::Boolean
         predicate.compile(self, true)
         @method.ifeq(target)
       end
@@ -499,12 +254,8 @@ raise "Unrecognized method #{target}.#{call.name}(#{params.join ', '})"
         if method
           method.call(self, call, expression)
         else
-          call_compilers[call.target.inferred_type.name].call(self, call, expression)
+          raise "Missing method #{target}.#{call.name}(#{params.join ', '})"
         end
-      end
-      
-      def call_compilers
-        @call_compilers ||= {}
       end
       
       def self_call(fcall, expression)

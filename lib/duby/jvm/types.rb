@@ -64,6 +64,10 @@ module Duby
           @array_type ||= ArrayType.new(self)
         end
 
+        def prefix
+          'a'
+        end
+
         def inspect(indent=0)
           "#{' ' * indent}#<#{self.class.name} #{name}>"
         end
@@ -196,6 +200,7 @@ end
 
 require 'duby/jvm/types/intrinsics'
 require 'duby/jvm/types/methods'
+require 'duby/jvm/types/number'
 require 'duby/jvm/types/integers'
 require 'duby/jvm/types/boolean'
 require 'duby/jvm/types/floats'
