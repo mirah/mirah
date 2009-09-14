@@ -45,6 +45,8 @@ module Duby::JVM::Types
     def declaring_class
       @class
     end
+    
+    alias actual_return_type return_type
   end
   
   class JavaConstructor
@@ -91,6 +93,14 @@ module Duby::JVM::Types
         else
           declaring_class
         end
+      end
+    end
+    
+    def actual_return_type
+      if @member.return_type
+        return_type
+      else
+        Void
       end
     end
     

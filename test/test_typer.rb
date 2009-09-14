@@ -165,7 +165,7 @@ class TestTyper < Test::Unit::TestCase
     
     # allow resolution to run and produce error
     assert_raise(Typer::InferenceError) {typer.resolve(true)}
-    inspected = "[FunctionalCall(bar)\n Fixnum(1)\n Fixnum(1), MethodDefinition(baz)\n {:return=>Type(notype)}\n Arguments\n FunctionalCall(bar)\n  Fixnum(1)\n  Fixnum(1)]"
+    inspected = "[FunctionalCall(bar)\n Fixnum(1)\n Fixnum(1), MethodDefinition(baz)\n {:return=>nil}\n Arguments\n FunctionalCall(bar)\n  Fixnum(1)\n  Fixnum(1)]"
     assert_equal(inspected, typer.deferred_nodes.inspect)
   end
   

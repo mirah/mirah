@@ -95,18 +95,22 @@ module Duby::AST
     end
         
     def infer(typer)
+      typer.infer_signature(self)
       arguments.infer(typer)
       forced_type = signature[:return]
-      inferred_type = body.infer(typer)
+      inferred_type = body ? body.infer(typer) : typer.no_type
         
       if !inferred_type
         typer.defer(self)
       else
-        if forced_type != typer.no_type && !forced_type.is_parent(inferred_type)
+        if forced_type && forced_type != typer.no_type && !forced_type.is_parent(inferred_type)
           raise Duby::Typer::InferenceError.new("Inferred return type #{inferred_type} is incompatible with declared #{forced_type}", self)
         end
+        
+        # If the parent method is void we have to return void.
+        actual_type = forced_type == typer.no_type ? forced_type : inferred_type
 
-        @inferred_type = typer.learn_method_type(typer.self_type, name, arguments.inferred_type, inferred_type)
+        @inferred_type = typer.learn_method_type(typer.self_type, name, arguments.inferred_type, actual_type)
         signature[:return] = @inferred_type
       end
         
@@ -114,34 +118,6 @@ module Duby::AST
     end
   end
       
-  class StaticMethodDefinition < Node
-    include Named
-    include Scope
-    attr_accessor :signature, :arguments, :body
-        
-    def initialize(parent, name)
-      @signature, @arguments, @body = children = yield(self)
-      @name = name
-      super(parent, children)
-    end
-        
-    def infer(typer)
-      arguments.infer(typer)
-      forced_type = signature[:return]
-      inferred_type = body.infer(typer)
-        
-      if !inferred_type
-        typer.defer(self)
-      else
-        if forced_type != typer.no_type && !forced_type.is_parent(inferred_type)
-          raise Duby::Typer::InferenceError.new("Inferred return type #{inferred_type} is incompatible with declared #{forced_type}", self)
-        end
-
-        # TODO: this doesn't separate static from instance
-        @inferred_type = typer.learn_method_type(typer.self_type, name, arguments.inferred_type, inferred_type)
-      end
-        
-      @inferred_type
-    end
+  class StaticMethodDefinition < MethodDefinition
   end
 end

@@ -186,7 +186,7 @@ module Duby
             actual_name = name[0..-2] + '_set'
           end
           MethodDefinition.new(parent, actual_name) do |defn|
-            signature = {:return => AST::no_type}
+            signature = {:return => nil}
 
             # TODO: Disabled until parser supports it
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
@@ -216,7 +216,7 @@ module Duby
             actual_name = name[0..-2] + '_set'
           end
           StaticMethodDefinition.new(parent, actual_name) do |defn|
-            signature = {:return => AST::no_type}
+            signature = {:return => nil}
 
             # TODO: Disabled until parser supports it
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
@@ -338,7 +338,7 @@ module Duby
           # flag this as a declaration, so it transforms to a noop
           @declaration = true
 
-          arg_types = {:return => AST::no_type}
+          arg_types = {:return => nil}
 
           list = list_node.child_nodes.to_a
           list.each_index do |index|

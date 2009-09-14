@@ -110,7 +110,7 @@ module Duby
         args.args.each {|arg| @method.local arg.name} if args.args
         
         expression = signature[:return] != Types::Void
-        body.compile(self, expression)
+        body.compile(self, expression) if body
 
         if name == "initialize"
           @method.returnvoid
@@ -131,6 +131,7 @@ module Duby
 
         class_def.body.compile(self, false)
         
+        @class.stop
         @class = prev_class
         @static = old_static
       end
@@ -360,6 +361,7 @@ module Duby
       end
       
       def generate
+        @class.stop
         log "Generating classes..."
         @file.generate do |filename, builder|
           log "  #{builder.class_name}"

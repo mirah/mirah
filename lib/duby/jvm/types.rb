@@ -189,11 +189,11 @@ module Duby
             @name = name
           end
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
-          @superclass = superclass
+          @superclass = superclass || Object
         end
         
         def define(builder)
-          @type = builder.public_class(@name)
+          @type = builder.public_class(@name, @superclass)
         end
         
         def meta

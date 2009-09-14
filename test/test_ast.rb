@@ -197,7 +197,7 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("class Foo < Bar; def foo; end; end").body
 
     assert_not_nil(new_ast)
-    assert_equal("ClassDefinition(Foo)\n Constant(Bar)\n MethodDefinition(foo)\n  {:return=>Type(notype)}\n  Arguments", new_ast.inspect)
+    assert_equal("ClassDefinition(Foo)\n Constant(Bar)\n MethodDefinition(foo)\n  {:return=>nil}\n  Arguments", new_ast.inspect)
     assert_equal(new_ast, new_ast.body.parent)
   end
   
@@ -205,19 +205,19 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def foo(a, b); 1; end").body
     
     assert_not_nil(new_ast)
-    assert_equal("MethodDefinition(foo)\n {:return=>Type(notype)}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Fixnum(1)", new_ast.inspect)
+    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Fixnum(1)", new_ast.inspect)
     assert(AST::MethodDefinition === new_ast)
     assert_equal("foo", new_ast.name)
     assert_not_nil(new_ast.signature)
     assert_equal(1, new_ast.signature.size)
-    assert(AST::TypeReference::NoType === new_ast.signature[:return])
+    assert(nil === new_ast.signature[:return])
     assert(AST::Arguments === new_ast.arguments)
     assert(AST::Fixnum === new_ast.body)
     
     new_ast = AST.parse("def foo; end").body
     
     assert_not_nil(new_ast)
-    assert_equal("MethodDefinition(foo)\n {:return=>Type(notype)}\n Arguments", new_ast.inspect)
+    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments", new_ast.inspect)
     assert_not_nil(new_ast.arguments)
     assert_equal(nil, new_ast.arguments.args)
     assert_equal(nil, new_ast.arguments.opt_args)
@@ -230,20 +230,20 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def self.foo(a, b); 1; end").body
     
     assert_not_nil(new_ast)
-    inspected = "StaticMethodDefinition(foo)\n {:return=>Type(notype)}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Fixnum(1)"
+    inspected = "StaticMethodDefinition(foo)\n {:return=>nil}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Fixnum(1)"
     assert_equal(inspected, new_ast.inspect)
     assert(AST::StaticMethodDefinition === new_ast)
     assert_equal("foo", new_ast.name)
     assert_not_nil(new_ast.signature)
     assert_equal(1, new_ast.signature.size)
-    assert(AST::TypeReference::NoType === new_ast.signature[:return])
+    assert(nil === new_ast.signature[:return])
     assert(AST::Arguments === new_ast.arguments)
     assert(AST::Fixnum === new_ast.body)
     
     new_ast = AST.parse("def self.foo; end").body
     
     assert_not_nil(new_ast)
-    assert_equal("StaticMethodDefinition(foo)\n {:return=>Type(notype)}\n Arguments", new_ast.inspect)
+    assert_equal("StaticMethodDefinition(foo)\n {:return=>nil}\n Arguments", new_ast.inspect)
     assert_not_nil(new_ast.arguments)
     assert_equal(nil, new_ast.arguments.args)
     assert_equal(nil, new_ast.arguments.opt_args)

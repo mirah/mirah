@@ -11,6 +11,7 @@ module Duby::AST
     
     def infer(typer)
       unless resolved?
+        superclass = Duby::AST::type(@superclass.name) if @superclass
         @inferred_type ||= typer.define_type(name, superclass) do
           body.infer(typer)
         end

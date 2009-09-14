@@ -56,6 +56,52 @@ module Duby
         end
         super
       end
+      
+      def infer_signature(method_def)
+        signature = method_def.signature
+        args = method_def.arguments.args || []
+        static = method_def.kind_of? Duby::AST::StaticMethodDefinition
+        if signature.size != args.size + 1
+          # If the superclass declares one method with the same name and
+          # same number of arguments, assume we're overriding it.
+          found = nil
+          ambiguous = false
+          cls = self_type.superclass
+          while cls
+            if static
+              methods = cls.declared_static_methods
+            else
+              methods = cls.declared_instance_methods
+            end
+            methods.each do |method|
+              if method.name == method_def.name &&
+                 method.argument_types.size == args.size
+                if found && found.argument_types != method.argument_types
+                  ambiguous = true
+                else
+                  found ||= method
+                end
+              end
+            end
+            cls = cls.superclass
+          end
+          if found && !ambiguous
+            signature[:return] = found.actual_return_type
+            args.zip(found.argument_types) do |arg, type|
+              signature[arg.name.intern] = type
+            end
+          end
+        elsif signature[:return].nil? && !static
+          arg_types = args.map do |arg|
+            signature[arg.name.intern]
+          end
+          method = self_type.find_method(
+              self_type, method_def.name, arg_types, false)
+          if method
+            signature[:return] = method.actual_return_type
+          end
+        end
+      end
     end
   end
 end

@@ -122,6 +122,9 @@ module Duby
         field_types[cls] ||= {}
       end
 
+      def infer_signature(method_def)
+      end
+
       def learn_field_type(cls, name, type)
         log "Learned field type under #{cls} : #{name} = #{type}"
 
