@@ -229,6 +229,14 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
   end
+  
+  def test_no_quote_import
+    cls, = compile("import java.util.ArrayList as AL; def foo; AL.new; end; foo")
+    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
+    
+    cls, = compile("import java.util.ArrayList; def foo; ArrayList.new; end; foo")
+    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
+  end
 
   def test_imported_decl
     cls, = compile("import 'java.util.ArrayList'; def foo(a => ArrayList); a.size; end")

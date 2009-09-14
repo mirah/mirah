@@ -258,6 +258,28 @@ module Duby
                 when StrNode
                   long = args_node.get(0).value
                   short = long[(long.rindex('.') + 1)..-1]
+                when CallNoArgNode
+                  node = args_node.get(0)
+                  pieces = [node.name]
+                  while node.kind_of? CallNode
+                    node = node.receiver_node
+                    pieces << node.name
+                  end
+                  long = pieces.reverse.join '.'
+                  short = pieces[0]
+                when CallOneArgNode
+                  arg = args_node.get(0).args_node.get(0)
+                  unless FCallOneArgNode === arg && arg.name == 'as'
+                    raise "unknown import syntax at #{self}"
+                  end
+                  short = arg.args_node.get(0).name
+                  node = args_node.get(0)
+                  pieces = [node.name]
+                  while node.kind_of? CallNode
+                    node = node.receiver_node
+                    pieces << node.name
+                  end
+                  long = pieces.reverse.join '.'
                 else
                   raise "unknown import syntax at #{self}"
                 end
