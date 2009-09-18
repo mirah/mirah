@@ -52,9 +52,12 @@ module Duby
         @filename = filename
         @src = ""
         @static = true
+        package = File.dirname(filename).tr('/', '.')
+        classname = File.basename(filename, '.duby')
 
         @file = BiteScript::FileBuilder.new(filename)
-        @class = @file.public_class(filename.split('.')[0])
+        @file.package = package
+        @class = @file.public_class(classname)
       end
 
       def compile(ast, expression = false)
@@ -70,8 +73,7 @@ module Duby
         @method.start
 
         # declare argv variable
-        # TODO type as String[]
-        @method.local('argv')
+        @method.local('argv', AST.type('string', true))
 
         body.compile(self, false)
 
@@ -107,7 +109,9 @@ module Duby
         @method.start
 
         # declare all args so they get their values
-        args.args.each {|arg| @method.local arg.name} if args.args
+        if args.args
+          args.args.each {|arg| @method.local(arg.name, arg.inferred_type)}
+        end
         
         expression = signature[:return] != Types::Void
         body.compile(self, expression) if body
@@ -255,7 +259,7 @@ module Duby
       end
       
       def local(name, type)
-        type.load(@method, @method.local(name))
+        type.load(@method, @method.local(name, type))
       end
 
       def local_assign(name, type, expression)
@@ -266,7 +270,7 @@ module Duby
         # if expression, dup the value we're assigning
         @method.dup if expression
         
-        type.store(@method, @method.local(name))
+        type.store(@method, @method.local(name, type))
       end
 
       def declared_locals
@@ -277,14 +281,14 @@ module Duby
         # TODO confirm types are compatible
         unless declared_locals[name]
           declared_locals[name] = type
-          @method.local(name, type.wide?)
+          index = @method.local(name, type)
         end
       end
 
       def local_declare(name, type)
         declare_local(name, type)
         type.init_value(@method)
-        type.store(@method, @method.local(name))
+        type.store(@method, @method.local(name, type))
       end
 
       def field(name, type)

@@ -27,7 +27,12 @@ class TestCompilerUsesTypes < Test::Unit::TestCase
   import java.lang.System
 
   def setup
+    AST.type_factory = Duby::JVM::Types::TypeFactory.new
     @compiler = Compiler::JVM.new("script" + System.nano_time.to_s)
+  end
+
+  def teardown
+    AST.type_factory = nil
   end
 
   def test_emptyarray_uses_types
