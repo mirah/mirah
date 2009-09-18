@@ -49,13 +49,13 @@ module Duby
       attr_accessor :filename, :src, :method, :static, :class
 
       def initialize(filename)
-        @filename = filename
+        @filename = File.basename(filename)
         @src = ""
         @static = true
         package = File.dirname(filename).tr('/', '.')
         classname = File.basename(filename, '.duby')
 
-        @file = BiteScript::FileBuilder.new(filename)
+        @file = BiteScript::FileBuilder.new(@filename)
         @file.package = package
         @class = @file.public_class(classname)
       end
@@ -362,6 +362,10 @@ module Duby
       
       def newline
         # TODO: line numbering
+      end
+      
+      def line(num)
+        @method.line(num) if @method
       end
       
       def generate

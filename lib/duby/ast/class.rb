@@ -3,8 +3,8 @@ module Duby::AST
     include Named
     attr_accessor :superclass, :body
         
-    def initialize(parent, name)
-      super(parent, yield(self))
+    def initialize(parent, line_number, name)
+      super(parent, line_number, yield(self))
       @superclass, @body = children
       @name = name
     end
@@ -27,8 +27,8 @@ module Duby::AST
     include ClassScoped
     include Typed
 
-    def initialize(parent, name)
-      super(parent, yield(self))
+    def initialize(parent, line_number, name)
+      super(parent, line_number, yield(self))
       @name = name
       @type = children[0]
     end
@@ -53,8 +53,8 @@ module Duby::AST
     include Valued
     include ClassScoped
         
-    def initialize(parent, name)
-      super(parent, yield(self))
+    def initialize(parent, line_number, name)
+      super(parent, line_number, yield(self))
       @value = children[0]
       @name = name
     end
@@ -74,8 +74,8 @@ module Duby::AST
     include Named
     include ClassScoped
     
-    def initialize(parent, name)
-      super(parent)
+    def initialize(parent, line_number, name)
+      super(parent, line_number)
       @name = name
     end
 

@@ -1,7 +1,7 @@
 module Duby::AST
   class Body < Node
-    def initialize(parent)
-      super(parent, yield(self))
+    def initialize(parent, line_number)
+      super(parent, line_number, yield(self))
     end
         
     # Type of a block is the type of its final element
@@ -32,9 +32,9 @@ module Duby::AST
     include Scope
     attr_accessor :body
     
-    def initialize(parent)
+    def initialize(parent, line_number)
       @body = (children = yield(self))[0]
-      super(parent, children)
+      super(parent, line_number, children)
     end
     
     def infer(typer)

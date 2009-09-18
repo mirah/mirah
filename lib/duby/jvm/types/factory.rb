@@ -57,12 +57,12 @@ module Duby::JVM::Types
       Void
     end
     
-    def fixnum(parent, literal)
-      FixnumLiteralNode.new(parent, literal)
+    def fixnum(parent, line_number, literal)
+      FixnumLiteralNode.new(parent, line_number, literal)
     end
     
-    def float(parent, literal)
-      FloatLiteralNode.new(parent, literal)
+    def float(parent, line_number, literal)
+      FloatLiteralNode.new(parent, line_number, literal)
     end
   end
 

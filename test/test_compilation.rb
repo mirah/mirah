@@ -16,6 +16,10 @@ class TestAst < Test::Unit::TestCase
       ast.compile(self, true)
     end
     
+    def line(num)
+      # ignore newlines
+    end
+    
     def method_missing(sym, *args, &block)
       calls << [sym, *args]
       block.call if block

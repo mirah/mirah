@@ -3,9 +3,9 @@ module Duby
     class Condition < Node
       attr_accessor :predicate
 
-      def initialize(parent)
+      def initialize(parent, line_number)
         @predicate = (children = yield(self))[0]
-        super(parent, children)
+        super(parent, line_number, children)
       end
 
       def infer(typer)
@@ -22,9 +22,9 @@ module Duby
     class If < Node
       attr_accessor :condition, :body, :else
 
-      def initialize(parent)
+      def initialize(parent, line_number)
         @condition, @body, @else = children = yield(self)
-        super(parent, children)
+        super(parent, line_number, children)
       end
 
       def infer(typer)
@@ -87,11 +87,11 @@ module Duby
     class Loop < Node
       attr_accessor :condition, :body, :check_first, :negative
 
-      def initialize(parent, check_first, negative)
+      def initialize(parent, line_number, check_first, negative)
         @condition, @body = children = yield(self)
         @check_first = check_first
         @negative = negative
-        super(parent, children)
+        super(parent, line_number, children)
       end
 
       def check_first?; @check_first; end
@@ -115,17 +115,17 @@ module Duby
     end
 
     class Not < Node
-      def initialize(parent)
-        super(parent, yield(self))
+      def initialize(parent, line_number)
+        super(parent, line_number, yield(self))
       end
     end
 
     class Return < Node
       include Valued
 
-      def initialize(parent)
+      def initialize(parent, line_number)
         @value = (children = yield(self))[0]
-        super(parent, children)
+        super(parent, line_number, children)
       end
 
       def infer(typer)

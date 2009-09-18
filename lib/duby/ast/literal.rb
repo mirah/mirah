@@ -1,15 +1,15 @@
 module Duby::AST
   class Array < Node
-    def initialize(parent)
-      super(parent, yield(self))
+    def initialize(parent, line_number)
+      super(parent, line_number, yield(self))
     end
   end
   
   class Fixnum < Node
     include Literal
     
-    def initialize(parent, literal)
-      super(parent)
+    def initialize(parent, line_number, literal)
+      super(parent, line_number)
       @literal = literal
     end
     
@@ -23,8 +23,8 @@ module Duby::AST
   class Float < Node
     include Literal
     
-    def initialize(parent, literal)
-      super(parent)
+    def initialize(parent, line_number, literal)
+      super(parent, line_number)
       @literal = literal
     end
     
@@ -40,8 +40,8 @@ module Duby::AST
   class String < Node
     include Literal
     
-    def initialize(parent, literal)
-      super(parent)
+    def initialize(parent, line_number, literal)
+      super(parent, line_number)
       @literal = literal
     end
     
@@ -57,8 +57,8 @@ module Duby::AST
   class Boolean < Node
     include Literal
     
-    def initialize(parent, literal)
-      super(parent)
+    def initialize(parent, line_number, literal)
+      super(parent, line_number)
       @literal = literal
     end
     
@@ -72,8 +72,8 @@ module Duby::AST
   class Null < Node
     include Literal
 
-    def initialize(parent)
-      super(parent)
+    def initialize(parent, line_number)
+      super(parent, line_number)
     end
 
     def infer(typer)

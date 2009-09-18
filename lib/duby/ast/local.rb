@@ -4,8 +4,8 @@ module Duby::AST
     include Typed
     include Scoped
 
-    def initialize(parent, name)
-      super(parent, yield(self))
+    def initialize(parent, line_number, name)
+      super(parent, line_number, yield(self))
       @name = name
       @type = children[0]
     end
@@ -30,10 +30,10 @@ module Duby::AST
     include Valued
     include Scoped
     
-    def initialize(parent, name)
+    def initialize(parent, line_number, name)
       @value = (children = yield(self))[0]
       @name = name
-      super(parent, children)
+      super(parent, line_number, children)
     end
 
     def to_s
@@ -55,8 +55,8 @@ module Duby::AST
     include Named
     include Scoped
     
-    def initialize(parent, name)
-      super(parent, [])
+    def initialize(parent, line_number, name)
+      super(parent, line_number, [])
       @name = name
     end
 

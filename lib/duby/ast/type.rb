@@ -2,10 +2,10 @@ module Duby::AST
   class Import < Node
     attr_accessor :short
     attr_accessor :long
-    def initialize(parent, short, long)
+    def initialize(parent, line_number, short, long)
       @short = short
       @long = long
-      super(parent, [])
+      super(parent, line_number, [])
       Duby::AST.type_factory.alias(short, long) if Duby::AST.type_factory
     end
 
@@ -23,8 +23,8 @@ module Duby::AST
   class EmptyArray < Node
     attr_accessor :size
     attr_accessor :component_type
-    def initialize(parent, type, size)
-      super(parent, [])
+    def initialize(parent, line_number, type, size)
+      super(parent, line_number, [])
 
       @size = size
       @component_type = type

@@ -2,9 +2,9 @@ module Duby::AST
   class PrintLine < Node
     attr_accessor :parameters
     
-    def initialize(parent)
+    def initialize(parent, line_number)
       @parameters = children = yield(self)
-      super(parent, children)
+      super(parent, line_number, children)
     end
 
     def infer(typer)

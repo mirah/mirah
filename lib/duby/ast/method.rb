@@ -2,9 +2,9 @@ module Duby::AST
   class Arguments < Node
     attr_accessor :args, :opt_args, :rest_arg, :block_arg
     
-    def initialize(parent)
+    def initialize(parent, line_number)
       @args, @opt_args, @rest_arg, @block_arg = children = yield(self)
-      super(parent, children)
+      super(parent, line_number, children)
     end
     
     def infer(typer)
@@ -22,8 +22,8 @@ module Duby::AST
     include Named
     include Scoped
     
-    def initialize(parent, name)
-      super(parent)
+    def initialize(parent, line_number, name)
+      super(parent, line_number)
 
       @name = name
     end
@@ -55,10 +55,10 @@ module Duby::AST
     include Scoped
     attr_accessor :child
     
-    def initialize(parent)
+    def initialize(parent, line_number)
       @child = (children = yield(self))[0]
       @name = @child.name
-      super(parent, children)
+      super(parent, line_number, children)
     end
   end
       
@@ -66,8 +66,8 @@ module Duby::AST
     include Named
     include Scoped
     
-    def initialize(parent, name)
-      super(parent)
+    def initialize(parent, line_number, name)
+      super(parent, line_number)
 
       @name = name
     end
@@ -76,8 +76,8 @@ module Duby::AST
   class BlockArgument < Argument
     include Named
     
-    def initialize(parent, name)
-      super(parent)
+    def initialize(parent, line_number, name)
+      super(parent, line_number)
 
       @name = name
     end
@@ -88,8 +88,8 @@ module Duby::AST
     include Scope
     attr_accessor :signature, :arguments, :body
         
-    def initialize(parent, name)
-      super(parent, yield(self))
+    def initialize(parent, line_number, name)
+      super(parent, line_number, yield(self))
       @signature, @arguments, @body = children
       @name = name
     end

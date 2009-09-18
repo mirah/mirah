@@ -5,6 +5,7 @@ module Duby
     class Fixnum
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.fixnum(literal)
         end
       end
@@ -13,6 +14,7 @@ module Duby
     class String
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.string(literal)
         end
       end
@@ -21,6 +23,7 @@ module Duby
     class Float
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.float(literal)
         end
       end
@@ -29,6 +32,7 @@ module Duby
     class Boolean
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.boolean(literal)
         end
       end
@@ -36,6 +40,7 @@ module Duby
     
     class Body
       def compile(compiler, expression)
+        compiler.line(line_number)
         # all except the last element in a body of code is treated as a statement
         i, last = 0, children.size - 1
         while i < last
@@ -57,6 +62,7 @@ module Duby
     class Constant
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.constant(self)
         end
       end
@@ -65,6 +71,7 @@ module Duby
     class PrintLine
       def compile(compiler, expression)
         # TODO: what does it mean for printline to be an expression?
+        compiler.line(line_number)
         compiler.println(self)
       end
     end
@@ -72,6 +79,7 @@ module Duby
     class Local
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.local(name, inferred_type)
         end
       end
@@ -79,12 +87,14 @@ module Duby
 
     class LocalDeclaration
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.local_declare(name, type)
       end
     end
     
     class LocalAssignment
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.local_assign(name, inferred_type, expression) {
           value.compile(compiler, true)
         }
@@ -121,6 +131,7 @@ module Duby
     
     class If
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.branch(self, expression)
       end
     end
@@ -128,24 +139,28 @@ module Duby
     class Condition
       def compile(compiler, expression)
         # TODO: can a condition ever be an expression? I don't think it can...
+        compiler.line(line_number)
         predicate.compile(compiler)
       end
     end
     
     class FunctionalCall
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.self_call(self, expression)
       end
     end
     
     class Call
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.call(self, expression)
       end
     end
     
     class Loop
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.loop(self, expression)
       end
     end
@@ -164,6 +179,7 @@ module Duby
 
     class FieldAssignment
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.field_assign(name, inferred_type, expression) {
           value.compile(compiler, true)
         }
@@ -172,6 +188,7 @@ module Duby
 
     class Field
       def compile(compiler, expression)
+        compiler.line(line_number)
         if expression
           compiler.field(name, inferred_type)
         end
@@ -180,6 +197,7 @@ module Duby
 
     class Return
       def compile(compiler, expression)
+        compiler.line(line_number)
         compiler.return(self)
       end
     end
@@ -187,6 +205,7 @@ module Duby
     class EmptyArray
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.empty_array(component_type, size)
         end
       end
@@ -195,6 +214,7 @@ module Duby
     class Null
       def compile(compiler, expression)
         if expression
+          compiler.line(line_number)
           compiler.null
         end
       end
