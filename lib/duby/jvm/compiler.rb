@@ -408,7 +408,7 @@ module Duby
       end
 
       def empty_array(type, size)
-        @method.ldc(size)
+        size.compile(self, true)
         type.newarray(@method)
       end
     end

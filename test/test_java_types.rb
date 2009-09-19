@@ -37,8 +37,7 @@ class TestCompilerUsesTypes < Test::Unit::TestCase
 
   def test_emptyarray_uses_types
     ast = mock!.compile(@compiler, false) {
-      count = Object.new
-      mock(@compiler.method).ldc(count)
+      count = mock!.compile(@compiler, true).subject
       type = mock!.newarray(@compiler.method).subject
       @compiler.empty_array(type, count)
     }

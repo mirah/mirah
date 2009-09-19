@@ -90,6 +90,9 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("int[5]").body
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:empty_array, AST.type(:int), 5]], @compiler.calls)
+    assert_equal(1, @compiler.calls.size)
+    size = @compiler.calls[0].pop
+    assert_equal([[:empty_array, AST.type(:int)]], @compiler.calls)
+    assert_equal(5, size.literal)
   end
 end

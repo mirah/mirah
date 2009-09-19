@@ -23,16 +23,18 @@ module Duby::AST
   class EmptyArray < Node
     attr_accessor :size
     attr_accessor :component_type
-    def initialize(parent, line_number, type, size)
+    def initialize(parent, line_number, type)
       super(parent, line_number, [])
-
-      @size = size
       @component_type = type
+      @size = size
       @inferred_type = Duby::AST::type(type.name, true)
-      resolved!
+
+      @size = yield(self)
     end
 
     def infer(typer)
+      size.infer(typer)
+      resolved!
       return @inferred_type
     end
   end

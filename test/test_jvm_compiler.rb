@@ -212,6 +212,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(0.0, cls.foo)
   end
 
+  def test_array_with_dynamic_size
+    cls, = compile("def foo(size => :int); a = int[size + 1];end")
+    array = cls.foo(3)
+    assert_equal(Java::int[].java_class, array.class.java_class)
+    assert_equal([0,0,0,0], array.to_a)
+  end
+  
+  def test_object_array
+    cls, = compile("import java.lang.Object;def foo; a = Object[2];end")
+    assert_equal(Java::JavaLang::Object[].java_class, cls.foo.class.java_class)
+    assert_equal([nil, nil], cls.foo.to_a)
+  end
+
   def test_string_concat
     cls, = compile("def foo; a = 'a'; b = 'b'; a + b; end")
     assert_equal("ab", cls.foo)
