@@ -103,14 +103,18 @@ module Duby
       
       def infer(typer)
         unless resolved?
-          @inferred_type = body.infer(typer)
+          body.infer(typer)
           
           condition.infer(typer)
           
-          (@inferred_type && condition.resolved?) ? resolved! : typer.defer(self)
+          if body.resolved? && condition.resolved?
+            resolved!
+          else
+            typer.defer(self)
+          end
         end
         
-        @inferred_type
+        typer.null_type
       end
     end
 

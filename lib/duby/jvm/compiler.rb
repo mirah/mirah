@@ -174,10 +174,6 @@ module Duby
         
         # TODO: not checking "check first" or "negative"
         predicate = loop.condition.predicate
-        
-        # if an expression, make sure it will at least result in a null
-        # TODO: make this result appropriate for primitive types as well
-        @method.aconst_null if expression
 
         beforelabel.set!
         
@@ -191,13 +187,7 @@ module Duby
           end
         end
         
-        # if expression, before each entry into the loop, pop previous result (or default null from above)
-        # this leaves a result on the stack at the end
-        @method.pop if expression
-        
         loop.body.compile(self, expression)
-        
-        # if not an expression, we don't need to pop result each time
         
         unless loop.check_first
           if loop.negative
@@ -212,6 +202,9 @@ module Duby
         end
         
         donelabel.set!
+        
+        # loops always evaluate to null
+        @method.aconst_null if expression
       end
       
       def jump_if(predicate, target)

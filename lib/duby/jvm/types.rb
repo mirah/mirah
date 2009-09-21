@@ -138,8 +138,7 @@ module Duby
       
       class NullType < Type
         def initialize
-          @name = 'null'
-          @type = nil
+          super(java.lang.Object)
         end
         
         def compatible?(other)
