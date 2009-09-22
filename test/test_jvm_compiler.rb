@@ -13,11 +13,18 @@ class TestJVMCompiler < Test::Unit::TestCase
   import java.lang.System
   import java.io.PrintStream
 
+  def setup
+    @tmp_classes = []
+  end
+
   def teardown
     AST.type_factory = nil
+    File.unlink(*@tmp_classes)
   end
 
   def compile(code)
+    File.unlink(*@tmp_classes)
+    @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
     ast = AST.parse(code)
     compiler = Compiler::JVM.new("script" + System.nano_time.to_s)
@@ -34,7 +41,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
       cls = loader.define_class(name[0..-7], bytes.to_java_bytes)
       classes << JavaUtilities.get_proxy_class(cls.name)
-      File.unlink("#{name}")
+      @tmp_classes << "#{name}"
     end
 
     classes
@@ -477,6 +484,161 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
+  end
+  
+  def test_break
+    cls, = compile <<-EOF
+      def foo
+        count = 0
+        while count < 5
+          count += 1
+          break
+        end
+        count
+      end
+    EOF
+    assert_equal(1, cls.foo)
+    
+    cls, = compile <<-EOF
+      def foo
+        a = 0
+        b = 0
+        while a < 2
+          a += 1
+          while b < 5
+            b += 1
+            break
+          end
+          break
+        end
+        a * 100 + b
+      end
+    EOF
+    assert_equal(101, cls.foo)
+
+    cls, = compile <<-EOF
+      def foo
+        count = 0
+        begin
+          count += 1
+          break
+        end while count < 5
+        count
+      end
+    EOF
+    assert_equal(1, cls.foo)
+  end
+
+  def test_next
+    cls, = compile <<-EOF
+      def foo
+        values = int[3]
+        i = 0
+        while i < 3
+          i += 1
+          next if i == 2
+          values[i - 1] = i
+        end
+        values
+      end
+    EOF
+    assert_equal([1, 0, 3], cls.foo.to_a)
+
+    cls, = compile <<-EOF
+      def foo
+        i = 0
+        while i < 5
+          i += 1
+          next if i == 5
+        end
+        i
+      end
+    EOF
+    assert_equal(5, cls.foo)
+
+    cls, = compile <<-EOF
+      def foo
+        values = int[3]
+        a = 0
+        b = 0
+        while a < 3
+          b = 0
+          while b < 5
+            b += 1
+            next if b == a + 1
+            # values[a] += b # TODO
+            values[a] = values[a] + b
+          end
+          a += 1
+          next if a == 2
+          values[a - 1] = values[a - 1] + a * 100
+        end
+        values
+      end
+    EOF
+    assert_equal([114, 13, 312], cls.foo.to_a)
+
+    cls, = compile <<-EOF
+      def foo
+        count = 0
+        sum = 0
+        begin
+          count += 1
+          next if count == 2
+          sum += count
+          next if count == 5
+        end while count < 5
+        count * 100 + sum
+      end
+    EOF
+    assert_equal(513, cls.foo)
+  end
+
+  def test_redo
+    cls, = compile <<-EOF
+      def foo
+        i = 0
+        while i < 5
+          i += 1
+          redo if i == 5
+        end
+        i
+      end
+    EOF
+    assert_equal(6, cls.foo)
+
+    cls, = compile <<-EOF
+      def foo
+        values = int[4]
+        a = 0
+        b = 0
+        while a < 3
+          b = a
+          while b < 5
+            b += 1
+            redo if b == 5
+            values[a] = values[a] + b
+          end
+          a += 1
+          values[a - 1] = values[a - 1] + a * 100
+          redo if a == 3
+        end
+        values
+      end
+    EOF
+    assert_equal([116, 215, 313, 410], cls.foo.to_a)
+
+    cls, = compile <<-EOF
+      def foo
+        i = 0
+        begin
+          i += 1
+          redo if i == 5
+        end while i < 5
+        i
+      end
+    EOF
+    assert_equal(6, cls.foo)
   end
 
   def test_fields

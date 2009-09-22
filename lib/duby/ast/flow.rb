@@ -143,10 +143,17 @@ module Duby
       end
     end
 
-    class Break < Node; end
+    class Break < Node;
+      def infer(typer)
+        unless resolved?
+          resolved!
+          @inferred_type = typer.null_type
+        end
+      end
+    end
     
-    class Next < Node; end
+    class Next < Break; end
     
-    class Redo < Node; end
+    class Redo < Break; end
   end
 end

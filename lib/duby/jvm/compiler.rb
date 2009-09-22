@@ -165,42 +165,59 @@ module Duby
       end
       
       def loop(loop, expression)
-        donelabel = @method.label
-        beforelabel = @method.label
+        with(:break_label => @method.label,
+             :redo_label => @method.label,
+             :next_label => @method.label) do
+          donelabel = @method.label
+          beforelabel = @method.label
         
-        # TODO: not checking "check first" or "negative"
-        predicate = loop.condition.predicate
+          # TODO: not checking "check first" or "negative"
+          predicate = loop.condition.predicate
 
-        beforelabel.set!
-        
-        if loop.check_first
-          if loop.negative
-            # if condition, exit
-            jump_if(predicate, donelabel)
-          else
-            # if not condition, exit
-            jump_if_not(predicate, donelabel)
+          if loop.check_first
+            @next_label.set!
+            if loop.negative
+              # if condition, exit
+              jump_if(predicate, @break_label)
+            else
+              # if not condition, exit
+              jump_if_not(predicate, @break_label)
+            end
           end
-        end
         
-        loop.body.compile(self, expression)
+          @redo_label.set!
+          loop.body.compile(self, expression)
         
-        unless loop.check_first
-          if loop.negative
-            # if not condition, continue
-            jump_if_not(predicate, beforelabel)
+          unless loop.check_first
+            @next_label.set!
+            if loop.negative
+              # if not condition, continue
+              jump_if_not(predicate, @redo_label)
+            else
+              # if condition, continue
+              jump_if(predicate, @redo_label)
+            end
           else
-            # if condition, continue
-            jump_if(predicate, beforelabel)
+            @method.goto(@next_label)
           end
-        else
-          @method.goto(beforelabel)
+        
+          @break_label.set!
+        
+          # loops always evaluate to null
+          @method.aconst_null if expression
         end
-        
-        donelabel.set!
-        
-        # loops always evaluate to null
-        @method.aconst_null if expression
+      end
+      
+      def break
+        @method.goto(@break_label)
+      end
+      
+      def next
+        @method.goto(@next_label)
+      end
+      
+      def redo
+        @method.goto(@redo_label)
       end
       
       def jump_if(predicate, target)

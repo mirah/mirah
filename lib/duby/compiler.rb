@@ -219,5 +219,28 @@ module Duby
         end
       end
     end
+    
+    class Break
+      def compile(compiler, expression)
+        raise "break with value not supported" if expression
+        compiler.line(line_number)
+        compiler.break
+      end
+    end
+    
+    class Next
+      def compile(compiler, expression)
+        raise "next with value not supported" if expression
+        compiler.line(line_number)
+        compiler.next
+      end
+    end
+    
+    class Redo
+      def compile(compiler, expression)
+        compiler.line(line_number)
+        compiler.redo
+      end
+    end
   end
 end
