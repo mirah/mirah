@@ -143,6 +143,10 @@ module Duby
       end
     end
 
-    class While < Node; end
+    class Break < Node; end
+    
+    class Next < Node; end
+    
+    class Redo < Node; end
   end
 end

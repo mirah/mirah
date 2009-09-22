@@ -66,21 +66,19 @@ module Duby
       end
 
       def define_main(body)
-        oldmethod, @method = @method, @class.main
+        with :method => @class.main do
+          log "Starting main method"
 
-        log "Starting main method"
+          @method.start
 
-        @method.start
+          # declare argv variable
+          @method.local('argv', AST.type('string', true))
 
-        # declare argv variable
-        @method.local('argv', AST.type('string', true))
+          body.compile(self, false)
 
-        body.compile(self, false)
-
-        @method.returnvoid
-        @method.stop
-        
-        @method = oldmethod
+          @method.returnvoid
+          @method.stop
+        end
 
         log "Main method complete!"
       end
@@ -93,51 +91,49 @@ module Duby
         end
         return_type = signature[:return]
         if @static
-          oldmethod, @method = @method, @class.public_static_method(name.to_s, return_type, *arg_types)
+          method = @class.public_static_method(name.to_s, return_type, *arg_types)
         else
           if name == "initialize"
-            oldmethod, @method = @method, @class.public_constructor(*arg_types)
-            @method.aload 0
-            @method.invokespecial @method.object, "<init>", [@method.void]
+            method = @class.public_constructor(*arg_types)
+            method.aload 0
+            method.invokespecial @method.object, "<init>", [@method.void]
           else
-            oldmethod, @method = @method, @class.public_method(name.to_s, return_type, *arg_types)
+            method = @class.public_method(name.to_s, return_type, *arg_types)
           end
         end
 
-        log "Starting new method #{name}(#{arg_types})"
+        with :method => method do
+          log "Starting new method #{name}(#{arg_types})"
 
-        @method.start
+          @method.start
 
-        # declare all args so they get their values
-        if args.args
-          args.args.each {|arg| @method.local(arg.name, arg.inferred_type)}
-        end
+          # declare all args so they get their values
+          if args.args
+            args.args.each {|arg| @method.local(arg.name, arg.inferred_type)}
+          end
         
-        expression = signature[:return] != Types::Void
-        body.compile(self, expression) if body
+          expression = signature[:return] != Types::Void
+          body.compile(self, expression) if body
 
-        if name == "initialize"
-          @method.returnvoid
-        else
-          signature[:return].return(@method)
-        end
+          if name == "initialize"
+            @method.returnvoid
+          else
+            signature[:return].return(@method)
+          end
         
-        @method.stop
-
-        @method = oldmethod
+          @method.stop
+        end
 
         log "Method #{name}(#{arg_types}) complete!"
       end
 
       def define_class(class_def, expression)
-        prev_class, @class = @class, class_def.inferred_type.define(@file)
-        old_static, @static = @static, false
-
-        class_def.body.compile(self, false)
+        with(:class => class_def.inferred_type.define(@file),
+             :static => false) do
+          class_def.body.compile(self, false)
         
-        @class.stop
-        @class = prev_class
-        @static = old_static
+          @class.stop
+        end
       end
       
       def declare_argument(name, type)
@@ -403,6 +399,22 @@ module Duby
       def empty_array(type, size)
         size.compile(self, true)
         type.newarray(@method)
+      end
+      
+      def with(vars)
+        orig_values = {}
+        begin
+          vars.each do |name, new_value|
+            name = "@#{name}"
+            orig_values[name] = instance_variable_get name
+            instance_variable_set name, new_value
+          end
+          yield
+        ensure
+          orig_values.each do |name, value|
+            instance_variable_set name, value
+          end
+        end
       end
     end
   end

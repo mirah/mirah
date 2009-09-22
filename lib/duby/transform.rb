@@ -98,6 +98,13 @@ module Duby
         end
       end
 
+      class BreakNode
+        def transform(parent)
+          # TODO support 'break value'?
+          Break.new(parent, line_number)
+        end
+      end
+      
       class ClassNode
         def transform(parent)
           ClassDefinition.new(parent, line_number, cpath.name) do |class_def|
@@ -439,9 +446,22 @@ module Duby
         end
       end
 
+      class NextNode
+        def transform(parent)
+          # TODO support 'next value'?
+          Next.new(parent, line_number)
+        end
+      end
+
       class NotNode
         def transform(parent)
           Not.new(parent, line_number) {|nott| [condition_node.transform(nott)]}
+        end
+      end
+
+      class RedoNode
+        def transform(parent)
+          Redo.new(parent, line_number)
         end
       end
 
