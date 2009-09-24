@@ -41,14 +41,7 @@ module Duby
     class Body
       def compile(compiler, expression)
         compiler.line(line_number)
-        # all except the last element in a body of code is treated as a statement
-        i, last = 0, children.size - 1
-        while i < last
-          children[i].compile(compiler, false)
-          i += 1
-        end
-        # last element is an expression only if the body is an expression
-        children[last].compile(compiler, expression)
+        compiler.body(self, expression)
       end
     end
 
@@ -95,9 +88,7 @@ module Duby
     class LocalAssignment
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.local_assign(name, inferred_type, expression) {
-          value.compile(compiler, true)
-        }
+        compiler.local_assign(name, inferred_type, expression, value)
       end
     end
     
@@ -180,9 +171,7 @@ module Duby
     class FieldAssignment
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.field_assign(name, inferred_type, expression) {
-          value.compile(compiler, true)
-        }
+        compiler.field_assign(name, inferred_type, expression, value)
       end
     end
 

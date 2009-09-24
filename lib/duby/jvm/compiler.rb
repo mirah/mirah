@@ -264,14 +264,25 @@ module Duby
         method.call(self, fcall, expression)
       end
       
+      def body(body, expression)
+        # all except the last element in a body of code is treated as a statement
+        i, last = 0, body.children.size - 1
+        while i < last
+          body.children[i].compile(self, false)
+          i += 1
+        end
+        # last element is an expression only if the body is an expression
+        body.children[last].compile(self, expression)
+      end
+      
       def local(name, type)
         type.load(@method, @method.local(name, type))
       end
 
-      def local_assign(name, type, expression)
+      def local_assign(name, type, expression, value)
         declare_local(name, type)
         
-        yield
+        value.compile(self, true)
         
         # if expression, dup the value we're assigning
         @method.dup if expression
@@ -331,7 +342,7 @@ module Duby
         declare_field(name, type)
       end
 
-      def field_assign(name, type, expression)
+      def field_assign(name, type, expression, value)
         name = name[1..-1]
 
         real_type = declared_fields[name] || type
@@ -339,7 +350,7 @@ module Duby
         declare_field(name, real_type)
 
         method.aload 0 unless static
-        yield
+        value.compile(self, true)
         if expression
           instruction = 'dup'
           instruction << '2' if type.wide?

@@ -62,7 +62,7 @@ module Duby
   end
   
   def self.compile_ast(ast, &block)
-    compiler = Duby::Compiler::JVM.new($filename)
+    compiler = $compiler_class.new($filename)
     typer = Duby::Typer::JVM.new(compiler)
     ast.infer(typer)
     typer.resolve(true)
@@ -72,12 +72,17 @@ module Duby
   end
   
   def self.process_flags!(args)
+    $compiler_class = Duby::Compiler::JVM
     while args.length > 0
       case args[0]
       when '-V'
         Duby::Typer.verbose = true
         Duby::AST.verbose = true
         Duby::Compiler::JVM.verbose = true
+        args.shift
+      when '-java'
+        require 'duby/jvm/source_compiler'
+        $compiler_class = Duby::Compiler::JavaSource
         args.shift
       else
         break

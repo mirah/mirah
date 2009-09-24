@@ -2,6 +2,12 @@ require 'bitescript'
 require 'duby/ast'
 require 'duby/jvm/method_lookup'
 
+class Object
+  def class_builder?
+    self.class.name =~ /::ClassBuilder$/
+  end
+end
+
 module Duby
   module JVM
     module Types
@@ -11,7 +17,7 @@ module Duby
         def initialize(java_type)
           orig_type = java_type
           if !(java_type.kind_of?(Java::JavaClass) ||
-               java_type.kind_of?(BiteScript::ClassBuilder))
+               java_type.class_builder?)
             java_type = java_type.java_class
           end
           super(java_type.name, false, false)
@@ -182,7 +188,7 @@ module Duby
         attr_reader :superclass
         
         def initialize(name, superclass)
-          if name.kind_of? BiteScript::ClassBuilder
+          if name.class_builder?
             super(name)
           else
             @name = name

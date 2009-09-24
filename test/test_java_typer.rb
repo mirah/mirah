@@ -72,8 +72,9 @@ class TestJavaTyper < Test::Unit::TestCase
     return_type = @java_typer.method_type(@typer, string, 'charAt', [byte])
     assert_equal(char, return_type)
     
-    l = lambda {@java_typer.method_type(@typer, string, 'charAt', [long])}
-    l.should raise_error NoMethodError
+    assert_raise NoMethodError do
+      @java_typer.method_type(@typer, string, 'charAt', [long])
+    end
   end
   
   include Duby::JVM::MethodLookup

@@ -1,6 +1,3 @@
-# To change this template, choose Tools | Templates
-# and open the template in the editor.
-
 $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
@@ -33,7 +30,8 @@ class TestJVMCompiler < Test::Unit::TestCase
     typer.resolve(true)
     compiler.compile(ast)
     classes = []
-    loader = JRuby.runtime.jruby_class_loader
+    loader = org.jruby.util.ClassCache::OneShotClassLoader.new(
+        JRuby.runtime.jruby_class_loader)
     compiler.generate do |name, builder|
       bytes = builder.generate
       open("#{name}", "w") do |f|
@@ -492,7 +490,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         count = 0
         while count < 5
           count += 1
-          break
+          break if count == 1
         end
         count
       end
@@ -507,9 +505,9 @@ class TestJVMCompiler < Test::Unit::TestCase
           a += 1
           while b < 5
             b += 1
-            break
+            break if b > 0
           end
-          break
+          break if a == 1
         end
         a * 100 + b
       end
@@ -521,7 +519,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         count = 0
         begin
           count += 1
-          break
+          break if count == 1
         end while count < 5
         count
       end

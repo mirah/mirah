@@ -46,6 +46,10 @@ module Duby::JVM::Types
       @class
     end
     
+    def constructor?
+      false
+    end
+    
     alias actual_return_type return_type
   end
   
@@ -83,6 +87,10 @@ module Duby::JVM::Types
         "<init>",
         [nil, *@member.argument_types])        
     end
+    
+    def constructor?
+      true
+    end
   end
 
   class JavaMethod < JavaConstructor
@@ -110,6 +118,10 @@ module Duby::JVM::Types
     
     def void?
       @member.return_type.nil?
+    end
+    
+    def constructor?
+      false
     end
     
     def call(compiler, ast, expression)
