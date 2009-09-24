@@ -1,7 +1,8 @@
 module Duby::AST
   class Body < Node
     def initialize(parent, line_number)
-      super(parent, line_number, yield(self))
+      super(parent, line_number)
+      @children = yield(self)
     end
         
     # Type of a block is the type of its final element

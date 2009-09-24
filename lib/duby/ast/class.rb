@@ -1,24 +1,30 @@
 module Duby::AST
   class ClassDefinition < Node
     include Named
-    attr_accessor :superclass, :body
+    attr_accessor :superclass, :body, :interfaces
         
     def initialize(parent, line_number, name)
-      super(parent, line_number, yield(self))
-      @superclass, @body = children
+      super(parent, line_number)
+      @interfaces = []
       @name = name
+      @children = yield(self)
+      @superclass, @body = children
     end
     
     def infer(typer)
       unless resolved?
         superclass = Duby::AST::type(@superclass.name) if @superclass
-        @inferred_type ||= typer.define_type(name, superclass) do
+        @inferred_type ||= typer.define_type(name, superclass, @interfaces) do
           body.infer(typer)
         end
         @inferred_type ? resolved! : typer.defer(self)
       end
 
       @inferred_type
+    end
+    
+    def implements(*types)
+      @interfaces.concat types
     end
   end
 

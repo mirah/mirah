@@ -14,7 +14,8 @@ module Duby
         end
         @known_types = @factory.known_types
         main_class = type_definition(
-            compiler.class, type_reference(compiler.class.superclass))
+            compiler.class, type_reference(compiler.class.superclass),
+            compiler.class.interfaces)
         @known_types['self'] = main_class.meta
       end
       
@@ -30,8 +31,8 @@ module Duby
         "JVM"
       end
       
-      def type_definition(name, superclass)
-        typedef = TypeDefinition.new(name, superclass)
+      def type_definition(name, superclass, interfaces)
+        typedef = TypeDefinition.new(name, superclass, interfaces)
         @known_types[typedef.name] = typedef
       end
 
@@ -66,8 +67,9 @@ module Duby
           # same number of arguments, assume we're overriding it.
           found = nil
           ambiguous = false
-          cls = self_type.superclass
-          while cls
+          classes = [self_type.superclass] + self_type.interfaces
+          while classes.size > 0
+            cls = classes.pop
             if static
               methods = cls.declared_static_methods
             else
@@ -83,7 +85,7 @@ module Duby
                 end
               end
             end
-            cls = cls.superclass
+            classes << cls.superclass if cls.superclass
           end
           if found && !ambiguous
             signature[:return] = found.actual_return_type
@@ -97,6 +99,12 @@ module Duby
           end
           method = self_type.find_method(
               self_type, method_def.name, arg_types, false)
+          interfaces = self_type.interfaces.dup
+          until method || interfaces.empty?
+            interface = interfaces.pop
+            method = interface.find_method(
+                interface, method_def.name, arg_types, false)
+          end
           if method
             signature[:return] = method.actual_return_type
           end

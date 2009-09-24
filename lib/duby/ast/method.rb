@@ -103,12 +103,21 @@ module Duby::AST
       if !inferred_type
         typer.defer(self)
       else
-        if forced_type && forced_type != typer.no_type && !forced_type.is_parent(inferred_type)
-          raise Duby::Typer::InferenceError.new("Inferred return type #{inferred_type} is incompatible with declared #{forced_type}", self)
+        actual_type = if forced_type.nil?
+          inferred_type
+        elsif inferred_type == typer.null_type
+          forced_type
+        elsif forced_type == typer.no_type
+          # If the parent method is void we have to return void.
+          forced_type
+        else
+          inferred_type
         end
         
-        # If the parent method is void we have to return void.
-        actual_type = forced_type == typer.no_type ? forced_type : inferred_type
+        if forced_type && forced_type != typer.no_type && !forced_type.is_parent(actual_type)
+          raise Duby::Typer::InferenceError.new("Inferred return type #{actual_type} is incompatible with declared #{forced_type}", self)
+        end
+        
 
         @inferred_type = typer.learn_method_type(typer.self_type, name, arguments.inferred_type, actual_type)
         signature[:return] = @inferred_type

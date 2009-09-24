@@ -317,6 +317,12 @@ module Duby
             end
           when "null"
             Null.new(parent, line_number)
+          when "implements"
+            interfaces = args_node.child_nodes.map do |constant|
+              AST::type(constant.name)
+            end
+            parent.parent.implements(*interfaces)
+            Noop.new(parent, line_number)
           else
             FunctionalCall.new(parent, line_number, name) do |call|
               [

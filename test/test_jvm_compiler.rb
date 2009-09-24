@@ -19,6 +19,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     File.unlink(*@tmp_classes)
   end
 
+  def assert_include(value, array, message=nil)
+    message = build_message message, '<?> does not include <?>', array, value
+    assert_block message do
+      array.include? value
+    end
+  end
+
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
@@ -679,6 +686,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert(cls.equal(a, a))
     assert(cls.equal(b, b))
     assert(!cls.equal(a, b))
+  end
+  
+  def test_implements
+    script, cls = compile(<<-EOF)
+      import java.lang.Iterable
+      class Foo; implements Iterable
+        def iterator
+          nil
+        end
+      end
+    EOF
+
+    assert_include java.lang.Iterable.java_class, cls.java_class.interfaces
   end
   
   def test_argument_widening

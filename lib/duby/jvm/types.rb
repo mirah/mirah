@@ -90,6 +90,12 @@ module Duby
         def superclass
           AST.type(jvm_type.superclass) if jvm_type.superclass
         end
+        
+        def interfaces
+          @interfaces ||= jvm_type.interfaces.map do |interface|
+            AST.type(interface)
+          end
+        end
       end
 
       class PrimitiveType < Type
@@ -108,6 +114,10 @@ module Duby
 
         def newarray(method)
           method.send "new#{name}array"
+        end
+        
+        def interfaces
+          []
         end
         
         def convertible_to?(type)
@@ -185,9 +195,9 @@ module Duby
       end
       
       class TypeDefinition < Type
-        attr_reader :superclass
+        attr_reader :superclass, :interfaces
         
-        def initialize(name, superclass)
+        def initialize(name, superclass, interfaces)
           if name.class_builder?
             super(name)
           else
@@ -195,10 +205,11 @@ module Duby
           end
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
           @superclass = superclass || Object
+          @interfaces = interfaces
         end
         
         def define(builder)
-          @type = builder.public_class(@name, @superclass)
+          @type = builder.public_class(@name, @superclass, *@interfaces)
         end
         
         def meta

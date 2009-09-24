@@ -201,12 +201,13 @@ module Duby
     end
 
     class TypeDefinition < TypeReference
-      attr_accessor :superclass
+      attr_accessor :superclass, :interfaces
 
-      def initialize(name, superclass)
+      def initialize(name, superclass, interfaces)
         super(name, false)
 
         @superclass = superclass
+        @interfaces = interfaces
       end
     end
     

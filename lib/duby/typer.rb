@@ -78,11 +78,11 @@ module Duby
         AST::TypeReference::NoType
       end
 
-      def define_type(name, superclass)
+      def define_type(name, superclass, interfaces)
         raise InferenceError.new("Duplicate type definition: #{name} < #{superclass}") if known_types[name]
 
         log "New type defined: '#{name}' < '#{superclass}'"
-        known_types[name] = type_definition(name, superclass)
+        known_types[name] = type_definition(name, superclass, interfaces)
         
         old_self, known_types["self"] = known_types["self"], known_types[name]
         yield
@@ -234,8 +234,8 @@ module Duby
         AST::TypeReference.new(name, array, meta)
       end
 
-      def type_definition(name, superclass)
-        AST::TypeDefinition.new(name, AST::TypeReference.new(superclass))
+      def type_definition(name, superclass, interfaces)
+        AST::TypeDefinition.new(name, AST::TypeReference.new(superclass), interfaces)
       end
 
       def alias_type(short, long)
