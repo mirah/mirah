@@ -50,7 +50,9 @@ module Duby::JVM::Types
       false
     end
     
-    alias actual_return_type return_type
+    def actual_return_type
+      return_type
+    end
   end
   
   class JavaConstructor
@@ -73,6 +75,10 @@ module Duby::JVM::Types
       declaring_class
     end
     
+    def actual_return_type
+      return_type
+    end
+
     def declaring_class
       AST.type(@member.declaring_class)
     end

@@ -131,7 +131,7 @@ module Duby
       def compile(compiler, expression)
         # TODO: can a condition ever be an expression? I don't think it can...
         compiler.line(line_number)
-        predicate.compile(compiler)
+        predicate.compile(compiler, expression)
       end
     end
     

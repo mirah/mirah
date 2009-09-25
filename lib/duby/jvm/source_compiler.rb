@@ -3,6 +3,13 @@ require 'duby/ast'
 require 'duby/jvm/types'
 require 'duby/jvm/compiler'
 require 'duby/jvm/source_generator/builder'
+require 'duby/jvm/source_generator/precompile'
+
+class String
+  def compile(compiler, expression)
+    compiler.method.print self if expression
+  end
+end
 
 module Duby
   module Compiler
@@ -10,17 +17,7 @@ module Duby
       JVMTypes = Duby::JVM::Types
       include Duby::Compiler::JVM::JVMLogger
       attr_accessor :filename, :method, :static, :class, :lvalue
-      
-      Calls = [
-        Duby::AST::Call,
-        Duby::AST::FunctionalCall,
-      ]
-      Expressions = [
-        Duby::AST::Constant,
-        Duby::AST::Field,
-        Duby::AST::Literal,
-        Duby::AST::Local,
-      ]
+
       Operators = [
         '+', '-', '+@', '-@', '/', '%', '*', '<', '<=', '==', '>=', '>',
         '<<', '>>', '>>>', '|', '&', '^', '~'
@@ -105,8 +102,13 @@ module Duby
           @method.puts 'return;'
           return
         end
-        
-        store_value('return ', node.value)
+        if node.value.expr?(self)
+          @method.print 'return '
+          node.value.compile(self, true)
+          @method.puts ';'
+        else
+          store_value('return ', node.value)
+        end
       end
 
       def line(num)
@@ -135,10 +137,21 @@ module Duby
       end
 
       def local_assign(name, type, expression, value)
-        declare_local(name, type)
-
-        lvalue = "#{@lvalue if expression}#{name} = "
-        store_value(lvalue, value)
+        simple = method.local?(name) && value.expr?(self)
+        value = value.precompile(self)
+        if method.local?(name)
+          @method.print @lvalue if expression && !simple
+          @method.print "#{name} = "
+          value.compile(self, true)
+          @method.puts ';'
+        else
+          @method.declare_local(type, name) do
+            value.compile(self, true)
+          end
+          if expression && !simple
+            @method.puts "#{@lvalue}#{name};"
+          end
+        end
       end
 
       def field_declare(name, type)
@@ -158,8 +171,9 @@ module Duby
       end
       
       def store_value(lvalue, value)
-        case value
-        when *Expressions
+        if value.is_a? String
+          @method.puts "#{lvalue}#{value};"
+        elsif value.expr?(self)
           @method.print lvalue
           value.compile(self, true)
           @method.puts ';'
@@ -194,44 +208,70 @@ module Duby
         maybe_store(body.children[last], expression)
       end
       
-      def branch(node, expresson)
-        predicate = temp(node.condition.predicate)
-        @method.block "if (#{predicate})" do
-          maybe_store(node.body, expresson) if node.body
+      def branch_expression(node)
+        node.condition.compile(self, true)
+        @method.print ' ? '
+        if node.body
+          node.body.compile(self, true)
+        else
+          @method.print 'null'
+        end
+        @method.print ' : '
+        if node.else
+          node.else.compile(self, true)
+        else
+          @method.print 'null'
+        end
+      end
+      
+      def branch(node, expression)
+        if expression && node.expr?(self)
+          return branch_expression(node)
+        end
+        predicate = node.condition.predicate.precompile(self)
+        @method.print 'if ('
+        predicate.compile(self, true)
+        @method.block ")" do
+          maybe_store(node.body, expression) if node.body
         end
         if node.else
           @method.block 'else' do
-            maybe_store(node.else, expresson)
+            maybe_store(node.else, expression)
           end
         end
       end
       
       def loop(loop, expression)
-        predicate = @method.tmp(JVMTypes::Boolean)
-        assign(predicate, loop.condition.predicate) if loop.check_first
+        predicate = loop.condition.predicate.precompile(self)
         negative = loop.negative ? '!' : ''
-        check = "while (#{negative}#{predicate})"
+        check = lambda do
+          @method.print "while (#{@redo} || #{negative}("
+          predicate.compile(self, true)
+          @method.print '))'
+        end
         if loop.check_first
           start = check
         else
-          start = 'do'
+          start = lambda {@method.print 'do'}
         end
-        @method.block start do
-          with(:redo => @method.tmp(JVMTypes::Boolean),
-               :loop => @method.label) do
-            @method.block "#{@loop}:" do
-              loop.body.compile(self, false)
-            end
-            @method.block "if (#{@redo})" do
-              @method.puts "#{predicate} = true;"
-            end
-            @method.block "else" do
-              assign(predicate, loop.condition.predicate)
+        with :redo => @method.tmp(JVMTypes::Boolean) do
+          start.call
+          @method.block do
+            with(:loop => @method.label) do
+              assign(@redo, 'false')
+              @method.block "#{@loop}:" do
+                loop.body.compile(self, false)
+              end
+              unless loop.condition.predicate.expr?(self)
+                @method.block "if (!#{@redo})" do
+                  loop.condition.predicate.reload(self)
+                end
+              end
             end
           end
         end
         unless loop.check_first
-          @method.print check
+          check.call
           @method.puts ';'
         end
         if expression
@@ -239,37 +279,52 @@ module Duby
         end
       end
 
+      def expr?(target, params)
+        !([target] + params).any? {|x| x.kind_of? Duby::AST::TempValue}
+      end
+
       def operator(target, op, params, expression)
-        @method.print @lvalue if expression
+        simple = expr?(target, params)
+        if expression && !simple
+          @method.print @lvalue
+        end
         if params.size == 0
           # unary operator
-          op = op[0].chr
-          @method.print "#{op}#{target}"
+          op = op[0,1]
+          @method.print op
+          target.compile(self, true)
         else
-          @method.print "#{target} #{op} #{params[0]}"
+          other = params[0]
+          target.compile(self, true)
+          @method.print " #{op} "
+          other.compile(self, true)
         end
-        @method.puts ';'
+        unless expression && simple
+          @method.puts ';'
+        end
       end
 
       def compile_args(call)
-        args = call.parameters.map do |param|
-          temp(param)
+        call.parameters.map do |param|
+          param.precompile(self)
         end
-        types = call.parameters.map {|p| p.inferred_type}
-        [args, types]
+      end
+
+      def self_type
+        type = AST::type(@class.name)
+        type = type.meta if @static
+        type
       end
 
       def self_call(call, expression)
-        type = AST::type(@class.name)
-        type = type.meta if @static
-        method_call(this, call.name, compile_args(call), type, expression)
+        method_call(this, call, compile_args(call), expression)
       end
 
       def call(call, expression)
         if Duby::AST::Constant === call.target
           target = call.target.inferred_type.name
         else
-          target = temp(call.target)
+          target = call.target.precompile(self)
         end
         params = compile_args(call)
         
@@ -280,23 +335,31 @@ module Duby
         elsif call.name == 'nil?'
           operator(target, '==', ['null'], expression)
         else
-          method_call(target, call.name, params,
-                      call.target.inferred_type, expression)
+          method_call(target, call, params, expression)
         end
       end
       
       def array_op(target, name, args, expression)
-        (index, value), = args
-        @method.print "#{@lvalue if expression}#{target}"
+        simple = expr?(target, args)
+        index, value = args
+        if expression && !simple
+          @method.print @lvalue
+        end
+        target.compile(self, true)
         if name == 'length'
           @method.print '.length'
         else
-          @method.print"[#{index}]"
+          @method.print '['
+          index.compile(self, true)
+          @method.print ']'
           if name == '[]='
-            @method.print " = #{value}"
+            @method.print " = "
+            value.compile(self, true)
           end
         end
-        @method.puts ';'
+        unless simple && expression
+          @method.puts ';'
+        end
       end
       
       def break
@@ -312,40 +375,50 @@ module Duby
         @method.puts "break #{@loop};"
       end
       
-      def method_call(target, name, args, target_type, expression)
-        params, types = args
-        method = target_type.get_method(name, types)
-        unless method.return_type.nil?
+      def method_call(target, call, params, expression)
+        simple = call.expr?(self)
+        method = call.method(self)
+        unless simple || method.actual_return_type.void?
           @method.print @lvalue if expression
         end
         if method.constructor?
-          @method.print "new #{target}("
+          @method.print "new "
+          target.compile(self, true)
+          @method.print '('
         else
-          @method.print "#{target}.#{method.name}("
+          target.compile(self, true)
+          @method.print ".#{method.name}("
         end
-        params.each_with_index do |name, index|
+        params.each_with_index do |param, index|
           @method.print ', ' unless index == 0
-          @method.print name
+          param.compile(self, true)
         end
-        @method.puts ');'
-        if method.return_type.nil? && expression
+        if simple && expression
+          @method.print ')'
+        else
+          @method.puts ');'
+        end
+        if method.actual_return_type.void? && expression
           @method.print @lvalue
           if method.static?
             @method.puts 'null;'
           else
-            @method.puts "#{target};"
+            target.compile(self, true)
+            @method.puts ';'
           end
         end
         
       end
 
-      def temp(expression)
-        assign(@method.tmp(expression.inferred_type), expression)
+      def temp(expression, value=nil)
+        assign(@method.tmp(expression.inferred_type), value || expression)
       end
 
       def empty_array(type, size)
-        sizevar = temp(size)
-        @method.puts "#{@lvalue}new #{type.name}[#{sizevar}];"
+        sizevar = size.precompile(self)
+        @method.print "#{@lvalue unless size.expr?(self)}new #{type.name}["
+        sizevar.compile(self, true)
+        @method.print ']'
       end
 
       def import(short, long)
@@ -365,7 +438,10 @@ module Duby
       
       def println(node)
         value = node.parameters[0]
-        @method.puts "System.out.println(#{temp(value) if value});"
+        value = value && value.precompile(self)
+        @method.print "System.out.println("
+        value.compile(self, true) if value
+        @method.puts ');'
       end
 
       def define_class(class_def, expression)
