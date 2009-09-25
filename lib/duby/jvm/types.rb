@@ -51,7 +51,13 @@ module Duby
         
         def assignable_from?(other)
           return true if !primitive? && other == Null
-          jvm_type.assignable_from?(other.jvm_type)
+          return true if other == self
+          begin
+            jvm_type.assignable_from?(other.jvm_type)
+          rescue
+            assignable_from?(other.superclass) ||
+                other.interfaces.any? {|i| assignable_from?(i)}
+          end
         end
 
         def meta

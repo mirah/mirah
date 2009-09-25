@@ -172,7 +172,7 @@ module Duby
 
         if constructor
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{target_type}"
-          target_type
+          target_type.unmeta
         else
           log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{simple_type}"
           simple_type

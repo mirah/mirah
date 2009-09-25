@@ -14,9 +14,16 @@ module Duby::AST
       
       unless @inferred_type
         receiver_type = @self_type
-        parameter_types = parameters.map {|param| param.infer(typer)}
-        @inferred_type = typer.method_type(receiver_type, name, parameter_types)
-          
+        should_defer = false
+        parameter_types = parameters.map do |param|
+          param.infer(typer) || should_defer = true
+        end
+
+        unless should_defer
+          @inferred_type = typer.method_type(receiver_type, name,
+                                             parameter_types)
+        end
+
         @inferred_type ? resolved! : typer.defer(self)
       end
         
@@ -27,19 +34,26 @@ module Duby::AST
   class Call < Node
     include Named
     attr_accessor :target, :parameters, :block
-        
+
     def initialize(parent, line_number, name)
       @target, @parameters, @block = children = yield(self)
       @name = name
       super(parent, line_number, children)
     end
-        
+
     def infer(typer)
       unless @inferred_type
         receiver_type = target.infer(typer)
-        parameter_types = parameters.map {|param| param.infer(typer)}
-        @inferred_type = typer.method_type(receiver_type, name, parameter_types)
-          
+        should_defer = false
+        parameter_types = parameters.map do |param|
+          param.infer(typer) || should_defer = true
+        end
+        
+        unless should_defer
+          @inferred_type = typer.method_type(receiver_type, name,
+                                             parameter_types)
+        end
+        
         @inferred_type ? resolved! : typer.defer(self)
       end
         
