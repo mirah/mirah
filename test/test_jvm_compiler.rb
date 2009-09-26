@@ -504,7 +504,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
   end
-  if nil
+
   def test_break
     cls, = compile <<-EOF
       def foo
@@ -749,5 +749,4 @@ class TestJVMCompiler < Test::Unit::TestCase
       assert_equal(32768.0, cls.Int(32768))
       assert_equal(2147483648.0, cls.Long(2147483648))
   end
-end
 end
