@@ -749,4 +749,52 @@ class TestJVMCompiler < Test::Unit::TestCase
       assert_equal(32768.0, cls.Int(32768))
       assert_equal(2147483648.0, cls.Long(2147483648))
   end
+  
+  def compilation_exception
+    NativeException
+  end
+  
+  def test_interface_declaration
+    script, interface = compile('interface A do; end')
+    assert(interface.java_class.interface?)
+    assert_equal('A', interface.java_class.name)
+    
+    script, a, b = compile('interface A do; end; interface B < A do; end')
+    assert_include(a, b.ancestors)
+    assert_equal('A', a.java_class.name)
+    assert_equal('B', b.java_class.name)
+    
+    script, a, b, c = compile(<<-EOF)
+      interface A do
+      end
+      
+      interface B do
+      end
+      
+      interface C < A, B do
+      end
+    EOF
+    
+    assert_include(a, c.ancestors)
+    assert_include(b, c.ancestors)
+    assert_equal('A', a.java_class.name)
+    assert_equal('B', b.java_class.name)
+    assert_equal('C', c.java_class.name)
+    
+    assert_raise compilation_exception do
+      compile(<<-EOF)
+        interface A do
+          def a
+            returns :int
+          end
+        end
+      
+        class Impl; implements A
+          def a
+            2.0
+          end
+        end
+      EOF
+    end
+  end
 end

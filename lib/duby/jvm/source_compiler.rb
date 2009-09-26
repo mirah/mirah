@@ -269,10 +269,10 @@ module Duby
               end
             end
           end
-        end
-        unless loop.check_first
-          check.call
-          @method.puts ';'
+          unless loop.check_first
+            check.call
+            @method.puts ';'
+          end
         end
         if expression
           @method.puts "#{@lvalue}null;"
@@ -447,7 +447,7 @@ module Duby
       def define_class(class_def, expression)
         with(:class => class_def.inferred_type.define(@file),
              :static => false) do
-          class_def.body.compile(self, false)
+          class_def.body.compile(self, false) if class_def.body
         
           @class.stop
         end

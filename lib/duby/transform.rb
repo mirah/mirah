@@ -25,6 +25,10 @@ module Duby
           raise TransformError.new("Unsupported syntax: #{self}", position)
         end
         
+        def signature(parent)
+          nil
+        end
+        
         def line_number
           position.start_line + 1 rescue nil
         end
@@ -206,16 +210,16 @@ module Duby
           MethodDefinition.new(parent, line_number, actual_name) do |defn|
             signature = {:return => nil}
 
-            # TODO: Disabled until parser supports it
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
               args_node.args.child_nodes.each do |arg|
                 signature[arg.name.intern] = arg.type_node.type_reference(parent)
               end
-            elsif body_node
-              first_node = body_node[0]
-              first_node = first_node.next_node while NewlineNode === first_node
-              if HashNode === first_node
-                signature = first_node.signature(defn)
+            end
+            if body_node
+              for node in body_node.child_nodes
+                sig = node.signature(defn)
+                break unless sig
+                signature.update(sig) if sig.kind_of? ::Hash
               end
             end
             [
@@ -236,16 +240,16 @@ module Duby
           StaticMethodDefinition.new(parent, line_number, actual_name) do |defn|
             signature = {:return => nil}
 
-            # TODO: Disabled until parser supports it
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
               args_node.args.child_nodes.each do |arg|
                 signature[arg.name.intern] = arg.type_node.type_reference(parent)
               end
-            elsif body_node
-              first_node = body_node[0]
-              first_node = first_node.next_node while NewlineNode === first_node
-              if HashNode === first_node
-                signature = first_node.signature(defn)
+            end
+            if body_node
+              for node in body_node.child_nodes
+                sig = node.signature(defn)
+                break unless sig
+                signature.update(sig) if sig.kind_of? ::Hash
               end
             end
             [
@@ -264,8 +268,24 @@ module Duby
       end
 
       class FCallNode
+        def signature(parent)
+          case name
+          when "returns"
+            @declaration = true
+            {:return => args_node.get(0).type_reference(parent)}
+          else
+            nil
+          end
+        end
+        
         def transform(parent)
           # TODO This should probably be pluggable
+          @declaration ||= false
+
+          if @declaration
+            return Noop.new(parent, line_number)
+          end
+
           case name
           when "import"
             case args_node
@@ -323,6 +343,23 @@ module Duby
             end
             parent.parent.implements(*interfaces)
             Noop.new(parent, line_number)
+          when "interface"
+            raise "Interface name required" unless args_node
+            interfaces = args_node.child_nodes.to_a
+            interface_name = interfaces.shift
+            if CallOneArgNode === interface_name
+              interfaces.unshift(interface_name.args_node.get(0))
+              interface_name = interface_name.receiver_node
+            end
+            raise 'Interface body required' unless iter_node
+            InterfaceDeclaration.new(parent, line_number,
+                                     interface_name.name) do |interface|
+              [interfaces.map {|p| p.type_reference(interface)},
+               if iter_node.body_node
+                 iter_node.body_node.transform(interface)
+               end
+              ]
+            end
           else
             FunctionalCall.new(parent, line_number, name) do |call|
               [

@@ -53,4 +53,8 @@ class TestJavacCompiler < TestJVMCompiler
     end
     classes = javac(java_files)
   end
+  
+  def compilation_exception
+    RuntimeError
+  end
 end

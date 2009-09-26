@@ -223,6 +223,16 @@ module Duby
         end
       end
       
+      class InterfaceDefinition < TypeDefinition
+        def initialize(name, interfaces)
+          super(name, nil, interfaces)
+        end
+        
+        def define(builder)
+          @type = builder.public_interface(@name, *@interfaces)
+        end
+      end
+      
       class TypeDefMeta < MetaType
       end
     end

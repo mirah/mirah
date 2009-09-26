@@ -28,6 +28,29 @@ module Duby::AST
     end
   end
 
+  class InterfaceDeclaration < ClassDefinition
+    attr_accessor :superclass, :body, :interfaces
+        
+    def initialize(parent, line_number, name)
+      super(parent, line_number, name) {|p| }
+      @interfaces = []
+      @name = name
+      @children = yield(self)
+      @interfaces, @body = children
+    end
+    
+    def infer(typer)
+      unless resolved?
+        @inferred_type ||= typer.define_interface(@name, @interfaces) do
+          body.infer(typer)
+        end
+        @inferred_type ? resolved! : typer.defer(self)
+      end
+
+      @inferred_type
+    end
+  end
+
   class FieldDeclaration < Node
     include Named
     include ClassScoped

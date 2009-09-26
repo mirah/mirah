@@ -25,6 +25,12 @@ module Duby
         cls
       end
       
+      def public_interface(name, *interfaces)
+        cls = InterfaceBuilder.new(self, name, interfaces)
+        @classes << cls
+        cls
+      end
+      
       def generate
         @classes.each do |cls|
           yield cls.filename, cls
@@ -216,6 +222,36 @@ module Duby
       end
     end
     
+    class InterfaceBuilder < ClassBuilder
+      def initialize(builder, name, interfaces)
+        super(builder, name, nil, interfaces)
+      end
+      
+      def start
+        puts "// Generated from #{@builder.filename}"
+        puts "package #{package};" if package
+        print "public interface #{class_name}"
+        unless @interfaces.empty?
+          print " extends "
+          @interfaces.each_with_index do |interface, index|
+            print ', ' unless index == 0
+            print interface.to_source
+          end
+        end
+        puts " {"
+        indent
+      end
+      
+      def public_method(name, type, *args)
+        @methods << MethodBuilder.new(self,
+                                      :name => name,
+                                      :return => type,
+                                      :args => args,
+                                      :abstract => true)
+        @methods[-1]
+      end
+    end
+    
     class MethodBuilder
       include Helper
       
@@ -235,17 +271,24 @@ module Duby
           @locals[arg[1]] = arg[0]
           arg
         end
-        @static = options[:static] && 'static'
+        @static = options[:static] && ' static'
+        @abstract = options[:abstract] && ' abstract'
         @temps = 0
       end
       
       def start
-        print "public #{@static} #{@typename} #{@name}("
+        print "public#{@static}#{@abstract} #{@typename} #{@name}("
         @args.each_with_index do |(type, name), i|
           print ', ' unless i == 0
           print "#{type.to_source} #{name}"
         end
-        puts ") {"
+        if @abstract
+          puts ");"
+          def self.puts(*args); end
+          def self.print(*args); end
+        else
+          puts ") {"
+        end
         indent
       end
       
@@ -302,7 +345,6 @@ module Duby
           super
         end
       end
-      
     end
   end
 end

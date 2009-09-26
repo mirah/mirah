@@ -36,6 +36,11 @@ module Duby
         @known_types[typedef.name] = typedef
       end
 
+      def define_interface(name, interfaces)
+        typedef = InterfaceDefinition.new(name, interfaces)
+        @known_types[typedef.name] = typedef
+      end
+
       def null_type
         Null
       end
