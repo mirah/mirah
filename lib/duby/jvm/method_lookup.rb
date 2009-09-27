@@ -16,6 +16,7 @@ module Duby
       def find_method(mapped_type, name, mapped_params, meta)
         # mapped_type = jvm_type(mapped_type)
         # mapped_params = convert_params(mapped_params)
+        raise ArgumentError if mapped_params.any? {|p| p.nil?}
         if name == 'new'
           if meta
             name = "<init>"

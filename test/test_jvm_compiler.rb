@@ -31,10 +31,11 @@ class TestJVMCompiler < Test::Unit::TestCase
     @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
     ast = AST.parse(code)
-    compiler = Compiler::JVM.new("script" + System.nano_time.to_s)
-    typer = Typer::JVM.new(compiler)
+    name = "script" + System.nano_time.to_s
+    typer = Typer::JVM.new(name)
     ast.infer(typer)
     typer.resolve(true)
+    compiler = Compiler::JVM.new(name)
     compiler.compile(ast)
     classes = []
     loader = org.jruby.util.ClassCache::OneShotClassLoader.new(
@@ -269,9 +270,18 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_interface
-    cls, = compile("import 'java.util.concurrent.Callable'; def foo(a => Callable); a.call; end")
+    cls, = compile(<<-EOF)
+      import 'java.util.concurrent.Callable'
+      def foo(a => Callable)
+        throws Exception
+        a.call
+      end
+    EOF
     result = cls.foo {0}
     assert_equal 0, result
+    m = cls.java_class.java_method 'foo', java.util.concurrent.Callable
+    assert_equal([java.lang.Exception.java_class], m.exception_types)
+        
   end
 
   def test_class_decl
@@ -750,10 +760,6 @@ class TestJVMCompiler < Test::Unit::TestCase
       assert_equal(2147483648.0, cls.Long(2147483648))
   end
   
-  def compilation_exception
-    NativeException
-  end
-  
   def test_interface_declaration
     script, interface = compile('interface A do; end')
     assert(interface.java_class.interface?)
@@ -781,7 +787,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('B', b.java_class.name)
     assert_equal('C', c.java_class.name)
     
-    assert_raise compilation_exception do
+    assert_raise Duby::Typer::InferenceError do
       compile(<<-EOF)
         interface A do
           def a
@@ -791,7 +797,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       
         class Impl; implements A
           def a
-            2.0
+            "foo"
           end
         end
       EOF

@@ -273,6 +273,12 @@ module Duby
           when "returns"
             @declaration = true
             {:return => args_node.get(0).type_reference(parent)}
+          when "throws"
+            @declaration = true
+            exceptions = args_node.child_nodes.map do |node|
+              node.type_reference(parent)
+            end
+            {:throws =>  exceptions}
           else
             nil
           end
@@ -338,8 +344,8 @@ module Duby
           when "null"
             Null.new(parent, line_number)
           when "implements"
-            interfaces = args_node.child_nodes.map do |constant|
-              AST::type(constant.name)
+            interfaces = args_node.child_nodes.map do |interface|
+              interface.type_reference(parent)
             end
             parent.parent.implements(*interfaces)
             Noop.new(parent, line_number)
@@ -347,7 +353,7 @@ module Duby
             raise "Interface name required" unless args_node
             interfaces = args_node.child_nodes.to_a
             interface_name = interfaces.shift
-            if CallOneArgNode === interface_name
+            if Java::OrgJrubyAst::CallOneArgNode === interface_name
               interfaces.unshift(interface_name.args_node.get(0))
               interface_name = interface_name.receiver_node
             end

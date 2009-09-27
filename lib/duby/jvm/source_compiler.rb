@@ -71,13 +71,14 @@ module Duby
       def define_method(name, signature, args, body)
         args = args.args || []
         return_type = signature[:return]
+        exceptions = signature[:throws] || []
         if @static
-          method = @class.public_static_method(name.to_s, return_type, *args)
+          method = @class.public_static_method(name.to_s, return_type, exceptions, *args)
         else
           if name == "initialize"
-            method = @class.public_constructor(*args)
+            method = @class.public_constructor(exceptions, *args)
           else
-            method = @class.public_method(name.to_s, return_type, *args)
+            method = @class.public_method(name.to_s, return_type, exceptions, *args)
           end
         end
 

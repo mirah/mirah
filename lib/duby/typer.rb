@@ -79,8 +79,6 @@ module Duby
       end
 
       def define_type(name, superclass, interfaces)
-        raise InferenceError.new("Duplicate type definition: #{name} < #{superclass}") if known_types[name]
-
         log "New type defined: '#{name}' < '#{superclass}'"
         known_types[name] = type_definition(name, superclass, interfaces)
         
@@ -138,7 +136,7 @@ module Duby
         field_type_hash(cls)[name]
       end
       
-      def learn_method_type(target_type, name, parameter_types, type)
+      def learn_method_type(target_type, name, parameter_types, type, exceptions)
         log "Learned method #{name} (#{parameter_types}) on #{target_type} = #{type}"
 
         get_method_type_hash(target_type, name, parameter_types)[:type] = known_types[type] || type

@@ -1,12 +1,16 @@
 module Duby::AST
   class ClassDefinition < Node
     include Named
+    include Scope
     attr_accessor :superclass, :body, :interfaces
         
     def initialize(parent, line_number, name)
       super(parent, line_number)
       @interfaces = []
       @name = name
+      if Duby::AST.type_factory.respond_to? :declare_type
+        Duby::AST.type_factory.declare_type(self)
+      end
       @children = yield(self)
       @superclass, @body = children
     end
@@ -15,7 +19,11 @@ module Duby::AST
       unless resolved?
         superclass = Duby::AST::type(@superclass.name) if @superclass
         @inferred_type ||= typer.define_type(name, superclass, @interfaces) do
-          body.infer(typer)
+          if body
+            body.infer(typer)
+          else
+            typer.no_type
+          end
         end
         @inferred_type ? resolved! : typer.defer(self)
       end
@@ -24,6 +32,7 @@ module Duby::AST
     end
     
     def implements(*types)
+      raise ArgumentError if types.any? {|x| x.nil?}
       @interfaces.concat types
     end
   end
@@ -37,17 +46,6 @@ module Duby::AST
       @name = name
       @children = yield(self)
       @interfaces, @body = children
-    end
-    
-    def infer(typer)
-      unless resolved?
-        @inferred_type ||= typer.define_interface(@name, @interfaces) do
-          body.infer(typer)
-        end
-        @inferred_type ? resolved! : typer.defer(self)
-      end
-
-      @inferred_type
     end
   end
 

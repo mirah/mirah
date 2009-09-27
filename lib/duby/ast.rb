@@ -177,7 +177,7 @@ module Duby
         # default behavior now is to disallow any polymorphic types
         self == other
       end
-
+      
       def compatible?(other)
         # default behavior is only exact match right now
         self == other

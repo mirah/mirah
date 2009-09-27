@@ -49,6 +49,10 @@ module Duby
           @type.interface?
         end
         
+        def is_parent(other)
+          assignable_from?(other)
+        end
+        
         def assignable_from?(other)
           return true if !primitive? && other == Null
           return true if other == self
@@ -94,6 +98,7 @@ module Duby
         end
 
         def superclass
+          raise "Incomplete type #{self}" unless jvm_type
           AST.type(jvm_type.superclass) if jvm_type.superclass
         end
         
@@ -153,6 +158,14 @@ module Duby
           self
         end
         
+        def superclass
+          @unmeta.superclass.meta if @unmeta.superclass
+        end
+        
+        def interfaces
+          []
+        end
+        
         def jvm_type
           unmeta.jvm_type
         end
@@ -201,21 +214,40 @@ module Duby
       end
       
       class TypeDefinition < Type
-        attr_reader :superclass, :interfaces
+        attr_accessor :node
         
-        def initialize(name, superclass, interfaces)
+        def initialize(name, node)
           if name.class_builder?
             super(name)
           else
             @name = name
           end
+          @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
-          @superclass = superclass || Object
-          @interfaces = interfaces
+        end
+        
+        def name
+          if @type
+            @type.name
+          else
+            @name
+          end
+        end
+        
+        def superclass
+          (node && node.superclass) || Object
+        end
+        
+        def interfaces
+          if node
+            node.interfaces
+          else
+            []
+          end
         end
         
         def define(builder)
-          @type = builder.public_class(@name, @superclass, *@interfaces)
+          @type ||= builder.public_class(@name, superclass, *interfaces)
         end
         
         def meta
@@ -224,12 +256,12 @@ module Duby
       end
       
       class InterfaceDefinition < TypeDefinition
-        def initialize(name, interfaces)
-          super(name, nil, interfaces)
+        def initialize(name, node)
+          super(name, node)
         end
         
         def define(builder)
-          @type = builder.public_interface(@name, *@interfaces)
+          @type ||= builder.public_interface(@name, *interfaces)
         end
       end
       

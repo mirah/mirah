@@ -180,7 +180,7 @@ module Duby
       end
       
       def main
-        public_static_method('main', JVMTypes::Void,
+        public_static_method('main', JVMTypes::Void, [],
                              [JVMTypes::String.array_type, 'argv'])
       end
       
@@ -192,27 +192,30 @@ module Duby
         @fields[name] = true
       end
       
-      def public_method(name, type, *args)
-        @methods << MethodBuilder.new(self,
-                                      :name => name,
-                                      :return => type,
-                                      :args => args)
-        @methods[-1]
-      end
-      
-      def public_static_method(name, type, *args)
+      def public_method(name, type, exceptions, *args)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
                                       :args => args,
-                                      :static => true)
+                                      :exceptions => exceptions)
         @methods[-1]
       end
       
-      def public_constructor(*args)
+      def public_static_method(name, type, exceptions, *args)
+        @methods << MethodBuilder.new(self,
+                                      :name => name,
+                                      :return => type,
+                                      :args => args,
+                                      :static => true,
+                                      :exceptions => exceptions)
+        @methods[-1]
+      end
+      
+      def public_constructor(exceptions, *args)
         @methods << MethodBuilder.new(self,
                                       :name => class_name,
-                                      :args => args)
+                                      :args => args,
+                                      :exceptions => exceptions)
         @methods[-1]
       end
       
@@ -242,12 +245,13 @@ module Duby
         indent
       end
       
-      def public_method(name, type, *args)
+      def public_method(name, type, exceptions, *args)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
                                       :args => args,
-                                      :abstract => true)
+                                      :abstract => true,
+                                      :exceptions => exceptions)
         @methods[-1]
       end
     end
@@ -273,6 +277,7 @@ module Duby
         end
         @static = options[:static] && ' static'
         @abstract = options[:abstract] && ' abstract'
+        @exceptions = options[:exceptions] || []
         @temps = 0
       end
       
@@ -282,12 +287,20 @@ module Duby
           print ', ' unless i == 0
           print "#{type.to_source} #{name}"
         end
+        print ')'
+        unless @exceptions.empty?
+          print ' throws '
+          @exceptions.each_with_index do |exception, i|
+            print ', ' unless i == 0
+            print exception.name
+          end
+        end
         if @abstract
-          puts ");"
+          puts ";"
           def self.puts(*args); end
           def self.print(*args); end
         else
-          puts ") {"
+          puts " {"
         end
         indent
       end

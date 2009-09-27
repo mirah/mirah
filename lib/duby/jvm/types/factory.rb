@@ -18,10 +18,26 @@ module Duby::JVM::Types
       "null" => Null
     }.freeze
 
+    attr_accessor :package
     attr_reader :known_types
 
+    class ParanoidHash < Hash
+      def []=(k, v)
+        raise ArgumentError, "Can't store nil for key #{k.inspect}" if v.nil?
+        super(k, v)
+      end
+    end
+
     def initialize
-      @known_types = BASIC_TYPES.dup
+      @known_types = ParanoidHash.new
+      @known_types.update(BASIC_TYPES)
+      @declarations = []
+    end
+
+    def define_types(builder)
+      @declarations.each do |declaration|
+        declaration.define(builder)
+      end
     end
 
     def type(name, array=false, meta=false)
@@ -46,7 +62,35 @@ module Duby::JVM::Types
       name = name.to_s unless name.kind_of?(::String)
       return @known_types[name].basic_type if @known_types[name]
       raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
-      @known_types[name] = Type.new(Java::JavaClass.for_name(name))
+      full_name = name
+      begin
+        @known_types[name] = Type.new(Java::JavaClass.for_name(full_name))
+      rescue NameError
+        unless full_name.include? '.'
+          full_name = "java.lang.#{full_name}"
+          retry
+        end
+        raise $!
+      end
+    end
+
+    def declare_type(node)
+      if node.kind_of? ::String
+        name = node
+        node = nil
+      else
+        name = node.name
+      end
+
+      if Duby::AST::InterfaceDeclaration === node
+        @known_types[name] = InterfaceDefinition.new(name, node)
+      elsif @known_types.include? name
+        existing = @known_types[name]
+        existing.node ||= node
+        existing
+      else
+        @known_types[name] = TypeDefinition.new(name, node)
+      end
     end
 
     def alias(from, to)

@@ -11,8 +11,8 @@ class TestJavaTyper < Test::Unit::TestCase
   
   def setup
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
+    @typer = Typer::JVM.new('foobar')
     compiler = Duby::Compiler::JVM.new('foobar')
-    @typer = Typer::JVM.new(compiler)
     
     @java_typer = Typer::JavaTyper.new
   end

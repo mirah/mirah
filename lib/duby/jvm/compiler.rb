@@ -57,7 +57,9 @@ module Duby
 
         @file = BiteScript::FileBuilder.new(@filename)
         @file.package = package
-        @class = @file.public_class(classname)
+        AST.type_factory.define_types(@file)
+        @type = AST::type(classname)
+        @class = @type.define(@file)
       end
 
       def compile(ast, expression = false)
@@ -90,17 +92,20 @@ module Duby
           []
         end
         return_type = signature[:return]
+        exceptions = signature[:throws]
         if @static
-          method = @class.public_static_method(name.to_s, return_type, *arg_types)
+          method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
         else
           if name == "initialize"
-            method = @class.public_constructor(*arg_types)
+            method = @class.public_constructor(exceptions, *arg_types)
             method.aload 0
             method.invokespecial @method.object, "<init>", [@method.void]
           else
-            method = @class.public_method(name.to_s, return_type, *arg_types)
+            method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
           end
         end
+
+        return if @class.interface?
 
         with :method => method do
           log "Starting new method #{name}(#{arg_types})"
@@ -128,7 +133,8 @@ module Duby
       end
 
       def define_class(class_def, expression)
-        with(:class => class_def.inferred_type.define(@file),
+        with(:type => class_def.inferred_type,
+             :class => class_def.inferred_type.define(@file),
              :static => false) do
           class_def.body.compile(self, false) if class_def.body
         
@@ -247,7 +253,7 @@ module Duby
       end
       
       def self_call(fcall, expression)
-        type = AST::type(@class.name)
+        type = @type
         type = type.meta if @static
         fcall.target = ImplicitSelf.new(type)
 

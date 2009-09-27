@@ -7,15 +7,14 @@ module Duby
     class JVM < Simple
       include Duby::JVM::Types
 
-      def initialize(compiler)
+      def initialize(filename)
         @factory = AST.type_factory
         unless @factory.kind_of? TypeFactory
           raise "TypeFactory not installed"
         end
         @known_types = @factory.known_types
-        main_class = type_definition(
-            compiler.class, type_reference(compiler.class.superclass),
-            compiler.class.interfaces)
+        classname = File.basename(filename, '.duby')
+        main_class = @factory.declare_type(classname)
         @known_types['self'] = main_class.meta
       end
       
@@ -32,13 +31,7 @@ module Duby
       end
       
       def type_definition(name, superclass, interfaces)
-        typedef = TypeDefinition.new(name, superclass, interfaces)
-        @known_types[typedef.name] = typedef
-      end
-
-      def define_interface(name, interfaces)
-        typedef = InterfaceDefinition.new(name, interfaces)
-        @known_types[typedef.name] = typedef
+        @known_types[name]
       end
 
       def null_type
@@ -49,25 +42,28 @@ module Duby
         Void
       end
       
-      def learn_method_type(target_type, name, parameter_types, type)
+      def learn_method_type(target_type, name, parameter_types, type, exceptions)
         static = target_type.meta?
         target_type = target_type.unmeta if static
         unless target_type.kind_of?(TypeDefinition)
           raise "Method defined on #{target_type}"
         end
         if static
-          target_type.declare_static_method(name, parameter_types, type)
+          target_type.declare_static_method(name, parameter_types, type, exceptions)
         else
-          target_type.declare_method(name, parameter_types, type)
+          target_type.declare_method(name, parameter_types, type, exceptions)
         end
         super
       end
       
       def infer_signature(method_def)
         signature = method_def.signature
+        sig_args = signature.dup
+        return_type = sig_args.delete(:return)
+        exceptions = sig_args.delete(:throws)
         args = method_def.arguments.args || []
         static = method_def.kind_of? Duby::AST::StaticMethodDefinition
-        if signature.size != args.size + 1
+        if sig_args.size != args.size
           # If the superclass declares one method with the same name and
           # same number of arguments, assume we're overriding it.
           found = nil
@@ -94,6 +90,7 @@ module Duby
           end
           if found && !ambiguous
             signature[:return] = found.actual_return_type
+            signature[:throws] = found.exceptions
             args.zip(found.argument_types) do |arg, type|
               signature[arg.name.intern] = type
             end
@@ -112,6 +109,7 @@ module Duby
           end
           if method
             signature[:return] = method.actual_return_type
+            signature[:throws] = method.exceptions
           end
         end
       end

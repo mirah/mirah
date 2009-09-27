@@ -50,6 +50,10 @@ module Duby::JVM::Types
       false
     end
     
+    def exceptions
+      []
+    end
+    
     def actual_return_type
       return_type
     end
@@ -77,6 +81,12 @@ module Duby::JVM::Types
     
     def actual_return_type
       return_type
+    end
+
+    def exceptions
+      @member.exception_types.map do |exception|
+        AST.type(exception.name)
+      end
     end
 
     def declaring_class
@@ -189,8 +199,9 @@ module Duby::JVM::Types
   
   class DubyMember
     attr_reader :name, :argument_types, :declaring_class, :return_type
+    attr_reader :exception_types
     
-    def initialize(klass, name, args, return_type, static)
+    def initialize(klass, name, args, return_type, static, exceptions)
       if return_type == Void
         return_type = nil
       end
@@ -199,6 +210,7 @@ module Duby::JVM::Types
       @argument_types = args
       @return_type = return_type
       @static = static
+      @exception_types = exceptions || []
     end
     
     def static?
@@ -293,8 +305,8 @@ module Duby::JVM::Types
       @static_methods ||= Hash.new {|h, k| h[k] = []}
     end
     
-    def declare_method(name, arguments, type)
-      member = DubyMember.new(self, name, arguments, type, false)
+    def declare_method(name, arguments, type, exceptions)
+      member = DubyMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
         constructors << JavaConstructor.new(member)
       else
@@ -302,8 +314,8 @@ module Duby::JVM::Types
       end
     end
     
-    def declare_static_method(name, arguments, type)
-      member = DubyMember.new(self, name, arguments, type, true)
+    def declare_static_method(name, arguments, type, exceptions)
+      member = DubyMember.new(self, name, arguments, type, true, exceptions)
       static_methods[name] << JavaStaticMethod.new(member)
     end
   end

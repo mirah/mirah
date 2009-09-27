@@ -35,7 +35,7 @@ class TestTyper < Test::Unit::TestCase
     ast2 = AST.parse("begin; end")
     
     assert_equal(AST::TypeReference.new("fixnum"), ast1.infer(Typer::Simple.new(:bar)))
-    assert_equal(nil, ast2.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::no_type, ast2.infer(Typer::Simple.new(:bar)))
   end
   
   def test_local
@@ -62,12 +62,12 @@ class TestTyper < Test::Unit::TestCase
 
       ast1.infer(typer)
       
-      assert_raise(Typer::InferenceError) {typer.resolve(true)}
+      assert_nothing_raised {typer.resolve(true)}
       assert_nothing_raised {typer.resolve}
 
-      assert_equal(typer.default_type, typer.method_type(typer.self_type, 'foo', [typer.string_type]))
+      assert_equal(typer.no_type, typer.method_type(typer.self_type, 'foo', [typer.string_type]))
       assert_equal(typer.string_type, typer.local_type(ast1.body, 'a'))
-      assert_equal(typer.default_type, ast1.body.inferred_type)
+      assert_equal(typer.no_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body.arguments.args[0].inferred_type)
 
       ast1 = AST.parse("#{def_foo}(a); 1 end")
@@ -93,9 +93,10 @@ class TestTyper < Test::Unit::TestCase
       ast1 = AST.parse("#{def_foo}(a); {:return => :string}; end")
       typer = Typer::Simple.new :bar
 
-      ast1.infer(typer)
-      
-      assert_raise(Typer::InferenceError) {typer.resolve(true)}
+      assert_raise(Typer::InferenceError) do
+        ast1.infer(typer)
+        typer.resolve(true)
+      end
 
       ast1 = AST.parse("#{def_foo}(a); a = 'foo'; end")
       typer = Typer::Simple.new :bar
@@ -117,7 +118,7 @@ class TestTyper < Test::Unit::TestCase
     ast = AST.parse("1.foo(2)").body
     typer = Typer::Simple.new "bar"
     
-    typer.learn_method_type(typer.fixnum_type, "foo", [typer.fixnum_type], typer.string_type)
+    typer.learn_method_type(typer.fixnum_type, "foo", [typer.fixnum_type], typer.string_type, [])
     assert_equal(typer.string_type, typer.method_type(typer.fixnum_type, "foo", [typer.fixnum_type]))
     
     ast.infer(typer)

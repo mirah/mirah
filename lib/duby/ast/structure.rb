@@ -25,7 +25,7 @@ module Duby::AST
   
   class Noop < Node
     def infer(typer)
-      @inferred_type ||= typer.default_type
+      @inferred_type ||= typer.no_type
     end
   end
   

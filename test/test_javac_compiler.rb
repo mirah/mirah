@@ -38,10 +38,11 @@ class TestJavacCompiler < TestJVMCompiler
     @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
     ast = AST.parse(code)
-    compiler = Compiler::JavaSource.new("script#{System.nano_time.to_s}")
-    typer = Typer::JVM.new(compiler)
+    name = "script" + System.nano_time.to_s
+    typer = Typer::JVM.new(name)
     ast.infer(typer)
     typer.resolve(true)
+    compiler = Compiler::JavaSource.new(name)
     ast.compile(compiler, false)
     java_files = []
     compiler.generate do |name, builder|
@@ -52,9 +53,5 @@ class TestJavacCompiler < TestJVMCompiler
       java_files << name
     end
     classes = javac(java_files)
-  end
-  
-  def compilation_exception
-    RuntimeError
   end
 end

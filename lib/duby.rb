@@ -62,11 +62,11 @@ module Duby
   end
   
   def self.compile_ast(ast, &block)
-    compiler = $compiler_class.new($filename)
-    typer = Duby::Typer::JVM.new(compiler)
+    typer = Duby::Typer::JVM.new($filename)
     ast.infer(typer)
     typer.resolve(true)
 
+    compiler = $compiler_class.new($filename)
     ast.compile(compiler, false)
     compiler.generate(&block)
   end
