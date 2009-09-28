@@ -1,3 +1,4 @@
+require 'fileutils'
 require 'duby/transform'
 require 'duby/ast'
 require 'duby/typer'
@@ -13,8 +14,8 @@ require 'duby/jvm/typer'
 Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
-module Duby
-  def self.run(*args)
+class DubyImpl
+  def run(*args)
     ast = parse(*args)
 
     main_cls = nil
@@ -28,7 +29,7 @@ module Duby
         main_cls ||= proxy_cls
       end
     end
-    
+  
     if main_cls
       main_cls.main(args.to_java(:string))
     else
@@ -36,43 +37,49 @@ module Duby
     end
   end
   
-  def self.compile(*args)
-    ast = parse(*args)
-
-    compile_ast(ast) {|filename, builder|
-      bytes = builder.generate
-      File.open(filename, 'w') {|f| f.write(bytes)}
-    }
-  end
-  
-  def self.parse(*args)
-    java.lang.System.set_property("jruby.duby.enabled", "true")
-    
+  def compile(*args)
     process_flags!(args)
-    $filename = args.shift
+    
+    expand_files(args).each do |duby_file|
+      ast = parse(duby_file)
+
+      compile_ast(ast) do |filename, builder|
+        filename = "#{@dest}#{filename}"
+        FileUtils.mkdir_p(File.dirname(filename))
+        bytes = builder.generate
+        File.open(filename, 'w') {|f| f.write(bytes)}
+      end
+    end
+  end
+
+  def parse(*args)
+    java.lang.System.set_property("jruby.duby.enabled", "true")
+
+    process_flags!(args)
+    @filename = args.shift
 
     Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
-    if $filename == '-e'
-      $filename = 'dash_e'
+    if @filename == '-e'
+      @filename = 'dash_e'
       ast = Duby::AST.parse(args[0])
     else
-      ast = Duby::AST.parse(File.read($filename))
+      ast = Duby::AST.parse(File.read(@filename))
     end
-    ast
+    ast      
   end
-  
-  def self.compile_ast(ast, &block)
-    typer = Duby::Typer::JVM.new($filename)
+
+  def compile_ast(ast, &block)
+    typer = Duby::Typer::JVM.new(@filename)
     ast.infer(typer)
     typer.resolve(true)
 
-    compiler = $compiler_class.new($filename)
+    compiler = @compiler_class.new(@filename)
     ast.compile(compiler, false)
     compiler.generate(&block)
   end
-  
-  def self.process_flags!(args)
-    $compiler_class = Duby::Compiler::JVM
+
+  def process_flags!(args)
+    @compiler_class = Duby::Compiler::JVM
     while args.length > 0
       case args[0]
       when '-V'
@@ -82,12 +89,47 @@ module Duby
         args.shift
       when '-java'
         require 'duby/jvm/source_compiler'
-        $compiler_class = Duby::Compiler::JavaSource
+        @compiler_class = Duby::Compiler::JavaSource
         args.shift
+      when '-d'
+        args.shift
+        @dest = File.join(args.shift, '')
       else
         break
       end
     end
+  end
+  
+  def expand_files(files)
+    expanded = []
+    files.each do |filename|
+      if File.directory?(filename)
+        Dir[File.join(filename, '*')].each do |child|
+          if File.directory?(child)
+            files << child
+          elsif child =~ /\.duby$/
+            expanded << child
+          end
+        end
+      else
+        expanded << filename
+      end
+    end
+    expanded
+  end
+end
+
+module Duby  
+  def self.run(*args)
+    DubyImpl.new.run(*args)
+  end
+  
+  def self.compile(*args)
+    DubyImpl.new.compile(*args)
+  end
+  
+  def self.parse(*args)
+    DubyImpl.new.parse(*args)
   end
 end
 
