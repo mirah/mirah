@@ -1,0 +1,40 @@
+<project name="duby" default="jar">
+  <target name="bootstrap">
+    <mkdir dir="dist"/>
+    <jar jarfile="dist/duby.jar">
+      <fileset dir="lib"/>
+      <fileset dir="." includes="bin/*"/>
+      <fileset dir="../jvmscript/lib"/>
+    </jar>
+  </target>
+  
+  <target name="clean">
+    <delete quiet="true" dir="build"/>
+    <delete quiet="true" dir="dist"/>
+  </target>
+  
+  <target name="compile">
+    <mkdir dir="build"/>
+    <java classname="org.jruby.Main"
+          classpath="javalib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar"
+          fork="true" failonerror="true" dir="src">
+      <arg value="-e"/>
+      <arg value="load 'bin/dubyc'"/>
+      <arg value="--"/>
+      <arg value="-d"/>
+      <arg file="build"/>
+      <arg value="org/jruby/duby"/>
+    </java>
+  </target>
+
+  <target name="jar" depends="compile">
+    <mkdir dir="dist"/>
+    <jar jarfile="dist/duby.jar">
+      <fileset dir="lib"/>
+      <fileset dir="build"/>
+      <fileset dir="." includes="bin/*"/>
+      <fileset dir="../jvmscript/lib"/>
+      <zipfileset src="javalib/jruby-complete.jar"/>
+    </jar>
+  </target>
+</project>
