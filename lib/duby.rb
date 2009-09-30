@@ -42,6 +42,7 @@ class DubyImpl
     
     expand_files(args).each do |duby_file|
       ast = parse(duby_file)
+      exit 1 if @error
 
       compile_ast(ast) do |filename, builder|
         filename = "#{@dest}#{filename}"
@@ -61,11 +62,19 @@ class DubyImpl
     Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
     if @filename == '-e'
       @filename = 'dash_e'
-      ast = Duby::AST.parse(args[0])
+      src = args[0]
     else
-      ast = Duby::AST.parse(File.read(@filename))
+      src = File.read(@filename)
     end
-    ast      
+    ast = JRuby.parse(src)
+    @transformer = Duby::Transform::Transformer.new
+    ast = @transformer.transform(ast, nil)
+    @transformer.errors.each do |ex|
+      raise ex.cause || ex if @verbose
+      puts "#@filename:#{ex.position.start_line+1}: #{ex.message}"
+    end
+    @error = @transformer.errors.size > 0
+    ast
   end
 
   def compile_ast(ast, &block)
@@ -86,6 +95,7 @@ class DubyImpl
         Duby::Typer.verbose = true
         Duby::AST.verbose = true
         Duby::Compiler::JVM.verbose = true
+        @verbose = true
         args.shift
       when '-java'
         require 'duby/jvm/source_compiler'

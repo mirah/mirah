@@ -74,6 +74,13 @@ module Duby
         @inferred_type
       end
     end
+    
+    class ErrorNode < Node
+      def initialize(parent, error)
+        super(parent, error.position.start_line + 1)
+        @error = error
+      end
+    end
 
     module Named
       attr_accessor :name

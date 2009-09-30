@@ -201,7 +201,11 @@ module Duby
 
         def initialize(component_type)
           @component_type = component_type
-          super(component_type.jvm_type)
+          @name = component_type.name
+        end
+
+        def jvm_type
+          @component_type.jvm_type
         end
 
         def array?
