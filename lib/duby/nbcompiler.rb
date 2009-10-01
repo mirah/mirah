@@ -12,16 +12,15 @@ module Duby
       def initialize(ast, errors)
         @ast = ast
         parse_errors = errors.map do |error|
-          ParseError.new(error.position.start_line + 1, error.message)
+          ParseError.new(error.message, error.position)
         end
         @errors = parse_errors.to_java(ParseError)
       end
     end
     
     def parse(text)
-      java.lang.System.set_property("jruby.duby.enabled", "true")
       Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
-      ast = JRuby.parse(text)
+      ast = Duby::AST.parse_ruby(text)
       transformer = Duby::Transform::Transformer.new
       return ParseResult.new(
           transformer.transform(ast, nil), transformer.errors)

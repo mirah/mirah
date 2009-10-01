@@ -269,7 +269,7 @@ class TestAst < Test::Unit::TestCase
   end
   
   def test_type_reference
-    signature = JRuby.parse("{a => :foo, b => java.lang.Object, :return => ArrayList}").child_nodes[0].signature(nil)
+    signature = AST.parse_ruby("{a => :foo, b => java.lang.Object, :return => ArrayList}").child_nodes[0].signature(nil)
     
     inspected = "{:return=>Type(ArrayList), :a=>Type(foo), :b=>Type(java.lang.Object)}"
     assert_equal(inspected, signature.inspect)

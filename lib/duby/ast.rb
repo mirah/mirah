@@ -15,15 +15,22 @@ module Duby
       attr_accessor :parent
       attr_accessor :newline
       attr_accessor :inferred_type
-      attr_accessor :line_number
 
-      def initialize(parent, line_number, children = [])
+      def initialize(parent, position, children = [])
         @parent = parent
         @children = children
         @newline = false
         @inferred_type = nil
         @resolved = false
-        @line_number = line_number
+        @position = position
+      end
+
+      def line_number
+        if @position
+          @position.start_line + 1
+        else
+          0
+        end
       end
 
       def log(message)
@@ -134,9 +141,9 @@ module Duby
 
     class Constant < Node
       include Named
-      def initialize(parent, line_number, name)
+      def initialize(parent, position, name)
         @name = name
-        super(parent, line_number, [])
+        super(parent, position, [])
       end
 
       def infer(typer)
@@ -157,8 +164,8 @@ module Duby
       attr_accessor :meta
       alias meta? meta
       
-      def initialize(name, array = false, meta = false, line_number=0)
-        super(nil, line_number)
+      def initialize(name, array = false, meta = false, position=nil)
+        super(nil, position)
         @name = name
         @array = array
         @meta = meta
@@ -245,21 +252,21 @@ module Duby
       end
     end
 
-    def self.fixnum(parent, line_number, literal)
+    def self.fixnum(parent, position, literal)
       factory = type_factory
       if factory
-        factory.fixnum(parent, line_number, literal)
+        factory.fixnum(parent, position, literal)
       else
-        Fixnum.new(parent, line_number, literal)
+        Fixnum.new(parent, position, literal)
       end      
     end
 
-    def self.float(parent, line_number, literal)
+    def self.float(parent, position, literal)
       factory = type_factory
       if factory
-        factory.float(parent, line_number, literal)
+        factory.float(parent, position, literal)
       else
-        Float.new(parent, line_number, literal)
+        Float.new(parent, position, literal)
       end      
     end
   end

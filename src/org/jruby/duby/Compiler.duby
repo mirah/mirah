@@ -1,11 +1,17 @@
+import org.jrubyparser.SourcePosition
+
 class ParseError
-  def initialize(line => :int, message => String)
-    @line = line
+  def initialize(message => String, position => SourcePosition)
     @message = message
+    @position = position
+  end
+  
+  def position
+    @position
   end
   
   def line
-    @line
+    @position.getStartLine + 1
   end
   
   def message

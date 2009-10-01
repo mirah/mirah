@@ -20,6 +20,7 @@ module Duby
       
       def transform(node, parent)
         begin
+          puts caller(0) unless node.respond_to? :transform
           node.transform(self, parent)
         rescue Error => ex
           @errors << ex
@@ -35,45 +36,108 @@ module Duby
   TransformError = Transform::Error
 
   module AST
-    def parse(src)
-      ast = JRuby.parse(src)
+    begin
+      Parser = org.jrubyparser.Parser
+    rescue NameError
+      $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/JRubyParser.jar'
+      Parser = org.jrubyparser.Parser
+    end
+    import org.jrubyparser.parser.ParserConfiguration
+    import org.jrubyparser.CompatVersion
+    import java.io.StringReader
+    
+    def parse(src, filename='-')
+      ast = parse_ruby(src, filename)
       Transform::Transformer.new.transform(ast, nil)
     end
     module_function :parse
+    
+    def parse_ruby(src, filename='-')
+      parser = Parser.new
+      config = ParserConfiguration.new(0, CompatVersion::RUBY1_8, true)
+      parser.parse(filename, StringReader.new(src), config)
+    end
+    module_function :parse_ruby
+
+    JRubyAst = org.jrubyparser.ast
 
     # reload 
-    module Java::OrgJrubyAst
+    module JRubyAst
       class Node
         def transform(transformer, parent)
           # default behavior is to raise, to expose missing nodes
           raise TransformError.new("Unsupported syntax: #{self}", position)
         end
+
+        def [](ix)
+          self.child_nodes[ix]
+        end
+
+        def inspect(indent = 0)
+          s = ' '*indent + self.class.name.split('::').last
+
+          if self.respond_to?(:name)
+            s << " |#{self.name}|"
+          end
+          if self.respond_to?(:value)
+            s << " ==#{self.value.inspect}"
+          end
+
+          if self.respond_to?(:index)
+            s << " &#{self.index.inspect}"
+          end
+
+          if self.respond_to?(:depth)
+            s << " >#{self.depth.inspect}"
+          end
+
+          [:receiver_node, :args_node, :var_node, :head_node, :value_node, :iter_node, :body_node, :next_node, :condition, :then_body, :else_body].each do |mm|
+            if self.respond_to?(mm)
+              begin 
+                s << "\n#{self.send(mm).inspect(indent+2)}" if self.send(mm)
+              rescue
+                s << "\n#{' '*(indent+2)}#{self.send(mm).inspect}" if self.send(mm)
+              end
+            end
+          end
+
+          if org::jruby::ast::ListNode === self
+            (0...self.size).each do |n|
+              begin
+                s << "\n#{self.get(n).inspect(indent+2)}" if self.get(n)
+              rescue
+                s << "\n#{' '*(indent+2)}#{self.get(n).inspect}" if self.get(n)
+              end
+            end
+          end
+          s
+        end
         
         def signature(parent)
           nil
         end
-        
-        def line_number
-          position.start_line + 1 rescue nil
-        end
       end
 
       class ArgsNode
+        def args
+          pre
+        end
+        
         def transform(transformer, parent)
-          Arguments.new(parent, line_number) do |args_node|
+          Arguments.new(parent, position) do |args_node|
             arg_list = args.child_nodes.map do |node|
-              RequiredArgument.new(args_node, node.line_number, node.name)
+              RequiredArgument.new(args_node, node.position, node.name)
               # argument nodes will have type soon
               #RequiredArgument.new(args_node, node.name, node.type)
             end if args
 
-            opt_list = opt_args.child_nodes.map do |node|
-              OptionalArgument.new(args_node, node.line_number) {|opt_arg| [transformer.transform(node, opt_arg)]}
-            end if opt_args
+            opt_list = optional.child_nodes.map do |node|
+              OptionalArgument.new(args_node, node.position) {|opt_arg| [transformer.transform(node, opt_arg)]}
+            end if optional
 
-            rest_arg = RestArgument.new(args_node, rest_arg_node.line_number, rest_arg_node.name) if rest_arg_node
+            rest_arg = RestArgument.new(args_node, rest.position, rest.name) if rest
 
-            block_arg = BlockArgument.new(args_node, block_arg_node.line_number, block_arg_node.name) if block_arg_node
+            block_arg = BlockArgument.new(args_node, block.position, block.name) if block
 
             [arg_list, opt_list, rest_arg, block_arg]
           end
@@ -82,7 +146,7 @@ module Duby
 
       class ArrayNode
         def transform(transformer, parent)
-          Array.new(parent, line_number) do |array|
+          Array.new(parent, position) do |array|
             child_nodes.map {|child| transformer.transform(child, array)}
           end
         end
@@ -92,7 +156,7 @@ module Duby
         def transform(transformer, parent)
           case name
           when '[]='
-            Call.new(parent, line_number, name) do |call|
+            Call.new(parent, position, name) do |call|
               [
                 transformer.transform(receiver_node, call),
                 args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
@@ -101,7 +165,7 @@ module Duby
             end
           else
             new_name = name[0..-2] + '_set'
-            Call.new(parent, line_number, new_name) do |call|
+            Call.new(parent, position, new_name) do |call|
               [
                 transformer.transform(receiver_node, call),
                 args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
@@ -120,7 +184,7 @@ module Duby
 
       class BlockNode
         def transform(transformer, parent)
-          Body.new(parent, line_number) do |body|
+          Body.new(parent, position) do |body|
             child_nodes.map {|child| transformer.transform(child, body)}
           end
         end
@@ -129,13 +193,13 @@ module Duby
       class BreakNode
         def transform(transformer, parent)
           # TODO support 'break value'?
-          Break.new(parent, line_number)
+          Break.new(parent, position)
         end
       end
       
       class ClassNode
         def transform(transformer, parent)
-          ClassDefinition.new(parent, line_number, cpath.name) do |class_def|
+          ClassDefinition.new(parent, position, cpath.name) do |class_def|
             [
               super_node ? transformer.transform(super_node, class_def) : nil,
               body_node ? transformer.transform(body_node, class_def) : nil
@@ -154,13 +218,13 @@ module Duby
             when VCallNode
               case receiver_node.name
               when 'boolean', 'byte', 'short', 'char', 'int', 'long', 'float', 'double'
-                return EmptyArray.new(parent, line_number, AST::type(receiver_node.name)) do |array|
+                return EmptyArray.new(parent, position, AST::type(receiver_node.name)) do |array|
                   transformer.transform(args_node.get(0), array)
                 end
               # TODO look for imported, lower case class names
               end
             when ConstNode
-              return EmptyArray.new(parent, line_number, AST::type(receiver_node.name)) do |array|
+              return EmptyArray.new(parent, position, AST::type(receiver_node.name)) do |array|
                 transformer.transform(args_node.get(0), array)
               end
             end
@@ -168,7 +232,7 @@ module Duby
             actual_name = name[0..-2] + '_set'
           end
           
-          Call.new(parent, line_number, name) do |call|
+          Call.new(parent, position, name) do |call|
             [
               transformer.transform(receiver_node, call),
               args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
@@ -217,7 +281,7 @@ module Duby
 
       class ConstNode
         def transform(transformer, parent)
-          Constant.new(parent, line_number, name)
+          Constant.new(parent, position, name)
         end
 
         def type_reference(parent)
@@ -231,7 +295,7 @@ module Duby
           if name =~ /=$/
             actual_name = name[0..-2] + '_set'
           end
-          MethodDefinition.new(parent, line_number, actual_name) do |defn|
+          MethodDefinition.new(parent, position, actual_name) do |defn|
             signature = {:return => nil}
 
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
@@ -261,7 +325,7 @@ module Duby
           if name =~ /=$/
             actual_name = name[0..-2] + '_set'
           end
-          StaticMethodDefinition.new(parent, line_number, actual_name) do |defn|
+          StaticMethodDefinition.new(parent, position, actual_name) do |defn|
             signature = {:return => nil}
 
             if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
@@ -287,7 +351,7 @@ module Duby
       
       class FalseNode
         def transform(transformer, parent)
-          Boolean.new(parent, line_number, false)
+          Boolean.new(parent, position, false)
         end
       end
 
@@ -313,7 +377,7 @@ module Duby
           @declaration ||= false
 
           if @declaration
-            return Noop.new(parent, line_number)
+            return Noop.new(parent, position)
           end
 
           case name
@@ -322,32 +386,36 @@ module Duby
             when ArrayNode
               case args_node.size
               when 1
-                case args_node.get(0)
+                node = args_node.get(0)
+                case node
                 when StrNode
-                  long = args_node.get(0).value
+                  long = node.value
                   short = long[(long.rindex('.') + 1)..-1]
-                when Java::OrgJrubyAst::CallNoArgNode
-                  node = args_node.get(0)
-                  pieces = [node.name]
-                  while node.kind_of? CallNode
-                    node = node.receiver_node
-                    pieces << node.name
-                  end
-                  long = pieces.reverse.join '.'
-                  short = pieces[0]
-                when Java::OrgJrubyAst::CallOneArgNode
-                  arg = args_node.get(0).args_node.get(0)
-                  unless FCallOneArgNode === arg && arg.name == 'as'
+                when CallNode
+                  case node.args_node.size
+                  when 0
+                    pieces = [node.name]
+                    while node.kind_of? CallNode
+                      node = node.receiver_node
+                      pieces << node.name
+                    end
+                    long = pieces.reverse.join '.'
+                    short = pieces[0]
+                  when 1
+                    arg = node.args_node.get(0)
+                    unless FCallNode === arg && arg.name == 'as' && arg.args_node.size == 1
+                      raise TransformError.new("unknown import syntax", args_node)
+                    end
+                    short = arg.args_node.get(0).name
+                    pieces = [node.name]
+                    while node.kind_of? CallNode
+                      node = node.receiver_node
+                      pieces << node.name
+                    end
+                    long = pieces.reverse.join '.'
+                  else
                     raise TransformError.new("unknown import syntax", args_node)
                   end
-                  short = arg.args_node.get(0).name
-                  node = args_node.get(0)
-                  pieces = [node.name]
-                  while node.kind_of? CallNode
-                    node = node.receiver_node
-                    pieces << node.name
-                  end
-                  long = pieces.reverse.join '.'
                 else
                   raise TransformError.new("unknown import syntax", args_node)
                 end
@@ -360,29 +428,29 @@ module Duby
             else
               raise TransformError.new("unknown import syntax", args_node)
             end
-            Import.new(parent, line_number, short, long)
+            Import.new(parent, position, short, long)
           when "puts"
-            PrintLine.new(parent, line_number) do |println|
+            PrintLine.new(parent, position) do |println|
               args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, println)} : []
             end
           when "null"
-            Null.new(parent, line_number)
+            Null.new(parent, position)
           when "implements"
             interfaces = args_node.child_nodes.map do |interface|
               interface.type_reference(parent)
             end
             parent.parent.implements(*interfaces)
-            Noop.new(parent, line_number)
+            Noop.new(parent, position)
           when "interface"
             raise "Interface name required" unless args_node
             interfaces = args_node.child_nodes.to_a
             interface_name = interfaces.shift
-            if Java::OrgJrubyAst::CallOneArgNode === interface_name
+            if CallNode === interface_name && interface_name.args_node.size == 1
               interfaces.unshift(interface_name.args_node.get(0))
               interface_name = interface_name.receiver_node
             end
             raise 'Interface body required' unless iter_node
-            InterfaceDeclaration.new(parent, line_number,
+            InterfaceDeclaration.new(parent, position,
                                      interface_name.name) do |interface|
               [interfaces.map {|p| p.type_reference(interface)},
                if iter_node.body_node
@@ -391,7 +459,7 @@ module Duby
               ]
             end
           else
-            FunctionalCall.new(parent, line_number, name) do |call|
+            FunctionalCall.new(parent, position, name) do |call|
               [
                 args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
                 iter_node ? transformer.transform(iter_node, call) : nil
@@ -403,13 +471,13 @@ module Duby
 
       class FixnumNode
         def transform(transformer, parent)
-          AST::fixnum(parent, line_number, value)
+          AST::fixnum(parent, position, value)
         end
       end
 
       class FloatNode
         def transform(transformer, parent)
-          AST::float(parent, line_number, value)
+          AST::float(parent, position, value)
         end
       end
 
@@ -418,7 +486,7 @@ module Duby
           @declaration ||= false
 
           if @declaration
-            Noop.new(parent, line_number)
+            Noop.new(parent, position)
           else
             super
           end
@@ -447,9 +515,9 @@ module Duby
 
       class IfNode
         def transform(transformer, parent)
-          If.new(parent, line_number) do |iff|
+          If.new(parent, position) do |iff|
             [
-              Condition.new(iff, condition.line_number) {|cond| [transformer.transform(condition, cond)]},
+              Condition.new(iff, condition.position) {|cond| [transformer.transform(condition, cond)]},
               then_body ? transformer.transform(then_body, iff) : nil,
               else_body ? transformer.transform(else_body, iff) : nil
             ]
@@ -459,13 +527,13 @@ module Duby
 
       class NilImplicitNode
         def transform(transformer, parent)
-          Noop.new(parent, line_number)
+          Noop.new(parent, position)
         end
       end
 
       class NilNode
         def transform(transformer, parent)
-          Null.new(parent, line_number)
+          Null.new(parent, position)
         end
       end
 
@@ -473,16 +541,16 @@ module Duby
         def transform(transformer, parent)
           case value_node
           when SymbolNode, ConstNode
-            FieldDeclaration.new(parent, line_number, name) {|field_decl| [value_node.type_reference(field_decl)]}
+            FieldDeclaration.new(parent, position, name) {|field_decl| [value_node.type_reference(field_decl)]}
           else
-            FieldAssignment.new(parent, line_number, name) {|field| [transformer.transform(value_node, field)]}
+            FieldAssignment.new(parent, position, name) {|field| [transformer.transform(value_node, field)]}
           end
         end
       end
 
       class InstVarNode
         def transform(transformer, parent)
-          Field.new(parent, line_number, name)
+          Field.new(parent, position, name)
         end
       end
 
@@ -490,16 +558,16 @@ module Duby
         def transform(transformer, parent)
           case value_node
           when SymbolNode, ConstNode
-            LocalDeclaration.new(parent, line_number, name) {|local_decl| [value_node.type_reference(local_decl)]}
+            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
           else
-            LocalAssignment.new(parent, line_number, name) {|local| [transformer.transform(value_node, local)]}
+            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
           end
         end
       end
 
       class LocalVarNode
         def transform(transformer, parent)
-          Local.new(parent, line_number, name)
+          Local.new(parent, position, name)
         end
       end
 
@@ -522,25 +590,25 @@ module Duby
       class NextNode
         def transform(transformer, parent)
           # TODO support 'next value'?
-          Next.new(parent, line_number)
+          Next.new(parent, position)
         end
       end
 
       class NotNode
         def transform(transformer, parent)
-          Not.new(parent, line_number) {|nott| [transformer.transform(condition_node, nott)]}
+          Not.new(parent, position) {|nott| [transformer.transform(condition_node, nott)]}
         end
       end
 
       class RedoNode
         def transform(transformer, parent)
-          Redo.new(parent, line_number)
+          Redo.new(parent, position)
         end
       end
 
       class ReturnNode
         def transform(transformer, parent)
-          Return.new(parent, line_number) do |ret|
+          Return.new(parent, position) do |ret|
             [transformer.transform(value_node, ret)]
           end
         end
@@ -548,7 +616,7 @@ module Duby
 
       class RootNode
         def transform(transformer, parent)
-          Script.new(parent, line_number) {|script| [transformer.transform(child_nodes[0], script)]}
+          Script.new(parent, position) {|script| [transformer.transform(child_nodes[0], script)]}
         end
       end
 
@@ -557,7 +625,7 @@ module Duby
 
       class StrNode
         def transform(transformer, parent)
-          String.new(parent, line_number, value)
+          String.new(parent, position, value)
         end
         
         def type_reference(parent)
@@ -573,7 +641,7 @@ module Duby
       
       class TrueNode
         def transform(transformer, parent)
-          Boolean.new(parent, line_number, true)
+          Boolean.new(parent, position, true)
         end
       end
       
@@ -582,7 +650,7 @@ module Duby
 
       class VCallNode
         def transform(transformer, parent)
-          FunctionalCall.new(parent, line_number, name) do |call|
+          FunctionalCall.new(parent, position, name) do |call|
             [
               [],
               nil
@@ -593,9 +661,9 @@ module Duby
 
       class WhileNode
         def transform(transformer, parent)
-          Loop.new(parent, line_number, evaluate_at_start, false) do |loop|
+          Loop.new(parent, position, evaluate_at_start, false) do |loop|
             [
-              Condition.new(loop, condition_node.line_number) {|cond| [transformer.transform(condition_node, cond)]},
+              Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)
             ]
           end
@@ -604,9 +672,9 @@ module Duby
 
       class UntilNode
         def transform(transformer, parent)
-          Loop.new(parent, line_number, evaluate_at_start, true) do |loop|
+          Loop.new(parent, position, evaluate_at_start, true) do |loop|
             [
-              Condition.new(loop, condition_node.line_number) {|cond| [transformer.transform(condition_node, cond)]},
+              Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)
             ]
           end

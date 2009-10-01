@@ -54,8 +54,6 @@ class DubyImpl
   end
 
   def parse(*args)
-    java.lang.System.set_property("jruby.duby.enabled", "true")
-
     process_flags!(args)
     @filename = args.shift
 
@@ -66,7 +64,7 @@ class DubyImpl
     else
       src = File.read(@filename)
     end
-    ast = JRuby.parse(src)
+    ast = Duby::AST.parse_ruby(src, @filename)
     @transformer = Duby::Transform::Transformer.new
     ast = @transformer.transform(ast, nil)
     @transformer.errors.each do |ex|
