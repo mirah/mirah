@@ -166,8 +166,9 @@ class TestTyper < Test::Unit::TestCase
     
     # allow resolution to run and produce error
     assert_raise(Typer::InferenceError) {typer.resolve(true)}
-    inspected = "[FunctionalCall(bar)\n Fixnum(1)\n Fixnum(1), MethodDefinition(baz)\n {:return=>nil}\n Arguments\n FunctionalCall(bar)\n  Fixnum(1)\n  Fixnum(1)]"
-    assert_equal(inspected, typer.deferred_nodes.inspect)
+    error_nodes = typer.errors.map {|e| e.node}
+    inspected = "[FunctionalCall(bar)\n Fixnum(1)\n Fixnum(1)]"
+    assert_equal(inspected, error_nodes.inspect)
   end
   
   def test_if
@@ -204,9 +205,11 @@ class TestTyper < Test::Unit::TestCase
     # unresolved types for the baz call
     assert_raise(Typer::InferenceError) {typer.resolve(true)}
     
-    assert_equal(typer.fixnum_type, ast.condition.inferred_type)
-    assert_equal(typer.float_type, ast.body.inferred_type)
-    assert_equal(typer.default_type, ast.else.inferred_type)
+    assert_equal(AST.error_type, ast.condition.inferred_type)
+    assert_equal(AST.error_type, ast.body.inferred_type)
+    assert_equal(AST.error_type, ast.else.inferred_type)
+    
+    typer.errors.clear
     
     ast2 = AST.parse("def baz; 2.0; end")
     
@@ -215,9 +218,7 @@ class TestTyper < Test::Unit::TestCase
     
     assert_nothing_raised {typer.resolve(true)}
     
-    assert_equal(typer.fixnum_type, ast.condition.inferred_type)
-    assert_equal(typer.float_type, ast.body.inferred_type)
-    assert_equal(typer.float_type, ast.else.inferred_type)
+    assert_equal(typer.float_type, ast2.body.inferred_type)
   end
   
   def test_class

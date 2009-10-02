@@ -22,13 +22,13 @@ module Duby
         begin
           puts caller(0) unless node.respond_to? :transform
           node.transform(self, parent)
-        # rescue Error => ex
-        #   @errors << ex
-        #   Duby::AST::ErrorNode.new(parent, ex)
-        # rescue Exception => ex
-        #   error = Transform::Error.new(ex.message, node.position, ex)
-        #   @errors << error
-        #   Duby::AST::ErrorNode.new(parent, error)
+        rescue Error => ex
+          @errors << ex
+          Duby::AST::ErrorNode.new(parent, ex)
+        rescue Exception => ex
+          error = Transform::Error.new(ex.message, node.position, ex)
+          @errors << error
+          Duby::AST::ErrorNode.new(parent, error)
         end
       end
     end
@@ -53,6 +53,7 @@ module Duby
     module_function :parse
     
     def parse_ruby(src, filename='-')
+      raise ArgumentError if src.nil?
       parser = Parser.new
       config = ParserConfiguration.new(0, CompatVersion::RUBY1_9, true)
       parser.parse(filename, StringReader.new(src), config)

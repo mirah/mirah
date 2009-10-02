@@ -16,6 +16,7 @@ module Duby
         classname = File.basename(filename, '.duby')
         main_class = @factory.declare_type(classname)
         @known_types['self'] = main_class.meta
+        @errors = []
       end
       
       def type_reference(name, array=false, meta=false)

@@ -30,7 +30,7 @@ module Duby
     end
     
     class Simple < BaseTyper
-      attr_accessor :known_types
+      attr_accessor :known_types, :errors
 
       def initialize(self_type)
         @known_types = {}
@@ -40,6 +40,7 @@ module Duby
         @known_types["float"] = type_reference("float")
         @known_types["string"] = type_reference("string")
         @known_types["boolean"] = type_reference("boolean")
+        @errors = []
       end
       
       def name
@@ -147,6 +148,10 @@ module Duby
       end
       
       def method_type(target_type, name, parameter_types)
+        if (target_type && target_type.error?) ||
+            parameter_types.any? {|t| t && t.error?}
+          return AST.error_type
+        end
         constructor = (name == 'new' && target_type.meta?)
 
         if constructor
@@ -246,10 +251,19 @@ module Duby
       end
 
       def defer(node)
-        return if deferred_nodes.include? node
-        log "Deferring inference for #{node}"
+        if @error_next
+          log "Marking #{node} as an error"
+          @error_next = false
+          node.resolve_if(self) do
+            @errors << InferenceError.new("Unable to infer type.", node)
+            AST.error_type
+          end
+        else
+          return if deferred_nodes.include? node
+          log "Deferring inference for #{node}"
         
-        deferred_nodes << node
+          deferred_nodes << node
+        end
       end
 
       def resolve(raise = false)
@@ -271,14 +285,22 @@ module Duby
             log "[Cycle #{i}]:  Resolved all types, exiting"
             break
           elsif old_deferred == @deferred_nodes
-            log "[Cycle #{i}]: Made no progress, bailing out"
-            break
+            if @error_next
+              log "[Cycle #{i}]: Made no progress, bailing out"
+              break
+            else
+              # Retry this iteration, and mark the first deferred
+              # type as an error.
+              @error_next = true
+              redo
+            end
           end
         end
 
         # done with n sweeps, if any remain raise errors
-        if raise && !deferred_nodes.empty?
-          raise InferenceError.new("Could not infer typing for the following nodes:\n  " + deferred_nodes.map {|e| "#{e} (child of #{e.parent})"}.join("\n  "))
+        error_nodes = @errors.map {|e| e.node} + deferred_nodes
+        if raise && !error_nodes.empty?
+          raise InferenceError.new("Could not infer typing for the following nodes:\n  " + error_nodes.map {|e| "#{e} (child of #{e.parent})"}.join("\n  "))
         end
       end
     end

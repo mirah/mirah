@@ -41,7 +41,14 @@ class DubyImpl
     process_flags!(args)
     
     expand_files(args).each do |duby_file|
-      ast = parse(duby_file)
+      if duby_file == '-e'
+        @filename = '-e'
+        next
+      elsif @filename == '-e'
+        ast = parse('-e', duby_file)
+      else
+        ast = parse(duby_file)
+      end
       exit 1 if @error
 
       compile_ast(ast) do |filename, builder|
@@ -50,6 +57,7 @@ class DubyImpl
         bytes = builder.generate
         File.open(filename, 'w') {|f| f.write(bytes)}
       end
+      @filename = nil
     end
   end
 

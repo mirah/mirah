@@ -86,6 +86,11 @@ module Duby
       def initialize(parent, error)
         super(parent, error.position.start_line + 1)
         @error = error
+        @inferred_type = TypeReference::ErrorType
+        @resolved = true
+      end
+      
+      def infer(typer)
       end
     end
 
@@ -210,8 +215,13 @@ module Duby
         TypeReference.new(name, array, true)
       end
 
+      def error?
+        name == :error
+      end
+
       NoType = TypeReference.new(:notype)
       NullType = TypeReference.new(:null)
+      ErrorType = TypeReference.new(:error)
     end
 
     class TypeDefinition < TypeReference
@@ -250,6 +260,10 @@ module Duby
       else
         TypeReference::NoType
       end
+    end
+    
+    def self.error_type
+      TypeReference::ErrorType
     end
 
     def self.fixnum(parent, position, literal)
