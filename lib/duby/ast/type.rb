@@ -33,7 +33,7 @@ module Duby::AST
     end
 
     def infer(typer)
-      size.infer(typer)
+      typer.infer(size)
       resolved!
       return @inferred_type
     end

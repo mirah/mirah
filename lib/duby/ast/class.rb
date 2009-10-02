@@ -20,7 +20,7 @@ module Duby::AST
         superclass = Duby::AST::type(@superclass.name) if @superclass
         @inferred_type ||= typer.define_type(name, superclass, @interfaces) do
           if body
-            body.infer(typer)
+            typer.infer(body)
           else
             typer.no_type
           end
@@ -88,7 +88,7 @@ module Duby::AST
 
     def infer(typer)
       unless resolved?
-        @inferred_type = typer.learn_field_type(scope, name, value.infer(typer))
+        @inferred_type = typer.learn_field_type(scope, name, typer.infer(value))
 
         @inferred_type ? resolved! : typer.defer(self)
       end

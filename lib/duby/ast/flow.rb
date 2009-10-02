@@ -10,7 +10,7 @@ module Duby
 
       def infer(typer)
         unless resolved?
-          @inferred_type = predicate.infer(typer)
+          @inferred_type = typer.infer(predicate)
 
           @inferred_type ? resolved! : typer.defer(self)
         end
@@ -29,18 +29,18 @@ module Duby
 
       def infer(typer)
         unless resolved?
-          condition_type = condition.infer(typer)
+          condition_type = typer.infer(condition)
           unless condition_type
             typer.defer(condition)
           end
 
           # condition type is unrelated to body types, so we proceed with bodies
-          then_type = body.infer(typer) if body
+          then_type = typer.infer(body) if body
 
           if !then_type
             # attempt to determine else branch
             if self.else
-              else_type = self.else.infer(typer)
+              else_type = typer.infer(self.else)
 
               if !else_type
                 # we have neither type, defer until later
@@ -56,7 +56,7 @@ module Duby
             end
           else
             if self.else
-              else_type = self.else.infer(typer)
+              else_type = typer.infer(self.else)
 
               if !else_type
                 # we determined a then type, so we use that and defer the else body
@@ -103,9 +103,9 @@ module Duby
       
       def infer(typer)
         unless resolved?
-          body.infer(typer)
+          typer.infer(body)
           
-          condition.infer(typer)
+          typer.infer(condition)
           
           if body.resolved? && condition.resolved?
             resolved!
@@ -134,7 +134,7 @@ module Duby
 
       def infer(typer)
         unless resolved?
-          @inferred_type = value.infer(typer)
+          @inferred_type = typer.infer(value)
 
           (@inferred_type && value.resolved?) ? resolved! : typer.defer(self)
         end

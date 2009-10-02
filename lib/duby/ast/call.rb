@@ -16,7 +16,7 @@ module Duby::AST
         receiver_type = @self_type
         should_defer = false
         parameter_types = parameters.map do |param|
-          param.infer(typer) || should_defer = true
+          typer.infer(param) || should_defer = true
         end
 
         unless should_defer
@@ -43,10 +43,10 @@ module Duby::AST
 
     def infer(typer)
       unless @inferred_type
-        receiver_type = target.infer(typer)
+        receiver_type = typer.infer(target)
         should_defer = false
         parameter_types = parameters.map do |param|
-          param.infer(typer) || should_defer = true
+          typer.infer(param) || should_defer = true
         end
         
         unless should_defer

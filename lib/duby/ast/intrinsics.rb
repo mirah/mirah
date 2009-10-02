@@ -8,7 +8,7 @@ module Duby::AST
     end
 
     def infer(typer)
-      resolved = parameters.select {|param| param.infer(typer); param.resolved?}
+      resolved = parameters.select {|param| typer.infer(param); param.resolved?}
       resolved! if resolved.size == parameters.size
       typer.no_type
     end

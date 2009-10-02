@@ -11,7 +11,7 @@ module Duby::AST
         if children.size == 0
           @inferred_type = typer.default_type
         else
-          children.each {|child| @inferred_type = child.infer(typer)}
+          children.each {|child| @inferred_type = typer.infer(child)}
         end
           
         unless @inferred_type
@@ -39,7 +39,7 @@ module Duby::AST
     end
     
     def infer(typer)
-      @inferred_type ||= body.infer(typer) || (typer.defer(self); nil)
+      @inferred_type ||= typer.infer(body) || (typer.defer(self); nil)
     end
   end
 end

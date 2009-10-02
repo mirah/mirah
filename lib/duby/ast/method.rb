@@ -9,7 +9,7 @@ module Duby::AST
     
     def infer(typer)
       unless @inferred_type
-        @inferred_type = args ? args.map {|arg| arg.infer(typer)} : []
+        @inferred_type = args ? args.map {|arg| typer.infer(arg)} : []
       end
     end
   end
@@ -96,9 +96,9 @@ module Duby::AST
     
     def infer(typer)
       typer.infer_signature(self)
-      arguments.infer(typer)
+      typer.infer(arguments)
       forced_type = signature[:return]
-      inferred_type = body ? body.infer(typer) : typer.no_type
+      inferred_type = body ? typer.infer(body) : typer.no_type
         
       if !inferred_type
         typer.defer(self)

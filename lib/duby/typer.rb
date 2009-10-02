@@ -250,14 +250,35 @@ module Duby
         @deferred_nodes ||= []
       end
 
+      def infer(node)
+        begin
+          node.infer(self)
+        rescue InferenceError => ex
+          error(node, ex)
+        rescue Exception => ex
+          error(node, ex.message)
+        end
+      end
+
+      def error(node, error_or_msg=nil)
+        if error_or_msg.kind_of? InferenceError
+          error = error_or_msg
+        elsif error_or_msg
+          error = InferenceError.new(error_or_msg, node)
+        else
+          error = InferenceError.new("Unable to infer type.", node)
+        end
+        @errors << error
+        node.resolve_if(self) do
+          AST.error_type
+        end
+      end
+
       def defer(node)
         if @error_next
           log "Marking #{node} as an error"
           @error_next = false
-          node.resolve_if(self) do
-            @errors << InferenceError.new("Unable to infer type.", node)
-            AST.error_type
-          end
+          error(node)
         else
           return if deferred_nodes.include? node
           log "Deferring inference for #{node}"
@@ -274,7 +295,7 @@ module Duby
         cycle(count) do |i|
           old_deferred = @deferred_nodes
           @deferred_nodes = deferred_nodes.select do |node|
-            type = node.infer(self)
+            type = infer(node)
 
             log "[Cycle #{i}]: Inferred type for #{node}: #{type || 'FAILED'}"
 
@@ -316,7 +337,7 @@ if __FILE__ == $0
   Duby::Typer.verbose = true
   ast = Duby::AST.parse(File.read(ARGV[0]))
   typer = Duby::Typer::Simple.new("script")
-  ast.infer(typer)
+  typer.infer(ast)
   begin
     typer.resolve(true)
   rescue Duby::Typer::InferenceError => e
