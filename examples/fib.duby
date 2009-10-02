@@ -1,6 +1,6 @@
 import "java.lang.System"
 
-def fib(a => :fixnum)
+def fib(a => :fixnum, b => :fixnum)
   if a < 2
     a
   else

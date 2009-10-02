@@ -22,13 +22,13 @@ module Duby
         begin
           puts caller(0) unless node.respond_to? :transform
           node.transform(self, parent)
-        rescue Error => ex
-          @errors << ex
-          Duby::AST::ErrorNode.new(parent, ex)
-        rescue Exception => ex
-          error = Transform::Error.new(ex.message, node.position, ex)
-          @errors << error
-          Duby::AST::ErrorNode.new(parent, error)
+        # rescue Error => ex
+        #   @errors << ex
+        #   Duby::AST::ErrorNode.new(parent, ex)
+        # rescue Exception => ex
+        #   error = Transform::Error.new(ex.message, node.position, ex)
+        #   @errors << error
+        #   Duby::AST::ErrorNode.new(parent, error)
         end
       end
     end
@@ -54,7 +54,7 @@ module Duby
     
     def parse_ruby(src, filename='-')
       parser = Parser.new
-      config = ParserConfiguration.new(0, CompatVersion::RUBY1_8, true)
+      config = ParserConfiguration.new(0, CompatVersion::RUBY1_9, true)
       parser.parse(filename, StringReader.new(src), config)
     end
     module_function :parse_ruby
@@ -120,7 +120,13 @@ module Duby
 
       class ArgsNode
         def args
-          pre
+          has_typed = optional &&
+              optional.child_nodes.all? {|n| n.kind_of? TypedArgumentNode}
+          if has_typed
+            optional
+          else
+            pre
+          end
         end
         
         def transform(transformer, parent)
@@ -131,9 +137,10 @@ module Duby
               #RequiredArgument.new(args_node, node.name, node.type)
             end if args
 
+            # TODO optional arguments.
             opt_list = optional.child_nodes.map do |node|
               OptionalArgument.new(args_node, node.position) {|opt_arg| [transformer.transform(node, opt_arg)]}
-            end if optional
+            end if false && optional
 
             rest_arg = RestArgument.new(args_node, rest.position, rest.name) if rest
 
@@ -298,9 +305,12 @@ module Duby
           MethodDefinition.new(parent, position, actual_name) do |defn|
             signature = {:return => nil}
 
-            if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
+            if args_node && args_node.args
               args_node.args.child_nodes.each do |arg|
-                signature[arg.name.intern] = arg.type_node.type_reference(parent)
+                if arg.respond_to? :type_node
+                  signature[arg.name.intern] =
+                    arg.type_node.type_reference(parent)
+                end
               end
             end
             if body_node
@@ -327,10 +337,12 @@ module Duby
           end
           StaticMethodDefinition.new(parent, position, actual_name) do |defn|
             signature = {:return => nil}
-
-            if args_node && args_node.args && TypedArgumentNode === args_node.args[0]
+            if args_node && args_node.args
               args_node.args.child_nodes.each do |arg|
-                signature[arg.name.intern] = arg.type_node.type_reference(parent)
+                if arg.respond_to? :type_node
+                  signature[arg.name.intern] =
+                    arg.type_node.type_reference(parent)
+                end
               end
             end
             if body_node
@@ -466,6 +478,10 @@ module Duby
               ]
             end
           end
+        end
+        
+        def type_reference(parent)
+          AST::type(name)
         end
       end
 
