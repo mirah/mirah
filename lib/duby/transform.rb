@@ -674,6 +674,10 @@ module Duby
             ]
           end
         end
+        
+        def type_reference(parent)
+          AST::type name
+        end
       end
 
       class WhileNode
