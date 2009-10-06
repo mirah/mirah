@@ -1,4 +1,4 @@
-def tak x: :fixnum, y: :fixnum, z: :fixnum
+def tak(x:fixnum, y:fixnum, z:fixnum)
   unless y < x
     z
   else

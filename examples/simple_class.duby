@@ -4,7 +4,7 @@ class Foo
     @hello = 'Hello, '
   end
 
-  def hello(a => :string)
+  def hello(a:string)
     puts @hello; puts a
   end
 end

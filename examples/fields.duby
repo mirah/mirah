@@ -5,7 +5,7 @@ class Bar
     @a = ArrayList
   end
 
-  def list=(a => ArrayList)
+  def list=(a:ArrayList)
     @a = a
   end
 
