@@ -94,7 +94,6 @@ class DubyImpl
   end
 
   def process_flags!(args)
-    @compiler_class = Duby::Compiler::JVM
     while args.length > 0
       case args[0]
       when '-V'
@@ -114,6 +113,7 @@ class DubyImpl
         break
       end
     end
+    @compiler_class ||= Duby::Compiler::JVM
   end
   
   def expand_files(files)
