@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE fontscolors PUBLIC "-//NetBeans//DTD Editor Fonts and Colors settings 1.1//EN" "http://www.netbeans.org/dtds/EditorFontsColors-1_1.dtd">
+
+<fontscolors>
+    <!-- See http://ui.netbeans.org/docs/ui/editor_fonts_colors/Editor_fonts_and_colors.htm#ruby -->
+    <!-- A couple of things are not accurate yet; globals are not bold, and method calls are
+         black and bold instead of green (which would be identical to fields) -->
+    <fontcolor name="keyword" default="keyword"/>
+
+    <fontcolor name="CLASS_VAR" foreColor="ff098618">
+        <font style="bold+italic"/>
+    </fontcolor>
+
+    <fontcolor name="INT_LITERAL" default="number"/>
+    <fontcolor name="FLOAT_LITERAL" default="number"/>
+    <fontcolor name="ANY_OPERATOR" default="operator"/>
+    <fontcolor name="INSTANCE_VAR" default="field"/>
+    <fontcolor name="GLOBAL_VAR" foreColor="black">
+        <font style="italic"/>
+    </fontcolor>
+    <fontcolor name="STRING_LITERAL" default="string"/>
+    <fontcolor name="DOUBLE_LITERAL" default="number"/>
+    <fontcolor name="BLOCK_COMMENT" default="comment"/>
+    <fontcolor name="DOCUMENTATION" default="comment"/>
+    <fontcolor name="LONG_LITERAL" default="number"/>
+    <fontcolor name="REGEXP_LITERAL" foreColor="9933CC"/>
+    <fontcolor name="ERROR" default="error"/>
+    <fontcolor name="LINE_COMMENT" default="comment"/>
+    <fontcolor name="CONSTANT" foreColor="black">
+        <font style="italic"/>
+    </fontcolor>
+    <fontcolor name="TYPE_SYMBOL" foreColor="2E92C7"/>
+    <fontcolor name="IDENTIFIER" default="identifier"/>
+    <fontcolor name="WHITESPACE" default="whitespace"/>
+    <fontcolor name="TODO" foreColor="ff99006b">
+        <font style="bold"/>
+    </fontcolor>
+    <fontcolor name="QUOTED_STRING_LITERAL" default="string"/>
+
+    <!-- This is intended for an embedded regular expression language -->
+    <!--
+    <fontcolor name="REGEXP_TEXT" foreColor="ff006f00"/>
+    <fontcolor name="REGEXP_META" foreColor="ff006f00">
+        <font style="bold"/>
+    </fontcolor>
+    <fontcolor name="REGEXP_INVALID" foreColor="ffff006b" strikeThrough="ffff006b" >
+        <font style="bold"/>
+    </fontcolor>
+    -->
+
+    <!--"semantic" highlighting:-->
+    <fontcolor name="mod-unused" waveUnderlined="999999"/>
+    <fontcolor name="mod-abstract" />
+    <fontcolor name="mod-field" default="field"/>
+    <fontcolor name="mod-local-variable" />
+    <fontcolor name="mod-parameter" foreColor="A06001"/> 
+
+    <fontcolor name="mod-method">
+        <font style="bold" />
+    </fontcolor>
+    <fontcolor name="mod-constructor" >
+        <font style="bold" />
+    </fontcolor>
+    <fontcolor name="mod-class" />
+    <fontcolor name="mod-interface" />
+    <fontcolor name="mod-annotation-type" />
+    <fontcolor name="mod-enum" />
+    <fontcolor name="mod-deprecated" strikeThrough="404040" />
+    <fontcolor name="mod-static" >
+        <font style="italic" />
+    </fontcolor>
+    <fontcolor name="mod-private" />
+    <fontcolor name="mod-package-private" />
+    <fontcolor name="mod-protected" />
+    <fontcolor name="mod-public" />
+
+    <!--currently not used:-->
+<!--    <fontcolor name="mod-type-parameter-declaration" bgColor="lightGray"/>
+    <fontcolor name="mod-type-parameter-use" bgColor="green"/>
+    <fontcolor name="mod-undefined" foreColor="red"/>-->
+
+    <!--mark occurrences:-->
+    <fontcolor name="mark-occurrences" bgColor="ECEBA3"/>
+</fontscolors>
