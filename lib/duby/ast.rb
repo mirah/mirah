@@ -13,6 +13,7 @@ module Duby
     class Node
       attr_accessor :children
       attr_accessor :parent
+      attr_accessor :position
       attr_accessor :newline
       attr_accessor :inferred_type
 

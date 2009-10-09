@@ -292,6 +292,7 @@ module Duby
         
         log "Entering type inference cycle"
         
+        retried = false
         cycle(count) do |i|
           old_deferred = @deferred_nodes
           @deferred_nodes = deferred_nodes.select do |node|
@@ -306,16 +307,18 @@ module Duby
             log "[Cycle #{i}]:  Resolved all types, exiting"
             break
           elsif old_deferred == @deferred_nodes
-            if @error_next
+            if @error_next || retried
               log "[Cycle #{i}]: Made no progress, bailing out"
               break
             else
               # Retry this iteration, and mark the first deferred
               # type as an error.
+              retried = true
               @error_next = true
               redo
             end
           end
+          retried = false
         end
 
         # done with n sweeps, if any remain raise errors

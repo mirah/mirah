@@ -471,6 +471,14 @@ module Duby
                end
               ]
             end
+          when "raise"
+            Raise.new(parent, position) do |raise_node|
+              if args_node
+                args_node.child_nodes.map do |arg|
+                  transformer.transform(arg, raise_node)
+                end
+              end
+            end
           else
             FunctionalCall.new(parent, position, name) do |call|
               [
@@ -667,11 +675,17 @@ module Duby
 
       class VCallNode
         def transform(transformer, parent)
-          FunctionalCall.new(parent, position, name) do |call|
-            [
-              [],
-              nil
-            ]
+          if name == 'raise'
+            Raise.new(parent, position) do
+              []
+            end
+          else
+            FunctionalCall.new(parent, position, name) do |call|
+              [
+                [],
+                nil
+              ]
+            end
           end
         end
         

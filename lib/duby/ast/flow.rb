@@ -155,5 +155,51 @@ module Duby
     class Next < Break; end
     
     class Redo < Break; end
+
+    class Raise < Node
+      include Valued
+
+      def initialize(parent, line_number)
+        super(parent, line_number)
+        @children = yield || []
+      end
+
+      def infer(typer)
+        unless resolved?
+          @inferred_type = typer.no_type
+          throwable = AST.type('java.lang.Throwable')
+          if children.size == 1
+            arg_type = typer.infer(children[0])
+            unless arg_type
+              typer.defer(self)
+              return
+            end
+            if throwable.assignable_from?(arg_type) && !arg_type.meta?
+              @exception = children[0]
+              resolved!
+              return @inferred_type
+            end
+          end
+
+          arg_types = children.map {|c| typer.infer(c)}
+          if arg_types.any? {|c| c.nil?}
+            typer.defer(self)
+          else
+            if arg_types[0] && throwable.assignable_from?(arg_types[0])
+              klass = children.shift
+            else
+              klass = Constant.new(self, position, 'RuntimeException')
+            end
+            @exception = Call.new(self, position, 'new') do
+              [klass, children, nil]
+            end
+            resolved!
+            @children = [@exception]
+            typer.infer(@exception)
+          end
+        end
+        @inferred_type
+      end
+    end
   end
 end

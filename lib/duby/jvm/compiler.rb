@@ -430,6 +430,11 @@ module Duby
         return_node.inferred_type.return(@method)
       end
 
+      def raise(exception)
+        exception.compile(self, true)
+        @method.athrow
+      end
+
       def empty_array(type, size)
         size.compile(self, true)
         type.newarray(@method)

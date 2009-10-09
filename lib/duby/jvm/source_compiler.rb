@@ -112,6 +112,16 @@ module Duby
         end
       end
 
+      def raise(node)
+        if node.expr?(self)
+          @method.print 'throw '
+          node.compile(self, true)
+          @method.puts ';'
+        else
+          store_value('throw ', node)
+        end
+      end
+
       def line(num)
       end
       

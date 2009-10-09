@@ -86,7 +86,13 @@ class DubyImpl
   def compile_ast(ast, &block)
     typer = Duby::Typer::JVM.new(@filename)
     typer.infer(ast)
-    typer.resolve(true)
+    begin
+      typer.resolve(true)
+    ensure
+      typer.errors.each do |ex|
+        puts ex.message
+      end
+    end
 
     compiler = @compiler_class.new(@filename)
     ast.compile(compiler, false)

@@ -231,5 +231,12 @@ module Duby
         compiler.redo
       end
     end
+
+    class Raise
+      def compile(compiler, expression)
+        compiler.line(line_number)
+        compiler.raise(@exception)
+      end
+    end
   end
 end

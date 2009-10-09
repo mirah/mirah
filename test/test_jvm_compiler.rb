@@ -803,4 +803,61 @@ class TestJVMCompiler < Test::Unit::TestCase
       EOF
     end
   end
+
+  def assert_throw(type, message=nil)
+    ex = assert_raise(NativeException) do
+      yield
+    end
+    assert_equal type, ex.cause.class
+    assert_equal message, ex.cause.message
+  end
+
+  def test_raise
+    cls, = compile(<<-EOF)
+      def foo
+        raise
+      end
+    EOF
+    assert_throw(java.lang.RuntimeException) do
+      cls.foo
+    end
+
+    cls, = compile(<<-EOF)
+      def foo
+        raise "Oh no!"
+      end
+    EOF
+    ex = assert_throw(java.lang.RuntimeException, 'Oh no!') do
+      cls.foo
+    end
+
+    cls, = compile(<<-EOF)
+      def foo
+        raise IllegalArgumentException
+      end
+    EOF
+    ex = assert_throw(java.lang.IllegalArgumentException) do
+      cls.foo
+    end
+
+    cls, = compile(<<-EOF)
+      def foo
+        throws Exception
+        raise Exception, "oops"
+      end
+    EOF
+    ex = assert_throw(java.lang.Exception, "oops") do
+      cls.foo
+    end
+
+    cls, = compile(<<-EOF)
+      def foo
+        throws Throwable
+        raise Throwable.new("darn")
+      end
+    EOF
+    ex = assert_throw(java.lang.Throwable, "darn") do
+      cls.foo
+    end
+  end
 end
