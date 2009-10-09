@@ -34,7 +34,6 @@
       <fileset dir="build"/>
       <fileset dir="." includes="bin/*"/>
       <fileset dir="../jvmscript/lib"/>
-      <zipfileset src="javalib/jruby-complete.jar"/>
     </jar>
   </target>
 </project>
