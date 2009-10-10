@@ -121,4 +121,10 @@ module Duby::AST
       false
     end
   end
+  
+  class Raise
+    def expr(compiler)
+      false
+    end
+  end
 end
