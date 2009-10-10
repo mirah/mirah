@@ -23,7 +23,7 @@ module Duby::AST
   class EmptyArray < Node
     attr_accessor :size
     attr_accessor :component_type
-    def initialize(parent, line_number, type)
+    def initialize(parent, line_number, type, &block)
       super(parent, line_number, [])
       @component_type = type
       @size = size

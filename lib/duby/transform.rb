@@ -46,9 +46,16 @@ module Duby
     import org.jrubyparser.CompatVersion
     import java.io.StringReader
     
-    def parse(src, filename='-')
+    def parse(src, filename='-', raise_errors=false)
       ast = parse_ruby(src, filename)
-      Transform::Transformer.new.transform(ast, nil)
+      transformer = Transform::Transformer.new
+      ast = transformer.transform(ast, nil)
+      if raise_errors
+        transformer.errors.each do |e|
+          raise e.cause
+        end
+      end
+      ast
     end
     module_function :parse
     
@@ -547,6 +554,41 @@ module Duby
               else_body ? transformer.transform(else_body, iff) : nil
             ]
           end
+        end
+      end
+
+      class RescueNode
+        def transform(transformer, parent)
+          Rescue.new(parent, position) do |node|
+            [
+              transformer.transform(body_node, node),
+              rescue_node ? transformer.transform(rescue_node, node) : []
+            ]
+          end
+        end
+      end
+
+      class RescueBodyNode
+        def transform(transformer, parent)
+          children = if opt_rescue_node
+            transformer.transform(opt_rescue_node, parent)
+          else
+            []
+          end
+          [
+            RescueClause.new(parent, position) do |clause|
+              exceptions = if exception_nodes
+                exception_nodes.map {|e| e.type_reference(clause)}
+              else
+                [AST.type('java.lang.Exception')]
+              end
+              [
+                exceptions,
+                transformer.transform(body_node, clause)
+              ]
+            end,
+            *children
+          ]
         end
       end
 

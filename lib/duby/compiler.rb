@@ -238,5 +238,12 @@ module Duby
         compiler.raise(@exception)
       end
     end
+
+    class Rescue
+      def compile(compiler, expression)
+        compiler.line(line_number)
+        compiler.rescue(self, expression)
+      end
+    end
   end
 end

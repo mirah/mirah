@@ -3,9 +3,9 @@ module Duby
     class Condition < Node
       attr_accessor :predicate
 
-      def initialize(parent, line_number)
-        @predicate = (children = yield(self))[0]
-        super(parent, line_number, children)
+      def initialize(parent, line_number, &block)
+        super(parent, line_number, &block)
+        @predicate = children[0]
       end
 
       def infer(typer)
@@ -22,9 +22,9 @@ module Duby
     class If < Node
       attr_accessor :condition, :body, :else
 
-      def initialize(parent, line_number)
-        @condition, @body, @else = children = yield(self)
-        super(parent, line_number, children)
+      def initialize(parent, line_number, &block)
+        super(parent, line_number, &block)
+        @condition, @body, @else = children
       end
 
       def infer(typer)
@@ -87,11 +87,11 @@ module Duby
     class Loop < Node
       attr_accessor :condition, :body, :check_first, :negative
 
-      def initialize(parent, line_number, check_first, negative)
-        @condition, @body = children = yield(self)
+      def initialize(parent, line_number, check_first, negative, &block)
+        super(parent, line_number, children, &block)
+        @condition, @body = children
         @check_first = check_first
         @negative = negative
-        super(parent, line_number, children)
       end
 
       def check_first?; @check_first; end
@@ -119,17 +119,17 @@ module Duby
     end
 
     class Not < Node
-      def initialize(parent, line_number)
-        super(parent, line_number, yield(self))
+      def initialize(parent, line_number, &block)
+        super(parent, line_number, &block)
       end
     end
 
     class Return < Node
       include Valued
 
-      def initialize(parent, line_number)
-        @value = (children = yield(self))[0]
-        super(parent, line_number, children)
+      def initialize(parent, line_number, &block)
+        super(parent, line_number, &block)
+        @value = children[0]
       end
 
       def infer(typer)
@@ -159,13 +159,14 @@ module Duby
     class Raise < Node
       include Valued
 
-      def initialize(parent, line_number)
-        super(parent, line_number)
-        @children = yield || []
+      def initialize(parent, line_number, &block)
+        super(parent, line_number, &block)
       end
 
       def infer(typer)
         unless resolved?
+          # TODO this should probably be a special type that's
+          # compatible with everything so [if foo;raise; else bar;end] works.
           @inferred_type = typer.no_type
           throwable = AST.type('java.lang.Throwable')
           if children.size == 1
@@ -196,6 +197,47 @@ module Duby
             resolved!
             @children = [@exception]
             typer.infer(@exception)
+          end
+        end
+        @inferred_type
+      end
+    end
+    
+    class RescueClause < Node
+      attr_accessor :types, :body
+      
+      def initialize(parent, position, &block)
+        super(parent, position, &block)
+        @types, @body = children
+      end
+
+      def infer(typer)
+        unless resolved?
+          @inferred_type = typer.infer(body)
+
+          (@inferred_type && body.resolved?) ? resolved! : typer.defer(self)
+        end
+
+        @inferred_type
+      end
+    end
+    
+    class Rescue < Node
+      attr_accessor :body, :clauses
+      def initialize(parent, position, &block)
+        super(parent, position, &block)
+        @body, @clauses = children
+      end
+      
+      def infer(typer)
+        unless resolved?
+          types = [typer.infer(body)] + clauses.map {|c| typer.infer(c.body)}
+          if types.any? {|t| t.nil?}
+            typer.defer(self)
+          else
+            # TODO check types for compatibility (maybe only if an expression)
+            resolved!
+            @inferred_type = types[0]
           end
         end
         @inferred_type

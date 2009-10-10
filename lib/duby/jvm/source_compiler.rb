@@ -121,6 +121,15 @@ module Duby
           store_value('throw ', node)
         end
       end
+      
+      def rescue(node, expression)
+        @method.block 'try' do
+          node.body.compile(self, expression)
+        end
+        @method.block 'catch (Exception temp$ex)' do
+          node.clauses[0].body.compile(self, expression)
+        end
+      end
 
       def line(num)
       end

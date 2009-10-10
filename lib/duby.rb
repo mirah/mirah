@@ -91,6 +91,7 @@ class DubyImpl
     ensure
       typer.errors.each do |ex|
         puts ex.message
+        puts ex.backtrace if @verbose
       end
     end
 

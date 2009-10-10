@@ -434,6 +434,25 @@ module Duby
         exception.compile(self, true)
         @method.athrow
       end
+      
+      def rescue(rescue_node, expression)
+        start = @method.label.set!
+        body_end = @method.label
+        done = @method.label
+        rescue_node.body.compile(self, expression)
+        body_end.set!
+        @method.goto(done)
+        rescue_node.clauses.each do |clause|
+          target = @method.label.set!
+          @method.pop
+          clause.body.compile(self, expression)
+          @method.goto(done)
+          clause.types.each do |type|
+            @method.trycatch(start, body_end, target, type)
+          end
+        end
+        done.set!
+      end
 
       def empty_array(type, size)
         size.compile(self, true)

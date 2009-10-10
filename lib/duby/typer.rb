@@ -256,15 +256,16 @@ module Duby
         rescue InferenceError => ex
           error(node, ex)
         rescue Exception => ex
-          error(node, ex.message)
+          error(node, ex.message, ex.backtrace)
         end
       end
 
-      def error(node, error_or_msg=nil)
+      def error(node, error_or_msg=nil, backtrace=nil)
         if error_or_msg.kind_of? InferenceError
           error = error_or_msg
         elsif error_or_msg
           error = InferenceError.new(error_or_msg, node)
+          error.set_backtrace(backtrace) if backtrace
         else
           error = InferenceError.new("Unable to infer type.", node)
         end

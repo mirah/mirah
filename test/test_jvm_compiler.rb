@@ -30,8 +30,8 @@ class TestJVMCompiler < Test::Unit::TestCase
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
-    ast = AST.parse(code)
     name = "script" + System.nano_time.to_s
+    ast = AST.parse(code, name, true)
     typer = Typer::JVM.new(name)
     ast.infer(typer)
     typer.resolve(true)
@@ -859,5 +859,38 @@ class TestJVMCompiler < Test::Unit::TestCase
     ex = assert_throw(java.lang.Throwable, "darn") do
       cls.foo
     end
+  end
+  
+  def test_rescue
+    cls, = compile(<<-EOF)
+      def foo
+        begin
+          puts "body"
+        rescue
+          puts "rescue"
+        end
+      end
+    EOF
+
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("body\n", output)
+
+    cls, = compile(<<-EOF)
+      def foo
+        begin
+          puts "body"
+          raise
+        rescue
+          puts "rescue"
+        end
+      end
+    EOF
+
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("body\nrescue\n", output)
   end
 end

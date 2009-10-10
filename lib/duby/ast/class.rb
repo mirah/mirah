@@ -4,14 +4,13 @@ module Duby::AST
     include Scope
     attr_accessor :superclass, :body, :interfaces
         
-    def initialize(parent, line_number, name)
-      super(parent, line_number)
+    def initialize(parent, line_number, name, &block)
       @interfaces = []
       @name = name
+      super(parent, line_number, &block)
       if Duby::AST.type_factory.respond_to? :declare_type
         Duby::AST.type_factory.declare_type(self)
       end
-      @children = yield(self)
       @superclass, @body = children
     end
     
@@ -54,8 +53,8 @@ module Duby::AST
     include ClassScoped
     include Typed
 
-    def initialize(parent, line_number, name)
-      super(parent, line_number, yield(self))
+    def initialize(parent, line_number, name, &block)
+      super(parent, line_number, &block)
       @name = name
       @type = children[0]
     end
@@ -80,8 +79,8 @@ module Duby::AST
     include Valued
     include ClassScoped
         
-    def initialize(parent, line_number, name)
-      super(parent, line_number, yield(self))
+    def initialize(parent, line_number, name, &block)
+      super(parent, line_number, &block)
       @value = children[0]
       @name = name
     end
@@ -101,8 +100,8 @@ module Duby::AST
     include Named
     include ClassScoped
     
-    def initialize(parent, line_number, name)
-      super(parent, line_number)
+    def initialize(parent, line_number, name, &block)
+      super(parent, line_number, &block)
       @name = name
     end
 

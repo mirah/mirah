@@ -19,11 +19,15 @@ module Duby
 
       def initialize(parent, position, children = [])
         @parent = parent
-        @children = children
         @newline = false
         @inferred_type = nil
         @resolved = false
         @position = position
+        if block_given?
+          @children = yield(self) || []
+        else
+          @children = children
+        end
       end
 
       def line_number
@@ -85,7 +89,7 @@ module Duby
     
     class ErrorNode < Node
       def initialize(parent, error)
-        super(parent, error.position.start_line + 1)
+        super(parent, error.position)
         @error = error
         @inferred_type = TypeReference::ErrorType
         @resolved = true
@@ -125,7 +129,8 @@ module Duby
       def scope
         @scope ||= begin
           scope = parent
-          scope = scope.parent until scope.class.include? Scope
+          raise "No parent for #{self.class.name} at #{line_number}" if scope.nil?
+          scope = scope.parent until scope.class.include?(Scope)
           scope
         end
       end

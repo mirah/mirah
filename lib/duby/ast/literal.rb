@@ -1,7 +1,7 @@
 module Duby::AST
   class Array < Node
-    def initialize(parent, line_number)
-      super(parent, line_number, yield(self))
+    def initialize(parent, line_number, &block)
+      super(parent, line_number, &block)
     end
   end
   

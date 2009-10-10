@@ -3,10 +3,10 @@ module Duby::AST
     include Named
     attr_accessor :parameters, :block
         
-    def initialize(parent, line_number, name)
-      @parameters, @block = children = yield(self)
+    def initialize(parent, line_number, name, &kids)
+      super(parent, line_number, &kids)
+      @parameters, @block = children
       @name = name
-      super(parent, line_number, children)
     end
         
     def infer(typer)
@@ -35,10 +35,10 @@ module Duby::AST
     include Named
     attr_accessor :target, :parameters, :block
 
-    def initialize(parent, line_number, name)
-      @target, @parameters, @block = children = yield(self)
+    def initialize(parent, line_number, name, &kids)
+      super(parent, line_number, children, &kids)
+      @target, @parameters, @block = children
       @name = name
-      super(parent, line_number, children)
     end
 
     def infer(typer)
