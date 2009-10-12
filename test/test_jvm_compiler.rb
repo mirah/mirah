@@ -892,5 +892,55 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("body\nrescue\n", output)
+
+    cls, = compile(<<-EOF)
+      def foo(a:int)
+        begin
+          puts "body"
+          if a == 0
+            raise IllegalArgumentException
+          else
+            raise
+          end
+        rescue IllegalArgumentException
+          puts "IllegalArgumentException"
+        rescue
+          puts "rescue"
+        end
+      end
+    EOF
+
+    output = capture_output do
+      cls.foo(1)
+      cls.foo(0)
+    end
+    assert_equal("body\nrescue\nbody\nIllegalArgumentException\n", output)
+
+    cls, = compile(<<-EOF)
+      def foo(a:int)
+        begin
+          puts "body"
+          if a == 0
+            raise IllegalArgumentException
+          elsif a == 1
+            raise Throwable
+          else
+            raise
+          end
+        rescue IllegalArgumentException, RuntimeException
+          puts "multi"
+        rescue Throwable
+          puts "other"
+        end
+      end
+    EOF
+
+    output = capture_output do
+      cls.foo(0)
+      cls.foo(1)
+      cls.foo(2)
+    end
+    assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
+
   end
 end

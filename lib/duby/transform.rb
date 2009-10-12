@@ -126,6 +126,14 @@ module Duby
         end
       end
 
+      class ListNode
+        include Enumerable
+        
+        def each(&block)
+          child_nodes.each(&block)
+        end
+      end
+
       class ArgsNode
         def args
           has_typed = optional &&

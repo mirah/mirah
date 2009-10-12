@@ -127,4 +127,10 @@ module Duby::AST
       false
     end
   end
+  
+  class Rescue
+    def expr(compiler)
+      false
+    end
+  end
 end

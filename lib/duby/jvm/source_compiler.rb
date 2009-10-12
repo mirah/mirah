@@ -126,8 +126,12 @@ module Duby
         @method.block 'try' do
           node.body.compile(self, expression)
         end
-        @method.block 'catch (Exception temp$ex)' do
-          node.clauses[0].body.compile(self, expression)
+        node.clauses.each do |clause|
+          clause.types.each do |type|
+            @method.block "catch (#{type.to_source} temp$ex)" do
+              clause.body.compile(self, expression)
+            end
+          end
         end
       end
 
