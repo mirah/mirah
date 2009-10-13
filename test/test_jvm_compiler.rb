@@ -943,4 +943,99 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
 
   end
+
+  def test_cast
+    cls, = compile(<<-EOF)
+      def f2b; byte(1.0); end
+      def f2s; short(1.0); end
+      def f2c; char(1.0); end
+      def f2i; int(1.0); end
+      def f2l; long(1.0); end
+      def f2d; int(1.0); end
+
+      def i2b; byte(1); end
+      def i2s; short(1); end
+      def i2c; char(1); end
+      def i2l; long(1); end
+      def i2f; float(1); end
+      def i2d; int(1); end
+
+      def b2s; short(byte(1)); end
+      def b2c; char(byte(1)); end
+      def b2i; int(byte(1)); end
+      def b2l; long(byte(1)); end
+      def b2f; float(byte(1)); end
+      def b2d; double(byte(1)); end
+
+      def s2b; byte(short(1)); end
+      def s2c; char(short(1)); end
+      def s2i; int(short(1)); end
+      def s2l; long(short(1)); end
+      def s2f; float(short(1)); end
+      def s2d; double(short(1)); end
+
+      def c2b; byte(char(1)); end
+      def c2s; short(char(1)); end
+      def c2i; int(char(1)); end
+      def c2l; long(char(1)); end
+      def c2f; float(char(1)); end
+      def c2d; double(char(1)); end
+
+      def l2b; byte(long(1)); end
+      def l2c; char(long(1)); end
+      def l2i; int(long(1)); end
+      def l2l; long(long(1)); end
+      def l2f; float(long(1)); end
+      def l2d; double(long(1)); end
+
+      def d2b; byte(1.0); end
+      def d2s; short(1.0); end
+      def d2c; char(1.0); end
+      def d2i; int(1.0); end
+      def d2l; long(1.0); end
+      def d2f; float(1.0); end
+    EOF
+
+    assert_equal 1, cls.b2s
+    assert_equal 1, cls.b2c
+    assert_equal 1, cls.b2i
+    assert_equal 1, cls.b2l
+    assert_equal 1.0, cls.b2f
+    assert_equal 1.0, cls.b2d
+
+    assert_equal 1, cls.s2b
+    assert_equal 1, cls.s2c
+    assert_equal 1, cls.s2i
+    assert_equal 1, cls.s2l
+    assert_equal 1.0, cls.s2f
+    assert_equal 1.0, cls.s2d
+
+    assert_equal 1, cls.c2b
+    assert_equal 1, cls.c2s
+    assert_equal 1, cls.c2i
+    assert_equal 1, cls.c2l
+    assert_equal 1.0, cls.c2f
+    assert_equal 1.0, cls.c2d
+
+    assert_equal 1, cls.i2b
+    assert_equal 1, cls.i2s
+    assert_equal 1, cls.i2c
+    assert_equal 1, cls.i2l
+    assert_equal 1.0, cls.i2f
+    assert_equal 1.0, cls.i2d
+
+    assert_equal 1, cls.f2b
+    assert_equal 1, cls.f2s
+    assert_equal 1, cls.f2c
+    assert_equal 1, cls.f2i
+    assert_equal 1, cls.f2l
+    assert_equal 1.0, cls.f2d
+
+    assert_equal 1, cls.d2b
+    assert_equal 1, cls.d2s
+    assert_equal 1, cls.d2c
+    assert_equal 1, cls.d2i
+    assert_equal 1, cls.d2l
+    assert_equal 1.0, cls.d2f
+  end
 end

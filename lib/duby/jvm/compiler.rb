@@ -253,6 +253,7 @@ module Duby
       end
       
       def self_call(fcall, expression)
+        return cast(fcall, expression) if fcall.cast?
         type = @type
         type = type.meta if @static
         fcall.target = ImplicitSelf.new(type)
@@ -268,6 +269,60 @@ module Duby
               [target, fcall.name, params.join(', ')]
         end
         method.call(self, fcall, expression)
+      end
+
+      def cast(fcall, expression)
+        # casting operation, not a call
+        castee = fcall.parameters[0]
+        
+        # TODO move errors to inference phase
+        source_type_name = castee.inferred_type.name
+        target_type_name = fcall.inferred_type.name
+        case source_type_name
+        when "byte", "short", "char", "int", "long", "float", "double"
+          case target_type_name
+          when "byte", "short", "char", "int", "long", "float", "double"
+            # ok
+            primitive = true
+          else
+            raise TypeError.new "not a reference type: #{castee.inferred_type}"
+          end
+        when "boolean"
+          if target_type_name != "boolean"
+            raise TypeError.new "not a boolean type: #{castee.inferred_type}"
+          end
+          primitive = true
+        else
+          case target_type_name
+          when "byte", "short", "char", "int", "long", "float", "double"
+            raise TypeError.new "not a primitive type: #{castee.inferred_type}"
+          else
+            # ok
+            primitive = false
+          end
+        end
+
+        castee.compile(self, expression)
+        if expression
+          if primitive
+            source_type_name = 'int' if %w[byte short char].include? source_type_name
+            if (source_type_name != 'int') && (%w[byte short char].include? target_type_name)
+              target_type_name = 'int'
+            end
+
+            if source_type_name != target_type_name
+              if RUBY_VERSION == "1.9"
+                @method.send "#{source_type_name[0]}2#{target_type_name[0]}"
+              else
+                @method.send "#{source_type_name[0].chr}2#{target_type_name[0].chr}"
+              end
+            end
+          else
+            if source_type_name != target_type_name
+              @method.checkcast fcall.inferred_type
+            end
+          end
+        end
       end
       
       def body(body, expression)
