@@ -9,3 +9,12 @@ frame.setVisible true
 button = JButton.new "Press me"
 frame.add button
 frame.show
+
+class AL; implements ActionListener
+  def initialize; end
+  def actionPerformed(event)
+    JButton(event.getSource).setText "Duby Rocks!"
+  end
+end
+
+button.addActionListener AL.new
