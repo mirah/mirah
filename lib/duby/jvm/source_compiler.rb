@@ -341,7 +341,13 @@ module Duby
       end
 
       def self_call(call, expression)
-        method_call(this, call, compile_args(call), expression)
+        if call.cast?
+          @method.print "(#{call.inferred_type.name})("
+          compile_args(call).each{|arg| arg.compile(self, true)}
+          @method.print ")"
+        else
+          method_call(this, call, compile_args(call), expression)
+        end
       end
 
       def call(call, expression)
