@@ -1009,6 +1009,15 @@ class TestJVMCompiler < Test::Unit::TestCase
       def d2i; int(1.0); end
       def d2l; long(1.0); end
       def d2f; float(1.0); end
+      
+      def hard_i2f(a:int)
+        float(if a < 0
+          a *= -1
+          a * 2
+        else
+          a * 2
+        end)
+      end
     EOF
 
     assert_equal 1, cls.b2s
@@ -1052,5 +1061,8 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal 1, cls.d2i
     assert_equal 1, cls.d2l
     assert_equal 1.0, cls.d2f
+    
+    assert_equal 2.0, cls.hard_i2f(1)
+    assert_equal 4.0, cls.hard_i2f(-2)
   end
 end

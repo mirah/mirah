@@ -91,7 +91,7 @@ module Duby::AST
     
     def expr?(compiler)
       parameters.all? {|p| p.expr?(compiler)} &&
-          !method(compiler).actual_return_type.void?      
+          (cast? || !method(compiler).actual_return_type.void?)
     end
   end
   

@@ -343,9 +343,13 @@ module Duby
 
       def self_call(call, expression)
         if call.cast?
+          args = compile_args(call)
+          simple = call.expr?(self)
+          @method.print @lvalue if expression && !simple
           @method.print "(#{call.inferred_type.name})("
-          compile_args(call).each{|arg| arg.compile(self, true)}
+          args.each{|arg| arg.compile(self, true)}
           @method.print ")"
+          @method.puts ';' unless simple && expression
         else
           method_call(this, call, compile_args(call), expression)
         end
