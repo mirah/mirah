@@ -942,5 +942,20 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
     assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
 
+    cls, = compile(<<-EOF)
+      def foo
+        begin
+          raise "foo"
+        rescue => ex
+          puts ex.getMessage
+        end
+      end
+    EOF
+
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("foo\n", output)
+
   end
 end

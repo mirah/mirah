@@ -444,8 +444,13 @@ module Duby
         @method.goto(done)
         rescue_node.clauses.each do |clause|
           target = @method.label.set!
-          @method.pop
+          if clause.name
+            @method.astore(@method.push_local(clause.name, clause.type))
+          else
+            @method.pop
+          end
           clause.body.compile(self, expression)
+          @method.pop_local(clause.name) if clause.name
           @method.goto(done)
           clause.types.each do |type|
             @method.trycatch(start, body_end, target, type)

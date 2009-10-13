@@ -634,6 +634,15 @@ module Duby
           case value_node
           when SymbolNode, ConstNode
             LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
+          when JRubyAst::GlobalVarNode
+            real_parent = parent
+            real_parent = parent.parent if Body === real_parent
+            if value_node.name == '$!' && RescueClause === real_parent
+              real_parent.name = name
+              Noop.new(parent, position)
+            else
+              raise "Illegal global variable"
+            end
           else
             LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
           end

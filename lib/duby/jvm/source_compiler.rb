@@ -128,7 +128,8 @@ module Duby
         end
         node.clauses.each do |clause|
           clause.types.each do |type|
-            @method.block "catch (#{type.to_source} temp$ex)" do
+            name = clause.name || 'tmp$ex'
+            @method.block "catch (#{type.to_source} #{name})" do
               clause.body.compile(self, expression)
             end
           end
