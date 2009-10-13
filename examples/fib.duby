@@ -8,9 +8,17 @@ def fib(a:int)
   end
 end
 
-time_start = System.currentTimeMillis
-puts "fib(45):"
-puts fib(45)
-time_total = System.currentTimeMillis - time_start
-puts "Total time:"
-puts time_total
+def bench(times:int)
+  while times > 0
+    time_start = System.currentTimeMillis
+    puts "fib(45):"
+    puts fib(45)
+    time_total = System.currentTimeMillis - time_start
+    puts "Total time:"
+    puts time_total
+    times -= 1
+  end
+  nil
+end
+
+bench 10
