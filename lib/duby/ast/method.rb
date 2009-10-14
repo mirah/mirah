@@ -108,6 +108,9 @@ module Duby::AST
         else
           forced_type
         end
+        if actual_type.unreachable?
+          actual_type = typer.no_type
+        end
         
         if !abstract? &&
             forced_type != typer.no_type &&

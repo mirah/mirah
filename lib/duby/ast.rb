@@ -205,12 +205,18 @@ module Duby
       
       def compatible?(other)
         # default behavior is only exact match right now
-        self == other
+        self == other ||
+            error? || other.error? ||
+            unreachable? || other.unreachable?
       end
 
       def narrow(other)
         # only exact match allowed for now, so narrowing is a noop
-        self
+        if error? || unreachable?
+          other
+        else
+          self
+        end
       end
 
       def unmeta
@@ -225,9 +231,14 @@ module Duby
         name == :error
       end
 
+      def unreachable?
+        name == :unreachable
+      end
+
       NoType = TypeReference.new(:notype)
       NullType = TypeReference.new(:null)
       ErrorType = TypeReference.new(:error)
+      UnreachableType = TypeReference.new(:unreachable)
     end
 
     class TypeDefinition < TypeReference
@@ -270,6 +281,10 @@ module Duby
     
     def self.error_type
       TypeReference::ErrorType
+    end
+
+    def self.unreachable_type
+      TypeReference::UnreachableType
     end
 
     def self.fixnum(parent, position, literal)

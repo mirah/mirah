@@ -254,6 +254,7 @@ module Duby
         begin
           node.infer(self)
         rescue InferenceError => ex
+          ex.node ||= node
           error(node, ex)
         rescue Exception => ex
           error(node, ex.message, ex.backtrace)

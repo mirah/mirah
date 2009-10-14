@@ -53,9 +53,14 @@ module Duby
           assignable_from?(other)
         end
         
+        def compatible?(other)
+          assignable_from?(other)
+        end
+        
         def assignable_from?(other)
           return true if !primitive? && other == Null
           return true if other == self
+          return true if other.error? || other.unreachable?
           begin
             jvm_type.assignable_from?(other.jvm_type)
           rescue

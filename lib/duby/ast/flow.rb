@@ -175,9 +175,7 @@ module Duby
 
       def infer(typer)
         unless resolved?
-          # TODO this should probably be a special type that's
-          # compatible with everything so [if foo;raise; else bar;end] works.
-          @inferred_type = typer.no_type
+          @inferred_type = AST.unreachable_type
           throwable = AST.type('java.lang.Throwable')
           if children.size == 1
             arg_type = typer.infer(children[0])
