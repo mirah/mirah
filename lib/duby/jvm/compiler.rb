@@ -174,9 +174,6 @@ module Duby
         with(:break_label => @method.label,
              :redo_label => @method.label,
              :next_label => @method.label) do
-          donelabel = @method.label
-          beforelabel = @method.label
-        
           # TODO: not checking "check first" or "negative"
           predicate = loop.condition.predicate
 
@@ -192,7 +189,7 @@ module Duby
           end
         
           @redo_label.set!
-          loop.body.compile(self, expression)
+          loop.body.compile(self, false)
         
           unless loop.check_first
             @next_label.set!

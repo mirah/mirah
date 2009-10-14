@@ -115,8 +115,9 @@ module Duby
           end
         end
         
-        typer.null_type
+        @inferred_type ||= typer.null_type
       end
+      @inferred_type
     end
 
     class Not < Node
