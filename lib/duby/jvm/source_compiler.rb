@@ -328,10 +328,12 @@ module Duby
           @method.print op
           target.compile(self, true)
         else
+          @method.print '('
           other = params[0]
           target.compile(self, true)
           @method.print " #{op} "
           other.compile(self, true)
+          @method.print ')'
         end
         unless expression && simple
           @method.puts ';'
