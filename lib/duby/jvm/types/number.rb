@@ -76,6 +76,7 @@ module Duby::JVM::Types
       boolean_operator('<', :lt)
       boolean_operator('<=', :le)
       boolean_operator('==', :eq)
+      boolean_operator('!=', :ne)
       boolean_operator('>=', :ge)
       boolean_operator('>', :gt)
       math_operator('+', :add)
