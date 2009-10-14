@@ -124,15 +124,24 @@ module Duby
       
       def rescue(node, expression)
         @method.block 'try' do
-          node.body.compile(self, expression)
+          maybe_store(node.body, expression)
         end
         node.clauses.each do |clause|
           clause.types.each do |type|
             name = clause.name || 'tmp$ex'
             @method.block "catch (#{type.to_source} #{name})" do
-              clause.body.compile(self, expression)
+              maybe_store(clause.body, expression)
             end
           end
+        end
+      end
+      
+      def ensure(node, expression)
+        @method.block 'try' do
+          maybe_store(node.body, expression)
+        end
+        @method.block 'finally' do
+          node.clause.compile(self, false)
         end
       end
 
@@ -397,15 +406,15 @@ module Duby
         end
       end
       
-      def break
+      def break(node)
         @method.puts "break;"
       end
       
-      def next
+      def next(node)
         @method.puts "break #{@loop};"
       end
       
-      def redo
+      def redo(node)
         @method.puts "#{@redo} = true;"
         @method.puts "break #{@loop};"
       end

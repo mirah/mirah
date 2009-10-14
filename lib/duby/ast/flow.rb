@@ -85,7 +85,7 @@ module Duby
     end
 
     class Loop < Node
-      attr_accessor :condition, :body, :check_first, :negative
+      attr_accessor :condition, :body, :check_first, :negative, :redo
 
       def initialize(parent, line_number, check_first, negative, &block)
         super(parent, line_number, children, &block)
@@ -96,6 +96,7 @@ module Duby
 
       def check_first?; @check_first; end
       def negative?; @negative; end
+      def has_redo?; @redo; end
 
       def to_s
         "Loop(check_first = #{check_first?}, negative = #{negative?})"
@@ -124,11 +125,20 @@ module Duby
       end
     end
 
-    class Return < Node
+    class JumpNode < Node
+      attr_accessor :ensures
+      
+      def initialize(parent, line_number, ensures, &block)
+        super(parent, line_number, &block)
+        @ensures = ensures
+      end
+    end
+
+    class Return < JumpNode
       include Valued
 
-      def initialize(parent, line_number, &block)
-        super(parent, line_number, &block)
+      def initialize(parent, line_number, ensures, &block)
+        super(parent, line_number, ensures, &block)
         @value = children[0]
       end
 
@@ -143,7 +153,7 @@ module Duby
       end
     end
 
-    class Break < Node;
+    class Break < JumpNode;
       def infer(typer)
         unless resolved?
           resolved!
@@ -249,6 +259,27 @@ module Duby
           end
         end
         @inferred_type
+      end
+    end
+    
+    class Ensure < Node
+      attr_reader :body, :clause
+      attr_accessor :state  # Used by the some compilers.
+      
+      def initialize(parent, position, &block)
+        super(parent, position, &block)
+        @body, @clause = children
+      end
+      
+      def infer(typer)
+        resolve_if(typer) do
+          typer.infer(clause)
+          typer.infer(body)
+        end
+      end
+      
+      def ensures
+        [self]
       end
     end
   end

@@ -214,15 +214,18 @@ module Duby
         end
       end
       
-      def break
+      def break(node)
+        handle_ensures(node)
         @method.goto(@break_label)
       end
       
-      def next
+      def next(node)
+        handle_ensures(node)
         @method.goto(@next_label)
       end
       
-      def redo
+      def redo(node)
+        handle_ensures(node)
         @method.goto(@redo_label)
       end
       
@@ -481,7 +484,7 @@ module Duby
 
       def return(return_node)
         return_node.value.compile(self, true)
-
+        handle_ensures(return_node)
         return_node.inferred_type.return(@method)
       end
 
@@ -511,6 +514,29 @@ module Duby
             @method.trycatch(start, body_end, target, type)
           end
         end
+        done.set!
+      end
+
+      def handle_ensures(node)
+        return unless node.ensures
+        node.ensures.each do |ensure_node|
+          ensure_node.clause.compile(self, false)
+        end
+      end
+
+      def ensure(node, expression)
+        node.state = @method.label  # Save the ensure target for JumpNodes
+        start = @method.label.set!
+        body_end = @method.label
+        done = @method.label
+        node.body.compile(self, expression)  # First compile the body
+        body_end.set!
+        handle_ensures(node)  # run the ensure clause
+        @method.goto(done)  # and continue on after the exception handler
+        target = @method.label.set!  # Finally, create the exception handler
+        @method.trycatch(start, body_end, target, nil)
+        handle_ensures(node)
+        @method.athrow
         done.set!
       end
 

@@ -123,13 +123,19 @@ module Duby::AST
   end
   
   class Raise
-    def expr(compiler)
+    def expr?(compiler)
       false
     end
   end
   
   class Rescue
-    def expr(compiler)
+    def expr?(compiler)
+      false
+    end
+  end
+  
+  class Ensure
+    def expr?(compiler)
       false
     end
   end
