@@ -140,7 +140,7 @@ module Duby
       def scope
         @scope ||= begin
           scope = parent
-          scope = scope.parent until ClassDefinition === scope
+          scope = scope.parent until scope.nil? || ClassDefinition === scope
           scope
         end
       end
