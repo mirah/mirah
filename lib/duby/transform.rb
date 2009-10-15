@@ -57,10 +57,18 @@ module Duby
           @errors << ex
           Duby::AST::ErrorNode.new(parent, ex)
         rescue Exception => ex
-          error = Transform::Error.new(ex.message, node.position, ex)
+          error = Error.new(ex.message, node.position, ex)
           @errors << error
           Duby::AST::ErrorNode.new(parent, error)
         end
+      end
+      
+      def expand(fcall, parent)
+        result = yield self, fcall, parent
+        unless result.kind_of?(AST::Node)
+          raise Error.new('Invalid macro result', fcall.position)
+        end
+        result
       end
     end
   end
@@ -434,99 +442,15 @@ module Duby
         end
         
         def transform(transformer, parent)
-          # TODO This should probably be pluggable
           @declaration ||= false
 
           if @declaration
             return Noop.new(parent, position)
           end
 
-          case name
-          when "import"
-            case args_node
-            when ArrayNode
-              case args_node.size
-              when 1
-                node = args_node.get(0)
-                case node
-                when StrNode
-                  long = node.value
-                  short = long[(long.rindex('.') + 1)..-1]
-                when CallNode
-                  case node.args_node.size
-                  when 0
-                    pieces = [node.name]
-                    while node.kind_of? CallNode
-                      node = node.receiver_node
-                      pieces << node.name
-                    end
-                    long = pieces.reverse.join '.'
-                    short = pieces[0]
-                  when 1
-                    arg = node.args_node.get(0)
-                    unless FCallNode === arg && arg.name == 'as' && arg.args_node.size == 1
-                      raise TransformError.new("unknown import syntax", args_node)
-                    end
-                    short = arg.args_node.get(0).name
-                    pieces = [node.name]
-                    while node.kind_of? CallNode
-                      node = node.receiver_node
-                      pieces << node.name
-                    end
-                    long = pieces.reverse.join '.'
-                  else
-                    raise TransformError.new("unknown import syntax", args_node)
-                  end
-                else
-                  raise TransformError.new("unknown import syntax", args_node)
-                end
-              when 2
-                short = args_node.child_nodes[0].value
-                long = args_node.child_nodes[1].value
-              else
-                raise TransformError.new("unknown import syntax", args_node)
-              end
-            else
-              raise TransformError.new("unknown import syntax", args_node)
-            end
-            Import.new(parent, position, short, long)
-          when "puts"
-            PrintLine.new(parent, position) do |println|
-              args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, println)} : []
-            end
-          when "null"
-            Null.new(parent, position)
-          when "implements"
-            interfaces = args_node.child_nodes.map do |interface|
-              interface.type_reference(parent)
-            end
-            parent.parent.implements(*interfaces)
-            Noop.new(parent, position)
-          when "interface"
-            raise "Interface name required" unless args_node
-            interfaces = args_node.child_nodes.to_a
-            interface_name = interfaces.shift
-            if CallNode === interface_name && interface_name.args_node.size == 1
-              interfaces.unshift(interface_name.args_node.get(0))
-              interface_name = interface_name.receiver_node
-            end
-            raise 'Interface body required' unless iter_node
-            InterfaceDeclaration.new(parent, position,
-                                     interface_name.name) do |interface|
-              [interfaces.map {|p| p.type_reference(interface)},
-               if iter_node.body_node
-                 transformer.transform(iter_node.body_node, interface)
-               end
-              ]
-            end
-          when "raise"
-            Raise.new(parent, position) do |raise_node|
-              if args_node
-                args_node.child_nodes.map do |arg|
-                  transformer.transform(arg, raise_node)
-                end
-              end
-            end
+          macro = AST.macro(name)
+          if macro
+            transformer.expand(self, parent, &macro)
           else
             FunctionalCall.new(parent, position, name) do |call|
               [
@@ -784,6 +708,8 @@ module Duby
             Raise.new(parent, position) do
               []
             end
+          elsif name == 'null'
+            Null.new(parent, position)
           else
             FunctionalCall.new(parent, position, name) do |call|
               [

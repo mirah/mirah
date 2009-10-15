@@ -35,6 +35,14 @@ module Duby::AST
       @interfaces.concat types
     end
   end
+  
+  defmacro('implements') do |transformer, fcall, parent|
+    interfaces = fcall.args_node.child_nodes.map do |interface|
+      interface.type_reference(parent)
+    end
+    parent.parent.implements(*interfaces)
+    Noop.new(parent, fcall.position)
+  end
 
   class InterfaceDeclaration < ClassDefinition
     attr_accessor :superclass, :body, :interfaces
@@ -45,6 +53,26 @@ module Duby::AST
       @name = name
       @children = yield(self)
       @interfaces, @body = children
+    end
+  end
+
+  defmacro('interface') do |transformer, fcall, parent|
+    raise "Interface name required" unless fcall.args_node
+    interfaces = fcall.args_node.child_nodes.to_a
+    interface_name = interfaces.shift
+    if (JRubyAst::CallNode === interface_name &&
+        interface_name.args_node.size == 1)
+      interfaces.unshift(interface_name.args_node.get(0))
+      interface_name = interface_name.receiver_node
+    end
+    raise 'Interface body required' unless fcall.iter_node
+    InterfaceDeclaration.new(parent, fcall.position,
+                             interface_name.name) do |interface|
+      [interfaces.map {|p| p.type_reference(interface)},
+       if fcall.iter_node.body_node
+         transformer.transform(fcall.iter_node.body_node, interface)
+       end
+      ]
     end
   end
 

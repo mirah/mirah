@@ -210,7 +210,17 @@ module Duby
         @inferred_type
       end
     end
-    
+
+    defmacro('raise') do |transformer, fcall, parent|
+      Raise.new(parent, fcall.position) do |raise_node|
+        if fcall.args_node
+          fcall.args_node.child_nodes.map do |arg|
+            transformer.transform(arg, raise_node)
+          end
+        end
+      end
+    end
+
     class RescueClause < Node
       include Scoped
       attr_accessor :types, :body, :name, :type

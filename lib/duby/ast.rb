@@ -304,6 +304,16 @@ module Duby
         Float.new(parent, position, literal)
       end      
     end
+    
+    def self.defmacro(name, &block)
+      @macros ||= {}
+      raise "Conflicting macros for #{name}" if @macros[name]
+      @macros[name] = block
+    end
+    
+    def self.macro(name)
+      @macros[name]
+    end
   end
 end
 

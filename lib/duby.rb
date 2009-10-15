@@ -116,6 +116,10 @@ class DubyImpl
       when '-d'
         args.shift
         @dest = File.join(args.shift, '')
+      when '-p'
+        args.shift
+        plugin = args.shift
+        require "duby/plugin/#{plugin}"
       else
         break
       end
