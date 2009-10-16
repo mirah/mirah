@@ -13,7 +13,7 @@ module Duby::AST
         
     def infer(typer)
       @self_type ||= typer.self_type
-      
+
       unless @inferred_type
         receiver_type = @self_type
         should_defer = false

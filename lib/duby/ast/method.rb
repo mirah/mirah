@@ -95,6 +95,7 @@ module Duby::AST
     end
     
     def infer(typer)
+      @defining_class ||= typer.self_type
       typer.infer_signature(self)
       typer.infer(arguments)
       forced_type = signature[:return]
@@ -120,7 +121,7 @@ module Duby::AST
               [inferred_type, actual_type], self)
         end
 
-        @inferred_type = typer.learn_method_type(typer.self_type, name, arguments.inferred_type, actual_type, signature[:throws])
+        @inferred_type = typer.learn_method_type(@defining_class, name, arguments.inferred_type, actual_type, signature[:throws])
         signature[:return] = @inferred_type
       end
         
