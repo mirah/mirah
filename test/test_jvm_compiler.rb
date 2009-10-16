@@ -495,7 +495,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
-    return
+    
     cls, = compile(
         'def foo(a => :fixnum);begin;a -= 1; puts ".";end while a > 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
@@ -513,6 +513,10 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
+
+    cls, = compile(
+        'def foo; a = 0; while a < 2; a+=1; end; end')
+    assert_equal(nil, cls.foo)
   end
 
   def test_break
