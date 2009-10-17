@@ -41,7 +41,7 @@ module Duby
         
         def compile(compiler, expression)
           if expression
-            compiler.method.this
+            compiler.method.aload(0)
           end
         end
       end
@@ -91,13 +91,16 @@ module Duby
         end
         return_type = signature[:return]
         exceptions = signature[:throws]
+        started = false
         if @static
           method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
         else
           if name == "initialize"
             method = @class.public_constructor(exceptions, *arg_types)
+            method.start
             method.aload 0
             method.invokespecial @method.object, "<init>", [@method.void]
+            started = true
           else
             method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
           end
@@ -108,7 +111,7 @@ module Duby
         with :method => method do
           log "Starting new method #{name}(#{arg_types})"
 
-          @method.start
+          @method.start unless started
 
           # declare all args so they get their values
           if args.args

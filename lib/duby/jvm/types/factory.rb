@@ -51,7 +51,9 @@ module Duby::JVM::Types
     end
     
     def basic_type(name)
-      return name.basic_type if name.kind_of? Type
+      if name.kind_of?(Type) || name.kind_of?(NarrowingType)
+        return name.basic_type 
+      end
       orig = name
       if name.kind_of? Java::JavaClass
         if name.array?
