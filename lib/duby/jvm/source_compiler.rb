@@ -37,7 +37,7 @@ module Duby
         package = parts.join('.') unless parts.empty?
 
         @file = Duby::JavaSource::Builder.new(filename, self)
-        @file.package = package
+        #@file.package = package
         @class = @file.public_class(classname)
       end
 
@@ -348,7 +348,7 @@ module Duby
       end
 
       def self_type
-        type = AST::type(@class.name)
+        type = AST::type(@class.name.tr('/', '.'))
         type = type.meta if @static
         type
       end

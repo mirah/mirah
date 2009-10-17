@@ -136,6 +136,11 @@ module Duby
         else
           @name = name
         end
+        if name =~ %r{[/.]}
+          pieces = name.split(%r{[/.]})
+          name = pieces.pop
+          @package = pieces.join('.')
+        end
         @class_name = name
         @superclass = superclass || JVMTypes::Object
         @interfaces = interfaces
