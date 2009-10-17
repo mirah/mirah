@@ -52,11 +52,9 @@ module Duby
         @filename = File.basename(filename)
         @src = ""
         @static = true
-        package = File.dirname(filename).tr('/', '.')
         classname = File.basename(filename, '.duby')
 
         @file = BiteScript::FileBuilder.new(@filename)
-        @file.package = package
         AST.type_factory.define_types(@file)
         @type = AST::type(classname)
         @class = @type.define(@file)

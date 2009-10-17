@@ -257,7 +257,7 @@ module Duby
         end
         
         def define(builder)
-          class_name = @name.split('.')[-1]
+          class_name = @name.tr('.', '/')
           @type ||= builder.public_class(class_name, superclass, *interfaces)
         end
         
