@@ -28,10 +28,13 @@ module Duby::JVM::Types
       end
     end
 
-    def initialize
+    def initialize(filename='')
       @known_types = ParanoidHash.new
       @known_types.update(BASIC_TYPES)
       @declarations = []
+      @package = File.dirname(filename).tr('/', '.')
+      @package.sub! /^\.+/, ''
+      @package = nil if @package.empty?
     end
 
     def define_types(builder)
@@ -89,7 +92,12 @@ module Duby::JVM::Types
         existing.node ||= node
         existing
       else
-        @known_types[name] = TypeDefinition.new(name, node)
+        full_name = name
+        if !name.include?('.') && package
+          full_name = "#{package}.#{name}"
+        end
+        @known_types[full_name] = TypeDefinition.new(full_name, node)
+        @known_types[name] = @known_types[full_name]
       end
     end
 

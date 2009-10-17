@@ -229,6 +229,7 @@ module Duby
           if name.class_builder?
             super(name)
           else
+            raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
             @name = name
           end
           @node = node
@@ -256,7 +257,8 @@ module Duby
         end
         
         def define(builder)
-          @type ||= builder.public_class(@name, superclass, *interfaces)
+          class_name = @name.split('.')[-1]
+          @type ||= builder.public_class(class_name, superclass, *interfaces)
         end
         
         def meta

@@ -65,13 +65,13 @@ class DubyImpl
     process_flags!(args)
     @filename = args.shift
 
-    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
     if @filename == '-e'
       @filename = 'dash_e'
       src = args[0]
     else
       src = File.read(@filename)
     end
+    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
     ast = Duby::AST.parse_ruby(src, @filename)
     @transformer = Duby::Transform::Transformer.new
     ast = @transformer.transform(ast, nil)
