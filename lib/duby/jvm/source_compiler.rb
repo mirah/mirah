@@ -113,7 +113,7 @@ module Duby
         end
       end
 
-      def raise(node)
+      def _raise(node)
         if node.expr?(self)
           @method.print 'throw '
           node.compile(self, true)
@@ -172,10 +172,9 @@ module Duby
       end
 
       def local_assign(name, type, expression, value)
-        simple = method.local?(name) && value.expr?(self)
         value = value.precompile(self)
         if method.local?(name)
-          @method.print @lvalue if expression && !simple
+          @method.print @lvalue if expression
           @method.print "#{name} = "
           value.compile(self, true)
           @method.puts ';'
@@ -183,7 +182,7 @@ module Duby
           @method.declare_local(type, name) do
             value.compile(self, true)
           end
-          if expression && !simple
+          if expression
             @method.puts "#{@lvalue}#{name};"
           end
         end

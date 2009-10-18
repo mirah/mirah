@@ -78,6 +78,17 @@ module Duby::JVM::Types
           end
         end
       end
+      
+      add_method('!=', [Object], Boolean) do |compiler, call, expression|
+        # Should this call Object.equals for consistency with Ruby?
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.op_to_bool do |target|
+            compiler.method.if_acmpne(target)
+          end
+        end
+      end
     end
   end
   

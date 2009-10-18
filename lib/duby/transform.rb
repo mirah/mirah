@@ -291,10 +291,12 @@ module Duby
               end
             end
           when /=$/
-            actual_name = name[0..-2] + '_set'
+            if name.size > 2 || name =~ /^\w/
+              actual_name = name[0..-2] + '_set'
+            end
           end
           
-          Call.new(parent, position, name) do |call|
+          Call.new(parent, position, actual_name) do |call|
             [
               transformer.transform(receiver_node, call),
               args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],

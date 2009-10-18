@@ -234,6 +234,10 @@ module Duby
       def unreachable?
         name == :unreachable
       end
+      
+      def primitive?
+        true
+      end
 
       NoType = TypeReference.new(:notype)
       NullType = TypeReference.new(:null)

@@ -11,6 +11,14 @@ module Duby
       def infer(typer)
         unless resolved?
           @inferred_type = typer.infer(predicate)
+          if @inferred_type && !@inferred_type.primitive?
+            call = Call.new(parent, position, '!=') do |call|
+              @predicate.parent = call
+              [@predicate, [Null.new(call, position)]]
+            end
+            @predicate = children[0] = call
+            @inferred_type = typer.infer(predicate)
+          end
 
           @inferred_type ? resolved! : typer.defer(self)
         end

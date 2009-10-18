@@ -172,17 +172,17 @@ class TestTyper < Test::Unit::TestCase
   end
   
   def test_if
-    ast = AST.parse("if 1; 1.0; else; ''; end").body
+    ast = AST.parse("if true; 1.0; else; ''; end").body
     typer = Typer::Simple.new("bar")
     
     # incompatible body types
     assert_raise(Typer::InferenceError) {ast.infer(typer)}
     
-    ast = AST.parse("if 1; 1.0; else; 2.0; end").body
+    ast = AST.parse("if true; 1.0; else; 2.0; end").body
     
-    assert_nothing_raised {ast.infer(typer)}
+    assert_nothing_raised {ast.infer(typer); typer.resolve(true)}
     
-    assert_equal(typer.fixnum_type, ast.condition.inferred_type)
+    assert_equal(typer.boolean_type, ast.condition.inferred_type)
     assert_equal(typer.float_type, ast.body.inferred_type)
     assert_equal(typer.float_type, ast.else.inferred_type)
     

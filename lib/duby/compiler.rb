@@ -233,7 +233,7 @@ module Duby
     class Raise
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.raise(@exception)
+        compiler._raise(@exception)
       end
     end
 

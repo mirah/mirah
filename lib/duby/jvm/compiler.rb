@@ -486,7 +486,7 @@ module Duby
         return_node.inferred_type.return(@method)
       end
 
-      def raise(exception)
+      def _raise(exception)
         exception.compile(self, true)
         @method.athrow
       end

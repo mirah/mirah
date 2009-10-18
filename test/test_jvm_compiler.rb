@@ -247,7 +247,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("import 'System', 'java.lang.System'; def foo; System.gc; end; foo")
     assert_nothing_raised {cls.foo}
   end
-
+  
   def test_import
     cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
@@ -1108,5 +1108,27 @@ class TestJVMCompiler < Test::Unit::TestCase
     
     assert_equal 2.0, cls.hard_i2f(1)
     assert_equal 4.0, cls.hard_i2f(-2)
+  end
+  
+  def test_set
+    cls, = compile(<<-EOF)
+      def foo
+        @foo
+      end
+      
+      def foo=(foo:int)
+        @foo = foo
+      end
+    EOF
+    
+    assert_equal(0, cls.foo)
+    assert_equal(2, cls.foo_set(2))
+    assert_equal(2, cls.foo)
+  end
+  
+  def test_null_is_false
+    cls, = compile("def foo(a:String);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo("a"))
+    assert_equal(false, cls.foo(nil))
   end
 end
