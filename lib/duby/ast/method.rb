@@ -86,7 +86,7 @@ module Duby::AST
   class MethodDefinition < Node
     include Named
     include Scope
-    attr_accessor :signature, :arguments, :body
+    attr_accessor :signature, :arguments, :body, :defining_class
         
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
@@ -121,7 +121,7 @@ module Duby::AST
               [inferred_type, actual_type], self)
         end
 
-        @inferred_type = typer.learn_method_type(@defining_class, name, arguments.inferred_type, actual_type, signature[:throws])
+        @inferred_type = typer.learn_method_type(defining_class, name, arguments.inferred_type, actual_type, signature[:throws])
         signature[:return] = @inferred_type
       end
         
@@ -135,8 +135,19 @@ module Duby::AST
       end
       InterfaceDeclaration === node
     end
+    
+    def static?
+      false
+    end
   end
       
   class StaticMethodDefinition < MethodDefinition
+    def defining_class
+      @defining_class.meta
+    end
+    
+    def static?
+      true
+    end
   end
 end

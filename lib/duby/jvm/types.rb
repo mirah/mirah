@@ -220,6 +220,10 @@ module Duby
         def basic_type
           component_type.basic_type
         end
+        
+        def superclass
+          Object
+        end
       end
       
       class TypeDefinition < Type

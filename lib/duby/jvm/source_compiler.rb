@@ -69,11 +69,11 @@ module Duby
         log "Main method complete!"
       end
 
-      def define_method(name, signature, args, body)
+      def define_method(name, signature, args, body, force_static)
         args = args.args || []
         return_type = signature[:return]
         exceptions = signature[:throws] || []
-        if @static
+        if @static || force_static
           method = @class.public_static_method(name.to_s, return_type, exceptions, *args)
         else
           if name == "initialize"
@@ -83,7 +83,7 @@ module Duby
           end
         end
 
-        with :method => method do
+        with :method => method, :static => @static || force_static do
           log "Starting new method #{name}"
 
           @method.start

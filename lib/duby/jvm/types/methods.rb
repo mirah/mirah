@@ -71,7 +71,7 @@ module Duby::JVM::Types
     
     def argument_types
       @argument_types ||= @member.argument_types.map do |arg|
-        AST.type(arg)
+        AST.type(arg) if arg
       end
     end
     
@@ -252,8 +252,12 @@ module Duby::JVM::Types
     end
 
     def declared_instance_methods
-      methods = jvm_type.declared_instance_methods.map do |method|
-        JavaMethod.new(method)
+      if jvm_type && !array?
+        methods = jvm_type.declared_instance_methods.map do |method|
+          JavaMethod.new(method)
+        end
+      else
+        methods = []
       end
       methods.concat((meta? ? unmeta : self).declared_intrinsics)
     end

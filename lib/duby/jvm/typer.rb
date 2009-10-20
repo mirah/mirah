@@ -45,12 +45,11 @@ module Duby
       
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
         static = target_type.meta?
-        target_type = target_type.unmeta if static
-        unless target_type.kind_of?(TypeDefinition)
+        unless target_type.unmeta.kind_of?(TypeDefinition)
           raise "Method defined on #{target_type}"
         end
         if static
-          target_type.declare_static_method(name, parameter_types, type, exceptions)
+          target_type.unmeta.declare_static_method(name, parameter_types, type, exceptions)
         else
           target_type.declare_method(name, parameter_types, type, exceptions)
         end
@@ -73,7 +72,7 @@ module Duby
           while classes.size > 0
             cls = classes.pop
             if static
-              methods = cls.declared_static_methods
+              methods = cls.declared_class_methods
             else
               methods = cls.declared_instance_methods
             end

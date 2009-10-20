@@ -152,7 +152,7 @@ module Duby
             parameter_types.any? {|t| t && t.error?}
           return AST.error_type
         end
-        constructor = (name == 'new' && target_type.meta?)
+        constructor = (name == 'new' && target_type && target_type.meta?)
 
         if constructor
           # constructor handled different from other methods

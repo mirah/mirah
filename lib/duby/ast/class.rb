@@ -7,10 +7,10 @@ module Duby::AST
     def initialize(parent, line_number, name, &block)
       @interfaces = []
       @name = name
-      super(parent, line_number, &block)
       if Duby::AST.type_factory.respond_to? :declare_type
         Duby::AST.type_factory.declare_type(self)
       end
+      super(parent, line_number, &block)
       @superclass, @body = children
     end
     

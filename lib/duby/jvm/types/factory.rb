@@ -67,6 +67,7 @@ module Duby::JVM::Types
       name = name.to_s unless name.kind_of?(::String)
       return @known_types[name].basic_type if @known_types[name]
       raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
+      raise ArgumentError, "Bad Type #{orig.inspect}" if name == '' || name.nil?
       full_name = name
       begin
         @known_types[name] = Type.new(Java::JavaClass.for_name(full_name))

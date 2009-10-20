@@ -83,7 +83,7 @@ module Duby
         log "Main method complete!"
       end
       
-      def define_method(name, signature, args, body)
+      def define_method(name, signature, args, body, force_static)
         arg_types = if args.args
           args.args.map { |arg| arg.inferred_type }
         else
@@ -92,14 +92,14 @@ module Duby
         return_type = signature[:return]
         exceptions = signature[:throws]
         started = false
-        if @static
+        if @static || force_static
           method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
         else
           if name == "initialize"
             method = @class.public_constructor(exceptions, *arg_types)
             method.start
             method.aload 0
-            method.invokespecial @method.object, "<init>", [@method.void]
+            method.invokespecial @class.superclass, "<init>", [@method.void]
             started = true
           else
             method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
@@ -108,7 +108,7 @@ module Duby
 
         return if @class.interface?
 
-        with :method => method do
+        with :method => method, :static => @static || force_static do
           log "Starting new method #{name}(#{arg_types})"
 
           @method.start unless started

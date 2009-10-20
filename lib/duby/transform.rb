@@ -102,7 +102,15 @@ module Duby
       raise ArgumentError if src.nil?
       parser = Parser.new
       config = ParserConfiguration.new(0, CompatVersion::RUBY1_9, true)
-      parser.parse(filename, StringReader.new(src), config)
+      begin
+        parser.parse(filename, StringReader.new(src), config)
+      rescue => ex
+        if ex.cause.respond_to? :position
+          position = ex.cause.position
+          puts "#{position.file}:#{position.start_line + 1}: #{ex.message}"
+        end
+        raise ex
+      end
     end
     module_function :parse_ruby
 

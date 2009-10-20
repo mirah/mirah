@@ -17,6 +17,7 @@ module Duby
       end
       
       def method_type(typer, target_type, name, parameter_types)
+        return if target_type.nil? or parameter_types.any? {|t| t.nil?}
         if target_type.respond_to? :get_method
           method = target_type.get_method(name, parameter_types)
           unless method || target_type.basic_type.kind_of?(TypeDefinition)
