@@ -1,0 +1,15 @@
+<title>Posts</title>
+<body>
+  <h1>All Posts:</h1>
+  <% i = 0; while i < @posts.length %>
+    <h2><%= @posts[i].title %></h2>
+    <p><%= @posts[i].body.getValue %></p>
+  <% i += 1;end %>
+  <hr>
+  <h1>New Post:</h1>
+  <form method=post>
+    Title: <input type=text name=title><br>
+    Body: <textarea name=body></textarea><br>
+    <input type=submit>
+  </form>
+</body>

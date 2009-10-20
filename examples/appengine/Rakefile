@@ -1,0 +1,72 @@
+require 'appengine-sdk'
+require 'appengine-tools/web-xml'
+require 'appengine-tools/xml-formatter'
+
+SRC = File.expand_path(File.dirname(__FILE__) + '/src')
+LIB = File.expand_path(File.dirname(__FILE__) + '/lib')
+WAR = File.expand_path(File.dirname(__FILE__) + '/war')
+CONFIG_RU = File.expand_path(File.dirname(__FILE__) + '/config.ru')
+SERVLET = AppEngine::SDK::SDK_ROOT +
+          '/lib/shared/geronimo-servlet_2.5_spec-1.2.jar'
+APIS = AppEngine::SDK::API_JAR
+
+WEB_INF_CLASSES = WAR + '/WEB-INF/classes'
+WEB_XML = WAR + '/WEB-INF/web.xml'
+AEWEB_XML = WAR + '/WEB-INF/appengine-web.xml'
+
+MODEL = 'com/google/appengine/ext/duby/db/Model'
+DUBY_APP = 'com/ribrdb/DubyApp'
+
+MODEL_DUBY = "#{SRC}/#{MODEL}.duby"
+MODEL_CLASS = "#{WEB_INF_CLASSES}/#{MODEL}.class"
+DUBY_APP_DUBY = "#{SRC}/#{DUBY_APP}.duby"
+DUBY_APP_CLASS = "#{WEB_INF_CLASSES}/#{DUBY_APP}.class"
+LIST = "#{SRC}/com/ribrdb/list.dhtml"
+
+def dubyc(*files)
+  chdir(File.dirname(__FILE__) + '/src') do
+    files = files.join ' '
+    dest = '-d ../war/WEB-INF/classes'
+    dubyc = '../../../bin/dubyc'
+    options = "-I #{LIB} -p datastore"
+    orig_classpath = ENV['CLASSPATH']
+    ENV['CLASSPATH'] ||= ''
+    ENV['CLASSPATH'] += ":#{SERVLET}:#{APIS}:#{WEB_INF_CLASSES}"
+    sh %{#{dubyc} #{dest} #{options} #{files}}
+    ENV['CLASSPATH'] = orig_classpath
+  end
+end
+
+directory WEB_INF_CLASSES
+
+file MODEL_CLASS => MODEL_DUBY do
+  dubyc("#{MODEL}.duby")
+end
+
+file DUBY_APP_CLASS => [DUBY_APP_DUBY, LIST, MODEL_CLASS] do
+  dubyc("#{DUBY_APP}.duby")
+end
+
+file WEB_XML => [WEB_INF_CLASSES, CONFIG_RU] do
+  builder = WebXmlBuilder.new do
+    eval IO.read(CONFIG_RU), nil, 'config.ru', 1
+  end
+  open(WEB_XML, 'w') do |webxml|
+    xml = AppEngine::Rack::XmlFormatter.format(builder.to_xml)
+    webxml.write(xml)
+  end
+  open(AEWEB_XML, 'w') do |aeweb|
+    xml = AppEngine::Rack::XmlFormatter.format(AppEngine::Rack.app.to_xml)
+    aeweb.write(xml)
+  end
+end
+
+task :server => [WEB_XML, DUBY_APP_CLASS] do
+  sh "dev_appserver.rb #{WAR}"
+end
+
+task :upload => [WEB_XML, DUBY_APP_CLASS] do
+  sh "appcfg.rb update #{WAR}"
+end
+
+task :default => :server

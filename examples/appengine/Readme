@@ -1,0 +1,24 @@
+Run rake to compile the application and start the development server.
+
+Requirements:
+ - Install the google-appengine gem (under MRI, not JRUBY)
+ - Have jruby on your path so dubyc can run.
+
+Datastore API:
+  Model.get(key)
+  Model.delete(key)
+  Model.all -> Query
+  property foo, String # or any supported datastore type
+                       # For numbers use Long or Double
+  
+  instance.save
+  
+  instance.foo
+  instance.foo=
+
+  Query.count
+  Query.run -> Model[]
+  Query.first -> instance || nil
+  Query.sort(property_name)
+  Query.sort(property_name, true) # descending
+  Query.foo('foo').bar(3)  # Only return instances where foo = 'foo' and bar = 3
