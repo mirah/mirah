@@ -12,6 +12,7 @@ Datastore API:
                        # For numbers use Long or Double
   
   instance.save
+  instance.key
   
   instance.foo
   instance.foo=
@@ -22,3 +23,5 @@ Datastore API:
   Query.sort(property_name)
   Query.sort(property_name, true) # descending
   Query.foo('foo').bar(3)  # Only return instances where foo = 'foo' and bar = 3
+  Query.offset(10)
+  Query.limit(5)
