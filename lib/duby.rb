@@ -120,6 +120,9 @@ class DubyImpl
         args.shift
         plugin = args.shift
         require "duby/plugin/#{plugin}"
+      when '-I'
+        args.shift
+        $: << args.shift
       else
         break
       end
