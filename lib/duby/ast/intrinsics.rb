@@ -22,7 +22,7 @@ module Duby::AST
   
   defmacro('puts') do |transformer, fcall, parent|
     Print.new(parent, fcall.position, true) do |print|
-      if fcall.args_node
+      if fcall.respond_to?(:args_node) && fcall.args_node
         fcall.args_node.child_nodes.map do |arg|
           transformer.transform(arg, print)
         end
@@ -34,7 +34,7 @@ module Duby::AST
 
   defmacro('print') do |transformer, fcall, parent|
     Print.new(parent, fcall.position, false) do |print|
-      if fcall.args_node
+      if fcall.respond_to?(:args_node) && fcall.args_node
         fcall.args_node.child_nodes.map do |arg|
           transformer.transform(arg, print)
         end

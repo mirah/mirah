@@ -68,10 +68,10 @@ module Duby
         end
       end
       
-      def expand(fcall, parent)
-        result = yield self, fcall, parent
+      def expand(fvcall, parent)
+        result = yield self, fvcall, parent
         unless result.kind_of?(AST::Node)
-          raise Error.new('Invalid macro result', fcall.position)
+          raise Error.new('Invalid macro result', fvcall.position)
         end
         result
       end
@@ -814,6 +814,25 @@ module Duby
       class TypedArgumentNode
       end
 
+        def transform(transformer, parent)
+          @declaration ||= false
+
+          if @declaration
+            return Noop.new(parent, position)
+          end
+
+          macro = AST.macro(name)
+          if macro
+            transformer.expand(self, parent, &macro)
+          else
+            FunctionalCall.new(parent, position, name) do |call|
+              [
+                args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
+                iter_node ? transformer.transform(iter_node, call) : nil
+              ]
+            end
+          end
+        end
       class VCallNode
         def transform(transformer, parent)
           if name == 'raise'
@@ -823,11 +842,16 @@ module Duby
           elsif name == 'null'
             Null.new(parent, position)
           else
-            FunctionalCall.new(parent, position, name) do |call|
-              [
-                [],
-                nil
-              ]
+            macro = AST.macro(name)
+            if macro
+              transformer.expand(self, parent, &macro)
+            else
+              FunctionalCall.new(parent, position, name) do |call|
+                [
+                  [],
+                  nil
+                ]
+              end
             end
           end
         end
