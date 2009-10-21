@@ -52,6 +52,6 @@ i = 0
 while i < 10
   start = System.currentTimeMillis
   run
-  puts 0.001 * (System.currentTimeMillis - start)
+  puts (System.currentTimeMillis - start) / 1000.0
   i += 1
 end

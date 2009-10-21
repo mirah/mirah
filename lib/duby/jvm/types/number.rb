@@ -21,11 +21,11 @@ module Duby::JVM::Types
       end
     end
     
-    def add_delegates(name, return_type)
+    def add_delegates(name, return_type = nil)
       index = TYPE_ORDERING.index(math_type)
       larger_types = TYPE_ORDERING[index + 1, TYPE_ORDERING.size]
       larger_types.each do |type|
-        delegate_intrinsic(name, type, return_type)
+        delegate_intrinsic(name, return_type || type, return_type || type)
       end
     end
 
@@ -60,7 +60,7 @@ module Duby::JVM::Types
           compiler.method.send "#{prefix}#{op}"
         end
       end
-      add_delegates(name, math_type)
+      add_delegates(name)
     end
 
     def unary_operator(name, op)
