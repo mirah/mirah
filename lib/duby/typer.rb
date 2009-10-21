@@ -326,7 +326,12 @@ module Duby
         # done with n sweeps, if any remain raise errors
         error_nodes = @errors.map {|e| e.node} + deferred_nodes
         if raise && !error_nodes.empty?
-          raise InferenceError.new("Could not infer typing for the following nodes:\n  " + error_nodes.map {|e| "#{e} (child of #{e.parent})"}.join("\n  "))
+          msg = "Could not infer typing for nodes:"
+          error_nodes.map do |e|
+            msg << "\n  "
+            msg << "#{e} at line #{e.line_number} (child of #{e.parent})"
+          end
+          raise InferenceError.new(msg)
         end
       end
     end
