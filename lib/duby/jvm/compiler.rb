@@ -515,18 +515,19 @@ module Duby
       def import(short, long)
       end
 
-      def println(printline)
+      def print(print_node)
         @method.getstatic System, "out", PrintStream
-        printline.parameters.each {|param| param.compile(self, true)}
-        params = printline.parameters.map {|param| param.inferred_type.jvm_type}
-        method = find_method(PrintStream.java_class, "println", params, false)
+        print_node.parameters.each {|param| param.compile(self, true)}
+        params = print_node.parameters.map {|param| param.inferred_type.jvm_type}
+        method_name = print_node.println ? "println" : "print"
+        method = find_method(PrintStream.java_class, method_name, params, false)
         if (method)
           @method.invokevirtual(
             PrintStream,
-            "println",
+            method_name,
             [method.return_type, *method.parameter_types])
         else
-          log "Could not find a match for #{PrintStream}.println(#{params})"
+          log "Could not find a match for #{PrintStream}.#{method_name}(#{params})"
           fail "Could not compile"
         end
       end

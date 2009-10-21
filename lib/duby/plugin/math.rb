@@ -17,12 +17,16 @@ module Duby
             case parameter_types[0]
             when typer.fixnum_type
               typer.fixnum_type
+            when typer.float_type
+              typer.float_type
             else
               nil
             end
           when typer.float_type
             case parameter_types[0]
             when typer.float_type
+              typer.float_type
+            when typer.fixnum_type
               typer.float_type
             else
               nil
