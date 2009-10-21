@@ -130,6 +130,22 @@ module Duby::JVM::Types
           java_method('concat', String).call(compiler, call, expression)
         end
       end
+      add_method('+', [Int], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokestatic String, "valueOf", [String, Int]
+          compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
+      add_method('+', [Float], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokestatic String, "valueOf", [String, Float]
+          compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
     end
   end
   
