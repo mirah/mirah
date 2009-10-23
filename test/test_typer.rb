@@ -65,7 +65,14 @@ class TestTyper < Test::Unit::TestCase
       assert_nothing_raised {typer.resolve(true)}
       assert_nothing_raised {typer.resolve}
 
-      assert_equal(typer.no_type, typer.method_type(typer.self_type, 'foo', [typer.string_type]))
+
+      if def_foo =~ /self/
+        type = typer.self_type.meta
+      else
+        type = typer.self_type
+      end
+
+      assert_equal(typer.no_type, typer.method_type(type, 'foo', [typer.string_type]))
       assert_equal(typer.string_type, typer.local_type(ast1.body, 'a'))
       assert_equal(typer.no_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body.arguments.args[0].inferred_type)
@@ -75,7 +82,7 @@ class TestTyper < Test::Unit::TestCase
 
       ast1.infer(typer)
 
-      assert_equal(typer.fixnum_type, typer.method_type(typer.self_type, 'foo', [typer.default_type]))
+      assert_equal(typer.fixnum_type, typer.method_type(type, 'foo', [typer.default_type]))
       assert_equal(typer.default_type, typer.local_type(ast1.body, 'a'))
       assert_equal(typer.fixnum_type, ast1.body.inferred_type)
       assert_equal(typer.default_type, ast1.body.arguments.args[0].inferred_type)
@@ -85,7 +92,7 @@ class TestTyper < Test::Unit::TestCase
 
       ast1.infer(typer)
 
-      assert_equal(typer.string_type, typer.method_type(typer.self_type, 'foo', [typer.string_type]))
+      assert_equal(typer.string_type, typer.method_type(type, 'foo', [typer.string_type]))
       assert_equal(typer.string_type, typer.local_type(ast1.body, 'a'))
       assert_equal(typer.string_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body.arguments.args[0].inferred_type)
@@ -103,7 +110,7 @@ class TestTyper < Test::Unit::TestCase
 
       ast1.infer(typer)
 
-      assert_equal(typer.string_type, typer.method_type(typer.self_type, 'foo', [typer.default_type]))
+      assert_equal(typer.string_type, typer.method_type(type, 'foo', [typer.default_type]))
       assert_equal(typer.string_type, typer.local_type(ast1.body, 'a'))
       assert_equal(typer.string_type, ast1.body.inferred_type)
       assert_equal(typer.default_type, ast1.body.arguments.args[0].inferred_type)
