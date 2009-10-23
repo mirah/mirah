@@ -171,7 +171,7 @@ module Duby
         donelabel.set!
       end
       
-      def loop(loop, expression)
+      def while_loop(loop, expression)
         with(:break_label => @method.label,
              :redo_label => @method.label,
              :next_label => @method.label) do

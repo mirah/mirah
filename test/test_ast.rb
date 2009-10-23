@@ -6,11 +6,11 @@ class TestAst < Test::Unit::TestCase
   include Duby
   
   def test_args
-    new_ast = AST.parse("def foo(a, b = 1, *c, &d); end").body
+    new_ast = AST.parse("def foo(a, *c, &d); end").body
     arguments = new_ast.arguments
     
     assert_not_nil(arguments)
-    inspected = "Arguments\n RequiredArgument(a)\n OptionalArgument(b)\n  LocalAssignment(name = b, scope = MethodDefinition(foo))\n   Fixnum(1)\n RestArgument(c)\n BlockArgument(d)"
+    inspected = "Arguments\n RequiredArgument(a)\n RestArgument(c)\n BlockArgument(d)"
     assert_equal(inspected, arguments.inspect)
     
     assert(AST::Arguments === arguments)
@@ -21,15 +21,6 @@ class TestAst < Test::Unit::TestCase
     assert(AST::RequiredArgument === children[0][0])
     assert_equal("a", children[0][0].name)
     assert_equal(arguments, children[0][0].parent)
-    assert(Array === children[1])
-    assert(AST::OptionalArgument === children[1][0])
-    assert_equal("b", children[1][0].name)
-    assert_equal(arguments, children[1][0].parent)
-    # TODO: should be LocalDeclaration soon
-    assert(AST::LocalAssignment === children[1][0].child)
-    assert_equal(children[1][0], children[1][0].child.parent)
-    assert(AST::Fixnum, children[1][0].child.value.parent)
-    assert_equal(children[1][0].child, children[1][0].child.value.parent)
     assert(AST::RestArgument === children[2])
     assert_equal("c", children[2].name)
     assert_equal(arguments, children[2].parent)
@@ -309,7 +300,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("Loop(check_first = true, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("WhileLoop(check_first = true, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(new_ast.check_first?)
     assert(!new_ast.negative?)
     assert(AST::Condition === new_ast.condition)
@@ -320,7 +311,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("Loop(check_first = false, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("WhileLoop(check_first = false, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(!new_ast.check_first?)
     assert(!new_ast.negative?)
     assert(AST::Condition === new_ast.condition)
@@ -333,7 +324,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("Loop(check_first = true, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("WhileLoop(check_first = true, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(new_ast.check_first?)
     assert(new_ast.negative?)
     assert(AST::Condition === new_ast.condition)
@@ -344,7 +335,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("Loop(check_first = false, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("WhileLoop(check_first = false, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(!new_ast.check_first?)
     assert(new_ast.negative?)
     assert(AST::Condition === new_ast.condition)

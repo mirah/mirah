@@ -149,10 +149,17 @@ module Duby
       end
     end
     
-    class Loop
+    class WhileLoop
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.loop(self, expression)
+        compiler.while_loop(self, expression)
+      end
+    end
+    
+    class ForLoop
+      def compile(compiler, expression)
+        compiler.line(line_number)
+        compiler.for_loop(self, expression)
       end
     end
 

@@ -210,6 +210,10 @@ module Duby
             unreachable? || other.unreachable?
       end
 
+      def iterable?
+        array?
+      end
+
       def narrow(other)
         # only exact match allowed for now, so narrowing is a noop
         if error? || unreachable?

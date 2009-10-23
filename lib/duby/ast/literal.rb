@@ -18,6 +18,14 @@ module Duby::AST
       resolved!
       @inferred_type = typer.fixnum_type
     end
+    
+    def ==(other)
+      @literal == other.literal
+    end
+    
+    def eql?(other)
+      self.class == other.class && @literal.eql?(other.literal)
+    end
   end
   
   class Float < Node

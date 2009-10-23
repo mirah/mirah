@@ -69,6 +69,12 @@ module Duby
           end
         end
 
+        def iterable?
+          ['java.lang.Iterable',
+           'java.util.Iterator',
+           'java.util.Enumeration'].any? {|n| AST.type(n).assignable_from(self)}
+        end
+
         def meta
           @meta ||= MetaType.new(self)
         end
@@ -214,6 +220,10 @@ module Duby
         end
 
         def array?
+          true
+        end
+        
+        def iterable?
           true
         end
         

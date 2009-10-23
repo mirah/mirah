@@ -1131,4 +1131,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(true, cls.foo("a"))
     assert_equal(false, cls.foo(nil))
   end
+  
+  def test_for
+    cls, = compile(<<-EOF)
+      def foo
+        a = int[3]
+        count = 0
+        for x in a
+          count += 1
+        end
+        count
+      end
+    EOF
+    
+    assert_equal(3, cls.foo)
+  end
 end

@@ -93,10 +93,28 @@ module Duby
     end
 
     class Loop < Node
-      attr_accessor :condition, :body, :check_first, :negative, :redo
+      attr_accessor :redo
+
+      def infer(typer)
+        unless resolved?
+          child_types = children.map {|c| typer.infer(c)}
+          if child_types.any? {|t| t.nil?}
+            typer.defer(self)
+          else
+            resolved!
+            @inferred_type = typer.null_type
+          end
+        end
+
+        @inferred_type
+      end
+    end
+
+    class WhileLoop < Loop
+      attr_accessor :condition, :body, :check_first, :negative
 
       def initialize(parent, line_number, check_first, negative, &block)
-        super(parent, line_number, children, &block)
+        super(parent, line_number, &block)
         @condition, @body = children
         @check_first = check_first
         @negative = negative
@@ -107,25 +125,25 @@ module Duby
       def has_redo?; @redo; end
 
       def to_s
-        "Loop(check_first = #{check_first?}, negative = #{negative?})"
+        "WhileLoop(check_first = #{check_first?}, negative = #{negative?})"
       end
-      
-      def infer(typer)
-        unless resolved?
-          typer.infer(body)
-          
-          typer.infer(condition)
-          
-          if body.resolved? && condition.resolved?
-            resolved!
-          else
-            typer.defer(self)
-          end
+    end
+    
+    class ForLoop < Loop
+      attr_reader :var, :body, :iter
+
+      def initialize(parent, position, &block)
+        super(parent, position, &block)
+        @var, @body, @iter = children
+      end
+
+      def infer(type)
+        super
+        if @inferred_type && !@iter.inferred_type.iterable?
+          raise "#{@iter.inferred_type} is not iterable."
         end
-        
-        @inferred_type ||= typer.null_type
+        @inferred_type
       end
-      @inferred_type
     end
 
     class Not < Node

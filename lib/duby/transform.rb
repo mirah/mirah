@@ -737,7 +737,7 @@ module Duby
 
       class WhileNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(Loop, parent, position,
+          transformer.push_jump_scope(WhileLoop, parent, position,
                                       evaluate_at_start, false) do |loop|
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
@@ -749,11 +749,23 @@ module Duby
 
       class UntilNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(Loop, parent, position,
+          transformer.push_jump_scope(WhileLoop, parent, position,
                                       evaluate_at_start, true) do |loop|
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)
+            ]
+          end
+        end
+      end
+
+      class ForNode
+        def transform(transformer, parent)
+          transformer.push_jump_scope(ForLoop, parent, position) do |loop|
+            [
+              transformer.transform(var_node, loop),
+              transformer.transform(body_node, loop),
+              transformer.transform(iter_node, loop)
             ]
           end
         end

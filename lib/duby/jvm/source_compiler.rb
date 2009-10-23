@@ -4,6 +4,7 @@ require 'duby/jvm/types'
 require 'duby/jvm/compiler'
 require 'duby/jvm/source_generator/builder'
 require 'duby/jvm/source_generator/precompile'
+require 'duby/jvm/source_generator/loops'
 
 class String
   def compile(compiler, expression)
@@ -275,42 +276,26 @@ module Duby
         end
       end
       
-      def loop(loop, expression)
-        predicate = loop.condition.predicate.precompile(self)
-        negative = loop.negative ? '!' : ''
-        check = lambda do
-          @method.print "while (#{@redo} || #{negative}("
-          predicate.compile(self, true)
-          @method.print '))'
-        end
-        if loop.check_first
-          start = check
+      def while_loop(loop, expression)
+        if loop.redo || !loop.condition.predicate.expr?(self)
+          loop = ComplexWhileLoop.new(loop, self)
         else
-          start = lambda {@method.print 'do'}
+          loop = SimpleWhileLoop.new(loop, self)
         end
-        with :redo => @method.tmp(JVMTypes::Boolean) do
-          start.call
-          @method.block do
-            with(:loop => @method.label) do
-              assign(@redo, 'false')
-              @method.block "#{@loop}:" do
-                loop.body.compile(self, false)
-              end
-              unless loop.condition.predicate.expr?(self)
-                @method.block "if (!#{@redo})" do
-                  loop.condition.predicate.reload(self)
-                end
-              end
-            end
-          end
-          unless loop.check_first
-            check.call
-            @method.puts ';'
-          end
+        with(:loop => loop) do
+          loop.compile(expression)
         end
-        if expression
-          @method.puts "#{@lvalue}null;"
+      end
+      
+      def for_loop(loop, expression)
+        if loop.redo
+          loop = RedoableForLoop.new(loop, self)
+        else
+          loop = SimpleForLoop.new(loop, self)
         end
+        with(:loop => loop) do
+          loop.compile(expression)
+        end        
       end
 
       def expr?(target, params)
@@ -409,16 +394,15 @@ module Duby
       end
       
       def break(node)
-        @method.puts "break;"
+        @loop.break
       end
       
       def next(node)
-        @method.puts "break #{@loop};"
+        @loop.next
       end
       
       def redo(node)
-        @method.puts "#{@redo} = true;"
-        @method.puts "break #{@loop};"
+        @loop.redo
       end
       
       def method_call(target, call, params, expression)
