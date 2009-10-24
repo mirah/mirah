@@ -74,6 +74,10 @@ module Duby
            'java.util.Iterator',
            'java.util.Enumeration'].any? {|n| AST.type(n).assignable_from(self)}
         end
+        
+        def component_type
+          AST.type('java.lang.Object') if iterable?
+        end
 
         def meta
           @meta ||= MetaType.new(self)
@@ -116,6 +120,22 @@ module Duby
         def interfaces
           @interfaces ||= jvm_type.interfaces.map do |interface|
             AST.type(interface)
+          end
+        end
+        
+        def astore(builder)
+          if primitive?
+            builder.send "#{name[0,1]}astore"
+          else
+            builder.aastore
+          end
+        end
+        
+        def aload(builder)
+          if primitive?
+            builder.send "#{name[0,1]}aload"
+          else
+            builder.aaload
           end
         end
       end

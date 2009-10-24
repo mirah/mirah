@@ -100,11 +100,7 @@ module Duby::JVM::Types
         if expression
           call.target.compile(compiler, true)
           call.parameters[0].compile(compiler, true)
-          if component_type.primitive?
-            compiler.method.send "#{name[0,1]}aload"
-          else
-            compiler.method.aaload
-          end
+          component_type.aload(compiler.method)
         end
       end
 
@@ -113,11 +109,7 @@ module Duby::JVM::Types
                  component_type) do |compiler, call, expression| 
         call.target.compile(compiler, true)
         convert_args(compiler, call.parameters, [Int, component_type])
-        if component_type.primitive?
-          compiler.method.send "#{name[0,1]}astore"
-        else
-          compiler.method.aastore
-        end
+        component_type.astore(compiler.method)
         if expression
           call.parameters[1].compile(compiler, true)
         end

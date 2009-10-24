@@ -213,6 +213,10 @@ module Duby
       def iterable?
         array?
       end
+      
+      def component_type
+        AST.type(name) if array?
+      end
 
       def narrow(other)
         # only exact match allowed for now, so narrowing is a noop

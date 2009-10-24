@@ -1144,6 +1144,16 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     
-    assert_equal(3, cls.foo)
+    cls, = compile(<<-EOF)
+      def foo(a:int[])
+        count = 0
+        for x in a
+          count += x
+        end
+        count
+      end
+    EOF
+
+    assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
   end
 end

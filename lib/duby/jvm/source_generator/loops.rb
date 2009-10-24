@@ -105,12 +105,8 @@ class Duby::Compiler::JavaSource
     def prepare
       iter = loop.iter.precompile(compiler)
       iter_type = loop.iter.inferred_type
-      if iter_type.array?
-        type = iter_type.component_type.to_source
-      else
-        type = "java.lang.Object"
-      end
-      name = loop.var.name
+      type = iter_type.component_type.to_source
+      name = loop.name
       @start = lambda do
         compiler.method.print "for (#{type} #{name} : "
         iter.compile(compiler, true)

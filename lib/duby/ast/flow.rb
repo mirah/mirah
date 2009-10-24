@@ -130,17 +130,24 @@ module Duby
     end
     
     class ForLoop < Loop
-      attr_reader :var, :body, :iter
+      attr_reader :name, :body, :iter
 
       def initialize(parent, position, &block)
         super(parent, position, &block)
-        @var, @body, @iter = children
+        var = children.shift
+        @body, @iter = children
+        @scope = var.scope
+        @name = var.name
       end
 
-      def infer(type)
+      def infer(typer)
         super
-        if @inferred_type && !@iter.inferred_type.iterable?
-          raise "#{@iter.inferred_type} is not iterable."
+        iter_type = @iter.inferred_type
+        if iter_type
+          if !iter_type.iterable?
+            raise "#{iter_type} is not iterable."
+          end
+          typer.learn_local_type(@scope, name, iter_type.component_type)
         end
         @inferred_type
       end
