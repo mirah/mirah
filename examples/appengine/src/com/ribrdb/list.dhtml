@@ -1,10 +1,10 @@
 <title>Posts</title>
 <body>
   <h1>All Posts:</h1>
-  <% i = 0; while i < @posts.length %>
-    <h2><%= @posts[i].title %></h2>
-    <p><%= @posts[i].body.getValue %></p>
-  <% i += 1;end %>
+  <% for post in @posts %>
+    <h2><%= post.title %></h2>
+    <p><%= post.body.getValue %></p>
+  <% end %>
   <hr>
   <h1>New Post:</h1>
   <form method=post>

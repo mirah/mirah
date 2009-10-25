@@ -1156,4 +1156,21 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
   end
+  
+  def test_if_expr
+    cls, = compile(<<-EOF)
+      def foo(a:int)
+        return 1 if a == 1
+      end
+      
+      def bar(a:int)
+        return 1 unless a == 1
+      end
+    EOF
+    
+    assert_equal(0, cls.foo(0))
+    assert_equal(1, cls.foo(1))
+    assert_equal(1, cls.bar(0))
+    assert_equal(0, cls.bar(1))
+  end
 end

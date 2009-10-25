@@ -249,13 +249,13 @@ module Duby
         if node.body
           node.body.compile(self, true)
         else
-          @method.print 'null'
+          @method.print @method.init_value(node.inferred_type)
         end
         @method.print ' : '
         if node.else
           node.else.compile(self, true)
         else
-          @method.print 'null'
+          @method.print @method.init_value(node.inferred_type)
         end
       end
       
@@ -267,11 +267,19 @@ module Duby
         @method.print 'if ('
         predicate.compile(self, true)
         @method.block ")" do
-          maybe_store(node.body, expression) if node.body
+          if node.body
+            maybe_store(node.body, expression)
+          elsif expression
+            store_value(@lvalue, @method.init_value(node.inferred_type))
+          end
         end
-        if node.else
+        if node.else || expression
           @method.block 'else' do
-            maybe_store(node.else, expression)
+            if node.else
+              maybe_store(node.else, expression)
+            else
+              store_value(@lvalue, @method.init_value(node.inferred_type))
+            end
           end
         end
       end

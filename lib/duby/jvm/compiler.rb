@@ -154,10 +154,14 @@ module Duby
         # this is ugly...need a better way to abstract the idea of compiling a
         # conditional branch while still fitting into JVM opcodes
         predicate = iff.condition.predicate
-        if iff.body
+        if iff.body || expression
           jump_if_not(predicate, elselabel)
 
-          iff.body.compile(self, expression) if iff.body
+          if iff.body
+            iff.body.compile(self, expression)
+          elsif expression
+            iff.inferred_type.init_value(@method)
+          end
 
           @method.goto(donelabel)
         else
@@ -166,7 +170,11 @@ module Duby
 
         elselabel.set!
 
-        iff.else.compile(self, expression) if iff.else
+        if iff.else
+          iff.else.compile(self, expression)
+        elsif expression
+          iff.inferred_type.init_value(@method)
+        end
 
         donelabel.set!
       end
