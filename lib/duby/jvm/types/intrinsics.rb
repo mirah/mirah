@@ -125,7 +125,7 @@ module Duby::JVM::Types
   class StringType < Type
     def add_intrinsics
       super
-      add_method('+', [String], String) do |compiler, call, expression| 
+      add_method('+', [String], String) do |compiler, call, expression|
         if expression
           java_method('concat', String).call(compiler, call, expression)
         end

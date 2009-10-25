@@ -301,6 +301,10 @@ class TestJVMCompiler < Test::Unit::TestCase
       System.setOut(saved_output)
     end
   end
+  
+  def assert_output(expected, &block)
+    assert_equal(expected, capture_output(&block))
+  end
 
   def test_puts
     cls, = compile("def foo;puts 'Hello World!';end")
@@ -1172,5 +1176,125 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(1, cls.foo(1))
     assert_equal(1, cls.bar(0))
     assert_equal(0, cls.bar(1))
+  end
+  
+  def test_and
+    cls, = compile(<<-EOF)
+      def bool(n:String, x:boolean)
+        puts n
+        x
+      end
+
+      def foo(a:boolean, b:boolean)
+        return bool('a', a) && bool('b', b)
+      end
+      
+      def str(n:String, x:String)
+        puts n
+        x
+      end
+      
+      def bar(a:String, b:String)
+        return str('a', a) && str('b', b)
+      end
+    EOF
+    
+    assert_output("a\n") { assert_equal(false, cls.foo(false, true)) }
+    assert_output("a\nb\n") { assert_equal(false, cls.foo(true, false)) }
+    assert_output("a\nb\n") { assert_equal(true, cls.foo(true, true)) }
+    
+    assert_output("a\n") { assert_equal(nil, cls.bar(nil, "B")) }
+    assert_output("a\nb\n") { assert_equal(nil, cls.bar("A", nil)) }
+    assert_output("a\nb\n") { assert_equal("B", cls.bar("A", "B")) }
+
+    cls, = compile(<<-EOF)
+      def s
+        @s
+      end
+      
+      def s=(s:String)
+        @s = s
+      end
+      
+      def b
+        @b
+      end
+      
+      def b=(b:boolean)
+        @b = b
+      end
+
+      def foo(x:boolean)
+        @b &&= x
+      end
+            
+      def bar(x:String)
+        @s &&= x
+      end
+    EOF
+
+    cls.b_set(false)
+    assert_equal(false, cls.foo(false))
+    assert_equal(false, cls.b)
+
+    cls.b_set(true)
+    assert_equal(false, cls.foo(false))
+    assert_equal(false, cls.b)
+
+    cls.b_set(true)
+    assert_equal(true, cls.foo(true))
+    assert_equal(true, cls.b)
+    
+    cls.s_set(nil)
+    assert_equal(nil, cls.bar(nil))
+    assert_equal(nil, cls.s)
+
+    cls.s_set("S")
+    assert_equal(nil, cls.bar(nil))
+    assert_equal(nil, cls.s)
+
+    cls.s_set("S")
+    assert_equal("x", cls.bar("x"))
+    assert_equal("x", cls.s)
+    
+    # TODO self
+    # cls, foo = compile(<<-EOF)
+    #   class Foo
+    #     def initialize
+    #       @count = 0
+    #     end
+    #     
+    #     def count
+    #       @count
+    #     end
+    #     
+    #     def a
+    #       @a
+    #     end
+    #     
+    #     def a=(a:String)
+    #       @count += 1
+    #       @a = a
+    #     end
+    #     
+    #     def foo(x:String)
+    #       self.a &&= x
+    #     end
+    #   end
+    # EOF
+    # 
+    # f = foo.new
+    # assert_equal(nil, f.foo('x'))
+    # assert_equal(0, f.count)
+    # 
+    # f = foo.new
+    # f.a_set("A")
+    # assert_equal(nil, f.foo(nil))
+    # assert_equal(2, f.count)
+    # 
+    # f = foo.new
+    # f.a_set("A")
+    # assert_equal('x', f.foo('x'))
+    # assert_equal(2, f.count)
   end
 end

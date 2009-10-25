@@ -532,6 +532,30 @@ module Duby
         end
       end
 
+      class AndNode
+        def transform(transformer, parent)
+          If.new(parent, position) do |iff|
+            [
+              Condition.new(iff, first_node.position) {|cond| [transformer.transform(first_node, cond)]},
+              transformer.transform(second_node, iff),
+              nil
+            ]
+          end
+        end
+      end
+
+      class OpAsgnAndNode
+        def transform(transformer, parent)
+          If.new(parent, position) do |iff|
+            [
+              Condition.new(iff, first_node.position) {|cond| [transformer.transform(first_node, cond)]},
+              transformer.transform(second_node, iff),
+              nil
+            ]
+          end
+        end
+      end
+
       class RescueNode
         def transform(transformer, parent)
           Rescue.new(parent, position) do |node|
