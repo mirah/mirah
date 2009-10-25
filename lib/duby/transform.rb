@@ -605,6 +605,24 @@ module Duby
         end
       end
 
+      class OpAsgnNode
+        def transform(transformer, parent)
+          first = CallNode.new(position, receiver_node, variable_name,
+                               ListNode.new(position))
+          second = AttrAssignNode.new(position, receiver_node,
+                                      "#{variable_name}=",
+                                      ArrayNode.new(position, value_node))
+          if operator_name == '||'
+            klass = OrNode
+          elsif operator_name == '&&'
+            klass = AndNode
+          else
+            raise "Unknown OpAsgn operator #{operator_name}"
+          end
+          transformer.transform(klass.new(position, first, second), parent)
+        end
+      end
+
       class RescueNode
         def transform(transformer, parent)
           Rescue.new(parent, position) do |node|

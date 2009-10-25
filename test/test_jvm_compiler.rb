@@ -1257,45 +1257,44 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("x", cls.bar("x"))
     assert_equal("x", cls.s)
     
-    # TODO self
-    # cls, foo = compile(<<-EOF)
-    #   class Foo
-    #     def initialize
-    #       @count = 0
-    #     end
-    #     
-    #     def count
-    #       @count
-    #     end
-    #     
-    #     def a
-    #       @a
-    #     end
-    #     
-    #     def a=(a:String)
-    #       @count += 1
-    #       @a = a
-    #     end
-    #     
-    #     def foo(x:String)
-    #       self.a &&= x
-    #     end
-    #   end
-    # EOF
-    # 
-    # f = foo.new
-    # assert_equal(nil, f.foo('x'))
-    # assert_equal(0, f.count)
-    # 
-    # f = foo.new
-    # f.a_set("A")
-    # assert_equal(nil, f.foo(nil))
-    # assert_equal(2, f.count)
-    # 
-    # f = foo.new
-    # f.a_set("A")
-    # assert_equal('x', f.foo('x'))
-    # assert_equal(2, f.count)
+    cls, foo = compile(<<-EOF)
+      class Foo2
+        def initialize
+          @count = 0
+        end
+        
+        def count
+          @count
+        end
+        
+        def a
+          @a
+        end
+        
+        def a=(a:String)
+          @count += 1
+          @a = a
+        end
+        
+        def foo(f:Foo2, x:String)
+          f.a &&= x
+        end
+      end
+    EOF
+    
+    f = foo.new
+    assert_equal(nil, f.foo(f, 'x'))
+    assert_equal(0, f.count)
+    
+    f = foo.new
+    f.a_set("A")
+    assert_equal(nil, f.foo(f, nil))
+    assert_equal(2, f.count)
+    
+    f = foo.new
+    f.a_set("A")
+    assert_equal('x', f.foo(f, 'x'))
+    assert_equal(2, f.count)
   end
 
   def test_or
@@ -1376,5 +1375,48 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls.s_set("S")
     assert_equal("S", cls.bar("x"))
     assert_equal("S", cls.s)
+
+    cls, foo = compile(<<-EOF)
+      class Foo3
+        def initialize
+          @count = 0
+        end
+        
+        def count
+          @count
+        end
+        
+        def a
+          @a
+        end
+        
+        def a=(a:String)
+          @count += 1
+          @a = a
+        end
+        
+        def foo(f:Foo3, x:String)
+          f.a ||= x
+        end
+      end
+    EOF
+    
+    f = foo.new
+    assert_equal('x', f.foo(f, 'x'))
+    assert_equal(1, f.count)
+    
+    f = foo.new
+    assert_equal(nil, f.foo(f, nil))
+    assert_equal(1, f.count)
+    
+    f = foo.new
+    f.a_set("A")
+    assert_equal("A", f.foo(f, nil))
+    assert_equal(1, f.count)
+
+    f = foo.new
+    f.a_set("A")
+    assert_equal("A", f.foo(f, 'X'))
+    assert_equal(1, f.count)
   end
 end
