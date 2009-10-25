@@ -121,6 +121,27 @@ module Duby
 
     JRubyAst = org.jrubyparser.ast
 
+    module CallOpAssignment
+      def call_op_assignment(transformer, parent, name, args)
+        set_args = JRubyAst::ListNode.new(position)
+        set_args.add_all(args)
+        set_args.add(value_node)
+        
+        first = JRubyAst::CallNode.new(position, receiver_node, name, args)
+        second = JRubyAst::AttrAssignNode.new(position, receiver_node,
+                                              "#{name}=", set_args)
+
+        if operator_name == '||'
+          klass = JRubyAst::OrNode
+        elsif operator_name == '&&'
+          klass = JRubyAst::AndNode
+        else
+          raise "Unknown OpAsgn operator #{operator_name}"
+        end
+        transformer.transform(klass.new(position, first, second), parent)
+      end
+    end
+
     # reload 
     module JRubyAst
       class Node
@@ -561,7 +582,7 @@ module Duby
           Body.new(parent, position) do |block|
             temp = transformer.tmp
             [
-              LocalAssignment.new(parent, first_node.position, temp) do |l|
+              LocalAssignment.new(block, first_node.position, temp) do |l|
                 [transformer.transform(first_node, l)]
               end,
               If.new(parent, position) do |iff|
@@ -586,20 +607,30 @@ module Duby
       end
 
       class OpAsgnNode
+        include CallOpAssignment
         def transform(transformer, parent)
-          first = CallNode.new(position, receiver_node, variable_name,
-                               ListNode.new(position))
-          second = AttrAssignNode.new(position, receiver_node,
-                                      "#{variable_name}=",
-                                      ArrayNode.new(position, value_node))
-          if operator_name == '||'
-            klass = OrNode
-          elsif operator_name == '&&'
-            klass = AndNode
-          else
-            raise "Unknown OpAsgn operator #{operator_name}"
+          call_op_assignment(transformer, parent,
+                             variable_name, ListNode.new(position))
+        end
+      end
+
+      class OpElementAsgnNode
+        include CallOpAssignment
+        def transform(transformer, parent)
+          Body.new(parent, position) do |block|
+            temps = []
+            arg_init = args_node.map do |arg|
+              temps << transformer.tmp
+              LocalAssignment.new(block, arg.position, temps[-1]) do |l|
+                [transformer.transform(arg, l)]
+              end
+            end
+            args = ListNode.new(position)
+            args_node.zip(temps) do |arg, temp_name|
+              args.add(LocalVarNode.new(arg.position, 0, temp_name))
+            end
+            arg_init + [call_op_assignment(transformer, parent, '[]', args)]
           end
-          transformer.transform(klass.new(position, first, second), parent)
         end
       end
 

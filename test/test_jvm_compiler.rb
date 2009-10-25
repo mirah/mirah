@@ -1419,4 +1419,41 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("A", f.foo(f, 'X'))
     assert_equal(1, f.count)
   end
+  
+  def test_op_elem_assign
+    cls, foo = compile(<<-EOF)
+      class Foo4
+        def initialize
+          @i = -1
+        end
+        
+        def i
+          @i += 1
+        end
+        
+        def a
+          @a
+        end
+        
+        def a=(a:String[])
+          @a = a
+        end
+        
+        def foo(x:String)
+          a[i] ||= x
+        end
+
+        def bar(x:String)
+          a[i] &&= x
+        end
+      end
+    EOF
+    
+    f = foo.new
+    f.a_set([nil, nil, nil].to_java(:string))
+    assert_equal(nil, f.bar("x"))
+    assert_equal([nil, nil, nil], f.a.to_a)
+    assert_equal("x", f.foo("x"))
+    assert_equal([nil, "x", nil], f.a.to_a)
+  end
 end

@@ -245,18 +245,19 @@ module Duby
       
       def branch_expression(node)
         node.condition.compile(self, true)
-        @method.print ' ? '
+        @method.print ' ? ('
         if node.body
           node.body.compile(self, true)
         else
           @method.print @method.init_value(node.inferred_type)
         end
-        @method.print ' : '
+        @method.print ') : ('
         if node.else
           node.else.compile(self, true)
         else
           @method.print @method.init_value(node.inferred_type)
         end
+        @method.print ')'
       end
       
       def branch(node, expression)
