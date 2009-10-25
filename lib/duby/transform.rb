@@ -221,7 +221,11 @@ module Duby
         def transform(transformer, parent)
           Arguments.new(parent, position) do |args_node|
             arg_list = args.child_nodes.map do |node|
-              RequiredArgument.new(args_node, node.position, node.name)
+              if !node.respond_to?(:type_node) || node.type_node.respond_to?(:type_reference)
+                RequiredArgument.new(args_node, node.position, node.name)
+              else
+                OptionalArgument.new(args_node, node.position, node.name) {|opt_arg| [transformer.transform(node, opt_arg)]}
+              end
               # argument nodes will have type soon
               #RequiredArgument.new(args_node, node.name, node.type)
             end if args
@@ -399,7 +403,7 @@ module Duby
 
             if args_node && args_node.args
               args_node.args.child_nodes.each do |arg|
-                if arg.respond_to? :type_node
+                if arg.respond_to?(:type_node) && arg.type_node.respond_to?(:type_reference)
                   signature[arg.name.intern] =
                     arg.type_node.type_reference(parent)
                 end
@@ -812,6 +816,9 @@ module Duby
       end
       
       class TypedArgumentNode
+        def transform(transformer, parent)
+          type_node.transform(transformer, parent)
+        end
       end
 
         def transform(transformer, parent)

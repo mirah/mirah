@@ -130,6 +130,59 @@ module Duby
           @method.stop
         end
 
+        arg_types_for_opt = []
+        args_for_opt = []
+        if args.args
+          args.args.each do |arg|
+            if AST::OptionalArgument === arg
+              if @static || force_static
+                method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
+              else
+                if name == "initialize"
+                  method = @class.public_constructor(exceptions, *arg_types_for_opt)
+                  method.start
+                  method.aload 0
+                  method.invokespecial @class.superclass, "<init>", [@method.void]
+                  started = true
+                else
+                  method = @class.public_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
+                end
+              end
+
+              with :method => method, :static => @static || force_static do
+                log "Starting new method #{name}(#{arg_types_for_opt})"
+
+                @method.start unless started
+
+                # declare all args so they get their values
+
+                expression = signature[:return] != Types::Void
+
+                @method.aload(0) unless @static
+                args_for_opt.each {|req_arg| @method.local(req_arg.name, req_arg.inferred_type)}
+                arg.children[0].compile(self, true)
+
+                # invoke the next one in the chain
+                if @static
+                  @method.invokestatic(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                else
+                  @method.invokevirtual(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                end
+
+                if name == "initialize"
+                  @method.returnvoid
+                else
+                  signature[:return].return(@method)
+                end
+
+                @method.stop
+              end
+            end
+            arg_types_for_opt << arg.inferred_type
+            args_for_opt << arg
+          end
+        end
+
         log "Method #{name}(#{arg_types}) complete!"
       end
 
