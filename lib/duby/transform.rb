@@ -551,13 +551,8 @@ module Duby
 
       class OpAsgnAndNode
         def transform(transformer, parent)
-          If.new(parent, position) do |iff|
-            [
-              Condition.new(iff, first_node.position) {|cond| [transformer.transform(first_node, cond)]},
-              transformer.transform(second_node, iff),
-              nil
-            ]
-          end
+          transformer.transform(
+              AndNode.new(position, first_node, second_node), parent)
         end
       end
 
@@ -585,23 +580,8 @@ module Duby
 
       class OpAsgnOrNode
         def transform(transformer, parent)
-          Body.new(parent, position) do |block|
-            temp = transformer.tmp
-            [
-              LocalAssignment.new(parent, first_node.position, temp) do |l|
-                [transformer.transform(first_node, l)]
-              end,
-              If.new(parent, position) do |iff|
-                [
-                  Condition.new(iff, first_node.position) do |cond|
-                    [Local.new(cond, first_node.position, temp)]
-                  end,
-                  Local.new(iff, first_node.position, temp),
-                  transformer.transform(second_node, iff)
-                ]
-              end
-            ]
-          end
+          transformer.transform(
+              OrNode.new(position, first_node, second_node), parent)
         end
       end
 
