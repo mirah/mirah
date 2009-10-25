@@ -17,6 +17,11 @@ module Duby
       def initialize
         @errors = []
         @jump_scope = []
+        @tmp_count = 0
+      end
+      
+      def tmp
+        "xform$#{@tmp_count += 1}"
       end
       
       def push_jump_scope(klass, *args)
@@ -551,6 +556,50 @@ module Duby
               Condition.new(iff, first_node.position) {|cond| [transformer.transform(first_node, cond)]},
               transformer.transform(second_node, iff),
               nil
+            ]
+          end
+        end
+      end
+
+      class OrNode
+        def transform(transformer, parent)
+          Body.new(parent, position) do |block|
+            temp = transformer.tmp
+            [
+              LocalAssignment.new(parent, first_node.position, temp) do |l|
+                [transformer.transform(first_node, l)]
+              end,
+              If.new(parent, position) do |iff|
+                [
+                  Condition.new(iff, first_node.position) do |cond|
+                    [Local.new(cond, first_node.position, temp)]
+                  end,
+                  Local.new(iff, first_node.position, temp),
+                  transformer.transform(second_node, iff)
+                ]
+              end
+            ]
+          end
+        end
+      end
+
+      class OpAsgnOrNode
+        def transform(transformer, parent)
+          Body.new(parent, position) do |block|
+            temp = transformer.tmp
+            [
+              LocalAssignment.new(parent, first_node.position, temp) do |l|
+                [transformer.transform(first_node, l)]
+              end,
+              If.new(parent, position) do |iff|
+                [
+                  Condition.new(iff, first_node.position) do |cond|
+                    [Local.new(cond, first_node.position, temp)]
+                  end,
+                  Local.new(iff, first_node.position, temp),
+                  transformer.transform(second_node, iff)
+                ]
+              end
             ]
           end
         end

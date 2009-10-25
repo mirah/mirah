@@ -1297,4 +1297,84 @@ class TestJVMCompiler < Test::Unit::TestCase
     # assert_equal('x', f.foo('x'))
     # assert_equal(2, f.count)
   end
+
+  def test_or
+    cls, = compile(<<-EOF)
+      def bool(n:String, x:boolean)
+        puts n
+        x
+      end
+
+      def foo(a:boolean, b:boolean)
+        return bool('a', a) || bool('b', b)
+      end
+      
+      def str(n:String, x:String)
+        puts n
+        x
+      end
+      
+      def bar(a:String, b:String)
+        return str('a', a) || str('b', b)
+      end
+    EOF
+    
+    assert_output("a\n") { assert_equal(true, cls.foo(true, false)) }
+    assert_output("a\nb\n") { assert_equal(false, cls.foo(false, false)) }
+    assert_output("a\nb\n") { assert_equal(true, cls.foo(false, true)) }
+    
+    assert_output("a\n") { assert_equal("A", cls.bar("A", nil)) }
+    assert_output("a\nb\n") { assert_equal(nil, cls.bar(nil, nil)) }
+    assert_output("a\nb\n") { assert_equal("B", cls.bar(nil, "B")) }
+
+    cls, = compile(<<-EOF)
+      def s
+        @s
+      end
+      
+      def s=(s:String)
+        @s = s
+      end
+      
+      def b
+        @b
+      end
+      
+      def b=(b:boolean)
+        @b = b
+      end
+
+      def foo(x:boolean)
+        @b ||= x
+      end
+            
+      def bar(x:String)
+        @s ||= x
+      end
+    EOF
+
+    cls.b_set(false)
+    assert_equal(false, cls.foo(false))
+    assert_equal(false, cls.b)
+
+    cls.b_set(false)
+    assert_equal(true, cls.foo(true))
+    assert_equal(true, cls.b)
+
+    cls.b_set(true)
+    assert_equal(true, cls.foo(false))
+    assert_equal(true, cls.b)
+    
+    cls.s_set(nil)
+    assert_equal(nil, cls.bar(nil))
+    assert_equal(nil, cls.s)
+
+    cls.s_set(nil)
+    assert_equal("x", cls.bar("x"))
+    assert_equal("x", cls.s)
+
+    cls.s_set("S")
+    assert_equal("S", cls.bar("x"))
+    assert_equal("S", cls.s)
+  end
 end
