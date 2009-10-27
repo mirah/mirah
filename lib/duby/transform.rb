@@ -86,9 +86,9 @@ module Duby
       $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/JRubyParser.jar'
       Parser = org.jrubyparser.Parser
     end
-    import org.jrubyparser.parser.ParserConfiguration
-    import org.jrubyparser.CompatVersion
-    import java.io.StringReader
+    java_import org.jrubyparser.parser.ParserConfiguration
+    java_import org.jrubyparser.CompatVersion
+    java_import java.io.StringReader
     
     def parse(src, filename='-', raise_errors=false)
       ast = parse_ruby(src, filename)

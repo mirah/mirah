@@ -1,0 +1,4 @@
+=== 0.0.1 / 2009-10-27
+
+* First gem release
+  * Most things necessary for simple apps, scripts, servlets are working

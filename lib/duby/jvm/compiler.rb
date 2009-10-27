@@ -14,8 +14,8 @@ module Duby
   
   module Compiler
     class JVM
-      import java.lang.System
-      import java.io.PrintStream
+      java_import java.lang.System
+      java_import java.io.PrintStream
       include Duby::JVM::MethodLookup
       Types = Duby::JVM::Types
 

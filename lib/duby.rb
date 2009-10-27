@@ -14,6 +14,22 @@ require 'duby/jvm/typer'
 Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
+module Duby
+  VERSION = '0.0.1'
+  
+  def self.run(*args)
+    DubyImpl.new.run(*args)
+  end
+  
+  def self.compile(*args)
+    DubyImpl.new.compile(*args)
+  end
+  
+  def self.parse(*args)
+    DubyImpl.new.parse(*args)
+  end
+end
+
 class DubyImpl
   def run(*args)
     ast = parse(*args)
@@ -146,20 +162,6 @@ class DubyImpl
       end
     end
     expanded
-  end
-end
-
-module Duby  
-  def self.run(*args)
-    DubyImpl.new.run(*args)
-  end
-  
-  def self.compile(*args)
-    DubyImpl.new.compile(*args)
-  end
-  
-  def self.parse(*args)
-    DubyImpl.new.parse(*args)
   end
 end
 
