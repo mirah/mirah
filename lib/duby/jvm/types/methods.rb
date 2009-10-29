@@ -286,7 +286,7 @@ module Duby::JVM::Types
     def constructor(*types)
       constructor = constructors.find {|c| c.argument_types == types}
       return constructor if constructor
-      raise NameError, "No constructo #{name}(#{types.join ', '})"
+      raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
 
     def declared_instance_methods

@@ -1456,4 +1456,35 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("x", f.foo("x"))
     assert_equal([nil, "x", nil], f.a.to_a)
   end
+  
+  def test_constructor_chaining
+    cls, foo = compile(<<-EOF)
+      class Foo5
+        def initialize(s:String)
+          initialize(s, "foo")
+        end
+        
+        def initialize(s:String, f:String)
+          @s = s
+          @f = f
+        end
+        
+        def f
+          @f
+        end
+        
+        def s
+          @s
+        end
+      end
+    EOF
+    
+    instance = foo.new("S")
+    assert_equal("S", instance.s)
+    assert_equal("foo", instance.f)
+    
+    instance = foo.new("foo", "bar")
+    assert_equal("foo", instance.s)
+    assert_equal("bar", instance.f)
+  end
 end

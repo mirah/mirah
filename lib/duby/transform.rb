@@ -393,7 +393,12 @@ module Duby
           if name =~ /=$/
             actual_name = name[0..-2] + '_set'
           end
-          transformer.push_jump_scope(MethodDefinition, parent,
+          if name == 'initialize'
+            klass = ConstructorDefinition
+          else
+            klass = MethodDefinition
+          end
+          transformer.push_jump_scope(klass, parent,
                                       position, actual_name) do |defn|
             signature = {:return => nil}
 

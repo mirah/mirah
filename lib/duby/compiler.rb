@@ -106,6 +106,12 @@ module Duby
       end
     end
     
+    class ConstructorDefinition
+      def compile(compiler, expression)
+        compiler.constructor(self)
+      end
+    end
+    
     class Arguments
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?

@@ -192,8 +192,7 @@ module Duby
       def declare_field(name, type, static)
         return if @fields[name]
         static = static ? 'static' : ''
-        value = init_value(type)
-        puts "private #{static} #{type.to_source} #{name} = #{value};"
+        puts "private #{static} #{type.to_source} #{name};"
         @fields[name] = true
       end
       

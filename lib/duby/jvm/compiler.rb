@@ -91,46 +91,62 @@ module Duby
         end
         return_type = signature[:return]
         exceptions = signature[:throws]
-        started = false
-        if @static || force_static
-          method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
-        else
-          if name == "initialize"
-            method = @class.public_constructor(exceptions, *arg_types)
-            method.start
-            method.aload 0
-            method.invokespecial @class.superclass, "<init>", [@method.void]
-            started = true
+
+        with :static => @static || force_static do
+          if @static
+            method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
           else
             method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
           end
-        end
 
-        return if @class.interface?
+          return if @class.interface?
 
-        with :method => method, :static => @static || force_static do
           log "Starting new method #{name}(#{arg_types})"
+          method_body(method, args.args, body, signature[:return])
+          log "Method #{name}(#{arg_types}) complete!"
+        end
+      end
+      
+      def constructor(node)
+        args = node.arguments.args || []
+        arg_types = args.map { |arg| arg.inferred_type }
+        exceptions = node.signature[:throws]
+        method = @class.public_constructor(exceptions, *arg_types)
+        method_body(method, args, node.body, Types::Void) do
+          method.aload 0
+          if node.this_args
+            delegate_types = node.this_args.map {|arg| arg.inferred_type}
+            constructor = @type.constructor(*delegate_types)
+            node.this_args.each do |arg|
+              arg.compile(self, true)
+            end
+            method.invokespecial(
+                @class, "<init>", [@method.void, *constructor.argument_types])
+          else
+            method.invokespecial @class.superclass, "<init>", [@method.void]
+          end
+        end
+      end
 
-          @method.start unless started
+      def method_body(method, args, body, return_type)
+        with :method => method do
+
+          method.start
 
           # declare all args so they get their values
-          if args.args
-            args.args.each {|arg| @method.local(arg.name, arg.inferred_type)}
+          if args
+            args.each {|arg| @method.local(arg.name, arg.inferred_type)}
           end
-        
-          expression = signature[:return] != Types::Void
+
+          yield if block_given?
+
+          expression = return_type != Types::Void
           body.compile(self, expression) if body
 
-          if name == "initialize"
-            @method.returnvoid
-          else
-            signature[:return].return(@method)
-          end
+          return_type.return(@method)
         
           @method.stop
         end
-
-        log "Method #{name}(#{arg_types}) complete!"
       end
 
       def define_class(class_def, expression)
@@ -183,7 +199,6 @@ module Duby
         with(:break_label => @method.label,
              :redo_label => @method.label,
              :next_label => @method.label) do
-          # TODO: not checking "check first" or "negative"
           predicate = loop.condition.predicate
 
           if loop.check_first

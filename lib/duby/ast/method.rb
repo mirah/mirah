@@ -150,4 +150,47 @@ module Duby::AST
       true
     end
   end
+  
+  class ConstructorDefinition < MethodDefinition
+    attr_accessor :super_args, :this_args
+    
+    def initialize(*args)
+      super
+      extract_delegate_constructor
+    end
+    
+    def first_node
+      if @body.kind_of? Body
+        @body.children[0]
+      else
+        @body
+      end
+    end
+    
+    def first_node=(new_node)
+      if @body.kind_of? Body
+        @body.children[0] = new_node
+      else
+        @body = children[2] = new_node
+      end
+    end
+    
+    def extract_delegate_constructor
+      # TODO verify that this constructor exists during type inference.
+      possible_delegate = first_node
+      if FunctionalCall === possible_delegate &&
+          possible_delegate.name == 'initialize'
+        @this_args = possible_delegate.parameters
+        self.first_node = Noop.new(self, position)
+      end
+    end
+    
+    def infer(typer)
+      unless @inferred_type
+        this_args.each {|a| typer.infer(a)} if this_args
+        super_args.each {|a| typer.infer(a)} if super_args
+      end
+      super
+    end
+  end
 end

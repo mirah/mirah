@@ -74,29 +74,54 @@ module Duby
         args = args.args || []
         return_type = signature[:return]
         exceptions = signature[:throws] || []
-        if @static || force_static
-          method = @class.public_static_method(name.to_s, return_type, exceptions, *args)
-        else
-          if name == "initialize"
-            method = @class.public_constructor(exceptions, *args)
+        with :static => @static || force_static do
+          if @static
+            method = @class.public_static_method(name.to_s, return_type, exceptions, *args)
           else
             method = @class.public_method(name.to_s, return_type, exceptions, *args)
           end
-        end
 
-        with :method => method, :static => @static || force_static do
-          log "Starting new method #{name}"
+          with :method => method do
+            log "Starting new method #{name}"
 
-          @method.start
+            @method.start
 
-          unless @method.type.nil? || @method.type.void?
-            self.return(ImplicitReturn.new(body))
-          else
-            body.compile(self, false) if body
-          end
+            unless @method.type.nil? || @method.type.void?
+              self.return(ImplicitReturn.new(body))
+            else
+              body.compile(self, false) if body
+            end
         
-          log "Method #{name} complete!"
-          @method.stop
+            log "Method #{name} complete!"
+            @method.stop
+          end
+        end
+      end
+
+      def constructor(node)
+        args = node.arguments.args || []
+        exceptions = node.signature[:throws] || []
+        method = @class.public_constructor(exceptions, *args)
+        with :method => method do
+          method.start
+          delegate_args = node.this_args || node.this_args
+          if delegate_args
+            delegate = if node.this_args
+              "this"
+            else
+              "super"
+            end
+            method.print "#{delegate}("
+            delegate_args.each_with_index do |arg, index|
+              method.print ', ' unless index == 0
+              raise "Invalid constructor argument #{arg}" unless arg.expr?(self)
+              arg.compile(self, true)
+            end
+            method.puts ");"
+          end
+          
+          node.body.compile(self, false)
+          method.stop
         end
       end
 
