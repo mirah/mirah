@@ -104,15 +104,14 @@ module Duby
         method = @class.public_constructor(exceptions, *args)
         with :method => method do
           method.start
-          delegate_args = node.this_args || node.this_args
-          if delegate_args
-            delegate = if node.this_args
-              "this"
-            else
+          if node.delegate_args
+            delegate = if node.calls_super
               "super"
+            else
+              "this"
             end
             method.print "#{delegate}("
-            delegate_args.each_with_index do |arg, index|
+            node.delegate_args.each_with_index do |arg, index|
               method.print ', ' unless index == 0
               raise "Invalid constructor argument #{arg}" unless arg.expr?(self)
               arg.compile(self, true)

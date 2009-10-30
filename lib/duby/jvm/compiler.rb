@@ -114,14 +114,20 @@ module Duby
         method = @class.public_constructor(exceptions, *arg_types)
         method_body(method, args, node.body, Types::Void) do
           method.aload 0
-          if node.this_args
-            delegate_types = node.this_args.map {|arg| arg.inferred_type}
-            constructor = @type.constructor(*delegate_types)
-            node.this_args.each do |arg|
+          if node.delegate_args
+            if node.calls_super
+              delegate_class = @type.superclass
+            else
+              delegate_class = @type
+            end
+            delegate_types = node.delegate_args.map {|arg| arg.inferred_type}
+            constructor = delegate_class.constructor(*delegate_types)
+            node.delegate_args.each do |arg|
               arg.compile(self, true)
             end
             method.invokespecial(
-                @class, "<init>", [@method.void, *constructor.argument_types])
+                delegate_class, "<init>",
+                [@method.void, *constructor.argument_types])
           else
             method.invokespecial @class.superclass, "<init>", [@method.void]
           end

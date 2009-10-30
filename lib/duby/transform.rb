@@ -877,6 +877,20 @@ module Duby
           end
         end
       end
+      
+      class SuperNode
+        def transform(transformer, parent)
+          Super.new(parent, position) do
+            [args_node.map {|arg| transformer.transform(arg, parent)}]
+          end
+        end
+      end
+      
+      class ZSuperNode
+        def transform(transformer, parent)
+          Super.new(parent, position)
+        end
+      end
     end
   end
 end

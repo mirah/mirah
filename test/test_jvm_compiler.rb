@@ -1487,4 +1487,25 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("foo", instance.s)
     assert_equal("bar", instance.f)
   end
+  
+  def test_super_constructor
+    cls, a, b = compile(<<-EOF)
+      class SC_A
+        def initialize(a:int)
+          puts "A"
+        end
+      end
+      
+      class SC_B < SC_A
+        def initialize
+          super(0)
+          puts "B"
+        end
+      end
+    EOF
+    
+    assert_output("A\nB\n") do
+      b.new
+    end
+  end
 end

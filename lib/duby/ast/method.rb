@@ -152,7 +152,7 @@ module Duby::AST
   end
   
   class ConstructorDefinition < MethodDefinition
-    attr_accessor :super_args, :this_args
+    attr_accessor :delegate_args, :calls_super
     
     def initialize(*args)
       super
@@ -180,17 +180,33 @@ module Duby::AST
       possible_delegate = first_node
       if FunctionalCall === possible_delegate &&
           possible_delegate.name == 'initialize'
-        @this_args = possible_delegate.parameters
-        self.first_node = Noop.new(self, position)
+        @delegate_args = possible_delegate.parameters
+      elsif Super === possible_delegate
+        @calls_super = true
+        @delegate_args = possible_delegate.args
+        unless @delegate_args
+          @delegate_args = arguments.map do |arg|
+            Local.new(self, possible_delegate.position, arg.name)
+          end
+        end
       end
+      self.first_node = Noop.new(self, position) if @delegate_args
     end
     
     def infer(typer)
       unless @inferred_type
-        this_args.each {|a| typer.infer(a)} if this_args
-        super_args.each {|a| typer.infer(a)} if super_args
+        delegate_args.each {|a| typer.infer(a)} if delegate_args
       end
       super
+    end
+  end
+  
+  class Super < Node
+    attr_accessor :args
+
+    def initialize(*args)
+      super
+      @args = children[0]
     end
   end
 end
