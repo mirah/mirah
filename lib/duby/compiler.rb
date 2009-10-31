@@ -61,11 +61,11 @@ module Duby
       end
     end
 
-    class PrintLine
+    class Print
       def compile(compiler, expression)
         # TODO: what does it mean for printline to be an expression?
         compiler.line(line_number)
-        compiler.println(self)
+        compiler.print(self)
       end
     end
     

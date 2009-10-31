@@ -68,10 +68,10 @@ module Duby
         end
       end
       
-      def expand(fcall, parent)
-        result = yield self, fcall, parent
+      def expand(fvcall, parent)
+        result = yield self, fvcall, parent
         unless result.kind_of?(AST::Node)
-          raise Error.new('Invalid macro result', fcall.position)
+          raise Error.new('Invalid macro result', fvcall.position)
         end
         result
       end
@@ -221,7 +221,11 @@ module Duby
         def transform(transformer, parent)
           Arguments.new(parent, position) do |args_node|
             arg_list = args.child_nodes.map do |node|
-              RequiredArgument.new(args_node, node.position, node.name)
+              if !node.respond_to?(:type_node) || node.type_node.respond_to?(:type_reference)
+                RequiredArgument.new(args_node, node.position, node.name)
+              else
+                OptionalArgument.new(args_node, node.position, node.name) {|opt_arg| [transformer.transform(node, opt_arg)]}
+              end
               # argument nodes will have type soon
               #RequiredArgument.new(args_node, node.name, node.type)
             end if args
@@ -404,7 +408,7 @@ module Duby
 
             if args_node && args_node.args
               args_node.args.child_nodes.each do |arg|
-                if arg.respond_to? :type_node
+                if arg.respond_to?(:type_node) && arg.type_node.respond_to?(:type_reference)
                   signature[arg.name.intern] =
                     arg.type_node.type_reference(parent)
                 end
@@ -817,8 +821,30 @@ module Duby
       end
       
       class TypedArgumentNode
+        def transform(transformer, parent)
+          type_node.transform(transformer, parent)
+        end
       end
 
+        def transform(transformer, parent)
+          @declaration ||= false
+
+          if @declaration
+            return Noop.new(parent, position)
+          end
+
+          macro = AST.macro(name)
+          if macro
+            transformer.expand(self, parent, &macro)
+          else
+            FunctionalCall.new(parent, position, name) do |call|
+              [
+                args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
+                iter_node ? transformer.transform(iter_node, call) : nil
+              ]
+            end
+          end
+        end
       class VCallNode
         def transform(transformer, parent)
           if name == 'raise'
@@ -828,11 +854,16 @@ module Duby
           elsif name == 'null'
             Null.new(parent, position)
           else
-            FunctionalCall.new(parent, position, name) do |call|
-              [
-                [],
-                nil
-              ]
+            macro = AST.macro(name)
+            if macro
+              transformer.expand(self, parent, &macro)
+            else
+              FunctionalCall.new(parent, position, name) do |call|
+                [
+                  [],
+                  nil
+                ]
+              end
             end
           end
         end

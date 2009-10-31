@@ -153,6 +153,61 @@ module Duby
         
           @method.stop
         end
+
+        arg_types_for_opt = []
+        args_for_opt = []
+        if args.args
+          args.args.each do |arg|
+            if AST::OptionalArgument === arg
+              if @static || force_static
+                method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
+              else
+                if name == "initialize"
+                  method = @class.public_constructor(exceptions, *arg_types_for_opt)
+                  method.start
+                  method.aload 0
+                  method.invokespecial @class.superclass, "<init>", [@method.void]
+                  started = true
+                else
+                  method = @class.public_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
+                end
+              end
+
+              with :method => method, :static => @static || force_static do
+                log "Starting new method #{name}(#{arg_types_for_opt})"
+
+                @method.start unless started
+
+                # declare all args so they get their values
+
+                expression = signature[:return] != Types::Void
+
+                @method.aload(0) unless @static
+                args_for_opt.each {|req_arg| @method.local(req_arg.name, req_arg.inferred_type)}
+                arg.children[0].compile(self, true)
+
+                # invoke the next one in the chain
+                if @static
+                  @method.invokestatic(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                else
+                  @method.invokevirtual(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                end
+
+                if name == "initialize"
+                  @method.returnvoid
+                else
+                  signature[:return].return(@method)
+                end
+
+                @method.stop
+              end
+            end
+            arg_types_for_opt << arg.inferred_type
+            args_for_opt << arg
+          end
+        end
+
+        log "Method #{name}(#{arg_types}) complete!"
       end
 
       def define_class(class_def, expression)
@@ -536,18 +591,19 @@ module Duby
       def import(short, long)
       end
 
-      def println(printline)
+      def print(print_node)
         @method.getstatic System, "out", PrintStream
-        printline.parameters.each {|param| param.compile(self, true)}
-        params = printline.parameters.map {|param| param.inferred_type.jvm_type}
-        method = find_method(PrintStream.java_class, "println", params, false)
+        print_node.parameters.each {|param| param.compile(self, true)}
+        params = print_node.parameters.map {|param| param.inferred_type.jvm_type}
+        method_name = print_node.println ? "println" : "print"
+        method = find_method(PrintStream.java_class, method_name, params, false)
         if (method)
           @method.invokevirtual(
             PrintStream,
-            "println",
+            method_name,
             [method.return_type, *method.parameter_types])
         else
-          log "Could not find a match for #{PrintStream}.println(#{params})"
+          log "Could not find a match for #{PrintStream}.#{method_name}(#{params})"
           fail "Could not compile"
         end
       end

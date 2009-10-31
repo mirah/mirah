@@ -499,10 +499,14 @@ module Duby
         @method.print 'null'
       end
       
-      def println(node)
+      def print(node)
         value = node.parameters[0]
         value = value && value.precompile(self)
-        @method.print "System.out.println("
+        if node.println
+          @method.print "System.out.println("
+        else
+          @method.print "System.out.print("
+        end
         value.compile(self, true) if value
         @method.puts ');'
       end
