@@ -57,7 +57,6 @@ module Duby
         @file = BiteScript::FileBuilder.new(@filename)
         AST.type_factory.define_types(@file)
         @type = AST::type(classname)
-        @class = @type.define(@file)
       end
 
       def compile(ast, expression = false)
@@ -65,19 +64,29 @@ module Duby
         log "Compilation successful!"
       end
 
+      def toplevel_class
+        @class = @type.define(@file)
+      end
+
       def define_main(body)
-        with :method => @class.main do
-          log "Starting main method"
+        if body.class != AST::ClassDefinition
+          @class = @type.define(@file)
+          with :method => @class.main do
+            log "Starting main method"
 
-          @method.start
+            @method.start
 
-          # declare argv variable
-          @method.local('argv', AST.type('string', true))
+            # declare argv variable
+            @method.local('argv', AST.type('string', true))
 
+            body.compile(self, false)
+
+            @method.returnvoid
+            @method.stop
+          end
+          @class.stop
+        else
           body.compile(self, false)
-
-          @method.returnvoid
-          @method.stop
         end
 
         log "Main method complete!"
@@ -561,7 +570,6 @@ module Duby
       end
       
       def generate
-        @class.stop
         log "Generating classes..."
         @file.generate do |filename, builder|
           log "  #{builder.class_name}"
