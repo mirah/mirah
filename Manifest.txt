@@ -50,11 +50,11 @@ test/test_javac_compiler.rb
 test/test_jvm_compiler.rb
 test/test_math_plugin.rb
 test/test_typer.rb
-examples/bench_fractal.duby
 examples/construction.duby
 examples/edb.duby
 examples/fib.duby
 examples/fields.duby
+examples/fractal.duby
 examples/java_thing.duby
 examples/simple_class.duby
 examples/swing.duby
