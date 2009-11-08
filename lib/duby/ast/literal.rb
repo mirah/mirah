@@ -3,6 +3,10 @@ module Duby::AST
     def initialize(parent, line_number, &block)
       super(parent, line_number, &block)
     end
+
+    def infer(typer)
+      @inferred_type = typer.array_type
+    end
   end
   
   class Fixnum < Node

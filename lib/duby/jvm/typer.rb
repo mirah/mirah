@@ -42,6 +42,16 @@ module Duby
       def no_type
         Void
       end
+
+      def array_type
+        # TODO: allow other types for pre-1.2 profiles
+        type_reference("java.util.List")
+      end
+
+      def hash_type
+        # TODO: allow other types for pre-1.2 profiles
+        type_reference("java.util.Map")
+      end
       
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
         static = target_type.meta?

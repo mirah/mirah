@@ -556,6 +556,34 @@ module Duby
       def boolean(value)
         value ? @method.iconst_1 : @method.iconst_0
       end
+
+      def array(node, expression)
+        if expression
+          # create basic arraylist
+          @method.new java::util::ArrayList
+          @method.dup
+          @method.ldc_int node.children ? node.children.size : 0
+          @method.invokespecial java::util::ArrayList, "<init>", [@method.void, @method.int]
+
+          # elements, as expressions
+          # TODO: ensure they're all reference types!
+          node.children.each do |node|
+            @method.dup
+            node.compile(self, true)
+            @method.invokeinterface java::util::List, "add", [@method.boolean, @method.object]
+            @method.pop
+          end
+
+          # make it unmodifiable
+          @method.invokestatic java::util::Collections, "unmodifiableList", [java::util::List, java::util::List]
+        else
+          # elements, as non-expressions
+          # TODO: ensure they're all reference types!
+          node.children.each do |node|
+            node.compile(self, false)
+          end
+        end
+      end
       
       def null
         @method.aconst_null

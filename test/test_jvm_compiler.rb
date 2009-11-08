@@ -1508,4 +1508,25 @@ class TestJVMCompiler < Test::Unit::TestCase
       b.new
     end
   end
+
+  def test_literal_array
+    cls, = compile(<<-EOF)
+      def foo; puts "hello"; nil; end
+      def expr
+        [foo]
+      end
+      def nonexpr
+        [foo]
+        nil
+      end
+    EOF
+
+    assert_output("hello\nhello\n") do
+      val = cls.expr
+      assert val
+
+      val = cls.nonexpr
+      assert !val
+    end
+  end
 end

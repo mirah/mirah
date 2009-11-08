@@ -79,6 +79,16 @@ module Duby
         AST::TypeReference::NoType
       end
 
+      # to be overridden
+      def array_type
+        AST::TypeReference::NullType
+      end
+
+      # to be overridden
+      def hash_type
+        AST::TypeReference::NullType
+      end
+
       def define_type(name, superclass, interfaces)
         log "New type defined: '#{name}' < '#{superclass}'"
         known_types[name] = type_definition(name, superclass, interfaces)

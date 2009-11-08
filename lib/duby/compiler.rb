@@ -37,6 +37,12 @@ module Duby
         end
       end
     end
+
+    class Array
+      def compile(compiler, expression)
+        compiler.array(self, expression)
+      end
+    end
     
     class Body
       def compile(compiler, expression)
