@@ -300,7 +300,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("WhileLoop(check_first = true, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("Loop(check_first = true, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(new_ast.check_first?)
     assert(!new_ast.negative?)
     assert(AST::Condition === new_ast.condition)
@@ -311,7 +311,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("WhileLoop(check_first = false, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("Loop(check_first = false, negative = false)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(!new_ast.check_first?)
     assert(!new_ast.negative?)
     assert(AST::Condition === new_ast.condition)
@@ -324,7 +324,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("WhileLoop(check_first = true, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("Loop(check_first = true, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(new_ast.check_first?)
     assert(new_ast.negative?)
     assert(AST::Condition === new_ast.condition)
@@ -335,7 +335,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Loop === new_ast)
-    assert_equal("WhileLoop(check_first = false, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
+    assert_equal("Loop(check_first = false, negative = true)\n Condition\n  Fixnum(1)\n Fixnum(2)", new_ast.inspect)
     assert(!new_ast.check_first?)
     assert(new_ast.negative?)
     assert(AST::Condition === new_ast.condition)

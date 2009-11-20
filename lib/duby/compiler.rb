@@ -161,10 +161,10 @@ module Duby
       end
     end
     
-    class WhileLoop
+    class Loop
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.while_loop(self, expression)
+        compiler.loop(self, expression)
       end
     end
     

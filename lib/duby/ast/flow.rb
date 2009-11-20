@@ -93,7 +93,8 @@ module Duby
     end
 
     class Loop < Node
-      attr_accessor :redo
+      attr_accessor :init, :condition, :pre, :post, :body
+      attr_accessor :check_first, :negative, :redo
 
       def infer(typer)
         unless resolved?
@@ -108,11 +109,17 @@ module Duby
 
         @inferred_type
       end
+
+      def check_first?; @check_first; end
+      def negative?; @negative; end
+      def has_redo?; @redo; end
+
+      def to_s
+        "GenericLoop(check_first = #{check_first?}, negative = #{negative?})"
+      end
     end
 
-    class WhileLoop < Loop
-      attr_accessor :condition, :body, :check_first, :negative
-
+    class Loop < Node
       def initialize(parent, line_number, check_first, negative, &block)
         super(parent, line_number, &block)
         @condition, @body = children
@@ -120,12 +127,8 @@ module Duby
         @negative = negative
       end
 
-      def check_first?; @check_first; end
-      def negative?; @negative; end
-      def has_redo?; @redo; end
-
       def to_s
-        "WhileLoop(check_first = #{check_first?}, negative = #{negative?})"
+        "Loop(check_first = #{check_first?}, negative = #{negative?})"
       end
     end
     

@@ -309,7 +309,7 @@ module Duby
         end
       end
       
-      def while_loop(loop, expression)
+      def loop(loop, expression)
         if loop.redo || !loop.condition.predicate.expr?(self)
           loop = ComplexWhileLoop.new(loop, self)
         else

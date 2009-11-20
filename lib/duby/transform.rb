@@ -68,6 +68,19 @@ module Duby
         end
       end
       
+      def eval(src, filename='-', parent=nil, *vars)
+        unless vars.empty?
+          src = "#{vars.join ','} = [];begin;#{src};end"
+        end
+        node = Duby::AST.parse_ruby(src, filename).body_node
+        unless vars.empty?
+          # We stripped off the RootNode, so now we have
+          # (BlockNode ({vars} (NewlineNode (BeginNode ({src})))))
+          node = node[1].next_node.body_node
+        end
+        transform(node, parent)
+      end
+      
       def expand(fvcall, parent)
         result = yield self, fvcall, parent
         unless result.kind_of?(AST::Node)
@@ -90,9 +103,9 @@ module Duby
     java_import org.jrubyparser.CompatVersion
     java_import java.io.StringReader
     
-    def parse(src, filename='-', raise_errors=false)
+    def parse(src, filename='-', raise_errors=false, transformer=nil)
       ast = parse_ruby(src, filename)
-      transformer = Transform::Transformer.new
+      transformer ||= Transform::Transformer.new
       ast = transformer.transform(ast, nil)
       if raise_errors
         transformer.errors.each do |e|
@@ -875,7 +888,7 @@ module Duby
 
       class WhileNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(WhileLoop, parent, position,
+          transformer.push_jump_scope(Loop, parent, position,
                                       evaluate_at_start, false) do |loop|
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
@@ -887,7 +900,7 @@ module Duby
 
       class UntilNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(WhileLoop, parent, position,
+          transformer.push_jump_scope(Loop, parent, position,
                                       evaluate_at_start, true) do |loop|
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
@@ -897,17 +910,17 @@ module Duby
         end
       end
 
-      class ForNode
-        def transform(transformer, parent)
-          transformer.push_jump_scope(ForLoop, parent, position) do |loop|
-            [
-              transformer.transform(var_node, loop),
-              transformer.transform(body_node, loop),
-              transformer.transform(iter_node, loop)
-            ]
-          end
-        end
-      end
+      # class ForNode
+      #   def transform(transformer, parent)
+      #     transformer.push_jump_scope(ForLoop, parent, position) do |loop|
+      #       [
+      #         transformer.transform(var_node, loop),
+      #         transformer.transform(body_node, loop),
+      #         transformer.transform(iter_node, loop)
+      #       ]
+      #     end
+      #   end
+      # end
       
       class SuperNode
         def transform(transformer, parent)

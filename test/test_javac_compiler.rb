@@ -37,9 +37,10 @@ class TestJavacCompiler < TestJVMCompiler
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
-    ast = AST.parse(code)
+    transformer = Duby::Transform::Transformer.new
+    ast  = AST.parse(code, name, true, transformer)
     name = "script" + System.nano_time.to_s
-    typer = Typer::JVM.new(name)
+    typer = Typer::JVM.new(name, transformer)
     ast.infer(typer)
     typer.resolve(true)
     compiler = Compiler::JavaSource.new(name)

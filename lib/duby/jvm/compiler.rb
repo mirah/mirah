@@ -250,6 +250,51 @@ module Duby
 
         donelabel.set!
       end
+
+      def loop(loop, expression)
+        with(:break_label => @method.label,
+             :redo_label => @method.label,
+             :next_label => @method.label) do
+          predicate = loop.condition.predicate
+
+          loop.init.compile(self, false) if loop.init
+
+          if loop.check_first
+            @next_label.set! unless loop.post
+            if loop.negative
+              # if condition, exit
+              jump_if(predicate, @break_label)
+            else
+              # if not condition, exit
+              jump_if_not(predicate, @break_label)
+            end
+          end
+
+          loop.pre.compile(self, false) if loop.pre
+
+          @redo_label.set!
+          loop.body.compile(self, false)
+        
+          if loop.check_first && !loop.post
+            @method.goto(@next_label)
+          else
+            @next_label.set!
+            loop.post.compile(self, false) if loop.post
+            if loop.negative
+              # if not condition, continue
+              jump_if_not(predicate, @redo_label)
+            else
+              # if condition, continue
+              jump_if(predicate, @redo_label)
+            end
+          end
+        
+          @break_label.set!
+        
+          # loops always evaluate to null
+          @method.aconst_null if expression
+        end
+      end
       
       def while_loop(loop, expression)
         with(:break_label => @method.label,
