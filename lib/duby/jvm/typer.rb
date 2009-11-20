@@ -6,9 +6,12 @@ module Duby
   module Typer
     class JVM < Simple
       include Duby::JVM::Types
+      
+      attr_reader :transformer
 
-      def initialize(filename)
+      def initialize(filename, transformer)
         @factory = AST.type_factory
+        @transformer = transformer
         unless @factory.kind_of? TypeFactory
           raise "TypeFactory not installed"
         end

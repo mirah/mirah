@@ -43,4 +43,14 @@ module Duby::AST
       end
     end
   end
+  
+  class InlineCode
+    def initialize(&block)
+      @block = block
+    end
+    
+    def inline(typer, parent)
+      @block.call(typer.transformer, parent)
+    end
+  end
 end

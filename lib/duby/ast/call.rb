@@ -15,22 +15,30 @@ module Duby::AST
       @self_type ||= typer.self_type
 
       unless @inferred_type
-        receiver_type = @self_type
-        should_defer = false
+        if @inlined
+          @inferred_type = @inlined.infer(typer)
+        else
+          receiver_type = @self_type
+          should_defer = false
         
-        parameter_types = parameters.map do |param|
-          typer.infer(param) || should_defer = true
-        end
+          parameter_types = parameters.map do |param|
+            typer.infer(param) || should_defer = true
+          end
         
-        unless should_defer
-          if parameters.size == 1 && typer.known_types[name]
-            # cast operation
-            resolved!
-            self.cast = true
-            @inferred_type = typer.known_types[name]
-          else
-            @inferred_type = typer.method_type(receiver_type, name,
-                                               parameter_types)
+          unless should_defer
+            if parameters.size == 1 && typer.known_types[name]
+              # cast operation
+              resolved!
+              self.cast = true
+              @inferred_type = typer.known_types[name]
+            else
+              @inferred_type = typer.method_type(receiver_type, name,
+                                                 parameter_types)
+              if @inferred_type.kind_of? InlineCode
+                @inlined = @inferred_type.inline(typer, self)
+                @inferred_type = @inlined.infer(typer)
+              end
+            end
           end
         end
         
@@ -53,15 +61,23 @@ module Duby::AST
 
     def infer(typer)
       unless @inferred_type
-        receiver_type = typer.infer(target)
-        should_defer = false
-        parameter_types = parameters.map do |param|
-          typer.infer(param) || should_defer = true
-        end
+        if @inlined
+          @inferred_type = @inlined.infer(typer)
+        else
+          receiver_type = typer.infer(target)
+          should_defer = receiver_type.nil?
+          parameter_types = parameters.map do |param|
+            typer.infer(param) || should_defer = true
+          end
         
-        unless should_defer
-          @inferred_type = typer.method_type(receiver_type, name,
-                                             parameter_types)
+          unless should_defer
+            @inferred_type = typer.method_type(receiver_type, name,
+                                               parameter_types)
+            if @inferred_type.kind_of? InlineCode
+              @inlined = inferred_type.inline(typer, self)
+              @inferred_type = @inlined.infer(typer)
+            end
+          end
         end
         
         @inferred_type ? resolved! : typer.defer(self)
