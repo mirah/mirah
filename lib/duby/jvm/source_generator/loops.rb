@@ -20,9 +20,12 @@ class Duby::Compiler::JavaSource
     
     def compile(expression)
       prepare
+      @loop.init.compile(compiler, false) if @loop.init
       @start.call
       compiler.method.block do
+        @loop.pre.compile(compiler, false) if @loop.pre
         compile_body
+        @loop.post.compile(compiler, false) if @loop.post
       end
       if @end_check
         @end_check.call
