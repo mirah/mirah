@@ -1187,13 +1187,13 @@ end
 
   def test_general_loop
     cls, = compile(<<-EOF)
-      def foo
+      def foo(x:boolean)
         a = ""
-        __gloop__(nil, false, true, nil, nil) {a += "<body>"}
+        __gloop__(nil, x, true, nil, nil) {a += "<body>"}
         a
       end
     EOF
-    assert_equal("", cls.foo)
+    assert_equal("", cls.foo(false))
     
     cls, = compile(<<-EOF)
       def foo
@@ -1205,15 +1205,15 @@ end
     assert_equal("<body>", cls.foo)
     
     cls, = compile(<<-EOF)
-      def foo
+      def foo(x:boolean)
         a = ""
-        __gloop__(a += "<init>", false, true, a += "<pre>", a += "<post>") do
+        __gloop__(a += "<init>", x, true, a += "<pre>", a += "<post>") do
           a += "<body>"
         end
         a
       end
     EOF
-    assert_equal("<init>", cls.foo)
+    assert_equal("<init>", cls.foo(false))
     
     cls, = compile(<<-EOF)
       def foo
