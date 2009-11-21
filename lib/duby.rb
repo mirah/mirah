@@ -100,7 +100,7 @@ class DubyImpl
   end
 
   def compile_ast(ast, &block)
-    typer = Duby::Typer::JVM.new(@filename)
+    typer = Duby::Typer::JVM.new(@filename, @transformer)
     typer.infer(ast)
     begin
       typer.resolve(true)

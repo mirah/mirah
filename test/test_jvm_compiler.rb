@@ -5,6 +5,27 @@ require 'duby'
 require 'jruby'
 require 'stringio'
 
+unless Duby::AST.macro "__gloop__"
+  Duby::AST.defmacro "__gloop__" do |transformer, fcall, parent|
+    transformer.push_jump_scope(Duby::AST::Loop, parent, parent.position,
+                                true, false) do |loop|
+      init, condition, check_first, pre, post = fcall.args_node.child_nodes.to_a
+      loop.check_first = check_first.kind_of?(Duby::AST::JRubyAst::TrueNode)
+      
+      nil_t = Duby::AST::JRubyAst::NilNode
+      loop.init = transformer.transform(init, loop) unless init.kind_of?(nil_t)
+      loop.pre = transformer.transform(pre, loop) unless pre.kind_of?(nil_t)
+      loop.post = transformer.transform(post, loop) unless post.kind_of?(nil_t)
+      [
+        Duby::AST::Condition.new(loop, parent.position) do |c|
+          [transformer.transform(condition, c)]
+        end,
+        transformer.transform(fcall.iter_node.body_node, loop)
+      ]
+    end
+  end
+end
+
 class TestJVMCompiler < Test::Unit::TestCase
   include Duby
   import java.lang.System
@@ -1163,6 +1184,72 @@ if false
     assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
   end
 end
+
+  def test_general_loop
+    cls, = compile(<<-EOF)
+      def foo
+        a = ""
+        __gloop__(nil, false, true, nil, nil) {a += "<body>"}
+        a
+      end
+    EOF
+    assert_equal("", cls.foo)
+    
+    cls, = compile(<<-EOF)
+      def foo
+        a = ""
+        __gloop__(nil, false, false, nil, nil) {a += "<body>"}
+        a
+      end
+    EOF
+    assert_equal("<body>", cls.foo)
+    
+    cls, = compile(<<-EOF)
+      def foo
+        a = ""
+        __gloop__(a += "<init>", false, true, a += "<pre>", a += "<post>") do
+          a += "<body>"
+        end
+        a
+      end
+    EOF
+    assert_equal("<init>", cls.foo)
+    
+    cls, = compile(<<-EOF)
+      def foo
+        a = ""
+        __gloop__(a += "<init>", false, false, a += "<pre>", a += "<post>") do
+          a += "<body>"
+        end
+        a
+      end
+    EOF
+    assert_equal("<init><pre><body><post>", cls.foo)
+    
+    cls, = compile(<<-EOF)
+      def foo
+        a = ""
+        __gloop__(a += "<init>", false, false, a += "<pre>", a += "<post>") do
+          a += "<body>"
+          redo if a.length < 20
+        end
+        a
+      end
+    EOF
+    assert_equal( "<init><pre><body><body><post>", cls.foo)
+    
+    cls, = compile(<<-EOF)
+      def foo
+        a = ""
+        __gloop__(a += "<init>", a.length < 20, true, a += "<pre>", a += "<post>") do
+          next if a.length < 17
+          a += "<body>"
+        end
+        a
+      end
+    EOF
+    assert_equal("<init><pre><post><pre><body><post>", cls.foo)
+  end
   
   def test_if_expr
     cls, = compile(<<-EOF)

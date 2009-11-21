@@ -45,6 +45,7 @@ lib/duby/old/signature.rb
 lib/duby/old/test_math_plugin.rb
 lib/duby/old/typer_old.rb
 lib/duby/plugin/edb.rb
+lib/duby/plugin/gloop.rb
 lib/duby/plugin/java.rb
 lib/duby/plugin/math.rb
 test/test_ast.rb

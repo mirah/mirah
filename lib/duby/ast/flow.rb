@@ -96,9 +96,22 @@ module Duby
       attr_accessor :init, :condition, :pre, :post, :body
       attr_accessor :check_first, :negative, :redo
 
+      def initialize(parent, line_number, check_first, negative, &block)
+        @check_first = check_first
+        @negative = negative
+        super(parent, line_number, &block)
+        @condition, @body = @children
+      end
+
       def infer(typer)
         unless resolved?
-          child_types = children.map {|c| typer.infer(c)}
+          child_types = children.map do |c|
+            if c.nil?
+              typer.no_type
+            else
+              typer.infer(c)
+            end
+          end
           if child_types.any? {|t| t.nil?}
             typer.defer(self)
           else
@@ -109,23 +122,14 @@ module Duby
 
         @inferred_type
       end
+      
+      def children
+        [init, condition, pre, post, body]
+      end
 
       def check_first?; @check_first; end
       def negative?; @negative; end
       def has_redo?; @redo; end
-
-      def to_s
-        "GenericLoop(check_first = #{check_first?}, negative = #{negative?})"
-      end
-    end
-
-    class Loop < Node
-      def initialize(parent, line_number, check_first, negative, &block)
-        super(parent, line_number, &block)
-        @condition, @body = children
-        @check_first = check_first
-        @negative = negative
-      end
 
       def to_s
         "Loop(check_first = #{check_first?}, negative = #{negative?})"

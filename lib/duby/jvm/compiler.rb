@@ -259,6 +259,8 @@ module Duby
 
           loop.init.compile(self, false) if loop.init
 
+          pre_label = @redo_label
+
           if loop.check_first
             @next_label.set! unless loop.post
             if loop.negative
@@ -270,7 +272,12 @@ module Duby
             end
           end
 
-          loop.pre.compile(self, false) if loop.pre
+          if loop.pre
+            pre_label = method.label
+            pre_label.set!
+            loop.pre.compile(self, false)
+          end
+
 
           @redo_label.set!
           loop.body.compile(self, false)
@@ -282,10 +289,10 @@ module Duby
             loop.post.compile(self, false) if loop.post
             if loop.negative
               # if not condition, continue
-              jump_if_not(predicate, @redo_label)
+              jump_if_not(predicate, pre_label)
             else
               # if condition, continue
-              jump_if(predicate, @redo_label)
+              jump_if(predicate, pre_label)
             end
           end
         
@@ -295,47 +302,6 @@ module Duby
           @method.aconst_null if expression
         end
       end
-      
-      def while_loop(loop, expression)
-        with(:break_label => @method.label,
-             :redo_label => @method.label,
-             :next_label => @method.label) do
-          predicate = loop.condition.predicate
-
-          if loop.check_first
-            @next_label.set!
-            if loop.negative
-              # if condition, exit
-              jump_if(predicate, @break_label)
-            else
-              # if not condition, exit
-              jump_if_not(predicate, @break_label)
-            end
-          end
-        
-          @redo_label.set!
-          loop.body.compile(self, false)
-        
-          unless loop.check_first
-            @next_label.set!
-            if loop.negative
-              # if not condition, continue
-              jump_if_not(predicate, @redo_label)
-            else
-              # if condition, continue
-              jump_if(predicate, @redo_label)
-            end
-          else
-            @method.goto(@next_label)
-          end
-        
-          @break_label.set!
-        
-          # loops always evaluate to null
-          @method.aconst_null if expression
-        end
-      end
-      
       def for_loop(loop, expression)
         if loop.iter.inferred_type.array?
           array_foreach(loop, expression)
