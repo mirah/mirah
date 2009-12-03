@@ -119,7 +119,7 @@ module Duby
             method.puts ");"
           end
           
-          node.body.compile(self, false)
+          node.body.compile(self, false) if node.body
           method.stop
         end
       end

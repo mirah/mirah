@@ -505,6 +505,7 @@ module Duby
 
       def declared_fields
         @declared_fields ||= {}
+        @declared_fields[@class] ||= {}
       end
 
       def declare_field(name, type)

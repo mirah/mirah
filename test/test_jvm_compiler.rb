@@ -38,7 +38,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     compiler = Compiler::JVM.new(name)
     compiler.compile(ast)
     classes = []
-    loader = org.jruby.util.ClassCache::OneShotClassLoader.new(
+    loader = org.jruby.util.JRubyClassLoader.new(
         JRuby.runtime.jruby_class_loader)
     compiler.generate do |name, builder|
       bytes = builder.generate
@@ -1527,6 +1527,40 @@ class TestJVMCompiler < Test::Unit::TestCase
 
       val = cls.nonexpr
       assert !val
+    end
+  end
+
+  def test_empty_constructor
+    cls, foo = compile(<<-EOF)
+      class Foo6
+        def initialize; end
+      end
+    EOF
+    foo.new
+  end
+
+  def test_same_field_name
+    cls, = compile(<<-EOF)
+      class A1
+        def initialize; end
+        def foo(bar:String)
+          @bar = bar
+        end
+      end
+
+      class B1
+        def initialize; end
+        def foo(bar:String)
+          @bar = bar
+        end
+      end
+      
+      puts A1.new.foo("Hi")
+      puts B1.new.foo("There")
+    EOF
+
+    assert_output("Hi\nThere\n") do
+      cls.main(nil)
     end
   end
 end
