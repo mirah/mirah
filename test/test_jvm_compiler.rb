@@ -285,7 +285,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_class_decl
-    script, foo = compile("class ClassDeclTest;end")
+    foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
   end
 
@@ -315,17 +315,16 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_constructor
-    script, cls = compile(
+    cls, = compile(
         "class InitializeTest;def initialize;puts 'Constructed';end;end")
-    output = capture_output do
+    assert_output("Constructed\n") do
       cls.new
     end
-    assert_equal("Constructed\n", output)
   end
 
   def test_method
     # TODO auto generate a constructor
-    script, cls = compile(
+    cls, = compile(
       "class MethodTest; def initialize; ''; end; def foo; 'foo';end;end")
     instance = cls.new
     assert_equal(cls, instance.class)
@@ -679,7 +678,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_fields
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       class FieldTest
         def initialize(a => :fixnum)
           @a = a
@@ -1257,7 +1256,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("x", cls.bar("x"))
     assert_equal("x", cls.s)
     
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo2
         def initialize
           @count = 0
@@ -1376,7 +1375,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("S", cls.bar("x"))
     assert_equal("S", cls.s)
 
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo3
         def initialize
           @count = 0
@@ -1421,7 +1420,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
   
   def test_op_elem_assign
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo4
         def initialize
           @i = -1
@@ -1458,7 +1457,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
   
   def test_constructor_chaining
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo5
         def initialize(s:String)
           initialize(s, "foo")
@@ -1531,7 +1530,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_empty_constructor
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo6
         def initialize; end
       end

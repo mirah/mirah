@@ -25,7 +25,7 @@ module Duby::JVM::Types
       index = TYPE_ORDERING.index(math_type)
       larger_types = TYPE_ORDERING[index + 1, TYPE_ORDERING.size]
       larger_types.each do |type|
-        delegate_intrinsic(name, return_type || type, return_type || type)
+        delegate_intrinsic(name, type, return_type || type)
       end
     end
 
