@@ -164,7 +164,11 @@ module Duby
       end
     end
 
-    class Self < Node; end
+    class Self < Node
+      def infer(typer)
+        @inferred_type ||= typer.self_type
+      end
+    end
 
     class VoidType < Node; end
 

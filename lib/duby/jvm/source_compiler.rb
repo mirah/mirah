@@ -499,6 +499,10 @@ module Duby
         @method.print 'null'
       end
       
+      def compile_self
+        @method.print 'this'
+      end
+      
       def print(node)
         value = node.parameters[0]
         value = value && value.precompile(self)

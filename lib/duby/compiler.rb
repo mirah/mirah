@@ -269,5 +269,14 @@ module Duby
         compiler.ensure(self, expression)
       end
     end
+    
+    class Self
+      def compile(compiler, expression)
+        if expression
+          compiler.line(line_number)
+          compiler.compile_self
+        end
+      end
+    end
   end
 end
