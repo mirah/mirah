@@ -60,7 +60,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     compiler = Compiler::JVM.new(name)
     compiler.compile(ast)
     classes = []
-    loader = org.jruby.util.ClassCache::OneShotClassLoader.new(
+    loader = org.jruby.util.JRubyClassLoader.new(
         JRuby.runtime.jruby_class_loader)
     compiler.generate do |name, builder|
       bytes = builder.generate
@@ -307,7 +307,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_class_decl
-    script, foo = compile("class ClassDeclTest;end")
+    foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
   end
 
@@ -337,17 +337,16 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_constructor
-    script, cls = compile(
+    cls, = compile(
         "class InitializeTest;def initialize;puts 'Constructed';end;end")
-    output = capture_output do
+    assert_output("Constructed\n") do
       cls.new
     end
-    assert_equal("Constructed\n", output)
   end
 
   def test_method
     # TODO auto generate a constructor
-    script, cls = compile(
+    cls, = compile(
       "class MethodTest; def initialize; ''; end; def foo; 'foo';end;end")
     instance = cls.new
     assert_equal(cls, instance.class)
@@ -701,7 +700,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_fields
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       class FieldTest
         def initialize(a => :fixnum)
           @a = a
@@ -1347,7 +1346,7 @@ end
     assert_equal("x", cls.bar("x"))
     assert_equal("x", cls.s)
     
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo2
         def initialize
           @count = 0
@@ -1466,7 +1465,7 @@ end
     assert_equal("S", cls.bar("x"))
     assert_equal("S", cls.s)
 
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo3
         def initialize
           @count = 0
@@ -1511,7 +1510,7 @@ end
   end
   
   def test_op_elem_assign
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo4
         def initialize
           @i = -1
@@ -1548,7 +1547,7 @@ end
   end
   
   def test_constructor_chaining
-    cls, foo = compile(<<-EOF)
+    foo, = compile(<<-EOF)
       class Foo5
         def initialize(s:String)
           initialize(s, "foo")
@@ -1617,6 +1616,40 @@ end
 
       val = cls.nonexpr
       assert !val
+    end
+  end
+
+  def test_empty_constructor
+    foo, = compile(<<-EOF)
+      class Foo6
+        def initialize; end
+      end
+    EOF
+    foo.new
+  end
+
+  def test_same_field_name
+    cls, = compile(<<-EOF)
+      class A1
+        def initialize; end
+        def foo(bar:String)
+          @bar = bar
+        end
+      end
+
+      class B1
+        def initialize; end
+        def foo(bar:String)
+          @bar = bar
+        end
+      end
+      
+      puts A1.new.foo("Hi")
+      puts B1.new.foo("There")
+    EOF
+
+    assert_output("Hi\nThere\n") do
+      cls.main(nil)
     end
   end
 end

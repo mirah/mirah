@@ -40,9 +40,7 @@ module Duby
         end
         
         def compile(compiler, expression)
-          if expression
-            compiler.method.aload(0)
-          end
+          compiler.compile_self if expression
         end
       end
       
@@ -518,6 +516,7 @@ module Duby
 
       def declared_fields
         @declared_fields ||= {}
+        @declared_fields[@class] ||= {}
       end
 
       def declare_field(name, type)
@@ -598,6 +597,10 @@ module Duby
       
       def null
         @method.aconst_null
+      end
+      
+      def compile_self
+        method.aload(0)
       end
       
       def newline

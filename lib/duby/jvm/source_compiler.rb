@@ -119,7 +119,7 @@ module Duby
             method.puts ");"
           end
           
-          node.body.compile(self, false)
+          node.body.compile(self, false) if node.body
           method.stop
         end
       end
@@ -497,6 +497,10 @@ module Duby
       
       def null
         @method.print 'null'
+      end
+      
+      def compile_self
+        @method.print 'this'
       end
       
       def print(node)

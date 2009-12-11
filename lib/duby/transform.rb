@@ -935,6 +935,12 @@ module Duby
           Super.new(parent, position)
         end
       end
+      
+      class SelfNode
+        def transform(transformer, parent)
+          Self.new(parent, position)
+        end
+      end
     end
   end
 end
