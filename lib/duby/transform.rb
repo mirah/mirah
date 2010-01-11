@@ -18,6 +18,17 @@ module Duby
         @errors = []
         @jump_scope = []
         @tmp_count = 0
+        @annotations = []
+      end
+
+      def annotations
+        result, @annotations = @annotations, []
+        return result
+      end
+
+      def add_annotation(annotation)
+        @annotations << annotation
+        Duby::AST::Noop.new(annotation.parent, annotation.position)
       end
       
       def tmp
@@ -312,7 +323,9 @@ module Duby
       
       class ClassNode
         def transform(transformer, parent)
-          ClassDefinition.new(parent, position, cpath.name) do |class_def|
+          ClassDefinition.new(parent, position,
+                              cpath.name,
+                              transformer.annotations) do |class_def|
             [
               super_node ? super_node.type_reference(class_def) : nil,
               body_node ? transformer.transform(body_node, class_def) : nil
@@ -321,8 +334,20 @@ module Duby
         end
       end
 
+      class GlobalVarNode
+        def transform(transformer, parent)
+          classname = name[1..-1]
+          annotation = Annotation.new(parent, position, AST.type(classname))
+          transformer.add_annotation(annotation)
+        end
+      end
+
       class CallNode
         def transform(transformer, parent)
+          if annotation?
+            return transformer.add_annotation(annotation(transformer, parent))
+          end
+
           actual_name = name
           case actual_name
           when '[]'
@@ -382,12 +407,49 @@ module Duby
             when VCallNode
               elements.unshift(receiver.name)
               break
+            when GlobalVarNode
+              elements.unshift(receiver.name[1..-1])
+              break
             end
           end
 
           # join and load
           class_name = elements.join(".")
           AST::type(class_name, array)
+        end
+
+        def annotation(transformer, parent)
+          if name == '[]'
+            annotation = receiver_node.annotation(transformer, parent)
+            value = args_node[0]
+            case value
+            when HashNode
+              values = value.list_node
+              (0..(values.size / 2)).each do |i|
+                name = values.get(2 * i).name
+                value = values.get(2 * i + 1)
+                annotation[name] = transformer.transform(value, annotation)
+              end
+            when nil
+              # ignore an empty argument list
+            else
+              annotation['value'] = transformer.transform(value, annotation)
+            end
+            annotation
+          else
+            klass = type_reference(parent)
+            Annotation.new(parent, position, klass)
+          end
+        end
+
+        def annotation?
+          if name == '[]'
+            receiver = receiver_node
+          else
+            receiver = self
+          end
+          receiver = receiver.receiver_node while CallNode === receiver
+          GlobalVarNode === receiver
         end
       end
 
@@ -416,7 +478,9 @@ module Duby
             klass = MethodDefinition
           end
           transformer.push_jump_scope(klass, parent,
-                                      position, actual_name) do |defn|
+                                      position,
+                                      actual_name,
+                                      transformer.annotations) do |defn|
             signature = {:return => nil}
 
             if args_node && args_node.args
@@ -450,7 +514,9 @@ module Duby
             actual_name = name[0..-2] + '_set'
           end
           transformer.push_jump_scope(StaticMethodDefinition, parent,
-                                      position, actual_name) do |defn|
+                                      position,
+                                      actual_name,
+                                      transformer.annotations) do |defn|
             signature = {:return => nil}
             if args_node && args_node.args
               args_node.args.child_nodes.each do |arg|
@@ -715,16 +781,19 @@ module Duby
         def transform(transformer, parent)
           case value_node
           when SymbolNode, ConstNode
-            FieldDeclaration.new(parent, position, name) {|field_decl| [value_node.type_reference(field_decl)]}
+            FieldDeclaration.new(parent, position,
+                                 name, transformer.annotations) do |field_decl|
+              [value_node.type_reference(field_decl)]
+            end
           else
-            FieldAssignment.new(parent, position, name) {|field| [transformer.transform(value_node, field)]}
+            FieldAssignment.new(parent, position, name, transformer.annotations) {|field| [transformer.transform(value_node, field)]}
           end
         end
       end
 
       class InstVarNode
         def transform(transformer, parent)
-          Field.new(parent, position, name)
+          Field.new(parent, position, name, transformer.annotations)
         end
       end
 

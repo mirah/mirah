@@ -70,11 +70,12 @@ module Duby
         log "Main method complete!"
       end
 
-      def define_method(name, signature, args, body, force_static)
-        args = args.args || []
+      def define_method(node)
+        name, signature, args = node.name, node.signature, node.arguments.args
+        args ||= []
         return_type = signature[:return]
         exceptions = signature[:throws] || []
-        with :static => @static || force_static do
+        with :static => @static || node.static? do
           if @static
             method = @class.public_static_method(name.to_s, return_type, exceptions, *args)
           else
@@ -87,9 +88,9 @@ module Duby
             @method.start
 
             unless @method.type.nil? || @method.type.void?
-              self.return(ImplicitReturn.new(body))
+              self.return(ImplicitReturn.new(node.body))
             else
-              body.compile(self, false) if body
+              node.body.compile(self, false) if node.body
             end
         
             log "Method #{name} complete!"
@@ -186,7 +187,7 @@ module Duby
         @method.print name
       end
       
-      def field(name, type)
+      def field(name, type, annotations)
         name = name[1..-1]
         declare_field(name, type)
         @method.print "#{this}.#{name}"
@@ -213,7 +214,7 @@ module Duby
         end
       end
 
-      def field_declare(name, type)
+      def field_declare(name, type, annotations)
         name = name[1..-1]
         declare_field(name, type)
       end
@@ -222,7 +223,7 @@ module Duby
         declare_local(name, type)
       end
       
-      def field_assign(name, type, expression, value)
+      def field_assign(name, type, expression, value, annotations)
         name = name[1..-1]
         declare_field(name, type)
         lvalue = "#{@lvalue if expression}#{this}.#{name} = "

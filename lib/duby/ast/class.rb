@@ -1,10 +1,12 @@
 module Duby::AST
   class ClassDefinition < Node
+    include Annotated
     include Named
     include Scope
     attr_accessor :superclass, :body, :interfaces
         
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, annotations=[], &block)
+      @annotations = annotations
       @interfaces = []
       @name = name
       if Duby::AST.type_factory.respond_to? :declare_type
@@ -46,8 +48,8 @@ module Duby::AST
   class InterfaceDeclaration < ClassDefinition
     attr_accessor :superclass, :body, :interfaces
         
-    def initialize(parent, line_number, name)
-      super(parent, line_number, name) {|p| }
+    def initialize(parent, line_number, name, annotations)
+      super(parent, line_number, name, annotations) {|p| }
       @interfaces = []
       @name = name
       @children = yield(self)
@@ -66,7 +68,8 @@ module Duby::AST
     end
     raise 'Interface body required' unless fcall.iter_node
     InterfaceDeclaration.new(parent, fcall.position,
-                             interface_name.name) do |interface|
+                             interface_name.name,
+                             transformer.annotations) do |interface|
       [interfaces.map {|p| p.type_reference(interface)},
        if fcall.iter_node.body_node
          transformer.transform(fcall.iter_node.body_node, interface)
@@ -76,11 +79,13 @@ module Duby::AST
   end
 
   class FieldDeclaration < Node
+    include Annotated
     include Named
     include ClassScoped
     include Typed
 
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, annotations=[], &block)
+      @annotations = annotations
       super(parent, line_number, &block)
       @name = name
       @type = children[0]
@@ -102,11 +107,13 @@ module Duby::AST
   end
       
   class FieldAssignment < Node
+    include Annotated
     include Named
     include Valued
     include ClassScoped
         
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, annotations=[], &block)
+      @annotations = annotations
       super(parent, line_number, &block)
       @value = children[0]
       @name = name
@@ -124,10 +131,12 @@ module Duby::AST
   end
       
   class Field < Node
+    include Annotated
     include Named
     include ClassScoped
     
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, annotations=[], &block)
+      @annotations = annotations
       super(parent, line_number, &block)
       @name = name
     end

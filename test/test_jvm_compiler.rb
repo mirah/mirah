@@ -1652,4 +1652,35 @@ end
       cls.main(nil)
     end
   end
+
+  def test_annotations
+    deprecated = java.lang.Deprecated.java_class
+    cls, = compile(<<-EOF)
+      $Deprecated
+      def foo
+        'foo'
+      end
+    EOF
+
+    assert_not_nil cls.java_class.java_method('foo').annotation(deprecated)
+    assert_nil cls.java_class.annotation(deprecated)
+
+    script, cls = compile(<<-EOF)
+      $Deprecated
+      class Annotated
+      end
+    EOF
+    assert_not_nil cls.java_class.annotation(deprecated)
+
+    cls, = compile(<<-EOF)
+      class AnnotatedField
+        def initialize
+          $Deprecated
+          @foo = 1
+        end
+      end
+    EOF
+
+    assert_not_nil cls.java_class.field('foo').annotation(deprecated)    
+  end
 end

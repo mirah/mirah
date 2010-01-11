@@ -51,7 +51,7 @@ module Duby
         @src = ""
         @static = true
         classname = File.basename(filename, '.duby')
-
+        BiteScript.bytecode_version = BiteScript::JAVA1_5
         @file = BiteScript::FileBuilder.new(@filename)
         AST.type_factory.define_types(@file)
         @type = AST::type(classname)
@@ -90,31 +90,34 @@ module Duby
         log "Main method complete!"
       end
       
-      def define_method(name, signature, args, body, force_static)
-        arg_types = if args.args
-          args.args.map { |arg| arg.inferred_type }
+      def define_method(node)
+        name, signature, args = node.name, node.signature, node.arguments.args
+        arg_types = if args
+          args.map { |arg| arg.inferred_type }
         else
           []
         end
         return_type = signature[:return]
         exceptions = signature[:throws]
 
-        with :static => @static || force_static do
+        with :static => @static || node.static? do
           if @static
             method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
           else
             method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
           end
 
+          annotate(method, node.annotations)
+
           return if @class.interface?
 
           log "Starting new method #{name}(#{arg_types})"
-          method_body(method, args.args, body, signature[:return])
+          method_body(method, args, node.body, signature[:return])
 
           arg_types_for_opt = []
           args_for_opt = []
-          if args.args
-            args.args.each do |arg|
+          if args
+            args.each do |arg|
               if AST::OptionalArgument === arg
                 if @static
                   method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
@@ -160,6 +163,7 @@ module Duby
         arg_types = args.map { |arg| arg.inferred_type }
         exceptions = node.signature[:throws]
         method = @class.public_constructor(exceptions, *arg_types)
+        annotate(method, node.annotations)
         method_body(method, args, node.body, Types::Void) do
           method.aload 0
           if node.delegate_args
@@ -207,8 +211,8 @@ module Duby
         with(:type => class_def.inferred_type,
              :class => class_def.inferred_type.define(@file),
              :static => false) do
+          annotate(@class, class_def.annotations)
           class_def.body.compile(self, false) if class_def.body
-        
           @class.stop
         end
       end
@@ -487,6 +491,14 @@ module Duby
         @declared_locals ||= {}
       end
 
+      def annotate(builder, annotations)
+        annotations.each do |annotation|
+          builder.annotate(annotation.type.jvm_type) do |visitor|
+            # todo values
+          end
+        end
+      end
+
       def declare_local(name, type)
         # TODO confirm types are compatible
         unless declared_locals[name]
@@ -501,8 +513,12 @@ module Duby
         type.store(@method, @method.local(name, type))
       end
 
-      def field(name, type)
+      def field(name, type, annotations)
         name = name[1..-1]
+
+        real_type = declared_fields[name] || type
+
+        declare_field(name, real_type, annotations)
 
         # load self object unless static
         method.aload 0 unless static
@@ -519,29 +535,30 @@ module Duby
         @declared_fields[@class] ||= {}
       end
 
-      def declare_field(name, type)
+      def declare_field(name, type, annotations)
         # TODO confirm types are compatible
         unless declared_fields[name]
           declared_fields[name] = type
-          if static
+          field = if static
             @class.private_static_field name, type
           else
             @class.private_field name, type
           end
+          annotate(field, annotations)
         end
       end
 
-      def field_declare(name, type)
+      def field_declare(name, type, annotations)
         name = name[1..-1]
-        declare_field(name, type)
+        declare_field(name, type, annotations)
       end
 
-      def field_assign(name, type, expression, value)
+      def field_assign(name, type, expression, value, annotations)
         name = name[1..-1]
 
         real_type = declared_fields[name] || type
         
-        declare_field(name, real_type)
+        declare_field(name, real_type, annotations)
 
         method.aload 0 unless static
         value.compile(self, true)

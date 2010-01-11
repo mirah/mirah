@@ -6,7 +6,6 @@ bin/jrubyp
 lib/duby.rb
 lib/duby/ast.rb
 lib/duby/compiler.rb
-lib/duby/duby.rb
 lib/duby/nbcompiler.rb
 lib/duby/transform.rb
 lib/duby/typer.rb
@@ -42,10 +41,8 @@ lib/duby/old/compiler_old.rb
 lib/duby/old/declaration.rb
 lib/duby/old/mapper.rb
 lib/duby/old/signature.rb
-lib/duby/old/test_math_plugin.rb
 lib/duby/old/typer_old.rb
 lib/duby/plugin/edb.rb
-lib/duby/plugin/gloop.rb
 lib/duby/plugin/java.rb
 lib/duby/plugin/math.rb
 test/test_ast.rb
@@ -55,6 +52,7 @@ test/test_javac_compiler.rb
 test/test_jvm_compiler.rb
 test/test_math_plugin.rb
 test/test_typer.rb
+examples/anno_test.duby
 examples/bench_fractal.duby
 examples/broken.duby
 examples/cast.duby
@@ -62,7 +60,6 @@ examples/construction.duby
 examples/edb.duby
 examples/fib.duby
 examples/fields.duby
-examples/Foo.duby
 examples/fractal.duby
 examples/java_thing.duby
 examples/simple_class.duby
@@ -71,6 +68,8 @@ examples/tak.duby
 examples/Test.duby
 examples/appengine/src/com/google/appengine/ext/duby/db/Model.duby
 examples/appengine/src/com/ribrdb/DubyApp.duby
+examples/wiki/src/com/google/appengine/ext/duby/db/Model.duby
+examples/wiki/src/com/ribrdb/wiki/DubyWiki.duby
 History.txt
 Manifest.txt
 README.txt

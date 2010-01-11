@@ -266,6 +266,7 @@ module Duby
       attr_accessor :name, :type, :out
       
       def initialize(cls, options)
+        @class = cls
         @compiler = cls.compiler
         @out = Output.new
         @name = options[:name]

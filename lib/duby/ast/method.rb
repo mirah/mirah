@@ -103,11 +103,13 @@ module Duby::AST
   end
       
   class MethodDefinition < Node
+    include Annotated
     include Named
     include Scope
     attr_accessor :signature, :arguments, :body, :defining_class
         
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, annotations=[], &block)
+      @annotations = annotations
       super(parent, line_number, &block)
       @signature, @arguments, @body = children
       @name = name

@@ -146,6 +146,15 @@ module Duby
       end
     end
 
+    module Annotated
+      attr_accessor :annotations
+
+      def annotation(name)
+        name = name.to_s
+        annotations.find {|a| a.name == name}
+      end
+    end
+
     module Scope; end
 
     class Colon2 < Node; end
@@ -171,6 +180,26 @@ module Duby
     end
 
     class VoidType < Node; end
+
+    class Annotation < Node
+      def initialize(parent, position, klass)
+        super(parent, position)
+        @class = klass
+        @values = []
+      end
+
+      def name
+        @class.name
+      end
+
+      def type
+        @class
+      end
+
+      def []=(name, value)
+        # TODO support annotation arguments
+      end
+    end
 
     class TypeReference < Node
       include Named

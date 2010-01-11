@@ -108,7 +108,7 @@ module Duby
     class MethodDefinition
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?
-        compiler.define_method(name, signature, arguments, body, static?)
+        compiler.define_method(self)
       end
     end
     
@@ -183,14 +183,14 @@ module Duby
 
     class FieldDeclaration
       def compile(compiler, expression)
-        compiler.field_declare(name, inferred_type)
+        compiler.field_declare(name, inferred_type, annotations)
       end
     end
 
     class FieldAssignment
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.field_assign(name, inferred_type, expression, value)
+        compiler.field_assign(name, inferred_type, expression, value, annotations)
       end
     end
 
@@ -198,7 +198,7 @@ module Duby
       def compile(compiler, expression)
         compiler.line(line_number)
         if expression
-          compiler.field(name, inferred_type)
+          compiler.field(name, inferred_type, annotations)
         end
       end
     end
