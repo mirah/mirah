@@ -135,30 +135,6 @@ module Duby
         "Loop(check_first = #{check_first?}, negative = #{negative?})"
       end
     end
-    
-    class ForLoop < Loop
-      attr_reader :name, :body, :iter
-
-      def initialize(parent, position, &block)
-        super(parent, position, &block)
-        var = children.shift
-        @body, @iter = children
-        @scope = var.scope
-        @name = var.name
-      end
-
-      def infer(typer)
-        super
-        iter_type = @iter.inferred_type
-        if iter_type
-          if !iter_type.iterable?
-            raise "#{iter_type} is not iterable."
-          end
-          typer.learn_local_type(@scope, name, iter_type.component_type)
-        end
-        @inferred_type
-      end
-    end
 
     class Not < Node
       def initialize(parent, line_number, &block)

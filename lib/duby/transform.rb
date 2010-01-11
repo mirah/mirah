@@ -908,25 +908,6 @@ module Duby
         end
       end
 
-        def transform(transformer, parent)
-          @declaration ||= false
-
-          if @declaration
-            return Noop.new(parent, position)
-          end
-
-          macro = AST.macro(name)
-          if macro
-            transformer.expand(self, parent, &macro)
-          else
-            FunctionalCall.new(parent, position, name) do |call|
-              [
-                args_node ? args_node.child_nodes.map {|arg| transformer.transform(arg, call)} : [],
-                iter_node ? transformer.transform(iter_node, call) : nil
-              ]
-            end
-          end
-        end
       class VCallNode
         def transform(transformer, parent)
           if name == 'raise'
@@ -979,17 +960,58 @@ module Duby
         end
       end
 
-      # class ForNode
-      #   def transform(transformer, parent)
-      #     transformer.push_jump_scope(ForLoop, parent, position) do |loop|
-      #       [
-      #         transformer.transform(var_node, loop),
-      #         transformer.transform(body_node, loop),
-      #         transformer.transform(iter_node, loop)
-      #       ]
-      #     end
-      #   end
-      # end
+      class DVarNode
+        def transform(transformer, parent)
+          # TODO does this need to be handled specially?
+          Local.new(parent, position, name)
+        end
+      end
+
+      class IterNode
+        def transform(transformer, parent)
+          Block.new(parent, position) do |block|
+            [
+              transformer.transform(var_node, block),
+              transformer.transform(body_node, block)
+            ]
+          end
+        end
+      end
+
+      class ForNode
+        def transform(transformer, parent)
+          # transformer.push_jump_scope(ForLoop, parent, position) do |loop|
+          #   [
+          #     transformer.transform(var_node, loop),
+          #     transformer.transform(body_node, loop),
+          #     transformer.transform(iter_node, loop)
+          #   ]
+          # end
+          
+          # TODO This does set the scope, so redo, next, and break won't work.
+          # Ideally we'd delay transforming the body until the each call is
+          # inlined, but that won't work with direct calls to each.
+          Call.new(parent, position, 'each') do |each|
+            [
+              transformer.transform(iter_node, each),
+              [],
+              Block.new(each, body_node.position) do |block|
+                [
+                  Arguments.new(block, var_node.position) do |args|
+                    [
+                      # TODO support for multiple assignment?
+                      RequiredArgument.new(args,
+                                           var_node.position,
+                                           var_node.name)
+                    ]
+                  end,
+                  transformer.transform(body_node, block)
+                ]
+              end
+            ]
+          end
+        end
+      end
       
       class SuperNode
         def transform(transformer, parent)

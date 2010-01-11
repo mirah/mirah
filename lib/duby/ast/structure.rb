@@ -22,6 +22,15 @@ module Duby::AST
     end
   end
   
+  class Block < Node
+    attr_accessor :args, :body
+
+    def initialize(parent, position, &block)
+      super(parent, position, &block)
+      @args, @body = children
+    end
+  end
+  
   class Noop < Node
     def infer(typer)
       @inferred_type ||= typer.no_type

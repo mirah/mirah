@@ -57,6 +57,7 @@ examples/bench_fractal.duby
 examples/broken.duby
 examples/cast.duby
 examples/construction.duby
+examples/each.duby
 examples/edb.duby
 examples/fib.duby
 examples/fields.duby
