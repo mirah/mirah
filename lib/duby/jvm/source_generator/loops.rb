@@ -89,7 +89,11 @@ class Duby::Compiler::JavaSource
       @outer = compiler.method.label
       @inner = compiler.method.label
       @complex_predicate = !loop.condition.predicate.expr?(compiler)
-      compiler.method.puts "#{@outer}:"
+      super_start = @start
+      @start = lambda do
+        compiler.method.puts "#{@outer}:"
+        super_start.call
+      end
     end
 
     def compile_body

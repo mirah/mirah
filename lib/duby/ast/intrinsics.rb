@@ -49,8 +49,8 @@ module Duby::AST
       @block = block
     end
     
-    def inline(typer, parent)
-      @block.call(typer.transformer, parent)
+    def inline(typer, call)
+      @block.call(typer.transformer, call)
     end
   end
 end

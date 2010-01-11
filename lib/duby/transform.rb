@@ -32,7 +32,7 @@ module Duby
       end
       
       def tmp
-        "xform$#{@tmp_count += 1}"
+        "__xform_tmp_#{@tmp_count += 1}"
       end
       
       def push_jump_scope(klass, *args)

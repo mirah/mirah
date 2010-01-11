@@ -48,6 +48,13 @@ module Duby::JVM::Types
       intrinsics[name][args] = method_or_type
     end
 
+    def add_macro(name, *args, &block)
+      type = Duby::AST::InlineCode.new(&block)
+      intrinsics[name][args] = Intrinsic.new(self, name, args, type) do
+        raise "Macro should be expanded, no called!"
+      end
+    end
+
     def declared_intrinsics
       methods = []
       intrinsics.each do |name, group|
@@ -118,6 +125,33 @@ module Duby::JVM::Types
       add_method('length', [], Int) do |compiler, call, expression|
         call.target.compile(compiler, true)
         compiler.method.arraylength              
+      end
+      
+      add_macro('each') do |transformer, call|
+        Duby::AST::Loop.new(call.parent,
+                            call.position, true, false) do |forloop|
+          index = transformer.tmp
+          array = transformer.tmp
+          
+          forloop.init = transformer.eval("#{index} = 0;#{array} = nil",
+                                        '', forloop)
+          array_assignment = forloop.init.children[-1]
+          array_assignment.value = call.target
+          call.target.parent = array_assignment
+          
+          var = call.block.args[0].name
+          forloop.pre = transformer.eval(
+              "#{var} = #{array}[#{index}]", '', forloop, index, array)
+          forloop.post = transformer.eval("#{index} += 1", '', forloop)
+          call.block.body.parent = forloop
+          [
+            Duby::AST::Condition.new(forloop, call.position) do |c|
+              [transformer.eval("#{index} < #{array}.length",
+                                '', forloop, index, array)]
+            end,
+            call.block.body
+          ]
+        end
       end
     end
   end

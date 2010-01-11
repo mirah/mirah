@@ -1157,7 +1157,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(false, cls.foo(nil))
   end
   
-if false
   def test_for
     cls, = compile(<<-EOF)
       def foo
@@ -1182,7 +1181,6 @@ if false
 
     assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
   end
-end
 
   def test_general_loop
     cls, = compile(<<-EOF)
