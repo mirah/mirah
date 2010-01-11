@@ -39,11 +39,14 @@ module Duby
 
         @file = Duby::JavaSource::Builder.new(filename, self)
         #@file.package = package
-        @class = @file.public_class(classname)
+        @type = AST::type(classname)
+      end
+
+      def toplevel_class
+        @class = @type.define(@file)
       end
 
       def generate(&block)
-        @class.stop
         log "Generating source files..."
         @file.generate do |filename, builder|
           log "  #{builder.class_name}"
@@ -57,14 +60,20 @@ module Duby
       end
 
       def define_main(body)
-        with :method => @class.main do
-          log "Starting main method"
+        if body.class != AST::ClassDefinition
+          @class = @type.define(@file)
+          with :method => @class.main do
+            log "Starting main method"
 
-          @method.start
+            @method.start
 
+            body.compile(self, false)
+
+            @method.stop
+          end
+          @class.stop
+        else
           body.compile(self, false)
-
-          @method.stop
         end
 
         log "Main method complete!"
@@ -84,7 +93,7 @@ module Duby
 
           with :method => method do
             log "Starting new method #{name}"
-
+            @method.annotate(node.annotations)
             @method.start
 
             unless @method.type.nil? || @method.type.void?
@@ -104,7 +113,8 @@ module Duby
         exceptions = node.signature[:throws] || []
         method = @class.public_constructor(exceptions, *args)
         with :method => method do
-          method.start
+          @method.annotate(node.annotations)
+          @method.start
           if node.delegate_args
             delegate = if node.calls_super
               "super"
@@ -179,8 +189,8 @@ module Duby
         @method.declare_local(type, name)
       end
       
-      def declare_field(name, type)
-        @class.declare_field(name, type, @static)
+      def declare_field(name, type, annotations)
+        @class.declare_field(name, type, @static, annotations)
       end
 
       def local(name, type)
@@ -189,7 +199,7 @@ module Duby
       
       def field(name, type, annotations)
         name = name[1..-1]
-        declare_field(name, type)
+        declare_field(name, type, annotations)
         @method.print "#{this}.#{name}"
       end
 
@@ -216,7 +226,7 @@ module Duby
 
       def field_declare(name, type, annotations)
         name = name[1..-1]
-        declare_field(name, type)
+        declare_field(name, type, annotations)
       end
       
       def local_declare(name, type)
@@ -225,7 +235,7 @@ module Duby
       
       def field_assign(name, type, expression, value, annotations)
         name = name[1..-1]
-        declare_field(name, type)
+        declare_field(name, type, annotations)
         lvalue = "#{@lvalue if expression}#{this}.#{name} = "
         store_value(lvalue, value)
       end
@@ -519,6 +529,7 @@ module Duby
       def define_class(class_def, expression)
         with(:class => class_def.inferred_type.define(@file),
              :static => false) do
+          @class.annotate(class_def.annotations)
           class_def.body.compile(self, false) if class_def.body
         
           @class.stop

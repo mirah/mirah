@@ -120,7 +120,14 @@ module Duby
         else
           'null'
         end
-      end      
+      end   
+
+      def annotate(annotations)
+        annotations.each do |annotation|
+          # TODO values
+          puts "@#{annotation.name}"
+        end
+      end
     end
     
     class ClassBuilder
@@ -160,6 +167,11 @@ module Duby
       def start
         puts "// Generated from #{@builder.filename}"
         puts "package #{package};" if package
+      end
+
+      def finish_declaration
+        return if @declaration_finished
+        @declaration_finished = true
         print "public class #{class_name} extends #{superclass.name}"
         unless @interfaces.empty?
           print " implements "
@@ -173,6 +185,7 @@ module Duby
       end
       
       def stop
+        finish_declaration
         return if @stopped
         @methods.each do |method|
           @out << method.out
@@ -189,14 +202,17 @@ module Duby
                              [JVMTypes::String.array_type, 'argv'])
       end
       
-      def declare_field(name, type, static)
+      def declare_field(name, type, static, annotations=[])
+        finish_declaration
         return if @fields[name]
         static = static ? 'static' : ''
+        annotate(annotations)
         puts "private #{static} #{type.to_source} #{name};"
         @fields[name] = true
       end
       
       def public_method(name, type, exceptions, *args)
+        finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
@@ -206,6 +222,7 @@ module Duby
       end
       
       def public_static_method(name, type, exceptions, *args)
+        finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
@@ -216,6 +233,7 @@ module Duby
       end
       
       def public_constructor(exceptions, *args)
+        finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => class_name,
                                       :args => args,
@@ -234,9 +252,9 @@ module Duby
         super(builder, name, nil, interfaces)
       end
       
-      def start
-        puts "// Generated from #{@builder.filename}"
-        puts "package #{package};" if package
+      def finish_declaration
+        return if @declaration_finished
+        @declaration_finished = true
         print "public interface #{class_name}"
         unless @interfaces.empty?
           print " extends "
@@ -250,6 +268,7 @@ module Duby
       end
       
       def public_method(name, type, exceptions, *args)
+        finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
@@ -285,7 +304,7 @@ module Duby
         @exceptions = options[:exceptions] || []
         @temps = 0
       end
-      
+
       def start
         print "public#{@static}#{@abstract} #{@typename} #{@name}("
         @args.each_with_index do |(type, name), i|

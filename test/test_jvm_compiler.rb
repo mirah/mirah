@@ -1681,6 +1681,6 @@ end
       end
     EOF
 
-    assert_not_nil cls.java_class.field('foo').annotation(deprecated)    
+    assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)    
   end
 end
