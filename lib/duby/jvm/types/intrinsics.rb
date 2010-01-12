@@ -139,7 +139,7 @@ module Duby::JVM::Types
           array_assignment.value = call.target
           call.target.parent = array_assignment
           
-          var = call.block.args[0].name
+          var = call.block.args.args[0].name
           forloop.pre = transformer.eval(
               "#{var} = #{array}[#{index}]", '', forloop, index, array)
           forloop.post = transformer.eval("#{index} += 1", '', forloop)
@@ -178,6 +178,34 @@ module Duby::JVM::Types
           call.parameters[0].compile(compiler, true)
           compiler.method.invokestatic String, "valueOf", [String, Float]
           compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
+    end
+  end
+
+  class IterableType < Type
+    def add_intrinsics
+      super
+      add_macro('each') do |transformer, call|
+        Duby::AST::Loop.new(call.parent,
+                            call.position, true, false) do |forloop|
+          it = transformer.tmp
+          
+          forloop.init = transformer.eval("#{it} = foo.iterator", '', forloop)
+          it_call = forloop.init.value
+          it_call.target = call.target
+          call.target.parent = it_call
+          
+          var = call.block.args.args[0].name
+          forloop.pre = transformer.eval(
+              "#{var} = #{it}.next", '', forloop, it)
+          call.block.body.parent = forloop
+          [
+            Duby::AST::Condition.new(forloop, call.position) do |c|
+              [transformer.eval("#{it}.hasNext", '', forloop, it)]
+            end,
+            call.block.body
+          ]
         end
       end
     end

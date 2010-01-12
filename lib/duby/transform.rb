@@ -1000,9 +1000,10 @@ module Duby
                   Arguments.new(block, var_node.position) do |args|
                     [
                       # TODO support for multiple assignment?
-                      RequiredArgument.new(args,
-                                           var_node.position,
-                                           var_node.name)
+                      [RequiredArgument.new(args,
+                                            var_node.position,
+                                            var_node.name)
+                      ]
                     ]
                   end,
                   transformer.transform(body_node, block)

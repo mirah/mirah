@@ -12,7 +12,11 @@ module Duby::JVM::Types
       "fixnum" => Int,
       "string" => String,
       "java.lang.String" => String,
+      "String" => String,
       "java.lang.Object" => Object,
+      "Object" => Object,
+      "java.lang.Iterable" => Iterable,
+      "Iterable" => Iterable,
       "void" => Void,
       "notype" => Void,
       "null" => Null

@@ -77,6 +77,7 @@ module Duby::AST
     def expr?(compiler)
       target.expr?(compiler) &&
           parameters.all? {|p| p.expr?(compiler)} &&
+          !method.return_type.kind_of?(Duby::AST::InlineCode) &&
           !method.actual_return_type.void?
     end
   end

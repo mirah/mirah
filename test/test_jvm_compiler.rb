@@ -1180,6 +1180,22 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
+
+    cls, = compile(<<-EOF)
+      def foo(a:Iterable)
+        a.each do |x|
+          puts x
+        end
+      end
+    EOF
+    
+    assert_output("1\n2\n3\n") do
+      list = java.util.ArrayList.new
+      list << "1"
+      list << "2"
+      list << "3"
+      cls.foo(list)
+    end
   end
 
   def test_general_loop

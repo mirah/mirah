@@ -52,12 +52,8 @@ test/test_javac_compiler.rb
 test/test_jvm_compiler.rb
 test/test_math_plugin.rb
 test/test_typer.rb
-examples/anno_test.duby
-examples/bench_fractal.duby
 examples/broken.duby
-examples/cast.duby
 examples/construction.duby
-examples/each.duby
 examples/edb.duby
 examples/fib.duby
 examples/fields.duby
@@ -66,7 +62,6 @@ examples/java_thing.duby
 examples/simple_class.duby
 examples/swing.duby
 examples/tak.duby
-examples/Test.duby
 examples/appengine/src/com/google/appengine/ext/duby/db/Model.duby
 examples/appengine/src/com/ribrdb/DubyApp.duby
 examples/wiki/src/com/google/appengine/ext/duby/db/Model.duby

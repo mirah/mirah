@@ -10,6 +10,7 @@ module Duby::JVM::Types
 
   Object = Type.new(Java::JavaLang.Object)
   String = StringType.new(Java::JavaLang.String)
+  Iterable = IterableType.new(Java::JavaLang.Iterable)
 
   Void = VoidType.new
   Null = NullType.new
