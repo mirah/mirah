@@ -107,33 +107,4 @@ class Duby::Compiler::JavaSource
       end
     end
   end
-  
-  class SimpleForLoop < SimpleWhileLoop
-    def prepare
-      iter = loop.iter.precompile(compiler)
-      iter_type = loop.iter.inferred_type
-      type = iter_type.component_type.to_source
-      name = loop.name
-      @start = lambda do
-        compiler.method.print "for (#{type} #{name} : "
-        iter.compile(compiler, true)
-        compiler.method.print ')'
-      end
-    end
-  end
-
-  class RedoableForLoop < SimpleForLoop
-    include Redoable
-    def prepare
-      super
-      @outer = compiler.method.label
-      @inner = compiler.method.label
-      compiler.method.puts "#{@outer}:"
-    end
-
-    def compile_body
-      compiler.method.puts "#{@inner}:"
-      compile_with_redo(@loop.body)
-    end
-  end
 end

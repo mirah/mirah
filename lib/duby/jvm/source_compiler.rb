@@ -331,17 +331,6 @@ module Duby
         end
       end
       
-      def for_loop(loop, expression)
-        if loop.redo
-          loop = RedoableForLoop.new(loop, self)
-        else
-          loop = SimpleForLoop.new(loop, self)
-        end
-        with(:loop => loop) do
-          loop.compile(expression)
-        end        
-      end
-
       def expr?(target, params)
         !([target] + params).any? {|x| x.kind_of? Duby::AST::TempValue}
       end

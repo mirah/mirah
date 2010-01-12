@@ -304,49 +304,7 @@ module Duby
           @method.aconst_null if expression
         end
       end
-      def for_loop(loop, expression)
-        if loop.iter.inferred_type.array?
-          array_foreach(loop, expression)
-        else
-          iterator_foreach(loop, expression)
-        end
-      end
 
-      def array_foreach(loop, expression)
-        array = "tmp$#{loop.name}$array"
-        i = "tmp$#{loop.name}$i"
-        length = "tmp$#{loop.name}$length"
-        array_type = loop.iter.inferred_type
-        item_type = array_type.component_type
-        local_assign(array, array_type, true, loop.iter)
-        @method.arraylength
-        @method.istore(@method.local(length, Types::Int))
-        @method.push_int(0)
-        @method.istore(@method.local(i, Types::Int))
-        with(:break_label => @method.label,
-             :redo_label => @method.label,
-             :next_label => @method.label) do
-          @next_label.set!
-          local(i, Types::Int)
-          local(length, Types::Int)
-          @method.if_icmpge(@break_label)
-          local(array, array_type)
-          local(i, Types::Int)
-          item_type.aload(@method)
-          item_type.store(@method, @method.local(loop.name, item_type))
-          @method.iinc(@method.local(i, Types::Int), 1)
-
-          @redo_label.set!
-          loop.body.compile(self, false)
-          @method.goto @next_label
-
-          @break_label.set!
-
-          # loops always evaluate to null
-          @method.aconst_null if expression
-        end
-      end
-      
       def break(node)
         handle_ensures(node)
         @method.goto(@break_label)
