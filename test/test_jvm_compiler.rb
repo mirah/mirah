@@ -7,8 +7,7 @@ require 'stringio'
 
 unless Duby::AST.macro "__gloop__"
   Duby::AST.defmacro "__gloop__" do |transformer, fcall, parent|
-    transformer.push_jump_scope(Duby::AST::Loop, parent, parent.position,
-                                true, false) do |loop|
+    Duby::AST::Loop.new(parent, parent.position, true, false) do |loop|
       init, condition, check_first, pre, post = fcall.args_node.child_nodes.to_a
       loop.check_first = check_first.kind_of?(Duby::AST::JRubyAst::TrueNode)
       

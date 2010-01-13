@@ -16,7 +16,6 @@ module Duby
       attr_reader :errors
       def initialize
         @errors = []
-        @jump_scope = []
         @tmp_count = 0
         @annotations = []
       end
@@ -33,36 +32,6 @@ module Duby
       
       def tmp
         "__xform_tmp_#{@tmp_count += 1}"
-      end
-      
-      def push_jump_scope(klass, *args)
-        klass.new(*args) do |node|
-          begin
-            @jump_scope << node
-            yield node
-          ensure
-            @jump_scope.pop
-          end
-        end
-      end
-      
-      def find_scope(kind, before=nil)
-        found = []
-        @jump_scope.reverse_each do |scope|
-          if kind === scope
-            if before
-              found << scope
-            else
-              return scope
-            end
-          end
-          break if scope === before
-        end
-        found if before
-      end
-      
-      def find_ensures(type)
-        find_scope(Duby::AST::Ensure, type)
       end
       
       def transform(node, parent)
@@ -317,7 +286,7 @@ module Duby
       class BreakNode
         def transform(transformer, parent)
           # TODO support 'break value'?
-          Break.new(parent, position, transformer.find_ensures(Loop))
+          Break.new(parent, position)
         end
       end
       
@@ -477,10 +446,10 @@ module Duby
           else
             klass = MethodDefinition
           end
-          transformer.push_jump_scope(klass, parent,
-                                      position,
-                                      actual_name,
-                                      transformer.annotations) do |defn|
+          klass.new(parent,
+                    position,
+                    actual_name,
+                    transformer.annotations) do |defn|
             signature = {:return => nil}
 
             if args_node && args_node.args
@@ -513,10 +482,10 @@ module Duby
           if name =~ /=$/
             actual_name = name[0..-2] + '_set'
           end
-          transformer.push_jump_scope(StaticMethodDefinition, parent,
-                                      position,
-                                      actual_name,
-                                      transformer.annotations) do |defn|
+          StaticMethodDefinition.new(parent,
+                                     position,
+                                     actual_name,
+                                     transformer.annotations) do |defn|
             signature = {:return => nil}
             if args_node && args_node.args
               args_node.args.child_nodes.each do |arg|
@@ -759,7 +728,7 @@ module Duby
 
       class EnsureNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(Ensure, parent, position) do |node|
+          Ensure.new(parent, position) do |node|
             child_nodes.map {|c| transformer.transform(c, node)}
           end
         end
@@ -854,8 +823,6 @@ module Duby
 
       class RedoNode
         def transform(transformer, parent)
-          the_loop = transformer.find_scope(Loop)
-          the_loop.redo = true if the_loop
           Redo.new(parent, position)
         end
       end
@@ -935,9 +902,7 @@ module Duby
 
       class WhileNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(Loop, parent, position,
-                                      evaluate_at_start, false) do |loop|
-            loop.redo = false
+          Loop.new(parent, position, evaluate_at_start, false) do |loop|
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)
@@ -948,9 +913,7 @@ module Duby
 
       class UntilNode
         def transform(transformer, parent)
-          transformer.push_jump_scope(Loop, parent, position,
-                                      evaluate_at_start, true) do |loop|
-            loop.redo = false
+          Loop.new(parent, position, evaluate_at_start, true) do |loop|
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)
@@ -990,17 +953,6 @@ module Duby
 
       class ForNode
         def transform(transformer, parent)
-          # transformer.push_jump_scope(ForLoop, parent, position) do |loop|
-          #   [
-          #     transformer.transform(var_node, loop),
-          #     transformer.transform(body_node, loop),
-          #     transformer.transform(iter_node, loop)
-          #   ]
-          # end
-          
-          # TODO This does set the scope, so redo, next, and break won't work.
-          # Ideally we'd delay transforming the body until the each call is
-          # inlined, but that won't work with direct calls to each.
           Call.new(parent, position, 'each') do |each|
             [
               transformer.transform(iter_node, each),
