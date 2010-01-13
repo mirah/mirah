@@ -320,23 +320,14 @@ module Duby
         end
       end
       
-      def loop(node, expression)
-        saved_output = @method.save_output
-        begin
-          if node.redo || node.post || !node.condition.predicate.expr?(self)
-            loop = ComplexWhileLoop.new(node, self)
-          else
-            loop = SimpleWhileLoop.new(node, self)
-          end
-          with(:loop => loop) do
-            loop.compile(expression)
-          end
-        rescue NoRedoError => ex
-          raise ex if node.redo
-          # loop.redo isn't always set. Let's set it to true and try again.
-          node.redo = true
-          @method.restore_output(saved_output)
-          retry
+      def loop(loop, expression)
+        if loop.redo || loop.post || !loop.condition.predicate.expr?(self)
+          loop = ComplexWhileLoop.new(loop, self)
+        else
+          loop = SimpleWhileLoop.new(loop, self)
+        end
+        with(:loop => loop) do
+          loop.compile(expression)
         end
       end
       
