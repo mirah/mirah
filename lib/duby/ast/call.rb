@@ -35,7 +35,7 @@ module Duby::AST
               @inferred_type = typer.method_type(receiver_type, name,
                                                  parameter_types)
               if @inferred_type.kind_of? InlineCode
-                @inlined = @inferred_type.inline(typer, self)
+                @inlined = @inferred_type.inline(typer.transformer, self)
                 @inferred_type = @inlined.infer(typer)
               end
             end
@@ -74,7 +74,7 @@ module Duby::AST
             @inferred_type = typer.method_type(receiver_type, name,
                                                parameter_types)
             if @inferred_type.kind_of? InlineCode
-              @inlined = inferred_type.inline(typer, self)
+              @inlined = inferred_type.inline(typer.transformer, self)
               @inferred_type = @inlined.infer(typer)
             end
           end

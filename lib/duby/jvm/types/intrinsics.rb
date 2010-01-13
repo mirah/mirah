@@ -1,4 +1,5 @@
 require 'bitescript'
+require 'duby/jvm/types/enumerable'
 
 class BiteScript::MethodBuilder
   def op_to_bool
@@ -102,6 +103,8 @@ module Duby::JVM::Types
   class ArrayType
     def add_intrinsics
       super
+      add_enumerable_macros
+
       add_method(
           '[]', [Int], component_type) do |compiler, call, expression|
         if expression
@@ -188,6 +191,7 @@ module Duby::JVM::Types
   class IterableType < Type
     def add_intrinsics
       super
+      add_enumerable_macros
       add_macro('each') do |transformer, call|
         Duby::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|

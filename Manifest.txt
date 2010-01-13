@@ -30,6 +30,7 @@ lib/duby/jvm/source_generator/precompile.rb
 lib/duby/jvm/source_generator/typer.rb
 lib/duby/jvm/types/basic_types.rb
 lib/duby/jvm/types/boolean.rb
+lib/duby/jvm/types/enumerable.rb
 lib/duby/jvm/types/factory.rb
 lib/duby/jvm/types/floats.rb
 lib/duby/jvm/types/integers.rb

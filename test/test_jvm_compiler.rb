@@ -1198,6 +1198,26 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_all
+    cls, = compile(<<-EOF)
+      def foo(a:int[])
+        a.all? {|x| x % 2 == 0}
+      end
+    EOF
+
+    assert_equal(false, cls.foo([2, 3, 4].to_java(:int)))
+    assert_equal(true, cls.foo([2, 0, 4].to_java(:int)))
+
+    cls, = compile(<<-EOF)
+      def foo(a:String[])
+        a.all?
+      end
+    EOF
+
+    assert_equal(true, cls.foo(["a", "", "b"].to_java(:string)))
+    assert_equal(false, cls.foo(["a", nil, "b"].to_java(:string)))
+  end
+
   def test_general_loop
     cls, = compile(<<-EOF)
       def foo(x:boolean)
