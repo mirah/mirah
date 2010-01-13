@@ -940,6 +940,7 @@ module Duby
         def transform(transformer, parent)
           transformer.push_jump_scope(Loop, parent, position,
                                       evaluate_at_start, false) do |loop|
+            loop.redo = false
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)
@@ -952,6 +953,7 @@ module Duby
         def transform(transformer, parent)
           transformer.push_jump_scope(Loop, parent, position,
                                       evaluate_at_start, true) do |loop|
+            loop.redo = false
             [
               Condition.new(loop, condition_node.position) {|cond| [transformer.transform(condition_node, cond)]},
               transformer.transform(body_node, loop)

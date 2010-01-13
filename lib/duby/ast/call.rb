@@ -1,7 +1,7 @@
 module Duby::AST
   class FunctionalCall < Node
     include Named
-    attr_accessor :parameters, :block, :cast
+    attr_accessor :parameters, :block, :cast, :inlined
     alias cast? cast
         
     def initialize(parent, line_number, name, &kids)
@@ -51,7 +51,7 @@ module Duby::AST
   
   class Call < Node
     include Named
-    attr_accessor :target, :parameters, :block
+    attr_accessor :target, :parameters, :block, :inlined
 
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, children, &kids)

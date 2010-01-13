@@ -132,8 +132,27 @@ module Duby
 
       def check_first?; @check_first; end
       def negative?; @negative; end
-      def has_redo?; @redo; end
-      
+
+      def redo?
+        if @redo.nil?
+          nodes = @children.dup
+          until nodes.empty?
+            node = nodes.shift
+            while node.respond_to?(:inlined) && node.inlined
+              node = node.inlined
+            end
+            next if node.nil? || Loop === node
+            if Redo === node
+              return @redo = true
+            end
+            nodes.insert(-1, *node.children.flatten)
+          end
+          return @redo = false
+        else
+          @redo
+        end
+      end
+
       def init?
         @init && !(@init.kind_of?(Body) && @init.empty?)
       end

@@ -97,7 +97,7 @@ class Duby::Compiler::JavaSource
     end
 
     def compile_body
-      if @loop.redo
+      if @loop.redo?
         compile_with_redo(@loop.body)
       else
         compiler.method.puts "#{@inner}:"
