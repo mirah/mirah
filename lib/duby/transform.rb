@@ -842,7 +842,7 @@ module Duby
       class NextNode
         def transform(transformer, parent)
           # TODO support 'next value'?
-          Next.new(parent, position, transformer.find_ensures(Loop))
+          Next.new(parent, position)
         end
       end
 
@@ -855,17 +855,14 @@ module Duby
       class RedoNode
         def transform(transformer, parent)
           the_loop = transformer.find_scope(Loop)
-          raise "redo outside of loop" unless the_loop
-          the_loop.redo = true
-          ensures = transformer.find_ensures(Loop)
-          Redo.new(parent, position, ensures)
+          the_loop.redo = true if the_loop
+          Redo.new(parent, position)
         end
       end
 
       class ReturnNode
         def transform(transformer, parent)
-          ensures = transformer.find_ensures(MethodDefinition)
-          Return.new(parent, position, ensures) do |ret|
+          Return.new(parent, position) do |ret|
             [transformer.transform(value_node, ret)]
           end
         end
@@ -966,6 +963,17 @@ module Duby
         def transform(transformer, parent)
           # TODO does this need to be handled specially?
           Local.new(parent, position, name)
+        end
+      end
+
+      class DAsgnNode
+        def transform(transformer, parent)
+          case value_node
+          when SymbolNode, ConstNode
+            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
+          else
+            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
+          end
         end
       end
 

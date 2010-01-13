@@ -176,20 +176,11 @@ module Duby
       end
     end
 
-    class JumpNode < Node
-      attr_accessor :ensures
-      
-      def initialize(parent, line_number, ensures, &block)
-        super(parent, line_number, &block)
-        @ensures = ensures
-      end
-    end
-
-    class Return < JumpNode
+    class Return < Node
       include Valued
 
-      def initialize(parent, line_number, ensures, &block)
-        super(parent, line_number, ensures, &block)
+      def initialize(parent, line_number, &block)
+        super(parent, line_number, &block)
         @value = children[0]
       end
 
@@ -204,7 +195,7 @@ module Duby
       end
     end
 
-    class Break < JumpNode;
+    class Break < Node;
       def infer(typer)
         unless resolved?
           resolved!
@@ -335,10 +326,6 @@ module Duby
           typer.infer(clause)
           typer.infer(body)
         end
-      end
-      
-      def ensures
-        [self]
       end
     end
   end

@@ -55,6 +55,7 @@ module Duby
         @file = BiteScript::FileBuilder.new(@filename)
         AST.type_factory.define_types(@file)
         @type = AST::type(classname)
+        @jump_scope = []
       end
 
       def compile(ast, expression = false)
@@ -64,6 +65,27 @@ module Duby
 
       def toplevel_class
         @class = @type.define(@file)
+      end
+
+      def push_jump_scope(node)
+        raise "Not a node" unless Duby::AST::Node === node
+        begin
+          @jump_scope << node
+          yield
+        ensure
+          @jump_scope.pop
+        end
+      end
+      
+      def find_ensures(before)
+        found = []
+        @jump_scope.reverse_each do |scope|
+          if Duby::AST::Ensure === scope
+            found << scope
+          end
+          break if scope === before
+        end
+        found
       end
 
       def define_main(body)
@@ -91,67 +113,69 @@ module Duby
       end
       
       def define_method(node)
-        name, signature, args = node.name, node.signature, node.arguments.args
-        arg_types = if args
-          args.map { |arg| arg.inferred_type }
-        else
-          []
-        end
-        return_type = signature[:return]
-        exceptions = signature[:throws]
-
-        with :static => @static || node.static? do
-          if @static
-            method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
+        push_jump_scope(node) do
+          name, signature, args = node.name, node.signature, node.arguments.args
+          arg_types = if args
+            args.map { |arg| arg.inferred_type }
           else
-            method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
+            []
           end
+          return_type = signature[:return]
+          exceptions = signature[:throws]
 
-          annotate(method, node.annotations)
+          with :static => @static || node.static? do
+            if @static
+              method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
+            else
+              method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
+            end
 
-          return if @class.interface?
+            annotate(method, node.annotations)
 
-          log "Starting new method #{name}(#{arg_types})"
-          method_body(method, args, node.body, signature[:return])
+            return if @class.interface?
 
-          arg_types_for_opt = []
-          args_for_opt = []
-          if args
-            args.each do |arg|
-              if AST::OptionalArgument === arg
-                if @static
-                  method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
-                else
-                  method = @class.public_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
-                end
+            log "Starting new method #{name}(#{arg_types})"
+            method_body(method, args, node.body, signature[:return])
 
-                with :method => method do
-                  log "Starting new method #{name}(#{arg_types_for_opt})"
-
-                  @method.start unless started
-
-                  # declare all args so they get their values
-
-                  expression = signature[:return] != Types::Void
-
-                  @method.aload(0) unless @static
-                  args_for_opt.each {|req_arg| @method.local(req_arg.name, req_arg.inferred_type)}
-                  arg.children[0].compile(self, true)
-
-                  # invoke the next one in the chain
+            arg_types_for_opt = []
+            args_for_opt = []
+            if args
+              args.each do |arg|
+                if AST::OptionalArgument === arg
                   if @static
-                    @method.invokestatic(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                    method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
                   else
-                    @method.invokevirtual(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                    method = @class.public_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
                   end
 
-                  signature[:return].return(@method)
+                  with :method => method do
+                    log "Starting new method #{name}(#{arg_types_for_opt})"
 
-                  @method.stop
+                    @method.start unless started
+
+                    # declare all args so they get their values
+
+                    expression = signature[:return] != Types::Void
+
+                    @method.aload(0) unless @static
+                    args_for_opt.each {|req_arg| @method.local(req_arg.name, req_arg.inferred_type)}
+                    arg.children[0].compile(self, true)
+
+                    # invoke the next one in the chain
+                    if @static
+                      @method.invokestatic(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                    else
+                      @method.invokevirtual(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+                    end
+
+                    signature[:return].return(@method)
+
+                    @method.stop
+                  end
                 end
+                arg_types_for_opt << arg.inferred_type
+                args_for_opt << arg
               end
-              arg_types_for_opt << arg.inferred_type
-              args_for_opt << arg
             end
           end
 
@@ -159,29 +183,31 @@ module Duby
       end
       
       def constructor(node)
-        args = node.arguments.args || []
-        arg_types = args.map { |arg| arg.inferred_type }
-        exceptions = node.signature[:throws]
-        method = @class.public_constructor(exceptions, *arg_types)
-        annotate(method, node.annotations)
-        method_body(method, args, node.body, Types::Void) do
-          method.aload 0
-          if node.delegate_args
-            if node.calls_super
-              delegate_class = @type.superclass
+        push_jump_scope(node) do
+          args = node.arguments.args || []
+          arg_types = args.map { |arg| arg.inferred_type }
+          exceptions = node.signature[:throws]
+          method = @class.public_constructor(exceptions, *arg_types)
+          annotate(method, node.annotations)
+          method_body(method, args, node.body, Types::Void) do
+            method.aload 0
+            if node.delegate_args
+              if node.calls_super
+                delegate_class = @type.superclass
+              else
+                delegate_class = @type
+              end
+              delegate_types = node.delegate_args.map {|arg| arg.inferred_type}
+              constructor = delegate_class.constructor(*delegate_types)
+              node.delegate_args.each do |arg|
+                arg.compile(self, true)
+              end
+              method.invokespecial(
+                  delegate_class, "<init>",
+                  [@method.void, *constructor.argument_types])
             else
-              delegate_class = @type
+              method.invokespecial @class.superclass, "<init>", [@method.void]
             end
-            delegate_types = node.delegate_args.map {|arg| arg.inferred_type}
-            constructor = delegate_class.constructor(*delegate_types)
-            node.delegate_args.each do |arg|
-              arg.compile(self, true)
-            end
-            method.invokespecial(
-                delegate_class, "<init>",
-                [@method.void, *constructor.argument_types])
-          else
-            method.invokespecial @class.superclass, "<init>", [@method.void]
           end
         end
       end
@@ -254,69 +280,71 @@ module Duby
       end
 
       def loop(loop, expression)
-        with(:break_label => @method.label,
-             :redo_label => @method.label,
-             :next_label => @method.label) do
-          predicate = loop.condition.predicate
+        push_jump_scope(loop) do
+          with(:break_label => @method.label,
+               :redo_label => @method.label,
+               :next_label => @method.label) do
+            predicate = loop.condition.predicate
 
-          loop.init.compile(self, false) if loop.init?
+            loop.init.compile(self, false) if loop.init?
 
-          pre_label = @redo_label
+            pre_label = @redo_label
 
-          if loop.check_first
-            @next_label.set! unless loop.post?
-            if loop.negative
-              # if condition, exit
-              jump_if(predicate, @break_label)
-            else
-              # if not condition, exit
-              jump_if_not(predicate, @break_label)
+            if loop.check_first
+              @next_label.set! unless loop.post?
+              if loop.negative
+                # if condition, exit
+                jump_if(predicate, @break_label)
+              else
+                # if not condition, exit
+                jump_if_not(predicate, @break_label)
+              end
             end
-          end
 
-          if loop.pre?
-            pre_label = method.label
-            pre_label.set!
-            loop.pre.compile(self, false)
-          end
-
-
-          @redo_label.set!
-          loop.body.compile(self, false)
-        
-          if loop.check_first && !loop.post?
-            @method.goto(@next_label)
-          else
-            @next_label.set!
-            loop.post.compile(self, false) if loop.post?
-            if loop.negative
-              # if not condition, continue
-              jump_if_not(predicate, pre_label)
-            else
-              # if condition, continue
-              jump_if(predicate, pre_label)
+            if loop.pre?
+              pre_label = method.label
+              pre_label.set!
+              loop.pre.compile(self, false)
             end
+
+
+            @redo_label.set!
+            loop.body.compile(self, false)
+        
+            if loop.check_first && !loop.post?
+              @method.goto(@next_label)
+            else
+              @next_label.set!
+              loop.post.compile(self, false) if loop.post?
+              if loop.negative
+                # if not condition, continue
+                jump_if_not(predicate, pre_label)
+              else
+                # if condition, continue
+                jump_if(predicate, pre_label)
+              end
+            end
+        
+            @break_label.set!
+        
+            # loops always evaluate to null
+            @method.aconst_null if expression
           end
-        
-          @break_label.set!
-        
-          # loops always evaluate to null
-          @method.aconst_null if expression
         end
       end
 
       def break(node)
-        handle_ensures(node)
+        handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@break_label)
       end
       
       def next(node)
-        handle_ensures(node)
+        handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@next_label)
       end
       
       def redo(node)
-        handle_ensures(node)
+        handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@redo_label)
       end
       
@@ -621,7 +649,7 @@ module Duby
 
       def return(return_node)
         return_node.value.compile(self, true)
-        handle_ensures(return_node)
+        handle_ensures(find_ensures(Duby::AST::MethodDefinition))
         return_node.inferred_type.return(@method)
       end
 
@@ -654,9 +682,8 @@ module Duby
         done.set!
       end
 
-      def handle_ensures(node)
-        return unless node.ensures
-        node.ensures.each do |ensure_node|
+      def handle_ensures(nodes)
+        nodes.each do |ensure_node|
           ensure_node.clause.compile(self, false)
         end
       end
@@ -666,13 +693,15 @@ module Duby
         start = @method.label.set!
         body_end = @method.label
         done = @method.label
-        node.body.compile(self, expression)  # First compile the body
+        push_jump_scope(node) do
+          node.body.compile(self, expression)  # First compile the body
+        end
         body_end.set!
-        handle_ensures(node)  # run the ensure clause
+        handle_ensures([node])  # run the ensure clause
         @method.goto(done)  # and continue on after the exception handler
         target = @method.label.set!  # Finally, create the exception handler
         @method.trycatch(start, body_end, target, nil)
-        handle_ensures(node)
+        handle_ensures([node])
         @method.athrow
         done.set!
       end

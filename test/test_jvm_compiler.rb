@@ -1196,6 +1196,16 @@ class TestJVMCompiler < Test::Unit::TestCase
       list << "3"
       cls.foo(list)
     end
+    
+    cls, = compile(<<-EOF)
+      def foo(a:int[])
+        a.each {|x| x += 1;puts x; redo if x == 2}
+      end
+    EOF
+
+    assert_output("2\n3\n3\n4\n") do
+      cls.foo([1,2,3].to_java(:int))
+    end
   end
 
   def test_all
