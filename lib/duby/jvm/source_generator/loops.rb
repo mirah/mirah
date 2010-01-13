@@ -1,4 +1,6 @@
 class Duby::Compiler::JavaSource
+  class NoRedoError < StandardError; end
+
   class SimpleWhileLoop
     attr_reader :compiler, :loop
     def initialize(loop, compiler)
@@ -15,7 +17,7 @@ class Duby::Compiler::JavaSource
     end
     
     def redo
-      raise "#{self.class.name} doesn't support redo"
+      raise NoRedoError, "#{self.class.name} doesn't support redo"
     end
     
     def compile(expression)
@@ -57,33 +59,8 @@ class Duby::Compiler::JavaSource
     end
   end
 
-  module Redoable
-    def compile_with_redo(block)
-      @redo = compiler.method.tmp(JVMTypes::Boolean)
-      compiler.method.puts "#{@inner}:"
-      compiler.method.block "do" do
-        compiler.method.puts "#{@redo} = false;"
-        block.compile(compiler, false)
-      end
-      compiler.method.puts "while (#{@redo});"
-    end
-
-    def break
-      compiler.method.puts "break #{@outer};"
-    end
-    
-    def next
-      compiler.method.puts "break #{@inner};"
-    end
-    
-    def redo
-      compiler.method.puts "#{@redo} = true;"
-      compiler.method.puts "continue #{@inner};"
-    end
-  end
-
   class ComplexWhileLoop < SimpleWhileLoop
-    include Redoable
+
     def prepare
       super
       @outer = compiler.method.label
@@ -104,6 +81,33 @@ class Duby::Compiler::JavaSource
         compiler.method.block do
           loop.body.compile(compiler, false)
         end
+      end
+    end
+    
+    def compile_with_redo(block)
+      @redo = compiler.method.tmp(JVMTypes::Boolean)
+      compiler.method.puts "#{@inner}:"
+      compiler.method.block "do" do
+        compiler.method.puts "#{@redo} = false;"
+        block.compile(compiler, false)
+      end
+      compiler.method.puts "while (#{@redo});"
+    end
+
+    def break
+      compiler.method.puts "break #{@outer};"
+    end
+    
+    def next
+      compiler.method.puts "break #{@inner};"
+    end
+    
+    def redo
+      if @loop.redo
+        compiler.method.puts "#{@redo} = true;"
+        compiler.method.puts "continue #{@inner};"
+      else
+        super
       end
     end
   end

@@ -855,8 +855,7 @@ module Duby
       class RedoNode
         def transform(transformer, parent)
           the_loop = transformer.find_scope(Loop)
-          raise "redo outside of loop" unless the_loop
-          the_loop.redo = true
+          the_loop.redo = true if the_loop
           ensures = transformer.find_ensures(Loop)
           Redo.new(parent, position, ensures)
         end
@@ -964,6 +963,17 @@ module Duby
         def transform(transformer, parent)
           # TODO does this need to be handled specially?
           Local.new(parent, position, name)
+        end
+      end
+
+      class DAsgnNode
+        def transform(transformer, parent)
+          case value_node
+          when SymbolNode, ConstNode
+            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
+          else
+            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
+          end
         end
       end
 

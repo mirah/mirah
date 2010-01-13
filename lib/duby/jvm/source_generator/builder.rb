@@ -72,6 +72,14 @@ module Duby
         @indent -= 2
       end
 
+      def save
+        [@out.dup, @indent, @indented]
+      end
+      
+      def restore(saved)
+        @out, @indent, @indented = saved
+      end
+
       def <<(other)
         other.to_s.each_line do |line|
           print_indent
@@ -120,7 +128,15 @@ module Duby
         else
           'null'
         end
-      end   
+      end
+
+      def save_output
+        @out.save
+      end
+
+      def restore_output(saved)
+        @out.restore(saved)
+      end
 
       def annotate(annotations)
         annotations.each do |annotation|
