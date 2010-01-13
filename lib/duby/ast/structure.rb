@@ -20,6 +20,15 @@ module Duby::AST
 
       @inferred_type
     end
+    
+    def <<(node)
+      @children << node
+      node.parent = self
+    end
+    
+    def empty?
+      @children.empty?
+    end
   end
   
   class Block < Node

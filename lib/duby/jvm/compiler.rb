@@ -259,12 +259,12 @@ module Duby
              :next_label => @method.label) do
           predicate = loop.condition.predicate
 
-          loop.init.compile(self, false) if loop.init
+          loop.init.compile(self, false) if loop.init?
 
           pre_label = @redo_label
 
           if loop.check_first
-            @next_label.set! unless loop.post
+            @next_label.set! unless loop.post?
             if loop.negative
               # if condition, exit
               jump_if(predicate, @break_label)
@@ -274,7 +274,7 @@ module Duby
             end
           end
 
-          if loop.pre
+          if loop.pre?
             pre_label = method.label
             pre_label.set!
             loop.pre.compile(self, false)
@@ -284,11 +284,11 @@ module Duby
           @redo_label.set!
           loop.body.compile(self, false)
         
-          if loop.check_first && !loop.post
+          if loop.check_first && !loop.post?
             @method.goto(@next_label)
           else
             @next_label.set!
-            loop.post.compile(self, false) if loop.post
+            loop.post.compile(self, false) if loop.post?
             if loop.negative
               # if not condition, continue
               jump_if_not(predicate, pre_label)

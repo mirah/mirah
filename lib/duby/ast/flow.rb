@@ -96,17 +96,20 @@ module Duby
       attr_accessor :init, :condition, :pre, :post, :body
       attr_accessor :check_first, :negative, :redo
 
-      def initialize(parent, line_number, check_first, negative, &block)
+      def initialize(parent, position, check_first, negative, &block)
         @check_first = check_first
         @negative = negative
-        super(parent, line_number, &block)
+        @init = Body.new(self, position)
+        @pre = Body.new(self, position)
+        @post = Body.new(self, position)
+        super(parent, position, &block)
         @condition, @body = @children
       end
 
       def infer(typer)
         unless resolved?
           child_types = children.map do |c|
-            if c.nil?
+            if c.nil? || (Body === c && c.empty?)
               typer.no_type
             else
               typer.infer(c)
@@ -130,6 +133,18 @@ module Duby
       def check_first?; @check_first; end
       def negative?; @negative; end
       def has_redo?; @redo; end
+      
+      def init?
+        @init && !(@init.kind_of?(Body) && @init.empty?)
+      end
+
+      def pre?
+        @pre && !(@pre.kind_of?(Body) && @pre.empty?)
+      end
+      
+      def post?
+        @post && !(@post.kind_of?(Body) && @post.empty?)
+      end
 
       def to_s
         "Loop(check_first = #{check_first?}, negative = #{negative?})"

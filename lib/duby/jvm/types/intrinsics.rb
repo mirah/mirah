@@ -133,17 +133,19 @@ module Duby::JVM::Types
           index = transformer.tmp
           array = transformer.tmp
           
-          forloop.init = transformer.eval("#{index} = 0;#{array} = nil",
-                                        '', forloop)
-          array_assignment = forloop.init.children[-1]
+          init = transformer.eval("#{index} = 0;#{array} = nil")
+          array_assignment = init.children[-1]
           array_assignment.value = call.target
           call.target.parent = array_assignment
+          forloop.init << init
           
-          var = call.block.args.args[0].name
-          forloop.pre = transformer.eval(
-              "#{var} = #{array}[#{index}]", '', forloop, index, array)
-          forloop.post = transformer.eval("#{index} += 1", '', forloop)
-          call.block.body.parent = forloop
+          var = call.block.args.args[0]
+          if var
+            forloop.pre << transformer.eval(
+                "#{var.name} = #{array}[#{index}]", '', forloop, index, array)
+          end
+          forloop.post << transformer.eval("#{index} += 1")
+          call.block.body.parent = forloop if call.block.body
           [
             Duby::AST::Condition.new(forloop, call.position) do |c|
               [transformer.eval("#{index} < #{array}.length",
@@ -191,15 +193,17 @@ module Duby::JVM::Types
                             call.position, true, false) do |forloop|
           it = transformer.tmp
           
-          forloop.init = transformer.eval("#{it} = foo.iterator", '', forloop)
-          it_call = forloop.init.value
-          it_call.target = call.target
-          call.target.parent = it_call
+          assignment = transformer.eval("#{it} = foo.iterator")
+          assignment.value.target = call.target
+          call.target.parent = assignment.value
+          forloop.init << assignment
           
-          var = call.block.args.args[0].name
-          forloop.pre = transformer.eval(
-              "#{var} = #{it}.next", '', forloop, it)
-          call.block.body.parent = forloop
+          var = call.block.args.args[0]
+          if var
+            forloop.pre << transformer.eval(
+                "#{var.name} = #{it}.next", '', forloop, it)
+          end
+          call.block.body.parent = forloop if call.block.body
           [
             Duby::AST::Condition.new(forloop, call.position) do |c|
               [transformer.eval("#{it}.hasNext", '', forloop, it)]
