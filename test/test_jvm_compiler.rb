@@ -15,11 +15,14 @@ unless Duby::AST.macro "__gloop__"
       loop.init = transformer.transform(init, loop) unless init.kind_of?(nil_t)
       loop.pre = transformer.transform(pre, loop) unless pre.kind_of?(nil_t)
       loop.post = transformer.transform(post, loop) unless post.kind_of?(nil_t)
+      
+      body = transformer.transform(fcall.iter_node, loop).body
+      body.parent = loop
       [
         Duby::AST::Condition.new(loop, parent.position) do |c|
           [transformer.transform(condition, c)]
         end,
-        transformer.transform(fcall.iter_node.body_node, loop)
+        body
       ]
     end
   end

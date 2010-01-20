@@ -34,7 +34,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Body === new_ast)
-    inspected = "Body\n LocalAssignment(name = a, scope = Script)\n  Fixnum(1)\n Local(name = a, scope = Script)"
+    inspected = "Body\n LocalAssignment(name = a, scope = Script, captured = false)\n  Fixnum(1)\n Local(name = a, scope = Script)"
     assert_equal(inspected, new_ast.inspect)
     assert(!new_ast.newline)
     
@@ -78,7 +78,7 @@ class TestAst < Test::Unit::TestCase
     
     assert_not_nil(new_ast)
     assert(AST::Array === new_ast)
-    assert_equal("Array\n LocalAssignment(name = a, scope = Script)\n  Fixnum(1)\n Fixnum(1)", new_ast.inspect)
+    assert_equal("Array\n LocalAssignment(name = a, scope = Script, captured = false)\n  Fixnum(1)\n Fixnum(1)", new_ast.inspect)
     
     assert(AST::LocalAssignment === new_ast[0])
     assert(AST::Fixnum === new_ast[1])

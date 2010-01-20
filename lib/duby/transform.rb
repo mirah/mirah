@@ -18,6 +18,7 @@ module Duby
         @errors = []
         @tmp_count = 0
         @annotations = []
+        @scopes = []
       end
 
       def annotations
@@ -36,29 +37,50 @@ module Duby
       
       def transform(node, parent)
         begin
-          puts caller(0) unless node.respond_to? :transform
-          node.transform(self, parent)
+          scope = node.getScope if node.respond_to? :getScope
+          if scope
+            @scopes << scope
+          end
+          begin
+            node.transform(self, parent)
+          ensure
+            if scope
+              @scopes.pop
+            end
+          end
         rescue Error => ex
           @errors << ex
           Duby::AST::ErrorNode.new(parent, ex)
-        rescue Exception => ex
+        rescue Exception => ex 
           error = Error.new(ex.message, node.position, ex)
           @errors << error
           Duby::AST::ErrorNode.new(parent, error)
         end
       end
       
+      def captured?(node)
+        depth = node.depth
+        scope = @scopes[-1]
+        while depth > 0
+          depth -= 1
+          scope = scope.enclosing_scope
+        end
+        scope.isCaptured(node.index)
+      end
+
       def eval(src, filename='-', parent=nil, *vars)
         unless vars.empty?
           src = "#{vars.join ','} = [];begin;#{src};end"
         end
-        node = Duby::AST.parse_ruby(src, filename).body_node
+        node = Duby::AST.parse_ruby(src, filename)
+        duby_node = transform(node, nil).body
         unless vars.empty?
-          # We stripped off the RootNode, so now we have
-          # (BlockNode ({vars} (NewlineNode (BeginNode ({src})))))
-          node = node[1].next_node.body_node
+          # We have
+          # (Script (Body ({vars} (NewlineNode (BeginNode ({src}))))))
+          duby_node = duby_node.children[1]
         end
-        transform(node, parent)
+        duby_node.parent = parent
+        duby_node
       end
       
       def expand(fvcall, parent)
@@ -768,9 +790,10 @@ module Duby
 
       class LocalAsgnNode
         def transform(transformer, parent)
+          captured = transformer.captured?(self)
           case value_node
           when SymbolNode, ConstNode
-            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
+            LocalDeclaration.new(parent, position, name, captured) {|local_decl| [value_node.type_reference(local_decl)]}
           when JRubyAst::GlobalVarNode
             real_parent = parent
             real_parent = parent.parent if Body === real_parent
@@ -781,14 +804,14 @@ module Duby
               raise "Illegal global variable"
             end
           else
-            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
+            LocalAssignment.new(parent, position, name, captured) {|local| [transformer.transform(value_node, local)]}
           end
         end
       end
 
       class LocalVarNode
         def transform(transformer, parent)
-          Local.new(parent, position, name)
+          Local.new(parent, position, name, transformer.captured?(self))
         end
       end
 
@@ -836,6 +859,10 @@ module Duby
       end
 
       class RootNode
+        def getScope
+          getStaticScope
+        end
+
         def transform(transformer, parent)
           Script.new(parent, position) {|script| [transformer.transform(child_nodes[0], script)]}
         end
@@ -925,17 +952,18 @@ module Duby
       class DVarNode
         def transform(transformer, parent)
           # TODO does this need to be handled specially?
-          Local.new(parent, position, name)
+          Local.new(parent, position, name, transformer.captured?(self))
         end
       end
 
       class DAsgnNode
         def transform(transformer, parent)
+          captured = transformer.captured?(self)
           case value_node
           when SymbolNode, ConstNode
-            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
+            LocalDeclaration.new(parent, position, name, captured) {|local_decl| [value_node.type_reference(local_decl)]}
           else
-            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
+            LocalAssignment.new(parent, position, name, captured) {|local| [transformer.transform(value_node, local)]}
           end
         end
       end

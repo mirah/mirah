@@ -4,10 +4,15 @@ module Duby::AST
     include Typed
     include Scoped
 
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, captured=false, &block)
       super(parent, line_number, &block)
       @name = name
+      @captured = captured
       @type = children[0]
+    end
+
+    def captured?
+      @captured
     end
 
     def infer(typer)
@@ -30,14 +35,19 @@ module Duby::AST
     include Valued
     include Scoped
     
-    def initialize(parent, line_number, name, &block)
+    def initialize(parent, line_number, name, captured=false, &block)
       super(parent, line_number, children, &block)
+      @captured = captured
       @value = children[0]
       @name = name
     end
 
+    def captured?
+      @captured
+    end
+
     def to_s
-      "LocalAssignment(name = #{name}, scope = #{scope})"
+      "LocalAssignment(name = #{name}, scope = #{scope}, captured = #{captured?})"
     end
     
     def infer(typer)
@@ -55,13 +65,18 @@ module Duby::AST
     include Named
     include Scoped
     
-    def initialize(parent, line_number, name)
+    def initialize(parent, line_number, name, captured=false)
       super(parent, line_number, [])
       @name = name
+      @captured = captured
+    end
+
+    def captured?
+      @captured
     end
 
     def to_s
-      "Local(name = #{name}, scope = #{scope})"
+      "Local(name = #{name}, scope = #{scope}, captured = #{captured?})"
     end
     
     def infer(typer)
