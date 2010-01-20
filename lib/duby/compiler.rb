@@ -149,23 +149,15 @@ module Duby
     
     class FunctionalCall
       def compile(compiler, expression)
-        if @inlined
-          @inlined.compile(compiler, expression)
-        else
-          compiler.line(line_number)
-          compiler.self_call(self, expression)
-        end
+        compiler.line(line_number)
+        compiler.self_call(self, expression)
       end
     end
     
     class Call
       def compile(compiler, expression)
-        if @inlined
-          @inlined.compile(compiler, expression)
-        else
-          compiler.line(line_number)
-          compiler.call(self, expression)
-        end
+        compiler.line(line_number)
+        compiler.call(self, expression)
       end
     end
     
