@@ -1,9 +1,23 @@
+require 'delegate'
+
 module Duby::AST
+  class NodeProxy < DelegateClass(Node)
+    def __inline__(node)
+      node.parent = parent
+      __setobj__(node)
+    end
+  end
+
   class FunctionalCall < Node
     include Named
-    attr_accessor :parameters, :block, :cast, :inlined
+    attr_accessor :parameters, :block, :cast, :inlined, :proxy
     alias cast? cast
-        
+
+    def self.new(*args, &block)
+      real_node = super
+      real_node.proxy = NodeProxy.new(real_node)
+    end
+
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, &kids)
       @parameters, @block = children
@@ -36,7 +50,8 @@ module Duby::AST
                                                  parameter_types)
               if @inferred_type.kind_of? InlineCode
                 @inlined = @inferred_type.inline(typer.transformer, self)
-                @inferred_type = @inlined.infer(typer)
+                proxy.__inline__(@inlined)
+                proxy.infer(typer)
               end
             end
           end
@@ -51,7 +66,12 @@ module Duby::AST
   
   class Call < Node
     include Named
-    attr_accessor :target, :parameters, :block, :inlined
+    attr_accessor :target, :parameters, :block, :inlined, :proxy
+
+    def self.new(*args, &block)
+      real_node = super
+      real_node.proxy = NodeProxy.new(real_node)
+    end
 
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, children, &kids)
@@ -74,8 +94,9 @@ module Duby::AST
             @inferred_type = typer.method_type(receiver_type, name,
                                                parameter_types)
             if @inferred_type.kind_of? InlineCode
-              @inlined = inferred_type.inline(typer.transformer, self)
-              @inferred_type = @inlined.infer(typer)
+              @inlined = @inferred_type.inline(typer.transformer, self)
+              proxy.__inline__(@inlined)
+              proxy.infer(typer)
             end
           end
         end

@@ -85,6 +85,10 @@ module Duby
         end
         @inferred_type
       end
+
+      def self.===(other)
+        super || (other.kind_of?(NodeProxy) && (self === other.__getobj__))
+      end
     end
     
     class ErrorNode < Node
