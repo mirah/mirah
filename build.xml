@@ -4,7 +4,8 @@
     <jar jarfile="dist/duby.jar">
       <fileset dir="lib"/>
       <fileset dir="." includes="bin/*"/>
-      <fileset dir="../jvmscript/lib"/>
+      <fileset dir="../bitescript/lib"/>
+      <fileset dir="../jruby/lib/ruby/1.8/"/>
     </jar>
   </target>
   
@@ -16,7 +17,7 @@
   <target name="compile">
     <mkdir dir="build"/>
     <java classname="org.jruby.Main"
-          classpath="javalib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar"
+          classpath="../jruby/lib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar"
           fork="true" failonerror="true" dir="src">
       <arg value="-e"/>
       <arg value="load 'bin/dubyc'"/>
@@ -33,7 +34,7 @@
       <fileset dir="lib"/>
       <fileset dir="build"/>
       <fileset dir="." includes="bin/*"/>
-      <fileset dir="../jvmscript/lib"/>
+      <fileset dir="../bitescript/lib"/>
     </jar>
   </target>
 </project>

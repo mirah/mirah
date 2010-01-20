@@ -4,7 +4,10 @@
 
 == DESCRIPTION:
 
-Duby is a customizable programming language featuring static types, local type inference and a heavily Ruby-inspired syntax. Duby currently includes a typer/compiler backend for the JVM which can output either JVM bytecode or Java source files.
+Duby is a customizable programming language featuring static types,
+local type inference and a heavily Ruby-inspired syntax. Duby
+currently includes a typer/compiler backend for the JVM which can
+output either JVM bytecode or Java source files.
 
 == FEATURES/PROBLEMS:
 
@@ -29,3 +32,8 @@ dubyc -java -e "inline script" # produces dash_e.java
 == INSTALL:
 
 * gem install duby
+
+To build from source you should have a checkout of both jruby and
+bitescript in Duby's parent directory. Run "ant jar-complete" in
+jruby, then in the duby directory "ant bootstrap" followed by "ant"
+should build it.
