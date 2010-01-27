@@ -130,7 +130,7 @@ module Duby::JVM::Types
         compiler.method.arraylength              
       end
       
-      add_macro('each') do |transformer, call|
+      add_macro('each', Duby::AST.block_type) do |transformer, call|
         Duby::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           index = transformer.tmp
@@ -192,7 +192,7 @@ module Duby::JVM::Types
     def add_intrinsics
       super
       add_enumerable_macros
-      add_macro('each') do |transformer, call|
+      add_macro('each', Duby::AST.block_type) do |transformer, call|
         Duby::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           it = transformer.tmp

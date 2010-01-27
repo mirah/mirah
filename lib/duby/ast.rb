@@ -280,6 +280,10 @@ module Duby
         name == :unreachable
       end
       
+      def block?
+        name == :block
+      end
+      
       def primitive?
         true
       end
@@ -288,6 +292,7 @@ module Duby
       NullType = TypeReference.new(:null)
       ErrorType = TypeReference.new(:error)
       UnreachableType = TypeReference.new(:unreachable)
+      BlockType = TypeReference.new(:block)
     end
 
     class TypeDefinition < TypeReference
@@ -334,6 +339,10 @@ module Duby
 
     def self.unreachable_type
       TypeReference::UnreachableType
+    end
+    
+    def self.block_type
+      TypeReference::BlockType
     end
 
     def self.fixnum(parent, position, literal)

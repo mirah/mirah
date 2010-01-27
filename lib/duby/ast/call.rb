@@ -35,6 +35,8 @@ module Duby::AST
         parameter_types = parameters.map do |param|
           typer.infer(param) || should_defer = true
         end
+        
+        parameter_types << Duby::AST.block_type if @block
       
         unless should_defer
           if parameters.size == 1 && typer.known_types[name]
@@ -82,7 +84,9 @@ module Duby::AST
         parameter_types = parameters.map do |param|
           typer.infer(param) || should_defer = true
         end
-      
+
+        parameter_types << Duby::AST.block_type if @block
+
         unless should_defer
           @inferred_type = typer.method_type(receiver_type, name,
                                              parameter_types)
