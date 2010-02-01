@@ -1729,4 +1729,17 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)    
   end
+
+  def test_super
+    cls, = compile(<<-EOF)
+      class Foo
+        def initialize; end
+        def equals(other:Object); super(other); end
+      end
+    EOF
+
+    obj = cls.new
+    assert obj.equals(obj)
+    assert !obj.equals(cls.new)
+  end
 end

@@ -169,6 +169,33 @@ module Duby::JVM::Types
         compiler.method.pop
       end
     end
+
+    def call_special(compiler, ast, expression)
+      target = ast.target.inferred_type
+      ast.target.compile(compiler, true)
+
+      # if expression, void methods return the called object,
+      # for consistency and chaining
+      # TODO: inference phase needs to track that signature is
+      # void but actual type is callee
+      if expression && void?
+        compiler.method.dup
+      end
+
+      convert_args(compiler, ast.parameters)
+      if target.interface?
+        raise "interfaces should not receive call_special"
+      else
+        compiler.method.invokespecial(
+          target,
+          name,
+          [@member.return_type, *@member.argument_types])
+      end
+
+      unless expression || void?
+        compiler.method.pop
+      end
+    end
   end
   
   class JavaStaticMethod < JavaMethod

@@ -1,5 +1,5 @@
 require 'bitescript'
-require 'duby/jvm/types/enumerable'
+#require 'duby/jvm/types/enumerable'
 
 class BiteScript::MethodBuilder
   def op_to_bool

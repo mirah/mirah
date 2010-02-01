@@ -114,6 +114,10 @@ module Duby::AST
       @signature, @arguments, @body = children
       @name = name
     end
+
+    def name
+      super
+    end
     
     def infer(typer)
       @defining_class ||= typer.self_type
@@ -235,15 +239,6 @@ module Duby::AST
         delegate_args.each {|a| typer.infer(a)} if delegate_args
       end
       super
-    end
-  end
-  
-  class Super < Node
-    attr_accessor :args
-
-    def initialize(*args)
-      super
-      @args = children[0]
     end
   end
 end
