@@ -33,26 +33,28 @@ module Duby
             method = mapped_type.java_method(name, *mapped_params)
           end
         rescue NameError
-          unless constructor
-            # exact args failed, do a deeper search
-            log "Failed to locate method #{mapped_type}.#{name}(#{mapped_params})"
+          # exact args failed, do a deeper search
+          log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name)})"
 
-            method = find_jls(mapped_type, name, mapped_params, meta)
-          end
+          method = find_jls(mapped_type, name, mapped_params, meta, constructor)
+          
           unless method
-            log "Failed to locate method #{name}(#{mapped_params}) on #{mapped_type}"
+            log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name)})"
             return nil
           end
         end
 
-        log "Found method #{method.declaring_class}.#{name}(#{method.argument_types}) from #{mapped_type}"
+        log "Found method #{method.declaring_class.name}.#{name}(#{method.argument_types.map(&:name)}) from #{mapped_type.name}"
         return method
       end
       
-      def find_jls(mapped_type, name, mapped_params, meta)
+      def find_jls(mapped_type, name, mapped_params, meta, constructor)
         # mapped_type = jvm_type(mapped_type)
         # mapped_params = convert_params(mapped_params)
-        if meta
+        if constructor
+          all_methods = mapped_type.declared_constructors
+          by_name = all_methods
+        elsif meta
           all_methods = mapped_type.declared_class_methods
         else
           all_methods = []
@@ -62,7 +64,9 @@ module Duby
             cls = cls.superclass
           end
         end
-        by_name = all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
+        # filter by name, if we haven't already got a by_name list
+        by_name ||= all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
+        # filter by arity
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
 
         phase1_methods = phase1(mapped_params, by_name_and_arity)
@@ -77,12 +81,16 @@ module Duby
       end
         
       def phase1(mapped_params, potentials)
+        log "Beginning JLS phase 1 search with params (#{mapped_params.map(&:name)})"
+        
         # cycle through methods looking for more specific matches; gather matches of equal specificity
         methods = potentials.inject([]) do |currents, potential|
           method_params = potential.argument_types
           
           # exact match always wins; duplicates not possible
-          return [potential] if each_is_exact(mapped_params, method_params)
+          if each_is_exact(mapped_params, method_params)
+            return [potential]
+          end
           
           # otherwise, check for potential match and compare to current
           # TODO: missing ambiguity check; picks last method of equal specificity

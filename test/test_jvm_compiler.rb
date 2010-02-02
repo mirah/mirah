@@ -1742,4 +1742,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert obj.equals(obj)
     assert !obj.equals(cls.new)
   end
+  def test_inexact_constructor
+    # FIXME: this is a stupid test
+    cls, = compile(
+        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; puts 'ok'; end; end")
+    assert_output("ok\n") do
+      cls.empty_empty
+    end
+  end
 end

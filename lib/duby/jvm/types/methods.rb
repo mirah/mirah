@@ -295,6 +295,12 @@ module Duby::JVM::Types
       end
       methods.concat(meta.declared_intrinsics)
     end
+
+    def declared_constructors
+      jvm_type.declared_constructors.map do |method|
+        JavaConstructor.new(method)
+      end
+    end
   end
 
   class TypeDefinition
