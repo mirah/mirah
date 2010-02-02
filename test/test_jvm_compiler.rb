@@ -1729,4 +1729,13 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)    
   end
+
+  def test_inexact_constructor
+    # FIXME: this is a stupid test
+    cls, = compile(
+        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; puts 'ok'; end; end")
+    assert_output("ok\n") do
+      cls.empty_empty
+    end
+  end
 end

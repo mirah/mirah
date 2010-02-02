@@ -1,6 +1,7 @@
 require 'bitescript'
 require 'duby/ast'
 require 'duby/jvm/method_lookup'
+require 'duby/jvm/compiler'
 
 class Object
   def class_builder?
@@ -13,6 +14,10 @@ module Duby
     module Types
       class Type < AST::TypeReference
         include Duby::JVM::MethodLookup
+
+        def log(message)
+          puts "* [JVM::Types] #{message}" if Duby::Compiler::JVM.verbose
+        end
 
         def initialize(java_type)
           orig_type = java_type
