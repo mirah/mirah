@@ -330,6 +330,10 @@ module Duby::JVM::Types
       static_methods.values.flatten
     end
     
+    def declared_constructors
+      constructors
+    end
+    
     def constructors
       @constructors ||= []
     end
