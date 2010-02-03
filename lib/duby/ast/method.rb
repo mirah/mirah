@@ -223,7 +223,7 @@ module Duby::AST
         @delegate_args = possible_delegate.parameters
       elsif Super === possible_delegate
         @calls_super = true
-        @delegate_args = possible_delegate.args
+        @delegate_args = possible_delegate.parameters
         unless @delegate_args
           args = arguments.children.map {|x| x || []}
           @delegate_args = args.flatten.map do |arg|
