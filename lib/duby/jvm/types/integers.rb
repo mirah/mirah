@@ -63,6 +63,33 @@ module Duby::JVM::Types
       math_operator('&', 'and')
       math_operator('^', 'xor')
       unary_operator('~', 'not')
+
+      add_macro('downto', Int, Duby::AST.block_type) do |transformer, call|
+        Duby::AST::Loop.new(call.parent,
+                            call.position, true, false) do |forloop|
+          first, last = transformer.tmp, transformer.tmp
+          init = transformer.eval("#{first} = 0; #{last} = 0;")
+          init.children[-2].value = call.target
+          init.children[-1].value = call.parameters[0]
+          call.target.parent = init.children[-1]
+          forloop.init << init
+
+          var = call.block.args.args[0]
+          if var
+            forloop.pre << transformer.eval(
+                "#{var.name} = #{first}", '', forloop, first, last)
+          end
+          forloop.post << transformer.eval("#{first} -= 1")
+          call.block.body.parent = forloop if call.block.body
+          [
+            Duby::AST::Condition.new(forloop, call.position) do |c|
+              [transformer.eval("#{first} >= #{last}",
+                                '', forloop, first, last)]
+            end,
+            call.block.body
+          ]
+        end
+      end
     end
   end
   

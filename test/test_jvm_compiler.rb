@@ -1247,6 +1247,18 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(false, cls.foo(["a", nil, "b"].to_java(:string)))
   end
 
+  def test_downto
+    cls, = compile(<<-EOF)
+      def foo(i:int)
+        i.downto(1) {|x| puts x }
+      end
+    EOF
+
+    assert_output("3\n2\n1\n") do
+      cls.foo(3)
+    end
+  end
+
   def test_general_loop
     cls, = compile(<<-EOF)
       def foo(x:boolean)
