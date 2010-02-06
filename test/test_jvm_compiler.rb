@@ -1198,7 +1198,24 @@ class TestJVMCompiler < Test::Unit::TestCase
       list << "3"
       cls.foo(list)
     end
-    
+
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      def foo(a:ArrayList)
+        a.each do |x|
+          puts x
+        end
+      end
+    EOF
+
+    assert_output("1\n2\n3\n") do
+      list = java.util.ArrayList.new
+      list << "1"
+      list << "2"
+      list << "3"
+      cls.foo(list)
+    end
+
     cls, = compile(<<-EOF)
       def foo(a:int[])
         a.each {|x| x += 1;puts x; redo if x == 2}
