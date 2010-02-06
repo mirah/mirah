@@ -9,17 +9,33 @@ module Duby::JVM::Types
     def add_enumerable_macros
       add_macro('all?') do |transformer, call|
         if !call.block
+          # We need to create a block that just returns the item passed to it
+          # First get a new temp for the block argument
           var = transformer.tmp
+          # Parse a fake function call to create a block. Then pull of the
+          # block and attach it to the real call.
           call.block = transformer.eval("foo {|#{var}| #{var}}").block
         end
+        
+        # Now that we've got a block we can transform it into a Loop.
         forloop = expand_each(transformer, call)
+        
+        # Start adding stuff to the loop.
+        # At the beginning of the loop we create a temp initialized to true
         all = transformer.tmp
         forloop.init << transformer.eval("#{all} = true")
+        
+        # Now we want to wrap the body of the loop. Start off by using
+        # foo as a placeholder.
         body = transformer.eval(
             "unless foo;#{all} = false;break;end", '', forloop)
+        # Then replace foo with the real body.
         body.condition.predicate = call.block.body
+        # And finally patch the new body back into the forloop.
         forloop.body = call.block.body.parent = body
         
+        # Loops don't have a return value, so we need somewhere to
+        # put the result.
         result = Duby::AST::Body.new(call.parent, call.position)
         result << forloop << transformer.eval("#{all}", '', nil, all)
       end
