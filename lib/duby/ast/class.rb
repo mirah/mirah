@@ -5,15 +5,52 @@ module Duby::AST
     include Scope
     attr_accessor :superclass, :body, :interfaces
         
-    def initialize(parent, line_number, name, annotations=[], &block)
+    def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
       @interfaces = []
       @name = name
       if Duby::AST.type_factory.respond_to? :declare_type
         Duby::AST.type_factory.declare_type(self)
       end
-      super(parent, line_number, &block)
-      @superclass, @body = children
+      # We need somewhere to collect nodes that get appended during
+      # the transform phase.
+      @extra_body = Body.new(self, position)
+      super(parent, position, &block)
+      @superclass, body = @children
+      if body
+        body.parent = @extra_body
+        @extra_body.children.insert(0, body)
+      end
+      @body = @extra_body
+    end
+    
+    def append_node(node)
+      @extra_body << node
+      node
+    end
+    
+    def define_inner_class(position, name, &block)
+      name = "#{self.name}$#{name}"
+      append_node ClassDefinition.new(nil, position, name, &block)
+    end
+    
+    def define_method(position, name, type, *args)
+      append_node(MethodDefinition.new(nil, position, name) do |method|
+        signature = {:return => type}
+        args_node = Arguments.new(method, position) do |args_node|
+          arg_list = args.map do |arg_name, arg_type, arg_position|
+            signature[arg_name.intern] = type
+            arg_position ||= position
+            RequiredArgument.new(args_node, arg_position, arg_name)
+          end
+          [arg_list, nil, nil, nil]
+        end
+        [
+          signature,
+          args_node,
+          yield
+        ]
+      end)
     end
     
     def infer(typer)
@@ -25,7 +62,11 @@ module Duby::AST
             typer.no_type
           end
         end
-        @inferred_type ? resolved! : typer.defer(self)
+        if @inferred_type
+          resolved!
+        else
+          typer.defer(self)
+        end
       end
 
       @inferred_type
@@ -41,7 +82,9 @@ module Duby::AST
     interfaces = fcall.args_node.child_nodes.map do |interface|
       interface.type_reference(parent)
     end
-    parent.parent.implements(*interfaces)
+    klass = parent
+    klass = klass.parent unless ClassDefinition === klass
+    klass.implements(*interfaces)
     Noop.new(parent, fcall.position)
   end
 

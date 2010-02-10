@@ -183,7 +183,7 @@ class TestAst < Test::Unit::TestCase
     
     assert(AST::TypeReference === new_ast.superclass)
     assert(AST::Body === new_ast.body)
-    assert(AST::Fixnum === new_ast.body[0])
+    assert(AST::Fixnum === new_ast.body[0][0])
 
     new_ast = AST.parse("class Foo < Bar; def foo; end; end").body
 
