@@ -257,7 +257,7 @@ module Duby
       end
 
       def deferred_nodes
-        @deferred_nodes ||= []
+        @deferred_nodes ||= {}
       end
 
       def infer(node)
@@ -295,7 +295,7 @@ module Duby
           return if deferred_nodes.include? node
           log "Deferring inference for #{node}"
         
-          deferred_nodes << node
+          deferred_nodes[node] = self_type
         end
       end
 
@@ -307,12 +307,13 @@ module Duby
         retried = false
         cycle(count) do |i|
           old_deferred = @deferred_nodes
-          @deferred_nodes = deferred_nodes.select do |node|
+          @deferred_nodes = deferred_nodes.reject do |node, saved_type|
+            known_types["self"] = saved_type
             type = infer(node)
 
             log "[Cycle #{i}]: Inferred type for #{node}: #{type || 'FAILED'}"
 
-            type == default_type
+            type != default_type
           end
           
           if @deferred_nodes.size == 0
@@ -334,7 +335,7 @@ module Duby
         end
 
         # done with n sweeps, if any remain raise errors
-        error_nodes = @errors.map {|e| e.node} + deferred_nodes
+        error_nodes = @errors.map {|e| e.node} + deferred_nodes.keys
         if raise && !error_nodes.empty?
           msg = "Could not infer typing for nodes:"
           error_nodes.map do |e|
