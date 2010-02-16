@@ -531,6 +531,29 @@ module Duby
       def boolean(value)
         @method.print value ? 'true' : 'false'
       end
+
+      def array(node, expression)
+        if expression
+          # create unmodifiable list from array (simplest way to do this in Java source)
+          @method.print "java.util.Collections.unmodifiableList(java.util.Arrays.asList("
+
+          # elements, as expressions
+          boolean comma = false
+          node.children.each do |node|
+            @method.print ", "# if comma
+            node.compile(self, true)
+            comma = true
+          end
+          
+          @method.print("))")
+        else
+          # elements, as non-expressions
+          # TODO: ensure they're all reference types!
+          node.children.each do |node|
+            node.compile(self, false)
+          end
+        end
+      end
       
       def null
         @method.print 'null'
