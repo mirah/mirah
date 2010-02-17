@@ -11,7 +11,7 @@ module Duby
         @cause = cause
       end
     end
-    
+
     class Transformer
       attr_reader :errors
       def initialize
@@ -19,6 +19,7 @@ module Duby
         @tmp_count = 0
         @annotations = []
         @scopes = []
+        @extra_body = nil
       end
 
       def annotations
@@ -30,34 +31,48 @@ module Duby
         @annotations << annotation
         Duby::AST::Noop.new(annotation.parent, annotation.position)
       end
-      
+
       def tmp
         "__xform_tmp_#{@tmp_count += 1}"
       end
-      
+
       def transform(node, parent)
         begin
           scope = node.getScope if node.respond_to? :getScope
           if scope
             @scopes << scope
           end
+          top = @extra_body.nil?
+          if top
+            @extra_body = Duby::AST::Body.new(nil, node.position)
+          end
           begin
-            node.transform(self, parent)
+            result = node.transform(self, parent)
+            if top && !@extra_body.empty?
+              result.parent = @extra_body
+              @extra_body.children.insert(0, result)
+              return @extra_body
+            else
+              return result
+            end
           ensure
             if scope
               @scopes.pop
+            end
+            if top
+              @extra_body = nil
             end
           end
         rescue Error => ex
           @errors << ex
           Duby::AST::ErrorNode.new(parent, ex)
-        rescue Exception => ex 
+        rescue Exception => ex
           error = Error.new(ex.message, node.position, ex)
           @errors << error
           Duby::AST::ErrorNode.new(parent, error)
         end
       end
-      
+
       def captured?(node)
         depth = node.depth
         scope = @scopes[-1]
@@ -82,13 +97,22 @@ module Duby
         duby_node.parent = parent
         duby_node
       end
-      
+
       def expand(fvcall, parent)
         result = yield self, fvcall, parent
         unless result.kind_of?(AST::Node)
           raise Error.new('Invalid macro result', fvcall.position)
         end
         result
+      end
+
+      def append_node(node)
+        @extra_body << node
+        node
+      end
+
+      def define_class(position, name, &block)
+        append_node ClassDefinition.new(nil, position, name, &block)
       end
     end
   end
@@ -104,7 +128,7 @@ module Duby
     java_import org.jrubyparser.parser.ParserConfiguration
     java_import org.jrubyparser.CompatVersion
     java_import java.io.StringReader
-    
+
     def parse(src, filename='-', raise_errors=false, transformer=nil)
       ast = parse_ruby(src, filename)
       transformer ||= Transform::Transformer.new
@@ -117,7 +141,7 @@ module Duby
       ast
     end
     module_function :parse
-    
+
     def parse_ruby(src, filename='-')
       raise ArgumentError if src.nil?
       parser = Parser.new
@@ -141,7 +165,7 @@ module Duby
         set_args = JRubyAst::ListNode.new(position)
         set_args.add_all(args)
         set_args.add(value_node)
-        
+
         first = JRubyAst::CallNode.new(position, receiver_node, name, args)
         second = JRubyAst::AttrAssignNode.new(position, receiver_node,
                                               "#{name}=", set_args)
@@ -157,7 +181,7 @@ module Duby
       end
     end
 
-    # reload 
+    # reload
     module JRubyAst
       class Node
         def transform(transformer, parent)
@@ -189,7 +213,7 @@ module Duby
 
           [:receiver_node, :args_node, :var_node, :head_node, :value_node, :iter_node, :body_node, :next_node, :condition, :then_body, :else_body].each do |mm|
             if self.respond_to?(mm)
-              begin 
+              begin
                 s << "\n#{self.send(mm).inspect(indent+2)}" if self.send(mm)
               rescue
                 s << "\n#{' '*(indent+2)}#{self.send(mm).inspect}" if self.send(mm)
@@ -208,7 +232,7 @@ module Duby
           end
           s
         end
-        
+
         def signature(parent)
           nil
         end
@@ -216,7 +240,7 @@ module Duby
 
       class ListNode
         include Enumerable
-        
+
         def each(&block)
           child_nodes.each(&block)
         end
@@ -232,7 +256,7 @@ module Duby
             pre
           end
         end
-        
+
         def transform(transformer, parent)
           Arguments.new(parent, position) do |args_node|
             arg_list = args.child_nodes.map do |node|
@@ -311,7 +335,7 @@ module Duby
           Break.new(parent, position)
         end
       end
-      
+
       class ClassNode
         def transform(transformer, parent)
           ClassDefinition.new(parent, position,
@@ -362,7 +386,7 @@ module Duby
               actual_name = name[0..-2] + '_set'
             end
           end
-          
+
           Call.new(parent, position, actual_name) do |call|
             [
               transformer.transform(receiver_node, call),
@@ -532,7 +556,7 @@ module Duby
           end
         end
       end
-      
+
       class FalseNode
         def transform(transformer, parent)
           Boolean.new(parent, position, false)
@@ -555,7 +579,7 @@ module Duby
             nil
           end
         end
-        
+
         def transform(transformer, parent)
           @declaration ||= false
 
@@ -575,7 +599,7 @@ module Duby
             end
           end
         end
-        
+
         def type_reference(parent)
           AST::type(name)
         end
@@ -875,7 +899,7 @@ module Duby
         def transform(transformer, parent)
           String.new(parent, position, value)
         end
-        
+
         def type_reference(parent)
           AST::type(value)
         end
@@ -886,13 +910,13 @@ module Duby
           AST::type(name)
         end
       end
-      
+
       class TrueNode
         def transform(transformer, parent)
           Boolean.new(parent, position, true)
         end
       end
-      
+
       class TypedArgumentNode
         def transform(transformer, parent)
           type_node.transform(transformer, parent)
@@ -921,7 +945,7 @@ module Duby
             end
           end
         end
-        
+
         def type_reference(parent)
           AST::type name
         end
@@ -1003,7 +1027,7 @@ module Duby
           end
         end
       end
-      
+
       class SuperNode
         def transform(transformer, parent)
           Super.new(parent, position) do
@@ -1011,13 +1035,13 @@ module Duby
           end
         end
       end
-      
+
       class ZSuperNode
         def transform(transformer, parent)
           Super.new(parent, position)
         end
       end
-      
+
       class SelfNode
         def transform(transformer, parent)
           Self.new(parent, position)
