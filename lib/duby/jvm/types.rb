@@ -66,6 +66,10 @@ module Duby
           return true if !primitive? && other == Null
           return true if other == self
           return true if other.error? || other.unreachable?
+
+          # TODO should we allow more here?
+          return interface? if other.block?
+
           begin
             jvm_type.assignable_from?(other.jvm_type)
           rescue

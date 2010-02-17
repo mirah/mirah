@@ -1738,4 +1738,19 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.empty_empty
     end
   end
+  
+  def test_block
+    cls, = compile(<<-EOF)
+      def foo
+        thread = Thread.new do
+          puts "Hello"
+        end
+        thread.run
+        thread.join
+      end
+    EOF
+    assert_output("Hello\n") do
+      cls.foo
+    end
+  end
 end

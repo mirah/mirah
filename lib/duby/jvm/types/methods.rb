@@ -4,6 +4,10 @@ class Java::JavaMethod
   def static?
     java.lang.reflect.Modifier.static?(modifiers)
   end
+  
+  def abstract?
+    java.lang.reflect.Modifier.abstract?(modifiers)
+  end
 end
 
 module Duby::JVM::Types
@@ -132,6 +136,10 @@ module Duby::JVM::Types
       @member.static?
     end
     
+    def abstract?
+      @member.abstract?
+    end
+    
     def void?
       @member.return_type.nil?
     end
@@ -215,6 +223,10 @@ module Duby::JVM::Types
     
     def static?
       @static
+    end
+    
+    def abstract?
+      false
     end
   end
   

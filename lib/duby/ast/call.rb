@@ -55,7 +55,15 @@ module Duby::AST
           end
         end
         
-        @inferred_type ? resolved! : typer.defer(proxy)
+        if @inferred_type
+          if @block
+            method = receiver_type.get_method(name, parameter_types)
+            @block.prepare(typer, method)
+          end
+          resolved!
+        else
+          typer.defer(proxy)
+        end
       end
         
       @inferred_type
@@ -97,9 +105,17 @@ module Duby::AST
           end
         end
         
-        @inferred_type ? resolved! : typer.defer(proxy)
+        if @inferred_type
+          if @block
+            method = receiver_type.get_method(name, parameter_types)
+            @block.prepare(typer, method)
+          end
+          resolved!
+        else
+          typer.defer(proxy)
+        end
       end
-        
+
       @inferred_type
     end
   end

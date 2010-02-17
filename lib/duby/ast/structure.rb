@@ -33,10 +33,17 @@ module Duby::AST
   
   class Block < Node
     attr_accessor :args, :body
+    include Scoped
 
     def initialize(parent, position, &block)
       super(parent, position, &block)
       @args, @body = children
+    end
+    
+    def prepare(typer, method)
+      interface = method.argument_types[-1]
+      outer_class = typer.self_type
+      
     end
   end
   
