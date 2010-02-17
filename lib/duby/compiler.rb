@@ -160,6 +160,13 @@ module Duby
         compiler.call(self, expression)
       end
     end
+
+    class Super
+      def compile(compiler, expression)
+        compiler.line(line_number)
+        compiler.super_call(self, expression)
+      end
+    end
     
     class Loop
       def compile(compiler, expression)

@@ -370,6 +370,10 @@ module Duby
         type
       end
 
+      def super_call(call, expression)
+        super_method_call(this, call, compile_args(call), expression)
+      end
+
       def self_call(call, expression)
         if call.cast?
           args = compile_args(call)
@@ -437,6 +441,39 @@ module Duby
       def redo(node)
         @loop.redo
       end
+
+      # TODO: merge cleanly with method_call logic
+      def super_method_call(target, call, params, expression)
+        simple = call.expr?(self)
+        method = call.method(self)
+        unless simple || method.actual_return_type.void?
+          @method.print @lvalue if expression
+        end
+        if method.constructor?
+          @method.print "super("
+        else
+          @method.print "super.#{method.name}("
+        end
+        params.each_with_index do |param, index|
+          @method.print ', ' unless index == 0
+          param.compile(self, true)
+        end
+        if simple && expression
+          @method.print ')'
+        else
+          @method.puts ');'
+        end
+        if method.actual_return_type.void? && expression
+          @method.print @lvalue
+          if method.static?
+            @method.puts 'null;'
+          else
+            target.compile(self, true)
+            @method.puts ';'
+          end
+        end
+
+      end
       
       def method_call(target, call, params, expression)
         simple = call.expr?(self)
@@ -493,6 +530,29 @@ module Duby
       
       def boolean(value)
         @method.print value ? 'true' : 'false'
+      end
+
+      def array(node, expression)
+        if expression
+          # create unmodifiable list from array (simplest way to do this in Java source)
+          @method.print "java.util.Collections.unmodifiableList(java.util.Arrays.asList("
+
+          # elements, as expressions
+          boolean comma = false
+          node.children.each do |node|
+            @method.print ", "# if comma
+            node.compile(self, true)
+            comma = true
+          end
+          
+          @method.print("))")
+        else
+          # elements, as non-expressions
+          # TODO: ensure they're all reference types!
+          node.children.each do |node|
+            node.compile(self, false)
+          end
+        end
       end
       
       def null

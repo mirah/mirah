@@ -52,7 +52,7 @@ module Duby
         # mapped_type = jvm_type(mapped_type)
         # mapped_params = convert_params(mapped_params)
         if constructor
-          all_methods = mapped_type.declared_constructors
+          all_methods = mapped_type.unmeta.declared_constructors
           by_name = all_methods
         elsif meta
           all_methods = mapped_type.declared_class_methods

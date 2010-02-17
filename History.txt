@@ -1,3 +1,7 @@
+=== 0.0.2 / 2010-02-15
+
+* More language features added
+
 === 0.0.1 / 2009-10-27
 
 * First gem release

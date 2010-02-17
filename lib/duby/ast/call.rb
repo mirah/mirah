@@ -119,4 +119,43 @@ module Duby::AST
       @inferred_type
     end
   end
+
+  class Super < Node
+    include Named
+    attr_accessor :parameters, :method, :cast
+    alias :cast? :cast
+
+    def initialize(parent, line_number)
+      super(parent, line_number)
+      @parameters = children[0]
+      @call_parent = parent
+      @call_parent = (@call_parent = @call_parent.parent) until MethodDefinition === @call_parent
+      @cast = false
+    end
+
+    def name
+      @call_parent.name
+    end
+
+    def infer(typer)
+      @self_type ||= typer.self_type.superclass
+      
+      unless @inferred_type
+        receiver_type = @call_parent.defining_class
+        should_defer = receiver_type.nil?
+        parameter_types = parameters.map do |param|
+          typer.infer(param) || should_defer = true
+        end
+
+        unless should_defer
+          @inferred_type = typer.method_type(receiver_type, name,
+                                             parameter_types)
+        end
+
+        @inferred_type ? resolved! : typer.defer(self)
+      end
+
+      @inferred_type
+    end
+  end
 end
