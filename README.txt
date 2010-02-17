@@ -27,7 +27,7 @@ dubyc -java -e "inline script" # produces dash_e.java
 == REQUIREMENTS:
 
 * JRuby 1.4RC2 or higher.
-* BiteScript 0.0.4 or higher
+* BiteScript 0.0.5 or higher
 
 == INSTALL:
 

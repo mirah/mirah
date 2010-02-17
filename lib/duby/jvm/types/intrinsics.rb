@@ -63,6 +63,9 @@ module Duby::JVM::Types
           methods << method
         end
       end
+      interfaces.each do |interface|
+        methods.concat(interface.declared_intrinsics)
+      end
       methods
     end
 

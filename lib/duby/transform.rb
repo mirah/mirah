@@ -1007,7 +1007,7 @@ module Duby
       class SuperNode
         def transform(transformer, parent)
           Super.new(parent, position) do
-            [args_node.map {|arg| transformer.transform(arg, parent)}]
+            [args_node ? args_node.map {|arg| transformer.transform(arg, parent)} : []]
           end
         end
       end

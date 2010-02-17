@@ -15,8 +15,6 @@ Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if
 require 'jruby'
 
 module Duby
-  VERSION = '0.0.1'
-  
   def self.run(*args)
     DubyImpl.new.run(*args)
   end

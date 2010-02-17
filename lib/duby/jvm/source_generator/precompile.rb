@@ -95,6 +95,21 @@ module Duby::AST
           (cast? || !method(compiler).actual_return_type.void?)
     end
   end
+
+  # TODO merge with FunctionalCall logic (almost identical)
+  class Super
+    def method(compiler)
+      @method ||= begin
+        arg_types = parameters.map {|p| p.inferred_type}
+        compiler.self_type.superclass.get_method(name, arg_types)
+      end
+    end
+
+    def expr?(compiler)
+      parameters.all? {|p| p.expr?(compiler)} &&
+          !method(compiler).actual_return_type.void?
+    end
+  end
   
   class EmtpyArray
     def expr?(compiler)

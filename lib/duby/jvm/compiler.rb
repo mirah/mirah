@@ -10,6 +10,10 @@ module Duby
     class FunctionalCall
       attr_accessor :target
     end
+
+    class Super
+      attr_accessor :target
+    end
   end
   
   module Compiler
@@ -361,7 +365,6 @@ module Duby
       end
       
       def call(call, expression)
-
         target = call.target.inferred_type
         params = call.parameters.map do |param|
           param.inferred_type
@@ -391,6 +394,22 @@ module Duby
               [target, fcall.name, params.join(', ')]
         end
         method.call(self, fcall, expression)
+      end
+
+      def super_call(sup, expression)
+        type = @type.superclass
+        sup.target = ImplicitSelf.new(type)
+
+        params = sup.parameters.map do |param|
+          param.inferred_type
+        end
+        method = type.get_method(sup.name, params)
+        unless method
+
+          raise NameError, "No method %s.%s(%s)" %
+              [type, sup.name, params.join(', ')]
+        end
+        method.call_special(self, sup, expression)
       end
 
       def cast(fcall, expression)

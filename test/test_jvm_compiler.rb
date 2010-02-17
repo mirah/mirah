@@ -1198,7 +1198,24 @@ class TestJVMCompiler < Test::Unit::TestCase
       list << "3"
       cls.foo(list)
     end
-    
+
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      def foo(a:ArrayList)
+        a.each do |x|
+          puts x
+        end
+      end
+    EOF
+
+    assert_output("1\n2\n3\n") do
+      list = java.util.ArrayList.new
+      list << "1"
+      list << "2"
+      list << "3"
+      cls.foo(list)
+    end
+
     cls, = compile(<<-EOF)
       def foo(a:int[])
         a.each {|x| x += 1;puts x; redo if x == 2}
@@ -1730,6 +1747,18 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)    
   end
 
+  def test_super
+    cls, = compile(<<-EOF)
+      class Foo
+        def initialize; end
+        def equals(other:Object); super(other); end
+      end
+    EOF
+
+    obj = cls.new
+    assert obj.equals(obj)
+    assert !obj.equals(cls.new)
+  end
   def test_inexact_constructor
     # FIXME: this is a stupid test
     cls, = compile(
