@@ -134,6 +134,21 @@ module Duby
       def self.===(other)
         super || (other.kind_of?(NodeProxy) && (self === other.__getobj__))
       end
+
+      def initialize_copy(other)
+        @parent = nil
+        @children = []
+        other.children.each do |child|
+          case child
+          when Node
+            self << child.clone(the_clone)
+          when Array
+            self << child.map {|x| x.clone(the_clone)}
+          else
+            self << child.dup
+          end
+        end
+      end
     end
 
     class ErrorNode < Node
