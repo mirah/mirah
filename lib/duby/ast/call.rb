@@ -10,8 +10,11 @@ module Duby::AST
 
   class FunctionalCall < Node
     include Named
-    attr_accessor :parameters, :block, :cast, :inlined, :proxy
+    attr_accessor :cast, :inlined, :proxy
     alias cast? cast
+
+    child :parameters
+    child :block
 
     def self.new(*args, &block)
       real_node = super
@@ -20,24 +23,23 @@ module Duby::AST
 
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, &kids)
-      @parameters, @block = children
       @name = name
       @cast = false
     end
-        
+
     def infer(typer)
       @self_type ||= typer.self_type
 
       unless @inferred_type
         receiver_type = @self_type
         should_defer = false
-      
+
         parameter_types = parameters.map do |param|
           typer.infer(param) || should_defer = true
         end
-        
-        parameter_types << Duby::AST.block_type if @block
-      
+
+        parameter_types << Duby::AST.block_type if block
+
         unless should_defer
           if parameters.size == 1 && typer.known_types[name]
             # cast operation
@@ -54,25 +56,29 @@ module Duby::AST
             end
           end
         end
-        
+
         if @inferred_type
-          if @block
+          if block
             method = receiver_type.get_method(name, parameter_types)
-            @block.prepare(typer, method)
+            block.prepare(typer, method)
           end
           resolved!
         else
           typer.defer(proxy)
         end
       end
-        
+
       @inferred_type
     end
   end
-  
+
   class Call < Node
     include Named
-    attr_accessor :target, :parameters, :block, :inlined, :proxy
+    attr_accessor :inlined, :proxy
+
+    child :target
+    child :parameters
+    child :block
 
     def self.new(*args, &block)
       real_node = super
@@ -80,8 +86,7 @@ module Duby::AST
     end
 
     def initialize(parent, line_number, name, &kids)
-      super(parent, line_number, children, &kids)
-      @target, @parameters, @block = children
+      super(parent, line_number, &kids)
       @name = name
     end
 
@@ -93,7 +98,7 @@ module Duby::AST
           typer.infer(param) || should_defer = true
         end
 
-        parameter_types << Duby::AST.block_type if @block
+        parameter_types << Duby::AST.block_type if block
 
         unless should_defer
           @inferred_type = typer.method_type(receiver_type, name,
@@ -104,11 +109,11 @@ module Duby::AST
             return proxy.infer(typer)
           end
         end
-        
+
         if @inferred_type
-          if @block
+          if block
             method = receiver_type.get_method(name, parameter_types)
-            @block.prepare(typer, method)
+            block.prepare(typer, method)
           end
           resolved!
         else
@@ -122,12 +127,13 @@ module Duby::AST
 
   class Super < Node
     include Named
-    attr_accessor :parameters, :method, :cast
+    attr_accessor :method, :cast
     alias :cast? :cast
+
+    child :parameters
 
     def initialize(parent, line_number)
       super(parent, line_number)
-      @parameters = children[0]
       @call_parent = parent
       @call_parent = (@call_parent = @call_parent.parent) until MethodDefinition === @call_parent
       @cast = false
@@ -139,7 +145,7 @@ module Duby::AST
 
     def infer(typer)
       @self_type ||= typer.self_type.superclass
-      
+
       unless @inferred_type
         receiver_type = @call_parent.defining_class
         should_defer = receiver_type.nil?

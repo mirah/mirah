@@ -1,11 +1,10 @@
 module Duby
   module AST
     class Condition < Node
-      attr_accessor :predicate
+      child :predicate
 
       def initialize(parent, line_number, &block)
         super(parent, line_number, &block)
-        @predicate = children[0]
       end
 
       def infer(typer)
@@ -13,10 +12,10 @@ module Duby
           @inferred_type = typer.infer(predicate)
           if @inferred_type && !@inferred_type.primitive?
             call = Call.new(parent, position, '!=') do |call|
-              @predicate.parent = call
-              [@predicate, [Null.new(call, position)]]
+              predicate.parent = call
+              [predicate, [Null.new(call, position)]]
             end
-            @predicate = children[0] = call
+            self.predicate = call
             @inferred_type = typer.infer(predicate)
           end
 
@@ -28,11 +27,12 @@ module Duby
     end
 
     class If < Node
-      attr_accessor :condition, :body, :else
+      child :condition
+      child :body
+      child :else
 
       def initialize(parent, line_number, &block)
         super(parent, line_number, &block)
-        @condition, @body, @else = children
       end
 
       def infer(typer)
@@ -56,7 +56,11 @@ module Duby
               else
                 # we have else but not then, defer only then and use else type for now
                 @inferred_type = else_type
-                typer.defer(self)
+                if body
+                  typer.defer(self)
+                else
+                  resolved!
+                end
               end
             else
               # no then type could be inferred and no else body, defer for now
@@ -93,17 +97,28 @@ module Duby
     end
 
     class Loop < Node
-      attr_accessor :init, :condition, :pre, :post, :body
+      child :init
+      child :condition
+      child :pre
+      child :body
+      child :post
       attr_accessor :check_first, :negative, :redo
 
       def initialize(parent, position, check_first, negative, &block)
         @check_first = check_first
         @negative = negative
-        @init = Body.new(self, position)
-        @pre = Body.new(self, position)
-        @post = Body.new(self, position)
-        super(parent, position, &block)
-        @condition, @body = @children
+
+        @children = [
+            Body.new(self, position),
+            nil,
+            Body.new(self, position),
+            nil,
+            Body.new(self, position),
+        ]
+        super(parent, position) do |l|
+          condition, body = yield(l)
+          [self.init, condition, self.pre, body, self.post]
+        end
       end
 
       def infer(typer)
@@ -124,10 +139,6 @@ module Duby
         end
 
         @inferred_type
-      end
-      
-      def children
-        [init, condition, pre, post, body]
       end
 
       def check_first?; @check_first; end
@@ -154,15 +165,15 @@ module Duby
       end
 
       def init?
-        @init && !(@init.kind_of?(Body) && @init.empty?)
+        init && !(init.kind_of?(Body) && init.empty?)
       end
 
       def pre?
-        @pre && !(@pre.kind_of?(Body) && @pre.empty?)
+        pre && !(pre.kind_of?(Body) && pre.empty?)
       end
-      
+
       def post?
-        @post && !(@post.kind_of?(Body) && @post.empty?)
+        post && !(post.kind_of?(Body) && post.empty?)
       end
 
       def to_s
@@ -179,9 +190,10 @@ module Duby
     class Return < Node
       include Valued
 
+      child :value
+
       def initialize(parent, line_number, &block)
         super(parent, line_number, &block)
-        @value = children[0]
       end
 
       def infer(typer)
@@ -203,13 +215,15 @@ module Duby
         end
       end
     end
-    
+
     class Next < Break; end
-    
+
     class Redo < Break; end
 
     class Raise < Node
       include Valued
+
+      child :exception
 
       def initialize(parent, line_number, &block)
         super(parent, line_number, &block)
@@ -220,13 +234,12 @@ module Duby
           @inferred_type = AST.unreachable_type
           throwable = AST.type('java.lang.Throwable')
           if children.size == 1
-            arg_type = typer.infer(children[0])
+            arg_type = typer.infer(self.exception)
             unless arg_type
               typer.defer(self)
               return
             end
             if throwable.assignable_from?(arg_type) && !arg_type.meta?
-              @exception = children[0]
               resolved!
               return @inferred_type
             end
@@ -241,12 +254,12 @@ module Duby
             else
               klass = Constant.new(self, position, 'RuntimeException')
             end
-            @exception = Call.new(self, position, 'new') do
+            exception = Call.new(self, position, 'new') do
               [klass, children, nil]
             end
             resolved!
-            @children = [@exception]
-            typer.infer(@exception)
+            @children = [exception]
+            typer.infer(exception)
           end
         end
         @inferred_type
@@ -265,11 +278,12 @@ module Duby
 
     class RescueClause < Node
       include Scoped
-      attr_accessor :types, :body, :name, :type
-      
+      attr_accessor :name, :type
+      child :types
+      child :body
+
       def initialize(parent, position, &block)
         super(parent, position, &block)
-        @types, @body = children
       end
 
       def infer(typer)
@@ -289,14 +303,15 @@ module Duby
         @inferred_type
       end
     end
-    
+
     class Rescue < Node
-      attr_accessor :body, :clauses
+      child :body
+      child :clauses
       def initialize(parent, position, &block)
         super(parent, position, &block)
         @body, @clauses = children
       end
-      
+
       def infer(typer)
         unless resolved?
           types = [typer.infer(body)] + clauses.map {|c| typer.infer(c)}
@@ -311,16 +326,16 @@ module Duby
         @inferred_type
       end
     end
-    
+
     class Ensure < Node
-      attr_reader :body, :clause
+      child :body
+      child :clause
       attr_accessor :state  # Used by the some compilers.
-      
+
       def initialize(parent, position, &block)
         super(parent, position, &block)
-        @body, @clause = children
       end
-      
+
       def infer(typer)
         resolve_if(typer) do
           typer.infer(clause)

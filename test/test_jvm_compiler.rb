@@ -1771,11 +1771,16 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_block
     cls, = compile(<<-EOF)
       def foo
+        returns :void
         thread = Thread.new do
           puts "Hello"
         end
-        thread.run
-        thread.join
+        begin
+          thread.run
+          thread.join
+        rescue
+          puts "Uh Oh!"
+        end
       end
     EOF
     assert_output("Hello\n") do

@@ -109,6 +109,8 @@ class DubyImpl
       end
     end
 
+    puts ast.inspect if @verbose
+
     compiler = @compiler_class.new(@filename)
     ast.compile(compiler, false)
     compiler.generate(&block)

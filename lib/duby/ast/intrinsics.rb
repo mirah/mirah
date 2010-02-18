@@ -1,13 +1,14 @@
 module Duby::AST
   class Print < Node
-    attr_accessor :parameters
     attr_accessor :println
-    
+
     def initialize(parent, line_number, println, &block)
       super(parent, line_number, &block)
-      @parameters = children
       @println = println
     end
+
+    alias parameters children
+    alias parameters= children=
 
     def infer(typer)
       if parameters.size > 0
@@ -19,7 +20,7 @@ module Duby::AST
       typer.no_type
     end
   end
-  
+
   defmacro('puts') do |transformer, fcall, parent|
     Print.new(parent, fcall.position, true) do |print|
       if fcall.respond_to?(:args_node) && fcall.args_node
@@ -43,12 +44,12 @@ module Duby::AST
       end
     end
   end
-  
+
   class InlineCode
     def initialize(&block)
       @block = block
     end
-    
+
     def inline(transformer, call)
       @block.call(transformer, call)
     end

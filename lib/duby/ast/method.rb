@@ -1,33 +1,35 @@
 module Duby::AST
   class Arguments < Node
-    attr_accessor :args, :opt_args, :rest_arg, :block_arg
-    
+    child :args
+    child :opt_args
+    child :rest_arg
+    child :block_arg
+
     def initialize(parent, line_number, &block)
       super(parent, line_number, &block)
-      @args, @opt_args, @rest_arg, @block_arg = children
     end
-    
+
     def infer(typer)
       unless @inferred_type
         @inferred_type = args ? args.map {|arg| typer.infer(arg)} : []
       end
     end
   end
-      
+
   class Argument < Node
     include Typed
   end
-      
+
   class RequiredArgument < Argument
     include Named
     include Scoped
-    
+
     def initialize(parent, line_number, name)
       super(parent, line_number)
 
       @name = name
     end
-    
+
     def infer(typer)
       unless @inferred_type
         # if not already typed, check parent of parent (MethodDefinition) for signature info
@@ -40,24 +42,23 @@ module Duby::AST
         else
           @inferred_type = typer.local_type(scope, name)
         end
-          
+
         unless @inferred_type
           typer.defer(self)
         end
       end
-        
+
       @inferred_type
     end
   end
-      
+
   class OptionalArgument < Argument
     include Named
     include Scoped
-    attr_accessor :child
-    
+    child :child
+
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @child = children[0]
       @name = name
     end
 
@@ -80,52 +81,56 @@ module Duby::AST
       @inferred_type
     end
   end
-      
+
   class RestArgument < Argument
     include Named
     include Scoped
-    
+
     def initialize(parent, line_number, name)
       super(parent, line_number)
 
       @name = name
     end
   end
-      
+
   class BlockArgument < Argument
     include Named
-    
+
     def initialize(parent, line_number, name)
       super(parent, line_number)
 
       @name = name
     end
   end
-      
+
   class MethodDefinition < Node
     include Annotated
     include Named
     include Scope
-    attr_accessor :signature, :arguments, :body, :defining_class
-        
+
+    child :signature
+    child :arguments
+    child :body
+
+    attr_accessor :defining_class
+
     def initialize(parent, line_number, name, annotations=[], &block)
       @annotations = annotations
       super(parent, line_number, &block)
-      @signature, @arguments, @body = children
       @name = name
     end
 
     def name
       super
     end
-    
+
     def infer(typer)
       @defining_class ||= typer.self_type
       typer.infer(arguments)
       typer.infer_signature(self)
       forced_type = signature[:return]
       inferred_type = body ? typer.infer(body) : typer.no_type
-        
+
       if !inferred_type
         typer.defer(self)
       else
@@ -137,7 +142,7 @@ module Duby::AST
         if actual_type.unreachable?
           actual_type = typer.no_type
         end
-        
+
         if !abstract? &&
             forced_type != typer.no_type &&
             !actual_type.is_parent(inferred_type)
@@ -164,10 +169,10 @@ module Duby::AST
 
         signature[:return] = @inferred_type
       end
-        
+
       @inferred_type
     end
-    
+
     def abstract?
       node = parent
       while node && !node.kind_of?(Scope)
@@ -175,46 +180,47 @@ module Duby::AST
       end
       InterfaceDeclaration === node
     end
-    
+
     def static?
       false
     end
   end
-      
+
   class StaticMethodDefinition < MethodDefinition
     def defining_class
       @defining_class.meta
     end
-    
+
     def static?
       true
     end
   end
-  
+
   class ConstructorDefinition < MethodDefinition
     attr_accessor :delegate_args, :calls_super
-    
+
     def initialize(*args)
       super
       extract_delegate_constructor
     end
-    
+
     def first_node
-      if @body.kind_of? Body
-        @body.children[0]
+      if body.kind_of? Body
+        body.children[0]
       else
-        @body
+        body
       end
     end
-    
+
     def first_node=(new_node)
-      if @body.kind_of? Body
-        @body.children[0] = new_node
+      if body.kind_of? Body
+        new_node.parent = body
+        body.children[0] = new_node
       else
-        @body = children[2] = new_node
+        self.body = new_node
       end
     end
-    
+
     def extract_delegate_constructor
       # TODO verify that this constructor exists during type inference.
       possible_delegate = first_node
@@ -233,7 +239,7 @@ module Duby::AST
       end
       self.first_node = Noop.new(self, position) if @delegate_args
     end
-    
+
     def infer(typer)
       unless @inferred_type
         delegate_args.each {|a| typer.infer(a)} if delegate_args

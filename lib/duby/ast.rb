@@ -5,17 +5,39 @@ module Duby
     class << self
       attr_accessor :verbose
     end
-    
+
     # The top of the AST class hierarchy, this represents an abstract AST node.
     # It provides accessors for _children_, an array of all child nodes,
     # _parent_, a reference to this node's parent (nil if none), and _newline_,
     # whether this node represents a new line.
     class Node
+      include Enumerable
+
       attr_accessor :children
       attr_accessor :parent
       attr_accessor :position
       attr_accessor :newline
       attr_accessor :inferred_type
+
+      def self.child(name)
+        @children ||= []
+        index = @children.size
+        class_eval <<-EOF
+          def #{name}
+            @children[#{index}]
+          end
+
+          def #{name}=(node)
+            node.parent = self if node.kind_of?(Node)
+            @children[#{index}] = node
+          end
+        EOF
+        @children << name
+      end
+
+      def self.child_name(i)
+        @children[i] if @children
+      end
 
       def initialize(parent, position, children = [])
         @parent = parent
@@ -45,16 +67,25 @@ module Duby
       def inspect(indent = 0)
         indent_str = ' ' * indent
         str = indent_str + to_s
-        children.each do |child|
+        children.each_with_index do |child, i|
+          extra_indent = 0
           if child
+            name = self.class.child_name(i)
+            if Duby::AST.verbose && name
+              str << "\n#{indent_str} #{name}:"
+              extra_indent = 1
+            end
             if ::Array === child
               child.each {|ary_child|
-                str << "\n#{ary_child.inspect(indent + 1)}"
+                str << "\n#{ary_child.inspect(indent + extra_indent + 1)}"
               }
             elsif ::Hash === child
               str << "\n#{indent_str} #{child.inspect}"
             else
-              str << "\n#{child.inspect(indent + 1)}"
+              if Duby::AST.verbose && Node === child && child.parent != self
+                str << "\n#{indent_str} (wrong parent)"
+              end
+              str << "\n#{child.inspect(indent + extra_indent + 1)}"
             end
           end
         end
@@ -70,6 +101,20 @@ module Duby
       def [](index) children[index] end
 
       def each(&b) children.each(&b) end
+
+      def <<(node)
+        @children << node
+        node.parent = self
+      end
+
+      def insert(index, node)
+        node.parent = self
+        @children.insert(index, node)
+      end
+
+      def empty?
+        @children.empty?
+      end
 
       def resolved!
         log "#{to_s} resolved!"
@@ -90,7 +135,7 @@ module Duby
         super || (other.kind_of?(NodeProxy) && (self === other.__getobj__))
       end
     end
-    
+
     class ErrorNode < Node
       def initialize(parent, error)
         super(parent, error.position)
@@ -98,7 +143,7 @@ module Duby
         @inferred_type = TypeReference::ErrorType
         @resolved = true
       end
-      
+
       def infer(typer)
       end
     end
@@ -211,7 +256,7 @@ module Duby
       alias array? array
       attr_accessor :meta
       alias meta? meta
-      
+
       def initialize(name, array = false, meta = false, position=nil)
         super(nil, position)
         @name = name
@@ -239,7 +284,7 @@ module Duby
         # default behavior now is to disallow any polymorphic types
         self == other
       end
-      
+
       def compatible?(other)
         # default behavior is only exact match right now
         self == other ||
@@ -250,7 +295,7 @@ module Duby
       def iterable?
         array?
       end
-      
+
       def component_type
         AST.type(name) if array?
       end
@@ -279,11 +324,11 @@ module Duby
       def unreachable?
         name == :unreachable
       end
-      
+
       def block?
         name == :block
       end
-      
+
       def primitive?
         true
       end
@@ -305,15 +350,15 @@ module Duby
         @interfaces = interfaces
       end
     end
-    
+
     def self.type_factory
       Thread.current[:ast_type_factory]
     end
-    
+
     def self.type_factory=(factory)
       Thread.current[:ast_type_factory] = factory
     end
-    
+
     # Shortcut method to construct type references
     def self.type(typesym, array = false, meta = false)
       factory = type_factory
@@ -323,7 +368,7 @@ module Duby
         TypeReference.new(typesym, array, meta)
       end
     end
-    
+
     def self.no_type
       factory = type_factory
       if factory
@@ -332,7 +377,7 @@ module Duby
         TypeReference::NoType
       end
     end
-    
+
     def self.error_type
       TypeReference::ErrorType
     end
@@ -340,7 +385,7 @@ module Duby
     def self.unreachable_type
       TypeReference::UnreachableType
     end
-    
+
     def self.block_type
       TypeReference::BlockType
     end
@@ -351,7 +396,7 @@ module Duby
         factory.fixnum(parent, position, literal)
       else
         Fixnum.new(parent, position, literal)
-      end      
+      end
     end
 
     def self.float(parent, position, literal)
@@ -360,15 +405,15 @@ module Duby
         factory.float(parent, position, literal)
       else
         Float.new(parent, position, literal)
-      end      
+      end
     end
-    
+
     def self.defmacro(name, &block)
       @macros ||= {}
       raise "Conflicting macros for #{name}" if @macros[name]
       @macros[name] = block
     end
-    
+
     def self.macro(name)
       @macros[name]
     end

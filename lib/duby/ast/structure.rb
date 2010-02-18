@@ -3,7 +3,7 @@ module Duby::AST
     def initialize(parent, line_number, &block)
       super(parent, line_number, &block)
     end
-        
+
     # Type of a block is the type of its final element
     def infer(typer)
       unless @inferred_type
@@ -12,7 +12,7 @@ module Duby::AST
         else
           children.each {|child| @inferred_type = typer.infer(child)}
         end
-          
+
         unless @inferred_type
           typer.defer(self)
         end
@@ -20,48 +20,38 @@ module Duby::AST
 
       @inferred_type
     end
-    
-    def <<(node)
-      @children << node
-      node.parent = self
-    end
-    
-    def empty?
-      @children.empty?
-    end
   end
-  
+
   class Block < Node
-    attr_accessor :args, :body
     include Scoped
+    child :args
+    child :body
 
     def initialize(parent, position, &block)
       super(parent, position, &block)
-      @args, @body = children
     end
-    
+
     def prepare(typer, method)
       interface = method.argument_types[-1]
       outer_class = typer.self_type
-      
+
     end
   end
-  
+
   class Noop < Node
     def infer(typer)
       @inferred_type ||= typer.no_type
     end
   end
-  
+
   class Script < Node
     include Scope
-    attr_accessor :body
-    
+    child :body
+
     def initialize(parent, line_number, &block)
       super(parent, line_number, children, &block)
-      @body = children[0]
     end
-    
+
     def infer(typer)
       @inferred_type ||= typer.infer(body) || (typer.defer(self); nil)
     end

@@ -3,8 +3,11 @@ module Duby::AST
     include Annotated
     include Named
     include Scope
-    attr_accessor :superclass, :body, :interfaces
-        
+    attr_accessor :interfaces
+
+    child :superclass
+    child :body
+
     def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
       @interfaces = []
@@ -16,24 +19,22 @@ module Duby::AST
       # the transform phase.
       @extra_body = Body.new(self, position)
       super(parent, position, &block)
-      @superclass, body = @children
       if body
-        body.parent = @extra_body
-        @extra_body.children.insert(0, body)
+        @extra_body.insert(0, body)
       end
-      @body = @extra_body
+      self.body = @extra_body
     end
-    
+
     def append_node(node)
       @extra_body << node
       node
     end
-    
+
     def define_inner_class(position, name, &block)
       name = "#{self.name}$#{name}"
       append_node ClassDefinition.new(nil, position, name, &block)
     end
-    
+
     def define_method(position, name, type, *args)
       append_node(MethodDefinition.new(nil, position, name) do |method|
         signature = {:return => type}
@@ -52,7 +53,7 @@ module Duby::AST
         ]
       end)
     end
-    
+
     def infer(typer)
       unless resolved?
         @inferred_type ||= typer.define_type(name, superclass, @interfaces) do
@@ -71,13 +72,13 @@ module Duby::AST
 
       @inferred_type
     end
-    
+
     def implements(*types)
       raise ArgumentError if types.any? {|x| x.nil?}
       @interfaces.concat types
     end
   end
-  
+
   defmacro('implements') do |transformer, fcall, parent|
     interfaces = fcall.args_node.child_nodes.map do |interface|
       interface.type_reference(parent)
@@ -89,14 +90,15 @@ module Duby::AST
   end
 
   class InterfaceDeclaration < ClassDefinition
-    attr_accessor :superclass, :body, :interfaces
-        
-    def initialize(parent, line_number, name, annotations)
-      super(parent, line_number, name, annotations) {|p| }
+    attr_accessor :superclass
+    child :interfaces
+    child :body
+
+    def initialize(parent, position, name, annotations)
+      super(parent, position, name, annotations) {|p| }
       @interfaces = []
       @name = name
       @children = yield(self)
-      @interfaces, @body = children
     end
   end
 
@@ -127,11 +129,12 @@ module Duby::AST
     include ClassScoped
     include Typed
 
-    def initialize(parent, line_number, name, annotations=[], &block)
+    child :type
+
+    def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
-      super(parent, line_number, &block)
+      super(parent, position, &block)
       @name = name
-      @type = children[0]
     end
 
     def infer(typer)
@@ -148,17 +151,18 @@ module Duby::AST
       @inferred_type
     end
   end
-      
+
   class FieldAssignment < Node
     include Annotated
     include Named
     include Valued
     include ClassScoped
-        
-    def initialize(parent, line_number, name, annotations=[], &block)
+
+    child :value
+
+    def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
-      super(parent, line_number, &block)
-      @value = children[0]
+      super(parent, position, &block)
       @name = name
     end
 
@@ -172,15 +176,15 @@ module Duby::AST
       @inferred_type
     end
   end
-      
+
   class Field < Node
     include Annotated
     include Named
     include ClassScoped
-    
-    def initialize(parent, line_number, name, annotations=[], &block)
+
+    def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
-      super(parent, line_number, &block)
+      super(parent, position, &block)
       @name = name
     end
 

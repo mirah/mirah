@@ -4,11 +4,12 @@ module Duby::AST
     include Typed
     include Scoped
 
+    child :type
+
     def initialize(parent, line_number, name, captured=false, &block)
       super(parent, line_number, &block)
       @name = name
       @captured = captured
-      @type = children[0]
     end
 
     def captured?
@@ -29,16 +30,17 @@ module Duby::AST
       @inferred_type
     end
   end
-  
+
   class LocalAssignment < Node
     include Named
     include Valued
     include Scoped
-    
+
+    child :value
+
     def initialize(parent, line_number, name, captured=false, &block)
       super(parent, line_number, children, &block)
       @captured = captured
-      @value = children[0]
       @name = name
     end
 
@@ -49,7 +51,7 @@ module Duby::AST
     def to_s
       "LocalAssignment(name = #{name}, scope = #{scope}, captured = #{captured?})"
     end
-    
+
     def infer(typer)
       unless @inferred_type
         @inferred_type = typer.learn_local_type(scope, name, typer.infer(value))
@@ -64,7 +66,7 @@ module Duby::AST
   class Local < Node
     include Named
     include Scoped
-    
+
     def initialize(parent, line_number, name, captured=false)
       super(parent, line_number, [])
       @name = name
@@ -78,7 +80,7 @@ module Duby::AST
     def to_s
       "Local(name = #{name}, scope = #{scope}, captured = #{captured?})"
     end
-    
+
     def infer(typer)
       unless @inferred_type
         @inferred_type = typer.local_type(scope, name)
