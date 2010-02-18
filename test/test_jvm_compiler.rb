@@ -10,12 +10,12 @@ unless Duby::AST.macro "__gloop__"
     Duby::AST::Loop.new(parent, parent.position, true, false) do |loop|
       init, condition, check_first, pre, post = fcall.args_node.child_nodes.to_a
       loop.check_first = check_first.kind_of?(Duby::AST::JRubyAst::TrueNode)
-      
+
       nil_t = Duby::AST::JRubyAst::NilNode
       loop.init = transformer.transform(init, loop) unless init.kind_of?(nil_t)
       loop.pre = transformer.transform(pre, loop) unless pre.kind_of?(nil_t)
       loop.post = transformer.transform(post, loop) unless post.kind_of?(nil_t)
-      
+
       body = transformer.transform(fcall.iter_node, loop).body
       body.parent = loop
       [
@@ -119,7 +119,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = 6.0; b = 3.0; a / b; end")
     assert_equal(2.0, cls.foo)
   end
-  
+
   def test_rem
     cls, = compile("def foo; a = 7; b = 3; a % b; end")
     assert_equal(1, cls.foo)
@@ -184,7 +184,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = boolean[2]; a.length; end")
     assert_equal(Fixnum, cls.foo.class)
     assert_equal(2, cls.foo)
-    
+
     cls, = compile("def foo; a = byte[2]; a; end")
     assert_equal(Java::byte[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
@@ -255,7 +255,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(Java::int[].java_class, array.class.java_class)
     assert_equal([0,0,0,0], array.to_a)
   end
-  
+
   def test_object_array
     cls, = compile("import java.lang.Object;def foo; a = Object[2];end")
     assert_equal(Java::JavaLang::Object[].java_class, cls.foo.class.java_class)
@@ -271,7 +271,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("import 'System', 'java.lang.System'; def foo; System.gc; end; foo")
     assert_nothing_raised {cls.foo}
   end
-  
+
   def test_import
     cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
@@ -279,11 +279,11 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
   end
-  
+
   def test_no_quote_import
     cls, = compile("import java.util.ArrayList as AL; def foo; AL.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-    
+
     cls, = compile("import java.util.ArrayList; def foo; ArrayList.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
   end
@@ -305,7 +305,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal 0, result
     m = cls.java_class.java_method 'foo', java.util.concurrent.Callable
     assert_equal([java.lang.Exception.java_class], m.exception_types)
-        
+
   end
 
   def test_class_decl
@@ -325,7 +325,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       System.setOut(saved_output)
     end
   end
-  
+
   def assert_output(expected, &block)
     assert_equal(expected, capture_output(&block))
   end
@@ -513,7 +513,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal([2, 2], cls.foo.to_a)
-    
+
   end
 
   def test_loop
@@ -522,19 +522,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
-    
+
     cls, = compile(
         'def foo(a => :fixnum);begin;a -= 1; puts ".";end while a > 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
-    
+
     cls, = compile(
         'def foo(a => :fixnum);until a <= 0; a -= 1; puts ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
-    
+
     cls, = compile(
         'def foo(a => :fixnum);begin;a -= 1; puts ".";end until a <= 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
@@ -558,7 +558,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal(1, cls.foo)
-    
+
     cls, = compile <<-EOF
       def foo
         a = 0
@@ -707,7 +707,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         def initialize(a => :fixnum)
           @a = a
         end
-        
+
         def a
           @a
         end
@@ -720,29 +720,29 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(1, first.a)
     assert_equal(2, second.a)
   end
-  
+
   def test_object_intrinsics
     cls, = compile(<<-EOF)
       import 'java.lang.Object'
       def nil(a => :Object)
         a.nil?
       end
-      
+
       def equal(a => Object, b => Object)
         a == b
       end
     EOF
-    
+
     assert(cls.nil(nil))
     assert(!cls.nil("abc"))
-    
+
     a = "foobar".to_java_string
     b = java.lang.Object.new
     assert(cls.equal(a, a))
     assert(cls.equal(b, b))
     assert(!cls.equal(a, b))
   end
-  
+
   def test_implements
     script, cls = compile(<<-EOF)
       import java.lang.Iterable
@@ -755,29 +755,29 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_include java.lang.Iterable.java_class, cls.java_class.interfaces
   end
-  
+
   def test_argument_widening
     cls, = compile(<<-EOF)
       def Byte(a => :byte)
         Short(a)
       end
-    
+
       def Short(a => :short)
         Int(a)
       end
-    
+
       def Int(a => :int)
         Long(a)
       end
-    
+
       def Long(a => :long)
         Float(a)
       end
-    
+
       def Float(a => :float)
         Double(a)
       end
-    
+
       def Double(a => :double)
         a
       end
@@ -790,34 +790,34 @@ class TestJVMCompiler < Test::Unit::TestCase
       assert_equal(32768.0, cls.Int(32768))
       assert_equal(2147483648.0, cls.Long(2147483648))
   end
-  
+
   def test_interface_declaration
     script, interface = compile('interface A do; end')
     assert(interface.java_class.interface?)
     assert_equal('A', interface.java_class.name)
-    
+
     script, a, b = compile('interface A do; end; interface B < A do; end')
     assert_include(a, b.ancestors)
     assert_equal('A', a.java_class.name)
     assert_equal('B', b.java_class.name)
-    
+
     script, a, b, c = compile(<<-EOF)
       interface A do
       end
-      
+
       interface B do
       end
-      
+
       interface C < A, B do
       end
     EOF
-    
+
     assert_include(a, c.ancestors)
     assert_include(b, c.ancestors)
     assert_equal('A', a.java_class.name)
     assert_equal('B', b.java_class.name)
     assert_equal('C', c.java_class.name)
-    
+
     assert_raise Duby::Typer::InferenceError do
       compile(<<-EOF)
         interface A do
@@ -825,7 +825,7 @@ class TestJVMCompiler < Test::Unit::TestCase
             returns :int
           end
         end
-      
+
         class Impl; implements A
           def a
             "foo"
@@ -891,7 +891,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.foo
     end
   end
-  
+
   def test_rescue
     cls, = compile(<<-EOF)
       def foo
@@ -1080,7 +1080,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       def d2i; int(1.0); end
       def d2l; long(1.0); end
       def d2f; float(1.0); end
-      
+
       def hard_i2f(a:int)
         float(if a < 0
           a *= -1
@@ -1132,33 +1132,33 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal 1, cls.d2i
     assert_equal 1, cls.d2l
     assert_equal 1.0, cls.d2f
-    
+
     assert_equal 2.0, cls.hard_i2f(1)
     assert_equal 4.0, cls.hard_i2f(-2)
   end
-  
+
   def test_set
     cls, = compile(<<-EOF)
       def foo
         @foo
       end
-      
+
       def foo=(foo:int)
         @foo = foo
       end
     EOF
-    
+
     assert_equal(0, cls.foo)
     assert_equal(2, cls.foo_set(2))
     assert_equal(2, cls.foo)
   end
-  
+
   def test_null_is_false
     cls, = compile("def foo(a:String);if a;true;else;false;end;end")
     assert_equal(true, cls.foo("a"))
     assert_equal(false, cls.foo(nil))
   end
-  
+
   def test_for
     cls, = compile(<<-EOF)
       def foo
@@ -1170,7 +1170,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         count
       end
     EOF
-    
+
     cls, = compile(<<-EOF)
       def foo(a:int[])
         count = 0
@@ -1190,7 +1190,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
-    
+
     assert_output("1\n2\n3\n") do
       list = java.util.ArrayList.new
       list << "1"
@@ -1256,7 +1256,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal("", cls.foo(false))
-    
+
     cls, = compile(<<-EOF)
       def foo
         a = ""
@@ -1265,7 +1265,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal("<body>", cls.foo)
-    
+
     cls, = compile(<<-EOF)
       def foo(x:boolean)
         a = ""
@@ -1276,7 +1276,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal("<init>", cls.foo(false))
-    
+
     cls, = compile(<<-EOF)
       def foo
         a = ""
@@ -1287,7 +1287,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal("<init><pre><body><post>", cls.foo)
-    
+
     cls, = compile(<<-EOF)
       def foo
         a = ""
@@ -1299,7 +1299,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
     assert_equal( "<init><pre><body><body><post>", cls.foo)
-    
+
     cls, = compile(<<-EOF)
       def foo
         a = ""
@@ -1312,24 +1312,24 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
     assert_equal("<init><pre><post><pre><body><post>", cls.foo)
   end
-  
+
   def test_if_expr
     cls, = compile(<<-EOF)
       def foo(a:int)
         return 1 if a == 1
       end
-      
+
       def bar(a:int)
         return 1 unless a == 1
       end
     EOF
-    
+
     assert_equal(0, cls.foo(0))
     assert_equal(1, cls.foo(1))
     assert_equal(1, cls.bar(0))
     assert_equal(0, cls.bar(1))
   end
-  
+
   def test_and
     cls, = compile(<<-EOF)
       def bool(n:String, x:boolean)
@@ -1340,21 +1340,21 @@ class TestJVMCompiler < Test::Unit::TestCase
       def foo(a:boolean, b:boolean)
         return bool('a', a) && bool('b', b)
       end
-      
+
       def str(n:String, x:String)
         puts n
         x
       end
-      
+
       def bar(a:String, b:String)
         return str('a', a) && str('b', b)
       end
     EOF
-    
+
     assert_output("a\n") { assert_equal(false, cls.foo(false, true)) }
     assert_output("a\nb\n") { assert_equal(false, cls.foo(true, false)) }
     assert_output("a\nb\n") { assert_equal(true, cls.foo(true, true)) }
-    
+
     assert_output("a\n") { assert_equal(nil, cls.bar(nil, "B")) }
     assert_output("a\nb\n") { assert_equal(nil, cls.bar("A", nil)) }
     assert_output("a\nb\n") { assert_equal("B", cls.bar("A", "B")) }
@@ -1363,15 +1363,15 @@ class TestJVMCompiler < Test::Unit::TestCase
       def s
         @s
       end
-      
+
       def s=(s:String)
         @s = s
       end
-      
+
       def b
         @b
       end
-      
+
       def b=(b:boolean)
         @b = b
       end
@@ -1379,7 +1379,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       def foo(x:boolean)
         @b &&= x
       end
-            
+
       def bar(x:String)
         @s &&= x
       end
@@ -1396,7 +1396,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls.b_set(true)
     assert_equal(true, cls.foo(true))
     assert_equal(true, cls.b)
-    
+
     cls.s_set(nil)
     assert_equal(nil, cls.bar(nil))
     assert_equal(nil, cls.s)
@@ -1408,41 +1408,41 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls.s_set("S")
     assert_equal("x", cls.bar("x"))
     assert_equal("x", cls.s)
-    
+
     foo, = compile(<<-EOF)
       class Foo2
         def initialize
           @count = 0
         end
-        
+
         def count
           @count
         end
-        
+
         def a
           @a
         end
-        
+
         def a=(a:String)
           @count += 1
           @a = a
         end
-        
+
         def foo(f:Foo2, x:String)
           f.a &&= x
         end
       end
     EOF
-    
+
     f = foo.new
     assert_equal(nil, f.foo(f, 'x'))
     assert_equal(0, f.count)
-    
+
     f = foo.new
     f.a_set("A")
     assert_equal(nil, f.foo(f, nil))
     assert_equal(2, f.count)
-    
+
     f = foo.new
     f.a_set("A")
     assert_equal('x', f.foo(f, 'x'))
@@ -1459,21 +1459,21 @@ class TestJVMCompiler < Test::Unit::TestCase
       def foo(a:boolean, b:boolean)
         return bool('a', a) || bool('b', b)
       end
-      
+
       def str(n:String, x:String)
         puts n
         x
       end
-      
+
       def bar(a:String, b:String)
         return str('a', a) || str('b', b)
       end
     EOF
-    
+
     assert_output("a\n") { assert_equal(true, cls.foo(true, false)) }
     assert_output("a\nb\n") { assert_equal(false, cls.foo(false, false)) }
     assert_output("a\nb\n") { assert_equal(true, cls.foo(false, true)) }
-    
+
     assert_output("a\n") { assert_equal("A", cls.bar("A", nil)) }
     assert_output("a\nb\n") { assert_equal(nil, cls.bar(nil, nil)) }
     assert_output("a\nb\n") { assert_equal("B", cls.bar(nil, "B")) }
@@ -1482,15 +1482,15 @@ class TestJVMCompiler < Test::Unit::TestCase
       def s
         @s
       end
-      
+
       def s=(s:String)
         @s = s
       end
-      
+
       def b
         @b
       end
-      
+
       def b=(b:boolean)
         @b = b
       end
@@ -1498,7 +1498,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       def foo(x:boolean)
         @b ||= x
       end
-            
+
       def bar(x:String)
         @s ||= x
       end
@@ -1515,7 +1515,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls.b_set(true)
     assert_equal(true, cls.foo(false))
     assert_equal(true, cls.b)
-    
+
     cls.s_set(nil)
     assert_equal(nil, cls.bar(nil))
     assert_equal(nil, cls.s)
@@ -1533,34 +1533,34 @@ class TestJVMCompiler < Test::Unit::TestCase
         def initialize
           @count = 0
         end
-        
+
         def count
           @count
         end
-        
+
         def a
           @a
         end
-        
+
         def a=(a:String)
           @count += 1
           @a = a
         end
-        
+
         def foo(f:Foo3, x:String)
           f.a ||= x
         end
       end
     EOF
-    
+
     f = foo.new
     assert_equal('x', f.foo(f, 'x'))
     assert_equal(1, f.count)
-    
+
     f = foo.new
     assert_equal(nil, f.foo(f, nil))
     assert_equal(1, f.count)
-    
+
     f = foo.new
     f.a_set("A")
     assert_equal("A", f.foo(f, nil))
@@ -1571,26 +1571,26 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("A", f.foo(f, 'X'))
     assert_equal(1, f.count)
   end
-  
+
   def test_op_elem_assign
     foo, = compile(<<-EOF)
       class Foo4
         def initialize
           @i = -1
         end
-        
+
         def i
           @i += 1
         end
-        
+
         def a
           @a
         end
-        
+
         def a=(a:String[])
           @a = a
         end
-        
+
         def foo(x:String)
           a[i] ||= x
         end
@@ -1600,7 +1600,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
-    
+
     f = foo.new
     f.a_set([nil, nil, nil].to_java(:string))
     assert_equal(nil, f.bar("x"))
@@ -1608,38 +1608,38 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("x", f.foo("x"))
     assert_equal([nil, "x", nil], f.a.to_a)
   end
-  
+
   def test_constructor_chaining
     foo, = compile(<<-EOF)
       class Foo5
         def initialize(s:String)
           initialize(s, "foo")
         end
-        
+
         def initialize(s:String, f:String)
           @s = s
           @f = f
         end
-        
+
         def f
           @f
         end
-        
+
         def s
           @s
         end
       end
     EOF
-    
+
     instance = foo.new("S")
     assert_equal("S", instance.s)
     assert_equal("foo", instance.f)
-    
+
     instance = foo.new("foo", "bar")
     assert_equal("foo", instance.s)
     assert_equal("bar", instance.f)
   end
-  
+
   def test_super_constructor
     cls, a, b = compile(<<-EOF)
       class SC_A
@@ -1647,7 +1647,7 @@ class TestJVMCompiler < Test::Unit::TestCase
           puts "A"
         end
       end
-      
+
       class SC_B < SC_A
         def initialize
           super(0)
@@ -1655,7 +1655,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
-    
+
     assert_output("A\nB\n") do
       b.new
     end
@@ -1706,7 +1706,7 @@ class TestJVMCompiler < Test::Unit::TestCase
           @bar = bar
         end
       end
-      
+
       puts A1.new.foo("Hi")
       puts B1.new.foo("There")
     EOF
@@ -1744,7 +1744,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
     EOF
 
-    assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)    
+    assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)
   end
 
   def test_super
@@ -1767,7 +1767,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.empty_empty
     end
   end
-  
+
   def test_block
     cls, = compile(<<-EOF)
       def foo

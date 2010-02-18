@@ -48,19 +48,20 @@ module Duby
           end
           begin
             result = node.transform(self, parent)
-            if top && !@extra_body.empty?
-              result.parent = @extra_body
-              @extra_body.children.insert(0, result)
-              return @extra_body
-            else
-              return result
+            if top
+              body = result.body
+              if body.kind_of?(Duby::AST::Body) && @extra_body.empty?
+                @extra_body = body
+              else
+                result.body = @extra_body
+                body.parent = @extra_body
+                @extra_body.children.insert(0, body)
+              end
             end
+            return result
           ensure
             if scope
               @scopes.pop
-            end
-            if top
-              @extra_body = nil
             end
           end
         rescue Error => ex
@@ -112,7 +113,7 @@ module Duby
       end
 
       def define_class(position, name, &block)
-        append_node ClassDefinition.new(nil, position, name, &block)
+        append_node Duby::AST::ClassDefinition.new(nil, position, name, &block)
       end
     end
   end

@@ -60,6 +60,7 @@ module Duby
       end
 
       def define_main(body)
+        body = body[0] if body.children.size == 1
         if body.class != AST::ClassDefinition
           @class = @type.define(@file)
           with :method => @class.main do
@@ -275,7 +276,7 @@ module Duby
           i += 1
         end
         # last element is an expression only if the body is an expression
-        maybe_store(body.children[last], expression)
+        maybe_store(body.children[last], expression) if last >= 0
       end
       
       def branch_expression(node)
