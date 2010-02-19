@@ -22,10 +22,6 @@ module Duby::AST
 
       @inferred_type
     end
-    
-    def inspect(*args)
-      super(*args) + "\n" + children.map{|x|x.inferred_type}.inspect
-    end
   end
 
   class Block < Node

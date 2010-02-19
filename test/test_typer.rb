@@ -77,16 +77,6 @@ class TestTyper < Test::Unit::TestCase
       assert_equal(typer.no_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
 
-      ast1 = AST.parse("#{def_foo}(a); 1 end")
-      typer = Typer::Simple.new :bar
-
-      ast1.infer(typer)
-
-      assert_equal(typer.fixnum_type, typer.method_type(type, 'foo', [typer.default_type]))
-      assert_equal(typer.default_type, typer.local_type(ast1.body, 'a'))
-      assert_equal(typer.fixnum_type, ast1.body[0].inferred_type)
-      assert_equal(typer.default_type, ast1.body[0].arguments.args[0].inferred_type)
-
       ast1 = AST.parse("#{def_foo}(a); {a => :string}; a; end")
       typer = Typer::Simple.new :bar
 
@@ -104,20 +94,6 @@ class TestTyper < Test::Unit::TestCase
         ast1.infer(typer)
         typer.resolve(true)
       end
-
-      ast1 = AST.parse("#{def_foo}(a); a = 'foo'; end")
-      typer = Typer::Simple.new :bar
-
-      ast1.infer(typer)
-
-      assert_equal(typer.string_type, typer.method_type(type, 'foo', [typer.default_type]))
-      assert_equal(typer.string_type, typer.local_type(ast1.body[0], 'a'))
-      assert_equal(typer.string_type, ast1.body[0].inferred_type)
-      assert_equal(typer.default_type, ast1.body[0].arguments.args[0].inferred_type)
-
-      typer.resolve
-
-      assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
     end
   end
 
