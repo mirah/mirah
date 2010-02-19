@@ -1759,6 +1759,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert obj.equals(obj)
     assert !obj.equals(cls.new)
   end
+
   def test_inexact_constructor
     # FIXME: this is a stupid test
     cls, = compile(
@@ -1766,6 +1767,21 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("ok\n") do
       cls.empty_empty
     end
+  end
+
+  def test_method_lookup_with_overrides
+    cls, = compile(<<-EOF)
+      class Bar; implements Runnable
+        def foo(x:Bar)
+          Thread.new(x)
+        end
+        def run
+        end
+      end
+    EOF
+
+    # Just make sure this compiles.
+    # It shouldn't get confused by the Thread(String) constructor.
   end
 
   def test_block
