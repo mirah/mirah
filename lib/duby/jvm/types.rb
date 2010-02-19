@@ -211,7 +211,11 @@ module Duby
         def initialize
           super(java.lang.Object)
         end
-        
+
+        def to_s
+          "Type(null)"
+        end
+
         def compatible?(other)
           !other.primitive?
         end
