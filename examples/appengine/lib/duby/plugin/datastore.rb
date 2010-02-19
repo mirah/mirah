@@ -1,10 +1,10 @@
 class DatastorePlugin
   @models = {}
-  
+
   class ModelState
     include Duby::AST
     attr_reader :kind, :query, :read, :save, :transformer
-    
+
     def initialize(transformer, klass, parent, position, ast)
       @transformer = transformer
       @kind = klass.name.split('.')[-1]
@@ -13,13 +13,13 @@ class DatastorePlugin
       init_read(parent, position, ast)
       init_save(parent, position, ast)
     end
-    
+
     def init_query(classname, parent, position, ast)
       name = "#{classname}$Query"
       @query = ClassDefinition.new(parent, position, name) do |classdef|
         queryinit = <<-EOF
           def initialize; end
-        
+
           def kind
             "#{kind}"
           end
@@ -56,7 +56,7 @@ class DatastorePlugin
       end
       ast.children << @query
     end
-    
+
     def init_read(parent, position, ast)
       @read = eval(parent, <<-EOF)
         def _read_from(e:Entity)
@@ -65,7 +65,7 @@ class DatastorePlugin
       @read.body = @read.children[2] = Body.new(@read, position) {[]}
       ast.children << @read
     end
-    
+
     def init_save(parent, position, ast)
       @save = eval(parent, <<-EOF)
         def _save_to(e:Entity)
@@ -74,7 +74,7 @@ class DatastorePlugin
       @save.body = @save.children[2] = Body.new(@save, position) {[]}
       ast.children << @save
     end
-    
+
     def init_static(parent, ast)
       ast.children << eval(parent, <<-EOF)
         import com.google.appengine.api.datastore.Entity
@@ -97,7 +97,7 @@ class DatastorePlugin
           m._read_from(Model._datastore.get(key))
           m
         end
-        
+
         def self.all
           #{kind}__Query__.new
         end
@@ -105,8 +105,7 @@ class DatastorePlugin
     end
 
     def eval(parent, src)
-      ast = Duby::AST.parse_ruby(src, __FILE__)
-      transformer.transform(ast.body_node, parent)
+      transformer.eval(src, __FILE__, parent)
     end
 
     def extend_query(code)
@@ -117,18 +116,18 @@ class DatastorePlugin
       code = 'e=nil;' + code
       read.body.children.concat eval(read.body, code).children[1..-1]
     end
-    
+
     def extend_save(code)
       code = 'e=nil;' + code
       save.body.children.concat eval(save.body, code).children[1..-1]
     end
   end
-  
+
   def self.find_class(node)
     node = node.parent until Duby::AST::ClassDefinition === node
     node
   end
-  
+
   Duby::AST.defmacro("property") do |transformer, fcall, parent|
     result = Duby::AST::Body.new(parent, fcall.position) {[]}
     klass = find_class(parent)
@@ -147,20 +146,20 @@ class DatastorePlugin
         _query.addFilter("#{name}", _eq_op, value)
       end
     EOF
-    
+
     model.extend_read(<<-EOF)
       @#{name} = #{type}(e.getProperty("#{name}"))
     EOF
-    
+
     model.extend_save(<<-EOF)
       e.setProperty("#{name}", @#{name})
     EOF
-    
+
     result.children << model.eval(parent, <<-EOF)
       def #{name}
         @#{name}
       end
-      
+
       def #{name}=(value:#{type})
         @#{name} = value
       end

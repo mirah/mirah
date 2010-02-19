@@ -112,8 +112,8 @@ module Duby::AST
 
     def initialize(parent, position, name, annotations)
       super(parent, position, name, annotations) {|p| }
-      @interfaces = []
       @name = name
+      @children = [[], nil]
       @children = yield(self)
     end
   end

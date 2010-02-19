@@ -101,7 +101,7 @@ module Duby
 
       def expand(fvcall, parent)
         result = yield self, fvcall, parent
-        unless result.kind_of?(AST::Node)
+        unless AST::Node === result
           raise Error.new('Invalid macro result', fvcall.position)
         end
         result

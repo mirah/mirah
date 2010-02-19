@@ -73,6 +73,7 @@ module Duby
         # cycle through methods looking for more specific matches; gather matches of equal specificity
         methods = potentials.inject([]) do |currents, potential|
           method_params = potential.argument_types
+          raise "Bad arguments for method #{potential.declaring_class}.#{potential.name}" unless method_params.all?
 
           # exact match always wins; duplicates not possible
           if each_is_exact(mapped_params, method_params)

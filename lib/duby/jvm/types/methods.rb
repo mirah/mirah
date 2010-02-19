@@ -363,6 +363,7 @@ module Duby::JVM::Types
     end
 
     def declare_method(name, arguments, type, exceptions)
+      raise "Bad args" unless arguments.all?
       member = DubyMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
         constructors << JavaConstructor.new(member)

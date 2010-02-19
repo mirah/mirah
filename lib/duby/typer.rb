@@ -343,7 +343,7 @@ module Duby
           msg = "Could not infer typing for nodes:"
           error_nodes.map do |e|
             msg << "\n  "
-            msg << "#{e} at line #{e.line_number} (child of #{e.parent})"
+            msg << "#{e.inspect} at line #{e.line_number} (child of #{e.parent})"
           end
           raise InferenceError.new(msg)
         end

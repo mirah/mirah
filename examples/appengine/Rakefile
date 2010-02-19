@@ -1,6 +1,7 @@
 require 'appengine-sdk'
 require 'appengine-tools/web-xml'
 require 'appengine-tools/xml-formatter'
+require 'yaml'
 
 SRC = File.expand_path(File.dirname(__FILE__) + '/src')
 LIB = File.expand_path(File.dirname(__FILE__) + '/lib')
@@ -13,6 +14,10 @@ APIS = AppEngine::SDK::API_JAR
 WEB_INF_CLASSES = WAR + '/WEB-INF/classes'
 WEB_XML = WAR + '/WEB-INF/web.xml'
 AEWEB_XML = WAR + '/WEB-INF/appengine-web.xml'
+WEB_INF_GENERATED = WAR + '/WEB-INF/appengine-generated'
+BUILD_STATUS = WEB_INF_GENERATED + '/build_status.yaml'
+GEMFILE = WAR + '/Gemfile'
+DUMMY_CONFIG_RU = WAR + '/config.ru'
 
 MODEL = 'com/google/appengine/ext/duby/db/Model'
 DUBY_APP = 'com/ribrdb/DubyApp'
@@ -38,6 +43,7 @@ def dubyc(*files)
 end
 
 directory WEB_INF_CLASSES
+directory WEB_INF_GENERATED
 
 file MODEL_CLASS => MODEL_DUBY do
   dubyc("#{MODEL}.duby")
@@ -47,7 +53,7 @@ file DUBY_APP_CLASS => [DUBY_APP_DUBY, LIST, MODEL_CLASS] do
   dubyc("#{DUBY_APP}.duby")
 end
 
-file WEB_XML => [WEB_INF_CLASSES, CONFIG_RU] do
+file WEB_XML => [WEB_INF_CLASSES, CONFIG_RU, WEB_INF_GENERATED] do
   builder = WebXmlBuilder.new do
     eval IO.read(CONFIG_RU), nil, 'config.ru', 1
   end
@@ -59,7 +65,21 @@ file WEB_XML => [WEB_INF_CLASSES, CONFIG_RU] do
     xml = AppEngine::Rack::XmlFormatter.format(AppEngine::Rack.app.to_xml)
     aeweb.write(xml)
   end
+  open(GEMFILE, 'w') do |gems|
+    gems.puts('bundle_path ".gems/bundler_gems"')
+  end
+  open(DUMMY_CONFIG_RU, 'w').close
+  open(BUILD_STATUS, 'w') do |status_file|
+    status = {
+      :config_ru => File.stat(DUMMY_CONFIG_RU).mtime,
+      :web_xml => File.stat(WEB_XML).mtime,
+      :aeweb_xml => File.stat(AEWEB_XML).mtime,
+    }
+    status_file.write(status.to_yaml)
+  end
 end
+
+task :app => [WEB_XML, DUBY_APP_CLASS]
 
 task :server => [WEB_XML, DUBY_APP_CLASS] do
   sh "dev_appserver.rb #{WAR}"

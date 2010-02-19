@@ -10,9 +10,15 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless @inferred_type
+      unless resolved?
         @inferred_type = args ? args.map {|arg| typer.infer(arg)} : []
+        if @inferred_type.all?
+          resolved!
+        else
+          typer.defer(self)
+        end
       end
+      @inferred_type
     end
   end
 
@@ -131,7 +137,7 @@ module Duby::AST
       forced_type = signature[:return]
       inferred_type = body ? typer.infer(body) : typer.no_type
 
-      if !inferred_type
+      if !(inferred_type && arguments.inferred_type.all?)
         typer.defer(self)
       else
         actual_type = if forced_type.nil?

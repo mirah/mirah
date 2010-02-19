@@ -127,6 +127,7 @@ module Duby
         end
 
         def interfaces
+          raise "Incomplete type #{self} (#{self.class})" unless jvm_type
           @interfaces ||= jvm_type.interfaces.map do |interface|
             AST.type(interface)
           end
@@ -266,6 +267,10 @@ module Duby
 
         def superclass
           Object
+        end
+
+        def interfaces
+          []
         end
       end
 
