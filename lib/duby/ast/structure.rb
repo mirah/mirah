@@ -13,7 +13,9 @@ module Duby::AST
           children.each {|child| @inferred_type = typer.infer(child)}
         end
 
-        unless @inferred_type
+        if @inferred_type
+          resolved!
+        else
           typer.defer(self)
         end
       end
@@ -32,14 +34,40 @@ module Duby::AST
     end
 
     def prepare(typer, method)
+      duby = typer.transformer
       interface = method.argument_types[-1]
-      outer_class = typer.self_type
+      outer_class = scope.defining_class
+      name = "#{outer_class.name}$#{duby.tmp}"
+      klass = duby.define_class(position, name)
+      klass.interfaces = [interface]
+      klass.define_constructor(position)
+      find_methods(interface).each do |method|
+        klass.define_method(position, method.name, method.actual_return_type).body = body.dup
+      end
+      call = parent
+      instance = Call.new(call, position, 'new')
+      instance.target = Constant.new(call, position, name)
+      instance.parameters = []
+      call.parameters << instance
+      typer.infer(klass)
+      typer.infer(instance)
+    end
 
+    def find_methods(interface)
+      methods = []
+      interfaces = [interface]
+      until interfaces.empty?
+        interface = interfaces.pop
+        methods += interface.declared_instance_methods.select {|m| m.abstract?}
+        interfaces.concat(interface.interfaces)
+      end
+      methods
     end
   end
 
   class Noop < Node
     def infer(typer)
+      resolved!
       @inferred_type ||= typer.no_type
     end
   end

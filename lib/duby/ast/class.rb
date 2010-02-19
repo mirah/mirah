@@ -36,7 +36,21 @@ module Duby::AST
     end
 
     def define_method(position, name, type, *args)
-      append_node(MethodDefinition.new(nil, position, name) do |method|
+      append_node(_define_method(MethodDefinition, position, name, type, args))
+    end
+
+    def define_static_method(position, name, type, *args)
+      append_node(
+          _define_method(StaticMethodDefinition, position, name, type, args))
+    end
+
+    def define_constructor(position, *args)
+      append_node(_define_method(
+          ConstructorDefinition, position, 'initialize', nil, args))
+    end
+
+    def _define_method(klass, position, name, type, args)
+      klass.new(nil, position, name) do |method|
         signature = {:return => type}
         args_node = Arguments.new(method, position) do |args_node|
           arg_list = args.map do |arg_name, arg_type, arg_position|
@@ -49,9 +63,11 @@ module Duby::AST
         [
           signature,
           args_node,
-          yield
+          if block_given?
+            yield(method)
+          end
         ]
-      end)
+      end
     end
 
     def infer(typer)

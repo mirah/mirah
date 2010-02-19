@@ -59,7 +59,7 @@ module Duby
                 if body
                   typer.defer(self)
                 else
-                  resolved!
+                  resolved! if condition_type
                 end
               end
             else
@@ -213,6 +213,7 @@ module Duby
           resolved!
           @inferred_type = typer.null_type
         end
+        @inferred_type
       end
     end
 
@@ -295,6 +296,10 @@ module Duby
             typer.learn_local_type(scope, name, @type)
           end
           @inferred_type = typer.infer(body)
+
+          if (@inferred_type && !body.resolved?)
+            puts "#{body} not resolved"
+          end
 
           (@inferred_type && body.resolved?) ? resolved! : typer.defer(self)
           typer.local_type_hash(scope)[name] = orig_type if name

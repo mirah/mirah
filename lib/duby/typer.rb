@@ -10,7 +10,7 @@ module Duby
         puts "* [#{name}] #{message}" if Typer.verbose
       end
     end
-    
+
     class InferenceError < Exception
       attr_accessor :node
       def initialize(msg, node = nil)
@@ -18,23 +18,23 @@ module Duby
         @node = node
       end
     end
-    
+
     class BaseTyper
       include Duby
 
       def log(message); Typer.log(message); end
-      
+
       def to_s
         name
       end
     end
-    
+
     class Simple < BaseTyper
       attr_accessor :known_types, :errors
 
       def initialize(self_type)
         @known_types = {}
-        
+
         @known_types["self"] = type_reference(self_type)
         @known_types["fixnum"] = type_reference("fixnum")
         @known_types["float"] = type_reference("float")
@@ -42,11 +42,11 @@ module Duby
         @known_types["boolean"] = type_reference("boolean")
         @errors = []
       end
-      
+
       def name
         "Simple"
       end
-      
+
       def self_type
         known_types["self"]
       end
@@ -54,19 +54,19 @@ module Duby
       def default_type
         nil
       end
-      
+
       def fixnum_type
         known_types["fixnum"]
       end
-      
+
       def float_type
         known_types["float"]
       end
-      
+
       def string_type
         known_types["string"]
       end
-      
+
       def boolean_type
         known_types["boolean"]
       end
@@ -92,14 +92,14 @@ module Duby
       def define_type(name, superclass, interfaces)
         log "New type defined: '#{name}' < '#{superclass}'"
         known_types[name] = type_definition(name, superclass, interfaces)
-        
+
         old_self, known_types["self"] = known_types["self"], known_types[name]
         yield
         known_types["self"] = old_self
-        
+
         known_types[name]
       end
-      
+
       def learn_local_type(scope, name, type)
         log "Learned local type under #{scope} : #{name} = #{type}"
 
@@ -108,17 +108,17 @@ module Duby
 
         type
       end
-      
+
       def local_type(scope, name)
         log "Retrieved local type in #{scope} : #{name} = #{local_type_hash(scope)[name]}"
 
         local_type_hash(scope)[name]
       end
-      
+
       def local_types
         @local_types ||= {}
       end
-      
+
       def local_type_hash(scope)
         local_types[scope] ||= {}
       end
@@ -146,7 +146,7 @@ module Duby
       def field_type(cls, name)
         field_type_hash(cls)[name]
       end
-      
+
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
         log "Learned method #{name} (#{parameter_types}) on #{target_type} = #{type}"
 
@@ -156,7 +156,7 @@ module Duby
         imported_types = parameter_types.map {|param| known_types[param] || param}
         get_method_type_hash(target_type, name, imported_types)[:type] = type
       end
-      
+
       def method_type(target_type, name, parameter_types)
         if (target_type && target_type.error?) ||
             parameter_types.any? {|t| t && t.error?}
@@ -191,7 +191,7 @@ module Duby
           simple_type
         end
       end
-      
+
       def plugins
         if cycling?
           Duby.typer_plugins.each do |plugin|
@@ -201,18 +201,18 @@ module Duby
             return result if result
           end
         end
-        
+
         nil
       end
-      
+
       def cycling?
         @cycling
       end
-      
+
       def cycling=(c)
         @cycling = c
       end
-      
+
       def cycle(count)
         @cycling = true
         count.times do |i|
@@ -226,23 +226,23 @@ module Duby
       ensure
         @cycling = false
       end
-      
+
       def method_types
         @method_types ||= {}
       end
-      
+
       def get_method_type_hash(target_type, name, parameter_types)
         method_types[target_type] ||= {}
         method_types[target_type][name] ||= {}
         method_types[target_type][name][parameter_types.size] ||= {}
-        
+
         current = method_types[target_type][name][parameter_types.size]
 
         parameter_types.each {|type| current[type] ||= {}; current = current[type]}
 
         current
       end
-      
+
       def type_reference(name, array=false, meta=false)
         AST::TypeReference.new(name, array, meta)
       end
@@ -294,28 +294,31 @@ module Duby
         else
           return if deferred_nodes.include? node
           log "Deferring inference for #{node}"
-        
+
           deferred_nodes[node] = self_type
         end
       end
 
       def resolve(raise = false)
         count = deferred_nodes.size + 1
-        
+
         log "Entering type inference cycle"
-        
+
         retried = false
         cycle(count) do |i|
           old_deferred = @deferred_nodes
-          @deferred_nodes = deferred_nodes.reject do |node, saved_type|
+          @deferred_nodes = {}
+          old_deferred.each do |node, saved_type|
             known_types["self"] = saved_type
             type = infer(node)
 
             log "[Cycle #{i}]: Inferred type for #{node}: #{type || 'FAILED'}"
 
-            type != default_type
+            if type == default_type
+              @deferred_nodes[node] = saved_type
+            end
           end
-          
+
           if @deferred_nodes.size == 0
             log "[Cycle #{i}]:  Resolved all types, exiting"
             break
@@ -347,7 +350,7 @@ module Duby
       end
     end
   end
-  
+
   def self.typer_plugins
     @typer_plugins ||= []
   end
@@ -364,7 +367,7 @@ if __FILE__ == $0
   rescue Duby::Typer::InferenceError => e
     puts e.message
   end
-  
+
   puts "\nAST:"
   p ast
 end

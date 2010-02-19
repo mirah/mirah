@@ -140,10 +140,8 @@ module Duby
         @children = []
         other.children.each do |child|
           case child
-          when Node
-            self << child.clone(the_clone)
           when Array
-            self << child.map {|x| x.clone(the_clone)}
+            self << child.map {|x| x.dup}
           else
             self << child.dup
           end
@@ -334,6 +332,10 @@ module Duby
 
       def error?
         name == :error
+      end
+
+      def null?
+        name == :null
       end
 
       def unreachable?

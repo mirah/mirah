@@ -4,7 +4,7 @@ class Java::JavaMethod
   def static?
     java.lang.reflect.Modifier.static?(modifiers)
   end
-  
+
   def abstract?
     java.lang.reflect.Modifier.abstract?(modifiers)
   end
@@ -26,7 +26,7 @@ module Duby::JVM::Types
       end
     end
   end
-  
+
   Type.send :include, ArgumentConversion
 
   class Intrinsic
@@ -45,24 +45,28 @@ module Duby::JVM::Types
     def call(builder, ast, expression)
       @block.call(builder, ast, expression)
     end
-    
+
     def declaring_class
       @class
     end
-    
+
     def constructor?
       false
     end
-    
+
+    def abstract?
+      false
+    end
+
     def exceptions
       []
     end
-    
+
     def actual_return_type
       return_type
     end
   end
-  
+
   class JavaConstructor
     include ArgumentConversion
     def initialize(member)
@@ -72,17 +76,17 @@ module Duby::JVM::Types
     def name
       @name ||= @member.name
     end
-    
+
     def argument_types
       @argument_types ||= @member.argument_types.map do |arg|
         AST.type(arg) if arg
       end
     end
-    
+
     def return_type
       declaring_class
     end
-    
+
     def actual_return_type
       return_type
     end
@@ -96,7 +100,7 @@ module Duby::JVM::Types
     def declaring_class
       AST.type(@member.declaring_class)
     end
-    
+
     def call(compiler, ast, expression)
       target = ast.target.inferred_type
       compiler.method.new target
@@ -105,9 +109,9 @@ module Duby::JVM::Types
       compiler.method.invokespecial(
         target,
         "<init>",
-        [nil, *@member.argument_types])        
+        [nil, *@member.argument_types])
     end
-    
+
     def constructor?
       true
     end
@@ -123,7 +127,7 @@ module Duby::JVM::Types
         end
       end
     end
-    
+
     def actual_return_type
       if @member.return_type
         return_type
@@ -131,27 +135,27 @@ module Duby::JVM::Types
         Void
       end
     end
-    
+
     def static?
       @member.static?
     end
-    
+
     def abstract?
       @member.abstract?
     end
-    
+
     def void?
       @member.return_type.nil?
     end
-    
+
     def constructor?
       false
     end
-    
+
     def call(compiler, ast, expression)
       target = ast.target.inferred_type
       ast.target.compile(compiler, true)
-      
+
       # if expression, void methods return the called object,
       # for consistency and chaining
       # TODO: inference phase needs to track that signature is
@@ -159,7 +163,7 @@ module Duby::JVM::Types
       if expression && void?
         compiler.method.dup
       end
-      
+
       convert_args(compiler, ast.parameters)
       if target.interface?
         compiler.method.invokeinterface(
@@ -172,7 +176,7 @@ module Duby::JVM::Types
           name,
           [@member.return_type, *@member.argument_types])
       end
-      
+
       unless expression || void?
         compiler.method.pop
       end
@@ -205,7 +209,7 @@ module Duby::JVM::Types
       end
     end
   end
-  
+
   class JavaStaticMethod < JavaMethod
     def return_type
       @return_type ||= begin
@@ -231,11 +235,11 @@ module Duby::JVM::Types
       compiler.method.pop unless expression || void?
     end
   end
-  
+
   class DubyMember
     attr_reader :name, :argument_types, :declaring_class, :return_type
     attr_reader :exception_types
-    
+
     def initialize(klass, name, args, return_type, static, exceptions)
       if return_type == Void
         return_type = nil
@@ -247,16 +251,16 @@ module Duby::JVM::Types
       @static = static
       @exception_types = exceptions || []
     end
-    
+
     def static?
       @static
     end
-    
+
     def abstract?
       false
     end
   end
-  
+
   class Type
     def get_method(name, args)
       method = find_method(self, name, args, meta?)
@@ -266,18 +270,18 @@ module Duby::JVM::Types
           if args[-1].narrow!
             method = find_method(self, name, args, meta?)
           end
-        end 
+        end
       end
       method
     end
-    
+
     def constructor(*types)
       types = types.map {|type| type.jvm_type}
       constructor = (jvm_type.constructor(*types) rescue nil)
       return JavaConstructor.new(constructor) if constructor
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
-    
+
     def java_method(name, *types)
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
@@ -321,13 +325,13 @@ module Duby::JVM::Types
       return method if method
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end
-    
+
     def java_static_method(name, *types)
       method = static_methods[name].find {|m| m.argument_types == types}
       return method if method
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end
-    
+
     def constructor(*types)
       constructor = constructors.find {|c| c.argument_types == types}
       return constructor if constructor
@@ -341,23 +345,23 @@ module Duby::JVM::Types
     def declared_class_methods
       static_methods.values.flatten
     end
-    
+
     def declared_constructors
       constructors
     end
-    
+
     def constructors
       @constructors ||= []
     end
-    
+
     def instance_methods
       @instance_methods ||= Hash.new {|h, k| h[k] = []}
     end
-    
+
     def static_methods
       @static_methods ||= Hash.new {|h, k| h[k] = []}
     end
-    
+
     def declare_method(name, arguments, type, exceptions)
       member = DubyMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
@@ -366,7 +370,7 @@ module Duby::JVM::Types
         instance_methods[name] << JavaMethod.new(member)
       end
     end
-    
+
     def declare_static_method(name, arguments, type, exceptions)
       member = DubyMember.new(self, name, arguments, type, true, exceptions)
       static_methods[name] << JavaStaticMethod.new(member)
@@ -381,11 +385,11 @@ module Duby::JVM::Types
     def java_method(*args)
       unmeta.java_static_method(*args)
     end
-    
+
     def declared_instance_methods
       unmeta.declared_instance_methods
     end
-    
+
     def declared_class_methods
       unmeta.declared_class_methods
     end

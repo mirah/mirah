@@ -20,19 +20,19 @@ module Duby::JVM::Types
     def load(builder, index)
       builder.send "#{prefix}load", index
     end
-    
+
     def store(builder, index)
       builder.send "#{prefix}store", index
     end
-    
+
     def return(builder)
       builder.send "#{prefix}return"
     end
-    
+
     def init_value(builder)
       builder.aconst_null
     end
-    
+
     def intrinsics
       @intrinsics ||= begin
         @intrinsics = Hash.new {|h, k| h[k] = {}}
@@ -40,7 +40,7 @@ module Duby::JVM::Types
         @intrinsics
       end
     end
-    
+
     def add_method(name, args, method_or_type=nil, &block)
       if block_given?
         method_or_type = Intrinsic.new(self, name, args,
@@ -78,7 +78,7 @@ module Duby::JVM::Types
           end
         end
       end
-      
+
       add_method('==', [Object], Boolean) do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
@@ -89,7 +89,7 @@ module Duby::JVM::Types
           end
         end
       end
-      
+
       add_method('!=', [Object], Boolean) do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
@@ -102,7 +102,7 @@ module Duby::JVM::Types
       end
     end
   end
-  
+
   class ArrayType
     def add_intrinsics
       super
@@ -119,7 +119,7 @@ module Duby::JVM::Types
 
       add_method('[]=',
                  [Int, component_type],
-                 component_type) do |compiler, call, expression| 
+                 component_type) do |compiler, call, expression|
         call.target.compile(compiler, true)
         convert_args(compiler, call.parameters, [Int, component_type])
         component_type.astore(compiler.method)
@@ -127,24 +127,24 @@ module Duby::JVM::Types
           call.parameters[1].compile(compiler, true)
         end
       end
-      
+
       add_method('length', [], Int) do |compiler, call, expression|
         call.target.compile(compiler, true)
-        compiler.method.arraylength              
+        compiler.method.arraylength
       end
-      
+
       add_macro('each', Duby::AST.block_type) do |transformer, call|
         Duby::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           index = transformer.tmp
           array = transformer.tmp
-          
+
           init = transformer.eval("#{index} = 0;#{array} = nil")
           array_assignment = init.children[-1]
           array_assignment.value = call.target
           call.target.parent = array_assignment
           forloop.init << init
-          
+
           var = call.block.args.args[0]
           if var
             forloop.pre << transformer.eval(
@@ -163,7 +163,7 @@ module Duby::JVM::Types
       end
     end
   end
-  
+
   class StringType < Type
     def add_intrinsics
       super
@@ -199,12 +199,12 @@ module Duby::JVM::Types
         Duby::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           it = transformer.tmp
-          
+
           assignment = transformer.eval("#{it} = foo.iterator")
           assignment.value.target = call.target
           call.target.parent = assignment.value
           forloop.init << assignment
-          
+
           var = call.block.args.args[0]
           if var
             forloop.pre << transformer.eval(
@@ -221,7 +221,7 @@ module Duby::JVM::Types
       end
     end
   end
-  
+
   class PrimitiveType
     # Primitives define their own intrinsics instead of getting the Object ones.
     def add_intrinsics

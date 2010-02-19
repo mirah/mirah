@@ -53,15 +53,15 @@ module Duby
         def interface?
           @type.interface?
         end
-        
+
         def is_parent(other)
           assignable_from?(other)
         end
-        
+
         def compatible?(other)
           assignable_from?(other)
         end
-        
+
         def assignable_from?(other)
           return true if !primitive? && other == Null
           return true if other == self
@@ -83,7 +83,7 @@ module Duby
            'java.util.Iterator',
            'java.util.Enumeration'].any? {|n| AST.type(n).assignable_from(self)}
         end
-        
+
         def component_type
           AST.type('java.lang.Object') if iterable?
         end
@@ -91,7 +91,7 @@ module Duby
         def meta
           @meta ||= MetaType.new(self)
         end
-        
+
         def unmeta
           self
         end
@@ -107,7 +107,7 @@ module Duby
         def prefix
           'a'
         end
-        
+
         # is this a 64 bit type?
         def wide?
           false
@@ -125,13 +125,13 @@ module Duby
           raise "Incomplete type #{self}" unless jvm_type
           AST.type(jvm_type.superclass) if jvm_type.superclass
         end
-        
+
         def interfaces
           @interfaces ||= jvm_type.interfaces.map do |interface|
             AST.type(interface)
           end
         end
-        
+
         def astore(builder)
           if primitive?
             builder.send "#{name[0,1]}astore"
@@ -139,7 +139,7 @@ module Duby
             builder.aastore
           end
         end
-        
+
         def aload(builder)
           if primitive?
             builder.send "#{name[0,1]}aload"
@@ -166,18 +166,18 @@ module Duby
         def newarray(method)
           method.send "new#{name}array"
         end
-        
+
         def interfaces
           []
         end
-        
+
         def convertible_to?(type)
           return true if type == self
           a, b = TYPE_ORDERING.index(self), TYPE_ORDERING.index(type)
           a && b && b > a
         end
       end
-      
+
       class MetaType < Type
         attr_reader :unmeta
 
@@ -197,20 +197,20 @@ module Duby
         def meta
           self
         end
-        
+
         def superclass
           @unmeta.superclass.meta if @unmeta.superclass
         end
-        
+
         def interfaces
           []
         end
-        
+
         def jvm_type
           unmeta.jvm_type
         end
       end
-      
+
       class NullType < Type
         def initialize
           super(java.lang.Object)
@@ -234,7 +234,7 @@ module Duby
         def void?
           true
         end
-        
+
         def return(builder)
           builder.returnvoid
         end
@@ -255,23 +255,23 @@ module Duby
         def array?
           true
         end
-        
+
         def iterable?
           true
         end
-        
+
         def basic_type
           component_type.basic_type
         end
-        
+
         def superclass
           Object
         end
       end
-      
+
       class TypeDefinition < Type
         attr_accessor :node
-        
+
         def initialize(name, node)
           if name.class_builder?
             super(name)
@@ -282,7 +282,7 @@ module Duby
           @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
         end
-        
+
         def name
           if @type
             @type.name
@@ -290,11 +290,11 @@ module Duby
             @name
           end
         end
-        
+
         def superclass
           (node && node.superclass) || Object
         end
-        
+
         def interfaces
           if node
             node.interfaces
@@ -302,27 +302,27 @@ module Duby
             []
           end
         end
-        
+
         def define(builder)
           class_name = @name.tr('.', '/')
           @type ||= builder.public_class(class_name, superclass, *interfaces)
         end
-        
+
         def meta
           @meta ||= TypeDefMeta.new(self)
         end
       end
-      
+
       class InterfaceDefinition < TypeDefinition
         def initialize(name, node)
           super(name, node)
         end
-        
+
         def define(builder)
           @type ||= builder.public_interface(@name, *interfaces)
         end
       end
-      
+
       class TypeDefMeta < MetaType
       end
     end
