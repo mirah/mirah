@@ -92,9 +92,7 @@ module Duby::JVM::Types
         name = node.name
       end
 
-      if Duby::AST::InterfaceDeclaration === node
-        @known_types[name] = InterfaceDefinition.new(name, node)
-      elsif @known_types.include? name
+      if @known_types.include? name
         existing = @known_types[name]
         existing.node ||= node
         existing
@@ -103,7 +101,12 @@ module Duby::JVM::Types
         if !name.include?('.') && package
           full_name = "#{package}.#{name}"
         end
-        @known_types[full_name] = TypeDefinition.new(full_name, node)
+        if Duby::AST::InterfaceDeclaration === node
+          klass = InterfaceDefinition
+        else
+          klass = TypeDefinition
+        end
+        @known_types[full_name] = klass.new(full_name, node)
         @known_types[name] = @known_types[full_name]
       end
     end
