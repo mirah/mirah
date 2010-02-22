@@ -2,8 +2,8 @@
 <body>
   <h1>All Posts:</h1>
   <% for post in @posts %>
-    <h2><%= post.title %></h2>
-    <p><%= post.body.getValue %></p>
+    <h2><%=h post.title %></h2>
+    <p><%=h post.body %></p>
   <% end %>
   <hr>
   <h1>New Post:</h1>

@@ -1,6 +1,38 @@
 class DatastorePlugin
   @models = {}
 
+  TypeMap = {
+    'Category' => 'String',
+    'Email' => 'String',
+    'Link' => 'String',
+    'PhoneNumber' => 'String',
+    'PostalAddress' => 'String',
+    'Text' => 'String',
+    'Blob' => 'byte[]',
+    'ShortBlob' => 'byte[]',
+    'Rating' => 'int',
+    'Integer' => 'int',
+    'Double' => 'double',
+  }
+
+  Defaults = {
+    'Rating' => '0',
+    'int' => '0',
+    'double' => '0.0',
+  }
+
+  Conversions = {
+    'Category' => 'getCategory',
+    'Email' => 'getEmail',
+    'Link' => 'getValue',
+    'PhoneNumber' => 'getNumber',
+    'PostalAddress' => 'getAddress',
+    'Text' => 'getValue',
+    'Blob' => 'getBytes',
+    'Integer' => 'intValue',
+    'Double' => 'doubleValue',
+  }
+
   class ModelState
     include Duby::AST
     attr_reader :kind, :query, :read, :save, :transformer
@@ -128,6 +160,25 @@ class DatastorePlugin
     node
   end
 
+  def self.to_datastore(type, value)
+    if TypeMap.include?(type)
+      "(#{value} ? #{type}.new(#{value}) : nil)"
+    else
+      value
+    end
+  end
+
+  def self.from_datastore(type, value)
+    duby_type = TypeMap[type]
+    if duby_type
+      default = Defaults.fetch(type, "#{duby_type}(nil)")
+      conversion = Conversions[type]
+      "(#{value} ? #{type}(#{value}).#{conversion} : #{default})"
+    else
+      "#{type}(#{value})"
+    end
+  end
+
   Duby::AST.defmacro("property") do |transformer, fcall, parent|
     result = Duby::AST::Body.new(parent, fcall.position) {[]}
     klass = find_class(parent)
@@ -140,19 +191,24 @@ class DatastorePlugin
     name = fcall.args_node.get(0).name
     type = fcall.args_node.get(1).name
 
+    duby_type = TypeMap.fetch(type, type)
+
     model.extend_query(<<-EOF)
-      def #{name}(value:#{type})
+      def #{name}(value:#{duby_type})
         returns :void
-        _query.addFilter("#{name}", _eq_op, value)
+        _query.addFilter("#{name}", _eq_op, #{to_datastore(type, 'value')})
       end
     EOF
 
+    temp = transformer.tmp
+
     model.extend_read(<<-EOF)
-      @#{name} = #{type}(e.getProperty("#{name}"))
+      #{temp} = e.getProperty("#{name}")
+      @#{name} = #{from_datastore(type, temp)}
     EOF
 
     model.extend_save(<<-EOF)
-      e.setProperty("#{name}", @#{name})
+      e.setProperty("#{name}", #{to_datastore(type, '@' + name)})
     EOF
 
     result.children << model.eval(parent, <<-EOF)
@@ -160,7 +216,7 @@ class DatastorePlugin
         @#{name}
       end
 
-      def #{name}=(value:#{type})
+      def #{name}=(value:#{duby_type})
         @#{name} = value
       end
     EOF
