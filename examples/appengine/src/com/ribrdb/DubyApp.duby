@@ -2,7 +2,6 @@ import javax.servlet.http.HttpServlet
 import com.google.appengine.ext.duby.db.Model
 import java.util.HashMap
 import java.util.regex.Pattern
-import java.util.logging.Logger
 
 class Post < Model
   def initialize; end
@@ -29,7 +28,6 @@ class DubyApp < HttpServlet
 
 
   def initialize
-    @logger = Logger.getLogger("DubyApp")
     @escape_pattern = Pattern.compile("[<>&'\"]")
     @escaped = HashMap.new
     @escaped.put("<", "&lt;")
@@ -40,16 +38,13 @@ class DubyApp < HttpServlet
   end
 
   def h(text:String)
-    @logger.info("h(" + text + ")")
     matcher = @escape_pattern.matcher(text)
     buffer = StringBuffer.new
     while matcher.find
       replacement = String(@escaped.get(matcher.group))
-      @logger.info(matcher.group + " -> " + replacement)
       matcher.appendReplacement(buffer, replacement)
     end
     matcher.appendTail(buffer)
-    @logger.info("result: " + buffer.toString)
     return buffer.toString
   end
 
