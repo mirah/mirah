@@ -12,7 +12,6 @@ class DubyApp < HttpServlet
   def_edb(list, 'com/ribrdb/list.dhtml')
   
   def doGet(request, response)
-    returns :void
     @posts = Post.all.run
     response.getWriter.write(list)
   end
