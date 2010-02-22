@@ -5,7 +5,7 @@ class Bar
     @a = ArrayList
   end
 
-  def list=(a:ArrayList)
+  def list(a:ArrayList)
     @a = a
   end
 
@@ -18,5 +18,5 @@ b = Bar.new
 list = ArrayList.new
 list.add('hello')
 list.add('world')
-b.list = list
+b.list(list)
 b.foo
