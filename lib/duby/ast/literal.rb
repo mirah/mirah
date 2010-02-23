@@ -5,6 +5,9 @@ module Duby::AST
     end
 
     def infer(typer)
+      children.each do |kid|
+        kid.infer(typer)
+      end
       @inferred_type = typer.array_type
     end
   end

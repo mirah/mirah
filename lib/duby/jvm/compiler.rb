@@ -600,9 +600,13 @@ module Duby
 
           # elements, as expressions
           # TODO: ensure they're all reference types!
-          node.children.each do |node|
+          node.children.each do |n|
             @method.dup
-            node.compile(self, true)
+            n.compile(self, true)
+            # TODO this feels like it should be in the node.compile itself
+            if n.inferred_type.primitive?
+              n.inferred_type.box(@method)
+            end
             @method.invokeinterface java::util::List, "add", [@method.boolean, @method.object]
             @method.pop
           end
@@ -612,8 +616,12 @@ module Duby
         else
           # elements, as non-expressions
           # TODO: ensure they're all reference types!
-          node.children.each do |node|
-            node.compile(self, false)
+          node.children.each do |n|
+            n.compile(self, true)
+            # TODO this feels like it should be in the node.compile itself
+            if n.inferred_type.primitive?
+              n.inferred_type.box(@method)
+            end
           end
         end
       end
