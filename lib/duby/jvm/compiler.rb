@@ -168,7 +168,7 @@ module Duby
                     args_for_opt.each do |req_arg|
                       req_arg.inferred_type.load(@method, @method.local(req_arg.name, req_arg.inferred_type))
                     end
-                    arg.children[0].compile(self, true)
+                    arg.children[0].value.compile(self, true)
 
                     # invoke the next one in the chain
                     if @static
