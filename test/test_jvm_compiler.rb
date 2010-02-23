@@ -1851,5 +1851,17 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("true\nfalse\n") do
       cls.foo
     end
+
+    def test_optional_args
+    cls, = compile(<<-EOF)
+      def foo(a, b = 1, c = 2)
+        puts a; puts b; puts c
+      end
+      foo(0)
+      foo(0,0)
+      foo(0,0,0)
+    EOF
+    assert_output("0\n1\n2\n0\n0\n2\n0\n0\n0")
+    end
   end
 end

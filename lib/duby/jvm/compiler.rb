@@ -161,14 +161,13 @@ module Duby
                   with :method => method do
                     log "Starting new method #{name}(#{arg_types_for_opt})"
 
-                    @method.start unless started
+                    @method.start
 
                     # declare all args so they get their values
-
-                    expression = signature[:return] != Types::Void
-
                     @method.aload(0) unless @static
-                    args_for_opt.each {|req_arg| @method.local(req_arg.name, req_arg.inferred_type)}
+                    args_for_opt.each do |req_arg|
+                      req_arg.inferred_type.load(@method, @method.local(req_arg.name, req_arg.inferred_type))
+                    end
                     arg.children[0].compile(self, true)
 
                     # invoke the next one in the chain
