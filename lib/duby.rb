@@ -34,21 +34,25 @@ module Duby
     endline = position.end_line
     start_offset = position.start_offset
     end_offset = position.end_offset
-    File.open(position.file).each_with_index do |line, lineno|
-      line_end = file_offset + line.size
-      skip = [start_offset - file_offset, line.size].min
-      if lineno >= startline && lineno <= endline
-        print line
-        if skip > 0
-          print ' ' * (skip)
+    # don't try to search dash_e
+    # TODO: show dash_e source the same way
+    if File.exist? position.file
+      File.open(position.file).each_with_index do |line, lineno|
+        line_end = file_offset + line.size
+        skip = [start_offset - file_offset, line.size].min
+        if lineno >= startline && lineno <= endline
+          print line
+          if skip > 0
+            print ' ' * (skip)
+          end
+          if line_end <= end_offset
+            puts '^' * (line.size - skip)
+          else
+            puts '^' * [end_offset - skip - file_offset, 1].max
+          end
         end
-        if line_end <= end_offset
-          puts '^' * (line.size - skip)
-        else
-          puts '^' * [end_offset - skip - file_offset, 1].max
-        end
+        file_offset = line_end
       end
-      file_offset = line_end
     end
   end
 end
