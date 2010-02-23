@@ -29,6 +29,11 @@ module Duby
         def log(message)
           puts "* [#{name}] #{message}" if JVM.verbose
         end
+
+        def classname_from_filename(filename)
+          basename = File.basename(filename, '.duby')
+          basename.split(/_/).map(&:capitalize).join
+        end
       end
 
       module JVMLogger
@@ -54,7 +59,7 @@ module Duby
         @filename = File.basename(filename)
         @src = ""
         @static = true
-        classname = File.basename(filename, '.duby')
+        classname = JVM.classname_from_filename(filename)
         BiteScript.bytecode_version = BiteScript::JAVA1_5
         @file = BiteScript::FileBuilder.new(@filename)
         AST.type_factory.define_types(@file)

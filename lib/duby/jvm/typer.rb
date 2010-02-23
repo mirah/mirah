@@ -16,7 +16,7 @@ module Duby
           raise "TypeFactory not installed"
         end
         @known_types = @factory.known_types
-        classname = File.basename(filename, '.duby')
+        classname = Duby::Compiler::JVM.classname_from_filename(filename)
         main_class = @factory.declare_type(classname)
         @known_types['self'] = main_class.meta
         @errors = []

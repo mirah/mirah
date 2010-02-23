@@ -109,7 +109,7 @@ class DubyImpl
     @filename = args.shift
 
     if @filename == '-e'
-      @filename = 'dash_e'
+      @filename = 'DashE'
       src = args[0]
     else
       src = File.read(@filename)

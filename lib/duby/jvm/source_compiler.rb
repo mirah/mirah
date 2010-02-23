@@ -34,7 +34,7 @@ module Duby
         @filename = File.basename(filename)
         @static = true
         parts = filename.split '/'
-        classname = parts.pop.sub /[.].+/, ''
+        classname = Duby::Compiler::JVM.classname_from_filename(filename)
         package = parts.join('.') unless parts.empty?
 
         @file = Duby::JavaSource::Builder.new(filename, self)
