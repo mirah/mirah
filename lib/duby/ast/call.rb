@@ -6,6 +6,13 @@ module Duby::AST
       node.parent = parent
       __setobj__(node)
     end
+
+    def dup
+      new = super
+      new.__setobj__(__getobj__.dup)
+      new.proxy = new
+      new
+    end
   end
 
   class FunctionalCall < Node

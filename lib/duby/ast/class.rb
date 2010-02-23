@@ -52,13 +52,18 @@ module Duby::AST
     def _define_method(klass, position, name, type, args)
       klass.new(nil, position, name) do |method|
         signature = {:return => type}
-        args_node = Arguments.new(method, position) do |args_node|
-          arg_list = args.map do |arg_name, arg_type, arg_position|
-            signature[arg_name.intern] = type
-            arg_position ||= position
-            RequiredArgument.new(args_node, arg_position, arg_name)
+        if Arguments === args[0]
+          args_node = args[0]
+          args_node.parent = method
+        else
+          args_node = Arguments.new(method, position) do |args_node|
+            arg_list = args.map do |arg_name, arg_type, arg_position|
+              signature[arg_name.intern] = type
+              arg_position ||= position
+              RequiredArgument.new(args_node, arg_position, arg_name)
+            end
+            [arg_list, nil, nil, nil]
           end
-          [arg_list, nil, nil, nil]
         end
         [
           signature,

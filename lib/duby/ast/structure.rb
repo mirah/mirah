@@ -42,7 +42,10 @@ module Duby::AST
       klass.interfaces = [interface]
       klass.define_constructor(position)
       find_methods(interface).each do |method|
-        klass.define_method(position, method.name, method.actual_return_type).body = body.dup
+        klass.define_method(position,
+                            method.name,
+                            method.actual_return_type,
+                            args.dup).body = body.dup
       end
       call = parent
       instance = Call.new(call, position, 'new')

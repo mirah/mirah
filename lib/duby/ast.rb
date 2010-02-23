@@ -28,8 +28,7 @@ module Duby
           end
 
           def #{name}=(node)
-            node.parent = self if node.kind_of?(Node)
-            @children[#{index}] = node
+            @children[#{index}] = _set_parent(node)
           end
         EOF
         @children << name
@@ -77,6 +76,9 @@ module Duby
             end
             if ::Array === child
               child.each {|ary_child|
+                if Duby::AST.verbose && Node === ary_child && ary_child.parent != self
+                   str << "\n#{indent_str} (wrong parent)"
+                 end
                 str << "\n#{ary_child.inspect(indent + extra_indent + 1)}"
               }
             elsif ::Hash === child
@@ -103,8 +105,8 @@ module Duby
       def each(&b) children.each(&b) end
 
       def <<(node)
-        @children << node
-        node.parent = self
+        @children << _set_parent(node)
+        self
       end
 
       def insert(index, node)
@@ -135,13 +137,25 @@ module Duby
         super || (other.kind_of?(NodeProxy) && (self === other.__getobj__))
       end
 
+      def _set_parent(node)
+        case node
+        when Node
+          node.parent = self
+        when ::Array
+          node.each {|x| x.parent = self if x}
+        end
+        node
+      end
+
       def initialize_copy(other)
         @parent = nil
         @children = []
         other.children.each do |child|
           case child
-          when Array
+          when ::Array
             self << child.map {|x| x.dup}
+          when nil
+            self << nil
           else
             self << child.dup
           end
@@ -192,7 +206,9 @@ module Duby
         @scope ||= begin
           scope = parent
           raise "No parent for #{self.class.name} at #{line_number}" if scope.nil?
-          scope = scope.parent until scope.class.include?(Scope)
+          until scope.class.include?(Scope)
+            scope = scope.parent
+          end
           scope
         end
       end

@@ -1814,5 +1814,26 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("Hello\n") do
       cls.foo
     end
+
+    script, cls = compile(<<-EOF)
+      import java.util.Observable
+      class MyObservable < Observable
+        def initialize
+          super
+          setChanged
+        end
+        
+        def self.foo
+          o = MyObservable.new
+          o.addObserver {|o, a| puts a}
+          o.notifyObservers("Hello Observer")
+        end
+      end
+      def foo
+      end
+    EOF
+    assert_output("Hello Observer\n") do
+      cls.foo
+    end
   end
 end
