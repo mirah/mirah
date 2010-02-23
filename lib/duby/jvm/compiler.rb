@@ -32,7 +32,7 @@ module Duby
 
         def classname_from_filename(filename)
           basename = File.basename(filename, '.duby')
-          basename.split(/_/).map(&:capitalize).join
+          basename.split(/_/).map{|x| x[0...1].upcase + x[1..-1]}.join
         end
       end
 
