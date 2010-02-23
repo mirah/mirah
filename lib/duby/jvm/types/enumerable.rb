@@ -7,7 +7,7 @@ module Duby::JVM::Types
     end
     
     def add_enumerable_macros
-      add_macro('all?') do |transformer, call|
+      all_proc = proc do |transformer, call|
         if !call.block
           # We need to create a block that just returns the item passed to it
           # First get a new temp for the block argument
@@ -39,9 +39,10 @@ module Duby::JVM::Types
         result = Duby::AST::Body.new(call.parent, call.position)
         result << forloop << transformer.eval("#{all}", '', nil, all)
       end
-      intrinsics['all?'][[Duby::AST.block_type]] = intrinsics['all?'][[]]
+      add_macro('all?', &all_proc)
+      add_macro('all?', Duby::AST.block_type, &all_proc)
 
-      add_macro('any?') do |transformer, call|
+      any_proc = proc do |transformer, call|
         if !call.block
           var = transformer.tmp
           call.block = transformer.eval("foo {|#{var}| #{var}}").block
@@ -57,7 +58,8 @@ module Duby::JVM::Types
         result = Duby::AST::Body.new(call.parent, call.position)
         result << forloop << transformer.eval("#{any}", '', nil, any)
       end
-      intrinsics['any?'][[Duby::AST.block_type]] = intrinsics['any?'][[]]
+      add_macro('any?', &any_proc)
+      add_macro('any?', Duby::AST.block_type, &any_proc)
     end
   end
 end

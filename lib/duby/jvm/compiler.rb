@@ -29,6 +29,11 @@ module Duby
         def log(message)
           puts "* [#{name}] #{message}" if JVM.verbose
         end
+
+        def classname_from_filename(filename)
+          basename = File.basename(filename, '.duby')
+          basename.split(/_/).map{|x| x[0...1].upcase + x[1..-1]}.join
+        end
       end
 
       module JVMLogger
@@ -54,7 +59,7 @@ module Duby
         @filename = File.basename(filename)
         @src = ""
         @static = true
-        classname = File.basename(filename, '.duby')
+        classname = JVM.classname_from_filename(filename)
         BiteScript.bytecode_version = BiteScript::JAVA1_5
         @file = BiteScript::FileBuilder.new(@filename)
         AST.type_factory.define_types(@file)
@@ -156,15 +161,14 @@ module Duby
                   with :method => method do
                     log "Starting new method #{name}(#{arg_types_for_opt})"
 
-                    @method.start unless started
+                    @method.start
 
                     # declare all args so they get their values
-
-                    expression = signature[:return] != Types::Void
-
                     @method.aload(0) unless @static
-                    args_for_opt.each {|req_arg| @method.local(req_arg.name, req_arg.inferred_type)}
-                    arg.children[0].compile(self, true)
+                    args_for_opt.each do |req_arg|
+                      req_arg.inferred_type.load(@method, @method.local(req_arg.name, req_arg.inferred_type))
+                    end
+                    arg.children[0].value.compile(self, true)
 
                     # invoke the next one in the chain
                     if @static
@@ -600,9 +604,13 @@ module Duby
 
           # elements, as expressions
           # TODO: ensure they're all reference types!
-          node.children.each do |node|
+          node.children.each do |n|
             @method.dup
-            node.compile(self, true)
+            n.compile(self, true)
+            # TODO this feels like it should be in the node.compile itself
+            if n.inferred_type.primitive?
+              n.inferred_type.box(@method)
+            end
             @method.invokeinterface java::util::List, "add", [@method.boolean, @method.object]
             @method.pop
           end
@@ -612,8 +620,12 @@ module Duby
         else
           # elements, as non-expressions
           # TODO: ensure they're all reference types!
-          node.children.each do |node|
-            node.compile(self, false)
+          node.children.each do |n|
+            n.compile(self, true)
+            # TODO this feels like it should be in the node.compile itself
+            if n.inferred_type.primitive?
+              n.inferred_type.box(@method)
+            end
           end
         end
       end

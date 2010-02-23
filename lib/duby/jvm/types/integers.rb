@@ -50,6 +50,10 @@ module Duby::JVM::Types
       Int
     end
 
+    def box_type
+      java.lang.Integer
+    end
+
     def jump_if(builder, op, label)
       builder.send "if_icmp#{op}", label
     end
@@ -96,6 +100,14 @@ module Duby::JVM::Types
   class LongType < Number
     def prefix
       'l'
+    end
+
+    def math_type
+      Long
+    end
+
+    def box_type
+      java.lang.Long
     end
 
     def literal(builder, value)

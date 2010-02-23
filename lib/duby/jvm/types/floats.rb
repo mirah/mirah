@@ -3,6 +3,14 @@ module Duby::JVM::Types
     def prefix
       'f'
     end
+
+    def math_type
+      Float
+    end
+
+    def box_type
+      java.lang.Float
+    end
     
     def suffix
       'g'
@@ -40,6 +48,14 @@ module Duby::JVM::Types
   class DoubleType < FloatType
     def prefix
       'd'
+    end
+
+    def math_type
+      Double
+    end
+
+    def box_type
+      java.lang.Double
     end
 
     def wide?

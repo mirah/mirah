@@ -34,7 +34,7 @@ module Duby
         @filename = File.basename(filename)
         @static = true
         parts = filename.split '/'
-        classname = parts.pop.sub /[.].+/, ''
+        classname = Duby::Compiler::JVM.classname_from_filename(filename)
         package = parts.join('.') unless parts.empty?
 
         @file = Duby::JavaSource::Builder.new(filename, self)
@@ -380,9 +380,9 @@ module Duby
           args = compile_args(call)
           simple = call.expr?(self)
           @method.print @lvalue if expression && !simple
-          @method.print "(#{call.inferred_type.name})("
+          @method.print "((#{call.inferred_type.name})("
           args.each{|arg| arg.compile(self, true)}
-          @method.print ")"
+          @method.print "))"
           @method.puts ';' unless simple && expression
         else
           method_call(this, call, compile_args(call), expression)
@@ -539,10 +539,10 @@ module Duby
           @method.print "java.util.Collections.unmodifiableList(java.util.Arrays.asList("
 
           # elements, as expressions
-          boolean comma = false
-          node.children.each do |node|
-            @method.print ", "# if comma
-            node.compile(self, true)
+          comma = false
+          node.children.each do |n|
+            @method.print ", " if comma
+            n.compile(self, true)
             comma = true
           end
           
@@ -550,8 +550,8 @@ module Duby
         else
           # elements, as non-expressions
           # TODO: ensure they're all reference types!
-          node.children.each do |node|
-            node.compile(self, false)
+          node.children.each do |n|
+            n.compile(self, false)
           end
         end
       end

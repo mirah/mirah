@@ -88,5 +88,8 @@ module Duby::JVM::Types
       unary_operator('+@', nil)
     end
 
+    def box(builder)
+      builder.invokestatic box_type, "valueOf", [box_type, math_type]
+    end
   end
 end
