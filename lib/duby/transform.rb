@@ -152,7 +152,7 @@ module Duby
       rescue => ex
         if ex.cause.respond_to? :position
           position = ex.cause.position
-          puts "#{position.file}:#{position.start_line + 1}: #{ex.message}"
+          Duby.print_error(ex.cause.message, position)
         end
         raise ex
       end

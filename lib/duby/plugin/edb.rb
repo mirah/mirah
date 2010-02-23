@@ -9,7 +9,7 @@ Duby::AST.defmacro('def_edb') do |transformer, fcall, parent|
   compiler.pre_cmd = ["def #{name}", "_edbout = StringBuilder.new"]
   compiler.post_cmd = ["_edbout.toString", "end"]
   src = compiler.compile(IO.read(path))
-  ast = Duby::AST.parse_ruby(src, "(edb)")
+  ast = Duby::AST.parse_ruby(src, path)
   transformer.transform(ast.body_node, parent)
 end
 

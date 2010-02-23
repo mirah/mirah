@@ -26,6 +26,31 @@ module Duby
   def self.parse(*args)
     DubyImpl.new.parse(*args)
   end
+
+  def self.print_error(message, position)
+    puts "#{position.file}:#{position.start_line + 1}: #{message}"
+    file_offset = 0
+    startline = position.start_line
+    endline = position.end_line
+    start_offset = position.start_offset
+    end_offset = position.end_offset
+    File.open(position.file).each_with_index do |line, lineno|
+      line_end = file_offset + line.size
+      skip = [start_offset - file_offset, line.size].min
+      if lineno >= startline && lineno <= endline
+        print line
+        if skip > 0
+          print ' ' * (skip)
+        end
+        if line_end <= end_offset
+          puts '^' * (line.size - skip)
+        else
+          puts '^' * [end_offset - skip - file_offset, 1].max
+        end
+      end
+      file_offset = line_end
+    end
+  end
 end
 
 class DubyImpl
@@ -86,12 +111,17 @@ class DubyImpl
       src = File.read(@filename)
     end
     Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
-    ast = Duby::AST.parse_ruby(src, @filename)
+    begin
+      ast = Duby::AST.parse_ruby(src, @filename)
+    rescue org.jrubyparser.lexer.SyntaxException => ex
+      Duby.print_error(ex.message, ex.position)
+      raise ex if @verbose
+    end
     @transformer = Duby::Transform::Transformer.new
     ast = @transformer.transform(ast, nil)
     @transformer.errors.each do |ex|
+      Duby.print_error(ex.message, ex.position)
       raise ex.cause || ex if @verbose
-      puts "#@filename:#{ex.position.start_line+1}: #{ex.message}"
     end
     @error = @transformer.errors.size > 0
     ast
@@ -107,29 +137,7 @@ class DubyImpl
       if failed
         puts "Inference Error:"
         typer.errors.each do |ex|
-          node = ex.node
-          puts "#{node.position.file}:#{node.line_number}: #{ex.message}"
-          file_offset = 0
-          startline = node.position.start_line
-          endline = node.position.end_line
-          start_offset = node.position.start_offset
-          end_offset = node.position.end_offset
-          File.open(node.position.file).each_with_index do |line, lineno|
-            line_end = file_offset + line.size
-            skip = start_offset - file_offset
-            if lineno >= startline && lineno <= endline
-              print line
-              if skip > 0
-                print ' ' * (start_offset - file_offset)
-              end
-              if line_end <= end_offset
-                puts '^' * (line.size - skip)
-              else
-                puts '^' * [end_offset - skip - file_offset, 1].max
-              end
-            end
-            file_offset = line_end
-          end
+          Duby.print_error(ex.message, ex.node.position)
           puts ex.backtrace if @verbose
         end
         exit 1

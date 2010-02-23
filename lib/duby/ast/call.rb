@@ -111,7 +111,7 @@ module Duby::AST
         end
 
         if @inferred_type
-          if block
+          if block && !receiver_type.error?
             method = receiver_type.get_method(name, parameter_types)
             block.prepare(typer, method)
           end
