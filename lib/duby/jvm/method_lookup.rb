@@ -125,28 +125,25 @@ module Duby
         
         
         # search for a field of the given name
-        begin
-          if name =~ /_set$/
-            # setter
-            setter = true
-            name = name[0..-5]
-            field = mapped_type.field_setter(name)
-          else
-            # getter
-            setter = false
-            
-            # field accesses don't take arguments
-            return if mapped_params.size > 0
-            field = mapped_type.field_getter(name)
-          end
-          
-          if (meta && !field.static?) ||
-              (!meta && field.static?)
-            field == nil
-          end
-        rescue Exception => e
-          # ignore, no field found
-          raise e;
+        if name =~ /_set$/
+          # setter
+          setter = true
+          name = name[0..-5]
+          field = mapped_type.field_setter(name)
+        else
+          # getter
+          setter = false
+
+          # field accesses don't take arguments
+          return if mapped_params.size > 0
+          field = mapped_type.field_getter(name)
+        end
+
+        return nil unless field
+
+        if (meta && !field.static?) ||
+            (!meta && field.static?)
+          field == nil
         end
 
         # check accessibility

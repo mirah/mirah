@@ -381,11 +381,19 @@ module Duby::JVM::Types
     end
 
     def field_getter(name)
-      JavaFieldGetter.new(jvm_type.field(name))
+      if jvm_type
+        JavaFieldGetter.new(jvm_type.field(name)) rescue nil
+      else
+        nil
+      end
     end
 
     def field_setter(name)
-      JavaFieldSetter.new(jvm_type.field(name))
+      if jvm_type
+        JavaFieldSetter.new(jvm_type.field(name)) rescue nil
+      else
+        nil
+      end
     end
   end
 
