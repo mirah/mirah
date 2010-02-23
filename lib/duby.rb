@@ -18,11 +18,11 @@ module Duby
   def self.run(*args)
     DubyImpl.new.run(*args)
   end
-  
+
   def self.compile(*args)
     DubyImpl.new.compile(*args)
   end
-  
+
   def self.parse(*args)
     DubyImpl.new.parse(*args)
   end
@@ -43,17 +43,17 @@ class DubyImpl
         main_cls ||= proxy_cls
       end
     end
-  
+
     if main_cls
       main_cls.main(args.to_java(:string))
     else
       puts "No main found"
     end
   end
-  
+
   def compile(*args)
     process_flags!(args)
-    
+
     expand_files(args).each do |duby_file|
       if duby_file == '-e'
         @filename = '-e'
@@ -101,11 +101,38 @@ class DubyImpl
     typer = Duby::Typer::JVM.new(@filename, @transformer)
     typer.infer(ast)
     begin
-      typer.resolve(true)
+      typer.resolve(false)
     ensure
-      typer.errors.each do |ex|
-        puts ex.message
-        puts ex.backtrace if @verbose
+      failed = !typer.errors.empty?
+      if failed
+        puts "Inference Error:"
+        typer.errors.each do |ex|
+          node = ex.node
+          puts "#{node.position.file}:#{node.line_number}: #{ex.message}"
+          file_offset = 0
+          startline = node.position.start_line
+          endline = node.position.end_line
+          start_offset = node.position.start_offset
+          end_offset = node.position.end_offset
+          File.open(node.position.file).each_with_index do |line, lineno|
+            line_end = file_offset + line.size
+            skip = start_offset - file_offset
+            if lineno >= startline && lineno <= endline
+              print line
+              if skip > 0
+                print ' ' * (start_offset - file_offset)
+              end
+              if line_end <= end_offset
+                puts '^' * (line.size - skip)
+              else
+                puts '^' * [end_offset - skip - file_offset, 1].max
+              end
+            end
+            file_offset = line_end
+          end
+          puts ex.backtrace if @verbose
+        end
+        exit 1
       end
     end
 
@@ -145,7 +172,7 @@ class DubyImpl
     end
     @compiler_class ||= Duby::Compiler::JVM
   end
-  
+
   def expand_files(files)
     expanded = []
     files.each do |filename|
