@@ -1815,4 +1815,41 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.foo
     end
   end
+
+  def test_each
+    cls, = compile(<<-EOF)
+      def foo
+        [1,2,3].each {|x| puts x}
+      end
+    EOF
+    assert_output("1\n2\n3\n") do
+      cls.foo
+    end
+  end
+
+  def test_any
+    cls, = compile(<<-EOF)
+      import java.lang.Integer
+      def foo
+        puts [1,2,3].any?
+        puts [1,2,3].any? {|x| Integer(x).intValue > 3}
+      end
+    EOF
+    assert_output("true\nfalse\n") do
+      cls.foo
+    end
+  end
+
+  def test_all
+    cls, = compile(<<-EOF)
+      import java.lang.Integer
+      def foo
+        puts [1,2,3].all?
+        puts [1,2,3].all? {|x| Integer(x).intValue > 3}
+      end
+    EOF
+    assert_output("true\nfalse\n") do
+      cls.foo
+    end
+  end
 end
