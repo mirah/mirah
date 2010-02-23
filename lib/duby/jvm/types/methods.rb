@@ -236,7 +236,17 @@ module Duby::JVM::Types
     end
   end
 
-  class JavaFieldGetter < JavaMethod
+  class JavaFieldAccessor < JavaMethod
+    def public?
+      @member.public?
+    end
+
+    def final?
+      @member.final?
+    end
+  end
+
+  class JavaFieldGetter < JavaFieldAccessor
     def return_type
       AST.type(@member.type)
     end
@@ -261,7 +271,7 @@ module Duby::JVM::Types
     end
   end
 
-  class JavaFieldSetter < JavaMethod
+  class JavaFieldSetter < JavaFieldAccessor
     def return_type
       AST.type(@member.type)
     end
@@ -275,15 +285,15 @@ module Duby::JVM::Types
 
       # TODO: assert that no args are being passed, though that should have failed lookup
 
-      if expression
-        if @member.static?
+      convert_args(compiler, ast.parameters)
+      if @member.static?
+        compiler.method.dup if expression
+        compiler.method.putstatic(target, name, @member.type)
+      else
+        ast.target.compile(compiler, true)
         convert_args(compiler, ast.parameters)
-          compiler.method.putstatic(target, name, @member.type)
-        else
-          ast.target.compile(compiler, true)
-          convert_args(compiler, ast.parameters)
-          compiler.method.putfield(target, name, @member.type)
-        end
+        compiler.method.dup_x2 if expression
+        compiler.method.putfield(target, name, @member.type)
       end
     end
   end

@@ -128,8 +128,13 @@ module Duby
         begin
           if name =~ /_set$/
             # setter
-            field = mapped_type.field_setter(name[0..-5])
+            setter = true
+            name = name[0..-5]
+            field = mapped_type.field_setter(name)
           else
+            # getter
+            setter = false
+            
             # field accesses don't take arguments
             return if mapped_params.size > 0
             field = mapped_type.field_getter(name)
@@ -143,6 +148,13 @@ module Duby
           # ignore, no field found
           raise e;
         end
+
+        # check accessibility
+        # TODO: protected field access check appropriate to current type
+        if setter
+          raise "cannot set final field '#{name}' on class #{mapped_type}" if field.final?
+        end
+        raise "cannot access field '#{name}' on class #{mapped_type}" unless field.public?
 
         field
       end
