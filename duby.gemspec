@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'duby'
-  s.version = "0.0.2"
+  s.version = "0.0.3.dev"
   s.authors = ["Charles Oliver Nutter", "Ryan Brown"]
   s.date = Time.now.strftime("YYYY-MM-DD")
   s.description = %q{Duby is a customizable programming language featuring static types,
