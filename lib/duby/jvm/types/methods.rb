@@ -236,6 +236,58 @@ module Duby::JVM::Types
     end
   end
 
+  class JavaFieldGetter < JavaMethod
+    def return_type
+      AST.type(@member.type)
+    end
+
+    def argument_types
+      []
+    end
+
+    def call(compiler, ast, expression)
+      target = ast.target.inferred_type
+      
+      # TODO: assert that no args are being passed, though that should have failed lookup
+
+      if expression
+        if @member.static?
+          compiler.method.getstatic(target, name, @member.type)
+        else
+          ast.target.compile(compiler, true)
+          compiler.method.getfield(target, name, @member.type)
+        end
+      end
+    end
+  end
+
+  class JavaFieldSetter < JavaMethod
+    def return_type
+      AST.type(@member.type)
+    end
+
+    def argument_types
+      [AST.type(@member.type)]
+    end
+
+    def call(compiler, ast, expression)
+      target = ast.target.inferred_type
+
+      # TODO: assert that no args are being passed, though that should have failed lookup
+
+      if expression
+        if @member.static?
+        convert_args(compiler, ast.parameters)
+          compiler.method.putstatic(target, name, @member.type)
+        else
+          ast.target.compile(compiler, true)
+          convert_args(compiler, ast.parameters)
+          compiler.method.putfield(target, name, @member.type)
+        end
+      end
+    end
+  end
+
   class DubyMember
     attr_reader :name, :argument_types, :declaring_class, :return_type
     attr_reader :exception_types
@@ -316,6 +368,14 @@ module Duby::JVM::Types
       jvm_type.declared_constructors.map do |method|
         JavaConstructor.new(method)
       end
+    end
+
+    def field_getter(name)
+      JavaFieldGetter.new(jvm_type.field(name))
+    end
+
+    def field_setter(name)
+      JavaFieldSetter.new(jvm_type.field(name))
     end
   end
 

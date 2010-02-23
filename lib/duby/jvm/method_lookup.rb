@@ -64,7 +64,8 @@ module Duby
 
         phase1_methods[0] ||
           phase2(mapped_params, by_name) ||
-          phase3(mapped_params, by_name)
+          phase3(mapped_params, by_name) ||
+          field_lookup(mapped_params, mapped_type, meta, name)
       end
 
       def phase1(mapped_params, potentials)
@@ -116,6 +117,34 @@ module Duby
 
       def phase3(mapped_params, potentials)
         nil
+      end
+
+      def field_lookup(mapped_params, mapped_type, meta, name)
+        log("Attempting #{meta ? 'static' : 'instance'} field lookup for '#{name}' on class #{mapped_type}")
+        # if we get to this point, the potentials do not match, so we ignore them
+        
+        
+        # search for a field of the given name
+        begin
+          if name =~ /_set$/
+            # setter
+            field = mapped_type.field_setter(name[0..-5])
+          else
+            # field accesses don't take arguments
+            return if mapped_params.size > 0
+            field = mapped_type.field_getter(name)
+          end
+          
+          if (meta && !field.static?) ||
+              (!meta && field.static?)
+            field == nil
+          end
+        rescue Exception => e
+          # ignore, no field found
+          raise e;
+        end
+
+        field
       end
 
       def each_is_exact(incoming, target)
