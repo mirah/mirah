@@ -539,10 +539,10 @@ module Duby
           @method.print "java.util.Collections.unmodifiableList(java.util.Arrays.asList("
 
           # elements, as expressions
-          boolean comma = false
-          node.children.each do |node|
-            @method.print ", "# if comma
-            node.compile(self, true)
+          comma = false
+          node.children.each do |n|
+            @method.print ", " if comma
+            n.compile(self, true)
             comma = true
           end
           
@@ -550,8 +550,8 @@ module Duby
         else
           # elements, as non-expressions
           # TODO: ensure they're all reference types!
-          node.children.each do |node|
-            node.compile(self, false)
+          node.children.each do |n|
+            n.compile(self, false)
           end
         end
       end
