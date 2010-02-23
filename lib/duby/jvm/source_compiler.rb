@@ -380,9 +380,9 @@ module Duby
           args = compile_args(call)
           simple = call.expr?(self)
           @method.print @lvalue if expression && !simple
-          @method.print "(#{call.inferred_type.name})("
+          @method.print "((#{call.inferred_type.name})("
           args.each{|arg| arg.compile(self, true)}
-          @method.print ")"
+          @method.print "))"
           @method.puts ';' unless simple && expression
         else
           method_call(this, call, compile_args(call), expression)
