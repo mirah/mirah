@@ -41,7 +41,15 @@ module Duby::AST
       klass = duby.define_class(position, name)
       klass.interfaces = [interface]
       klass.define_constructor(position)
-      find_methods(interface).each do |method|
+      impl_methods = find_methods(interface)
+      # TODO: find a nice way to closure-impl multiple methods
+      # perhaps something like
+      # Collections.sort(list) do
+      #   def equals(other); self == other; end
+      #   def compareTo(x,y); Comparable(x).compareTo(y); end
+      # end
+      raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
+      impl_methods.each do |method|
         klass.define_method(position,
                             method.name,
                             method.actual_return_type,
