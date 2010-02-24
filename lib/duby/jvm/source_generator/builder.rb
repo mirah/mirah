@@ -198,7 +198,7 @@ module Duby
       end
       
       def main
-        public_static_method('main', JVMTypes::Void, [],
+        public_static_method('main', [], JVMTypes::Void,
                              [JVMTypes::String.array_type, 'argv'])
       end
       
@@ -211,7 +211,7 @@ module Duby
         @fields[name] = true
       end
       
-      def public_method(name, type, exceptions, *args)
+      def public_method(name, exceptions, type, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => name,
@@ -221,7 +221,7 @@ module Duby
         @methods[-1]
       end
       
-      def public_static_method(name, type, exceptions, *args)
+      def public_static_method(name, exceptions, type, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => name,

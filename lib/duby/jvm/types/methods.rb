@@ -67,8 +67,11 @@ module Duby::JVM::Types
     end
   end
 
-  class JavaConstructor
+  class JavaCallable
     include ArgumentConversion
+
+    attr_accessor :member
+
     def initialize(member)
       @member = member
     end
@@ -77,6 +80,12 @@ module Duby::JVM::Types
       @name ||= @member.name
     end
 
+    def field?
+      false
+    end
+  end
+
+  class JavaConstructor < JavaCallable
     def argument_types
       @argument_types ||= @member.argument_types.map do |arg|
         AST.type(arg) if arg
@@ -237,6 +246,16 @@ module Duby::JVM::Types
   end
 
   class JavaFieldAccessor < JavaMethod
+    def field?
+      true
+    end
+    
+    def return_type
+      AST.type(@member.type)
+    end
+
+    alias actual_return_type return_type
+    
     def public?
       @member.public?
     end
@@ -247,10 +266,6 @@ module Duby::JVM::Types
   end
 
   class JavaFieldGetter < JavaFieldAccessor
-    def return_type
-      AST.type(@member.type)
-    end
-
     def argument_types
       []
     end

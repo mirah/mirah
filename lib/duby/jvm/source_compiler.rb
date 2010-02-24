@@ -87,9 +87,9 @@ module Duby
         exceptions = signature[:throws] || []
         with :static => @static || node.static? do
           if @static
-            method = @class.public_static_method(name.to_s, return_type, exceptions, *args)
+            method = @class.public_static_method(name.to_s, exceptions, return_type, *args)
           else
-            method = @class.public_method(name.to_s, return_type, exceptions, *args)
+            method = @class.public_method(name.to_s, exceptions, return_type, *args)
           end
 
           with :method => method do
@@ -102,9 +102,45 @@ module Duby
             else
               node.body.compile(self, false) if node.body
             end
-        
+
             log "Method #{name} complete!"
             @method.stop
+          end
+
+          arg_types_for_opt = []
+          args_for_opt = []
+          if args
+            args.each do |arg|
+              if AST::OptionalArgument === arg
+                if @static
+                  method = @class.public_static_method(name.to_s, exceptions, return_type, *args_for_opt)
+                else
+                  method = @class.public_method(name.to_s, exceptions, return_type, *args_for_opt)
+                end
+
+                with :method => method do
+                  log "Starting new method #{name}(#{arg_types_for_opt})"
+
+                  @method.annotate(node.annotations)
+                  @method.start
+
+                  # declare all args so they get their values
+                  @method.print "return " unless @method.type.nil? || @method.type.void?
+                  @method.print "this." unless @static
+                  @method.print "#{name}("
+                  @method.print args_for_opt.map(&:name).join(', ')
+                  @method.print ', 'if args_for_opt.size > 0
+                  arg.children[0].value.compile(self, true)
+
+                  # invoke the next one in the chain
+                  @method.print ");\n"
+
+                  @method.stop
+                end
+              end
+              arg_types_for_opt << arg.inferred_type
+              args_for_opt << arg
+            end
           end
         end
       end
@@ -482,23 +518,39 @@ module Duby
         unless simple || method.actual_return_type.void?
           @method.print @lvalue if expression
         end
+
+        # preamble
         if method.constructor?
           @method.print "new "
           target.compile(self, true)
           @method.print '('
+        elsif method.field?
+          target.compile(self, true)
+          @method.print ".#{method.name}"
+          if method.argument_types.size == 1
+            @method.print " = ("
+          end
         else
           target.compile(self, true)
           @method.print ".#{method.name}("
         end
+
+        # args
         params.each_with_index do |param, index|
           @method.print ', ' unless index == 0
           param.compile(self, true)
         end
-        if simple && expression
-          @method.print ')'
-        else
-          @method.puts ');'
+
+        # postamble
+        if !method.field? || (method.field? && method.argument_types.size == 1)
+          if simple && expression
+            @method.print ')'
+          else
+            @method.puts ');'
+          end
         end
+
+        # cleanup
         if method.actual_return_type.void? && expression
           @method.print @lvalue
           if method.static?
@@ -508,7 +560,6 @@ module Duby
             @method.puts ';'
           end
         end
-        
       end
 
       def temp(expression, value=nil)

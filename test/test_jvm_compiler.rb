@@ -1865,19 +1865,44 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("true\nfalse\n") do
       cls.foo
     end
+  end
 
-    def test_optional_args
-      cls, = compile(<<-EOF)
-        def foo(a, b = 1, c = 2)
-          puts a; puts b; puts c
-        end
-        foo(0)
-        foo(0,0)
-        foo(0,0,0)
-      EOF
-      assert_output("0\n1\n2\n0\n0\n2\n0\n0\n0") do
-        cls.main([].to_java :string)
+  def test_optional_args
+    cls, = compile(<<-EOF)
+      def foo(a:int, b:int = 1, c:int = 2)
+        puts a; puts b; puts c
       end
+      foo(0)
+      foo(0,0)
+      foo(0,0,0)
+    EOF
+    assert_output("0\n1\n2\n0\n0\n2\n0\n0\n0\n") do
+      cls.main([].to_java :string)
     end
   end
+
+  def test_field_read
+    cls, = compile(<<-EOF)
+      puts System.out.getClass.getName
+    EOF
+    assert_output("java.io.PrintStream\n") do
+      cls.main([].to_java :String)
+    end
+  end
+
+  # TODO: need a writable field somewhere...
+#  def test_field_write
+#    cls, = compile(<<-EOF)
+#      old_pi = Math.PI
+#      Math.PI = 3.0
+#      puts Math.PI
+#      Math.PI = old_pi
+#      puts Math.PI
+#    EOF
+#    raise
+#    cls.main([].to_java :string)
+#    assert_output("3.0\n") do
+#      cls.main([].to_java :string)
+#    end
+#  end
 end
