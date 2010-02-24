@@ -86,12 +86,15 @@ module Duby::AST
   class Script < Node
     include Scope
     child :body
+    
+    attr_accessor :defining_class
 
     def initialize(parent, line_number, &block)
       super(parent, line_number, children, &block)
     end
 
     def infer(typer)
+      @defining_class ||= typer.self_type
       @inferred_type ||= typer.infer(body) || (typer.defer(self); nil)
     end
   end

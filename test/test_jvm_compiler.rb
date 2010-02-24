@@ -1798,21 +1798,18 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_block
     cls, = compile(<<-EOF)
-      def foo
-        returns :void
-        thread = Thread.new do
-          puts "Hello"
-        end
-        begin
-          thread.run
-          thread.join
-        rescue
-          puts "Uh Oh!"
-        end
+      thread = Thread.new do
+        puts "Hello"
+      end
+      begin
+        thread.run
+        thread.join
+      rescue
+        puts "Uh Oh!"
       end
     EOF
     assert_output("Hello\n") do
-      cls.foo
+      cls.main([].to_java :string)
     end
 
     script, cls = compile(<<-EOF)
@@ -1822,18 +1819,14 @@ class TestJVMCompiler < Test::Unit::TestCase
           super
           setChanged
         end
-        
-        def self.foo
-          o = MyObservable.new
-          o.addObserver {|o, a| puts a}
-          o.notifyObservers("Hello Observer")
-        end
       end
-      def foo
-      end
+
+      o = MyObservable.new
+      o.addObserver {|o, a| puts a}
+      o.notifyObservers("Hello Observer")
     EOF
     assert_output("Hello Observer\n") do
-      cls.foo
+      script.main([].to_java :string)
     end
   end
 
