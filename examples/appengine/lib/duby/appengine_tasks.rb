@@ -5,6 +5,7 @@ require 'appengine-tools/web-xml'
 require 'appengine-tools/xml-formatter'
 require 'duby_task'
 require 'java'
+require 'open-uri'
 require 'rake'
 require 'yaml'
 
@@ -116,7 +117,8 @@ module AppEngine::Rake
         end
       end
       if updated
-        touch aeweb_xml
+        #touch aeweb_xml
+        open('http://localhost:8080/_ah/reloadwebapp')
       end
     end
 
