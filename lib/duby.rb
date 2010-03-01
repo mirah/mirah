@@ -27,6 +27,14 @@ module Duby
     DubyImpl.new.parse(*args)
   end
 
+  def self.plugins
+    @plugins ||= []
+  end
+
+  def self.reset
+    @plugins.each {|x| x.reset if x.respond_to?(:reset)}
+  end
+
   def self.print_error(message, position)
     puts "#{position.file}:#{position.start_line + 1}: #{message}"
     file_offset = 0
