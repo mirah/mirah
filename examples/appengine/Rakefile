@@ -7,6 +7,7 @@ DUBY_APP = "#{Duby.dest_path}/com/ribrdb/DubyApp.class"
 MODEL = "#{Duby.dest_path}/com/google/appengine/ext/duby/db/Model.class"
 LIST = "#{Duby.source_path}/com/ribrdb/list.dhtml"
 
-file DUBY_APP => [LIST, MODEL]
+Rake::Task[DUBY_APP].enhance([LIST, MODEL])
+
 task :app => DUBY_APP
 task :default => :server
