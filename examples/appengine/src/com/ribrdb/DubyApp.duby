@@ -38,6 +38,7 @@ class DubyApp < HttpServlet
   end
 
   def h(text:String)
+    return "" unless text
     matcher = @escape_pattern.matcher(text)
     buffer = StringBuffer.new
     while matcher.find

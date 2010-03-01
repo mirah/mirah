@@ -86,7 +86,7 @@ class DatastorePlugin
         [Duby::AST.type('com.google.appengine.ext.duby.db.DQuery'),
          eval(classdef, queryinit)]
       end
-      ast.children << @query
+      ast << @query
     end
 
     def init_read(parent, position, ast)
@@ -94,8 +94,8 @@ class DatastorePlugin
         def _read_from(e:Entity)
         end
       EOF
-      @read.body = @read.children[2] = Body.new(@read, position) {[]}
-      ast.children << @read
+      @read.body = Body.new(@read, position) {[]}
+      ast << @read
     end
 
     def init_save(parent, position, ast)
@@ -103,12 +103,12 @@ class DatastorePlugin
         def _save_to(e:Entity)
         end
       EOF
-      @save.body = @save.children[2] = Body.new(@save, position) {[]}
-      ast.children << @save
+      @save.body = Body.new(@save, position) {[]}
+      ast << @save
     end
 
     def init_static(parent, ast)
-      ast.children << eval(parent, <<-EOF)
+      ast << eval(parent, <<-EOF)
         import com.google.appengine.api.datastore.Entity
         import com.google.appengine.api.datastore.Blob
         import com.google.appengine.api.datastore.Category
@@ -141,7 +141,7 @@ class DatastorePlugin
     end
 
     def extend_query(code)
-      query.body.children << eval(query.body, code)
+      query.body << eval(query.body, code)
     end
 
     def extend_read(code)
@@ -211,7 +211,7 @@ class DatastorePlugin
       e.setProperty("#{name}", #{to_datastore(type, '@' + name)})
     EOF
 
-    result.children << model.eval(parent, <<-EOF)
+    result << model.eval(parent, <<-EOF)
       def #{name}
         @#{name}
       end
@@ -223,4 +223,10 @@ class DatastorePlugin
 
     result
   end
+
+  def self.reset
+    @models = {}
+  end
 end
+
+Duby.plugins << DatastorePlugin

@@ -1,8 +1,9 @@
-Run rake to compile the application and start the development server.
+Run rake to compile the application and start the development server:
+
+$ jruby -I `pwd`/../../lib -S rake
 
 Requirements:
- - Install the google-appengine gem (under MRI, not JRUBY)
- - Have jruby on your path so dubyc can run.
+ - jruby -S gem install google-appengine bitescript
 
 Datastore API:
   Model.get(key)

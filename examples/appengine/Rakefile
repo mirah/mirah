@@ -1,92 +1,12 @@
-require 'appengine-sdk'
-require 'appengine-tools/web-xml'
-require 'appengine-tools/xml-formatter'
-require 'yaml'
+$: << File.expand_path(File.dirname(__FILE__) + '/lib')
+require 'duby/appengine_tasks'
 
-SRC = File.expand_path(File.dirname(__FILE__) + '/src')
-LIB = File.expand_path(File.dirname(__FILE__) + '/lib')
-WAR = File.expand_path(File.dirname(__FILE__) + '/war')
-CONFIG_RU = File.expand_path(File.dirname(__FILE__) + '/config.ru')
-SERVLET = AppEngine::SDK::SDK_ROOT +
-          '/lib/shared/geronimo-servlet_2.5_spec-1.2.jar'
-APIS = AppEngine::SDK::API_JAR
+appengine_app :app
 
-WEB_INF_CLASSES = WAR + '/WEB-INF/classes'
-WEB_XML = WAR + '/WEB-INF/web.xml'
-AEWEB_XML = WAR + '/WEB-INF/appengine-web.xml'
-WEB_INF_GENERATED = WAR + '/WEB-INF/appengine-generated'
-BUILD_STATUS = WEB_INF_GENERATED + '/build_status.yaml'
-GEMFILE = WAR + '/Gemfile'
-DUMMY_CONFIG_RU = WAR + '/config.ru'
+DUBY_APP = "#{Duby.dest_path}/com/ribrdb/DubyApp.class"
+MODEL = "#{Duby.dest_path}/com/google/appengine/ext/duby/db/Model.class"
+LIST = "#{Duby.source_path}/com/ribrdb/list.dhtml"
 
-MODEL = 'com/google/appengine/ext/duby/db/Model'
-DUBY_APP = 'com/ribrdb/DubyApp'
-
-MODEL_DUBY = "#{SRC}/#{MODEL}.duby"
-MODEL_CLASS = "#{WEB_INF_CLASSES}/#{MODEL}.class"
-DUBY_APP_DUBY = "#{SRC}/#{DUBY_APP}.duby"
-DUBY_APP_CLASS = "#{WEB_INF_CLASSES}/#{DUBY_APP}.class"
-LIST = "#{SRC}/com/ribrdb/list.dhtml"
-
-def dubyc(*files)
-  chdir(File.dirname(__FILE__) + '/src') do
-    files = files.join ' '
-    dest = '-d ../war/WEB-INF/classes'
-    dubyc = '../../../bin/dubyc'
-    options = "-I #{LIB} -p datastore"
-    orig_classpath = ENV['CLASSPATH']
-    ENV['CLASSPATH'] ||= ''
-    ENV['CLASSPATH'] += ":#{SERVLET}:#{APIS}:#{WEB_INF_CLASSES}"
-    sh %{#{dubyc} #{dest} #{options} #{files}}
-    ENV['CLASSPATH'] = orig_classpath
-  end
-end
-
-directory WEB_INF_CLASSES
-directory WEB_INF_GENERATED
-
-file MODEL_CLASS => MODEL_DUBY do
-  dubyc("#{MODEL}.duby")
-end
-
-file DUBY_APP_CLASS => [DUBY_APP_DUBY, LIST, MODEL_CLASS] do
-  dubyc("#{DUBY_APP}.duby")
-end
-
-file WEB_XML => [WEB_INF_CLASSES, CONFIG_RU, WEB_INF_GENERATED] do
-  builder = WebXmlBuilder.new do
-    eval IO.read(CONFIG_RU), nil, 'config.ru', 1
-  end
-  open(WEB_XML, 'w') do |webxml|
-    xml = AppEngine::Rack::XmlFormatter.format(builder.to_xml)
-    webxml.write(xml)
-  end
-  open(AEWEB_XML, 'w') do |aeweb|
-    xml = AppEngine::Rack::XmlFormatter.format(AppEngine::Rack.app.to_xml)
-    aeweb.write(xml)
-  end
-  open(GEMFILE, 'w') do |gems|
-    gems.puts('bundle_path ".gems/bundler_gems"')
-  end
-  open(DUMMY_CONFIG_RU, 'w').close
-  open(BUILD_STATUS, 'w') do |status_file|
-    status = {
-      :config_ru => File.stat(DUMMY_CONFIG_RU).mtime,
-      :web_xml => File.stat(WEB_XML).mtime,
-      :aeweb_xml => File.stat(AEWEB_XML).mtime,
-    }
-    status_file.write(status.to_yaml)
-  end
-end
-
-task :app => [WEB_XML, DUBY_APP_CLASS]
-
-task :server => [WEB_XML, DUBY_APP_CLASS] do
-  sh "dev_appserver.rb #{WAR}"
-end
-
-task :upload => [WEB_XML, DUBY_APP_CLASS] do
-  sh "appcfg.rb update #{WAR}"
-end
-
+file DUBY_APP => [LIST, MODEL]
+task :app => DUBY_APP
 task :default => :server
