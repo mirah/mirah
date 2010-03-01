@@ -10,6 +10,9 @@ module Duby::AST
       super(parent, line_number, &block)
       @name = name
       @captured = captured
+      # record the current scope for captured variables so it's preserved
+      # after the block gets transformed into a class.
+      scope if captured?
     end
 
     def captured?
@@ -42,6 +45,9 @@ module Duby::AST
       super(parent, line_number, children, &block)
       @captured = captured
       @name = name
+      # record the current scope for captured variables so it's preserved
+      # after the block gets transformed into a class.
+      scope if captured?
     end
 
     def captured?
@@ -71,6 +77,9 @@ module Duby::AST
       super(parent, line_number, [])
       @name = name
       @captured = captured
+      # record the current scope for captured variables so it's preserved
+      # after the block gets transformed into a class.
+      scope if captured?
     end
 
     def captured?

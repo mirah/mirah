@@ -1828,6 +1828,23 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("Hello Observer\n") do
       script.main([].to_java :string)
     end
+
+    cls, = compile(<<-EOF)
+      a = "Hello"
+      thread = Thread.new do
+        puts a
+      end
+      begin
+        a = a + " Closures"
+        thread.run
+        thread.join
+      rescue
+        puts "Uh Oh!"
+      end
+    EOF
+    assert_output("Hello Closures\n") do
+      cls.main([].to_java :string)
+    end
   end
 
   def test_each
