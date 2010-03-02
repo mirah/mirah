@@ -7,7 +7,7 @@ class BinaryTrees
     stretchDepth = maxDepth + 1
 
     check = TreeNode.bottomUpTree(0, stretchDepth).itemCheck
-    puts "stretch tree of depth " + stretchDepth + "\t check: " + check
+    puts "stretch tree of depth #{stretchDepth}\t check: #{check}"
 
     longLivedTree = TreeNode.bottomUpTree 0, maxDepth
 
@@ -23,11 +23,11 @@ class BinaryTrees
         i += 1
       end
       
-      puts "" + iterations * 2 + "\t trees of depth " + depth + "\t check: " + check
+      puts "#{iterations * 2}\t trees of depth #{depth}\t check: #{check}"
       depth += 2
     end
 
-    puts "long lived tree of depth " + maxDepth + "\t check: "+ longLivedTree.itemCheck
+    puts "long lived tree of depth #{maxDepth}\t check: #{longLivedTree.itemCheck}"
   end
 end
 

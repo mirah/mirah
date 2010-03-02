@@ -52,6 +52,6 @@ i = 0
 while i < 10
   start = System.currentTimeMillis
   run
-  puts "Time: " + (System.currentTimeMillis - start) / 1000.0
+  puts "Time: #{(System.currentTimeMillis - start) / 1000.0}"
   i += 1
 end
