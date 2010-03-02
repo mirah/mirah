@@ -469,6 +469,10 @@ module Duby::JVM::Types
       member = DubyMember.new(self, name, arguments, type, true, exceptions)
       static_methods[name] << JavaStaticMethod.new(member)
     end
+    
+    def interface?
+      false
+    end
   end
 
   class TypeDefMeta
