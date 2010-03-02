@@ -46,10 +46,10 @@ class TreeNode
 
   def self.bottomUpTree(item:int, depth:int)
     if depth > 0
-              TreeNode.new(
-                TreeNode.bottomUpTree(2*item-1, depth-1),
-                TreeNode.bottomUpTree(2*item, depth-1),
-                item)
+      TreeNode.new(
+        TreeNode.bottomUpTree(2*item-1, depth-1),
+        TreeNode.bottomUpTree(2*item, depth-1),
+        item)
     else
       TreeNode.new(item)
     end
