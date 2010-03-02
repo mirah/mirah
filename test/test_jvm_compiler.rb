@@ -1259,6 +1259,40 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_upto
+    cls, = compile(<<-EOF)
+      def foo(i:int)
+        i.upto(3) {|x| puts x }
+      end
+    EOF
+
+    assert_output("1\n2\n3\n") do
+      cls.foo(1)
+    end
+  end
+
+  def test_times
+    cls, = compile(<<-EOF)
+      def foo(i:int)
+        i.times {|x| puts x }
+      end
+    EOF
+
+    assert_output("0\n1\n2\n") do
+      cls.foo(3)
+    end
+
+    cls, = compile(<<-EOF)
+      def foo(i:int)
+        i.times { puts "Hi" }
+      end
+    EOF
+
+    assert_output("Hi\nHi\nHi\n") do
+      cls.foo(3)
+    end
+  end
+
   def test_general_loop
     cls, = compile(<<-EOF)
       def foo(x:boolean)
@@ -1830,20 +1864,22 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
 
     cls, = compile(<<-EOF)
-      a = "Hello"
-      thread = Thread.new do
-        puts a
-      end
-      begin
-        a = a + " Closures"
-        thread.run
-        thread.join
-      rescue
-        puts "Uh Oh!"
+      def foo
+        a = "Hello"
+        thread = Thread.new do
+          puts a
+        end
+        begin
+          a = a + " Closures"
+          thread.run
+          thread.join
+        rescue
+          puts "Uh Oh!"
+        end
       end
     EOF
     assert_output("Hello Closures\n") do
-      cls.main([].to_java :string)
+      cls.foo
     end
   end
 

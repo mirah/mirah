@@ -1,5 +1,3 @@
-import java.lang.System
-
 def fib(a:int)
   if a < 2
     a
@@ -8,13 +6,11 @@ def fib(a:int)
   end
 end
 
-def bench(times:int)
-  while times > 0
+def bench(n:int)
+  n.times do
     time_start = System.currentTimeMillis
     puts "fib(45): #{fib(45)}\nTotal time: #{System.currentTimeMillis - time_start}"
-    times -= 1
   end
-  nil
 end
 
 bench 10

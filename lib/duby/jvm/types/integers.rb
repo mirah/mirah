@@ -58,6 +58,41 @@ module Duby::JVM::Types
       builder.send "if_icmp#{op}", label
     end
 
+    def build_loop(parent, position, duby, block, first_value,
+                   last_value, ascending, inclusive)
+      if ascending
+        comparison = "<"
+        op = "+="
+      else
+        comparison = ">"
+        op = "-="
+      end
+      comparison << "=" if inclusive
+      forloop = Duby::AST::Loop.new(parent, position, true, false) do |forloop|
+        first, last = duby.tmp, duby.tmp
+        init = duby.eval("#{first} = 0; #{last} = 0;")
+        init.children[-2].value = first_value
+        init.children[-1].value = last_value
+        forloop.init << init
+
+        var = (block.args.args || [])[0]
+        if var
+          forloop.pre << duby.eval(
+              "#{var.name} = #{first}", '', forloop, first, last)
+        end
+        forloop.post << duby.eval("#{first} #{op} 1")
+        [
+          Duby::AST::Condition.new(forloop, position) do |c|
+            [duby.eval("#{first} #{comparison} #{last}",
+                       '', forloop, first, last)]
+          end,
+          nil
+        ]
+      end
+      forloop.body = block.body
+      forloop
+    end
+
     def add_intrinsics
       super
       math_operator('<<', 'shl')
@@ -69,34 +104,21 @@ module Duby::JVM::Types
       unary_operator('~', 'not')
 
       add_macro('downto', Int, Duby::AST.block_type) do |transformer, call|
-        Duby::AST::Loop.new(call.parent,
-                            call.position, true, false) do |forloop|
-          first, last = transformer.tmp, transformer.tmp
-          init = transformer.eval("#{first} = 0; #{last} = 0;")
-          init.children[-2].value = call.target
-          init.children[-1].value = call.parameters[0]
-          call.target.parent = init.children[-1]
-          forloop.init << init
-
-          var = call.block.args.args[0]
-          if var
-            forloop.pre << transformer.eval(
-                "#{var.name} = #{first}", '', forloop, first, last)
-          end
-          forloop.post << transformer.eval("#{first} -= 1")
-          call.block.body.parent = forloop if call.block.body
-          [
-            Duby::AST::Condition.new(forloop, call.position) do |c|
-              [transformer.eval("#{first} >= #{last}",
-                                '', forloop, first, last)]
-            end,
-            call.block.body
-          ]
-        end
+        build_loop(call.parent, call.position, transformer,
+                   call.block, call.target, call.parameters[0], false, true)
+      end
+      add_macro('upto', Int, Duby::AST.block_type) do |transformer, call|
+        build_loop(call.parent, call.position, transformer,
+                   call.block, call.target, call.parameters[0], true, true)
+      end
+      add_macro('times', Duby::AST.block_type) do |transformer, call|
+        build_loop(call.parent, call.position, transformer,
+                   call.block, Duby::AST::fixnum(nil, call.position, 0),
+                   call.target, true, false)
       end
     end
   end
-  
+
   class LongType < Number
     def prefix
       'l'
