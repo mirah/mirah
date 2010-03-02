@@ -67,6 +67,40 @@ module Duby::AST
     end
   end
 
+  class StringConcat < Node
+    def initialize(parent, position, &block)
+      super(parent, position, &block)
+    end
+
+    def infer(typer)
+      unless resolved?
+        resolved = true
+        children.each {|node| node.infer(typer); resolved &&= node.resolved?}
+        resolved! if resolved
+        @inferred_type ||= typer.string_type
+      end
+      @inferred_type
+    end
+  end
+
+  class ToString < Node
+    attr_accessor :body
+    
+    def initialize(parent, position)
+      super(parent, position)
+      @body = yield(self)[0]
+    end
+
+    def infer(typer)
+      unless resolved?
+        body.infer(typer)
+        resolved! if body.resolved?
+        @inferred_type ||= typer.string_type
+      end
+      @inferred_type
+    end
+  end
+
   class Symbol < Node; end
 
   class Boolean < Node

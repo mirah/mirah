@@ -19,6 +19,18 @@ module Duby
         end
       end
     end
+
+    class StringConcat
+      def compile(compiler, expression)
+        compiler.build_string(children, expression)
+      end
+    end
+
+    class ToString
+      def compile(compiler, expression)
+        compiler.to_string(body, expression)
+      end
+    end
     
     class Float
       def compile(compiler, expression)

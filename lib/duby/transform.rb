@@ -350,6 +350,22 @@ module Duby
         end
       end
 
+      class DStrNode
+        def transform(transformer, parent)
+          StringConcat.new(parent, position) do |p|
+            child_nodes.map{|n| n.transform(transformer, p)}
+          end
+        end
+      end
+
+      class EvStrNode
+        def transform(transformer, parent)
+          ToString.new(parent, position) do |p|
+            [body.transform(transformer, p)]
+          end
+        end
+      end
+
       class GlobalVarNode
         def transform(transformer, parent)
           classname = name[1..-1]

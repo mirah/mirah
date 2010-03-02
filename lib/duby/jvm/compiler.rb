@@ -590,6 +590,43 @@ module Duby
         @method.ldc(value)
       end
 
+      def build_string(nodes, expression)
+        if expression
+          # could probably be more efficient with non-default constructor
+          @method.new java::lang::StringBuilder
+          @method.dup
+          @method.invokespecial java::lang::StringBuilder, "<init>", [@method.void]
+
+          nodes.each do |node|
+            node.compile(self, true)
+            method = find_method(java::lang::StringBuilder.java_class, "append", [node.inferred_type.jvm_type], false)
+            if method
+              @method.invokevirtual java::lang::StringBuilder.java_class, "append", [method.return_type, *method.parameter_types]
+            else
+              log "Could not find a match for #{java::lang::StringBuilder}.append(#{node.inferred_type})"
+              fail "Could not compile"
+            end
+          end
+
+          # convert to string
+          @method.invokevirtual java::lang::StringBuilder.java_class, "toString", [@method.string]
+        else
+          nodes.each do |node|
+            node.compile(self, false)
+          end
+        end
+      end
+
+      def to_string(body, expression)
+        if expression
+          body.compile(self, true)
+          body.inferred_type.box(@method) if body.inferred_type.primitive?
+          @method.invokevirtual @method.object, "toString", [@method.string]
+        else
+          @body.compile(self, false)
+        end
+      end
+
       def boolean(value)
         value ? @method.iconst_1 : @method.iconst_0
       end
