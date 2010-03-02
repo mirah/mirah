@@ -52,6 +52,8 @@ module Duby
           print line
           if skip > 0
             print ' ' * (skip)
+          else
+            skip = 0
           end
           if line_end <= end_offset
             puts '^' * (line.size - skip)
