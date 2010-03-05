@@ -1943,6 +1943,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_array_arguments
+    cls, = compile(<<-EOF)
+      class ArrayArg
+        def initialize(foo:byte[]); end
+
+        def self.make_one(foo:byte[])
+          ArrayArg.new(foo)
+        end
+      end
+    EOF
+    cls.make_one(nil)
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

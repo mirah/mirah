@@ -88,7 +88,11 @@ module Duby::JVM::Types
   class JavaConstructor < JavaCallable
     def argument_types
       @argument_types ||= @member.argument_types.map do |arg|
-        AST.type(arg) if arg
+        if arg.kind_of?(AST::TypeReference) || arg.nil?
+          arg
+        else
+          AST.type(arg)
+        end
       end
     end
 
