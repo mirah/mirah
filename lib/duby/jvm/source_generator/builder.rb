@@ -12,38 +12,38 @@ module Duby
 
     class Builder
       attr_accessor :package, :classes, :filename, :compiler
-      
+
       def initialize(filename, compiler)
         @filename = filename
         @classes = []
         @compiler = compiler
       end
-      
+
       def public_class(name, superclass=nil, *interfaces)
         cls = ClassBuilder.new(self, name, superclass, interfaces)
         @classes << cls
         cls
       end
-      
+
       def public_interface(name, *interfaces)
         cls = InterfaceBuilder.new(self, name, interfaces)
         @classes << cls
         cls
       end
-      
+
       def generate
         @classes.each do |cls|
           yield cls.filename, cls
         end
       end
     end
-    
+
     class Output
       def initialize
         @out = ""
         @indent = 0
       end
-      
+
       def puts(*lines)
         lines.each do |line|
           print_indent
@@ -52,22 +52,22 @@ module Duby
           @indented = false
         end
       end
-      
+
       def print_indent
         @indent ||= 0
         @out << (' ' * @indent) unless @indented
         @indented = true
       end
-      
+
       def print(str)
         print_indent
         @out << str.to_s
       end
-      
+
       def indent
         @indent += 2
       end
-      
+
       def dedent
         @indent -= 2
       end
@@ -79,29 +79,29 @@ module Duby
           @indented = false
         end
       end
-      
+
       def to_s
         @out
       end
     end
-    
+
     module Helper
       def puts(*args)
         @out.puts(*args)
       end
-      
+
       def print(*args)
         @out.print(*args)
       end
-      
+
       def indent
         @out.indent
       end
-      
+
       def dedent
         @out.dedent
       end
-      
+
       def block(line='')
         puts line + " {"
         indent
@@ -120,7 +120,7 @@ module Duby
         else
           'null'
         end
-      end   
+      end
 
       def annotate(annotations)
         annotations.each do |annotation|
@@ -129,7 +129,7 @@ module Duby
         end
       end
     end
-    
+
     class ClassBuilder
       include Helper
       include Duby::Compiler::JVM::JVMLogger
@@ -159,11 +159,11 @@ module Duby
         @fields = {}
         start
       end
-      
+
       def compiler
         @builder.compiler
       end
-      
+
       def start
         puts "// Generated from #{@builder.filename}"
         puts "package #{package};" if package
@@ -183,7 +183,7 @@ module Duby
         puts " {"
         indent
       end
-      
+
       def stop
         finish_declaration
         return if @stopped
@@ -196,21 +196,21 @@ module Duby
         puts "}"
         log "Class #{name} complete (#{@out.to_s.size})"
       end
-      
+
       def main
         public_static_method('main', [], JVMTypes::Void,
                              [JVMTypes::String.array_type, 'argv'])
       end
-      
-      def declare_field(name, type, static, annotations=[])
+
+      def declare_field(name, type, static, access='private', annotations=[])
         finish_declaration
         return if @fields[name]
         static = static ? 'static' : ''
         annotate(annotations)
-        puts "private #{static} #{type.to_source} #{name};"
+        puts "#{access} #{static} #{type.to_source} #{name};"
         @fields[name] = true
       end
-      
+
       def public_method(name, exceptions, type, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
@@ -220,7 +220,7 @@ module Duby
                                       :exceptions => exceptions)
         @methods[-1]
       end
-      
+
       def public_static_method(name, exceptions, type, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
@@ -231,7 +231,7 @@ module Duby
                                       :exceptions => exceptions)
         @methods[-1]
       end
-      
+
       def public_constructor(exceptions, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
@@ -240,18 +240,18 @@ module Duby
                                       :exceptions => exceptions)
         @methods[-1]
       end
-      
+
       def generate
         stop
         @out.to_s
       end
     end
-    
+
     class InterfaceBuilder < ClassBuilder
       def initialize(builder, name, interfaces)
         super(builder, name, nil, interfaces)
       end
-      
+
       def finish_declaration
         return if @declaration_finished
         @declaration_finished = true
@@ -266,7 +266,7 @@ module Duby
         puts " {"
         indent
       end
-      
+
       def public_method(name, type, exceptions, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
@@ -278,12 +278,12 @@ module Duby
         @methods[-1]
       end
     end
-    
+
     class MethodBuilder
       include Helper
-      
+
       attr_accessor :name, :type, :out
-      
+
       def initialize(cls, options)
         @class = cls
         @compiler = cls.compiler
@@ -328,7 +328,7 @@ module Duby
         end
         indent
       end
-      
+
       def stop
         dedent
         puts "}"
@@ -347,7 +347,7 @@ module Duby
         end
         name
       end
-      
+
       def local?(name)
         !!@locals[name]
       end
@@ -356,24 +356,24 @@ module Duby
         @temps += 1
         declare_local(type, "temp$#{@temps}")
       end
-      
+
       def label
         @temps += 1
         "label#{@temps}"
       end
-      
+
       def push_int(value)
         print value
       end
-      
+
       def ldc_float(value)
         print "(float)#{value}"
       end
-      
+
       def ldc_double(value)
         print value
       end
-      
+
       def method_missing(name, *args)
         if name.to_s =~ /.const_(m)?(\d)/
           print '-' if $1

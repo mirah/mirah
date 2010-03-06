@@ -1,4 +1,5 @@
 require 'duby'
+require 'duby/jvm/base'
 require 'duby/jvm/method_lookup'
 require 'duby/jvm/types'
 require 'duby/typer'
@@ -17,7 +18,7 @@ module Duby
   end
 
   module Compiler
-    class JVM
+    class JVM < JVMCompilerBase
       java_import java.lang.System
       java_import java.io.PrintStream
       include Duby::JVM::MethodLookup
@@ -39,7 +40,6 @@ module Duby
       module JVMLogger
         def log(message); JVM.log(message); end
       end
-      include JVMLogger
 
       class ImplicitSelf
         attr_reader :inferred_type
@@ -53,29 +53,16 @@ module Duby
         end
       end
 
-      attr_accessor :filename, :src, :method, :static, :class
-
       def initialize(filename)
-        @filename = File.basename(filename)
-        @src = ""
-        @static = true
-        classname = JVM.classname_from_filename(filename)
+        super
         BiteScript.bytecode_version = BiteScript::JAVA1_5
         @file = BiteScript::FileBuilder.new(@filename)
         AST.type_factory.define_types(@file)
-        @type = AST::type(classname)
         @jump_scope = []
-        @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
-        @captured_locals = Hash.new {|h, binding| h[binding] = {}}
       end
 
-      def compile(ast, expression = false)
-        ast.compile(self, expression)
-        log "Compilation successful!"
-      end
-
-      def toplevel_class
-        @class = @type.define(@file)
+      def output_type
+        "classes"
       end
 
       def push_jump_scope(node)
@@ -99,32 +86,13 @@ module Duby
         found
       end
 
-      def define_main(script)
-        body = script.body
-        body = body[0] if body.children.size == 1
-        if body.class != AST::ClassDefinition
-          @class = @type.define(@file)
-          with :method => @class.main do
-            log "Starting main method"
+      def begin_main
+        # declare argv variable
+        @method.local('argv', AST.type('string', true))
+      end
 
-            @method.start
-
-            # declare argv variable
-            @method.local('argv', AST.type('string', true))
-
-            prepare_binding(script) do
-              body.compile(self, false)
-            end
-
-            @method.returnvoid
-            @method.stop
-          end
-          @class.stop
-        else
-          body.compile(self, false)
-        end
-
-        log "Main method complete!"
+      def finish_main
+        @method.returnvoid
       end
 
       def prepare_binding(scope)
@@ -148,98 +116,60 @@ module Duby
 
       def define_method(node)
         push_jump_scope(node) do
-          name, signature, args = node.name, node.signature, node.arguments.args
-          arg_types = if args
-            args.map { |arg| arg.inferred_type }
-          else
-            []
-          end
-          return_type = signature[:return]
-          exceptions = signature[:throws]
-
-          with :static => @static || node.static? do
-            if @static
-              method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
-            else
-              method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
-            end
-
-            annotate(method, node.annotations)
-
+          super(node, true) do |method, arg_types|
             return if @class.interface?
 
-            log "Starting new method #{name}(#{arg_types})"
-            method_body(method, args, node, signature[:return])
-
-            arg_types_for_opt = []
-            args_for_opt = []
-            if args
-              args.each do |arg|
-                if AST::OptionalArgument === arg
-                  if @static
-                    method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
-                  else
-                    method = @class.public_method(name.to_s, exceptions, return_type, *arg_types_for_opt)
-                  end
-
-                  with :method => method do
-                    log "Starting new method #{name}(#{arg_types_for_opt})"
-
-                    @method.start
-
-                    # declare all args so they get their values
-                    @method.aload(0) unless @static
-                    args_for_opt.each do |req_arg|
-                      req_arg.inferred_type.load(@method, @method.local(req_arg.name, req_arg.inferred_type))
-                    end
-                    arg.children[0].value.compile(self, true)
-
-                    # invoke the next one in the chain
-                    if @static
-                      @method.invokestatic(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
-                    else
-                      @method.invokevirtual(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
-                    end
-
-                    signature[:return].return(@method)
-
-                    @method.stop
-                  end
-                end
-                arg_types_for_opt << arg.inferred_type
-                args_for_opt << arg
-              end
-            end
+            log "Starting new method #{node.name}(#{arg_types})"
+            args = node.arguments.args
+            method_body(method, args, node, node.signature[:return])
+            log "Method #{node.name}(#{arg_types}) complete!"
           end
+        end
+      end
 
-          log "Method #{name}(#{arg_types}) complete!"        end
+      def define_optarg_chain(name, arg, return_type,
+                              args_for_opt, arg_types_for_opt)
+        # declare all args so they get their values
+        @method.aload(0) unless @static
+        args_for_opt.each do |req_arg|
+          req_arg.inferred_type.load(@method, @method.local(req_arg.name, req_arg.inferred_type))
+        end
+        arg.children[0].value.compile(self, true)
+
+        # invoke the next one in the chain
+        if @static
+          @method.invokestatic(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+        else
+          @method.invokevirtual(@class, name.to_s, [return_type] + arg_types_for_opt + [arg.inferred_type])
+        end
+
+        return_type.return(@method)
       end
 
       def constructor(node)
         push_jump_scope(node) do
-          args = node.arguments.args || []
-          arg_types = args.map { |arg| arg.inferred_type }
-          exceptions = node.signature[:throws]
-          method = @class.public_constructor(exceptions, *arg_types)
-          annotate(method, node.annotations)
-          method_body(method, args, node, Types::Void) do
-            method.aload 0
-            if node.delegate_args
-              if node.calls_super
-                delegate_class = @type.superclass
+          super(node, true) do |method, args|
+            method_body(method, args, node, Types::Void) do
+              method.aload 0
+              if node.delegate_args
+                if node.calls_super
+                  delegate_class = @type.superclass
+                else
+                  delegate_class = @type
+                end
+                delegate_types = node.delegate_args.map do |arg|
+                  arg.inferred_type
+                end
+                constructor = delegate_class.constructor(*delegate_types)
+                node.delegate_args.each do |arg|
+                  arg.compile(self, true)
+                end
+                method.invokespecial(
+                    delegate_class, "<init>",
+                    [@method.void, *constructor.argument_types])
               else
-                delegate_class = @type
+                method.invokespecial @class.superclass, "<init>", [@method.void]
               end
-              delegate_types = node.delegate_args.map {|arg| arg.inferred_type}
-              constructor = delegate_class.constructor(*delegate_types)
-              node.delegate_args.each do |arg|
-                arg.compile(self, true)
-              end
-              method.invokespecial(
-                  delegate_class, "<init>",
-                  [@method.void, *constructor.argument_types])
-            else
-              method.invokespecial @class.superclass, "<init>", [@method.void]
             end
           end
         end
@@ -266,16 +196,6 @@ module Duby
           return_type.return(@method)
 
           @method.stop
-        end
-      end
-
-      def define_class(class_def, expression)
-        with(:type => class_def.inferred_type,
-             :class => class_def.inferred_type.define(@file),
-             :static => false) do
-          annotate(@class, class_def.annotations)
-          class_def.body.compile(self, false) if class_def.body
-          @class.stop
         end
       end
 
@@ -504,14 +424,10 @@ module Duby
       end
 
       def body(body, expression)
-        # all except the last element in a body of code is treated as a statement
-        i, last = 0, body.children.size - 1
-        while i < last
-          body.children[i].compile(self, false)
-          i += 1
-        end
         # last element is an expression only if the body is an expression
-        body.children[last].compile(self, expression) if last >= 0
+        super(body, expression) do |last|
+          last.compile(self, expression)
+        end
       end
 
       def local(name, type)
@@ -742,28 +658,8 @@ module Duby
         method.aload(0)
       end
 
-      def newline
-        # TODO: line numbering
-      end
-
       def line(num)
         @method.line(num) if @method
-      end
-
-      def generate
-        log "Generating classes..."
-        @file.generate do |filename, builder|
-          log "  #{builder.class_name}"
-          if block_given?
-            yield filename, builder
-          else
-            File.open(filename, 'w') {|f| f.write(builder.generate)}
-          end
-        end
-        log "...done!"
-      end
-
-      def import(short, long)
       end
 
       def print(print_node)
@@ -847,50 +743,34 @@ module Duby
         type.newarray(@method)
       end
 
-      def with(vars)
-        orig_values = {}
-        begin
-          vars.each do |name, new_value|
-            name = "@#{name}"
-            orig_values[name] = instance_variable_get name
-            instance_variable_set name, new_value
-          end
-          yield
-        ensure
-          orig_values.each do |name, value|
-            instance_variable_set name, value
-          end
+      class ClosureCompiler < Duby::Compiler::JVM
+        def initialize(file, type, parent)
+          @file = file
+          @type = type
+          @jump_scope = []
+          @parent = parent
         end
-      end
-    end
 
-    class ClosureCompiler < JVM
-      def initialize(file, type, parent)
-        @file = file
-        @type = type
-        @jump_scope = []
-        @parent = parent
-      end
-
-      def prepare_binding(scope)
-        if scope.has_binding?
-          type = scope.binding_type
-          @binding = @parent.get_binding(type)
-          @method.aload 0
-          @method.getfield(@class, 'binding', @binding)
-          type.store(@method, @method.local('$binding', type))
-        end
-        begin
-          yield
-        ensure
+        def prepare_binding(scope)
           if scope.has_binding?
-            @binding = nil
+            type = scope.binding_type
+            @binding = @parent.get_binding(type)
+            @method.aload 0
+            @method.getfield(@class, 'binding', @binding)
+            type.store(@method, @method.local('$binding', type))
+          end
+          begin
+            yield
+          ensure
+            if scope.has_binding?
+              @binding = nil
+            end
           end
         end
-      end
 
-      def declared_captures
-        @parent.declared_captures(@binding)
+        def declared_captures
+          @parent.declared_captures(@binding)
+        end
       end
     end
   end

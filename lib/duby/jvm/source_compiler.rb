@@ -14,10 +14,9 @@ end
 
 module Duby
   module Compiler
-    class JavaSource
+    class JavaSource < JVMCompilerBase
       JVMTypes = Duby::JVM::Types
-      include Duby::Compiler::JVM::JVMLogger
-      attr_accessor :filename, :method, :static, :class, :lvalue
+      attr_accessor :lvalue
 
       Operators = [
         '+', '-', '+@', '-@', '/', '%', '*', '<',
@@ -31,146 +30,98 @@ module Duby
       ImplicitReturn = Struct.new(:value)
 
       def initialize(filename)
-        @filename = File.basename(filename)
-        @static = true
-        parts = filename.split '/'
-        classname = Duby::Compiler::JVM.classname_from_filename(filename)
-        package = parts.join('.') unless parts.empty?
-
+        super
         @file = Duby::JavaSource::Builder.new(filename, self)
-        #@file.package = package
-        @type = AST::type(classname)
       end
 
-      def toplevel_class
-        @class = @type.define(@file)
-      end
-
-      def generate(&block)
-        log "Generating source files..."
-        @file.generate do |filename, builder|
-          log "  #{builder.class_name}"
-          if block_given?
-            yield filename, builder
-          else
-            File.open(filename, 'w') {|f| f.write(builder.generate)}
-          end
-        end
-        log "...done!"
-      end
-
-      def define_main(script)
-        body = script.body
-        body = body[0] if body.children.size == 1
-        if body.class != AST::ClassDefinition
-          @class = @type.define(@file)
-          with :method => @class.main do
-            log "Starting main method"
-
-            @method.start
-
-            body.compile(self, false)
-
-            @method.stop
-          end
-          @class.stop
-        else
-          body.compile(self, false)
-        end
-
-        log "Main method complete!"
+      def output_type
+        "source files"
       end
 
       def define_method(node)
-        name, signature, args = node.name, node.signature, node.arguments.args
-        args ||= []
-        return_type = signature[:return]
-        exceptions = signature[:throws] || []
-        with :static => @static || node.static? do
-          if @static
-            method = @class.public_static_method(name.to_s, exceptions, return_type, *args)
-          else
-            method = @class.public_method(name.to_s, exceptions, return_type, *args)
-          end
-
+        super(node, false) do |method, _|
           with :method => method do
-            log "Starting new method #{name}"
-            @method.annotate(node.annotations)
+            log "Starting new method #{node.name}"
             @method.start
 
-            unless @method.type.nil? || @method.type.void?
-              self.return(ImplicitReturn.new(node.body))
-            else
-              node.body.compile(self, false) if node.body
-            end
-
-            log "Method #{name} complete!"
-            @method.stop
-          end
-
-          arg_types_for_opt = []
-          args_for_opt = []
-          if args
-            args.each do |arg|
-              if AST::OptionalArgument === arg
-                if @static
-                  method = @class.public_static_method(name.to_s, exceptions, return_type, *args_for_opt)
-                else
-                  method = @class.public_method(name.to_s, exceptions, return_type, *args_for_opt)
-                end
-
-                with :method => method do
-                  log "Starting new method #{name}(#{arg_types_for_opt})"
-
-                  @method.annotate(node.annotations)
-                  @method.start
-
-                  # declare all args so they get their values
-                  @method.print "return " unless @method.type.nil? || @method.type.void?
-                  @method.print "this." unless @static
-                  @method.print "#{name}("
-                  @method.print args_for_opt.map(&:name).join(', ')
-                  @method.print ', 'if args_for_opt.size > 0
-                  arg.children[0].value.compile(self, true)
-
-                  # invoke the next one in the chain
-                  @method.print ");\n"
-
-                  @method.stop
-                end
+            prepare_binding(node) do
+              unless @method.type.nil? || @method.type.void?
+                self.return(ImplicitReturn.new(node.body))
+              else
+                node.body.compile(self, false) if node.body
               end
-              arg_types_for_opt << arg.inferred_type
-              args_for_opt << arg
             end
+
+            log "Method #{node.name} complete!"
+            @method.stop
           end
         end
       end
 
-      def constructor(node)
-        args = node.arguments.args || []
-        exceptions = node.signature[:throws] || []
-        method = @class.public_constructor(exceptions, *args)
-        with :method => method do
-          @method.annotate(node.annotations)
-          @method.start
-          if node.delegate_args
-            delegate = if node.calls_super
-              "super"
-            else
-              "this"
-            end
-            method.print "#{delegate}("
-            node.delegate_args.each_with_index do |arg, index|
-              method.print ', ' unless index == 0
-              raise "Invalid constructor argument #{arg}" unless arg.expr?(self)
-              arg.compile(self, true)
-            end
-            method.puts ");"
-          end
+      def annotate(node, annotations)
+        node.annotate(annotations)
+      end
 
-          node.body.compile(self, false) if node.body
-          method.stop
+      def define_optarg_chain(name, arg, return_type,
+                              args_for_opt, arg_types_for_opt)
+        # declare all args so they get their values
+        @method.print "return " unless @method.type.nil? || @method.type.void?
+        @method.print "this." unless @static
+        @method.print "#{name}("
+        @method.print args_for_opt.map(&:name).join(', ')
+        @method.print ', 'if args_for_opt.size > 0
+        arg.children[0].value.compile(self, true)
+
+        # invoke the next one in the chain
+        @method.print ");\n"
+      end
+
+      def constructor(node)
+        super(node, false) do |method, _|
+          with :method => method do
+            @method.start
+            if node.delegate_args
+              delegate = if node.calls_super
+                "super"
+              else
+                "this"
+              end
+              method.print "#{delegate}("
+              node.delegate_args.each_with_index do |arg, index|
+                method.print ', ' unless index == 0
+                raise "Invalid constructor argument #{arg}" unless arg.expr?(self)
+                arg.compile(self, true)
+              end
+              method.puts ");"
+            end
+
+            prepare_binding(node) do
+              node.body.compile(self, false) if node.body
+            end
+            method.stop
+          end
         end
+      end
+
+      def prepare_binding(scope)
+        if scope.has_binding?
+          type = scope.binding_type
+          @binding = @bindings[type]
+          @method.puts "#{type.name} $binding = new #{type.name}();"
+        end
+        begin
+          yield
+        ensure
+          if scope.has_binding?
+            @binding.stop
+            @binding = nil
+          end
+        end
+      end
+
+      def define_closure(class_def, expression)
+        compiler = ClosureCompiler.new(@file, @type, self)
+        compiler.define_class(class_def, expression)
       end
 
       def return(node)
@@ -228,7 +179,7 @@ module Duby
       end
 
       def declare_field(name, type, annotations)
-        @class.declare_field(name, type, @static, annotations)
+        @class.declare_field(name, type, @static, 'private', annotations)
       end
 
       def local(name, type)
@@ -278,6 +229,25 @@ module Duby
         store_value(lvalue, value)
       end
 
+      def captured_local_declare(scope, name, type)
+        unless declared_captures[name]
+          declared_captures[name] = type
+          @binding.declare_field(name, type, false, '')
+        end
+      end
+
+      def captured_local(scope, name, type)
+        captured_local_declare(scope, name, type)
+        @method.print "$binding.#{name}"
+      end
+
+      def captured_local_assign(node, expression)
+        scope, name, type = node.scope, node.name, node.inferred_type
+        captured_local_declare(scope, name, type)
+        lvalue = "#{@lvalue if expression}$binding.#{name} = "
+        store_value(lvalue, node.value)
+      end
+
       def store_value(lvalue, value)
         if value.is_a? String
           @method.puts "#{lvalue}#{value};"
@@ -306,14 +276,9 @@ module Duby
       end
 
       def body(body, expression)
-        # all except the last element in a body of code is treated as a statement
-        i, last = 0, body.children.size - 1
-        while i < last
-          body.children[i].compile(self, false)
-          i += 1
+        super(body, expression) do |last|
+          maybe_store(last, expression)
         end
-        # last element is an expression only if the body is an expression
-        maybe_store(body.children[last], expression) if last >= 0
       end
 
       def branch_expression(node)
@@ -574,9 +539,6 @@ module Duby
         @method.print ']'
       end
 
-      def import(short, long)
-      end
-
       def string(value)
         @method.print value.inspect
       end
@@ -613,7 +575,7 @@ module Duby
       end
 
       def binding_reference
-        @method.print 'null'
+        @method.print '$binding'
       end
 
       def compile_self
@@ -632,29 +594,30 @@ module Duby
         @method.puts ');'
       end
 
-      def define_class(class_def, expression)
-        with(:class => class_def.inferred_type.define(@file),
-             :static => false) do
-          @class.annotate(class_def.annotations)
-          class_def.body.compile(self, false) if class_def.body
-
-          @class.stop
+      class ClosureCompiler < JavaSource
+        def initialize(file, type, parent)
+          @file = file
+          @type = type
+          @parent = parent
         end
-      end
 
-      def with(vars)
-        orig_values = {}
-        begin
-          vars.each do |name, new_value|
-            name = "@#{name}"
-            orig_values[name] = instance_variable_get name
-            instance_variable_set name, new_value
+        def prepare_binding(scope)
+          if scope.has_binding?
+            type = scope.binding_type
+            @binding = @parent.get_binding(type)
+            @method.puts("#{type.name} $binding = this.binding;")
           end
-          yield
-        ensure
-          orig_values.each do |name, value|
-            instance_variable_set name, value
+          begin
+            yield
+          ensure
+            if scope.has_binding?
+              @binding = nil
+            end
           end
+        end
+
+        def declared_captures
+          @parent.declared_captures(@binding)
         end
       end
     end

@@ -1,23 +1,23 @@
-class Duby::Compiler::JavaSource
+class Duby::Compiler::JavaSource < Duby::Compiler::JVMCompilerBase
   class SimpleWhileLoop
     attr_reader :compiler, :loop
     def initialize(loop, compiler)
       @loop = loop
       @compiler = compiler
     end
-    
+
     def break
       compiler.method.puts "break;"
     end
-    
+
     def next
       compiler.method.puts "continue;"
     end
-    
+
     def redo
       raise "#{self.class.name} doesn't support redo"
     end
-    
+
     def compile(expression)
       prepare
       @loop.init.compile(compiler, false) if @loop.init?
@@ -35,11 +35,11 @@ class Duby::Compiler::JavaSource
         compiler.method.puts "#{compiler.lvalue}null;"
       end
     end
-    
+
     def compile_body
       loop.body.compile(compiler, false)
     end
-    
+
     def prepare
       predicate = loop.condition.predicate.precompile(compiler)
       negative = loop.negative ? '!' : ''
@@ -71,11 +71,11 @@ class Duby::Compiler::JavaSource
     def break
       compiler.method.puts "break #{@outer};"
     end
-    
+
     def next
       compiler.method.puts "break #{@inner};"
     end
-    
+
     def redo
       compiler.method.puts "#{@redo} = true;"
       compiler.method.puts "continue #{@inner};"
