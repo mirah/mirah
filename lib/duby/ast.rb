@@ -235,6 +235,26 @@ module Duby
 
     module Scope; end
 
+    module Binding
+      attr_writer :binding_type
+
+      def binding_type(duby=nil)
+        @binding_type ||= begin
+          name = "#{defining_class.name}$#{duby.tmp}"
+          factory = Duby::AST.type_factory
+          if factory
+            factory.declare_type(name)
+          else
+            Duby::AST::TypeReference.new(name, false, false)
+          end
+        end
+      end
+
+      def has_binding?
+        @binding_type != nil
+      end
+    end
+
     class Colon2 < Node; end
 
     class Constant < Node

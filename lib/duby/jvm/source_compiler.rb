@@ -27,7 +27,7 @@ module Duby
       ArrayOps = [
         '[]', '[]=', 'length'
       ]
-      
+
       ImplicitReturn = Struct.new(:value)
 
       def initialize(filename)
@@ -59,7 +59,8 @@ module Duby
         log "...done!"
       end
 
-      def define_main(body)
+      def define_main(script)
+        body = script.body
         body = body[0] if body.children.size == 1
         if body.class != AST::ClassDefinition
           @class = @type.define(@file)
@@ -166,7 +167,7 @@ module Duby
             end
             method.puts ");"
           end
-          
+
           node.body.compile(self, false) if node.body
           method.stop
         end
@@ -195,7 +196,7 @@ module Duby
           store_value('throw ', node)
         end
       end
-      
+
       def rescue(node, expression)
         @method.block 'try' do
           maybe_store(node.body, expression)
@@ -209,7 +210,7 @@ module Duby
           end
         end
       end
-      
+
       def ensure(node, expression)
         @method.block 'try' do
           maybe_store(node.body, expression)
@@ -221,11 +222,11 @@ module Duby
 
       def line(num)
       end
-      
+
       def declare_local(name, type)
         @method.declare_local(type, name)
       end
-      
+
       def declare_field(name, type, annotations)
         @class.declare_field(name, type, @static, annotations)
       end
@@ -233,7 +234,7 @@ module Duby
       def local(name, type)
         @method.print name
       end
-      
+
       def field(name, type, annotations)
         name = name[1..-1]
         declare_field(name, type, annotations)
@@ -265,18 +266,18 @@ module Duby
         name = name[1..-1]
         declare_field(name, type, annotations)
       end
-      
+
       def local_declare(name, type)
         declare_local(name, type)
       end
-      
+
       def field_assign(name, type, expression, value, annotations)
         name = name[1..-1]
         declare_field(name, type, annotations)
         lvalue = "#{@lvalue if expression}#{this}.#{name} = "
         store_value(lvalue, value)
       end
-      
+
       def store_value(lvalue, value)
         if value.is_a? String
           @method.puts "#{lvalue}#{value};"
@@ -290,7 +291,7 @@ module Duby
           end
         end
       end
-      
+
       def assign(name, value)
         store_value("#{name} = ", value)
         name
@@ -314,7 +315,7 @@ module Duby
         # last element is an expression only if the body is an expression
         maybe_store(body.children[last], expression) if last >= 0
       end
-      
+
       def branch_expression(node)
         node.condition.compile(self, true)
         @method.print ' ? ('
@@ -331,7 +332,7 @@ module Duby
         end
         @method.print ')'
       end
-      
+
       def branch(node, expression)
         if expression && node.expr?(self)
           return branch_expression(node)
@@ -356,7 +357,7 @@ module Duby
           end
         end
       end
-      
+
       def loop(loop, expression)
         if loop.redo? || loop.post || !loop.condition.predicate.expr?(self)
           loop = ComplexWhileLoop.new(loop, self)
@@ -367,7 +368,7 @@ module Duby
           loop.compile(expression)
         end
       end
-      
+
       def expr?(target, params)
         !([target] + params).any? {|x| x.kind_of? Duby::AST::TempValue}
       end
@@ -432,7 +433,7 @@ module Duby
           target = call.target.precompile(self)
         end
         params = compile_args(call)
-        
+
         if Operators.include? call.name
           operator(target, call.name, params, expression)
         elsif call.target.inferred_type.array? && ArrayOps.include?(call.name)
@@ -443,7 +444,7 @@ module Duby
           method_call(target, call, params, expression)
         end
       end
-      
+
       def array_op(target, name, args, expression)
         simple = expr?(target, args)
         index, value = args
@@ -466,15 +467,15 @@ module Duby
           @method.puts ';'
         end
       end
-      
+
       def break(node)
         @loop.break
       end
-      
+
       def next(node)
         @loop.next
       end
-      
+
       def redo(node)
         @loop.redo
       end
@@ -511,7 +512,7 @@ module Duby
         end
 
       end
-      
+
       def method_call(target, call, params, expression)
         simple = call.expr?(self)
         method = call.method(self)
@@ -579,7 +580,7 @@ module Duby
       def string(value)
         @method.print value.inspect
       end
-      
+
       def boolean(value)
         @method.print value ? 'true' : 'false'
       end
@@ -596,7 +597,7 @@ module Duby
             n.compile(self, true)
             comma = true
           end
-          
+
           @method.print("))")
         else
           # elements, as non-expressions
@@ -606,15 +607,19 @@ module Duby
           end
         end
       end
-      
+
       def null
         @method.print 'null'
       end
-      
+
+      def binding_reference
+        @method.print 'null'
+      end
+
       def compile_self
         @method.print 'this'
       end
-      
+
       def print(node)
         value = node.parameters[0]
         value = value && value.precompile(self)
@@ -632,7 +637,7 @@ module Duby
              :static => false) do
           @class.annotate(class_def.annotations)
           class_def.body.compile(self, false) if class_def.body
-        
+
           @class.stop
         end
       end

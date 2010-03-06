@@ -44,9 +44,9 @@ module Duby::AST
           _define_method(StaticMethodDefinition, position, name, type, args))
     end
 
-    def define_constructor(position, *args)
+    def define_constructor(position, *args, &block)
       append_node(_define_method(
-          ConstructorDefinition, position, 'initialize', nil, args))
+          ConstructorDefinition, position, 'initialize', nil, args, &block))
     end
 
     def _define_method(klass, position, name, type, args)
@@ -58,7 +58,7 @@ module Duby::AST
         else
           args_node = Arguments.new(method, position) do |args_node|
             arg_list = args.map do |arg_name, arg_type, arg_position|
-              signature[arg_name.intern] = type
+              signature[arg_name.intern] = arg_type
               arg_position ||= position
               RequiredArgument.new(args_node, arg_position, arg_name)
             end
@@ -73,6 +73,12 @@ module Duby::AST
           end
         ]
       end
+    end
+
+    def declare_field(position, name, type)
+      field = FieldDeclaration.new(nil, position || self.position, name)
+      field.type = type.dup
+      append_node(field)
     end
 
     def infer(typer)
@@ -120,6 +126,16 @@ module Duby::AST
       @name = name
       @children = [[], nil]
       @children = yield(self)
+    end
+  end
+
+  class ClosureDefinition < ClassDefinition
+    attr_accessor :enclosing_type
+    def initialize(parent, position, name, enclosing_type)
+      super(parent, position, name, []) do
+        [nil, nil]
+      end
+      @enclosing_type = enclosing_type
     end
   end
 

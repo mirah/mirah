@@ -8,7 +8,7 @@ module Duby::AST
     def infer(typer)
       unless @inferred_type
         if children.size == 0
-          @inferred_type = typer.default_type
+          @inferred_type = typer.no_type
         else
           children.each {|child| @inferred_type = typer.infer(child)}
         end
@@ -37,10 +37,14 @@ module Duby::AST
       duby = typer.transformer
       interface = method.argument_types[-1]
       outer_class = scope.defining_class
+      binding = scope.binding_type(duby)
       name = "#{outer_class.name}$#{duby.tmp}"
-      klass = duby.define_class(position, name)
+      klass = duby.define_closure(position, name, outer_class)
       klass.interfaces = [interface]
-      klass.define_constructor(position)
+      klass.define_constructor(position,
+                               ['binding', binding]) do |c|
+          duby.eval("@binding = binding", '-', c, 'binding')
+      end
       impl_methods = find_methods(interface)
       # TODO: find a nice way to closure-impl multiple methods
       # perhaps something like
@@ -50,15 +54,19 @@ module Duby::AST
       # end
       raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
       impl_methods.each do |method|
-        klass.define_method(position,
-                            method.name,
-                            method.actual_return_type,
-                            args.dup).body = body.dup
+        mdef = klass.define_method(position,
+                                   method.name,
+                                   method.actual_return_type,
+                                   args.dup)
+        mdef.body = body.dup
+        mdef.binding_type = binding
       end
       call = parent
       instance = Call.new(call, position, 'new')
       instance.target = Constant.new(call, position, name)
-      instance.parameters = []
+      instance.parameters = [
+        BindingReference.new(instance, position, binding)
+      ]
       call.parameters << instance
       typer.infer(klass)
       typer.infer(instance)
@@ -76,6 +84,18 @@ module Duby::AST
     end
   end
 
+  class BindingReference < Node
+    def initialize(parent, position, type)
+      super(parent, position)
+      @inferred_type = type
+    end
+
+    def infer(typer)
+      resolved! unless resolved?
+      @inferred_type
+    end
+  end
+
   class Noop < Node
     def infer(typer)
       resolved!
@@ -85,8 +105,9 @@ module Duby::AST
 
   class Script < Node
     include Scope
+    include Binding
     child :body
-    
+
     attr_accessor :defining_class
 
     def initialize(parent, line_number, &block)

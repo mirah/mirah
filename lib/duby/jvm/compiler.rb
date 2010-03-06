@@ -15,7 +15,7 @@ module Duby
       attr_accessor :target
     end
   end
-  
+
   module Compiler
     class JVM
       java_import java.lang.System
@@ -43,16 +43,16 @@ module Duby
 
       class ImplicitSelf
         attr_reader :inferred_type
-        
+
         def initialize(type)
           @inferred_type = type
         end
-        
+
         def compile(compiler, expression)
           compiler.compile_self if expression
         end
       end
-      
+
       attr_accessor :filename, :src, :method, :static, :class
 
       def initialize(filename)
@@ -65,6 +65,8 @@ module Duby
         AST.type_factory.define_types(@file)
         @type = AST::type(classname)
         @jump_scope = []
+        @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
+        @captured_locals = Hash.new {|h, binding| h[binding] = {}}
       end
 
       def compile(ast, expression = false)
@@ -85,7 +87,7 @@ module Duby
           @jump_scope.pop
         end
       end
-      
+
       def find_ensures(before)
         found = []
         @jump_scope.reverse_each do |scope|
@@ -97,7 +99,8 @@ module Duby
         found
       end
 
-      def define_main(body)
+      def define_main(script)
+        body = script.body
         body = body[0] if body.children.size == 1
         if body.class != AST::ClassDefinition
           @class = @type.define(@file)
@@ -109,7 +112,9 @@ module Duby
             # declare argv variable
             @method.local('argv', AST.type('string', true))
 
-            body.compile(self, false)
+            prepare_binding(script) do
+              body.compile(self, false)
+            end
 
             @method.returnvoid
             @method.stop
@@ -121,7 +126,26 @@ module Duby
 
         log "Main method complete!"
       end
-      
+
+      def prepare_binding(scope)
+        if scope.has_binding?
+          type = scope.binding_type
+          @binding = @bindings[type]
+          @method.new type
+          @method.dup
+          @method.invokespecial type, "<init>", [@method.void]
+          type.store(@method, @method.local('$binding', type))
+        end
+        begin
+          yield
+        ensure
+          if scope.has_binding?
+            @binding.stop
+            @binding = nil
+          end
+        end
+      end
+
       def define_method(node)
         push_jump_scope(node) do
           name, signature, args = node.name, node.signature, node.arguments.args
@@ -145,7 +169,7 @@ module Duby
             return if @class.interface?
 
             log "Starting new method #{name}(#{arg_types})"
-            method_body(method, args, node.body, signature[:return])
+            method_body(method, args, node, signature[:return])
 
             arg_types_for_opt = []
             args_for_opt = []
@@ -190,7 +214,7 @@ module Duby
 
           log "Method #{name}(#{arg_types}) complete!"        end
       end
-      
+
       def constructor(node)
         push_jump_scope(node) do
           args = node.arguments.args || []
@@ -198,7 +222,7 @@ module Duby
           exceptions = node.signature[:throws]
           method = @class.public_constructor(exceptions, *arg_types)
           annotate(method, node.annotations)
-          method_body(method, args, node.body, Types::Void) do
+          method_body(method, args, node, Types::Void) do
             method.aload 0
             if node.delegate_args
               if node.calls_super
@@ -221,8 +245,10 @@ module Duby
         end
       end
 
-      def method_body(method, args, body, return_type)
-        with :method => method do
+      def method_body(method, args, node, return_type)
+        body = node.body
+        with(:method => method,
+             :declared_locals => {}) do
 
           method.start
 
@@ -230,14 +256,15 @@ module Duby
           if args
             args.each {|arg| @method.local(arg.name, arg.inferred_type)}
           end
-
           yield if block_given?
 
-          expression = return_type != Types::Void
-          body.compile(self, expression) if body
+          prepare_binding(node) do
+            expression = return_type != Types::Void
+            body.compile(self, expression) if body
+          end
 
           return_type.return(@method)
-        
+
           @method.stop
         end
       end
@@ -251,15 +278,20 @@ module Duby
           @class.stop
         end
       end
-      
+
+      def define_closure(class_def, expression)
+        compiler = ClosureCompiler.new(@file, @type, self)
+        compiler.define_class(class_def, expression)
+      end
+
       def declare_argument(name, type)
         # declare local vars for arguments here
       end
-      
+
       def branch(iff, expression)
         elselabel = @method.label
         donelabel = @method.label
-        
+
         # this is ugly...need a better way to abstract the idea of compiling a
         # conditional branch while still fitting into JVM opcodes
         predicate = iff.condition.predicate
@@ -319,7 +351,7 @@ module Duby
 
             @redo_label.set!
             loop.body.compile(self, false)
-        
+
             if loop.check_first && !loop.post?
               @method.goto(@next_label)
             else
@@ -333,9 +365,9 @@ module Duby
                 jump_if(predicate, pre_label)
               end
             end
-        
+
             @break_label.set!
-        
+
             # loops always evaluate to null
             @method.aconst_null if expression
           end
@@ -346,29 +378,29 @@ module Duby
         handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@break_label)
       end
-      
+
       def next(node)
         handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@next_label)
       end
-      
+
       def redo(node)
         handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@redo_label)
       end
-      
+
       def jump_if(predicate, target)
         raise "Expected boolean, found #{predicate.inferred_type}" unless predicate.inferred_type == Types::Boolean
         predicate.compile(self, true)
         @method.ifne(target)
       end
-      
+
       def jump_if_not(predicate, target)
         raise "Expected boolean, found #{predicate.inferred_type}" unless predicate.inferred_type == Types::Boolean
         predicate.compile(self, true)
         @method.ifeq(target)
       end
-      
+
       def call(call, expression)
         target = call.target.inferred_type
         params = call.parameters.map do |param|
@@ -381,7 +413,7 @@ module Duby
           raise "Missing method #{target}.#{call.name}(#{params.join ', '})"
         end
       end
-      
+
       def self_call(fcall, expression)
         return cast(fcall, expression) if fcall.cast?
         type = @type
@@ -394,7 +426,7 @@ module Duby
         method = type.get_method(fcall.name, params)
         unless method
           target = static ? @class.name : 'self'
-        
+
           raise NameError, "No method %s.%s(%s)" %
               [target, fcall.name, params.join(', ')]
         end
@@ -420,7 +452,7 @@ module Duby
       def cast(fcall, expression)
         # casting operation, not a call
         castee = fcall.parameters[0]
-        
+
         # TODO move errors to inference phase
         source_type_name = castee.inferred_type.name
         target_type_name = fcall.inferred_type.name
@@ -470,7 +502,7 @@ module Duby
           end
         end
       end
-      
+
       def body(body, expression)
         # all except the last element in a body of code is treated as a statement
         i, last = 0, body.children.size - 1
@@ -481,19 +513,19 @@ module Duby
         # last element is an expression only if the body is an expression
         body.children[last].compile(self, expression) if last >= 0
       end
-      
+
       def local(name, type)
         type.load(@method, @method.local(name, type))
       end
 
       def local_assign(name, type, expression, value)
         declare_local(name, type)
-        
+
         value.compile(self, true)
-        
+
         # if expression, dup the value we're assigning
         @method.dup if expression
-        
+
         type.store(@method, @method.local(name, type))
       end
 
@@ -523,6 +555,37 @@ module Duby
         type.store(@method, @method.local(name, type))
       end
 
+      def get_binding(type)
+        @bindings[type]
+      end
+
+      def declared_captures(binding=nil)
+        @captured_locals[binding || @binding]
+      end
+
+      def captured_local_declare(scope, name, type)
+        unless declared_captures[name]
+          declared_captures[name] = type
+          # default should be fine, but I don't think bitescript supports it.
+          @binding.protected_field(name, type)
+        end
+      end
+
+      def captured_local(scope, name, type)
+        captured_local_declare(scope, name, type)
+        binding_reference
+        @method.getfield(scope.binding_type, name, type)
+      end
+
+      def captured_local_assign(node, expression)
+        scope, name, type = node.scope, node.name, node.inferred_type
+        captured_local_declare(scope, name, type)
+        binding_reference
+        node.value.compile(self, true)
+        @method.dup_x2 if expression
+        @method.putfield(scope.binding_type, name, type)
+      end
+
       def field(name, type, annotations)
         name = name[1..-1]
 
@@ -532,7 +595,7 @@ module Duby
 
         # load self object unless static
         method.aload 0 unless static
-        
+
         if static
           @method.getstatic(@class, name, type)
         else
@@ -567,7 +630,7 @@ module Duby
         name = name[1..-1]
 
         real_type = declared_fields[name] || type
-        
+
         declare_field(name, real_type, annotations)
 
         method.aload 0 unless static
@@ -585,7 +648,7 @@ module Duby
           @method.putfield(@class, name, real_type)
         end
       end
-      
+
       def string(value)
         @method.ldc(value)
       end
@@ -666,23 +729,27 @@ module Duby
           end
         end
       end
-      
+
       def null
         @method.aconst_null
       end
-      
+
+      def binding_reference
+        @method.aload(@method.local('$binding'))
+      end
+
       def compile_self
         method.aload(0)
       end
-      
+
       def newline
         # TODO: line numbering
       end
-      
+
       def line(num)
         @method.line(num) if @method
       end
-      
+
       def generate
         log "Generating classes..."
         @file.generate do |filename, builder|
@@ -695,7 +762,7 @@ module Duby
         end
         log "...done!"
       end
-      
+
       def import(short, long)
       end
 
@@ -726,7 +793,7 @@ module Duby
         exception.compile(self, true)
         @method.athrow
       end
-      
+
       def rescue(rescue_node, expression)
         start = @method.label.set!
         body_end = @method.label
@@ -779,7 +846,7 @@ module Duby
         size.compile(self, true)
         type.newarray(@method)
       end
-      
+
       def with(vars)
         orig_values = {}
         begin
@@ -796,6 +863,36 @@ module Duby
         end
       end
     end
+
+    class ClosureCompiler < JVM
+      def initialize(file, type, parent)
+        @file = file
+        @type = type
+        @jump_scope = []
+        @parent = parent
+      end
+
+      def prepare_binding(scope)
+        if scope.has_binding?
+          type = scope.binding_type
+          @binding = @parent.get_binding(type)
+          @method.aload 0
+          @method.getfield(@class, 'binding', @binding)
+          type.store(@method, @method.local('$binding', type))
+        end
+        begin
+          yield
+        ensure
+          if scope.has_binding?
+            @binding = nil
+          end
+        end
+      end
+
+      def declared_captures
+        @parent.declared_captures(@binding)
+      end
+    end
   end
 end
 
@@ -804,13 +901,13 @@ if __FILE__ == $0
   Duby::AST.verbose = true
   Duby::Compiler::JVM.verbose = true
   ast = Duby::AST.parse(File.read(ARGV[0]))
-  
+
   typer = Duby::Typer::Simple.new(:script)
   ast.infer(typer)
   typer.resolve(true)
-  
+
   compiler = Duby::Compiler::JVM.new(ARGV[0])
   compiler.compile(ast)
-  
+
   compiler.generate
 end

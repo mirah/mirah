@@ -115,6 +115,11 @@ module Duby
       def define_class(position, name, &block)
         append_node Duby::AST::ClassDefinition.new(nil, position, name, &block)
       end
+
+      def define_closure(position, name, enclosing_type)
+        append_node(Duby::AST::ClosureDefinition.new(
+            nil, position, name, enclosing_type))
+      end
     end
   end
   TransformError = Transform::Error

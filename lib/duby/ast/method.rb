@@ -113,6 +113,7 @@ module Duby::AST
     include Annotated
     include Named
     include Scope
+    include Binding
 
     child :signature
     child :arguments

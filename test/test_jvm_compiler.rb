@@ -1865,6 +1865,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo
+        returns :void
         a = "Hello"
         thread = Thread.new do
           puts a

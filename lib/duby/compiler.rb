@@ -10,7 +10,7 @@ module Duby
         end
       end
     end
-    
+
     class String
       def compile(compiler, expression)
         if expression
@@ -31,7 +31,7 @@ module Duby
         compiler.to_string(body, expression)
       end
     end
-    
+
     class Float
       def compile(compiler, expression)
         if expression
@@ -40,7 +40,7 @@ module Duby
         end
       end
     end
-    
+
     class Boolean
       def compile(compiler, expression)
         if expression
@@ -55,7 +55,7 @@ module Duby
         compiler.array(self, expression)
       end
     end
-    
+
     class Body
       def compile(compiler, expression)
         compiler.line(line_number)
@@ -86,12 +86,16 @@ module Duby
         compiler.print(self)
       end
     end
-    
+
     class Local
       def compile(compiler, expression)
         if expression
           compiler.line(line_number)
-          compiler.local(name, inferred_type)
+          if captured? && scope.has_binding?
+            compiler.captured_local(scope, name, inferred_type)
+          else
+            compiler.local(name, inferred_type)
+          end
         end
       end
     end
@@ -99,58 +103,66 @@ module Duby
     class LocalDeclaration
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.local_declare(name, type)
+        if captured? && scope.has_binding?
+          compiler.captured_local_declare(scope, name, type)
+        else
+          compiler.local_declare(name, type)
+        end
       end
     end
-    
+
     class LocalAssignment
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.local_assign(name, inferred_type, expression, value)
+        if captured? && scope.has_binding?
+          compiler.captured_local_assign(self, expression)
+        else
+          compiler.local_assign(name, inferred_type, expression, value)
+        end
       end
     end
-    
+
     class Script
       def compile(compiler, expression)
         # TODO: what does it mean for a script to be an expression? possible?
-        compiler.define_main(body)
+        compiler.define_main(self)
       end
     end
-    
+
     class MethodDefinition
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?
         compiler.define_method(self)
       end
     end
-    
+
     class ConstructorDefinition
       def compile(compiler, expression)
         compiler.constructor(self)
       end
     end
-    
+
     class Arguments
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?
         args.each {|arg| compiler.declare_argument(arg.name, arg.inferred_type)} if args
       end
     end
-    
+
     class Noop
       def compile(compiler, expression)
         # TODO: what does it mean for a noop to be an expression
         # nothing
       end
     end
-    
+
     class If
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.branch(self, expression)
       end
     end
-    
+
     class Condition
       def compile(compiler, expression)
         # TODO: can a condition ever be an expression? I don't think it can...
@@ -158,14 +170,14 @@ module Duby
         predicate.compile(compiler, expression)
       end
     end
-    
+
     class FunctionalCall
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.self_call(self, expression)
       end
     end
-    
+
     class Call
       def compile(compiler, expression)
         compiler.line(line_number)
@@ -179,17 +191,23 @@ module Duby
         compiler.super_call(self, expression)
       end
     end
-    
+
     class Loop
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.loop(self, expression)
       end
     end
-    
+
     class ClassDefinition
       def compile(compiler, expression)
         compiler.define_class(self, expression)
+      end
+    end
+
+    class ClosureDefinition
+      def compile(compiler, expression)
+        compiler.define_closure(self, expression)
       end
     end
 
@@ -230,7 +248,7 @@ module Duby
         end
       end
     end
-    
+
     class Null
       def compile(compiler, expression)
         if expression
@@ -239,21 +257,21 @@ module Duby
         end
       end
     end
-    
+
     class Break
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.break(self)
       end
     end
-    
+
     class Next
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.next(self)
       end
     end
-    
+
     class Redo
       def compile(compiler, expression)
         compiler.line(line_number)
@@ -274,19 +292,28 @@ module Duby
         compiler.rescue(self, expression)
       end
     end
-    
+
     class Ensure
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.ensure(self, expression)
       end
     end
-    
+
     class Self
       def compile(compiler, expression)
         if expression
           compiler.line(line_number)
           compiler.compile_self
+        end
+      end
+    end
+
+    class BindingReference
+      def compile(compiler, expression)
+        if expression
+          compiler.line(line_number)
+          compiler.binding_reference
         end
       end
     end
