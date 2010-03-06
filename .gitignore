@@ -2,3 +2,4 @@ build
 dist
 pkg
 nbproject/private
+examples/appengine/war/
