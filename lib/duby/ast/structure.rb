@@ -49,7 +49,19 @@ module Duby::AST
                                ['binding', binding]) do |c|
           duby.eval("@binding = binding", '-', c, 'binding')
       end
-      impl_methods = find_methods(interface)
+      
+      # find all methods which would not otherwise be on java.lang.Object
+      impl_methods = find_methods(interface).select do |m|
+        begin
+          obj_m = java.lang.Object.java_class.java_method m.name, *m.parameter_types
+        rescue NameError
+          # not found on Object
+          next true
+        end
+        # found on Object
+        next false
+      end
+
       # TODO: find a nice way to closure-impl multiple methods
       # perhaps something like
       # Collections.sort(list) do
