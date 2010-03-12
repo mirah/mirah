@@ -1957,6 +1957,59 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls.make_one(nil)
   end
 
+  def test_block_with_duby_interface
+    cls, interface = compile(<<-EOF)
+      interface MyProc do
+        def call; returns :void; end
+      end
+      def foo(b:MyProc)
+        b.call
+      end
+      def bar
+        foo {puts "Hi"}
+      end
+    EOF
+    assert_output("Hi\n") do
+      cls.bar
+    end
+  end
+
+  def test_duby_iterable
+    script, cls = compile(<<-EOF)
+      import java.util.Iterator
+      class MyIterator; implements Iterable, Iterator
+        def initialize(x:Object)
+          @next = x
+        end
+
+        def hasNext
+          @next != nil
+        end
+
+        def next
+          result = @next
+          @next = nil
+          result
+        end
+
+        def iterator
+          self
+        end
+
+        def remove
+          raise UnsupportedOperationException
+        end
+
+        def self.test(x:String)
+          MyIterator.new(x).each {|y| puts y}
+        end
+      end
+    EOF
+    assert_output("Hi\n") do
+      cls.test("Hi")
+    end
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

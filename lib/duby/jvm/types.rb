@@ -63,6 +63,7 @@ module Duby
         end
 
         def assignable_from?(other)
+          return false if other.nil?
           return true if !primitive? && other == Null
           return true if other == self
           return true if other.error? || other.unreachable?
@@ -324,7 +325,12 @@ module Duby
         end
 
         def define(builder)
-          @type ||= builder.public_interface(@name, *interfaces)
+          class_name = @name.tr('.', '/')
+          @type ||= builder.public_interface(class_name, *interfaces)
+        end
+
+        def interface?
+          true
         end
       end
 

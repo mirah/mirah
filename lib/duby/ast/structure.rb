@@ -72,6 +72,7 @@ module Duby::AST
         BindingReference.new(instance, position, binding)
       ]
       call.parameters << instance
+      call.block = nil
       typer.infer(klass)
       typer.infer(instance)
     end

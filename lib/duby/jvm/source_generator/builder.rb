@@ -213,6 +213,7 @@ module Duby
 
       def public_method(name, exceptions, type, *args)
         finish_declaration
+        type ||= Duby::AST::type(:void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
@@ -223,6 +224,7 @@ module Duby
 
       def public_static_method(name, exceptions, type, *args)
         finish_declaration
+        type ||= Duby::AST::type(:void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,
@@ -269,6 +271,7 @@ module Duby
 
       def public_method(name, type, exceptions, *args)
         finish_declaration
+        type ||= Duby::AST::type(:void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :return => type,

@@ -338,7 +338,7 @@ module Duby::JVM::Types
     end
 
     def abstract?
-      false
+      @declaring_class.interface?
     end
   end
 
