@@ -24,6 +24,11 @@ module Duby::AST
 
   class Argument < Node
     include Typed
+
+    def resolved!(typer)
+      typer.learn_local_type(scope, name, @inferred_type)
+      super
+    end
   end
 
   class RequiredArgument < Argument
@@ -37,24 +42,15 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless @inferred_type
-        # if not already typed, check parent of parent (MethodDefinition) for signature info
+      resolve_if(typer) do
+        # if not already typed, check parent of parent (MethodDefinition)
+        # for signature info
         method_def = parent.parent
         signature = method_def.signature
 
         # if signature, search for this argument
-        if signature[name.intern]
-          @inferred_type = typer.learn_local_type(scope, name, signature[name.intern])
-        else
-          @inferred_type = typer.local_type(scope, name)
-        end
-
-        unless @inferred_type
-          typer.defer(self)
-        end
+        signature[name.intern] || typer.local_type(scope, name)
       end
-
-      @inferred_type
     end
   end
 
@@ -69,22 +65,14 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless @inferred_type
-        # if not already typed, check parent of parent (MethodDefinition) for signature info
+      resolve_if(typer) do
+        # if not already typed, check parent of parent (MethodDefinition)
+        # for signature info
         method_def = parent.parent
         signature = method_def.signature
 
-        # if signature, search for this argument
-        @inferred_type = child.infer(typer)
-        if @inferred_type
-          typer.learn_local_type(scope, name, @inferred_type)
-          signature[name.intern] = @inferred_type
-        else
-          typer.defer(self)
-        end
+        signature[name.intern] = child.infer(typer)
       end
-
-      @inferred_type
     end
   end
 

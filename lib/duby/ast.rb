@@ -118,7 +118,7 @@ module Duby
         @children.empty?
       end
 
-      def resolved!
+      def resolved!(typer=nil)
         log "#{to_s} resolved!"
         @resolved = true
       end
@@ -128,7 +128,7 @@ module Duby
       def resolve_if(typer)
         unless resolved?
           @inferred_type = yield
-          @inferred_type ? resolved! : typer.defer(self)
+          @inferred_type ? resolved!(typer) : typer.defer(self)
         end
         @inferred_type
       end

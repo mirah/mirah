@@ -182,7 +182,8 @@ module Duby
         @class.declare_field(name, type, @static, 'private', annotations)
       end
 
-      def local(name, type)
+      def local(scope, name, type)
+        name = scoped_local_name(name, scope)
         @method.print name
       end
 
@@ -196,8 +197,9 @@ module Duby
         @static ? @class.class_name : 'this'
       end
 
-      def local_assign(name, type, expression, value)
+      def local_assign(scope, name, type, expression, value)
         value = value.precompile(self)
+        name = scoped_local_name(name, scope)
         if method.local?(name)
           @method.print @lvalue if expression
           @method.print "#{name} = "
@@ -218,7 +220,8 @@ module Duby
         declare_field(name, type, annotations)
       end
 
-      def local_declare(name, type)
+      def local_declare(scope, name, type)
+        name = scoped_local_name(name, scope)
         declare_local(name, type)
       end
 
@@ -278,6 +281,12 @@ module Duby
       def body(body, expression)
         super(body, expression) do |last|
           maybe_store(last, expression)
+        end
+      end
+
+      def scoped_body(scope, expression)
+        @method.block do
+          super
         end
       end
 

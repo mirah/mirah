@@ -24,6 +24,10 @@ module Duby::AST
     end
   end
 
+  class ScopedBody < Body
+    include Scope
+  end
+
   class Block < Node
     include Scoped
     child :args

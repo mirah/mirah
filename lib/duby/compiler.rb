@@ -63,6 +63,13 @@ module Duby
       end
     end
 
+    class ScopedBody
+      def compile(compiler, expression)
+        compiler.line(line_number)
+        compiler.scoped_body(self, expression)
+      end
+    end
+
     class Import
       def compile(compiler, expression)
         # TODO: what does it mean for import to be an expression?
@@ -94,7 +101,7 @@ module Duby
           if captured? && scope.has_binding?
             compiler.captured_local(scope, name, inferred_type)
           else
-            compiler.local(name, inferred_type)
+            compiler.local(scope, name, inferred_type)
           end
         end
       end
@@ -106,7 +113,7 @@ module Duby
         if captured? && scope.has_binding?
           compiler.captured_local_declare(scope, name, type)
         else
-          compiler.local_declare(name, type)
+          compiler.local_declare(scope, name, type)
         end
       end
     end
@@ -117,7 +124,7 @@ module Duby
         if captured? && scope.has_binding?
           compiler.captured_local_assign(self, expression)
         else
-          compiler.local_assign(name, inferred_type, expression, value)
+          compiler.local_assign(scope, name, inferred_type, expression, value)
         end
       end
     end

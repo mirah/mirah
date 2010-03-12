@@ -20,17 +20,12 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless resolved?
-        resolved!
-        @inferred_type = typer.known_types[type] || type
-        if @inferred_type
-          resolved!
-          typer.learn_local_type(scope, name, @inferred_type)
-        else
-          typer.defer(self)
-        end
-      end
-      @inferred_type
+      resolve_if(typer) {typer.known_types[type] || type}
+    end
+
+    def resolved!(typer)
+      typer.learn_local_type(scope, name, @inferred_type)
+      super
     end
   end
 
@@ -42,7 +37,7 @@ module Duby::AST
     child :value
 
     def initialize(parent, line_number, name, captured=false, &block)
-      super(parent, line_number, children, &block)
+      super(parent, line_number, &block)
       @captured = captured
       @name = name
       # record the current scope for captured variables so it's preserved
@@ -59,13 +54,12 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless @inferred_type
-        @inferred_type = typer.learn_local_type(scope, name, typer.infer(value))
+      resolve_if(typer) {typer.infer(value)}
+    end
 
-        @inferred_type ? resolved! : typer.defer(self)
-      end
-
-      @inferred_type
+    def resolved!(typer)
+      typer.learn_local_type(scope, name, @inferred_type)
+      super
     end
   end
 

@@ -46,7 +46,7 @@ module Duby
             log "Starting main method"
 
             @method.start
-
+            @current_scope = script
             begin_main
 
             prepare_binding(script) do
@@ -85,6 +85,7 @@ module Duby
             method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
           end
           annotate(method, node.annotations)
+          @current_scope = node
           yield method, arg_types
         end
 
@@ -134,6 +135,7 @@ module Duby
         exceptions = node.signature[:throws]
         method = @class.public_constructor(exceptions, *arg_types)
         annotate(method, node.annotations)
+        @current_scope = node
         yield(method, args)
       end
 
@@ -147,7 +149,6 @@ module Duby
         end
       end
 
-
       def declare_argument(name, type)
         # declare local vars for arguments here
       end
@@ -160,6 +161,18 @@ module Duby
           i += 1
         end
         yield body.children[last] if last >= 0
+      end
+
+      def scoped_body(scope, expression)
+        body(scope, expression)
+      end
+
+      def scoped_local_name(name, scope=nil)
+        if scope.nil? || scope == @current_scope
+          name
+        else
+          "#{name}$#{scope.object_id}"
+        end
       end
 
       def import(short, long)

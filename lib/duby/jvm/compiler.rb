@@ -430,19 +430,19 @@ module Duby
         end
       end
 
-      def local(name, type)
-        type.load(@method, @method.local(name, type))
+      def local(scope, name, type)
+        type.load(@method, @method.local(scoped_local_name(name, scope), type))
       end
 
-      def local_assign(name, type, expression, value)
-        declare_local(name, type)
+      def local_assign(scope, name, type, expression, value)
+        declare_local(scope, name, type)
 
         value.compile(self, true)
 
         # if expression, dup the value we're assigning
         @method.dup if expression
 
-        type.store(@method, @method.local(name, type))
+        type.store(@method, @method.local(scoped_local_name(name, scope), type))
       end
 
       def declared_locals
@@ -457,18 +457,19 @@ module Duby
         end
       end
 
-      def declare_local(name, type)
+      def declare_local(scope, name, type)
         # TODO confirm types are compatible
+        name = scoped_local_name(name, scope)
         unless declared_locals[name]
           declared_locals[name] = type
           index = @method.local(name, type)
         end
       end
 
-      def local_declare(name, type)
-        declare_local(name, type)
+      def local_declare(scope, name, type)
+        declare_local(scope, name, type)
         type.init_value(@method)
-        type.store(@method, @method.local(name, type))
+        type.store(@method, @method.local(scoped_local_name(name, scope), type))
       end
 
       def get_binding(type)
