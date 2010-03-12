@@ -420,12 +420,16 @@ module Duby::JVM::Types
     def java_method(name, *types)
       method = instance_methods[name].find {|m| m.argument_types == types}
       return method if method
+      intrinsic = intrinsics[name][types]
+      return intrinsic if intrinsic
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end
 
     def java_static_method(name, *types)
       method = static_methods[name].find {|m| m.argument_types == types}
       return method if method
+      intrinsic = meta.intrinsics[name][types]
+      return intrinsic if intrinsic
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end
 
@@ -436,11 +440,11 @@ module Duby::JVM::Types
     end
 
     def declared_instance_methods
-      instance_methods.values.flatten
+      instance_methods.values.flatten + declared_intrinsics
     end
 
     def declared_class_methods
-      static_methods.values.flatten
+      static_methods.values.flatten + meta.declared_intrinsics
     end
 
     def declared_constructors
