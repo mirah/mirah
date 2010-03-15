@@ -340,6 +340,14 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("Hello World!\n", output)
   end
 
+  def test_print
+    cls, = compile("def foo;print 'Hello World!';end")
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("Hello World!", output)
+  end
+
   def test_constructor
     cls, = compile(
         "class InitializeTest;def initialize;puts 'Constructed';end;end")
@@ -2020,6 +2028,18 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_equal(2, cls.foo(java.lang.Integer.new(2)))
+  end
+
+  def test_string_concat
+    cls, = compile(<<-EOF)
+      def foo(name:String)
+        print "Hello \#{name}."
+      end
+    EOF
+
+    assert_output("Hello Fred.") do
+      cls.foo "Fred"
+    end
   end
 
   # TODO: need a writable field somewhere...
