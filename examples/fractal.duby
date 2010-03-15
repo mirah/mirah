@@ -1,5 +1,3 @@
-import java.lang.System
-
 def run
   puts "Rendering"
   y = -39.0

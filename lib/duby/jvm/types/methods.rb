@@ -83,6 +83,10 @@ module Duby::JVM::Types
     def field?
       false
     end
+
+    def parameter_types
+      @member.parameter_types
+    end
   end
 
   class JavaConstructor < JavaCallable

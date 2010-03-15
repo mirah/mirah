@@ -759,23 +759,23 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_argument_widening
     cls, = compile(<<-EOF)
       def Byte(a => :byte)
-        Short(a)
+        short(a)
       end
 
       def Short(a => :short)
-        Int(a)
+        int(a)
       end
 
       def Int(a => :int)
-        Long(a)
+        long(a)
       end
 
       def Long(a => :long)
-        Float(a)
+        float(a)
       end
 
       def Float(a => :float)
-        Double(a)
+        double(a)
       end
 
       def Double(a => :double)
