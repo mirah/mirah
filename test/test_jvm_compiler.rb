@@ -61,20 +61,22 @@ class TestJVMCompiler < Test::Unit::TestCase
     typer.resolve(true)
     compiler = Compiler::JVM.new(name)
     compiler.compile(ast)
-    classes = []
-    loader = org.jruby.util.JRubyClassLoader.new(
-        JRuby.runtime.jruby_class_loader)
+    classes = {}
+    loader = DubyClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     compiler.generate do |name, builder|
       bytes = builder.generate
       open("#{name}", "w") do |f|
         f << bytes
       end
-      cls = loader.define_class(name[0..-7], bytes.to_java_bytes)
-      classes << JavaUtilities.get_proxy_class(cls.name)
-      @tmp_classes << "#{name}"
+      classes[name[0..-7]] = bytes
     end
 
-    classes
+    classes.keys.map do |name|
+      cls = loader.load_class(name)
+      proxy = JavaUtilities.get_proxy_class(cls.name)
+      @tmp_classes << "#{name}.class"
+      proxy
+    end
   end
 
   def test_local
@@ -758,37 +760,37 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_argument_widening
     cls, = compile(<<-EOF)
-      def Byte(a => :byte)
-        Short(a)
+      def _Byte(a => :byte)
+        _Short(a)
       end
 
-      def Short(a => :short)
-        Int(a)
+      def _Short(a => :short)
+        _Int(a)
       end
 
-      def Int(a => :int)
-        Long(a)
+      def _Int(a => :int)
+        _Long(a)
       end
 
-      def Long(a => :long)
-        Float(a)
+      def _Long(a => :long)
+        _Float(a)
       end
 
-      def Float(a => :float)
-        Double(a)
+      def _Float(a => :float)
+        _Double(a)
       end
 
-      def Double(a => :double)
+      def _Double(a => :double)
         a
       end
       EOF
 
-      assert_equal(1.0, cls.Byte(1))
-      assert_equal(127.0, cls.Byte(127))
-      assert_equal(128.0, cls.Short(128))
-      assert_equal(32767.0, cls.Short(32767))
-      assert_equal(32768.0, cls.Int(32768))
-      assert_equal(2147483648.0, cls.Long(2147483648))
+      assert_equal(1.0, cls._Byte(1))
+      assert_equal(127.0, cls._Byte(127))
+      assert_equal(128.0, cls._Short(128))
+      assert_equal(32767.0, cls._Short(32767))
+      assert_equal(32768.0, cls._Int(32768))
+      assert_equal(2147483648.0, cls._Long(2147483648))
   end
 
   def test_interface_declaration
