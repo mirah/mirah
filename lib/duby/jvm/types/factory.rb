@@ -84,6 +84,10 @@ module Duby::JVM::Types
       end
     end
 
+    def known_type(name)
+      basic_type(name) rescue nil
+    end
+
     def declare_type(node)
       if node.kind_of? ::String
         name = node

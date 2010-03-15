@@ -55,7 +55,11 @@ module Duby
         # TODO: allow other types for pre-1.2 profiles
         type_reference("java.util.Map")
       end
-      
+
+      def known_type(name)
+        @factory.known_type(name)
+      end
+
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
         static = target_type.meta?
         unless target_type.unmeta.kind_of?(TypeDefinition)

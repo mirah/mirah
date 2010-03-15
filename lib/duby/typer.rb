@@ -89,6 +89,10 @@ module Duby
         AST::TypeReference::NullType
       end
 
+      def known_type(name)
+        @known_types[name]
+      end
+
       def define_type(name, superclass, interfaces)
         log "New type defined: '#{name}' < '#{superclass}'"
         known_types[name] = type_definition(name, superclass, interfaces)

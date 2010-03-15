@@ -2010,6 +2010,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_java_lang_cast
+    cls, = compile(<<-EOF)
+      def foo(a:Object)
+        Integer(a).intValue
+      end
+    EOF
+
+    assert_equal(2, cls.foo(java.lang.Integer.new(2)))
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

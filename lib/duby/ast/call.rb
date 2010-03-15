@@ -48,11 +48,11 @@ module Duby::AST
         parameter_types << Duby::AST.block_type if block
 
         unless should_defer
-          if parameters.size == 1 && typer.known_types[name]
+          if parameters.size == 1 && typer.known_type(name)
             # cast operation
             resolved!
             self.cast = true
-            @inferred_type = typer.known_types[name]
+            @inferred_type = typer.known_type(name)
           else
             @inferred_type = typer.method_type(receiver_type, name,
                                                parameter_types)
