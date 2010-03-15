@@ -9,104 +9,6 @@ module Duby
       
       attr_reader :transformer
 
-      JavaLangTypes = %w[
-        Appendable
-        CharSequence
-        Cloneable
-        Comparable
-        Iterable
-        Readable
-        Runnable
-
-        Boolean
-        Byte
-        Character
-        Class
-        ClassLoader
-        Compiler
-        Double
-        Enum
-        Float
-        InheritableThreadLocal
-        Integer
-        Long
-        Math
-        Number
-        Object
-        Package
-        Process
-        ProcessBuilder
-        Runtime
-        RuntimePermission
-        SecurityManager
-        Short
-        StackTraceElement
-        StrictMath
-        String
-        StringBuffer
-        StringBuilder
-        System
-        Thread
-        ThreadGroup
-        ThreadLocal
-        Throwable
-        Void
-
-        ArithmeticException
-        ArrayIndexOutOfBoundsException
-        ArrayStoreException
-        ClassCastException
-        ClassNotFoundException
-        CloneNotSupportedException
-        EnumConstantNotPresentException
-        Exception
-        IllegalAccessException
-        IllegalArgumentException
-        IllegalMonitorStateException
-        IllegalStateException
-        IllegalThreadStateException
-        IndexOutOfBoundsException
-        InstantiationException
-        InterruptedException
-        NegativeArraySizeException
-        NoSuchFieldException
-        NoSuchMethodException
-        NullPointerException
-        NumberFormatException
-        RuntimeException
-        SecurityException
-        StringIndexOutOfBoundsException
-        TypeNotPresentException
-        UnsupportedOperationException
-
-        AbstractMethodError
-        AssertionError
-        ClassCircularityError
-        ClassFormatError
-        Error
-        ExceptionInInitializerError
-        IllegalAccessError
-        IncompatibleClassChangeError
-        InstantiationError
-        InternalError
-        LinkageError
-        NoClassDefFoundError
-        NoSuchFieldError
-        NoSuchMethodError
-        OutOfMemoryError
-        StackOverflowError
-        ThreadDeath
-        UnknownError
-        UnsatisfiedLinkError
-        UnsupportedClassVersionError
-        VerifyError
-        VirtualMachineError
-
-        Deprecated
-        Override
-        SuppressWarnings
-      ]
-
       def initialize(filename, transformer)
         @factory = AST.type_factory
         @transformer = transformer
@@ -117,12 +19,6 @@ module Duby
         classname = Duby::Compiler::JVM.classname_from_filename(filename)
         main_class = @factory.declare_type(classname)
         @known_types['self'] = main_class.meta
-
-        # prepare java.lang types
-        for type_name in JavaLangTypes
-          @known_types[type_name] = type_reference("java.lang.#{type_name}")
-        end
-
         @errors = []
       end
       
