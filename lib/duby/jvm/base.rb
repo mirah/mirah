@@ -78,14 +78,13 @@ module Duby
         return_type = signature[:return]
         exceptions = signature[:throws]
 
-        with :static => @static || node.static? do
+        with :static => @static || node.static?, :current_scope => node do
           if @static
             method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
           else
             method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
           end
           annotate(method, node.annotations)
-          @current_scope = node
           yield method, arg_types
         end
 
@@ -135,8 +134,9 @@ module Duby
         exceptions = node.signature[:throws]
         method = @class.public_constructor(exceptions, *arg_types)
         annotate(method, node.annotations)
-        @current_scope = node
-        yield(method, args)
+        with :current_scope => node do
+          yield(method, args)
+        end
       end
 
       def define_class(class_def, expression)
