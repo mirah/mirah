@@ -17,6 +17,7 @@ module Duby::AST
 
   class FunctionalCall < Node
     include Named
+    include Scoped
     attr_accessor :cast, :inlined, :proxy
     alias cast? cast
 
@@ -35,7 +36,7 @@ module Duby::AST
     end
 
     def infer(typer)
-      @self_type ||= typer.self_type
+      @self_type ||= scope.defining_class
 
       unless @inferred_type
         receiver_type = @self_type
