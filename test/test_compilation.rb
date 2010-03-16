@@ -26,6 +26,20 @@ class TestAst < Test::Unit::TestCase
     end
   end
 
+  class ClassComparison
+    def initialize(klass)
+      @class = klass
+    end
+
+    def ==(other)
+      other.kind_of?(@class)
+    end
+  end
+
+  def a(klass)
+    ClassComparison.new(klass)
+  end
+
   def setup
     @compiler = MockCompiler.new
   end
@@ -67,7 +81,7 @@ class TestAst < Test::Unit::TestCase
 
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:local_assign, "a", nil, true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
+    assert_equal([[:local_assign, a(Duby::AST::Script), "a", nil, true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
   end
 
   def test_local_typed
@@ -76,7 +90,7 @@ class TestAst < Test::Unit::TestCase
     new_ast.infer(typer)
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:local_assign, "a", AST.type(:fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
+    assert_equal([[:local_assign, a(Duby::AST::Script), "a", AST.type(:fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
   end
 
   def test_return
