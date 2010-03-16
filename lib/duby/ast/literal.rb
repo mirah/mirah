@@ -84,11 +84,10 @@ module Duby::AST
   end
 
   class ToString < Node
-    attr_accessor :body
-    
+    child :body
+
     def initialize(parent, position)
       super(parent, position)
-      @body = yield(self)[0]
     end
 
     def infer(typer)

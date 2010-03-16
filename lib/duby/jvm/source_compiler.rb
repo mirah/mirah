@@ -579,6 +579,37 @@ module Duby
         end
       end
 
+      def build_string(nodes, expression)
+        if expression
+          simple = true
+          nodes = nodes.map do |node|
+            simple &&= node.expr?(self)
+            node.precompile(self)
+          end
+          log "nodes: #{nodes.inspect}"
+          if !simple
+            @method.print(lvalue)
+          end
+          first = true
+          unless nodes[0].kind_of?(Duby::AST::String)
+            @method.print '""'
+            first = false
+          end
+          nodes.each do |node|
+            @method.print ' + ' unless first
+            first = false
+            node.compile(self, true)
+          end
+          @method.puts ';' unless simple
+        else
+          nodes.each {|n| n.compile(self, false)}
+        end
+      end
+
+      def to_string(body, expression)
+        body.compile(self, expression)
+      end
+
       def null
         @method.print 'null'
       end

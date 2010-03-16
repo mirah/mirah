@@ -2040,6 +2040,42 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("Hello Fred.") do
       cls.foo "Fred"
     end
+
+    cls, = compile(<<-EOF)
+      def foo(x:int)
+        print "\#{x += 1}"
+        x
+      end
+    EOF
+
+    assert_output("2") do
+      assert_equal(2, cls.foo(1))
+    end
+
+    cls, = compile(<<-EOF)
+      def foo(a:int)
+        "\#{a += 1}"
+        a
+      end
+    EOF
+    assert_equal(2, cls.foo(1))
+  end
+
+  def test_self_dot_static_methods
+    cls, = compile(<<-EOF)
+      class ClassWithStatics
+        def self.a
+          b
+        end
+        def self.b
+          print "b"
+        end
+      end
+    EOF
+
+    assert_output("b") do
+      cls.a
+    end
   end
 
   # TODO: need a writable field somewhere...

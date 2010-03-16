@@ -603,7 +603,7 @@ module Duby
           body.inferred_type.box(@method) if body.inferred_type.primitive?
           @method.invokevirtual @method.object, "toString", [@method.string]
         else
-          @body.compile(self, false)
+          body.compile(self, false)
         end
       end
 
