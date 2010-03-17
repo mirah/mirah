@@ -31,7 +31,15 @@ dubyc -java -e "inline script" # produces dash_e.java
 
 == INSTALL:
 
+If your "gem" command is the one from JRuby:
+
 * gem install duby
+
+Otherwise:
+
+* jruby -S gem install duby
+
+Only JRuby is supported at this time.
 
 To build from source you should have a checkout of both jruby and
 bitescript in Duby's parent directory. Run "ant jar-complete" in
