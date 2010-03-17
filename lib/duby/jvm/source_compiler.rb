@@ -198,13 +198,24 @@ module Duby
       end
 
       def local_assign(scope, name, type, expression, value)
+        simple = value.expr?(self)
         value = value.precompile(self)
         name = scoped_local_name(name, scope)
         if method.local?(name)
-          @method.print @lvalue if expression
+          if expression
+            if simple
+              @method.print '('
+            else
+              @method.print @lvalue
+            end
+          end
           @method.print "#{name} = "
           value.compile(self, true)
-          @method.puts ';'
+          if simple && expression
+            @method.print ')'
+          else
+            @method.puts ';'
+          end
         else
           @method.declare_local(type, name) do
             value.compile(self, true)
@@ -370,10 +381,22 @@ module Duby
         end
       end
 
-      def compile_args(call)
-        call.parameters.map do |param|
-          param.precompile(self)
+      def precompile_nodes(nodes)
+        if nodes.all? {|n| n.expr?(self)}
+          nodes
+        else
+          nodes.map do |node|
+            tempval = node.precompile(self)
+            if tempval == node && !node.kind_of?(Duby::AST::Literal)
+              tempval = node.temp(self)
+            end
+            tempval
+          end
         end
+      end
+
+      def compile_args(call)
+        precompile_nodes(call.parameters)
       end
 
       def self_type
@@ -538,7 +561,15 @@ module Duby
       end
 
       def temp(expression, value=nil)
-        assign(@method.tmp(expression.inferred_type), value || expression)
+        value ||= expression
+        type = value.inferred_type
+        if value.expr?(self)
+          @method.tmp(type) do
+            value.compile(self, true)
+          end
+        else
+          assign(@method.tmp(type), value)
+        end
       end
 
       def empty_array(type, size)
@@ -579,14 +610,10 @@ module Duby
         end
       end
 
-      def build_string(nodes, expression)
+      def build_string(orig_nodes, expression)
         if expression
-          simple = true
-          nodes = nodes.map do |node|
-            simple &&= node.expr?(self)
-            node.precompile(self)
-          end
-          log "nodes: #{nodes.inspect}"
+          nodes = precompile_nodes(orig_nodes)
+          simple = nodes.equal?(orig_nodes)
           if !simple
             @method.print(lvalue)
           end
@@ -602,7 +629,7 @@ module Duby
           end
           @method.puts ';' unless simple
         else
-          nodes.each {|n| n.compile(self, false)}
+          orig_nodes.each {|n| n.compile(self, false)}
         end
       end
 

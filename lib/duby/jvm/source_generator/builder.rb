@@ -355,9 +355,9 @@ module Duby
         !!@locals[name]
       end
 
-      def tmp(type)
+      def tmp(type, &block)
         @temps += 1
-        declare_local(type, "temp$#{@temps}")
+        declare_local(type, "temp$#{@temps}", &block)
       end
 
       def label

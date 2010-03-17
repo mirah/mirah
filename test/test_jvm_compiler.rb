@@ -2078,6 +2078,28 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_evaluation_order
+    cls, = compile(<<-EOF)
+      def call(a:int, b:int, c:int)
+        print "\#{a}, \#{b}, \#{c}"
+      end
+      
+      def test_call(a:int)
+        call(a, if a < 10;a+=1;a;else;a;end, a)
+      end
+
+      def test_string(a:int)
+        "\#{a}, \#{if a < 10;a += 1;a;else;a;end}, \#{a}"
+      end
+    EOF
+
+    assert_output("1, 2, 2") do
+      cls.test_call(1)
+    end
+
+    assert_equal("2, 3, 3", cls.test_string(2))
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

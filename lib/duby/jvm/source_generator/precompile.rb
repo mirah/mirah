@@ -177,10 +177,4 @@ module Duby::AST
       false
     end
   end
-
-  class LocalAssignment
-    def expr?(compiler)
-      false
-    end
-  end
 end
