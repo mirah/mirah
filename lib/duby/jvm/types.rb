@@ -55,7 +55,7 @@ module Duby
         end
 
         def dynamic?
-          true
+          false
         end
 
         def is_parent(other)
@@ -281,7 +281,8 @@ module Duby
 
       class DynamicType < Type
         def initialize
-          @name = "dynamic"
+          # For naming, bytecode purposes, we are an Object
+          @name = "java.lang.Object"
         end
 
         def basic_type

@@ -184,7 +184,7 @@ module Duby
 
           # declare all args so they get their values
           if args
-            args.each {|arg| @method.local(arg.name, arg.inferred_type.jvm_type)}
+            args.each {|arg| @method.local(arg.name, arg.inferred_type)}
           end
           yield if block_given?
 

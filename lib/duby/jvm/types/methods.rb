@@ -92,10 +92,7 @@ module Duby::JVM::Types
   class JavaConstructor < JavaCallable
     def argument_types
       @argument_types ||= @member.argument_types.map do |arg|
-        if arg.kind_of? DynamicType
-          # map dynamic types to Object (via jvm_type)
-          Type.new(java.lang.Object)
-        elsif arg.kind_of?(AST::TypeReference) || arg.nil?
+        if arg.kind_of?(AST::TypeReference) || arg.nil?
           arg
         else
           AST.type(arg)
@@ -129,7 +126,7 @@ module Duby::JVM::Types
       compiler.method.invokespecial(
         target,
         "<init>",
-        [nil, *@member.argument_types.map(&:jvm_type)])
+        [nil, *@member.argument_types])
     end
 
     def constructor?
@@ -189,12 +186,12 @@ module Duby::JVM::Types
         compiler.method.invokeinterface(
           target,
           name,
-          [@member.return_type, *@member.argument_types.map(&:jvm_type)])
+          [@member.return_type, *@member.argument_types])
       else
         compiler.method.invokevirtual(
           target,
           name,
-          [@member.return_type, *@member.argument_types.map(&:jvm_type)])
+          [@member.return_type, *@member.argument_types])
       end
 
       unless expression || void?
@@ -221,7 +218,7 @@ module Duby::JVM::Types
         compiler.method.invokespecial(
           target,
           name,
-          [@member.return_type, *@member.argument_types.map(&:jvm_type)])
+          [@member.return_type, *@member.argument_types])
       end
 
       unless expression || void?
@@ -247,7 +244,7 @@ module Duby::JVM::Types
       compiler.method.invokestatic(
         target,
         name,
-        [@member.return_type.jvm_type, *@member.argument_types.map(&:jvm_type)])
+        [@member.return_type, *@member.argument_types])
       # if expression, void static methods return null, for consistency
       # TODO: inference phase needs to track that signature is void
       # but actual type is null object
@@ -275,7 +272,7 @@ module Duby::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type.jvm_type
+      target = ast.target.inferred_type
       ast.target.compile(compiler, true)
 
       ast.parameters.each do |param|
@@ -284,7 +281,7 @@ module Duby::JVM::Types
       compiler.method.invokedynamic(
         target,
         name,
-        [return_type.jvm_type, target, *@types])
+        [return_type, target, *@types])
 
       unless expression
         compiler.method.pop
