@@ -19,7 +19,8 @@ module Duby::JVM::Types
       "Iterable" => Iterable,
       "void" => Void,
       "notype" => Void,
-      "null" => Null
+      "null" => Null,
+      "dynamic" => DynamicType.new
     }.freeze
 
     attr_accessor :package
@@ -56,7 +57,7 @@ module Duby::JVM::Types
     
     def basic_type(name)
       if name.kind_of?(Type) || name.kind_of?(NarrowingType)
-        return name.basic_type 
+        return name.basic_type
       end
       orig = name
       if name.kind_of? Java::JavaClass

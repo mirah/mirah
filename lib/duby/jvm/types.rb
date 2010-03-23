@@ -54,6 +54,10 @@ module Duby
           @type.interface?
         end
 
+        def dynamic?
+          true
+        end
+
         def is_parent(other)
           assignable_from?(other)
         end
@@ -272,6 +276,24 @@ module Duby
 
         def interfaces
           []
+        end
+      end
+
+      class DynamicType < Type
+        def initialize
+          @name = "dynamic"
+        end
+
+        def basic_type
+          self
+        end
+
+        def jvm_type
+          java.lang.Object
+        end
+
+        def dynamic?
+          true
         end
       end
 

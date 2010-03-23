@@ -19,6 +19,7 @@ module Duby
         classname = Duby::Compiler::JVM.classname_from_filename(filename)
         main_class = @factory.declare_type(classname)
         @known_types['self'] = main_class.meta
+        @known_types['dynamic'] = DynamicType.new
         @errors = []
       end
       

@@ -70,12 +70,13 @@ module Duby
       def define_method(node, args_are_types)
         name, signature, args = node.name, node.signature, node.arguments.args
         if args_are_types
-          arg_types = args.map { |arg| arg.inferred_type } if args
+          arg_types = args.map { |arg| arg.inferred_type.jvm_type } if args
         else
           arg_types = args
         end
         arg_types ||= []
         return_type = signature[:return]
+        return_type = return_type.jvm_type if return_type.dynamic?
         exceptions = signature[:throws]
 
         with :static => @static || node.static?, :current_scope => node do
@@ -127,7 +128,7 @@ module Duby
       def constructor(node, args_are_types)
         args = node.arguments.args || []
         arg_types = if args_are_types
-          args.map { |arg| arg.inferred_type }
+          args.map { |arg| arg.inferred_type.jvm_type }
         else
           args
         end
