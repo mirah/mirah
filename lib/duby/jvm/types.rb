@@ -280,6 +280,8 @@ module Duby
       end
 
       class DynamicType < Type
+        ObjectType = Type.new(java.lang.Object)
+        
         def initialize
           # For naming, bytecode purposes, we are an Object
           @name = "java.lang.Object"
@@ -287,6 +289,14 @@ module Duby
 
         def basic_type
           self
+        end
+
+        def is_parent(other)
+          ObjectType.assignable_from?(other)
+        end
+
+        def assignable_from?(other)
+          ObjectType.assignable_from?(other)
         end
 
         def jvm_type

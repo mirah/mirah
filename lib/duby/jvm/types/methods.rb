@@ -280,12 +280,14 @@ module Duby::JVM::Types
       end
       compiler.method.invokedynamic(
         target,
-        name,
+        "dyn:callPropWithThis:#{name}",
         [return_type, target, *@types])
 
       unless expression
         compiler.method.pop
       end
+
+      compiler.bootstrap_dynamic
     end
   end
 

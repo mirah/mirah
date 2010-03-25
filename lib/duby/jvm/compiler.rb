@@ -744,6 +744,20 @@ module Duby
         type.newarray(@method)
       end
 
+      def bootstrap_dynamic
+        # hacky, I know
+        unless defined? @class.bootstrapped
+          def @class.bootstrapped; true; end
+          method = @class.public_static_method("<clinit>", [], Java::void)
+          method.start
+          method.ldc org.jruby.duby.DynalangBootstrap
+          method.ldc "bootstrap"
+          method.invokestatic java.dyn.Linkage, "registerBootstrapMethod", [method.void, java.lang.Class, method.string]
+          method.returnvoid
+          method.stop
+        end
+      end
+
       class ClosureCompiler < Duby::Compiler::JVM
         def initialize(file, type, parent)
           @file = file

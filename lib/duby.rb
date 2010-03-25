@@ -104,7 +104,12 @@ class DubyImpl
 
     # run the main method we found
     if main
-      main.invoke(nil, [args.to_java(:string)].to_java)
+      begin
+        main.invoke(nil, [args.to_java(:string)].to_java)
+      rescue java.lang.Exception => e
+        e = e.cause if e.cause
+        raise e
+      end
     else
       puts "No main found"
     end
