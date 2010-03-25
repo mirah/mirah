@@ -3,3 +3,4 @@ dist
 pkg
 nbproject/private
 examples/appengine/war/
+*.class
