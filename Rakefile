@@ -46,7 +46,7 @@ task :compile do
   puts "Compiling Duby sources"
   Dir.chdir 'src' do
     Duby.compile(
-      '-c', '../jruby/lib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar:build:/usr/share/ant/lib/ant.jar',
+      '-c', 'javalib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar:build:/usr/share/ant/lib/ant.jar',
       '-d', '../build',
       'org/jruby/duby')
   end
@@ -70,7 +70,7 @@ namespace :jar do
     mkdir_p 'dist'
     ant.jar :jarfile => 'dist/duby-complete.jar' do
       zipfileset :src => 'dist/duby.jar'
-      zipfileset :src => '../jruby/lib/jruby-complete.jar'
+      zipfileset :src => 'javalib/jruby-complete.jar'
       zipfileset :src => 'javalib/JRubyParser.jar'
       manifest do
         attribute :name => 'Main-Class', :value => 'org.jruby.duby.DubyCommand'
