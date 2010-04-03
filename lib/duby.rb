@@ -213,6 +213,11 @@ class DubyImpl
       when '-I'
         args.shift
         $: << args.shift
+      when '-c'
+        args.shift
+        args.shift.split(RbConfig::CONFIG['PATH_SEPARATOR']).each do |path|
+          $CLASSPATH << path
+        end
       else
         break
       end
