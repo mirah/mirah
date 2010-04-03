@@ -1,4 +1,5 @@
 require 'fileutils'
+require 'rbconfig'
 require 'duby/transform'
 require 'duby/ast'
 require 'duby/typer'

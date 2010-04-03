@@ -35,16 +35,7 @@ end
 
 task :compile do
   mkdir_p 'build'
-  
-  # build the Duby sources
-  puts "Compiling Duby sources"
-  Dir.chdir 'src' do
-    Duby.compile(
-      '-c', '../jruby/lib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar',
-      '-d', '../build',
-      'org/jruby/duby')
-  end
-  
+
   # build the Ruby sources
   puts "Compiling Ruby sources"
   JRuby::Compiler.compile_argv([
@@ -52,6 +43,15 @@ task :compile do
     '--javac',
     'src/org/jruby/duby/duby_command.rb'
   ])
+  
+  # build the Duby sources
+  puts "Compiling Duby sources"
+  Dir.chdir 'src' do
+    Duby.compile(
+      '-c', '../jruby/lib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar:build:/usr/share/ant/lib/ant.jar',
+      '-d', '../build',
+      'org/jruby/duby')
+  end
 end
 
 task :jar => :compile do
@@ -61,6 +61,9 @@ task :jar => :compile do
     fileset :dir => 'build'
     fileset :dir => '.', :includes => 'bin/*'
     fileset :dir => '../bitescript/lib'
+    manifest do
+      attribute :name => 'Main-Class', :value => 'org.jruby.duby.DubyCommand'
+    end
   end
 end
 
