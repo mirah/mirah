@@ -16,8 +16,6 @@ Rake::TestTask.new :test do |t|
   java.lang.System.set_property("jruby.duby.enabled", "true")
 end
 
-task :default => :jar
-
 task :bootstrap do
   mkdir 'dist'
   ant.jar :jarfile => 'dist/duby.jar' do
