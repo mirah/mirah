@@ -251,11 +251,8 @@ module Duby
 
         def initialize(component_type)
           @component_type = component_type
+          @type = java.lang.reflect.Array.newInstance(@component_type.jvm_type, 0).class
           @name = component_type.name
-        end
-
-        def jvm_type
-          @component_type.jvm_type
         end
 
         def array?
