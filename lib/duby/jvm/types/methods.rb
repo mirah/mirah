@@ -228,16 +228,6 @@ module Duby::JVM::Types
   end
 
   class JavaStaticMethod < JavaMethod
-    def return_type
-      @return_type ||= begin
-        if @member.return_type
-          AST.type(@member.return_type)
-        else
-          Void
-        end
-      end
-    end
-
     def call(compiler, ast, expression)
       target = ast.target.inferred_type
       convert_args(compiler, ast.parameters)
