@@ -76,9 +76,25 @@ class DubyClassLoader < java::security::SecureClassLoader
     super(parent)
     @class_map = class_map
   end
+  
   def findClass(name)
     bytes = @class_map[name].to_java_bytes
     defineClass(name, bytes, 0, bytes.length)
+  end
+
+  def loadClass(name, resolve)
+    cls = findLoadedClass(name)
+    if cls == nil
+      if @class_map[name]
+        cls = findClass(name)
+      else
+        cls = super(name, false)
+      end
+    end
+
+    resolveClass(cls) if resolve
+
+    cls
   end
 end
 
@@ -100,7 +116,7 @@ class DubyImpl
     class_map.each do |name,|
       cls = dcl.load_class(name)
       # TODO: using first main; find correct one
-      main ||= cls.get_method("main", java::lang::String[].java_class) rescue nil
+      main ||= cls.get_method("main", java::lang::String[].java_class) #rescue nil
     end
 
     # run the main method we found
