@@ -57,6 +57,10 @@ module Duby
         type_reference("java.util.Map")
       end
 
+      def regexp_type
+        type_reference("java.util.regex.Pattern")
+      end
+
       def known_type(name)
         @factory.known_type(name)
       end

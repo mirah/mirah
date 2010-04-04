@@ -1738,6 +1738,23 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_literal_regexp
+    cls, = compile(<<-EOF)
+      def expr
+        /foo/
+      end
+      def matches
+        expr.matcher('barfoobaz').find
+      end
+    EOF
+
+    val = cls.expr
+    assert_equal java.util.regex.Pattern, val.class
+    assert_equal 'foo', val.to_s
+
+    assert cls.matches
+  end
+
   def test_array_return_type
     cls, = compile(<<-EOF)
       def split

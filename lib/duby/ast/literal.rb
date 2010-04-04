@@ -52,6 +52,21 @@ module Duby::AST
 
   class Hash < Node; end
 
+  class Regexp < Node
+    include Literal
+
+    def initialize(parent, line_number, literal)
+      super(parent, line_number)
+      @literal = literal
+    end
+
+    def infer(typer)
+      return @inferred_type if resolved?
+      resolved!
+      @inferred_type ||= typer.regexp_type
+    end
+  end
+
   class String < Node
     include Literal
 

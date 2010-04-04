@@ -611,6 +611,12 @@ module Duby
         value ? @method.iconst_1 : @method.iconst_0
       end
 
+      def regexp(value, flags = 0)
+        # TODO: translate flags to Java-appropriate values
+        @method.ldc(value)
+        @method.invokestatic java::util::regex::Pattern, "compile", [java::util::regex::Pattern, @method.string]
+      end
+
       def array(node, expression)
         if expression
           # create basic arraylist

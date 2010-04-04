@@ -896,6 +896,12 @@ module Duby
         end
       end
 
+      class RegexpNode
+        def transform(transformer, parent)
+          Regexp.new(parent, position, value.to_s)
+        end
+      end
+
       class ReturnNode
         def transform(transformer, parent)
           Return.new(parent, position) do |ret|
