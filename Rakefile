@@ -16,14 +16,9 @@ Rake::TestTask.new :test do |t|
   java.lang.System.set_property("jruby.duby.enabled", "true")
 end
 
-task :bootstrap do
-  mkdir 'dist'
-  ant.jar :jarfile => 'dist/duby.jar' do
-    fileset :dir => 'lib'
-    fileset :dir => '.', :includes => 'bin/*'
-    fileset :dir => '../bitescript/lib'
-    fileset :dir => '../jruby/lib/ruby/1.8'
-  end
+task :init do
+  mkdir_p 'dist'
+  mkdir_p 'build'
 end
 
 task :clean do
@@ -31,9 +26,7 @@ task :clean do
   ant.delete :quiet => true, :dir => 'dist'
 end
 
-task :compile do
-  mkdir_p 'build'
-
+task :compile => :init do
   # build the Ruby sources
   puts "Compiling Ruby sources"
   JRuby::Compiler.compile_argv([
@@ -53,7 +46,6 @@ task :compile do
 end
 
 task :jar => :compile do
-  mkdir_p 'dist'
   ant.jar :jarfile => 'dist/duby.jar' do
     fileset :dir => 'lib'
     fileset :dir => 'build'
@@ -67,7 +59,6 @@ end
 
 namespace :jar do
   task :complete => :jar do
-    mkdir_p 'dist'
     ant.jar :jarfile => 'dist/duby-complete.jar' do
       zipfileset :src => 'dist/duby.jar'
       zipfileset :src => 'javalib/jruby-complete.jar'
