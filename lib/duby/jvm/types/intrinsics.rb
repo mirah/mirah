@@ -188,6 +188,23 @@ module Duby::JVM::Types
           compiler.method.invokevirtual String, "concat", [String, String]
         end
       end
+      add_method('[]', [Int], Char) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokevirtual String, "charAt", [Char, Int]
+        end
+      end
+      add_method('[]', [Int, Int], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.dup
+          call.parameters[1].compile(compiler, true)
+          compiler.method.iadd
+          compiler.method.invokevirtual String, "substring", [String, Int, Int]
+        end
+      end
     end
   end
 
