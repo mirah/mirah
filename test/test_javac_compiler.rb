@@ -7,6 +7,9 @@ require 'jruby'
 require 'stringio'
 require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
 
+# make sure . is in CLASSPATH
+$CLASSPATH << '.'
+
 class TestJavacCompiler < TestJVMCompiler
   import javax.tools.ToolProvider
   import java.util.Arrays
