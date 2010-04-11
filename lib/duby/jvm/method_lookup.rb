@@ -59,7 +59,11 @@ module Duby
         phase1_methods = phase1(mapped_params, by_name_and_arity)
 
         if phase1_methods.size > 1
-          raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{phase1_methods}"
+          method_list = phase1_methods.map do |m|
+            
+            "#{m.name}(#{m.parameter_types.map(&:name).join(', ')})"
+          end.join("\n")
+          raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{method_list}"
         end
 
         phase1_methods[0] ||
