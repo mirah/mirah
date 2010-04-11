@@ -69,6 +69,9 @@ module Duby
 
       def define_method(node, args_are_types)
         name, signature, args = node.name, node.signature, node.arguments.args
+        if name == "initialize" && node.static?
+          name = "<clinit>"
+        end
         if args_are_types
           arg_types = args.map { |arg| arg.inferred_type } if args
         else

@@ -119,7 +119,7 @@ module Duby
           super(node, true) do |method, arg_types|
             return if @class.interface?
 
-            log "Starting new method #{node.name}(#{arg_types})"
+            log "Starting new #{node.static? ? 'static ' : ''}method #{node.name}(#{arg_types})"
             args = node.arguments.args
             method_body(method, args, node, node.signature[:return])
             log "Method #{node.name}(#{arg_types}) complete!"
