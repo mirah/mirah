@@ -213,7 +213,7 @@ class DubyImpl
   end
 
   def process_flags!(args)
-    while args.length > 0 && args[0][0] == '-'
+    while args.length > 0 && args[0] =~ /^-/
       case args[0]
       when '--verbose', '-V'
         Duby::Typer.verbose = true
@@ -244,6 +244,7 @@ class DubyImpl
         print_help
         exit(0)
       else
+        puts "unrecognized flag: " + args[0]
         print_help
         exit(1)
       end
