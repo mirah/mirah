@@ -243,6 +243,8 @@ class DubyImpl
       when '--help', '-h'
         print_help
         exit(0)
+      when '-e'
+        break
       else
         puts "unrecognized flag: " + args[0]
         print_help
