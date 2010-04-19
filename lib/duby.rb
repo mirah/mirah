@@ -4,6 +4,7 @@ require 'duby/transform'
 require 'duby/ast'
 require 'duby/typer'
 require 'duby/compiler'
+require 'duby/env'
 begin
   require 'bitescript'
 rescue LoadError
@@ -237,9 +238,7 @@ class DubyImpl
         $: << args.shift
       when '--classpath', '-c'
         args.shift
-        args.shift.split(RbConfig::CONFIG['PATH_SEPARATOR']).each do |path|
-          $CLASSPATH << path
-        end
+        Duby::Env.decode_paths(args.shift, $CLASSPATH)
       when '--help', '-h'
         print_help
         exit(0)

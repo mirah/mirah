@@ -38,8 +38,15 @@ task :compile => :init do
   # build the Duby sources
   puts "Compiling Duby sources"
   Dir.chdir 'src' do
+    classpath = Duby::Env.encode_paths([
+        'javalib/jruby-complete.jar',
+        'javalib/JRubyParser.jar',
+        'dist/duby.jar',
+        'build',
+        '/usr/share/ant/lib/ant.jar'
+      ])
     Duby.compile(
-      '-c', 'javalib/jruby-complete.jar:javalib/JRubyParser.jar:dist/duby.jar:build:/usr/share/ant/lib/ant.jar',
+      '-c', classpath,
       '-d', '../build',
       'org/jruby/duby')
   end
