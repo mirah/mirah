@@ -348,7 +348,7 @@ module Duby
                               cpath.name,
                               transformer.annotations) do |class_def|
             [
-              super_node ? super_node.type_reference(class_def) : nil,
+              super_node ? transformer.transform(super_node, class_def) : nil,
               body_node ? transformer.transform(body_node, class_def) : nil
             ]
           end

@@ -5,7 +5,7 @@ module Duby::AST
     include Scope
     attr_accessor :interfaces
 
-    child :superclass
+    child :super_ref
     child :body
 
     def initialize(parent, position, name, annotations=[], &block)
@@ -23,6 +23,10 @@ module Duby::AST
         @extra_body.insert(0, body)
       end
       self.body = @extra_body
+    end
+
+    def superclass
+      super_ref ? super_ref.inferred_type : nil
     end
 
     def append_node(node)
@@ -81,20 +85,53 @@ module Duby::AST
       append_node(field)
     end
 
+    def base_infer(typer, super_object)
+      @inferred_type ||= typer.define_type(name, super_object, @interfaces) do
+        if body
+          typer.infer(body)
+        else
+          typer.no_type
+        end
+      end
+      if @inferred_type
+        resolved!
+      else
+        typer.defer(self)
+      end
+    end
+
     def infer(typer)
       unless resolved?
-        @inferred_type ||= typer.define_type(name, superclass, @interfaces) do
-          if body
-            typer.infer(body)
+        # ensure superclass has been inferred
+        if super_ref
+          # FIXME: to_s is a hack to work around us having two representations of Array,
+          # probably from having jruby-complete in javalib and running
+          # in a different instance. Seems to only affect testing.
+          # FIXME: The case is a hack around the fact that InterfaceDefinition
+          # uses an Array for super class (since it can have multiple superclasses)
+          # and ClassDefinition uses the node itself. Unify.
+          super_resolved = true
+          case super_ref.class.to_s
+          when "Array"
+            super_object = []
+            super_ref.each do |sup|
+              super_object << typer.infer(sup)
+              super_resolved &&= sup.resolved?
+            end
           else
-            typer.no_type
+            super_object = typer.infer(super_ref)
+            super_resolved &&= super_ref.resolved?
           end
-        end
-        if @inferred_type
-          resolved!
+          
+          unless super_resolved
+            typer.defer self
+            return nil
+          end
         else
-          typer.defer(self)
+          super_object = nil
         end
+        
+        base_infer(typer, super_object)
       end
 
       @inferred_type
@@ -152,7 +189,7 @@ module Duby::AST
     InterfaceDeclaration.new(parent, fcall.position,
                              interface_name.name,
                              transformer.annotations) do |interface|
-      [interfaces.map {|p| p.type_reference(interface)},
+      [interfaces.map {|p| transformer.transform(p, interface)},
        if fcall.iter_node.body_node
          transformer.transform(fcall.iter_node.body_node, interface)
        end
