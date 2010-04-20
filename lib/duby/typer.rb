@@ -346,7 +346,7 @@ module Duby
         end
 
         # done with n sweeps, if any remain mark them as errors
-        error_nodes = @errors.map {|e| raise e; e.node}
+        error_nodes = @errors.map {|e| e.node}
         (deferred_nodes.keys - error_nodes).each do |deferred_node|
           error_nodes << deferred_node
           error(deferred_node)

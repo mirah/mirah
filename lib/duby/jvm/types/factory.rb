@@ -97,19 +97,11 @@ module Duby::JVM::Types
         name = node.name
       end
 
-      # FIXME: I tried adding an attribute to JVM::Type to allow this to pass when
-      # a user-defined type is referenced before it is declared, since in that
-      # case we will create a JVM::Type instead of a Duby TypeDefinition.
-      # However, this did not resolve the fact that when method definitions
-      # need a real TypeDefinition class, while references can use either
-      # TypeDeclaration or JVM::Type. To resolve this, we force the type to be
-      # redefined here as the TypeDefinition, and future references will use
-      # that. This needs to be reexamined.
-#      if @known_types.include? name
-#        existing = @known_types[name]
-#        existing.node ||= node
-#        existing
-#      else
+      if @known_types.include? name
+        existing = @known_types[name]
+        existing.node ||= node
+        existing
+      else
         full_name = name
         if !name.include?('.') && package
           full_name = "#{package}.#{name}"
@@ -121,7 +113,7 @@ module Duby::JVM::Types
         end
         @known_types[full_name] = klass.new(full_name, node)
         @known_types[name] = @known_types[full_name]
-#      end
+      end
     end
 
     def alias(from, to)

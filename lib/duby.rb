@@ -136,63 +136,25 @@ class DubyImpl
   def compile(*args)
     process_flags!(args)
 
-    # calculate a filename to use for simple cases, or empty for multi-file
-    if args.length == 0
-      @filename = args[0]
-    elsif args[0] == "-e"
-      @filename = "-e"
-      dash_e = true
-    else
-      @filename = ""
-    end
-
-    # prepare a type factory
-    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
-
-    # collect all ASTs from all files
-    ast_ary = []
     expand_files(args).each do |duby_file|
-      if dash_e
-        ast_ary << parse('-e', duby_file)
+      if duby_file == '-e'
+        @filename = '-e'
+        next
+      elsif @filename == '-e'
+        ast = parse('-e', duby_file)
       else
-        ast_ary << parse(duby_file)
+        ast = parse(duby_file)
       end
       exit 1 if @error
-    end
 
-    # enter all ASTs into inference engine
-    typer = Duby::Typer::JVM.new(@filename, @transformer)
-    ast_ary.each do |ast|
-      typer.infer(ast)
-    end
-
-    # force types to resolve
-    begin
-      typer.resolve(false)
-    ensure
-      puts ast_ary.inspect if @verbose
-
-      failed = !typer.errors.empty?
-      if failed
-        puts "Inference Error:"
-        typer.errors.each do |ex|
-          Duby.print_error(ex.message, ex.node ? ex.node.position : ast.position)
-          puts ex.backtrace if @verbose
-        end
-        exit 1
-      end
-    end
-
-    # compile each AST in turn
-    ast_ary.each do |ast|
       compile_ast(ast) do |filename, builder|
         filename = "#{@dest}#{filename}"
         FileUtils.mkdir_p(File.dirname(filename))
         bytes = builder.generate
         File.open(filename, 'w') {|f| f.write(bytes)}
       end
+      @filename = nil
     end
-    @filename = nil
   end
 
   def parse(*args)
@@ -210,6 +172,7 @@ class DubyImpl
       print_help
       exit(1)
     end
+    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
     begin
       ast = Duby::AST.parse_ruby(src, @filename)
     rescue org.jrubyparser.lexer.SyntaxException => ex
@@ -227,6 +190,24 @@ class DubyImpl
   end
 
   def compile_ast(ast, &block)
+    typer = Duby::Typer::JVM.new(@filename, @transformer)
+    typer.infer(ast)
+    begin
+      typer.resolve(false)
+    ensure
+      puts ast.inspect if @verbose
+
+      failed = !typer.errors.empty?
+      if failed
+        puts "Inference Error:"
+        typer.errors.each do |ex|
+          Duby.print_error(ex.message, ex.node.position)
+          puts ex.backtrace if @verbose
+        end
+        exit 1
+      end
+    end
+
     compiler = @compiler_class.new(@filename)
     ast.compile(compiler, false)
     compiler.generate(&block)

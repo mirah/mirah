@@ -266,13 +266,8 @@ module Duby
 
       def infer(typer)
         @inferred_type ||= begin
-          # FIXME the rescue nil here is a little gross, since it's masking all
-          # errors, but the type_reference call raises errors if it can't find
-          # the referenced class right away...
-          typer.type_reference(name, false, true) rescue nil
+          typer.type_reference(name, false, true)
         end
-        resolved! if @inferred_type
-        @inferred_type
       end
     end
 

@@ -72,7 +72,7 @@ class TestAst < Test::Unit::TestCase
     assert(var.newline)
     assert_equal("@a", var.name)
   end
-require 'jruby'
+
   def test_array
     new_ast = AST.parse("[a = 1, 1]").body[0]
 
@@ -177,7 +177,7 @@ require 'jruby'
     new_ast = AST.parse("class Foo < Bar; 1; 2; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("ClassDefinition(Foo)\n Constant(Bar)\n Body\n  Body\n   Fixnum(1)\n   Fixnum(2)", new_ast.inspect)
+    assert_equal("ClassDefinition(Foo)\n Type(Bar)\n Body\n  Body\n   Fixnum(1)\n   Fixnum(2)", new_ast.inspect)
     assert(AST::ClassDefinition === new_ast)
     assert_equal("Foo", new_ast.name)
 
