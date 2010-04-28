@@ -30,11 +30,15 @@ module Duby::AST
 
   class Block < Node
     include Scoped
+    include Scope
     child :args
     child :body
 
     def initialize(parent, position, &block)
-      super(parent, position, &block)
+      super(parent, position) do
+        static_scope.parent = scope.static_scope
+        yield(self) if block_given?
+      end
     end
 
     def prepare(typer, method)
@@ -74,6 +78,7 @@ module Duby::AST
                                    method.name,
                                    method.actual_return_type,
                                    args.dup)
+        mdef.static_scope = static_scope
         mdef.body = body.dup
         mdef.binding_type = binding
       end

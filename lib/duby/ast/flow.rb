@@ -290,10 +290,11 @@ module Duby
       def infer(typer)
         unless resolved?
           if name
-            orig_type = typer.local_type(scope, name)
+            scope.static_scope << name
+            orig_type = typer.local_type(containing_scope, name)
             # TODO find the common parent Throwable
             @type = types.size == 1 ? types[0] : AST.type('java.lang.Throwable')
-            typer.learn_local_type(scope, name, @type)
+            typer.learn_local_type(containing_scope, name, @type)
           end
           @inferred_type = typer.infer(body)
 
@@ -302,7 +303,7 @@ module Duby
           end
 
           (@inferred_type && body.resolved?) ? resolved! : typer.defer(self)
-          typer.local_type_hash(scope)[name] = orig_type if name
+          typer.local_type_hash(containing_scope)[name] = orig_type if name
         end
 
         @inferred_type

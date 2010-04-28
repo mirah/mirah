@@ -44,14 +44,14 @@ class TestTyper < Test::Unit::TestCase
 
     ast1.infer(typer)
 
-    assert_equal(AST::TypeReference.new("fixnum"), typer.local_type(ast1, 'a'))
+    assert_equal(AST::TypeReference.new("fixnum"), typer.local_type(ast1.static_scope, 'a'))
     assert_equal(AST::TypeReference.new("fixnum"), ast1.body.children[0].inferred_type)
     assert_equal(AST::TypeReference.new("fixnum"), ast1.body.children[1].inferred_type)
 
     ast2 = AST.parse("b = a = 1")
     ast2.infer(typer)
 
-    assert_equal(AST::TypeReference.new("fixnum"), typer.local_type(ast2, 'a'))
+    assert_equal(AST::TypeReference.new("fixnum"), typer.local_type(ast2.static_scope, 'a'))
     assert_equal(AST::TypeReference.new("fixnum"), ast2.body.children[0].inferred_type)
   end
 
@@ -73,7 +73,7 @@ class TestTyper < Test::Unit::TestCase
       end
 
       assert_equal(typer.no_type, typer.method_type(type, 'foo', [typer.string_type]))
-      assert_equal(typer.string_type, typer.local_type(ast1.body[0], 'a'))
+      assert_equal(typer.string_type, typer.local_type(ast1.body[0].static_scope, 'a'))
       assert_equal(typer.no_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
 
@@ -83,7 +83,7 @@ class TestTyper < Test::Unit::TestCase
       ast1.infer(typer)
 
       assert_equal(typer.string_type, typer.method_type(type, 'foo', [typer.string_type]))
-      assert_equal(typer.string_type, typer.local_type(ast1.body[0], 'a'))
+      assert_equal(typer.string_type, typer.local_type(ast1.body[0].static_scope, 'a'))
       assert_equal(typer.string_type, ast1.body[0].inferred_type)
       assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
 

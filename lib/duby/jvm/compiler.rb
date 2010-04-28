@@ -495,7 +495,7 @@ module Duby
       end
 
       def captured_local_assign(node, expression)
-        scope, name, type = node.scope, node.name, node.inferred_type
+        scope, name, type = node.containing_scope, node.name, node.inferred_type
         captured_local_declare(scope, name, type)
         binding_reference
         node.value.compile(self, true)

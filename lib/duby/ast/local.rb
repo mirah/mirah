@@ -6,25 +6,24 @@ module Duby::AST
 
     child :type
 
-    def initialize(parent, line_number, name, captured=false, &block)
+    def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
       @name = name
-      @captured = captured
-      # record the current scope for captured variables so it's preserved
-      # after the block gets transformed into a class.
-      scope if captured?
     end
 
     def captured?
-      @captured
+      scope.static_scope.captured?(name)
     end
 
     def infer(typer)
-      resolve_if(typer) {typer.known_types[type] || type}
+      resolve_if(typer) do
+        scope.static_scope << name
+        typer.known_types[type] || type
+      end
     end
 
     def resolved!(typer)
-      typer.learn_local_type(scope, name, @inferred_type)
+      typer.learn_local_type(containing_scope, name, @inferred_type)
       super
     end
   end
@@ -36,29 +35,28 @@ module Duby::AST
 
     child :value
 
-    def initialize(parent, line_number, name, captured=false, &block)
+    def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @captured = captured
       @name = name
-      # record the current scope for captured variables so it's preserved
-      # after the block gets transformed into a class.
-      scope if captured?
     end
 
     def captured?
-      @captured
+      scope.static_scope.captured?(name)
     end
 
     def to_s
-      "LocalAssignment(name = #{name}, scope = #{scope}, captured = #{captured?})"
+      "LocalAssignment(name = #{name}, scope = #{scope}, captured = #{captured? == true})"
     end
 
     def infer(typer)
-      resolve_if(typer) {typer.infer(value)}
+      resolve_if(typer) do
+        scope.static_scope << name
+        typer.infer(value)
+      end
     end
 
     def resolved!(typer)
-      typer.learn_local_type(scope, name, @inferred_type)
+      typer.learn_local_type(containing_scope, name, @inferred_type)
       super
     end
   end
@@ -67,31 +65,24 @@ module Duby::AST
     include Named
     include Scoped
 
-    def initialize(parent, line_number, name, captured=false)
+    def initialize(parent, line_number, name)
       super(parent, line_number, [])
       @name = name
-      @captured = captured
-      # record the current scope for captured variables so it's preserved
-      # after the block gets transformed into a class.
-      scope if captured?
     end
 
     def captured?
-      @captured
+      scope.static_scope.captured?(name)
     end
 
     def to_s
-      "Local(name = #{name}, scope = #{scope}, captured = #{captured?})"
+      "Local(name = #{name}, scope = #{scope}, captured = #{captured? == true})"
     end
 
     def infer(typer)
-      unless @inferred_type
-        @inferred_type = typer.local_type(scope, name)
-
-        @inferred_type ? resolved! : typer.defer(self)
+      resolve_if(typer) do
+        scope.static_scope << name
+        typer.local_type(containing_scope, name)
       end
-
-      @inferred_type
     end
   end
 end

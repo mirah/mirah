@@ -46,7 +46,7 @@ module Duby
             log "Starting main method"
 
             @method.start
-            @current_scope = script
+            @current_scope = script.static_scope
             begin_main
 
             prepare_binding(script) do
@@ -78,7 +78,7 @@ module Duby
         return_type = signature[:return]
         exceptions = signature[:throws]
 
-        with :static => @static || node.static?, :current_scope => node do
+        with :static => @static || node.static?, :current_scope => node.static_scope do
           if @static
             method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
           else
@@ -134,7 +134,7 @@ module Duby
         exceptions = node.signature[:throws]
         method = @class.public_constructor(exceptions, *arg_types)
         annotate(method, node.annotations)
-        with :current_scope => node do
+        with :current_scope => node.static_scope do
           yield(method, args)
         end
       end

@@ -212,6 +212,14 @@ module Duby
           scope
         end
       end
+
+      def containing_scope
+        scope = self.scope.static_scope
+        while scope.parent && scope.parent.include?(name)
+          scope = scope.parent
+        end
+        scope
+      end
     end
 
     module ClassScoped
@@ -233,25 +241,107 @@ module Duby
       end
     end
 
-    module Scope; end
+    class StaticScope
+      attr_reader :parent
+      attr_writer :self_type
 
-    module Binding
-      attr_writer :binding_type
+      def initialize(parent=nil)
+        @vars = {}
+        @parent = parent
+        @children = {}
+      end
 
-      def binding_type(duby=nil)
+      def <<(name)
+        @vars[name] = true
+      end
+
+      def include?(name, include_parent=true)
+        @vars.include?(name) ||
+            (include_parent && parent && parent.include?(name))
+      end
+
+      def captured?(name)
+        if !include?(name, false)
+          return false
+        elsif parent && parent.include?(name)
+          return true
+        else
+          return children.any? {|child| child.include?(name, false)}
+        end
+      end
+
+      def children
+        @children.keys
+      end
+
+      def add_child(scope)
+        @children[scope] = true
+      end
+
+      def remove_child(scope)
+        @children.delete(scope)
+      end
+
+      def parent=(parent)
+        @parent.remove_child(self) if @parent
+        parent.add_child(self)
+        @parent = parent
+      end
+
+      def self_type
+        if @self_type.nil? && parent
+          @self_type = parent.self_type
+        end
+        @self_type
+      end
+
+      def binding_type(defining_class=nil, duby=nil)
         @binding_type ||= begin
-          name = "#{defining_class.name}$#{duby.tmp}"
-          factory = Duby::AST.type_factory
-          if factory
-            factory.declare_type(name)
+          if parent
+            parent.binding_type(defining_class, duby)
           else
-            Duby::AST::TypeReference.new(name, false, false)
+            name = "#{defining_class.name}$#{duby.tmp}"
+            factory = Duby::AST.type_factory
+            if factory
+              factory.declare_type(name)
+            else
+              Duby::AST::TypeReference.new(name, false, false)
+            end
           end
         end
       end
 
+      def binding_type=(type)
+        if parent
+          parent.binding_type = type
+        else
+          @binding_type = type
+        end
+      end
+
       def has_binding?
-        @binding_type != nil
+        @binding_type != nil || (parent && parent.has_binding?)
+      end
+    end
+
+    module Scope
+      attr_writer :static_scope
+      def static_scope
+        @static_scope ||= StaticScope.new
+      end
+    end
+
+    module Binding
+      def binding_type(duby=nil)
+        static_scope.binding_type(defining_class, duby)
+      end
+
+      def binding_type=(type)
+        static_scope.binding_type = type
+      end
+
+      def has_binding?
+        static_scope.has_binding?
       end
     end
 

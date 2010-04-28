@@ -26,7 +26,7 @@ module Duby::AST
     include Typed
 
     def resolved!(typer)
-      typer.learn_local_type(scope, name, @inferred_type)
+      typer.learn_local_type(containing_scope, name, @inferred_type)
       super
     end
   end
@@ -43,6 +43,7 @@ module Duby::AST
 
     def infer(typer)
       resolve_if(typer) do
+        scope.static_scope << name
         # if not already typed, check parent of parent (MethodDefinition)
         # for signature info
         method_def = parent.parent
@@ -66,6 +67,7 @@ module Duby::AST
 
     def infer(typer)
       resolve_if(typer) do
+        scope.static_scope << name
         # if not already typed, check parent of parent (MethodDefinition)
         # for signature info
         method_def = parent.parent
@@ -85,15 +87,26 @@ module Duby::AST
 
       @name = name
     end
+
+    def infer(typer)
+      scope.static_scope << name
+      super
+    end
   end
 
   class BlockArgument < Argument
     include Named
+    include Scoped
 
     def initialize(parent, line_number, name)
       super(parent, line_number)
 
       @name = name
+    end
+
+    def infer(typer)
+      scope.static_scope << name
+      super
     end
   end
 

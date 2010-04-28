@@ -54,6 +54,10 @@ module Duby::AST
             resolved!
             self.cast = true
             @inferred_type = typer.known_type(name)
+          elsif parameters.size == 0 && scope.static_scope.include?(name)
+            @inlined = Local.new(parent, position, name)
+            proxy.__inline__(@inlined)
+            return proxy.infer(typer)
           else
             @inferred_type = typer.method_type(receiver_type, name,
                                                parameter_types)

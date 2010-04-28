@@ -99,9 +99,9 @@ module Duby
         if expression
           compiler.line(line_number)
           if captured? && scope.has_binding?
-            compiler.captured_local(scope, name, inferred_type)
+            compiler.captured_local(containing_scope, name, inferred_type)
           else
-            compiler.local(scope, name, inferred_type)
+            compiler.local(containing_scope, name, inferred_type)
           end
         end
       end
@@ -111,9 +111,9 @@ module Duby
       def compile(compiler, expression)
         compiler.line(line_number)
         if captured? && scope.has_binding?
-          compiler.captured_local_declare(scope, name, type)
+          compiler.captured_local_declare(containing_scope, name, type)
         else
-          compiler.local_declare(scope, name, type)
+          compiler.local_declare(containing_scope, name, type)
         end
       end
     end
@@ -124,7 +124,7 @@ module Duby
         if captured? && scope.has_binding?
           compiler.captured_local_assign(self, expression)
         else
-          compiler.local_assign(scope, name, inferred_type, expression, value)
+          compiler.local_assign(containing_scope, name, inferred_type, expression, value)
         end
       end
     end

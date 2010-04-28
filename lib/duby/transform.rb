@@ -836,10 +836,9 @@ module Duby
 
       class LocalAsgnNode
         def transform(transformer, parent)
-          captured = transformer.captured?(self)
           case value_node
           when SymbolNode, ConstNode
-            LocalDeclaration.new(parent, position, name, captured) {|local_decl| [value_node.type_reference(local_decl)]}
+            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
           when JRubyAst::GlobalVarNode
             real_parent = parent
             real_parent = parent.parent if Body === real_parent
@@ -850,14 +849,19 @@ module Duby
               raise "Illegal global variable"
             end
           else
-            LocalAssignment.new(parent, position, name, captured) {|local| [transformer.transform(value_node, local)]}
+            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
           end
         end
       end
 
       class LocalVarNode
         def transform(transformer, parent)
-          Local.new(parent, position, name, transformer.captured?(self))
+          FunctionalCall.new(parent, position, name) do |call|
+            [
+              [],
+              nil
+            ]
+          end
         end
       end
 
@@ -998,18 +1002,17 @@ module Duby
       class DVarNode
         def transform(transformer, parent)
           # TODO does this need to be handled specially?
-          Local.new(parent, position, name, transformer.captured?(self))
+          Local.new(parent, position, name)
         end
       end
 
       class DAsgnNode
         def transform(transformer, parent)
-          captured = transformer.captured?(self)
           case value_node
           when SymbolNode, ConstNode
-            LocalDeclaration.new(parent, position, name, captured) {|local_decl| [value_node.type_reference(local_decl)]}
+            LocalDeclaration.new(parent, position, name) {|local_decl| [value_node.type_reference(local_decl)]}
           else
-            LocalAssignment.new(parent, position, name, captured) {|local| [transformer.transform(value_node, local)]}
+            LocalAssignment.new(parent, position, name) {|local| [transformer.transform(value_node, local)]}
           end
         end
       end

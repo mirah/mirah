@@ -256,7 +256,7 @@ module Duby
       end
 
       def captured_local_assign(node, expression)
-        scope, name, type = node.scope, node.name, node.inferred_type
+        scope, name, type = node.containing_scope, node.name, node.inferred_type
         captured_local_declare(scope, name, type)
         lvalue = "#{@lvalue if expression}$binding.#{name} = "
         store_value(lvalue, node.value)
@@ -387,7 +387,7 @@ module Duby
         else
           nodes.map do |node|
             tempval = node.precompile(self)
-            if tempval == node && !node.kind_of?(Duby::AST::Literal)
+            if node == tempval && !node.kind_of?(Duby::AST::Literal)
               tempval = node.temp(self)
             end
             tempval
