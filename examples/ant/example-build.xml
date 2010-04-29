@@ -1,0 +1,7 @@
+<project name="test">
+  <taskdef name="dubyc" classname="org.jruby.duby.ant.Compile"/>
+
+  <target name="blah">
+    <dubyc src="examples/fib.duby" target="build"/>
+  </target>
+</project>

@@ -24,12 +24,20 @@
                     </run-dependency>
                 </dependency>
                 <dependency>
+                    <code-name-base>org.netbeans.libs.junit4</code-name-base>
+                    <build-prerequisite/>
+                    <compile-dependency/>
+                    <run-dependency>
+                        <specification-version>1.7.1</specification-version>
+                    </run-dependency>
+                </dependency>
+                <dependency>
                     <code-name-base>org.netbeans.modules.csl.api</code-name-base>
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>
                         <release-version>1</release-version>
-                        <specification-version>1.9.2.1.1.1.1</specification-version>
+                        <specification-version>1.14.1.1.1.1.2</specification-version>
                     </run-dependency>
                 </dependency>
                 <dependency>
@@ -38,7 +46,7 @@
                     <compile-dependency/>
                     <run-dependency>
                         <release-version>2</release-version>
-                        <specification-version>1.30.2.1</specification-version>
+                        <specification-version>1.33.1.1</specification-version>
                     </run-dependency>
                 </dependency>
                 <dependency>
@@ -46,7 +54,8 @@
                     <build-prerequisite/>
                     <compile-dependency/>
                     <run-dependency>
-                        <specification-version>1.16.2.1</specification-version>
+                        <release-version>1</release-version>
+                        <specification-version>1.26.1.2</specification-version>
                     </run-dependency>
                 </dependency>
                 <dependency>

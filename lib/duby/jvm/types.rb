@@ -54,6 +54,10 @@ module Duby
           @type.interface?
         end
 
+        def dynamic?
+          false
+        end
+
         def is_parent(other)
           assignable_from?(other)
         end
@@ -247,11 +251,13 @@ module Duby
 
         def initialize(component_type)
           @component_type = component_type
+          if @component_type.jvm_type
+            @type = java.lang.reflect.Array.newInstance(@component_type.jvm_type, 0).class
+          else
+            # FIXME: THIS IS WRONG, but I don't know how to fix it
+            @type = @component_type
+          end
           @name = component_type.name
-        end
-
-        def jvm_type
-          @component_type.jvm_type
         end
 
         def array?
@@ -272,6 +278,35 @@ module Duby
 
         def interfaces
           []
+        end
+      end
+
+      class DynamicType < Type
+        ObjectType = Type.new(java.lang.Object)
+        
+        def initialize
+          # For naming, bytecode purposes, we are an Object
+          @name = "java.lang.Object"
+        end
+
+        def basic_type
+          self
+        end
+
+        def is_parent(other)
+          ObjectType.assignable_from?(other)
+        end
+
+        def assignable_from?(other)
+          ObjectType.assignable_from?(other)
+        end
+
+        def jvm_type
+          java.lang.Object
+        end
+
+        def dynamic?
+          true
         end
       end
 

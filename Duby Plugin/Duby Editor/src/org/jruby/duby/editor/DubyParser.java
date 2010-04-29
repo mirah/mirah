@@ -58,22 +58,6 @@ class DubyParser extends Parser {
         }
     }
 
-    private Node parseRuby(Snapshot snapshot) {
-        String source = snapshot.getText().toString();
-        String fileName = "";
-        Ruby18Parser rubyParser = new Ruby18Parser();
-
-        final FileObject fo = snapshot.getSource().getFileObject();
-        if (fo != null) {
-            fileName = fo.getNameExt();
-        }
-
-        ParserConfiguration configuration = new ParserConfiguration(0, CompatVersion.RUBY1_8, true);
-        LexerSource lexerSource =
-                LexerSource.getSource(fileName, new StringReader(source), configuration);
-        return rubyParser.parse(configuration, lexerSource).getAST();
-    }
-
     @Override
     public void parse(Snapshot snapshot, Task arg1, SourceModificationEvent arg2) throws ParseException {
         try {

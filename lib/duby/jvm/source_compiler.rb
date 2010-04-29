@@ -587,6 +587,12 @@ module Duby
         @method.print value ? 'true' : 'false'
       end
 
+      def regexp(value, flags = 0)
+        @method.print "java.util.regex.Pattern.compile("
+        @method.print value.inspect
+        @method.print ")"
+      end
+
       def array(node, expression)
         if expression
           # create unmodifiable list from array (simplest way to do this in Java source)

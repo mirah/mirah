@@ -1,8 +1,10 @@
 require 'fileutils'
+require 'rbconfig'
 require 'duby/transform'
 require 'duby/ast'
 require 'duby/typer'
 require 'duby/compiler'
+require 'duby/env'
 begin
   require 'bitescript'
 rescue LoadError
@@ -75,9 +77,25 @@ class DubyClassLoader < java::security::SecureClassLoader
     super(parent)
     @class_map = class_map
   end
+  
   def findClass(name)
     bytes = @class_map[name].to_java_bytes
     defineClass(name, bytes, 0, bytes.length)
+  end
+
+  def loadClass(name, resolve)
+    cls = findLoadedClass(name)
+    if cls == nil
+      if @class_map[name]
+        cls = findClass(name)
+      else
+        cls = super(name, false)
+      end
+    end
+
+    resolveClass(cls) if resolve
+
+    cls
   end
 end
 
@@ -99,12 +117,17 @@ class DubyImpl
     class_map.each do |name,|
       cls = dcl.load_class(name)
       # TODO: using first main; find correct one
-      main ||= cls.get_method("main", java::lang::String[].java_class) rescue nil
+      main ||= cls.get_method("main", java::lang::String[].java_class) #rescue nil
     end
 
     # run the main method we found
     if main
-      main.invoke(nil, [args.to_java(:string)].to_java)
+      begin
+        main.invoke(nil, [args.to_java(:string)].to_java)
+      rescue java.lang.Exception => e
+        e = e.cause if e.cause
+        raise e
+      end
     else
       puts "No main found"
     end
@@ -138,11 +161,16 @@ class DubyImpl
     process_flags!(args)
     @filename = args.shift
 
-    if @filename == '-e'
-      @filename = 'DashE'
-      src = args[0]
+    if @filename
+      if @filename == '-e'
+        @filename = 'DashE'
+        src = args[0]
+      else
+        src = File.read(@filename)
+      end
     else
-      src = File.read(@filename)
+      print_help
+      exit(1)
     end
     Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
     begin
@@ -186,34 +214,55 @@ class DubyImpl
   end
 
   def process_flags!(args)
-    while args.length > 0
+    while args.length > 0 && args[0] =~ /^-/
       case args[0]
-      when '-V'
+      when '--verbose', '-V'
         Duby::Typer.verbose = true
         Duby::AST.verbose = true
         Duby::Compiler::JVM.verbose = true
         @verbose = true
         args.shift
-      when '-java'
+      when '--java', '-j'
         require 'duby/jvm/source_compiler'
         @compiler_class = Duby::Compiler::JavaSource
         args.shift
-      when '-d'
+      when '--dir', '-d'
         args.shift
         @dest = File.join(args.shift, '')
-      when '-p'
+      when '--plugin', '-p'
         args.shift
         plugin = args.shift
         require "duby/plugin/#{plugin}"
       when '-I'
         args.shift
         $: << args.shift
-      else
+      when '--classpath', '-c'
+        args.shift
+        Duby::Env.decode_paths(args.shift, $CLASSPATH)
+      when '--help', '-h'
+        print_help
+        exit(0)
+      when '-e'
         break
+      else
+        puts "unrecognized flag: " + args[0]
+        print_help
+        exit(1)
       end
     end
     @compiler_class ||= Duby::Compiler::JVM
   end
+  
+  def print_help
+    $stdout.print "#{$0} [flags] <files or \"-e SCRIPT\">
+  -V, --verbose\t\tVerbose logging
+  -j, --java\t\tOutput .java source (jrubyc only)
+  -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
+  -p, --plugin PLUGIN\tLoad and use plugin during compilation
+  -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
+  -h, --help\t\tPrint this help message
+  -e\t\t\tCompile or run the script following -e (naming it \"DashE\")"
+  end 
 
   def expand_files(files)
     expanded = []

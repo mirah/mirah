@@ -228,16 +228,6 @@ module Duby::JVM::Types
   end
 
   class JavaStaticMethod < JavaMethod
-    def return_type
-      @return_type ||= begin
-        if @member.return_type
-          AST.type(@member.return_type)
-        else
-          Void
-        end
-      end
-    end
-
     def call(compiler, ast, expression)
       target = ast.target.inferred_type
       convert_args(compiler, ast.parameters)
@@ -250,6 +240,44 @@ module Duby::JVM::Types
       # but actual type is null object
       compiler.method.aconst_null if expression && void?
       compiler.method.pop unless expression || void?
+    end
+  end
+
+  class JavaDynamicMethod < JavaMethod
+    def initialize(name, *types)
+      @name = name
+      @types = types
+    end
+
+    def return_type
+      AST.type('dynamic')
+    end
+
+    def declaring_class
+      java.lang.Object
+    end
+
+    def argument_types
+      @types
+    end
+
+    def call(compiler, ast, expression)
+      target = ast.target.inferred_type
+      ast.target.compile(compiler, true)
+
+      ast.parameters.each do |param|
+        param.compile(compiler, true)
+      end
+      compiler.method.invokedynamic(
+        target,
+        "dyn:callPropWithThis:#{name}",
+        [return_type, target, *@types])
+
+      unless expression
+        compiler.method.pop
+      end
+
+      compiler.bootstrap_dynamic
     end
   end
 
@@ -371,6 +399,9 @@ module Duby::JVM::Types
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
       types = types.map {|type| type.jvm_type}
+      
+      return JavaDynamicMethod.new(name, *types) if dynamic?
+
       method = (jvm_type.java_method(name, *types) rescue nil)
       if method && method.static? == meta?
         return JavaStaticMethod.new(method) if method.static?

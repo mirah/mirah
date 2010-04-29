@@ -20,20 +20,31 @@ output either JVM bytecode or Java source files.
 duby <script.duby>
 duby -e "inline script"
 dubyc <script.duby>
-dubyc -e "inline script" # produces dash_e.class
+dubyc -e "inline script" # produces DashE.class
 dubyc -java <script.duby>
-dubyc -java -e "inline script" # produces dash_e.java
+dubyc -java -e "inline script" # produces DashE.java
 
 == REQUIREMENTS:
 
-* JRuby 1.4RC2 or higher.
+* JRuby 1.5.0 or higher.
 * BiteScript 0.0.5 or higher
 
 == INSTALL:
 
+If your "gem" command is the one from JRuby:
+
 * gem install duby
 
-To build from source you should have a checkout of both jruby and
-bitescript in Duby's parent directory. Run "ant jar-complete" in
-jruby, then in the duby directory "ant bootstrap" followed by "ant"
-should build it.
+Otherwise:
+
+* jruby -S gem install duby
+
+Only JRuby is supported at this time.
+
+== For Java tools:
+
+To build the Duby jars from source you should have a checkout of both jruby and
+bitescript in Duby's parent directory. Run "ant jar-complete" in jruby, then in
+the duby directory "../jruby/bin/jruby -S rake jar" to build the Duby jar. Use
+"jar:complete" instead to produce a free-standing jar file with JRuby and the
+JRubyParser libraries included.

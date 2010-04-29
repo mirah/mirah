@@ -119,7 +119,7 @@ module Duby
           super(node, true) do |method, arg_types|
             return if @class.interface?
 
-            log "Starting new method #{node.name}(#{arg_types})"
+            log "Starting new #{node.static? ? 'static ' : ''}method #{node.name}(#{arg_types})"
             args = node.arguments.args
             method_body(method, args, node, node.signature[:return])
             log "Method #{node.name}(#{arg_types}) complete!"
@@ -611,6 +611,12 @@ module Duby
         value ? @method.iconst_1 : @method.iconst_0
       end
 
+      def regexp(value, flags = 0)
+        # TODO: translate flags to Java-appropriate values
+        @method.ldc(value)
+        @method.invokestatic java::util::regex::Pattern, "compile", [java::util::regex::Pattern, @method.string]
+      end
+
       def array(node, expression)
         if expression
           # create basic arraylist
@@ -742,6 +748,20 @@ module Duby
       def empty_array(type, size)
         size.compile(self, true)
         type.newarray(@method)
+      end
+
+      def bootstrap_dynamic
+        # hacky, I know
+        unless defined? @class.bootstrapped
+          def @class.bootstrapped; true; end
+          method = @class.public_static_method("<clinit>", [], Java::void)
+          method.start
+          method.ldc org.jruby.duby.DynalangBootstrap
+          method.ldc "bootstrap"
+          method.invokestatic java.dyn.Linkage, "registerBootstrapMethod", [method.void, java.lang.Class, method.string]
+          method.returnvoid
+          method.stop
+        end
       end
 
       class ClosureCompiler < Duby::Compiler::JVM

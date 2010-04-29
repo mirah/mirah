@@ -11,6 +11,15 @@ module Duby
       end
     end
 
+    class Regexp
+      def compile(compiler, expression)
+        if expression
+          compiler.line(line_number)
+          compiler.regexp(literal)
+        end
+      end
+    end
+
     class String
       def compile(compiler, expression)
         if expression

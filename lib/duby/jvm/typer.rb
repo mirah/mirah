@@ -19,6 +19,7 @@ module Duby
         classname = Duby::Compiler::JVM.classname_from_filename(filename)
         main_class = @factory.declare_type(classname)
         @known_types['self'] = main_class.meta
+        @known_types['dynamic'] = DynamicType.new
         @errors = []
       end
       
@@ -54,6 +55,10 @@ module Duby
       def hash_type
         # TODO: allow other types for pre-1.2 profiles
         type_reference("java.util.Map")
+      end
+
+      def regexp_type
+        type_reference("java.util.regex.Pattern")
       end
 
       def known_type(name)

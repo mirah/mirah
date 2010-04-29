@@ -1738,6 +1738,40 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_literal_regexp
+    cls, = compile(<<-EOF)
+      def expr
+        /foo/
+      end
+      def matches
+        expr.matcher('barfoobaz').find
+      end
+    EOF
+
+    val = cls.expr
+    assert_equal java.util.regex.Pattern, val.class
+    assert_equal 'foo', val.to_s
+
+    assert cls.matches
+  end
+
+  def test_array_return_type
+    cls, = compile(<<-EOF)
+      def split
+        /foo/.split('barfoobaz')
+      end
+      def puts
+        puts split
+      end
+    EOF
+
+    assert_nothing_raised do
+      result = capture_output {cls.puts}
+      assert result =~ /\[Ljava\.lang\.String;@[a-f0-9]+/
+    end
+    assert_equal java.lang.String.java_class.array_class, cls.split.class.java_class
+  end
+
   def test_empty_constructor
     foo, = compile(<<-EOF)
       class Foo6
@@ -1875,7 +1909,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo
-        returns :void
+        returns void
         a = "Hello"
         thread = Thread.new do
           puts a
