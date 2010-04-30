@@ -73,12 +73,17 @@ module Duby::JVM::Types
       return @known_types[name].basic_type if @known_types[name]
       raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
       raise ArgumentError, "Bad Type #{orig.inspect}" if name == '' || name.nil?
+      alt_names = []
+      unless name.include? '.'
+        alt_names << "#{package}.#{name}" if @package
+        alt_names << "java.lang.#{name}"
+      end
       full_name = name
       begin
         @known_types[name] = Type.new(Java::JavaClass.for_name(full_name))
       rescue NameError
-        unless full_name.include? '.'
-          full_name = "java.lang.#{full_name}"
+        unless alt_names.empty?
+          full_name = alt_names.shift
           retry
         end
         raise $!
