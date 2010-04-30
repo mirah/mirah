@@ -226,9 +226,12 @@ class DubyImpl
         require 'duby/jvm/source_compiler'
         @compiler_class = Duby::Compiler::JavaSource
         args.shift
-      when '--dir', '-d'
+      when '--dest', '-d'
         args.shift
-        @dest = File.join(args.shift, '')
+        @dest = File.join(File.expand_path(args.shift), '')
+      when '--cd'
+        args.shift
+        Dir.chdir(args.shift)
       when '--plugin', '-p'
         args.shift
         plugin = args.shift
