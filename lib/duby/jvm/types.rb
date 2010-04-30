@@ -15,6 +15,8 @@ module Duby
       class Type < AST::TypeReference
         include Duby::JVM::MethodLookup
 
+        attr_writer :inner_class
+
         def log(message)
           puts "* [JVM::Types] #{message}" if Duby::Compiler::JVM.verbose
         end
@@ -56,6 +58,10 @@ module Duby
 
         def dynamic?
           false
+        end
+
+        def inner_class?
+          @inner_class
         end
 
         def is_parent(other)
@@ -215,6 +221,10 @@ module Duby
         def jvm_type
           unmeta.jvm_type
         end
+
+        def inner_class?
+          basic_type.inner_class?
+        end
       end
 
       class NullType < Type
@@ -266,6 +276,10 @@ module Duby
 
         def iterable?
           true
+        end
+
+        def inner_class?
+          basic_type.inner_class?
         end
 
         def basic_type

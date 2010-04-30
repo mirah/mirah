@@ -3,7 +3,9 @@ require 'duby/jvm/types'
 module Duby
   class JVM::Types::Type
     def to_source
-      "#{name}#{'[]' if array?}"
+      java_name = name
+      java_name = java_name.tr '$', '.' if inner_class?
+      "#{java_name}#{'[]' if array?}"
     end
   end
 

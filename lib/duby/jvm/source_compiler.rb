@@ -425,7 +425,7 @@ module Duby
 
       def call(call, expression)
         if Duby::AST::Constant === call.target
-          target = call.target.inferred_type.name
+          target = call.target.inferred_type.to_source
         else
           target = call.target.precompile(self)
         end

@@ -2134,6 +2134,17 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("2, 3, 3", cls.test_string(2))
   end
 
+  def test_inner_class
+    cls, = compile(<<-EOF)
+      def foo
+        Character.UnicodeBlock.ARROWS
+      end
+    EOF
+
+    subset = cls.foo
+    assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

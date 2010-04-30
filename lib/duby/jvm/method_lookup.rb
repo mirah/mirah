@@ -69,7 +69,8 @@ module Duby
         phase1_methods[0] ||
           phase2(mapped_params, by_name) ||
           phase3(mapped_params, by_name) ||
-          field_lookup(mapped_params, mapped_type, meta, name)
+          field_lookup(mapped_params, mapped_type, meta, name) ||
+          inner_class(mapped_params, mapped_type, meta, name)
       end
 
       def phase1(mapped_params, potentials)
@@ -158,6 +159,12 @@ module Duby
         raise "cannot access field '#{name}' on class #{mapped_type}" unless field.public?
 
         field
+      end
+
+      def inner_class(params, type, meta, name)
+        return unless params.size == 0 && meta
+        log("Attempting inner class lookup for '#{name}' on #{type}")
+        type.inner_class_getter(name)
       end
 
       def each_is_exact(incoming, target)

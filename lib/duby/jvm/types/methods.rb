@@ -449,6 +449,17 @@ module Duby::JVM::Types
         nil
       end
     end
+
+    def inner_class_getter(name)
+      full_name = "#{self.name}$#{name}"
+      inner_class = Duby::AST.type(full_name) rescue nil
+      return unless inner_class
+      inner_class.inner_class = true
+      add_macro(name) do |transformer, call|
+        Duby::AST::Constant.new(call.parent, call.position, full_name)
+      end
+      intrinsics[name][[]]
+    end
   end
 
   class TypeDefinition
