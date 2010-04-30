@@ -1909,7 +1909,6 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo
-        returns void
         a = "Hello"
         thread = Thread.new do
           puts a
@@ -1921,6 +1920,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         rescue
           puts "Uh Oh!"
         end
+        return
       end
     EOF
     assert_output("Hello Closures\n") do
