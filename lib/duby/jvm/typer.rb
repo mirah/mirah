@@ -6,7 +6,7 @@ module Duby
   module Typer
     class JVM < Simple
       include Duby::JVM::Types
-      
+
       attr_reader :transformer
 
       def initialize(filename, transformer)
@@ -22,19 +22,19 @@ module Duby
         @known_types['dynamic'] = DynamicType.new
         @errors = []
       end
-      
+
       def type_reference(name, array=false, meta=false)
         @factory.type(name, array, meta)
       end
-      
+
       def alias_types(short, long)
-        @known_types[short] = type_reference(long)
+        @factory.alias(short, long)
       end
-      
+
       def name
         "JVM"
       end
-      
+
       def type_definition(name, superclass, interfaces)
         @known_types[name]
       end
@@ -42,7 +42,7 @@ module Duby
       def null_type
         Null
       end
-      
+
       def no_type
         Void
       end
@@ -77,7 +77,7 @@ module Duby
         end
         super
       end
-      
+
       def infer_signature(method_def)
         signature = method_def.signature
         sig_args = signature.dup

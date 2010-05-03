@@ -40,6 +40,7 @@ module Duby::JVM::Types
       @package = File.dirname(filename).tr('/', '.')
       @package.sub! /^\.+/, ''
       @package = nil if @package.empty?
+      @search_packages = [@package, 'java.lang']
     end
 
     def define_types(builder)
@@ -73,10 +74,10 @@ module Duby::JVM::Types
       return @known_types[name].basic_type if @known_types[name]
       raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
       raise ArgumentError, "Bad Type #{orig.inspect}" if name == '' || name.nil?
-      alt_names = []
-      unless name.include? '.'
-        alt_names << "#{package}.#{name}" if @package
-        alt_names << "java.lang.#{name}"
+      if name.include? '.'
+        alt_names = []
+      else
+        alt_names = @search_packages.map {|package| "#{package}.#{name}"}
       end
       full_name = name
       begin
@@ -122,7 +123,11 @@ module Duby::JVM::Types
     end
 
     def alias(from, to)
-      @known_types[from] = type(to)
+      if from == '*'
+        @search_packages << to.sub(".*", "")
+      else
+        @known_types[from] = type(to)
+      end
     end
 
     def no_type

@@ -295,6 +295,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal 0, cls.foo(java.util.ArrayList.new)
   end
 
+  def test_import_package
+    cls, = compile(<<-EOF)
+      import java.util.*
+      def foo
+        ArrayList.new
+      end
+    EOF
+    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
+  end
+
   def test_interface
     cls, = compile(<<-EOF)
       import 'java.util.concurrent.Callable'
