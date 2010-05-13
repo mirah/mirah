@@ -48,7 +48,8 @@ task :compile => :init do
     Duby.compile(
       '-c', classpath,
       '-d', '../build',
-      'org/jruby/duby')
+      'org/jruby/duby',
+      'duby/lang')
   end
 end
 
@@ -73,6 +74,12 @@ namespace :jar do
       manifest do
         attribute :name => 'Main-Class', :value => 'org.jruby.duby.DubyCommand'
       end
+    end
+  end
+
+  task :bootstrap => :compile do
+    ant.jar :jarfile => 'javalib/duby-bootstrap.jar' do
+      fileset :dir => 'build'
     end
   end
 end

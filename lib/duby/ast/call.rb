@@ -16,6 +16,7 @@ module Duby::AST
   end
 
   class FunctionalCall < Node
+    include Java::DubyLangCompiler.Call
     include Named
     include Scoped
     attr_accessor :cast, :inlined, :proxy
@@ -33,6 +34,20 @@ module Duby::AST
       super(parent, line_number, &kids)
       @name = name
       @cast = false
+    end
+
+    def arguments
+      @arguments ||= begin
+        args = java.util.ArrayList.new(parameters.size)
+        parameters.each do |param|
+          args.add(param)
+        end
+        args
+      end
+    end
+
+    def target
+      nil
     end
 
     def infer(typer)
@@ -85,6 +100,7 @@ module Duby::AST
   end
 
   class Call < Node
+    include Java::DubyLangCompiler.Call
     include Named
     attr_accessor :inlined, :proxy
 
@@ -100,6 +116,16 @@ module Duby::AST
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, &kids)
       @name = name
+    end
+
+    def arguments
+      @arguments ||= begin
+        args = java.util.ArrayList.new(parameters.size)
+        parameters.each do |param|
+          args.add(param)
+        end
+        args
+      end
     end
 
     def infer(typer)

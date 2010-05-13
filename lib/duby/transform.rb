@@ -13,6 +13,13 @@ module Duby
     end
 
     class Transformer
+      begin
+        include Java::DubyLangCompiler.Compiler
+      rescue NameError
+        $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/duby-bootstrap.jar'
+        include Java::DubyLangCompiler.Compiler
+      end
+
       attr_reader :errors
       def initialize
         @errors = []
@@ -32,8 +39,8 @@ module Duby
         Duby::AST::Noop.new(annotation.parent, annotation.position)
       end
 
-      def tmp
-        "__xform_tmp_#{@tmp_count += 1}"
+      def tmp(format="__xform_tmp_%d")
+        format % [@tmp_count += 1]
       end
 
       def transform(node, parent)

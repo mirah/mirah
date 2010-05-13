@@ -51,7 +51,7 @@ module Duby
         line_end = file_offset + line.size
         skip = [start_offset - file_offset, line.size].min
         if lineno >= startline && lineno <= endline
-          print line
+          puts line.chomp
           if skip > 0
             print ' ' * (skip)
           else
@@ -79,8 +79,12 @@ class DubyClassLoader < java::security::SecureClassLoader
   end
   
   def findClass(name)
-    bytes = @class_map[name].to_java_bytes
-    defineClass(name, bytes, 0, bytes.length)
+    if @class_map[name]
+      bytes = @class_map[name].to_java_bytes
+      defineClass(name, bytes, 0, bytes.length)
+    else
+      raise java.lang.ClassNotFoundException.new(name)
+    end
   end
 
   def loadClass(name, resolve)
@@ -255,7 +259,7 @@ class DubyImpl
     end
     @compiler_class ||= Duby::Compiler::JVM
   end
-  
+
   def print_help
     $stdout.print "#{$0} [flags] <files or \"-e SCRIPT\">
   -V, --verbose\t\tVerbose logging
@@ -265,7 +269,7 @@ class DubyImpl
   -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
   -h, --help\t\tPrint this help message
   -e\t\t\tCompile or run the script following -e (naming it \"DashE\")"
-  end 
+  end
 
   def expand_files(files)
     expanded = []

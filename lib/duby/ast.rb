@@ -11,6 +11,7 @@ module Duby
     # _parent_, a reference to this node's parent (nil if none), and _newline_,
     # whether this node represents a new line.
     class Node
+      include Java::DubyLangCompiler.Node
       include Enumerable
 
       attr_accessor :children

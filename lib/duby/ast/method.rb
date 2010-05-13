@@ -97,6 +97,8 @@ module Duby::AST
   class BlockArgument < Argument
     include Named
     include Scoped
+    attr_accessor :optional
+    alias optional? optional
 
     def initialize(parent, line_number, name)
       super(parent, line_number)

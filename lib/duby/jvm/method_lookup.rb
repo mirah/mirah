@@ -23,17 +23,17 @@ module Duby
           end
         rescue NameError
           # exact args failed, do a deeper search
-          log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name)})"
+          log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
 
           method = find_jls(mapped_type, name, mapped_params, meta, constructor)
 
           unless method
-            log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name)})"
+            log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
             return nil
           end
         end
 
-        log "Found method #{method.declaring_class.name}.#{name}(#{method.argument_types.map(&:name)}) from #{mapped_type.name}"
+        log "Found method #{method.declaring_class.name}.#{name}(#{method.argument_types.map(&:name).join ', '}) from #{mapped_type.name}"
         return method
       end
 

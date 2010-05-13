@@ -2155,6 +2155,21 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
   end
 
+  def test_defmacro
+    cls, = compile(<<-EOF)
+      defmacro bar(x) do
+        x
+      end
+      
+      def foo
+        bar("bar")
+      end
+    EOF
+
+    assert_equal("bar", cls.foo)
+    assert(!cls.respond_to?(:bar))
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)
