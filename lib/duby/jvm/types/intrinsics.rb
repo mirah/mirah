@@ -56,15 +56,20 @@ module Duby::JVM::Types
       end
     end
 
-    def declared_intrinsics
+    def declared_intrinsics(name=nil)
       methods = []
-      intrinsics.each do |name, group|
+      all_intrinsics = if name.nil?
+        intrinsics
+      else
+        [[name, intrinsics[name]]]
+      end
+      all_intrinsics.each do |name, group|
         group.each do |args, method|
           methods << method
         end
       end
       interfaces.each do |interface|
-        methods.concat(interface.declared_intrinsics)
+        methods.concat(interface.declared_intrinsics(name))
       end
       methods
     end

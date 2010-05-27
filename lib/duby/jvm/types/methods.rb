@@ -137,19 +137,19 @@ module Duby::JVM::Types
   class JavaMethod < JavaConstructor
     def return_type
       @return_type ||= begin
-        if @member.return_type
-          AST.type(@member.return_type)
-        else
+        if void?
           declaring_class
+        else
+          AST.type(@member.return_type)
         end
       end
     end
 
     def actual_return_type
-      if @member.return_type
-        return_type
-      else
+      if void?
         Void
+      else
+        return_type
       end
     end
 
@@ -162,7 +162,12 @@ module Duby::JVM::Types
     end
 
     def void?
-      @member.return_type.nil?
+      return_type = @member.return_type
+      return true if return_type.nil?
+      if return_type.respond_to?(:descriptor) && return_type.descriptor == 'V'
+        return true
+      end
+      false
     end
 
     def constructor?
@@ -389,8 +394,8 @@ module Duby::JVM::Types
     end
 
     def constructor(*types)
-      types = types.map {|type| type.jvm_type}
-      constructor = (jvm_type.constructor(*types) rescue nil)
+      type_names = types.map {|type| type.name}
+      constructor = jvm_type.getConstructor(*types)
       return JavaConstructor.new(constructor) if constructor
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
@@ -398,11 +403,12 @@ module Duby::JVM::Types
     def java_method(name, *types)
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
-      types = types.map {|type| type.jvm_type}
-      
-      return JavaDynamicMethod.new(name, *types) if dynamic?
+      jvm_types = types.map {|type| type.jvm_type}
 
-      method = (jvm_type.java_method(name, *types) rescue nil)
+      return JavaDynamicMethod.new(name, *jvm_types) if dynamic?
+
+      type_names = types.map {|type| type.name}
+      method = jvm_type.getDeclaredMethod(name, *type_names)
       if method && method.static? == meta?
         return JavaStaticMethod.new(method) if method.static?
         return JavaMethod.new(method)
@@ -410,33 +416,34 @@ module Duby::JVM::Types
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end
 
-    def declared_instance_methods
+    def declared_instance_methods(name=nil)
+      methods = []
       if jvm_type && !array?
-        methods = jvm_type.declared_instance_methods.map do |method|
-          JavaMethod.new(method)
+        jvm_type.getDeclaredMethods(name).each do |method|
+          methods << JavaMethod.new(method) unless method.static?
         end
-      else
-        methods = []
       end
-      methods.concat((meta? ? unmeta : self).declared_intrinsics)
+      methods.concat((meta? ? unmeta : self).declared_intrinsics(name))
     end
 
-    def declared_class_methods
-      methods = jvm_type.declared_class_methods.map do |method|
-        JavaStaticMethod.new(method)
+    def declared_class_methods(name=nil)
+      methods = []
+      jvm_type.getDeclaredMethods(name).each do |method|
+        methods << JavaStaticMethod.new(method) if method.static?
       end
-      methods.concat(meta.declared_intrinsics)
+      methods.concat(meta.declared_intrinsics(name))
     end
 
     def declared_constructors
-      jvm_type.declared_constructors.map do |method|
+      jvm_type.getConstructors.map do |method|
         JavaConstructor.new(method)
       end
     end
 
     def field_getter(name)
       if jvm_type
-        JavaFieldGetter.new(jvm_type.field(name)) rescue nil
+        field = jvm_type.getField(name)
+        JavaFieldGetter.new(field) if field
       else
         nil
       end
@@ -444,7 +451,8 @@ module Duby::JVM::Types
 
     def field_setter(name)
       if jvm_type
-        JavaFieldSetter.new(jvm_type.field(name)) rescue nil
+        field = jvm_type.getField(name)
+        JavaFieldSetter.new(field) if field
       else
         nil
       end
@@ -485,12 +493,20 @@ module Duby::JVM::Types
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
 
-    def declared_instance_methods
-      instance_methods.values.flatten + declared_intrinsics
+    def declared_instance_methods(name=nil)
+      declared_intrinsics(name) + if name.nil?
+        instance_methods.values.flatten
+      else
+        instance_methods[name]
+      end
     end
 
-    def declared_class_methods
-      static_methods.values.flatten + meta.declared_intrinsics
+    def declared_class_methods(name=nil)
+      meta.declared_intrinsics(name) + if name.nil?
+        static_methods.values.flatten
+      else
+        static_methods[name]
+      end
     end
 
     def declared_constructors
@@ -523,7 +539,7 @@ module Duby::JVM::Types
       member = DubyMember.new(self, name, arguments, type, true, exceptions)
       static_methods[name] << JavaStaticMethod.new(member)
     end
-    
+
     def interface?
       false
     end
@@ -538,12 +554,12 @@ module Duby::JVM::Types
       unmeta.java_static_method(*args)
     end
 
-    def declared_instance_methods
-      unmeta.declared_instance_methods
+    def declared_class_methods(name=nil)
+      unmeta.declared_class_methods(name)
     end
 
-    def declared_class_methods
-      unmeta.declared_class_methods
+    def declared_instance_methods(name=nil)
+      unmeta.declared_instance_methods(name)
     end
   end
 end

@@ -39,20 +39,17 @@ module Duby
 
       def find_jls(mapped_type, name, mapped_params, meta, constructor)
         if constructor
-          all_methods = mapped_type.unmeta.declared_constructors
-          by_name = all_methods
+          by_name = mapped_type.unmeta.declared_constructors
         elsif meta
-          all_methods = mapped_type.declared_class_methods
+          by_name = mapped_type.declared_class_methods(name)
         else
-          all_methods = []
+          by_name = []
           cls = mapped_type
           while cls
-            all_methods += cls.declared_instance_methods
+            by_name += cls.declared_instance_methods(name)
             cls = cls.superclass
           end
         end
-        # filter by name, if we haven't already got a by_name list
-        by_name ||= all_methods.select {|m| m.name == name && mapped_params.size <= m.argument_types.size}
         # filter by arity
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
 
@@ -198,32 +195,8 @@ module Duby
         return true
       end
 
-      BOOLEAN = Java::boolean.java_class
-      BYTE = Java::byte.java_class
-      SHORT = Java::short.java_class
-      CHAR = Java::char.java_class
-      INT = Java::int.java_class
-      LONG = Java::long.java_class
-      FLOAT = Java::float.java_class
-      DOUBLE = Java::double.java_class
-
-      PrimitiveConversions = {
-        BOOLEAN => [BOOLEAN],
-        BYTE => [BYTE, SHORT, CHAR, INT, LONG, FLOAT, DOUBLE],
-        SHORT => [SHORT, INT, LONG, FLOAT, DOUBLE],
-        CHAR => [CHAR, INT, LONG, FLOAT, DOUBLE],
-        INT => [INT, LONG, FLOAT, DOUBLE],
-        LONG => [LONG, DOUBLE],
-        FLOAT => [FLOAT, DOUBLE],
-        DOUBLE => [DOUBLE]
-      }
-
       def primitive_convertible?(in_type, target_type)
-        if PrimitiveConversions.include? in_type
-          PrimitiveConversions[in_type].include?(target_type)
-        else
-          in_type.convertible_to?(target_type)
-        end
+        in_type.convertible_to?(target_type)
       end
     end
   end

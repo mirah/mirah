@@ -573,15 +573,16 @@ module Duby
       def build_string(nodes, expression)
         if expression
           # could probably be more efficient with non-default constructor
-          @method.new java::lang::StringBuilder
+          builder_class = Duby::AST.type('java.lang.StringBuilder')
+          @method.new builder_class
           @method.dup
-          @method.invokespecial java::lang::StringBuilder, "<init>", [@method.void]
+          @method.invokespecial builder_class, "<init>", [@method.void]
 
           nodes.each do |node|
             node.compile(self, true)
-            method = find_method(java::lang::StringBuilder.java_class, "append", [node.inferred_type.jvm_type], false)
+            method = find_method(builder_class, "append", [node.inferred_type], false)
             if method
-              @method.invokevirtual java::lang::StringBuilder.java_class, "append", [method.return_type, *method.parameter_types]
+              @method.invokevirtual builder_class, "append", [method.return_type, *method.argument_types]
             else
               log "Could not find a match for #{java::lang::StringBuilder}.append(#{node.inferred_type})"
               fail "Could not compile"

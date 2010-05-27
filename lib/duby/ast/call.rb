@@ -185,7 +185,7 @@ module Duby::AST
       @self_type ||= typer.self_type.superclass
 
       unless @inferred_type
-        receiver_type = @call_parent.defining_class
+        receiver_type = @call_parent.defining_class.superclass
         should_defer = receiver_type.nil?
         parameter_types = parameters.map do |param|
           typer.infer(param) || should_defer = true

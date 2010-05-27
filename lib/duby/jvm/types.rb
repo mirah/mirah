@@ -3,12 +3,6 @@ require 'duby/ast'
 require 'duby/jvm/method_lookup'
 require 'duby/jvm/compiler'
 
-class Object
-  def class_builder?
-    self.class.name =~ /::ClassBuilder$/
-  end
-end
-
 module Duby
   module JVM
     module Types
@@ -21,15 +15,15 @@ module Duby
           puts "* [JVM::Types] #{message}" if Duby::Compiler::JVM.verbose
         end
 
-        def initialize(java_type)
-          orig_type = java_type
-          if !(java_type.kind_of?(Java::JavaClass) ||
-               java_type.class_builder?)
-            java_type = java_type.java_class
+        def initialize(mirror_or_name)
+          if mirror_or_name.kind_of?(BiteScript::ASM::ClassMirror)
+            @type = mirror_or_name
+            name = mirror_or_name.type.class_name
+          else
+            name = mirror_or_name.to_s
           end
-          super(java_type.name, false, false)
-          raise ArgumentError, "Bad type #{orig_type}" if name =~ /Java::/
-          @type = java_type
+          super(name, false, false)
+          raise ArgumentError, "Bad type #{mirror_or_name}" if name =~ /Java::/
         end
 
         def jvm_type
@@ -81,12 +75,10 @@ module Duby
           # TODO should we allow more here?
           return interface? if other.block?
 
-          begin
-            jvm_type.assignable_from?(other.jvm_type)
-          rescue
-            assignable_from?(other.superclass) ||
-                other.interfaces.any? {|i| assignable_from?(i)}
-          end
+          return true if jvm_type == other.jvm_type
+
+          assignable_from?(other.superclass) ||
+              other.interfaces.any? {|i| assignable_from?(i)}
         end
 
         def iterable?
@@ -112,7 +104,7 @@ module Duby
         end
 
         def array_type
-          @array_type ||= ArrayType.new(self)
+          @array_type ||= Duby::JVM::Types::ArrayType.new(self)
         end
 
         def prefix
@@ -188,6 +180,10 @@ module Duby
           a, b = TYPE_ORDERING.index(self), TYPE_ORDERING.index(type)
           a && b && b > a
         end
+
+        def superclass
+          nil
+        end
       end
 
       class MetaType < Type
@@ -229,7 +225,7 @@ module Duby
 
       class NullType < Type
         def initialize
-          super(java.lang.Object)
+          super('java.lang.Object')
         end
 
         def to_s
@@ -243,8 +239,7 @@ module Duby
 
       class VoidType < PrimitiveType
         def initialize
-          super(Java::JavaLang::Void, Java::JavaLang::Void)
-          @name = "void"
+          super('void', Java::JavaLang::Void)
         end
 
         def void?
@@ -262,12 +257,12 @@ module Duby
         def initialize(component_type)
           @component_type = component_type
           if @component_type.jvm_type
-            @type = java.lang.reflect.Array.newInstance(@component_type.jvm_type, 0).class
+            #@type = java.lang.reflect.Array.newInstance(@component_type.jvm_type, 0).class
           else
             # FIXME: THIS IS WRONG, but I don't know how to fix it
-            @type = @component_type
+            #@type = @component_type
           end
-          @name = component_type.name
+          @name = "#{component_type.name}"# + "[]"
         end
 
         def array?
@@ -296,8 +291,8 @@ module Duby
       end
 
       class DynamicType < Type
-        ObjectType = Type.new(java.lang.Object)
-        
+        ObjectType = Type.new('java.lang.Object')
+
         def initialize
           # For naming, bytecode purposes, we are an Object
           @name = "java.lang.Object"
@@ -328,12 +323,8 @@ module Duby
         attr_accessor :node
 
         def initialize(name, node)
-          if name.class_builder?
-            super(name)
-          else
-            raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
-            @name = name
-          end
+          raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
+          @name = name
           @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
         end

@@ -1,19 +1,23 @@
 module Duby::JVM::Types
-  Boolean = BooleanType.new(Java::boolean, java.lang.Boolean)
-  Byte = IntegerType.new(Java::byte, java.lang.Byte)
-  Char = IntegerType.new(Java::char, java.lang.Character)
-  Short = IntegerType.new(Java::short, java.lang.Short)
-  Int = IntegerType.new(Java::int, java.lang.Integer)
-  Long = LongType.new(Java::long, java.lang.Long)
-  Float = FloatType.new(Java::float, java.lang.Float)
-  Double = DoubleType.new(Java::double, java.lang.Double)
+  Boolean = BooleanType.new('boolean', java.lang.Boolean)
+  Byte = IntegerType.new('byte', java.lang.Byte)
+  Char = IntegerType.new('char', java.lang.Character)
+  Short = IntegerType.new('short', java.lang.Short)
+  Int = IntegerType.new('int', java.lang.Integer)
+  Long = LongType.new('long', java.lang.Long)
+  Float = FloatType.new('float', java.lang.Float)
+  Double = DoubleType.new('double', java.lang.Double)
 
-  Object = Type.new(Java::JavaLang.Object)
-  String = StringType.new(Java::JavaLang.String)
-  Iterable = IterableType.new(Java::JavaLang.Iterable)
+  # TODO these shouldn't be constants. They should be loaded from
+  # the compilation class path.
+  Object = Type.new(BiteScript::ASM::ClassMirror.load('java.lang.Object'))
+  String = StringType.new(
+      BiteScript::ASM::ClassMirror.load('java.lang.String'))
+  Iterable = IterableType.new(
+          BiteScript::ASM::ClassMirror.load('java.lang.Iterable'))
 
   Void = VoidType.new
   Null = NullType.new
-  
+
   TYPE_ORDERING = [Byte, Short, Int, Long, Float, Double]
-end  
+end

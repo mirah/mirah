@@ -1,3 +1,4 @@
+require 'jruby'
 module Duby::JVM::Types
   class TypeFactory
     BASIC_TYPES = {
@@ -41,6 +42,7 @@ module Duby::JVM::Types
       @package.sub! /^\.+/, ''
       @package = nil if @package.empty?
       @search_packages = [@package, 'java.lang']
+      @mirrors = {}
     end
 
     def define_types(builder)
@@ -50,12 +52,19 @@ module Duby::JVM::Types
     end
 
     def type(name, array=false, meta=false)
+      if name.kind_of?(BiteScript::ASM::Type)
+        if name.getDescriptor[0] == ?[
+          return type(name.getElementType, true, meta)
+        else
+          name = name.getClassName
+        end
+      end
       type = basic_type(name)
       type = type.meta if meta
       type = type.array_type if array
       return type
     end
-    
+
     def basic_type(name)
       if name.kind_of?(Type) || name.kind_of?(NarrowingType)
         return name.basic_type
@@ -81,7 +90,7 @@ module Duby::JVM::Types
       end
       full_name = name
       begin
-        @known_types[name] = Type.new(Java::JavaClass.for_name(full_name))
+        @known_types[name] = Type.new(get_mirror(full_name))
       rescue NameError
         unless alt_names.empty?
           full_name = alt_names.shift
@@ -133,13 +142,22 @@ module Duby::JVM::Types
     def no_type
       Void
     end
-    
+
     def fixnum(parent, line_number, literal)
       FixnumLiteralNode.new(parent, line_number, literal)
     end
-    
+
     def float(parent, line_number, literal)
       FloatLiteralNode.new(parent, line_number, literal)
+    end
+
+    def get_mirror(name)
+      @mirrors[name] ||= begin
+        classname = name.tr('.', '/') + ".class"
+        stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname)
+        raise NameError, "Class '#{name}' not found." unless stream
+        BiteScript::ASM::ClassMirror.load(stream)
+      end
     end
   end
 
