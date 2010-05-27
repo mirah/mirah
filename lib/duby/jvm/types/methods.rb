@@ -394,9 +394,13 @@ module Duby::JVM::Types
     end
 
     def constructor(*types)
-      type_names = types.map {|type| type.name}
-      constructor = jvm_type.getConstructor(*types)
-      return JavaConstructor.new(constructor) if constructor
+      begin
+        descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
+        constructor = jvm_type.getConstructor(*descriptors)
+        return JavaConstructor.new(constructor) if constructor
+      rescue => ex
+        log(ex.message)
+      end
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
 
@@ -407,11 +411,15 @@ module Duby::JVM::Types
 
       return JavaDynamicMethod.new(name, *jvm_types) if dynamic?
 
-      type_names = types.map {|type| type.name}
-      method = jvm_type.getDeclaredMethod(name, *type_names)
-      if method && method.static? == meta?
-        return JavaStaticMethod.new(method) if method.static?
-        return JavaMethod.new(method)
+      begin
+        descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
+        method = jvm_type.getDeclaredMethod(name, *descriptors)
+        if method && method.static? == meta?
+          return JavaStaticMethod.new(method) if method.static?
+          return JavaMethod.new(method)
+        end
+      rescue   => ex
+          log(ex.message)
       end
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end

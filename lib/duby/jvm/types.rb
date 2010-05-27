@@ -75,7 +75,7 @@ module Duby
           # TODO should we allow more here?
           return interface? if other.block?
 
-          return true if jvm_type == other.jvm_type
+          return true if jvm_type && (jvm_type == other.jvm_type)
 
           assignable_from?(other.superclass) ||
               other.interfaces.any? {|i| assignable_from?(i)}
@@ -262,7 +262,7 @@ module Duby
             # FIXME: THIS IS WRONG, but I don't know how to fix it
             #@type = @component_type
           end
-          @name = "#{component_type.name}"# + "[]"
+          @name = component_type.name
         end
 
         def array?
