@@ -380,9 +380,12 @@ module Duby
 
       class GlobalVarNode
         def transform(transformer, parent)
+          transformer.add_annotation(annotation)
+        end
+
+        def annotation(transformer, parent)
           classname = name[1..-1]
           annotation = Annotation.new(parent, position, AST.type(classname))
-          transformer.add_annotation(annotation)
         end
       end
 
@@ -469,15 +472,15 @@ module Duby
             case value
             when HashNode
               values = value.list_node
-              (0..(values.size / 2)).each do |i|
+              (0...(values.size / 2)).each do |i|
                 name = values.get(2 * i).name
                 value = values.get(2 * i + 1)
-                annotation[name] = transformer.transform(value, annotation)
+                annotation[name] = annotation_value(value, annotation)
               end
             when nil
               # ignore an empty argument list
             else
-              annotation['value'] = transformer.transform(value, annotation)
+              annotation['value'] = annotation_value(value, annotation)
             end
             annotation
           else
@@ -494,6 +497,20 @@ module Duby
           end
           receiver = receiver.receiver_node while CallNode === receiver
           GlobalVarNode === receiver
+        end
+
+        def annotation_value(value, annotation)
+          case value
+          when StrNode
+            java.lang.String.new(value.value)
+          when ArrayNode
+            value.child_nodes.map {|node| annotation_value(node, annotation)}
+          else
+            # TODO Support other types
+            ref = value.type_reference(annotation)
+            desc = BiteScript::Signature.class_id(ref)
+            BiteScript::ASM::Type.getType(desc)
+          end
         end
       end
 

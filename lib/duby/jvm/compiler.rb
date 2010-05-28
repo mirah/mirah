@@ -451,8 +451,11 @@ module Duby
 
       def annotate(builder, annotations)
         annotations.each do |annotation|
-          builder.annotate(annotation.type.jvm_type) do |visitor|
-            # todo values
+          type = annotation.type.jvm_type
+          builder.annotate(type, annotation.runtime?) do |visitor|
+            annotation.values.each do |name, value|
+              visitor.send "#{name}=", value
+            end
           end
         end
       end

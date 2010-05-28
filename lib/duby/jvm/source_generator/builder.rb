@@ -126,7 +126,6 @@ module Duby
 
       def annotate(annotations)
         annotations.each do |annotation|
-          # TODO values
           puts "@#{annotation.name}"
         end
       end

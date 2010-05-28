@@ -371,10 +371,14 @@ module Duby
     class VoidType < Node; end
 
     class Annotation < Node
+      attr_reader :values
+      attr_accessor :runtime
+      alias runtime? runtime
+
       def initialize(parent, position, klass)
         super(parent, position)
         @class = klass
-        @values = []
+        @values = {}
       end
 
       def name
@@ -386,7 +390,7 @@ module Duby
       end
 
       def []=(name, value)
-        # TODO support annotation arguments
+        @values[name] = value
       end
     end
 
