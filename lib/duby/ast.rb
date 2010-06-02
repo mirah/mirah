@@ -392,6 +392,10 @@ module Duby
       def []=(name, value)
         @values[name] = value
       end
+
+      def [](name)
+        @values[name]
+      end
     end
 
     class TypeReference < Node

@@ -451,12 +451,34 @@ module Duby
 
       def annotate(builder, annotations)
         annotations.each do |annotation|
-          type = annotation.type.jvm_type
+          type = annotation.type
+          type = type.jvm_type if type.respond_to?(:jvm_type)
           builder.annotate(type, annotation.runtime?) do |visitor|
             annotation.values.each do |name, value|
-              visitor.send "#{name}=", value
+              annotation_value(visitor, name, value)
             end
           end
+        end
+      end
+
+      def annotation_value(builder, name, value)
+        case value
+        when Duby::AST::Annotation
+          type = value.type
+          type = type.jvm_type if type.respond_to?(:jvm_type)
+          builder.annotation(name, type) do |child|
+            value.values.each do |name, value|
+              annotation_value(child, name, value)
+            end
+          end
+        when ::Array
+          builder.array(name) do |array|
+            value.each do |item|
+              annotation_value(array, nil, item)
+            end
+          end
+        else
+          builder.value(name, value)
         end
       end
 

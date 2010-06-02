@@ -67,6 +67,10 @@ module Duby
       end
     end
   end
+
+  class CompilationState
+    attr_accessor :verbose, :destination
+  end
 end
 
 # This is a custom classloader impl to allow loading classes with
@@ -152,7 +156,7 @@ class DubyImpl
       exit 1 if @error
 
       compile_ast(ast) do |filename, builder|
-        filename = "#{@dest}#{filename}"
+        filename = "#{@state.destination}#{filename}"
         FileUtils.mkdir_p(File.dirname(filename))
         bytes = builder.generate
         File.open(filename, 'w') {|f| f.write(bytes)}
@@ -181,13 +185,13 @@ class DubyImpl
       ast = Duby::AST.parse_ruby(src, @filename)
     rescue org.jrubyparser.lexer.SyntaxException => ex
       Duby.print_error(ex.message, ex.position)
-      raise ex if @verbose
+      raise ex if @state.verbose
     end
-    @transformer = Duby::Transform::Transformer.new
+    @transformer = Duby::Transform::Transformer.new(@state)
     ast = @transformer.transform(ast, nil)
     @transformer.errors.each do |ex|
       Duby.print_error(ex.message, ex.position)
-      raise ex.cause || ex if @verbose
+      raise ex.cause || ex if @state.verbose
     end
     @error = @transformer.errors.size > 0
     ast
@@ -199,14 +203,14 @@ class DubyImpl
     begin
       typer.resolve(false)
     ensure
-      puts ast.inspect if @verbose
+      puts ast.inspect if @state.verbose
 
       failed = !typer.errors.empty?
       if failed
         puts "Inference Error:"
         typer.errors.each do |ex|
           Duby.print_error(ex.message, ex.node.position)
-          puts ex.backtrace if @verbose
+          puts ex.backtrace if @state.verbose
         end
         exit 1
       end
@@ -218,13 +222,14 @@ class DubyImpl
   end
 
   def process_flags!(args)
+    @state ||= Duby::CompilationState.new
     while args.length > 0 && args[0] =~ /^-/
       case args[0]
       when '--verbose', '-V'
         Duby::Typer.verbose = true
         Duby::AST.verbose = true
         Duby::Compiler::JVM.verbose = true
-        @verbose = true
+        @state.verbose = true
         args.shift
       when '--java', '-j'
         require 'duby/jvm/source_compiler'
@@ -232,7 +237,7 @@ class DubyImpl
         args.shift
       when '--dest', '-d'
         args.shift
-        @dest = File.join(File.expand_path(args.shift), '')
+        @state.destination = File.join(File.expand_path(args.shift), '')
       when '--cd'
         args.shift
         Dir.chdir(args.shift)
@@ -257,6 +262,7 @@ class DubyImpl
         exit(1)
       end
     end
+    @state.destination ||= File.join(File.expand_path('.'), '')
     @compiler_class ||= Duby::Compiler::JVM
   end
 

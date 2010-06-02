@@ -21,7 +21,7 @@ module Duby
     def parse(text)
       Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
       ast = Duby::AST.parse_ruby(text)
-      transformer = Duby::Transform::Transformer.new
+      transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
       return ParseResult.new(
           transformer.transform(ast, nil), transformer.errors)
     end

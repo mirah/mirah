@@ -20,13 +20,22 @@ module Duby
         include Java::DubyLangCompiler.Compiler
       end
 
-      attr_reader :errors
-      def initialize
+      attr_reader :errors, :state
+      def initialize(state)
         @errors = []
         @tmp_count = 0
         @annotations = []
         @scopes = []
         @extra_body = nil
+        @state = state
+      end
+
+      def destination
+        @state.destination
+      end
+
+      def verbose?
+        @state.verbose
       end
 
       def annotations
@@ -144,7 +153,7 @@ module Duby
 
     def parse(src, filename='-', raise_errors=false, transformer=nil)
       ast = parse_ruby(src, filename)
-      transformer ||= Transform::Transformer.new
+      transformer ||= Transform::Transformer.new(Duby::CompilationState.new)
       ast = transformer.transform(ast, nil)
       if raise_errors
         transformer.errors.each do |e|
@@ -380,7 +389,7 @@ module Duby
 
       class GlobalVarNode
         def transform(transformer, parent)
-          transformer.add_annotation(annotation)
+          transformer.add_annotation(annotation(transformer, parent))
         end
 
         def annotation(transformer, parent)

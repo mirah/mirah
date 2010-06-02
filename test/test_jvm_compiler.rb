@@ -54,7 +54,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    transformer = Duby::Transform::Transformer.new
+    transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(name, transformer)
     ast.infer(typer)
