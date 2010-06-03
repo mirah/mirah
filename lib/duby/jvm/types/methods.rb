@@ -525,6 +525,16 @@ module Duby::JVM::Types
       @constructors ||= []
     end
 
+    def default_constructor
+      if constructors.empty?
+        declare_method('initialize', [], self, [])
+        @default_constructor_added = true
+        constructors[0]
+      else
+        constructor
+      end
+    end
+
     def instance_methods
       @instance_methods ||= Hash.new {|h, k| h[k] = []}
     end
@@ -537,7 +547,13 @@ module Duby::JVM::Types
       raise "Bad args" unless arguments.all?
       member = DubyMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
-        constructors << JavaConstructor.new(member)
+        if @default_constructor_added
+          unless arguments.empty?
+            raise "Can't add constructor #{member} after using the default."
+          end
+        else
+          constructors << JavaConstructor.new(member)
+        end
       else
         instance_methods[name] << JavaMethod.new(member)
       end
@@ -550,6 +566,14 @@ module Duby::JVM::Types
 
     def interface?
       false
+    end
+
+    def field_getter(name)
+      nil
+    end
+
+    def field_setter(name)
+      nil
     end
   end
 
@@ -568,6 +592,14 @@ module Duby::JVM::Types
 
     def declared_instance_methods(name=nil)
       unmeta.declared_instance_methods(name)
+    end
+
+    def field_getter(name)
+      nil
+    end
+
+    def field_setter(name)
+      nil
     end
   end
 end

@@ -30,7 +30,7 @@ module Duby
     end
 
     class Simple < BaseTyper
-      attr_accessor :known_types, :errors
+      attr_accessor :known_types, :errors, :last_chance
 
       def initialize(self_type)
         @known_types = {}
@@ -334,11 +334,20 @@ module Duby
             if @error_next || retried
               log "[Cycle #{i}]: Made no progress, bailing out"
               break
-            else
+            elsif @last_chance
               # Retry this iteration, and mark the first deferred
               # type as an error.
               retried = true
               @error_next = true
+              redo
+            else
+              # This is a hack for default constructor support.  The right fix
+              # is probably to check the AST for constructors. Instead we
+              # tell the plugins that we're near the end of inference so they
+              # can assume no new constructors are being added.  You could
+              # easily write some circular constructors that would compile
+              # with this technique but fail to run.
+              @last_chance = true
               redo
             end
           end

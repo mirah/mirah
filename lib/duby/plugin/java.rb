@@ -24,7 +24,16 @@ module Duby
             raise NoMethodError, "Method %s(%s) on %s not found" %
                 [name, parameter_types.join(', '), target_type]
           end
-          result = method.return_type if method
+          if method
+            result = method.return_type
+          elsif typer.last_chance && target_type.meta? &&
+              name == 'new' && parameter_types == []
+            unmeta = target_type.unmeta
+            if unmeta.respond_to?(:default_constructor)
+              result = unmeta.default_constructor
+              typer.last_chance = false if result
+            end
+          end
         end
 
         if result

@@ -4,8 +4,6 @@ import java.util.HashMap
 import java.util.regex.Pattern
 
 class Post < Model
-  def initialize; end
-
   property title, String
   property body, Text
 end

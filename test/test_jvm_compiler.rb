@@ -369,7 +369,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_method
     # TODO auto generate a constructor
     cls, = compile(
-      "class MethodTest; def initialize; ''; end; def foo; 'foo';end;end")
+      "class MethodTest; def foo; 'foo';end;end")
     instance = cls.new
     assert_equal(cls, instance.class)
     assert_equal('foo', instance.foo)
@@ -1794,14 +1794,12 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_same_field_name
     cls, = compile(<<-EOF)
       class A1
-        def initialize; end
         def foo(bar:String)
           @bar = bar
         end
       end
 
       class B1
-        def initialize; end
         def foo(bar:String)
           @bar = bar
         end
@@ -1850,7 +1848,6 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_super
     cls, = compile(<<-EOF)
       class Foo
-        def initialize; end
         def equals(other:Object); super(other); end
       end
     EOF
@@ -2168,6 +2165,22 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_equal("bar", cls.foo)
     assert(!cls.respond_to?(:bar))
+  end
+
+  def test_default_constructor
+    script, cls = compile(<<-EOF)
+      class DefaultConstructable
+        def foo
+          "foo"
+        end
+      end
+
+      print DefaultConstructable.new.foo
+    EOF
+
+    assert_output("foo") do
+      script.main(nil)
+    end
   end
 
   # TODO: need a writable field somewhere...
