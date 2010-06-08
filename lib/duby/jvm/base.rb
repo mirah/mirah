@@ -80,6 +80,7 @@ module Duby
         arg_types ||= []
         return_type = signature[:return]
         exceptions = signature[:throws]
+        puts "exceptions: #{exceptions.inspect}" if exceptions && exceptions.size > 0
 
         with :static => @static || node.static?, :current_scope => node.static_scope do
           if @static

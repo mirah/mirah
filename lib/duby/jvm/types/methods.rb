@@ -110,7 +110,11 @@ module Duby::JVM::Types
 
     def exceptions
       @member.exception_types.map do |exception|
-        AST.type(exception.name)
+        if exception.kind_of?(Duby::JVM::Types::Type)
+          exception
+        else
+          Duby::AST.type(exception.class_name)
+        end
       end
     end
 
@@ -414,12 +418,24 @@ module Duby::JVM::Types
       begin
         descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
         method = jvm_type.getDeclaredMethod(name, *descriptors)
+
+        if method.nil? && superclass
+          method = superclass.java_method(name, *types) rescue nil
+        end
+
+        if method.nil? && jvm_type.abstract?
+          interfaces.each do |interface|
+            method = interface.java_method(name, *types) rescue nil
+            break if method
+          end
+        end
+
         if method && method.static? == meta?
           return JavaStaticMethod.new(method) if method.static?
           return JavaMethod.new(method)
         end
       rescue   => ex
-          log(ex.message)
+        log(ex.message)
       end
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end
