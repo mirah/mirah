@@ -19,5 +19,14 @@ module Duby::JVM::Types
   Void = VoidType.new
   Null = NullType.new
 
+  WIDENING_CONVERSIONS = {
+    Byte => [Byte, Short, Int, Long, Float, Double],
+    Short => [Short, Int, Long, Float, Double],
+    Char => [Char, Int, Long, Float, Double],
+    Int => [Int, Long, Float, Double],
+    Long => [Long, Float, Double],
+    Float => [Float, Double],
+    Double => [Double]
+  }
   TYPE_ORDERING = [Byte, Short, Int, Long, Float, Double]
 end

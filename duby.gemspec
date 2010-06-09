@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'duby'
-  s.version = "0.0.3.dev"
+  s.version = "0.0.3"
   s.authors = ["Charles Oliver Nutter", "Ryan Brown"]
   s.date = Time.now.strftime("YYYY-MM-DD")
   s.description = %q{Duby is a customizable programming language featuring static types,
@@ -21,5 +21,5 @@ output either JVM bytecode or Java source files.}
   s.summary = %q{Duby is a customizable programming language featuring static types, local type inference and a heavily Ruby-inspired syntax}
   s.test_files = Dir["test/**/test*.rb"]
   s.platform = "java"
-  s.add_dependency("bitescript", ">= 0.0.5")
+  s.add_dependency("bitescript", ">= 0.0.6")
 end

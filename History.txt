@@ -1,3 +1,10 @@
+=== 0.0.3 / 2010-06-09
+
+* Even more language features!
+* invokedynamic support (sort of)
+* Using mirror types to avoid class initialization
+* Other stuff
+
 === 0.0.2 / 2010-02-15
 
 * More language features added
