@@ -45,7 +45,6 @@ def dubyc(*files)
   flags = options.fetch(:options, Duby.compiler_options)
   args = ['-d', dest, *flags] + files
   chdir(source_dir) do
-    puts $CLASSPATH.inspect
     puts "dubyc #{args.join ' '}"
     Duby.compile(*args)
     Duby.reset

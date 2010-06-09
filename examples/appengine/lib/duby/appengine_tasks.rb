@@ -1,8 +1,4 @@
 require 'appengine-sdk'
-require 'appengine-tools/appcfg'
-require 'appengine-tools/dev_appserver'
-require 'appengine-tools/web-xml'
-require 'appengine-tools/xml-formatter'
 require 'duby_task'
 require 'java'
 require 'open-uri'
@@ -10,14 +6,15 @@ require 'rake'
 require 'yaml'
 
 Duby.compiler_options.concat %w"-p datastore"
-AppEngine::Development::JRubyDevAppserver::ARGV = []
 module AppEngine::Rake
   SERVLET = AppEngine::SDK::SDK_ROOT +
             '/lib/shared/geronimo-servlet_2.5_spec-1.2.jar'
   APIS = AppEngine::SDK::API_JAR
+  TOOLS = AppEngine::SDK::TOOLS_JAR
 
   $CLASSPATH << SERVLET
   $CLASSPATH << APIS
+  $CLASSPATH << TOOLS
 
   class AppEngineTask < Rake::Task
     def initialize(*args, &block)
@@ -31,64 +28,37 @@ module AppEngine::Rake
       unless $CLASSPATH.include?(webinf_classes)
         $CLASSPATH << webinf_classes
       end
+      webinf_lib_jars.each do |jar|
+        $CLASSPATH << jar unless $CLASSPATH.include?(jar)
+      end
       Duby.source_path = src
       Duby.dest_path = webinf_classes
       directory(webinf_classes)
-      directory(generated)
-      file_create dummy_config_ru do |t|
-        touch t.name
-      end
-      file_create gemfile do |t|
-        open(t.name, 'w') do |gems|
-          gems.puts('bundle_path ".gems/bundler_gems"')
-        end
-      end
-      file web_xml => [webinf_classes, real_config_ru] do
-        config_ru = IO.read(real_config_ru)
-        builder = WebXmlBuilder.new do
-          eval config_ru, nil, 'config.ru', 1
-        end
-        open(web_xml, 'w') do |webxml|
-          xml = AppEngine::Rack::XmlFormatter.format(builder.to_xml)
-          webxml.write(xml)
-        end
-        open(aeweb_xml, 'w') do |aeweb|
-          xml = AppEngine::Rack::XmlFormatter.format(AppEngine::Rack.app.to_xml)
-          aeweb.write(xml)
-        end
-      end
-      file build_status => [web_xml, dummy_config_ru, aeweb_xml, generated] do
-        open(build_status, 'w') do |status_file|
-          status = {
-            :config_ru => File.stat(dummy_config_ru).mtime,
-            :web_xml => File.stat(web_xml).mtime,
-            :aeweb_xml => File.stat(aeweb_xml).mtime,
-          }
-          status_file.write(status.to_yaml)
-        end
+      directory(webinf_lib)
+
+      file_create api_jar => webinf_lib do
+        puts 'Coping apis'
+        cp APIS, api_jar
       end
 
-      task :server => [name, build_status] do
-        # Begin horrible hacks
-        if AppEngine::Development::JRubyDevAppserver::ARGV.empty?
-          AppEngine::Development::JRubyDevAppserver::ARGV << @war
-        end
-        class << AppEngine::Development::JRubyDevAppserver
-          def exec(*args)
-            sh *args
-          end
-        end
-        # End horrible hacks
+      task :server => [name] do
         check_for_updates
-        AppEngine::Development::JRubyDevAppserver.run([@war])
+        args = [
+          'java', '-cp', TOOLS,
+          'com.google.appengine.tools.KickStart',
+          'com.google.appengine.tools.development.DevAppServerMain',
+          @war
+        ]
+        sh *args
         @done = true
         @update_thread.join
       end
-      task :upload => [name, build_status] do
-        AppEngine::Admin::JRubyAppCfg.main(['update', @war])
+      task :upload => [name] do
+        Java::ComGoogleAppengineTools::AppCfg.main(
+            ['update', @war].to_java(:string))
       end
 
-      enhance([web_xml])
+      enhance([api_jar])
     end
 
     def real_prerequisites
@@ -109,49 +79,50 @@ module AppEngine::Rake
     end
 
     def update
-      updated = false
-      real_prerequisites.each do |dep|
-        if dep.needed?
-          dep.execute
-          updated = true
+      begin
+        timestamp = app_yaml_timestamp
+        @last_app_yaml_timestamp ||= timestamp
+        updated = false
+        real_prerequisites.each do |dep|
+          if dep.needed?
+            dep.execute
+            updated = true
+          end
         end
+        if updated || (timestamp != @last_app_yaml_timestamp)
+          #touch aeweb_xml
+          open('http://localhost:8080/_ah/reloadwebapp')
+          @last_app_yaml_timestamp = timestamp
+        end
+      rescue Exception
+        puts $!, $@
       end
-      if updated
-        #touch aeweb_xml
-        open('http://localhost:8080/_ah/reloadwebapp')
+    end
+
+    def app_yaml_timestamp
+      if File.exist?(app_yaml)
+        File.mtime(app_yaml)
       end
+    end
+
+    def app_yaml
+      @war + '/app.yaml'
     end
 
     def webinf_classes
       @war + '/WEB-INF/classes'
     end
 
-    def aeweb_xml
-      @war + '/WEB-INF/appengine-web.xml'
+    def webinf_lib
+      @war + '/WEB-INF/lib'
     end
 
-    def web_xml
-      @war + '/WEB-INF/web.xml'
+    def api_jar
+      File.join(webinf_lib, File.basename(APIS))
     end
 
-    def real_config_ru
-      @src + '/config.ru'
-    end
-
-    def dummy_config_ru
-      @war + '/config.ru'
-    end
-
-    def generated
-      @war + '/WEB-INF/appengine-generated'
-    end
-
-    def build_status
-      generated + '/build_status.yaml'
-    end
-
-    def gemfile
-      @war + '/Gemfile'
+    def webinf_lib_jars
+      Dir.glob(webinf_lib + '/*.jar')
     end
   end
 end

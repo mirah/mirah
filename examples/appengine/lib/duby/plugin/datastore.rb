@@ -92,9 +92,10 @@ class DatastorePlugin
     def init_read(parent, position, ast)
       @read = eval(parent, <<-EOF)
         def _read_from(e:Entity)
+          @entity = e
+          nil
         end
       EOF
-      @read.body = Body.new(@read, position) {[]}
       ast << @read
     end
 
