@@ -111,7 +111,7 @@ class TestJavaTyper < Test::Unit::TestCase
     assert !primitive_convertible?(byte, boolean)
     assert primitive_convertible?(byte, byte)
     assert primitive_convertible?(byte, short)
-    assert primitive_convertible?(byte, char)
+    assert !primitive_convertible?(byte, char)
     assert primitive_convertible?(byte, int)
     assert primitive_convertible?(byte, long)
     assert primitive_convertible?(byte, float)
@@ -150,7 +150,7 @@ class TestJavaTyper < Test::Unit::TestCase
     assert !primitive_convertible?(long, char)
     assert !primitive_convertible?(long, int)
     assert primitive_convertible?(long, long)
-    assert !primitive_convertible?(long, float)
+    assert primitive_convertible?(long, float)
     assert primitive_convertible?(long, double)
 
     assert !primitive_convertible?(float, boolean)

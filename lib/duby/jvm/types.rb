@@ -177,8 +177,8 @@ module Duby
 
         def convertible_to?(type)
           return true if type == self
-          a, b = TYPE_ORDERING.index(self), TYPE_ORDERING.index(type)
-          a && b && b > a
+          widening_conversions = WIDENING_CONVERSIONS[self]
+          widening_conversions && widening_conversions.include?(type)
         end
 
         def superclass
