@@ -52,6 +52,34 @@ module Duby
         end
       end
 
+      def _dump(depth)
+        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope)
+        vars = {}
+        instance_variables.each do |name|
+          next if to_skip.include?(name)
+          vars[name] = instance_variable_get(name)
+          begin
+            Marshal.dump(vars[name]) if AST.verbose
+          rescue
+            puts "#{self}: Failed to marshal #{name}"
+            puts $!, $@
+            raise $!
+          end
+        end
+        Marshal.dump(vars)
+      end
+
+      def self._load(vars)
+        node = self.allocate
+        Marshal.load(vars).each do |name, value|
+          node.instance_variable_set(name, value)
+        end
+        node.children.each do |child|
+          node._set_parent(child)
+        end
+        node
+      end
+
       def line_number
         if @position
           @position.start_line + 1
@@ -377,16 +405,20 @@ module Duby
 
       def initialize(parent, position, klass)
         super(parent, position)
-        @class = klass
+        @name = if klass.respond_to?(:class_name)
+          klass.class_name
+        else
+          klass.name
+        end
         @values = {}
       end
 
       def name
-        @class.name
+        @name
       end
 
       def type
-        @class
+        BiteScript::ASM::Type.getObjectType(@name.tr('.', '/'))
       end
 
       def []=(name, value)
@@ -483,6 +515,14 @@ module Duby
 
       def primitive?
         true
+      end
+
+      def _dump(depth)
+        Marshal.dump([name, array?, meta?])
+      end
+
+      def self._load(str)
+        AST::Type(*Marshal.load(str))
       end
 
       NoType = TypeReference.new(:notype)

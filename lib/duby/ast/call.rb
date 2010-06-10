@@ -13,6 +13,14 @@ module Duby::AST
       new.proxy = new
       new
     end
+
+    def _dump(depth)
+      Marshal.dump(__getobj__)
+    end
+
+    def self._load(str)
+      NodeProxy.new(Marshal.load(str))
+    end
   end
 
   class FunctionalCall < Node
