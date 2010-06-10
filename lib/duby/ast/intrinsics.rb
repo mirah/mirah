@@ -33,10 +33,7 @@ module Duby::AST
         typer.known_types['self'] = self_type
 
         arg_types = argument_types
-        macro = self_type.add_macro(name, *arg_types) do |duby, call|
-          expander = klass.constructors[0].newInstance(duby, call)
-          expander.expand
-        end
+        macro = self_type.add_compiled_macro(klass, name, arg_types)
         if arguments[-1].kind_of?(BlockArgument) && arguments[-1].optional?
           arg_types.pop
           typer.self_type.add_method(name, arg_types, macro)
@@ -68,6 +65,9 @@ module Duby::AST
 
     def build_and_load_extension(parent, name, state)
       transformer = Duby::Transform::Transformer.new(state)
+      orig_factory = Duby::AST.type_factory
+      new_factory = orig_factory.dup
+      Duby::AST.type_factory = new_factory
       ast = build_ast(name, parent, transformer)
       puts ast.inspect if state.verbose
       classes = compile_ast(name, ast, transformer)
@@ -75,10 +75,11 @@ module Duby::AST
           JRuby.runtime.jruby_class_loader, classes)
       klass = loader.loadClass(name, true)
       annotate(parent, name)
+      Duby::AST.type_factory = orig_factory
       klass
     end
 
-    def annotate(type, name)
+    def annotate(type, class_name)
       node = type.unmeta.node
       if node
         extension = node.annotation('duby.anno.Extensions')
@@ -93,7 +94,9 @@ module Duby::AST
                                BiteScript::ASM::Type.getObjectType('duby/anno/Macro'))
         macro['name'] = name
         macro['signature'] = BiteScript::Signature.signature(*signature)
+        macro['class'] = class_name
         extension['macros'] << macro
+        # TODO deal with optional blocks.
       else
         puts "Warning: No ClassDefinition for #{type.name}. Macros can't be loaded from disk."
       end
@@ -128,7 +131,7 @@ module Duby::AST
       # Start building the extension class
       extension = transformer.define_class(position, name)
       #extension.superclass = Duby::AST.type('duby.lang.compiler.Macro')
-      extension.interfaces = [Duby::AST.type('duby.lang.compiler.Macro')]
+      extension.implements(Duby::AST.type('duby.lang.compiler.Macro'))
 
       # The constructor just saves the state
       extension.define_constructor(
@@ -158,7 +161,12 @@ module Duby::AST
         _expand(#{args.join(', ')})
       end
       actual_args = arguments.map do |arg|
-        [arg.name, node_type, arg.position]
+        type = if arg.kind_of?(BlockArgument)
+          Duby::AST.type('duby.lang.compiler.Block')
+        else
+          node_type
+        end
+        [arg.name, type, arg.position]
       end
       m = extension.define_method(position, '_expand', node_type, *actual_args)
       m.body = self.body
@@ -169,8 +177,12 @@ module Duby::AST
   defmacro('defmacro') do |duby, fcall, parent|
     macro = fcall.args_node[0]
     block_arg = nil
-    args_node = macro.args_node
-    body = macro.iter_node || fcall.iter_node
+    args_node = macro.args_node if macro.respond_to?(:args_node)
+    body = if macro.respond_to?(:iter_node) && macro.iter_node
+      macro.iter_node
+    else
+      fcall.iter_node
+    end
     if args_node.respond_to? :getBodyNode
       block_arg = args_node.body_node
       args_node = args_node.args_node

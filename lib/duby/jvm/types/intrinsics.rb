@@ -56,6 +56,13 @@ module Duby::JVM::Types
       end
     end
 
+    def add_compiled_macro(klass, name, arg_types)
+      add_macro(name, *arg_types) do |duby, call|
+        expander = klass.constructors[0].newInstance(duby, call)
+        expander.expand
+      end
+    end
+
     def declared_intrinsics(name=nil)
       methods = []
       all_intrinsics = if name.nil?
@@ -72,6 +79,30 @@ module Duby::JVM::Types
         methods.concat(interface.declared_intrinsics(name))
       end
       methods
+    end
+
+    def load_extensions
+      if jvm_type
+        extensions = jvm_type.getDeclaredAnnotation('duby.anno.Extensions')
+        return self if extensions.nil?
+        macros = extensions['macros']
+        return self if macros.nil?
+        macros.each do |macro|
+          macro_name = macro['name']
+          class_name = macro['class']
+          types = BiteScript::ASM::Type.get_argument_types(macro['signature'])
+          args = types.map do |type|
+            if type.class_name == 'duby.lang.compiler.Block'
+              Duby::AST::TypeReference::BlockType
+            else
+              Duby::AST.type(type)
+            end
+          end
+          klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)
+          add_compiled_macro(klass, macro_name, args)
+        end
+      end
+      self
     end
 
     def add_intrinsics

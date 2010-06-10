@@ -31,6 +31,7 @@ module Duby::AST
   class Block < Node
     include Scoped
     include Scope
+    include Java::DubyLangCompiler::Block
     child :args
     child :body
 

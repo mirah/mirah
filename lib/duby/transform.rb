@@ -1,3 +1,4 @@
+require 'base64'
 require 'jruby'
 
 module Duby
@@ -113,6 +114,18 @@ module Duby
         end
         duby_node.parent = parent
         duby_node
+      end
+
+      def dump_ast(node)
+        Base64.encode64(Marshal.dump(node)).to_java_string
+      end
+
+      def load_ast(encoded)
+        Marshal.load(Base64.decode64(encoded))
+      end
+
+      def __ruby_eval(code, arg)
+        Kernel.eval(code)
       end
 
       def expand(fvcall, parent)

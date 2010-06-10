@@ -45,6 +45,14 @@ module Duby::JVM::Types
       @mirrors = {}
     end
 
+    def initialize_copy(other)
+      @known_types = other.known_types.dup
+      @known_types.delete_if do |key, value|
+        value.basic_type.kind_of?(Duby::JVM::Types::TypeDefinition)
+      end
+      @declarations = []
+    end
+
     def define_types(builder)
       @declarations.each do |declaration|
         declaration.define(builder)
@@ -80,7 +88,6 @@ module Duby::JVM::Types
         name = name.java_class.name
       end
       name = name.to_s unless name.kind_of?(::String)
-      return @known_types[name].basic_type if @known_types[name]
       raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
       raise ArgumentError, "Bad Type #{orig.inspect}" if name == '' || name.nil?
       if name.include? '.'
@@ -90,7 +97,11 @@ module Duby::JVM::Types
       end
       full_name = name
       begin
-        @known_types[name] = Type.new(get_mirror(full_name))
+        type = @known_types[full_name].basic_type if @known_types[full_name]
+        type ||= begin
+          Type.new(get_mirror(full_name)).load_extensions
+        end
+        @known_types[name] = @known_types[full_name] = type
       rescue NameError
         unless alt_names.empty?
           full_name = alt_names.shift
@@ -112,15 +123,15 @@ module Duby::JVM::Types
         name = node.name
       end
 
-      if @known_types.include? name
-        existing = @known_types[name]
+      full_name = name
+      if !name.include?('.') && package
+        full_name = "#{package}.#{name}"
+      end
+      if @known_types.include? full_name
+        existing = @known_types[full_name]
         existing.node ||= node
         existing
       else
-        full_name = name
-        if !name.include?('.') && package
-          full_name = "#{package}.#{name}"
-        end
         if Duby::AST::InterfaceDeclaration === node
           klass = InterfaceDefinition
         else

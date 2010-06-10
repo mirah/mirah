@@ -4,13 +4,19 @@ interface Node do
   
 end
 
+interface Block < Node do
+  def body
+    returns Node
+  end
+end
+
 interface Call < Node do
   def arguments
     returns List
   end
 
   def block
-    returns Node
+    returns Block
   end
 
   def target
@@ -22,6 +28,15 @@ interface Macro do
   def expand
     returns Node
   end
+
+#   defmacro quote(&block) do
+#     encoded = @duby.dump_ast(block.body)
+#     code = <<RUBY
+# eval('@duby.load_ast("#{encoded}")')
+# RUBY
+# 
+#     @duby.__ruby_eval(code)
+#   end
 end
 
 interface Class do
@@ -31,15 +46,15 @@ interface Class do
 end
 
 interface Compiler do
-  def find_class(name:String)
-    returns Class
-  end
-
   def dump_ast(node:Node)
     returns Object
   end
 
   def load_ast(serialized:Object)
+    returns Node
+  end
+
+  def __ruby_eval(code:String, arg:Object)
     returns Node
   end
 end
