@@ -12,7 +12,8 @@ output either JVM bytecode or Java source files.}
   s.email = ["headius@headius.com", "ribrdb@google.com"]
   s.executables = ["duby", "dubyc", "dubyp"]
   s.extra_rdoc_files = ["History.txt", "README.txt"]
-  s.files = Dir["{bin,lib,test,examples,javalib}/**/*"] + Dir["{*.txt,Rakefile}"]
+  files = Dir["{bin,lib,test,examples,javalib}/**/*"] + Dir["{*.txt,Rakefile}"]
+  s.files = files.reject {|file| file =~ /jruby-complete.jar/}
   s.homepage = %q{http://kenai.com/projects/duby}
   s.rdoc_options = ["--main", "README.txt"]
   s.require_paths = ["lib"]
