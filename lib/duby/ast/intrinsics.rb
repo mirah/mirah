@@ -2,6 +2,68 @@ require 'fileutils'
 
 module Duby::AST
 
+  class Unquote < Node
+    attr_accessor :value
+
+    def initialize(parent, position, value)
+      super(parent, position)
+      @value = value
+    end
+
+    def infer(typer)
+      raise "Unquote used outside of macro"
+    end
+
+    def _dump(depth)
+      vals = Unquote.__extracted
+      index = vals.size
+      vals << self.value
+      index.to_s
+    end
+
+    def self._load(str)
+      # This just returns the exact node passed in.
+      # We need to be smarter (convert strings to nodes, merge lists, etc.)
+      index = str.to_i
+      Unquote.__injected[index].dup
+    end
+
+    def self.__extracted
+      Thread.current[:'Duby::AST::Unqote.extracted']
+    end
+
+    def self.__extracted=(value)
+      Thread.current[:'Duby::AST::Unqote.extracted'] = value
+    end
+
+    def self.__injected
+      Thread.current[:'Duby::AST::Unqote.injected']
+    end
+
+    def self.__injected=(value)
+      Thread.current[:'Duby::AST::Unqote.injected'] = value
+    end
+
+    def self.extract_values
+      values = self.__extracted = []
+      begin
+        yield
+        return values
+      ensure
+        self.__extracted = nil
+      end
+    end
+
+    def self.inject_values(values)
+      self.__injected = values
+      begin
+        yield
+      ensure
+        self.__injected = nil
+      end
+    end
+  end
+
   class MacroDefinition < Node
     include Named
 

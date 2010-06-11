@@ -117,11 +117,19 @@ module Duby
       end
 
       def dump_ast(node)
-        Base64.encode64(Marshal.dump(node)).to_java_string
+        encoded = nil
+        values = Duby::AST::Unquote.extract_values do
+          encoded = Base64.encode64(Marshal.dump(node))
+        end
+        [encoded, values]
       end
 
-      def load_ast(encoded)
-        Marshal.load(Base64.decode64(encoded))
+      def load_ast(args)
+        nodes = args.to_a
+        encoded = nodes.shift
+        Duby::AST::Unquote.inject_values(nodes) do
+          Marshal.load(Base64.decode64(encoded))
+        end
       end
 
       def __ruby_eval(code, arg)
@@ -1122,6 +1130,11 @@ module Duby
       class SelfNode
         def transform(transformer, parent)
           Self.new(parent, position)
+        end
+      end
+      class XStrNode
+        def transform(transformer, parent)
+          Unquote.new(parent, position, value)
         end
       end
     end

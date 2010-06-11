@@ -28,15 +28,6 @@ interface Macro do
   def expand
     returns Node
   end
-
-#   defmacro quote(&block) do
-#     encoded = @duby.dump_ast(block.body)
-#     code = <<RUBY
-# eval('@duby.load_ast("#{encoded}")')
-# RUBY
-# 
-#     @duby.__ruby_eval(code)
-#   end
 end
 
 interface Class do
