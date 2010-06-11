@@ -121,7 +121,7 @@ module Duby
         values = Duby::AST::Unquote.extract_values do
           encoded = Base64.encode64(Marshal.dump(node))
         end
-        [encoded, values]
+        eval("['#{encoded}', #{values.join(', ')}]")
       end
 
       def load_ast(args)
