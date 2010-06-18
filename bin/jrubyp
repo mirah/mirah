@@ -1,0 +1,34 @@
+#!/usr/bin/env jruby
+$: << File.dirname(File.dirname(__FILE__)) + '/lib'
+require 'duby'
+
+module Java::OrgJrubyparserAst
+  class Node
+    def pp(indent = 0)
+      return if self.invisible?
+      name = ":#{self.name}" if respond_to? :getName
+      name += " (#{depth})" if respond_to? :getDepth
+      print "#{' '*indent}(#{node_name}#{name}"
+      if child_nodes.size == 0
+        puts ')'
+      else
+        puts
+        indent += 2
+        child_nodes.each {|n| n.pp(indent)}
+        puts "#{' '*indent})"
+      end
+    end
+  end
+end
+
+filename = ARGV.shift
+case filename
+when '-e'
+  contents = ARGV.join(' ')
+when '-', nil
+  contents = $stdin.read
+else
+  contents = IO.read(filename)
+end
+require 'duby'
+puts Duby::AST.parse_ruby(contents, filename).pp
