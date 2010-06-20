@@ -199,8 +199,8 @@ module Duby
       end
 
       def main
-        public_static_method('main', [], JVMTypes::Void,
-                             [JVMTypes::String.array_type, 'argv'])
+        build_method('main', :public, :static, [], JVMTypes::Void,
+                     [JVMTypes::String.array_type, 'argv'])
       end
 
       def declare_field(name, type, static, access='private', annotations=[])
@@ -212,33 +212,24 @@ module Duby
         @fields[name] = true
       end
 
-      def public_method(name, exceptions, type, *args)
+      def build_method(name, visibility, static, exceptions, type, *args)
         finish_declaration
         type ||= Duby::AST::type(:void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
+                                      :visibility => visibility,
+                                      :static => static,
                                       :return => type,
                                       :args => args,
                                       :exceptions => exceptions)
         @methods[-1]
-      end
+      end        
 
-      def public_static_method(name, exceptions, type, *args)
-        finish_declaration
-        type ||= Duby::AST::type(:void)
-        @methods << MethodBuilder.new(self,
-                                      :name => name,
-                                      :return => type,
-                                      :args => args,
-                                      :static => true,
-                                      :exceptions => exceptions)
-        @methods[-1]
-      end
-
-      def public_constructor(exceptions, *args)
+      def build_constructor(visibility, exceptions, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
                                       :name => class_name,
+                                      :visibility => visibility,
                                       :args => args,
                                       :exceptions => exceptions)
         @methods[-1]
@@ -270,11 +261,13 @@ module Duby
         indent
       end
 
-      def public_method(name, type, exceptions, *args)
+      def build_method(name, visibility, static, exceptions, type, *args)
+        raise "Interfaces can't have static methods" if static
         finish_declaration
         type ||= Duby::AST::type(:void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
+                                      :visibility => visibility,
                                       :return => type,
                                       :args => args,
                                       :abstract => true,
@@ -292,6 +285,7 @@ module Duby
         @class = cls
         @compiler = cls.compiler
         @out = Output.new
+        @visibility = options[:visibility]
         @name = options[:name]
         @type = options[:return]
         @typename = @type && @type.to_source
@@ -310,7 +304,7 @@ module Duby
       end
 
       def start
-        print "public#{@static}#{@abstract} #{@typename} #{@name}("
+        print "#{@visibility}#{@static}#{@abstract} #{@typename} #{@name}("
         @args.each_with_index do |(type, name), i|
           print ', ' unless i == 0
           print "#{type.to_source} #{name}"

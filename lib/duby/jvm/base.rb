@@ -82,11 +82,8 @@ module Duby
         exceptions = signature[:throws]
 
         with :static => @static || node.static?, :current_scope => node.static_scope do
-          if @static
-            method = @class.public_static_method(name.to_s, exceptions, return_type, *arg_types)
-          else
-            method = @class.public_method(name.to_s, exceptions, return_type, *arg_types)
-          end
+          method = @class.build_method(name.to_s, node.visibility, @static,
+                                       exceptions, return_type, *arg_types)
           annotate(method, node.annotations)
           yield method, arg_types
         end
@@ -101,11 +98,8 @@ module Duby
               else
                 args_for_opt
               end
-              if @static
-                method = @class.public_static_method(name.to_s, exceptions, return_type, *new_args)
-              else
-                method = @class.public_method(name.to_s, exceptions, return_type, *new_args)
-              end
+              method = @class.build_method(name.to_s, node.visibility, @static,
+                                           exceptions, return_type, *new_args)
 
               with :method => method do
                 log "Starting new method #{name}(#{arg_types_for_opt})"
@@ -135,7 +129,7 @@ module Duby
           args
         end
         exceptions = node.signature[:throws]
-        method = @class.public_constructor(exceptions, *arg_types)
+        method = @class.build_constructor(node.visibility, exceptions, *arg_types)
         annotate(method, node.annotations)
         with :current_scope => node.static_scope do
           yield(method, args)

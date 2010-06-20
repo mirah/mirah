@@ -1017,6 +1017,8 @@ module Duby
             end
           elsif name == 'null'
             Null.new(parent, position)
+          elsif ['public', 'private', 'protected'].include?(name)
+            AccessLevel.new(parent, position, name)
           else
             macro = AST.macro(name)
             if macro

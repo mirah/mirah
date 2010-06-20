@@ -116,6 +116,7 @@ module Duby::AST
     include Annotated
     include Named
     include Scope
+    include ClassScoped
     include Binding
 
     child :signature
@@ -123,6 +124,7 @@ module Duby::AST
     child :body
 
     attr_accessor :defining_class
+    attr_accessor :visibility
 
     def initialize(parent, line_number, name, annotations=[], &block)
       @annotations = annotations
@@ -136,6 +138,7 @@ module Duby::AST
 
     def infer(typer)
       @defining_class ||= typer.self_type
+      @visibility = scope.current_access_level || :public
       typer.infer(arguments)
       typer.infer_signature(self)
       forced_type = signature[:return]

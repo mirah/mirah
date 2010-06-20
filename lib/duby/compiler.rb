@@ -249,6 +249,10 @@ module Duby
       end
     end
 
+    class AccessLevel
+      def compile(compiler, expression); end
+    end
+
     class Return
       def compile(compiler, expression)
         compiler.line(line_number)
