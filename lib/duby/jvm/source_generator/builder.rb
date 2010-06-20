@@ -297,7 +297,7 @@ module Duby
           @locals[arg[1]] = arg[0]
           arg
         end
-        @static = options[:static] && ' static'
+        @static = options[:static] ? ' static' : nil
         @abstract = options[:abstract] && ' abstract'
         @exceptions = options[:exceptions] || []
         @temps = 0
