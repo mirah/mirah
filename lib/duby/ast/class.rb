@@ -244,13 +244,10 @@ module Duby::AST
     def initialize(parent, line_number, name)
       super(parent, line_number)
       @name = name
+      scope.current_access_level = name.to_sym
     end
 
     def infer(typer)
-      unless resolved?
-        scope.current_access_level = name.to_sym
-      end
-
       typer.no_type
     end
   end

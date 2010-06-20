@@ -130,6 +130,7 @@ module Duby::AST
       @annotations = annotations
       super(parent, line_number, &block)
       @name = name
+      @visibility = scope.current_access_level || :public
     end
 
     def name
@@ -138,7 +139,6 @@ module Duby::AST
 
     def infer(typer)
       @defining_class ||= typer.self_type
-      @visibility = scope.current_access_level || :public
       typer.infer(arguments)
       typer.infer_signature(self)
       forced_type = signature[:return]
