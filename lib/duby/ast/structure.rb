@@ -7,6 +7,8 @@ module Duby::AST
     # Type of a block is the type of its final element
     def infer(typer)
       unless @inferred_type
+        @typer ||= typer
+        @self_type ||= typer.self_type
         if children.size == 0
           @inferred_type = typer.no_type
         else
@@ -21,6 +23,17 @@ module Duby::AST
       end
 
       @inferred_type
+    end
+
+    def <<(node)
+      super
+      if @typer
+        orig_self = @typer.self_type
+        @typer.known_types['self'] = @self_type
+        @typer.infer(node)
+        @typer.known_types['self'] = orig_self
+      end
+      self
     end
   end
 

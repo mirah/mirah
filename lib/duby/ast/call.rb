@@ -59,7 +59,12 @@ module Duby::AST
     end
 
     def infer(typer)
-      @self_type ||= scope.defining_class
+      @self_type ||= if scope.kind_of?(MethodDefinition)
+        scope.defining_class
+      else
+        # TODO this should probably be the meta type
+        typer.self_type
+      end
 
       unless @inferred_type
         receiver_type = @self_type

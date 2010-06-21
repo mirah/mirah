@@ -53,7 +53,7 @@ module Duby
       end
 
       def _dump(depth)
-        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope)
+        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @typer)
         vars = {}
         instance_variables.each do |name|
           next if to_skip.include?(name)
