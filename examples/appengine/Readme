@@ -3,7 +3,8 @@ Run rake to compile the application and start the development server:
 $ jruby -I `pwd`/../../lib -S rake
 
 Requirements:
- - jruby -S gem install appengine-sdk bitescript
+ - jruby -S gem install bitescript
+ - jruby -S gem install appengine-sdk -v=1.3.5.pre
 
 Datastore API:
   Model.get(key)

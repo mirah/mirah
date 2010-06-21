@@ -4,10 +4,9 @@ require 'duby/appengine_tasks'
 appengine_app :app
 
 DUBY_APP = "#{Duby.dest_path}/com/ribrdb/DubyApp.class"
-MODEL = "#{Duby.dest_path}/com/google/appengine/ext/duby/db/Model.class"
 LIST = "#{Duby.source_path}/com/ribrdb/list.dhtml"
 
-Rake::Task[DUBY_APP].enhance([LIST, MODEL])
+Rake::Task[DUBY_APP].enhance([LIST])
 
 task :app => DUBY_APP
 task :default => :server

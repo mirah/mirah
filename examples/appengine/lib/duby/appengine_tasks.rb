@@ -5,7 +5,6 @@ require 'open-uri'
 require 'rake'
 require 'yaml'
 
-Duby.compiler_options.concat %w"-p datastore"
 module AppEngine::Rake
   SERVLET = AppEngine::SDK::SDK_ROOT +
             '/lib/shared/geronimo-servlet_2.5_spec-1.2.jar'

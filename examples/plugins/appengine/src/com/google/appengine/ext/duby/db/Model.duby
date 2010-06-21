@@ -77,7 +77,16 @@ class DQuery
 end
 
 class Model
-  def initialize
+  defmacro property(name, type) do
+    # This is a hack to make packaging possible.
+    # Everything's still written in ruby, but we load it out of
+    # the datastore plugin's JAR. So as long as Model is in your CLASSPATH
+    # you don't need any extra arguments to dubyc.
+    code = <<RUBY
+      require 'com/google/appengine/ext/duby/db/datastore.rb'
+      AppEngine::DubyDatastorePlugin.add_property(*arg.to_a)
+RUBY
+    @duby.__ruby_eval(code, [name, type, @duby, @call])
   end
 
   def self._datastore

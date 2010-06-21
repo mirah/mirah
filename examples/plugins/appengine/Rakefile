@@ -1,0 +1,34 @@
+require 'ant'
+require 'appengine-sdk'
+
+$: << '../../../lib'
+require 'duby'
+
+$CLASSPATH << AppEngine::SDK::API_JAR
+
+task :default => :jar
+
+task :init do
+  mkdir_p 'dist'
+  mkdir_p 'build'
+end
+
+task :clean do
+  ant.delete :quiet => true, :dir => 'build'
+  ant.delete :quiet => true, :dir => 'dist'
+end
+
+task :compile => :init do
+  # build the Duby sources
+  puts "Compiling Duby sources"
+  Dir.chdir 'src' do
+    Duby.compile('-d', '../build', 'com/google/appengine')
+  end
+end
+
+task :jar => :compile do
+  ant.jar :jarfile => 'dist/dubydatastore.jar' do
+    fileset :dir => 'lib'
+    fileset :dir => 'build'
+  end
+end

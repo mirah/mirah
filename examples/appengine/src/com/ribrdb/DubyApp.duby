@@ -1,11 +1,14 @@
-import javax.servlet.http.HttpServlet
-import com.google.appengine.ext.duby.db.Model
 import java.util.HashMap
 import java.util.regex.Pattern
 
+import javax.servlet.http.HttpServlet
+
+import com.google.appengine.api.datastore.Text
+import com.google.appengine.ext.duby.db.Model
+
 class Post < Model
-  property title, String
-  property body, Text
+  property 'title', String
+  property 'body', Text
 end
 
 class DubyApp < HttpServlet
