@@ -276,6 +276,18 @@ module Duby::AST
     end
   end
 
+  defmacro('macro') do |transformer, fcall, parent|
+    # Alternate macro syntax.
+    #   macro def foo(...);...;end
+    # This one supports special names like []=,
+    # but you can't use optional blocks.
+    method = transformer.transform(fcall.args_node[0], parent)
+    macro = MacroDefinition.new(parent, fcall.position, method.name)
+    macro.arguments = method.arguments.args
+    macro.body = method.body
+    macro
+  end
+
   defmacro('puts') do |transformer, fcall, parent|
     Call.new(parent, fcall.position, "println") do |x|
       args = if fcall.respond_to?(:args_node) && fcall.args_node
