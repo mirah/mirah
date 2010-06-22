@@ -95,6 +95,7 @@ module Duby::AST
         mdef.static_scope = static_scope
         mdef.body = body.dup
         mdef.binding_type = binding
+        typer.infer(mdef.body)
       end
       call = parent
       instance = Call.new(call, position, 'new')
@@ -104,7 +105,6 @@ module Duby::AST
       ]
       call.parameters << instance
       call.block = nil
-      typer.infer(klass)
       typer.infer(instance)
     end
 
