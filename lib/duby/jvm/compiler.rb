@@ -322,9 +322,9 @@ module Duby
       end
 
       def call(call, expression)
-        target = call.target.inferred_type
+        target = call.target.inferred_type!
         params = call.parameters.map do |param|
-          param.inferred_type
+          param.inferred_type!
         end
         method = target.get_method(call.name, params)
         if method

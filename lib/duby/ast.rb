@@ -190,7 +190,16 @@ module Duby
           end
         end
       end
+
+      def inferred_type!
+        unless @inferred_type
+          raise Duby::Typer::InferenceError.new(
+              "Internal Error: #{self.class} never inferred", self)
+        end
+        inferred_type
+      end
     end
+
 
     class ErrorNode < Node
       def initialize(parent, error)

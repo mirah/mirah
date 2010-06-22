@@ -216,9 +216,20 @@ class DubyImpl
       end
     end
 
-    compiler = @compiler_class.new(@filename)
-    ast.compile(compiler, false)
-    compiler.generate(&block)
+    begin
+      compiler = @compiler_class.new(@filename)
+      ast.compile(compiler, false)
+      compiler.generate(&block)
+    rescue Exception => ex
+      if ex.respond_to? :node
+        Duby.print_error(ex.message, ex.node.position)
+        puts ex.backtrace if @state.verbose
+        exit 1
+      else
+        raise ex
+      end
+    end
+
   end
 
   def process_flags!(args)
