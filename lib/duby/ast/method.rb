@@ -130,7 +130,7 @@ module Duby::AST
       @annotations = annotations
       super(parent, line_number, &block)
       @name = name
-      @visibility = scope.current_access_level || :public
+      @visibility = (scope && scope.current_access_level) || :public
     end
 
     def name
