@@ -781,7 +781,7 @@ module Duby
         # hacky, I know
         unless defined? @class.bootstrapped
           def @class.bootstrapped; true; end
-          method = @class.public_static_method("<clinit>", [], Java::void)
+          method = @class.build_method("<clinit>", :public, :static, [], Java::void)
           method.start
           method.ldc org.jruby.duby.DynalangBootstrap
           method.ldc "bootstrap"

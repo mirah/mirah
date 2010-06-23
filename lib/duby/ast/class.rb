@@ -4,6 +4,7 @@ module Duby::AST
     include Named
     include Scope
     attr_accessor :interfaces
+    attr_accessor :current_access_level
 
     child :superclass
     child :body
@@ -233,6 +234,21 @@ module Duby::AST
       end
 
       @inferred_type
+    end
+  end
+
+  class AccessLevel < Node
+    include ClassScoped
+    include Named
+
+    def initialize(parent, line_number, name)
+      super(parent, line_number)
+      @name = name
+      scope.current_access_level = name.to_sym
+    end
+
+    def infer(typer)
+      typer.no_type
     end
   end
 end

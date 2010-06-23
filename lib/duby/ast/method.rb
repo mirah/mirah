@@ -116,6 +116,7 @@ module Duby::AST
     include Annotated
     include Named
     include Scope
+    include ClassScoped
     include Binding
 
     child :signature
@@ -123,11 +124,13 @@ module Duby::AST
     child :body
 
     attr_accessor :defining_class
+    attr_accessor :visibility
 
     def initialize(parent, line_number, name, annotations=[], &block)
       @annotations = annotations
       super(parent, line_number, &block)
       @name = name
+      @visibility = (scope && scope.current_access_level) || :public
     end
 
     def name
