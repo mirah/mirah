@@ -409,21 +409,26 @@ module Duby
         super_method_call(this, call, compile_args(call), expression)
       end
 
+      def cast(call, expression)
+        args = compile_args(call)
+        simple = call.expr?(self)
+        @method.print @lvalue if expression && !simple
+        @method.print "((#{call.inferred_type.to_source})("
+        args.each{|arg| arg.compile(self, true)}
+        @method.print "))"
+        @method.puts ';' unless simple && expression
+      end
+
       def self_call(call, expression)
         if call.cast?
-          args = compile_args(call)
-          simple = call.expr?(self)
-          @method.print @lvalue if expression && !simple
-          @method.print "((#{call.inferred_type.name})("
-          args.each{|arg| arg.compile(self, true)}
-          @method.print "))"
-          @method.puts ';' unless simple && expression
+          cast(call, expression)
         else
           method_call(this, call, compile_args(call), expression)
         end
       end
 
       def call(call, expression)
+        return cast(call, expression) if call.cast?
         if Duby::AST::Constant === call.target
           target = call.target.inferred_type.to_source
         else

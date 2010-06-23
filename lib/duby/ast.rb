@@ -387,6 +387,8 @@ module Duby
 
     class Constant < Node
       include Named
+      attr_accessor :array
+
       def initialize(parent, position, name)
         @name = name
         super(parent, position, [])
@@ -394,7 +396,7 @@ module Duby
 
       def infer(typer)
         @inferred_type ||= begin
-          typer.type_reference(name, false, true)
+          typer.type_reference(name, @array, true)
         end
       end
     end

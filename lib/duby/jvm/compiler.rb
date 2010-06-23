@@ -322,6 +322,7 @@ module Duby
       end
 
       def call(call, expression)
+        return cast(call, expression) if call.cast?
         target = call.target.inferred_type!
         params = call.parameters.map do |param|
           param.inferred_type!

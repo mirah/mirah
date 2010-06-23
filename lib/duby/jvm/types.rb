@@ -288,7 +288,13 @@ module Duby
         def interfaces
           []
         end
+
+        def meta
+          @meta ||= ArrayMetaType.new(self)
+        end
       end
+
+      class ArrayMetaType < MetaType; end
 
       class DynamicType < Type
         ObjectType = Type.new('java.lang.Object')

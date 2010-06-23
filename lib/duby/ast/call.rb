@@ -115,7 +115,8 @@ module Duby::AST
   class Call < Node
     include Java::DubyLangCompiler.Call
     include Named
-    attr_accessor :inlined, :proxy
+    attr_accessor :cast, :inlined, :proxy
+    alias cast? cast
 
     child :target
     child :parameters

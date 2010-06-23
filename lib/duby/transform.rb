@@ -433,14 +433,29 @@ module Duby
             when VCallNode
               case receiver_node.name
               when 'boolean', 'byte', 'short', 'char', 'int', 'long', 'float', 'double'
-                return EmptyArray.new(parent, position, AST::type(receiver_node.name)) do |array|
-                  transformer.transform(args_node.get(0), array)
+                if args_node.size == 0
+                  constant = Constant.new(parent, position, receiver_node.name)
+                  constant.array = true
+                  return constant
+                else
+                  return EmptyArray.new(
+                      parent, position,
+                      AST::type(receiver_node.name)) do |array|
+                    transformer.transform(args_node.get(0), array)
+                  end
                 end
               # TODO look for imported, lower case class names
               end
             when ConstNode
-              return EmptyArray.new(parent, position, AST::type(receiver_node.name)) do |array|
-                transformer.transform(args_node.get(0), array)
+              if args_node.size == 0
+                constant = Constant.new(parent, position, receiver_node.name)
+                constant.array = true
+                return constant
+              else
+                return EmptyArray.new(
+                    parent, position, AST::type(receiver_node.name)) do |array|
+                  transformer.transform(args_node.get(0), array)
+                end
               end
             end
           when /=$/

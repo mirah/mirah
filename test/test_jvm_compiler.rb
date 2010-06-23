@@ -2071,6 +2071,20 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(2, cls.foo(java.lang.Integer.new(2)))
   end
 
+  def test_array_cast
+    cls, = compile(<<-EOF)
+      def foo(a:Object)
+        bar(String[].cast(a))
+      end
+
+      def bar(a:String[])
+        a[0]
+      end
+    EOF
+
+    assert_equal("foo", cls.foo(["foo", "bar"].to_java(:string)))
+  end
+
   def test_string_concat
     cls, = compile(<<-EOF)
       def foo(name:String)

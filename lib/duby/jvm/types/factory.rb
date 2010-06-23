@@ -68,8 +68,8 @@ module Duby::JVM::Types
         end
       end
       type = basic_type(name)
-      type = type.meta if meta
       type = type.array_type if array
+      type = type.meta if meta
       return type
     end
 

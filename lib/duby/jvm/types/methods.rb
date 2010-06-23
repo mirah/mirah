@@ -452,8 +452,10 @@ module Duby::JVM::Types
 
     def declared_class_methods(name=nil)
       methods = []
-      jvm_type.getDeclaredMethods(name).each do |method|
-        methods << JavaStaticMethod.new(method) if method.static?
+      if jvm_type && !unmeta.array?
+        jvm_type.getDeclaredMethods(name).each do |method|
+          methods << JavaStaticMethod.new(method) if method.static?
+        end
       end
       methods.concat(meta.declared_intrinsics(name))
     end
