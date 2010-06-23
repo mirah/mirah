@@ -533,6 +533,9 @@ module Duby
           if method.argument_types.size == 1
             @method.print " = ("
           end
+        elsif Duby::JVM::Types::Intrinsic === method
+          method.call(self, call, expression)
+          return
         else
           target.compile(self, true)
           @method.print ".#{method.name}("

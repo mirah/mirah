@@ -16,6 +16,7 @@ module Duby::JVM::Types
       "String" => String,
       "java.lang.Object" => Object,
       "Object" => Object,
+      "java.lang.Class" => ClassType,
       "java.lang.Iterable" => Iterable,
       "Iterable" => Iterable,
       "void" => Void,

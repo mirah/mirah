@@ -2197,6 +2197,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_class_literal
+    cls, = compile(<<-EOF)
+      def foo
+        String.class.getName
+      end
+    EOF
+
+    assert_equal("java.lang.String", cls.foo)
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

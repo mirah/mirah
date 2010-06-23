@@ -54,6 +54,10 @@ module Duby::JVM::Types
       false
     end
 
+    def field?
+      false
+    end
+
     def abstract?
       false
     end

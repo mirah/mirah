@@ -200,8 +200,19 @@ module Duby::JVM::Types
     end
   end
 
+  class MetaType
+    def add_intrinsics
+      add_method('class', [], ClassType) do |compiler, call, expression|
+        if expression
+          compiler.method.ldc_class(unmeta)
+        end
+      end
+    end
+  end
+
   class ArrayMetaType
     def add_intrinsics
+      super
       add_macro('cast', Object) do |transformer, call|
         call.cast = true
         call.resolve_if(nil) { unmeta }

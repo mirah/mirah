@@ -11,6 +11,7 @@ module Duby::JVM::Types
   # TODO these shouldn't be constants. They should be loaded from
   # the compilation class path.
   Object = Type.new(BiteScript::ASM::ClassMirror.load('java.lang.Object'))
+  ClassType = Type.new(BiteScript::ASM::ClassMirror.load('java.lang.Class'))
   String = StringType.new(
       BiteScript::ASM::ClassMirror.load('java.lang.String'))
   Iterable = IterableType.new(
