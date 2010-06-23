@@ -382,6 +382,10 @@ module Duby
         print "#{type.to_source}.class"
       end
 
+      def instanceof(type)
+        print " instanceof #{type.to_source}"
+      end
+
       def method_missing(name, *args)
         if name.to_s =~ /.const_(m)?(\d)/
           print '-' if $1

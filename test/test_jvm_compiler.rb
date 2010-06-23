@@ -2207,6 +2207,24 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("java.lang.String", cls.foo)
   end
 
+  def test_instanceof
+    cls, = compile(<<-EOF)
+      def string(x:Object)
+        x.kind_of?(String)
+      end
+
+      def dynamic(c:Class, o:Object)
+        o.kind_of?(c)
+      end
+    EOF
+
+    assert_equal(true, cls.string("foo"))
+    assert_equal(false, cls.string(2))
+    assert_equal(true, cls.dynamic(java.lang.String, "foo"))
+    assert_equal(true, cls.dynamic(java.lang.Object, "foo"))
+    assert_equal(false, cls.dynamic(java.lang.Object, nil))
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)

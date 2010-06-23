@@ -136,6 +136,25 @@ module Duby::JVM::Types
           end
         end
       end
+
+      add_macro('kind_of?', ClassType) do |transformer, call|
+        klass, object = call.parameters[0], call.target
+        Duby::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
+          klass.parent = object.parent = call2
+          [
+            klass,
+            [object]
+          ]
+        end
+      end
+
+      add_method('kind_of?', [Object.meta], Boolean) do |compiler, call, expression|
+        call.target.compile(compiler, expression)
+        if expression
+          klass = call.parameters[0].inferred_type!
+          compiler.method.instanceof(klass.unmeta)
+        end
+      end
     end
   end
 
