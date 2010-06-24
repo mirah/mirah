@@ -283,7 +283,7 @@ module Duby::AST
     # but you can't use optional blocks.
     method = transformer.transform(fcall.args_node[0], parent)
     macro = MacroDefinition.new(parent, fcall.position, method.name)
-    macro.arguments = method.arguments.args
+    macro.arguments = method.arguments.args || []
     macro.body = method.body
     macro
   end
