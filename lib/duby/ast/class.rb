@@ -83,22 +83,12 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless resolved?
-        @inferred_type ||= typer.define_type(name, superclass, @interfaces) do
-          if body
-            typer.infer(body)
-          else
-            typer.no_type
-          end
-        end
-        if @inferred_type
-          resolved!
-        else
-          typer.defer(self)
+      resolve_if(typer) do
+        typer.define_type(name, superclass, @interfaces) do
+          static_scope.self_type = typer.self_type
+          typer.infer(body) if body
         end
       end
-
-      @inferred_type
     end
 
     def implements(*types)

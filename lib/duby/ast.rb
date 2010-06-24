@@ -281,7 +281,7 @@ module Duby
 
     class StaticScope
       attr_reader :parent
-      accessor :self_type, :self_node
+      attr_writer :self_type, :self_node
 
       def initialize(parent=nil)
         @vars = {}
@@ -331,6 +331,13 @@ module Duby
           @self_type = parent.self_type
         end
         @self_type
+      end
+
+      def self_node
+        if @self_node.nil? && parent
+          @self_node = parent.self_node
+        end
+        @self_node
       end
 
       def binding_type(defining_class=nil, duby=nil)
@@ -402,8 +409,12 @@ module Duby
     end
 
     class Self < Node
+      include Scoped
       def infer(typer)
         @inferred_type ||= typer.self_type
+        unless typer.self_type == scope.static_scope.self_type
+          raise "scope: #{scope.static_scope.self_type} typer: #{@inferred_type}"
+        end
       end
     end
 

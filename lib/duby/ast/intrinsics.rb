@@ -66,6 +66,7 @@ module Duby::AST
 
   class MacroDefinition < Node
     include Named
+    include Scoped
 
     child :arguments
     child :body
@@ -85,6 +86,9 @@ module Duby::AST
     def infer(typer)
       resolve_if(typer) do
         self_type = typer.self_type
+        unless self_type == scope.static_scope.self_type
+          raise "scope: #{scope.static_scope.self_type} typer:#{typer.self_type}"
+        end
         extension_name = "%s$%s" % [self_type.name,
                                     typer.transformer.tmp("Extension%s")]
         klass = build_and_load_extension(self_type,

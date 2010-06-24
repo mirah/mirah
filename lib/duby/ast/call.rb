@@ -68,6 +68,9 @@ module Duby::AST
       end
 
       unless @inferred_type
+        unless @self_type == scope.static_scope.self_type
+          raise "scope: #{scope.static_scope.self_type} typer: #{@self_type}"
+        end
         receiver_type = @self_type
         should_defer = false
 
@@ -180,6 +183,7 @@ module Duby::AST
 
   class Super < Node
     include Named
+    include Scoped
     attr_accessor :method, :cast
     alias :cast? :cast
 
@@ -198,6 +202,9 @@ module Duby::AST
 
     def infer(typer)
       @self_type ||= typer.self_type.superclass
+      unless typer.self_type == scope.static_scope.self_type
+        raise "scope: #{scope.static_scope.self_type} typer: #{typer.self_type}"
+      end
 
       unless @inferred_type
         receiver_type = @call_parent.defining_class.superclass

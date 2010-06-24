@@ -138,7 +138,14 @@ module Duby::AST
     end
 
     def infer(typer)
-      @defining_class ||= typer.self_type
+      @defining_class ||= begin
+        klass = typer.self_type
+        static_scope.self_type = if static?
+          klass.meta
+        else
+          klass
+        end
+      end
       typer.infer(arguments)
       typer.infer_signature(self)
       forced_type = signature[:return]
@@ -200,10 +207,6 @@ module Duby::AST
   end
 
   class StaticMethodDefinition < MethodDefinition
-    def defining_class
-      @defining_class.meta
-    end
-
     def static?
       true
     end

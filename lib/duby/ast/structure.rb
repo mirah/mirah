@@ -39,6 +39,11 @@ module Duby::AST
 
   class ScopedBody < Body
     include Scope
+
+    def infer(typer)
+      static_scope.self_type ||= typer.self_type
+      super
+    end
   end
 
   class Block < Node
@@ -151,8 +156,12 @@ module Duby::AST
     end
 
     def infer(typer)
-      @defining_class ||= typer.self_type
-      @inferred_type ||= typer.infer(body) || (typer.defer(self); nil)
+      resolve_if(typer) do
+        @defining_class ||= begin
+          static_scope.self_type = typer.self_type
+        end
+        typer.infer(body)
+      end
     end
   end
 end
