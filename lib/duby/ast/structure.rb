@@ -72,7 +72,11 @@ module Duby::AST
                                ['binding', binding]) do |c|
           duby.eval("@binding = binding", '-', c, 'binding')
       end
-      
+
+      # TODO We need a special scope here that allows access to the
+      # outer class.
+      static_scope.self_type = typer.infer(klass)
+
       # find all methods which would not otherwise be on java.lang.Object
       impl_methods = find_methods(interface).select do |m|
         begin

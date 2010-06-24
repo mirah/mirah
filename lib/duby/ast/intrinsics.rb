@@ -85,10 +85,7 @@ module Duby::AST
 
     def infer(typer)
       resolve_if(typer) do
-        self_type = typer.self_type
-        unless self_type == scope.static_scope.self_type
-          raise "scope: #{scope.static_scope.self_type} typer:#{typer.self_type}"
-        end
+        self_type = scope.static_scope.self_type
         extension_name = "%s$%s" % [self_type.name,
                                     typer.transformer.tmp("Extension%s")]
         klass = build_and_load_extension(self_type,
@@ -102,7 +99,7 @@ module Duby::AST
         macro = self_type.add_compiled_macro(klass, name, arg_types)
         if arguments[-1].kind_of?(BlockArgument) && arguments[-1].optional?
           arg_types.pop
-          typer.self_type.add_method(name, arg_types, macro)
+          self_type.add_method(name, arg_types, macro)
         end
         proxy.__inline__(Noop.new(parent, position))
         proxy.infer(typer)

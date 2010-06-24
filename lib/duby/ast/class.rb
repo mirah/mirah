@@ -171,7 +171,7 @@ module Duby::AST
         @inferred_type = typer.known_types[type]
         if @inferred_type
           resolved!
-          typer.learn_field_type(scope, name, @inferred_type)
+          typer.learn_field_type(class_scope, name, @inferred_type)
         else
           typer.defer(self)
         end
@@ -196,7 +196,7 @@ module Duby::AST
 
     def infer(typer)
       unless resolved?
-        @inferred_type = typer.learn_field_type(scope, name, typer.infer(value))
+        @inferred_type = typer.learn_field_type(class_scope, name, typer.infer(value))
 
         @inferred_type ? resolved! : typer.defer(self)
       end
@@ -218,7 +218,7 @@ module Duby::AST
 
     def infer(typer)
       unless resolved?
-        @inferred_type = typer.field_type(scope, name)
+        @inferred_type = typer.field_type(class_scope, name)
 
         @inferred_type ? resolved! : typer.defer(self)
       end
@@ -234,7 +234,7 @@ module Duby::AST
     def initialize(parent, line_number, name)
       super(parent, line_number)
       @name = name
-      scope.current_access_level = name.to_sym
+      class_scope.current_access_level = name.to_sym
     end
 
     def infer(typer)

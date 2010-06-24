@@ -116,6 +116,7 @@ module Duby::AST
     include Annotated
     include Named
     include Scope
+    include Scoped
     include ClassScoped
     include Binding
 
@@ -130,7 +131,7 @@ module Duby::AST
       @annotations = annotations
       super(parent, line_number, &block)
       @name = name
-      @visibility = (scope && scope.current_access_level) || :public
+      @visibility = (class_scope && class_scope.current_access_level) || :public
     end
 
     def name
@@ -140,11 +141,10 @@ module Duby::AST
     def infer(typer)
       resolve_if(typer) do
         @defining_class ||= begin
-          klass = typer.self_type
           static_scope.self_type = if static?
-            klass.meta
+            scope.static_scope.self_type.meta
           else
-            klass
+            scope.static_scope.self_type
           end
         end
         typer.infer(arguments)
@@ -200,11 +200,7 @@ module Duby::AST
     end
 
     def abstract?
-      node = parent
-      while node && !node.kind_of?(Scope)
-        node = node.parent
-      end
-      InterfaceDeclaration === node
+      InterfaceDeclaration === scope
     end
 
     def static?

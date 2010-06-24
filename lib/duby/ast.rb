@@ -261,7 +261,7 @@ module Duby
     end
 
     module ClassScoped
-      def scope
+      def class_scope
         @scope ||= begin
           scope = parent
           scope = scope.parent until scope.nil? || ClassDefinition === scope
@@ -411,10 +411,7 @@ module Duby
     class Self < Node
       include Scoped
       def infer(typer)
-        @inferred_type ||= typer.self_type
-        unless typer.self_type == scope.static_scope.self_type
-          raise "scope: #{scope.static_scope.self_type} typer: #{@inferred_type}"
-        end
+        @inferred_type ||= scope.static_scope.self_type
       end
     end
 

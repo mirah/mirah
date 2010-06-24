@@ -108,9 +108,10 @@ class TestTyper < Test::Unit::TestCase
 
     assert_equal(typer.string_type, ast.inferred_type)
 
-    ast = AST.parse("def bar(a, b); {a => :fixnum, b => :string}; 1.0; end; def baz; bar(1, 'x'); end").body
+    ast = AST.parse("def bar(a, b); {a => :fixnum, b => :string}; 1.0; end; def baz; bar(1, 'x'); end")
 
     ast.infer(typer)
+    ast = ast.body
 
     assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
     assert_equal(typer.float_type, typer.method_type(typer.self_type, "baz", []))
@@ -118,10 +119,11 @@ class TestTyper < Test::Unit::TestCase
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
     # Reverse the order, ensure deferred inference succeeds
-    ast = AST.parse("def baz; bar(1, 'x'); end; def bar(a, b); {a => :fixnum, b => :string}; 1.0; end").body
+    ast = AST.parse("def baz; bar(1, 'x'); end; def bar(a, b); {a => :fixnum, b => :string}; 1.0; end")
     typer = Typer::Simple.new("bar")
 
     ast.infer(typer)
+    ast = ast.body
 
     assert_equal(typer.default_type, typer.method_type(typer.self_type, "baz", []))
     assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
@@ -137,10 +139,11 @@ class TestTyper < Test::Unit::TestCase
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
     # modify bar call to have bogus types, ensure resolution fails
-    ast = AST.parse("def baz; bar(1, 1); end; def bar(a, b); {a => :fixnum, b => :string}; 1.0; end").body
+    ast = AST.parse("def baz; bar(1, 1); end; def bar(a, b); {a => :fixnum, b => :string}; 1.0; end")
     typer = Typer::Simple.new("bar")
 
     ast.infer(typer)
+    ast = ast.body
 
     assert_equal(typer.default_type, typer.method_type(typer.self_type, "baz", []))
     assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
