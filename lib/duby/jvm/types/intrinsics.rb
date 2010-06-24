@@ -59,7 +59,20 @@ module Duby::JVM::Types
     def add_compiled_macro(klass, name, arg_types)
       add_macro(name, *arg_types) do |duby, call|
         expander = klass.constructors[0].newInstance(duby, call)
-        expander.expand
+        ast = expander.expand
+        if ast
+          if call.target
+            body = Duby::AST::ScopedBody.new(call.parent, call.position)
+            body.static_scope.self_type = call.target.inferred_type!
+            body.static_scope.self_node = call.target
+            body << ast
+            body
+          else
+            ast
+          end
+        else
+          Duby::AST::Noop.new(call.parent, call.position)
+        end
       end
     end
 

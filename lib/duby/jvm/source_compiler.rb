@@ -194,7 +194,11 @@ module Duby
       end
 
       def this
-        @static ? @class.class_name : 'this'
+        if @self_scope && @self_scope.self_node
+          scoped_local_name('self', @self_scope)
+        else
+          @static ? @class.class_name : 'this'
+        end
       end
 
       def local_assign(scope, name, type, expression, value)
@@ -659,7 +663,7 @@ module Duby
         @method.print '$binding'
       end
 
-      def compile_self
+      def real_self
         @method.print 'this'
       end
 

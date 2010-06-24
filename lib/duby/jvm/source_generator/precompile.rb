@@ -86,7 +86,7 @@ module Duby::AST
     def method(compiler)
       @method ||= begin
         arg_types = parameters.map {|p| p.inferred_type}
-        compiler.self_type.get_method(name, arg_types)
+        @self_type.get_method(name, arg_types)
       end
     end
 

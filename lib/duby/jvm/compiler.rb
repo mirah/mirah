@@ -337,8 +337,8 @@ module Duby
 
       def self_call(fcall, expression)
         return cast(fcall, expression) if fcall.cast?
-        type = @type
-        type = type.meta if @static
+        type = @self_scope ? @self_scope.self_type : @type
+        type = type.meta if (@static && type == @type)
         fcall.target = ImplicitSelf.new(type)
 
         params = fcall.parameters.map do |param|
@@ -688,7 +688,7 @@ module Duby
         @method.aload(@method.local('$binding'))
       end
 
-      def compile_self
+      def real_self
         method.aload(0)
       end
 

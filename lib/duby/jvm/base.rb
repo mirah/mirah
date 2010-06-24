@@ -11,6 +11,7 @@ module Duby
         @jump_scope = []
         @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
         @captured_locals = Hash.new {|h, binding| h[binding] = {}}
+        @self_scope = nil
       end
 
       def compile(ast, expression = false)
@@ -151,6 +152,17 @@ module Duby
       end
 
       def body(body, expression)
+        saved_self = @self_scope
+        if body.kind_of?(Duby::AST::ScopedBody)
+          scope = body.static_scope
+          if scope != @self_scope
+            @self_scope = scope
+            if scope.self_node
+              local_assign(
+                  scope, 'self', scope.self_type, false, scope.self_node)
+            end
+          end
+        end
         # all except the last element in a body of code is treated as a statement
         i, last = 0, body.children.size - 1
         while i < last
@@ -158,6 +170,7 @@ module Duby
           i += 1
         end
         yield body.children[last] if last >= 0
+        @current_self = saved_self
       end
 
       def scoped_body(scope, expression)
@@ -179,6 +192,14 @@ module Duby
         type.literal(method, value)
       end
       alias float fixnum
+
+      def compile_self
+        if @self_scope && @self_scope.self_node
+          local(@self_scope, 'self', @self_scope.self_type)
+        else
+          real_self
+        end
+      end
 
       def get_binding(type)
         @bindings[type]
