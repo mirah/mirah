@@ -67,7 +67,7 @@ module Duby
       def begin_main; end
       def finish_main; end
 
-      def define_method(node, args_are_types)
+      def define_method(node, args_are_types, jsni_method=false)
         name, signature, args = node.name, node.signature, node.arguments.args
         if name == "initialize" && node.static?
           name = "<clinit>"
@@ -82,8 +82,13 @@ module Duby
         exceptions = signature[:throws]
 
         with :static => @static || node.static?, :current_scope => node.static_scope do
-          method = @class.build_method(name.to_s, node.visibility, @static,
-                                       exceptions, return_type, *arg_types)
+          unless jsni_method
+            method = @class.build_method(name.to_s, node.visibility, @static,
+                                         exceptions, return_type, *arg_types)
+          else
+            method = @class.build_jsni_method(name.to_s, node.visibility, @static,
+                                         exceptions, return_type, *arg_types)            
+          end
           annotate(method, node.annotations)
           yield method, arg_types
         end
@@ -98,8 +103,14 @@ module Duby
               else
                 args_for_opt
               end
-              method = @class.build_method(name.to_s, node.visibility, @static,
-                                           exceptions, return_type, *new_args)
+
+              unless jsni_method
+                  method = @class.build_method(name.to_s, node.visibility, @static,
+                                               exceptions, return_type, *new_args)
+              else
+                  method = @class.build_jsni_method(name.to_s, node.visibility, @static,
+                                               exceptions, return_type, *new_args)          
+              end
 
               with :method => method do
                 log "Starting new method #{name}(#{arg_types_for_opt})"

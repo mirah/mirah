@@ -15,6 +15,8 @@ end
 module Duby
   module Compiler
     class JavaSource < JVMCompilerBase
+      alias :super_define_method :define_method
+
       JVMTypes = Duby::JVM::Types
       attr_accessor :lvalue
 
@@ -53,6 +55,26 @@ module Duby
             end
 
             log "Method #{node.name} complete!"
+            @method.stop
+          end
+        end
+      end
+
+      def define_jsni_method(node)
+        super_define_method(node, false, :jsni) do |method, arg_types|
+          with :method => method do
+            log "Starting new JSNI method #{node.name}"
+            
+            @method.start
+            @method.dedent
+            @method.puts '/*-{'
+
+            @method.indent
+            node.body.compile(self, true)
+
+            @method.dedent
+            @method.puts "\n}-*/;"
+            log "JSNI method #{node.name} complete!"
             @method.stop
           end
         end
