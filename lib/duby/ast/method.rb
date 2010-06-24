@@ -138,59 +138,65 @@ module Duby::AST
     end
 
     def infer(typer)
-      @defining_class ||= begin
-        klass = typer.self_type
-        static_scope.self_type = if static?
-          klass.meta
-        else
-          klass
-        end
-      end
-      typer.infer(arguments)
-      typer.infer_signature(self)
-      forced_type = signature[:return]
-      inferred_type = body ? typer.infer(body) : typer.no_type
-
-      if !(inferred_type && arguments.inferred_type.all?)
-        typer.defer(self)
-      else
-        actual_type = if forced_type.nil?
-          inferred_type
-        else
-          forced_type
-        end
-        if actual_type.unreachable?
-          actual_type = typer.no_type
-        end
-
-        if !abstract? &&
-            forced_type != typer.no_type &&
-            !actual_type.is_parent(inferred_type)
-          raise Duby::Typer::InferenceError.new(
-              "Inferred return type %s is incompatible with declared %s" %
-              [inferred_type, actual_type], self)
-        end
-
-        @inferred_type = typer.learn_method_type(defining_class, name, arguments.inferred_type, actual_type, signature[:throws])
-
-        # learn the other overloads as well
-        args_for_opt = []
-        if arguments.args
-          arguments.args.each do |arg|
-            if OptionalArgument === arg
-              arg_types_for_opt = args_for_opt.map do |arg_for_opt|
-                arg_for_opt.infer(typer)
-              end
-              typer.learn_method_type(defining_class, name, arg_types_for_opt, actual_type, signature[:throws])
-            end
-            args_for_opt << arg
+      resolve_if(typer) do
+        @defining_class ||= begin
+          klass = typer.self_type
+          static_scope.self_type = if static?
+            klass.meta
+          else
+            klass
           end
         end
+        typer.infer(arguments)
+        typer.infer_signature(self)
+        forced_type = signature[:return]
+        inferred_type = body ? typer.infer(body) : typer.no_type
 
-        signature[:return] = @inferred_type
+        if inferred_type && arguments.inferred_type.all?
+          actual_type = if forced_type.nil?
+            inferred_type
+          else
+            forced_type
+          end
+          if actual_type.unreachable?
+            actual_type = typer.no_type
+          end
+
+          if !abstract? &&
+              forced_type != typer.no_type &&
+              !actual_type.is_parent(inferred_type)
+            raise Duby::Typer::InferenceError.new(
+                "Inferred return type %s is incompatible with declared %s" %
+                [inferred_type, actual_type], self)
+          end
+
+          signature[:return] = actual_type
+        end
       end
+    end
 
-      @inferred_type
+    def resolve_if(typer)
+      super(typer) do
+        type = yield
+        if type
+          typer.learn_method_type(defining_class, name, arguments.inferred_type, type, signature[:throws])
+
+          # learn the other overloads as well
+          args_for_opt = []
+          if arguments.args
+            arguments.args.each do |arg|
+              if OptionalArgument === arg
+                arg_types_for_opt = args_for_opt.map do |arg_for_opt|
+                  arg_for_opt.infer(typer)
+                end
+                typer.learn_method_type(defining_class, name, arg_types_for_opt, type, signature[:throws])
+              end
+              args_for_opt << arg
+            end
+          end
+        end
+        type
+      end
     end
 
     def abstract?

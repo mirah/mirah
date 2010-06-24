@@ -6,7 +6,7 @@ module Duby
       def compile(compiler, expression)
         if expression
           compiler.line(line_number)
-          compiler.fixnum(literal)
+          compiler.fixnum(inferred_type, literal)
         end
       end
     end
@@ -45,7 +45,7 @@ module Duby
       def compile(compiler, expression)
         if expression
           compiler.line(line_number)
-          compiler.float(literal)
+          compiler.float(inferred_type, literal)
         end
       end
     end

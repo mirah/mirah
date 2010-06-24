@@ -21,9 +21,7 @@ module Duby::AST
     end
 
     def infer(typer)
-      return @inferred_type if resolved?
-      resolved!
-      @inferred_type = typer.fixnum_type
+      resolve_if(typer) {@inferred_type = typer.fixnum_type(@literal)}
     end
 
     def ==(other)
@@ -44,9 +42,7 @@ module Duby::AST
     end
 
     def infer(typer)
-      return @inferred_type if resolved?
-      resolved!
-      @inferred_type = typer.float_type
+      resolve_if(typer) {@inferred_type = typer.float_type(@literal)}
     end
   end
 

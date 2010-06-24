@@ -155,48 +155,12 @@ module Duby::JVM::Types
       Void
     end
 
-    def fixnum(parent, line_number, literal)
-      FixnumLiteralNode.new(parent, line_number, literal)
-    end
-
-    def float(parent, line_number, literal)
-      FloatLiteralNode.new(parent, line_number, literal)
-    end
-
     def get_mirror(name)
       @mirrors[name] ||= begin
         classname = name.tr('.', '/') + ".class"
         stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname)
         raise NameError, "Class '#{name}' not found." unless stream
         BiteScript::ASM::ClassMirror.load(stream)
-      end
-    end
-  end
-
-  class FixnumLiteralNode < AST::Fixnum
-    def infer(typer)
-      return @inferred_type if resolved?
-      resolved!
-      @inferred_type = FixnumLiteral.new(@literal)
-    end
-
-    def compile(compiler, expression)
-      if expression
-        inferred_type.literal(compiler.method, @literal)
-      end
-    end
-  end
-
-  class FloatLiteralNode < AST::Float
-    def infer(typer)
-      return @inferred_type if resolved?
-      resolved!
-      @inferred_type = FloatLiteral.new(@literal)
-    end
-
-    def compile(compiler, expression)
-      if expression
-        inferred_type.literal(compiler.method, @literal)
       end
     end
   end

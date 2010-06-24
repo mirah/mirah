@@ -49,7 +49,7 @@ class TestAst < Test::Unit::TestCase
 
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:fixnum, 1]], @compiler.calls)
+    assert_equal([[:fixnum, nil, 1]], @compiler.calls)
   end
 
   def test_string
@@ -65,7 +65,7 @@ class TestAst < Test::Unit::TestCase
 
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:float, 1.0]], @compiler.calls)
+    assert_equal([[:float, nil, 1.0]], @compiler.calls)
   end
 
   def test_boolean
