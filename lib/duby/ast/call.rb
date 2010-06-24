@@ -19,7 +19,8 @@ module Duby::AST
     end
 
     def self._load(str)
-      NodeProxy.new(Marshal.load(str))
+      proxy = NodeProxy.new(Marshal.load(str))
+      proxy.proxy = proxy
     end
   end
 

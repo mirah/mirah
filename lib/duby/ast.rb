@@ -281,7 +281,7 @@ module Duby
 
     class StaticScope
       attr_reader :parent
-      attr_writer :self_type
+      accessor :self_type, :self_node
 
       def initialize(parent=nil)
         @vars = {}

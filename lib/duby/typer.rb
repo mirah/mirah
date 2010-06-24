@@ -300,6 +300,7 @@ module Duby
           @error_next = false
           error(node)
         else
+          raise "Can't defer nil" if node.nil?
           return if deferred_nodes.include? node
           log "Deferring inference for #{node}"
 
