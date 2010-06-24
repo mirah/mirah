@@ -209,7 +209,11 @@ class DubyImpl
       if failed
         puts "Inference Error:"
         typer.errors.each do |ex|
-          Duby.print_error(ex.message, ex.node.position)
+          if ex.node
+            Duby.print_error(ex.message, ex.node.position)
+          else
+            puts ex.message
+          end
           puts ex.backtrace if @state.verbose
         end
         exit 1
