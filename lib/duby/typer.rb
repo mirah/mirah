@@ -55,11 +55,11 @@ module Duby
         nil
       end
 
-      def fixnum_type
+      def fixnum_type(value=0)
         known_types["fixnum"]
       end
 
-      def float_type
+      def float_type(value=0)
         known_types["float"]
       end
 

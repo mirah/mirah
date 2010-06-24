@@ -65,6 +65,14 @@ module Duby
         @factory.known_type(name)
       end
 
+      def fixnum_type(value)
+        FixnumLiteral.new(value)
+      end
+
+      def float_type(value)
+        FloatLiteral.new(value)
+      end
+
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
         static = target_type.meta?
         unless target_type.unmeta.kind_of?(TypeDefinition)

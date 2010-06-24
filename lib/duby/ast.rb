@@ -594,21 +594,11 @@ module Duby
     end
 
     def self.fixnum(parent, position, literal)
-      factory = type_factory
-      if factory
-        factory.fixnum(parent, position, literal)
-      else
-        Fixnum.new(parent, position, literal)
-      end
+      Fixnum.new(parent, position, literal)
     end
 
     def self.float(parent, position, literal)
-      factory = type_factory
-      if factory
-        factory.float(parent, position, literal)
-      else
-        Float.new(parent, position, literal)
-      end
+      Float.new(parent, position, literal)
     end
 
     def self.defmacro(name, &block)

@@ -175,6 +175,11 @@ module Duby
       def import(short, long)
       end
 
+      def fixnum(type, value)
+        type.literal(method, value)
+      end
+      alias float fixnum
+
       def get_binding(type)
         @bindings[type]
       end
