@@ -2225,6 +2225,35 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(false, cls.dynamic(java.lang.Object, nil))
   end
 
+  def test_instance_macro
+    script, cls = compile(<<-EOF)
+      class InstanceMacros
+        def foobar
+          "foobar"
+        end
+
+        macro def macro_foobar
+          quote {foobar}
+        end
+      
+        def call_foobar
+          macro_foobar
+        end
+      end
+
+      def macro
+        InstanceMacros.new.macro_foobar
+      end
+
+      def function
+        InstanceMacros.new.call_foobar
+      end
+    EOF
+
+    assert_equal("foobar", script.function)
+    assert_equal("foobar", script.macro)
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)
