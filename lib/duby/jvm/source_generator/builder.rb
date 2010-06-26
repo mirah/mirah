@@ -225,19 +225,6 @@ module Duby
         @methods[-1]
       end        
 
-      def build_jsni_method(name, visibility, static, exceptions, type, *args)
-        finish_declaration
-        type ||= Duby::AST::type(:void)
-        @methods << JsniMethodBuilder.new(self,
-                                      :name => name,
-                                      :visibility => visibility,
-                                      :static => static,
-                                      :return => type,
-                                      :args => args,
-                                      :exceptions => exceptions)
-        @methods[-1]
-      end
-
       def build_constructor(visibility, exceptions, *args)
         finish_declaration
         @methods << MethodBuilder.new(self,
@@ -400,46 +387,6 @@ module Duby
         else
           super
         end
-      end
-    end
-
-    class JsniMethodBuilder < MethodBuilder
-      include Helper
-
-      attr_accessor :name, :type, :out
-
-      def initialize(cls, options)
-        super(cls, options)
-      end
-
-      # Based on superclass's method.
-      def start
-        print "public#{@static} native #{@typename} #{@name}("
-        @args.each_with_index do |(type, name), i|
-          print ', ' unless i == 0
-          print "#{type.to_source} #{name}"
-        end
-        print ')'
-        unless @exceptions.empty?
-          print ' throws '
-          @exceptions.each_with_index do |exception, i|
-            print ', ' unless i == 0
-            print exception.name
-          end
-        end
-        if @abstract
-          puts ";"
-          def self.puts(*args); end
-          def self.print(*args); end
-        else
-          puts ""
-        end
-        indent
-      end
-
-      # Based on superclass's method.
-      def stop
-        dedent
       end
     end
   end
