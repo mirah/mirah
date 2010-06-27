@@ -193,8 +193,10 @@ module Duby
         @method.print "#{this}.#{name}"
       end
 
-      def this
-        if @self_scope && @self_scope.self_node
+      def this(method=nil)
+        if method && method.static?
+          method.declaring_class.name
+        elsif @self_scope && @self_scope.self_node
           scoped_local_name('self', @self_scope)
         else
           @static ? @class.class_name : 'this'
@@ -427,7 +429,13 @@ module Duby
         if call.cast?
           cast(call, expression)
         else
-          method_call(this, call, compile_args(call), expression)
+          type = call.scope.static_scope.self_type
+          type = type.meta if (@static && type == @type)
+          params = call.parameters.map do |param|
+            param.inferred_type
+          end
+          method = type.get_method(call.name, params)
+          method_call(this(method), call, compile_args(call), expression)
         end
       end
 

@@ -337,7 +337,7 @@ module Duby
 
       def self_call(fcall, expression)
         return cast(fcall, expression) if fcall.cast?
-        type = @self_scope ? @self_scope.self_type : @type
+        type = fcall.scope.static_scope.self_type
         type = type.meta if (@static && type == @type)
         fcall.target = ImplicitSelf.new(type)
 

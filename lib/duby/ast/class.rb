@@ -241,4 +241,25 @@ module Duby::AST
       typer.no_type
     end
   end
+
+  class Include < Node
+    include Scoped
+
+    def infer(typer)
+      children.each do |type|
+        the_scope = scope.static_scope
+        the_scope.self_type = the_scope.self_type.include(type)
+      end
+    end
+
+    def compile(compiler, expression); end
+  end
+
+  defmacro("include") do |transformer, fcall, parent|
+    raise "Included Class name required" unless fcall.args_node
+    types = fcall.args_node.child_nodes.map do |type|
+      type.type_reference(parent)
+    end
+    Include.new(parent, fcall.position, types)
+  end
 end

@@ -242,7 +242,7 @@ module Duby::JVM::Types
 
   class JavaStaticMethod < JavaMethod
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
+      target = declaring_class
       convert_args(compiler, ast.parameters)
       compiler.method.invokestatic(
         target,

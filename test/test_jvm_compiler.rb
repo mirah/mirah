@@ -2256,6 +2256,35 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("foobar", script.macro)
   end
 
+  def test_static_import
+    cls, = compile(<<-EOF)
+      import java.util.Arrays
+      include Arrays
+      def list(x:Object[])
+        asList(x)
+      end
+    EOF
+
+    o = ["1", "2", "3"].to_java(:object)
+    list = cls.list(o)
+    assert_kind_of(Java::JavaUtil::List, list)
+    assert_equal(["1", "2", "3"], list.to_a)
+
+    scripe, cls = compile(<<-EOF)
+      import java.util.Arrays
+      class StaticImports
+        include Arrays
+        def list(x:Object[])
+          asList(x)
+        end
+      end
+    EOF
+
+    list = cls.new.list(o)
+    assert_kind_of(Java::JavaUtil::List, list)
+    assert_equal(["1", "2", "3"], list.to_a)
+  end
+
   # TODO: need a writable field somewhere...
 #  def test_field_write
 #    cls, = compile(<<-EOF)
