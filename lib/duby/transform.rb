@@ -154,7 +154,12 @@ module Duby
       end
 
       def define_closure(position, name, enclosing_type)
-        append_node(Duby::AST::ClosureDefinition.new(
+        target = self
+        enclosing_type = enclosing_type.unmeta
+        if enclosing_type.respond_to?(:node) && enclosing_type.node
+          target = enclosing_type.node
+        end
+        target.append_node(Duby::AST::ClosureDefinition.new(
             nil, position, name, enclosing_type))
       end
     end

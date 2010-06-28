@@ -4,7 +4,7 @@ module Duby
   class JVM::Types::Type
     def to_source
       java_name = name
-      java_name = java_name.tr '$', '.' if inner_class?
+      java_name = java_name.tr('$', '.')
       "#{java_name}#{'[]' if array?}"
     end
   end
@@ -17,24 +17,31 @@ module Duby
 
       def initialize(filename, compiler)
         @filename = filename
-        @classes = []
+        @classes = {}
         @compiler = compiler
       end
 
       def public_class(name, superclass=nil, *interfaces)
         cls = ClassBuilder.new(self, name, superclass, interfaces)
-        @classes << cls
-        cls
+        container = self
+        if name.include? ?$
+          path = name.split '$'
+          name = path.pop
+          path.each do |piece|
+            container = container.classes[piece]
+          end
+        end
+        container.classes[name] = cls
       end
 
       def public_interface(name, *interfaces)
         cls = InterfaceBuilder.new(self, name, interfaces)
-        @classes << cls
+        @classes[name] = cls
         cls
       end
 
       def generate
-        @classes.each do |cls|
+        @classes.values.each do |cls|
           yield cls.filename, cls
         end
       end
@@ -150,6 +157,11 @@ module Duby
           @package = pieces.join('.')
         end
         @class_name = name
+        if @class_name =~ /\$([^$]+)/
+          @class_name = $1
+          @static = true
+          @inner_class = true
+        end
         @superclass = superclass || JVMTypes::Object
         @interfaces = interfaces
         @filename = "#{name}.java"
@@ -158,6 +170,7 @@ module Duby
         @stopped = false
         @methods = []
         @fields = {}
+        @inner_classes = {}
         start
       end
 
@@ -165,15 +178,22 @@ module Duby
         @builder.compiler
       end
 
+      def classes
+        @inner_classes
+      end
+
       def start
-        puts "// Generated from #{@builder.filename}"
-        puts "package #{package};" if package
+        unless @inner_class
+          puts "// Generated from #{@builder.filename}"
+          puts "package #{package};" if package
+        end
       end
 
       def finish_declaration
         return if @declaration_finished
         @declaration_finished = true
-        print "public class #{class_name} extends #{superclass.name}"
+        static = " static" if @static
+        print "public#{static} class #{class_name} extends #{superclass.name}"
         unless @interfaces.empty?
           print " implements "
           @interfaces.each_with_index do |interface, index|
@@ -191,6 +211,9 @@ module Duby
         @methods.each do |method|
           @out << method.out
         end
+        @inner_classes.values.each do |inner_class|
+          @out << inner_class.out
+        end
         log "Class #{name} complete (#{@out.to_s.size})"
         @stopped = true
         dedent
@@ -206,9 +229,9 @@ module Duby
       def declare_field(name, type, static, access='private', annotations=[])
         finish_declaration
         return if @fields[name]
-        static = static ? 'static' : ''
+        static = static ? ' static' : ''
         annotate(annotations)
-        puts "#{access} #{static} #{type.to_source} #{name};"
+        puts "#{access}#{static} #{type.to_source} #{name};"
         @fields[name] = true
       end
 
@@ -223,7 +246,7 @@ module Duby
                                       :args => args,
                                       :exceptions => exceptions)
         @methods[-1]
-      end        
+      end
 
       def build_constructor(visibility, exceptions, *args)
         finish_declaration

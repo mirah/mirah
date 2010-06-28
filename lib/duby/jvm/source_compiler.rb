@@ -107,7 +107,7 @@ module Duby
         if scope.has_binding?
           type = scope.binding_type
           @binding = @bindings[type]
-          @method.puts "#{type.name} $binding = new #{type.name}();"
+          @method.puts "#{type.to_source} $binding = new #{type.to_source}();"
         end
         begin
           yield
@@ -698,7 +698,7 @@ module Duby
           if scope.has_binding?
             type = scope.binding_type
             @binding = @parent.get_binding(type)
-            @method.puts("#{type.name} $binding = this.binding;")
+            @method.puts("#{type.to_source} $binding = this.binding;")
           end
           begin
             yield

@@ -330,6 +330,7 @@ module Duby
 
         def initialize(name, node)
           raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
+          raise ArgumentError, "Bad name #{name}" if name.include? ?/
           @name = name
           @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
@@ -337,7 +338,7 @@ module Duby
 
         def name
           if @type
-            @type.name
+            @type.name.tr('/', '.')
           else
             @name
           end
