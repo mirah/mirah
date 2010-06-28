@@ -1935,6 +1935,27 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_block_with_method_def
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      import java.util.Collections
+      list = ArrayList.new(["a", "ABC", "Cats", "b"])
+      Collections.sort(list) do
+        def equals(a:Object, b:Object)
+          String(a).equalsIgnoreCase(String(b))
+        end
+        def compare(a:Object, b:Object)
+          String(a).compareToIgnoreCase(String(b))
+        end
+      end
+      list.each {|x| puts x}
+    EOF
+
+    assert_output("a\nABC\nb\nCats\n") do
+      cls.main(nil)
+    end
+  end
+
   def test_each
     cls, = compile(<<-EOF)
       def foo

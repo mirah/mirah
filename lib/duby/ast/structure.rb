@@ -77,35 +77,8 @@ module Duby::AST
       # outer class.
       static_scope.self_type = typer.infer(klass)
 
-      # find all methods which would not otherwise be on java.lang.Object
-      impl_methods = find_methods(interface).select do |m|
-        begin
-          obj_m = java.lang.Object.java_class.java_method m.name, *m.parameter_types
-        rescue NameError
-          # not found on Object
-          next true
-        end
-        # found on Object
-        next false
-      end
+      add_methods(klass, binding, typer)
 
-      # TODO: find a nice way to closure-impl multiple methods
-      # perhaps something like
-      # Collections.sort(list) do
-      #   def equals(other); self == other; end
-      #   def compareTo(x,y); Comparable(x).compareTo(y); end
-      # end
-      raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
-      impl_methods.each do |method|
-        mdef = klass.define_method(position,
-                                   method.name,
-                                   method.actual_return_type,
-                                   args.dup)
-        mdef.static_scope = static_scope
-        mdef.body = body.dup
-        mdef.binding_type = binding
-        typer.infer(mdef.body)
-      end
       call = parent
       instance = Call.new(call, position, 'new')
       instance.target = Constant.new(call, position, name)
@@ -117,9 +90,48 @@ module Duby::AST
       typer.infer(instance)
     end
 
-    def find_methods(interface)
+    def add_methods(klass, binding, typer)
+      found_def = false
+      body.each do |node|
+        if node.kind_of?(MethodDefinition)
+          found_def = true
+          node.static_scope = static_scope
+          node.binding_type = binding
+          klass.append_node(node)
+        end
+      end
+      build_method(klass, binding, typer) unless found_def
+    end
+
+    def build_method(klass, binding, typer)
+      # find all methods which would not otherwise be on java.lang.Object
+      impl_methods = find_methods(klass.interfaces).select do |m|
+        begin
+          obj_m = java.lang.Object.java_class.java_method m.name, *m.parameter_types
+        rescue NameError
+          # not found on Object
+          next true
+        end
+        # found on Object
+        next false
+      end
+
+      raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
+      impl_methods.each do |method|
+        mdef = klass.define_method(position,
+                                   method.name,
+                                   method.actual_return_type,
+                                   args.dup)
+        mdef.static_scope = static_scope
+        mdef.body = body.dup
+        mdef.binding_type = binding
+        typer.infer(mdef.body)
+      end
+    end
+
+    def find_methods(interfaces)
       methods = []
-      interfaces = [interface]
+      interfaces = interfaces.dup
       until interfaces.empty?
         interface = interfaces.pop
         methods += interface.declared_instance_methods.select {|m| m.abstract?}
