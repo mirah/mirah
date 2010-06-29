@@ -129,20 +129,27 @@ module Duby::AST
       transformer.annotations) do |defn|
 
       signature = {:return => args_node.first.type_reference(defn)}
-      method = fcall.args_node[1][0]
-      hash_node = method[0][0]
+      method = fcall.args_node[1][0][0]
 
-      args = Arguments.new(defn, defn.position) do |args_new|
-        arg_list = []
-        hash_node.child_nodes.each_slice(2) do |name, type|
-          position = Java::OrgJrubyparser::SourcePosition.
-            combinePosition(name.position, type.position)
-          name = name.name
-          type = type.type_reference(args_node)
-          signature[name.intern] = type
-          arg_list.push(RequiredArgument.new(args_new, position, name))
+      unless method.nil?
+        hash_node = method[0]
+
+        args = Arguments.new(defn, defn.position) do |args_new|
+          arg_list = []
+          hash_node.child_nodes.each_slice(2) do |name, type|
+            position = Java::OrgJrubyparser::SourcePosition.
+              combinePosition(name.position, type.position)
+            name = name.name
+            type = type.type_reference(args_node)
+            signature[name.intern] = type
+            arg_list.push(RequiredArgument.new(args_new, position, name))
+          end
+          [arg_list, nil, nil, nil]
         end
-        [arg_list, nil, nil, nil]
+      else
+        args = Arguments.new(defn, defn.position) do |args_new|
+          [nil, nil, nil, nil]
+        end
       end
 
       body_node = transformer.transform(args_node.last, defn)
