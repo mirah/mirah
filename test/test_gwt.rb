@@ -6,12 +6,11 @@ require 'jruby'
 
 class TestGWT < Test::Unit::TestCase
   include Duby::AST
-  def test_gwt_no_arg
+  def test_jsni_no_arg
     new_ast = parse("def_jsni void, _log(), 'hi'").body[0]
 
-    # How to test 'log()'?
     name = new_ast.name
-    assert_equal(name,'def_jsni')
+    assert_equal(name,'_log')
 
     body = new_ast.body.literal
     assert_equal(body,'hi')
@@ -24,7 +23,7 @@ class TestGWT < Test::Unit::TestCase
     assert_equal(has_arguments,nil)
   end
 
-  def test_gwt_one_arg
+  def test_jsni_one_arg
     new_ast = parse("def_jsni void, _log(message:Object), 'hi'").body[0]
 
     message_type = new_ast.signature[:message] == Duby::AST::TypeReference.new('Object')
@@ -34,7 +33,7 @@ class TestGWT < Test::Unit::TestCase
     assert_equal(arg_size,1)
   end
 
-  def test_gwt_two_args
+  def test_jsni_two_args
     new_ast = parse("def_jsni void, _log(message:Object,message2:Object), 'hi'").body[0]
     arg_size = new_ast.arguments.args.size
     assert_equal(arg_size,2)

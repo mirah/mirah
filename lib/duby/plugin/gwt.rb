@@ -125,7 +125,7 @@ module Duby::AST
 
     JsniMethodDefinition.new(parent,
       fcall.position,
-      fcall.name,
+      fcall[0][1].name,
       transformer.annotations) do |defn|
 
       signature = {:return => args_node.first.type_reference(defn)}
