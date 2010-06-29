@@ -72,7 +72,7 @@ module Duby
           exceptions, return_type, *arg_types)
       end
 
-      def define_method(node, args_are_types)
+      def base_define_method(node, args_are_types)
         name, signature, args = node.name, node.signature, node.arguments.args
         if name == "initialize" && node.static?
           name = "<clinit>"
