@@ -116,7 +116,7 @@ module Duby
 
       def define_method(node)
         push_jump_scope(node) do
-          super(node, true) do |method, arg_types|
+          base_define_method(node, true) do |method, arg_types|
             return if @class.interface?
 
             log "Starting new #{node.static? ? 'static ' : ''}method #{node.name}(#{arg_types})"

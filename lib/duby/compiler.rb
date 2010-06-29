@@ -148,7 +148,7 @@ module Duby
     class MethodDefinition
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?
-        compiler.base_define_method(self)
+        compiler.define_method(self)
       end
     end
 
