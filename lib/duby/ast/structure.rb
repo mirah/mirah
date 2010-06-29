@@ -88,7 +88,7 @@ module Duby::AST
       # end
       raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
       impl_methods.each do |method|
-        mdef = klass.base_define_method(position,
+        mdef = klass.define_method(position,
                                    method.name,
                                    method.actual_return_type,
                                    args.dup)

@@ -207,7 +207,7 @@ module Duby::AST
 
       # expand() parses the arguments out of call and then passes them off to
       # _expand
-      expand = extension.base_define_method(
+      expand = extension.define_method(
           position, 'expand', node_type)
       args = []
       arguments.each_with_index do |arg, i|
@@ -230,7 +230,7 @@ module Duby::AST
         end
         [arg.name, type, arg.position]
       end
-      m = extension.base_define_method(position, '_expand', node_type, *actual_args)
+      m = extension.define_method(position, '_expand', node_type, *actual_args)
       m.body = self.body
       ast
     end

@@ -54,6 +54,7 @@ end
 
 module Duby::Compiler
   class JVMCompilerBase
+    # arg_types must be an Array
     def create_method_builder(name, node, static, exceptions, return_type, arg_types)
       unless node.class == Duby::AST::JsniMethodDefinition
         @class.build_method(name.to_s, node.visibility, static,
@@ -102,7 +103,7 @@ module Duby::AST
         end
       end
     end
-    
+
     # JSNI can't be abstract.
     def abstract?
       false

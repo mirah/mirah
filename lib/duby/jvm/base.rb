@@ -67,6 +67,7 @@ module Duby
       def begin_main; end
       def finish_main; end
 
+      # arg_types must be an Array
       def create_method_builder(name, node, static, exceptions, return_type, arg_types)
         @class.build_method(name.to_s, node.visibility, static,
           exceptions, return_type, *arg_types)
@@ -88,7 +89,7 @@ module Duby
 
         with :static => @static || node.static?, :current_scope => node.static_scope do
           method = create_method_builder(name, node, @static, exceptions,
-                                         return_type, *arg_types)
+                                         return_type, arg_types)
           annotate(method, node.annotations)
           yield method, arg_types
         end
@@ -104,7 +105,7 @@ module Duby
                 args_for_opt
               end
               method = create_method_builder(name, node, @static, exceptions,
-                                             return_type, *new_args)
+                                             return_type, new_args)
               with :method => method do
                 log "Starting new method #{name}(#{arg_types_for_opt})"
 
