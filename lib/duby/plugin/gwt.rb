@@ -40,19 +40,14 @@ module Duby::JavaSource
           print exception.name
         end
       end
-      if @abstract
-        puts ";"
-        def self.puts(*args); end
-        def self.print(*args); end
-      else
-        puts ""
-      end
+      puts ' /*-{'
       indent
     end
 
     # Based on superclass's method.
     def stop
       dedent
+      puts '}-*/;'
     end
   end
 end
@@ -71,22 +66,14 @@ module Duby::Compiler
   end
 
   class JavaSource < JVMCompilerBase
-    alias :super_define_method :define_method
-
     def define_jsni_method(node)
-      super_define_method(node, false) do |method, arg_types|
+      base_define_method(node, false) do |method, arg_types|
         with :method => method do
           log "Starting new JSNI method #{node.name}"
-
           @method.start
-          @method.dedent
-          @method.puts '/*-{'
 
-          @method.indent
-          @method.print node.body.literal
+          @method.puts node.body.literal
 
-          @method.dedent
-          @method.puts "\n}-*/;"
           log "JSNI method #{node.name} complete!"
           @method.stop
         end
@@ -115,7 +102,7 @@ module Duby::AST
         end
       end
     end
-
+    
     # JSNI can't be abstract.
     def abstract?
       false

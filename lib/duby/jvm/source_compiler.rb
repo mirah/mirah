@@ -39,7 +39,7 @@ module Duby
       end
 
       def define_method(node)
-        super(node, false) do |method, _|
+        base_define_method(node, false) do |method, _|
           with :method => method do
             log "Starting new method #{node.name}"
             @method.start
