@@ -41,12 +41,10 @@ module Duby::JavaSource
         end
       end
       puts ' /*-{'
-      indent
     end
 
     # Based on superclass's method.
     def stop
-      dedent
       puts '}-*/;'
     end
   end
@@ -73,7 +71,7 @@ module Duby::Compiler
           log "Starting new JSNI method #{node.name}"
           @method.start
 
-          @method.puts node.body.literal
+          @method.puts node.body.literal.chomp
 
           log "JSNI method #{node.name} complete!"
           @method.stop
@@ -85,8 +83,9 @@ end
 
 module Duby::AST
   class JsniMethodDefinition < MethodDefinition
-    def initialize(parent, line_number, name, annotations=[], &block)
+    def initialize(static, parent, line_number, name, annotations=[], &block)
       super(parent, line_number, name, annotations, &block)
+      @static = static
     end
 
     def compile(compiler, expression)
@@ -109,9 +108,8 @@ module Duby::AST
       false
     end
 
-    # TODO: JSNI can be static.
     def static?
-      false
+      @static
     end
   end
 
@@ -123,9 +121,13 @@ module Duby::AST
       raise "def_jsni must have 3 arguments."
     end
 
-    JsniMethodDefinition.new(parent,
+    call_node = fcall[0][1]
+    is_static = call_node[0].class == Java::OrgJrubyparserAst::SelfNode
+
+    JsniMethodDefinition.new(is_static,
+      parent,
       fcall.position,
-      fcall[0][1].name,
+      call_node.name,
       transformer.annotations) do |defn|
 
       signature = {:return => args_node.first.type_reference(defn)}
