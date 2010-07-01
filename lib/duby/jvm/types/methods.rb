@@ -298,13 +298,13 @@ module Duby::JVM::Types
     def field?
       true
     end
-    
+
     def return_type
       AST.type(@member.type)
     end
 
     alias actual_return_type return_type
-    
+
     def public?
       @member.public?
     end
@@ -321,7 +321,7 @@ module Duby::JVM::Types
 
     def call(compiler, ast, expression)
       target = ast.target.inferred_type
-      
+
       # TODO: assert that no args are being passed, though that should have failed lookup
 
       if expression
@@ -434,6 +434,7 @@ module Duby::JVM::Types
           end
         end
 
+        return method if method.kind_of?(JavaCallable)
         if method && method.static? == meta?
           return JavaStaticMethod.new(method) if method.static?
           return JavaMethod.new(method)

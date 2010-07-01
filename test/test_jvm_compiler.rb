@@ -274,6 +274,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_nothing_raised {cls.foo}
   end
 
+  def test_void_chain
+    cls, = compile(<<-EOF)
+      import java.io.*
+      def foo
+        throws IOException
+        OutputStreamWriter.new(
+            System.out).write("Hello ").write("there\n").flush
+      end
+    EOF
+
+    assert_output("Hello there\n") { cls.foo }
+  end
+
   def test_import
     cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class

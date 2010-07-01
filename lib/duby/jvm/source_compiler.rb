@@ -444,7 +444,7 @@ module Duby
         if Duby::AST::Constant === call.target
           target = call.target.inferred_type.to_source
         else
-          target = call.target.precompile(self)
+          target = call.precompile_target(self)
         end
         params = compile_args(call)
 

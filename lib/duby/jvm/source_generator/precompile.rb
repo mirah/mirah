@@ -80,6 +80,14 @@ module Duby::AST
           !method.return_type.kind_of?(Duby::AST::InlineCode) &&
           !method.actual_return_type.void?
     end
+
+    def precompile_target(compiler)
+      if method.actual_return_type.void? && target.expr?(compiler)
+        TempValue.new(target, compiler)
+      else
+        target.precompile(compiler)
+      end
+    end
   end
 
   class FunctionalCall
