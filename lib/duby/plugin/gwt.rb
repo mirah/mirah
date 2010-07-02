@@ -93,6 +93,7 @@ module Duby::AST
     end
 
     def infer(typer)
+      @static ||= scope.self_type.meta? unless scope.nil?
       @defining_class ||= typer.self_type
       resolve_if(typer) do
         argument_types = typer.infer(arguments)
