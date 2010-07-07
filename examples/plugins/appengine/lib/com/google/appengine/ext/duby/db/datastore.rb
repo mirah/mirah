@@ -154,10 +154,6 @@ module AppEngine
             super
           end
 
-          def initialize
-            super
-          end
-
           def self.get(key:Key)
             begin
               m = #{kind}.new
