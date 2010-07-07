@@ -427,7 +427,7 @@ module Duby
       def body(body, expression)
         # last element is an expression only if the body is an expression
         super(body, expression) do |last|
-          last.compile(self, expression)
+          compile(last, expression)
         end
       end
 
@@ -628,7 +628,16 @@ module Duby
         if expression
           body.compile(self, true)
           body.inferred_type.box(@method) if body.inferred_type.primitive?
+          null = method.label
+          done = method.label
+          method.dup
+          method.ifnull(null)
           @method.invokevirtual @method.object, "toString", [@method.string]
+          @method.goto(done)
+          null.set!
+          method.pop
+          method.ldc("null")
+          done.set!
         else
           body.compile(self, false)
         end
