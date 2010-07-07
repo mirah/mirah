@@ -178,7 +178,7 @@ class EditPage < Helper
   def doPost(_request, _response)
     @error = nil
     @response = _response
-    @url = request.getRequestURI
+    @url = _request.getRequestURI
 
     # TODO scope inside blocks is not quite right
     this = self
