@@ -40,6 +40,10 @@ module Duby
       end
 
       def initialize(parent, position, children = [])
+        unless parent.nil? || Duby::AST::Node === parent
+          raise "Duby::AST::Node.new parent #{parent.class} must be nil or === Duby::AST::Node."
+        end
+
         @parent = parent
         @newline = false
         @inferred_type = nil

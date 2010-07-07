@@ -73,7 +73,13 @@ module Duby
       def begin_main; end
       def finish_main; end
 
-      def define_method(node, args_are_types)
+      # arg_types must be an Array
+      def create_method_builder(name, node, static, exceptions, return_type, arg_types)
+        @class.build_method(name.to_s, node.visibility, static,
+          exceptions, return_type, *arg_types)
+      end
+
+      def base_define_method(node, args_are_types)
         name, signature, args = node.name, node.signature, node.arguments.args
         if name == "initialize" && node.static?
           name = "<clinit>"
@@ -88,8 +94,8 @@ module Duby
         exceptions = signature[:throws]
 
         with :static => @static || node.static?, :current_scope => node.static_scope do
-          method = @class.build_method(name.to_s, node.visibility, @static,
-                                       exceptions, return_type, *arg_types)
+          method = create_method_builder(name, node, @static, exceptions,
+                                         return_type, arg_types)
           annotate(method, node.annotations)
           yield method, arg_types
         end
@@ -104,9 +110,8 @@ module Duby
               else
                 args_for_opt
               end
-              method = @class.build_method(name.to_s, node.visibility, @static,
-                                           exceptions, return_type, *new_args)
-
+              method = create_method_builder(name, node, @static, exceptions,
+                                             return_type, new_args)
               with :method => method do
                 log "Starting new method #{name}(#{arg_types_for_opt})"
 
