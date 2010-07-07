@@ -1,0 +1,12 @@
+$: << File.expand_path(File.dirname(__FILE__) + '/lib')
+require 'duby/appengine_tasks'
+
+appengine_app :app
+
+DUBY_APP = "#{Duby.dest_path}/org/mirah/wiki/MirahWiki.class"
+Templates = Dir.glob("#{Duby.source_path}/org/mirah/wiki/*.eduby.html")
+
+Rake::Task[DUBY_APP].enhance(Templates)
+
+task :app => DUBY_APP
+task :default => :server

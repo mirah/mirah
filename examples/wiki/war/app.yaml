@@ -1,0 +1,19 @@
+application: mirah-lang
+version: 1
+
+public_root: /public
+welcome_files:
+  - index.jsp
+
+handlers:
+  - url: /
+    filter: org.mirah.wiki.MainFilter
+  - url: /edit/*
+    login: required
+    servlet: org.mirah.wiki.EditPage
+  - url: /wiki/*
+    servlet: org.mirah.wiki.ViewPage
+  - url: /a/*
+    servlet: org.mirah.wiki.FederatedLogin
+  - url: /_ah/login_required
+    servlet: org.mirah.wiki.LoginRequired

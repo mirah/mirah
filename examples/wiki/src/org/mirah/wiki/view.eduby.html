@@ -1,0 +1,15 @@
+<script>
+function newPage() {
+  var p=prompt('Page name', '')
+  if (p) {
+    document.location = '/edit/' + p
+  }
+}
+</script>
+<% if @page %>
+  <%= markdown @page.body %>
+<% else %>
+  <h1><%=h @name%></h1>
+  <p>That page does not exist. Click <a href="/edit/<%=h @name%>">here</a>
+    to create it.</p>
+<% end%>

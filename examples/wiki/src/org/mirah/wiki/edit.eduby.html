@@ -1,0 +1,42 @@
+<div>
+  <% if @error %>
+    <div id=error><%=h @error %></div>
+  <% end %>
+  <div>
+    <form method=post>
+      <textarea id=body name=body style="width:95%;font-family:monospace" rows=5
+        ><% if @page && @page.body %><%=h @page.body %><% end 
+      %></textarea><br>
+      Your Name: <input name=nickname value="<%=h nickname %>"><br>
+      Comment: <input name=comment value=<% if @page %>
+                                         "Edited Page"
+                                         <% else %>
+                                         "Created Page"
+                                         <% end %>><br>
+      <input type=hidden name=version value="<%= @page ? @page.version : long(0) %>">
+      <% if admin? %>
+        Locked: <input name=locked value=locked type=checkbox <%= "checked" if @page && @page.locked%>><br>
+      <% end %>
+      <input type=submit name=Save>
+    </form>
+  </div>
+  <hr style="clear:all">
+  <div id=preview class="wmd-preview"></div>
+<script>
+  (function(){
+    var ta = document.getElementById("body");
+    var sh = 0;
+    function resize() {
+      var nsh = ta.scrollHeight;
+      if (nsh != sh) {
+        ta.style.height = 0;
+        ta.style.height = (nsh + 100) + "px";
+        sh = ta.scrollHeight;
+      }
+      setTimeout(resize, 250);
+    }
+    resize();
+  })();
+  wmd_options={output:"markdown"};
+</script>
+<script type="text/javascript" src="/wmd/wmd.js""></script>

@@ -1,0 +1,21 @@
+body { background-color: #f0f0f0; }
+pre {
+  font-size:10pt;
+  background-color: #fff;
+  border: thin solid Gray;
+  padding: 1em;
+  margin: 2em; }
+div.main {
+  font-family: sans-serif;
+  font-size:10pt;
+  width: 20em;
+  background-color: #fff;
+  border: thin solid Gray;
+  padding: 1em;
+  margin: 2em; }
+div.head {
+  font-weight: bold;
+  font-size: 12pt;
+  margin-bottom: 9px;
+  padding-bottom: 3px;
+  border-bottom: thin solid orange; }

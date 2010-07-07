@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <title><%=h @title %></title>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css"> 
+    <link href="/stylesheets/prettify.css" type="text/css" rel="stylesheet" />
+    <script type="text/javascript" src="/javascripts/prettify.js"></script>
+  </head>
+  <body onload="prettyPrint()">
+    <div id="page"> 
+      <div id="sidebar"> 
+ 
+        <h1>Mirah</h1>
+ 
+        <ul id="sidebar-items"> 
+ 
+          <li> 
+            <h3>Join the community</h3> 
+            <ul class="links"> 
+              <li><a href="/">Home Page</a></li>
+              <li><a href="http://github.com/headius/duby">github</a></li>
+              <li><a href="/wiki/Resources">Resources</a></li> 
+              <li><a 
+      href="http://kenai.com/projects/duby/lists/dev/archive"
+      target="_new">Send Feedback</a></li> 
+            </ul> 
+          </li> 
+ 
+          <li> 
+            <h3>Sample Apps</h3> 
+            <ul class="links"> 
+              <li><a href="http://github.com/headius/duby/tree/master/examples/appengine">Guestbook</a> |
+                  <a href="http://github.com/jacortinas/appengine-rails-jquery-demo">Mustache</a></li>
+            </ul>
+            <a href="/wiki/MirahSamples">Sample Code</a>
+          </li> 
+ 
+          <li> 
+            <h3>Duby Videos</h3> 
+            <ul class="links"> 
+              <li><a href="http://www.youtube.com/watch?v=08rNKxW0PPo">ribrdb</a> |
+                  <a href="http://rubyconf2009.confreaks.com/21-nov-2009-14-10-ruby-mutants-charles-nutter.html">headius</a></li> 
+            </ul> 
+          </li> 
+ 
+      </div> 
+ 
+      <div id="content"> 
+        <div id=hlinks>
+          <% if user %>
+            <%=h user.getEmail %>&nbsp;|&nbsp;
+            <% extra_links.each do |_pair|;pair = List(_pair) %>
+              <a href="<%=h pair.get(1)%>"><%=h pair.get(0)%></a>&nbsp;|&nbsp;
+            <% end %>
+            <a href="<%=h users.createLogoutURL('/')%>">Sign Out</a>
+          <% else %>
+            <a href="<%=users.createLoginURL(url)%>">Sign In</a>
+          <% end %>
+        </div>
+        <div id=wikicontent>
+          <%= @content %>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+    
