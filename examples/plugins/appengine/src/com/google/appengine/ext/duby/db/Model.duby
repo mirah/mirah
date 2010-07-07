@@ -1,3 +1,5 @@
+import java.util.ConcurrentModificationException
+
 import com.google.appengine.api.datastore.DatastoreServiceFactory
 import com.google.appengine.api.datastore.Entity
 import com.google.appengine.api.datastore.EntityNotFoundException
@@ -89,6 +91,30 @@ RUBY
     @duby.__ruby_eval(code, [name, type, @duby, @call])
   end
 
+  def initialize; end
+
+  def initialize(key_name:String)
+    @key_name = key_name
+  end
+
+  def initialize(parent:Model)
+    @parent = parent.key
+  end
+
+  def initialize(parent:Key)
+    @parent = parent
+  end
+
+  def initialize(parent:Model, key_name:String)
+    @parent = parent.key
+    @key_name = key_name
+  end
+
+  def initialize(parent:Key, key_name:String)
+    @parent = parent
+    @key_name = key_name
+  end
+
   def self._datastore
     unless @service
       @service = DatastoreServiceFactory.getDatastoreService
@@ -110,6 +136,12 @@ RUBY
   def key
     if @entity
       @entity.getKey
+    elsif @key_name
+      if @parent
+        KeyFactory.createKey(@parent, kind, @key_name)
+      else
+        KeyFactory.createKey(kind, @key_name)
+      end
     else
       Key(nil)
     end
@@ -125,9 +157,47 @@ RUBY
   end
 
   def to_entity
-    @entity ||= Entity.new(kind)
+    @entity ||= begin
+      if @key_name
+        Entity.new(key)
+      elsif @parent
+        Entity.new(kind, @parent)
+      else
+        Entity.new(kind)
+      end
+    end
     _save_to(@entity)
     @entity
+  end
+
+  def entity=(entity:Entity)
+    @entity = entity
+  end
+
+  def parent
+    @parent
+  end
+
+  def self.transaction(block:Runnable)
+    returns :void
+    tries = 3
+    while tries > 0
+      begin
+        tries -= 1
+        tx = Model._datastore.beginTransaction
+        begin
+          block.run
+          tx.commit
+          return
+        ensure
+          tx.rollback if tx.isActive
+        end
+      rescue ConcurrentModificationException => ex
+        unless tries > 0
+          raise ex
+        end
+      end
+    end
   end
 
   # protected

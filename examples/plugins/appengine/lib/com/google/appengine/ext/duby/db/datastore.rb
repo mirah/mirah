@@ -12,14 +12,18 @@ module AppEngine
       'Blob' => 'byte[]',
       'ShortBlob' => 'byte[]',
       'Rating' => 'int',
-      'Integer' => 'int',
+      'Long' => 'long',
       'Double' => 'double',
+      'Boolean' => 'boolean'
     }
+
+    Primitives = ['Long', 'Double', 'Boolean']
 
     Defaults = {
       'Rating' => '0',
-      'int' => '0',
-      'double' => '0.0',
+      'Long' => 'long(0)',
+      'Double' => '0.0',
+      'Boolean' => 'false'
     }
 
     Conversions = {
@@ -30,8 +34,9 @@ module AppEngine
       'PostalAddress' => 'getAddress',
       'Text' => 'getValue',
       'Blob' => 'getBytes',
-      'Integer' => 'intValue',
+      'Long' => 'longValue',
       'Double' => 'doubleValue',
+      'Boolean' => 'booleanValue',
     }
 
     class ModelState
@@ -93,7 +98,7 @@ module AppEngine
       def init_read(parent, position, ast)
         @read = eval(parent, <<-EOF)
           def _read_from(e:Entity)
-            @entity = e
+            self.entity = e
             nil
           end
         EOF
@@ -125,12 +130,50 @@ module AppEngine
           import com.google.appengine.api.datastore.Rating
           import com.google.appengine.api.datastore.ShortBlob
           import com.google.appengine.api.datastore.Text
+          import com.google.appengine.api.datastore.KeyFactory
+          import com.google.appengine.api.datastore.EntityNotFoundException
           import '#{kind}__Query__', '#{kind}$Query'
 
+          def initialize(key_name:String)
+            super
+          end
+          
+          def initialize(parent:Model)
+            super
+          end
+          
+          def initialize(parent:Key)
+            super
+          end
+          
+          def initialize(parent:Model, key_name:String)
+            super
+          end
+          
+          def initialize(parent:Key, key_name:String)
+            super
+          end
+
           def self.get(key:Key)
-            m = #{kind}.new
-            m._read_from(Model._datastore.get(key))
-            m
+            begin
+              m = #{kind}.new
+              m._read_from(Model._datastore.get(key))
+              m
+            rescue EntityNotFoundException
+              nil
+            end
+          end
+
+          def self.get(key_name:String)
+            get(KeyFactory.createKey("#{kind}", key_name))
+          end
+
+          def self.get(parent:Key, key_name:String)
+            get(KeyFactory.createKey(parent, "#{kind}", key_name))
+          end
+
+          def self.get(parent:Model, key_name:String)
+            get(KeyFactory.createKey(parent.key, "#{kind}", key_name))
           end
 
           def self.all
@@ -168,7 +211,9 @@ module AppEngine
     end
 
     def self.to_datastore(type, value)
-      if TypeMap.include?(type)
+      if Primitives.include?(type)
+        "#{type}.new(#{value})"
+      elsif TypeMap.include?(type)
         "(#{value} ? #{type}.new(#{value}) : nil)"
       else
         value
@@ -191,6 +236,7 @@ module AppEngine
       parent = fcall.parent
       name = name.literal
       type = type.name
+      type = 'Long' if type == 'Integer'
 
       result = Duby::AST::Body.new(parent, fcall.position) {[]}
       klass = find_class(parent)
