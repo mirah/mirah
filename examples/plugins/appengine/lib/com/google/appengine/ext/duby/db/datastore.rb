@@ -154,6 +154,10 @@ module AppEngine
             super
           end
 
+          def initialize
+            super
+          end
+
           def self.get(key:Key)
             begin
               m = #{kind}.new
@@ -168,12 +172,24 @@ module AppEngine
             get(KeyFactory.createKey("#{kind}", key_name))
           end
 
+          def self.get(id:long)
+            get(KeyFactory.createKey("#{kind}", id))
+          end
+
           def self.get(parent:Key, key_name:String)
             get(KeyFactory.createKey(parent, "#{kind}", key_name))
           end
 
+          def self.get(parent:Key, id:long)
+            get(KeyFactory.createKey(parent, "#{kind}", id))
+          end
+
           def self.get(parent:Model, key_name:String)
             get(KeyFactory.createKey(parent.key, "#{kind}", key_name))
+          end
+
+          def self.get(parent:Model, id:long)
+            get(KeyFactory.createKey(parent.key, "#{kind}", id))
           end
 
           def self.all
