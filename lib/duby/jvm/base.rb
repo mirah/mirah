@@ -15,7 +15,12 @@ module Duby
       end
 
       def compile(ast, expression = false)
-        ast.compile(self, expression)
+        begin
+          ast.compile(self, expression)
+        rescue => ex
+          Duby.print_error(ex.message, ast.position)
+          raise ex
+        end
         log "Compilation successful!"
       end
 

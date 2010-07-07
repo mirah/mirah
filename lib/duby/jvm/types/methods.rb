@@ -19,7 +19,7 @@ module Duby::JVM::Types
       # TODO varargs
       types ||= argument_types
       values.zip(types).each do |value, type|
-        value.compile(compiler, true)
+        compiler.compile(value, true)
         if type.primitive? && type != value.inferred_type
             value.inferred_type.widen(compiler.method, type)
         end
@@ -208,7 +208,11 @@ module Duby::JVM::Types
       end
 
       unless expression || void?
-        compiler.method.pop
+        if return_type.wide?
+          compiler.method.pop2
+        else
+          compiler.method.pop
+        end
       end
     end
 
