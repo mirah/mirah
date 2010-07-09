@@ -9,6 +9,11 @@ import com.google.appengine.api.datastore.Query
 import 'Builder', 'com.google.appengine.api.datastore.FetchOptions$Builder'
 import 'FilterOperator', 'com.google.appengine.api.datastore.Query$FilterOperator'
 import 'SortDirection', 'com.google.appengine.api.datastore.Query$SortDirection'
+import com.google.appengine.api.datastore.GeoPt
+import com.google.appengine.api.datastore.IMHandle
+import java.util.Date
+import java.util.HashMap
+import java.util.Map
 
 class DQuery
   def initialize
@@ -20,7 +25,7 @@ class DQuery
   end
 
   def limit(l:int)
-    returns :void
+    returns void
     if @options
       @options.limit(l)
     else
@@ -29,7 +34,7 @@ class DQuery
   end
 
   def offset(o:int)
-    returns :void
+    returns void
     if @options
       @options.offset(o)
     else
@@ -42,7 +47,7 @@ class DQuery
   end
 
   def sort(name:String, descending:boolean)
-    returns :void
+    returns void
     if descending
       @query.addSort(name, _desc)
     else
@@ -123,7 +128,7 @@ RUBY
   end
 
   def self.delete(key:Key)
-    returns :void
+    returns void
     keys = Key[1]
     keys[0] = key
     Model._datastore.delete(keys)
@@ -152,11 +157,12 @@ RUBY
   end
 
   def delete
-    returns :void
+    returns void
     Model.delete(key)
   end
 
   def to_entity
+    before_save
     @entity ||= begin
       if @key_name
         Entity.new(key)
@@ -170,6 +176,10 @@ RUBY
     @entity
   end
 
+  def properties
+    Map(HashMap.new)
+  end
+
   def entity=(entity:Entity)
     @entity = entity
   end
@@ -178,8 +188,108 @@ RUBY
     @parent
   end
 
+  def coerce_long(object:Object)
+    if object.kind_of?(Number)
+      Number(object).longValue
+    elsif object.kind_of?(String)
+      Long.parseLong(String(object))
+    else
+      raise IllegalArgumentException.new(
+          "Expected Long, got #{object} (#{object.getClass.getName})")
+    end
+  end
+
+  def coerce_int(object:Object)
+    if object.kind_of?(Number)
+      Number(object).intValue
+    elsif object.kind_of?(String)
+      Integer.parseInt(String(object))
+    else
+      raise IllegalArgumentException.new(
+          "Expected Integer, got #{object} (#{object.getClass.getName})")
+    end
+  end
+
+  def coerce_double(object:Object)
+    if object.kind_of?(Number)
+      Number(object).doubleValue
+    elsif object.kind_of?(String)
+      Double.parseDouble(String(object))
+    else
+      raise IllegalArgumentException.new(
+          "Expected Double, got #{object} (#{object.getClass.getName})")
+    end
+  end
+
+  def coerce_boolean(object:Object)
+    if object.kind_of?(Boolean)
+      Boolean(object).booleanValue
+    elsif object.kind_of?(String)
+      Boolean.parseBoolean(String(object))
+    else
+      raise IllegalArgumentException.new(
+          "Expected Boolean, got #{object} (#{object.getClass.getName})")
+    end
+  end
+
+  def coerce_date(object:Object)
+    unless object.kind_of?(Date) || object.nil?
+      raise IllegalArgumentException.new(
+          "Expected Date, got #{object} (#{object.getClass.getName})")
+    end
+    Date(object)
+  end
+
+  def coerce_geopt(object:Object)
+    unless object.kind_of?(GeoPt) || object.nil?
+      raise IllegalArgumentException.new(
+          "Expected GeoPt, got #{object} (#{object.getClass.getName})")
+    end
+    GeoPt(object)
+  end
+
+  def coerce_imhandle(object:Object)
+    unless object.kind_of?(IMHandle) || object.nil?
+      raise IllegalArgumentException.new(
+          "Expected IMHandle, got #{object} (#{object.getClass.getName})")
+    end
+    IMHandle(object)
+  end
+
+  def coerce_string(object:Object)
+    if object.nil?
+      String(nil)
+    else
+      object.toString
+    end
+  end
+
+  def coerce_key(object:Object)
+    if object.kind_of?(Key) || object.nil?
+      Key(object)
+    elsif object.kind_of?(String)
+      KeyFactory.stringToKey(String(object))
+    else
+      raise IllegalArgumentException.new(
+          "Expected Key, got #{object} (#{object.getClass.getName})")
+    end
+  end
+
+  def coerce_bytes(object:Object)
+    if object.kind_of?(byte[]) || object.nil?
+      byte[].cast(object)
+    else
+      raise IllegalArgumentException.new(
+          "Expected byte[], got #{object} (#{object.getClass.getName})")
+    end
+  end
+
+  # TODO coerce arrays to lists?
+
+  def before_save; end
+
   def self.transaction(block:Runnable)
-    returns :void
+    returns void
     tries = 3
     while tries > 0
       begin

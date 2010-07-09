@@ -4,9 +4,12 @@ require 'appengine-sdk'
 $: << '../../../lib'
 require 'duby'
 
-$CLASSPATH << AppEngine::SDK::API_JAR
+JUNIT_JAR = '../../../javalib/junit.jar'
+TESTING_JARS = [AppEngine::SDK::API_JAR, AppEngine::SDK::LABS_JAR, JUNIT_JAR] +
+  AppEngine::SDK::RUNTIME_JARS.reject {|j| j =~ /appengine-local-runtime/}
+TESTING_JARS.each {|jar| $CLASSPATH << jar}
 
-task :default => :jar
+task :default => :test
 
 task :init do
   mkdir_p 'dist'
@@ -26,9 +29,29 @@ task :compile => :init do
   end
 end
 
+task :compile_test => :jar do
+  puts "Compiling Duby tests"
+  $CLASSPATH << Dir.pwd + "/dist/dubydatastore.jar"
+  Dir.chdir 'test' do
+    Duby.compile('com/google/appengine')
+  end
+end
+
 task :jar => :compile do
   ant.jar :jarfile => 'dist/dubydatastore.jar' do
     fileset :dir => 'lib'
     fileset :dir => 'build'
+  end
+end
+
+task :test => :compile_test do
+  ant.junit :haltonfailure => 'true', :fork => 'true' do
+    classpath :path => (TESTING_JARS + ['build', 'test']).join(":")
+    batchtest do
+      fileset :dir => "test" do
+        include :name => '**/*Test.class'
+      end
+      formatter :type => 'plain', :usefile => 'false'
+    end
   end
 end

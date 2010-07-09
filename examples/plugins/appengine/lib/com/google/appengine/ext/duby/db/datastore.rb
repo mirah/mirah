@@ -17,13 +17,15 @@ module AppEngine
       'Boolean' => 'boolean'
     }
 
-    Primitives = ['Long', 'Double', 'Boolean']
+    Primitives = ['Long', 'Double', 'Boolean', 'Rating']
 
     Defaults = {
       'Rating' => '0',
       'Long' => 'long(0)',
       'Double' => '0.0',
-      'Boolean' => 'false'
+      'Boolean' => 'false',
+      'Blob' => 'byte[].cast(nil)',
+      'ShortBlob' => 'byte[].cast(nil)',
     }
 
     Conversions = {
@@ -34,9 +36,11 @@ module AppEngine
       'PostalAddress' => 'getAddress',
       'Text' => 'getValue',
       'Blob' => 'getBytes',
+      'ShortBlob' => 'getBytes',
       'Long' => 'longValue',
       'Double' => 'doubleValue',
       'Boolean' => 'booleanValue',
+      'Rating' => 'getRating',
     }
 
     class ModelState
@@ -103,6 +107,23 @@ module AppEngine
           end
         EOF
         ast << @read
+        get_properties = eval(parent, <<-EOF)
+          def properties
+            result = super()
+          end
+        EOF
+        @get_properties = Duby::AST::Body.new(get_properties, position)
+        get_properties.body << @get_properties
+        get_properties.body << eval(parent, "result")
+        ast << get_properties
+        update = eval(parent, <<-EOF)
+          def update(properties:Map)
+            nil
+            self
+          end
+        EOF
+        @update = update.body.children[0] = Body.new(update.body, position) {[]}
+        ast << update
       end
 
       def init_save(parent, position, ast)
@@ -132,7 +153,12 @@ module AppEngine
           import com.google.appengine.api.datastore.Text
           import com.google.appengine.api.datastore.KeyFactory
           import com.google.appengine.api.datastore.EntityNotFoundException
+          import java.util.Map
           import '#{kind}__Query__', '#{kind}$Query'
+
+          def initialize
+            super
+          end
 
           def initialize(key_name:String)
             super
@@ -202,6 +228,14 @@ module AppEngine
         query.body << eval(query.body, code)
       end
 
+      def extend_update(code)
+        @update << eval(@update, code)
+      end
+
+      def extend_get_properties(code)
+        @get_properties << eval(@get_properties, code)
+      end
+
       def extend_read(code)
         code = 'e=nil;' + code
         eval(read.body, code).children[1..-1].each do |node|
@@ -259,6 +293,7 @@ module AppEngine
       model = @models[klass]
 
       duby_type = TypeMap.fetch(type, type)
+      coercion = "coerce_" + duby_type.downcase.sub("[]", "s")
 
       model.extend_query(<<-EOF)
         def #{name}(value:#{duby_type})
@@ -278,6 +313,14 @@ module AppEngine
         e.setProperty("#{name}", #{to_datastore(type, '@' + name)})
       EOF
 
+      model.extend_update(<<-EOF)
+        self.#{name} = properties.get("#{name}") if properties.containsKey("#{name}")
+      EOF
+
+      model.extend_get_properties(<<-EOF)
+        result.put("#{name}", self.#{name})
+      EOF
+
       result << model.eval(parent, <<-EOF)
         def #{name}
           @#{name}
@@ -285,6 +328,10 @@ module AppEngine
 
         def #{name}=(value:#{duby_type})
           @#{name} = value
+        end
+
+        def #{name}=(value:Object)
+          self.#{name} = #{coercion}(value)
         end
       EOF
 

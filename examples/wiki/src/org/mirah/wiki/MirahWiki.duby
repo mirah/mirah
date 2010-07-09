@@ -11,9 +11,6 @@ import java.util.ArrayList
 import java.util.List
 
 class Page < Model
-  def initialize
-  end
-
   property 'title', String
   property 'body', Text
   property 'userid', String
