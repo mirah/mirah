@@ -310,13 +310,17 @@ module Duby
       end
 
       def jump_if(predicate, target)
-        raise "Expected boolean, found #{predicate.inferred_type}" unless predicate.inferred_type == Types::Boolean
+        unless predicate.inferred_type == Types::Boolean
+          raise "Expected boolean, found #{predicate.inferred_type}"
+        end
         predicate.compile(self, true)
         @method.ifne(target)
       end
 
       def jump_if_not(predicate, target)
-        raise "Expected boolean, found #{predicate.inferred_type}" unless predicate.inferred_type == Types::Boolean
+        unless predicate.inferred_type == Types::Boolean
+          raise "Expected boolean, found #{predicate.inferred_type}"
+        end
         predicate.compile(self, true)
         @method.ifeq(target)
       end
@@ -377,28 +381,21 @@ module Duby
         # TODO move errors to inference phase
         source_type_name = castee.inferred_type.name
         target_type_name = fcall.inferred_type.name
-        case source_type_name
-        when "byte", "short", "char", "int", "long", "float", "double"
-          case target_type_name
-          when "byte", "short", "char", "int", "long", "float", "double"
+        if castee.inferred_type.primitive?
+          if fcall.inferred_type.primitive?
+            if source_type_name == 'boolean' && target_type_name != "boolean"
+              raise TypeError.new "not a boolean type: #{castee.inferred_type}"
+            end
             # ok
             primitive = true
           else
             raise TypeError.new "not a reference type: #{castee.inferred_type}"
           end
-        when "boolean"
-          if target_type_name != "boolean"
-            raise TypeError.new "not a boolean type: #{castee.inferred_type}"
-          end
-          primitive = true
+        elsif fcall.inferred_type.primitive?
+          raise TypeError.new "not a primitive type: #{castee.inferred_type}"
         else
-          case target_type_name
-          when "byte", "short", "char", "int", "long", "float", "double"
-            raise TypeError.new "not a primitive type: #{castee.inferred_type}"
-          else
-            # ok
-            primitive = false
-          end
+          # ok
+          primitive = false
         end
 
         castee.compile(self, expression)

@@ -2117,6 +2117,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_equal("foo", cls.foo(["foo", "bar"].to_java(:string)))
+
+    cls, = compile(<<-EOF)
+      def foo(a:Object)
+        bar(int[].cast(a))
+      end
+
+      def bar(a:int[])
+        a[0]
+      end
+    EOF
+
+    assert_equal(2, cls.foo([2, 3].to_java(:int)))
+
   end
 
   def test_string_concat
