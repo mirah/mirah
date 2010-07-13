@@ -92,6 +92,15 @@ module AppEngine
               end
               models
             end
+
+            def sort(name:String)
+              sort(name, false)
+            end
+
+            def sort(name:String, descending:boolean)
+              _sort(name, descending)
+              self
+            end
           EOF
           [Duby::AST.type('com.google.appengine.ext.duby.db.DQuery'),
            eval(classdef, queryinit)]
