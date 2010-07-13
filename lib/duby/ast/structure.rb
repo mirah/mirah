@@ -37,6 +37,21 @@ module Duby::AST
     end
   end
 
+  # class << self
+  class ClassAppendSelf < Body
+    include Scope
+    include Scoped
+
+    def initialize(parent, line_number, &block)
+      super(parent, line_number, &block)
+    end
+
+    def infer(typer)
+      static_scope.self_type = scope.static_scope.self_type.meta
+      super
+    end
+  end
+
   class ScopedBody < Body
     include Scope
 

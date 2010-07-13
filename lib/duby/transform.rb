@@ -331,6 +331,14 @@ module Duby
         end
       end
 
+      class SClassNode
+        def transform(transformer, parent)
+          ClassAppendSelf.new(parent, position) do |class_append_self|
+            child_nodes.map {|child| transformer.transform(child, class_append_self)}
+          end
+        end
+      end
+
       class ArrayNode
         def transform(transformer, parent)
           Array.new(parent, position) do |array|
