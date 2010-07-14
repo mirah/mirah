@@ -75,5 +75,12 @@ class ModelTest
     assertEquals(e.key, e2.key)
   end
 
+  $Test
+  def test_sort
+    returns void
+    # just make sure it compiles
+    TestModel.all.sort('link').run
+  end
+
   # TODO more tests.
 end
