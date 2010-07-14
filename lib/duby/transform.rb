@@ -334,7 +334,13 @@ module Duby
       class SClassNode
         def transform(transformer, parent)
           ClassAppendSelf.new(parent, position) do |class_append_self|
-            child_nodes.map {|child| transformer.transform(child, class_append_self)}
+            # Ensure receiver_node is SelfNode |self|.
+            return unless Java::OrgJrubyparserAst::SelfNode == child_nodes[0].class
+
+            # Transform the body_node.
+            child_nodes[1].child_nodes.map do |child|
+              transformer.transform(child, class_append_self)
+            end
           end
         end
       end

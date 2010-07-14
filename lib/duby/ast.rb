@@ -266,7 +266,7 @@ module Duby
 
     module ClassScoped
       def class_scope
-        @scope ||= begin
+        @class_scope ||= begin
           scope = parent
           scope = scope.parent until scope.nil? || ClassDefinition === scope
           scope

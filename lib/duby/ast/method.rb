@@ -204,7 +204,7 @@ module Duby::AST
     end
 
     def static?
-      false
+      scope.static_scope.self_type.meta?
     end
   end
 
