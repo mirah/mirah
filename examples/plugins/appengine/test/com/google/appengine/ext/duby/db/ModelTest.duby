@@ -82,5 +82,17 @@ class ModelTest
     TestModel.all.sort('link').run
   end
 
+  $Test
+  def test_properties
+    returns void
+    e = TestModel.new
+    e.string = "Hi"
+    e.rating = 10
+    properties = e.properties
+    assertEquals("Hi", properties.get("string"))
+    assertEquals(Integer.valueOf(10), properties.get("rating"))
+    assertTrue(properties.containsKey("blob"))
+    assertEquals(nil, properties.get("blob"))
+  end
   # TODO more tests.
 end
