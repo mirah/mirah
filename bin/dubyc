@@ -6,4 +6,5 @@ rescue LoadError
   require 'duby'
 end
 
+puts 'WARNING: Duby is now Mirah. Please use the `mirahc` command.'
 Duby.compile(*ARGV)

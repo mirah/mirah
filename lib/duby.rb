@@ -299,7 +299,7 @@ class DubyImpl
         Dir[File.join(filename, '*')].each do |child|
           if File.directory?(child)
             files << child
-          elsif child =~ /\.duby$/
+          elsif child =~ /\.(duby|mirah)$/
             expanded << child
           end
         end
