@@ -33,7 +33,7 @@ module Duby
   end
 end
 
-def dubyc(*files)
+def mirahc(*files)
   if files[-1].kind_of?(Hash)
     options = files.pop
   else
@@ -52,9 +52,9 @@ def dubyc(*files)
 end
 
 rule '.java' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
-  dubyc(t.source, :options=>['-java'])
+  mirahc(t.source, :options=>['-java'])
 end
 
 rule '.class' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
-  dubyc(t.source)
+  mirahc(t.source)
 end

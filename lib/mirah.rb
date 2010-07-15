@@ -34,7 +34,7 @@ module Duby
   end
 
   def self.reset
-    @plugins.each {|x| x.reset if x.respond_to?(:reset)}
+    plugins.each {|x| x.reset if x.respond_to?(:reset)}
   end
 
   def self.print_error(message, position)

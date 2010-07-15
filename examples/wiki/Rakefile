@@ -1,5 +1,11 @@
-$: << File.expand_path(File.dirname(__FILE__) + '/lib')
-require 'duby/appengine_tasks'
+# Hack to use the latest version instead of the gems when developing Mirah
+if File.exist?('../../lib/mirah.rb')
+  $: << File.expand_path('../../lib')
+end
+if File.exist?('../../../bitescript/lib/bitescript.rb')
+  $: << File.expand_path('../../../bitescript/lib/')
+end
+require 'mirah/appengine_tasks'
 
 appengine_app :app
 
