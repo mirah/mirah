@@ -11,8 +11,8 @@ class Post < Model
   property 'body', Text
 end
 
-class DubyApp < HttpServlet
-  def_edb(list, 'com/ribrdb/list.dhtml')
+class MirahApp < HttpServlet
+  def_edb(list, 'org/mirah/list.dhtml')
 
   def doGet(request, response)
     @posts = Post.all.run

@@ -1,4 +1,4 @@
-require 'duby'
+require 'mirah'
 module Duby
   def self.source_path
     @source_path ||= File.expand_path('.')
@@ -17,7 +17,7 @@ module Duby
   end
 
   def self.dest_to_source_path(path)
-    source = File.expand_path(path).sub(/\.(?:java|class)/, '.duby')
+    source = File.expand_path(path).sub(/\.(?:java|class)/, '.mirah')
     source = source.sub(/^#{dest_path}\//, "#{source_path}/")
     down = source[0,1].downcase + source[1,source.size]
     return down if File.exist?(down)
@@ -45,7 +45,7 @@ def dubyc(*files)
   flags = options.fetch(:options, Duby.compiler_options)
   args = ['-d', dest, *flags] + files
   chdir(source_dir) do
-    puts "dubyc #{args.join ' '}"
+    puts "mirahc #{args.join ' '}"
     Duby.compile(*args)
     Duby.reset
   end

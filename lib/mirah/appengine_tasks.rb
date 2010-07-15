@@ -1,5 +1,5 @@
 require 'appengine-sdk'
-require 'duby_task'
+require 'mirah_task'
 require 'java'
 require 'open-uri'
 require 'rake'
