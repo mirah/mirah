@@ -1,4 +1,4 @@
-require 'duby'
+require 'mirah'
 require 'duby/jvm/base'
 require 'duby/jvm/method_lookup'
 require 'duby/jvm/types'

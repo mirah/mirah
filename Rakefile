@@ -2,7 +2,7 @@ require 'rake'
 require 'rake/testtask'
 require 'java'
 $: << './lib'
-require 'duby'
+require 'mirah'
 require 'jruby/compiler'
 require 'ant'
 
@@ -34,7 +34,7 @@ task :compile => :init do
     '--javac',
     'src/org/jruby/duby/duby_command.rb'
   ])
-  
+
   # build the Duby sources
   puts "Compiling Duby sources"
   Dir.chdir 'src' do

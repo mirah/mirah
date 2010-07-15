@@ -1,4 +1,4 @@
-require 'duby'
+require 'mirah'
 require 'test/unit'
 require 'jruby'
 
