@@ -283,7 +283,7 @@ class DubyImpl
   end
 
   def print_help
-    $stdout.print "#{$0} [flags] <files or \"-e SCRIPT\">
+    $stdout.puts "#{$0} [flags] <files or \"-e SCRIPT\">
   -V, --verbose\t\tVerbose logging
   -j, --java\t\tOutput .java source (jrubyc only)
   -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
