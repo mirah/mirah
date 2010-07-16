@@ -40,7 +40,7 @@ def mirahc(*files)
     options = {}
   end
   source_dir = options.fetch(:dir, Duby.source_path)
-  dest = options.fetch(:dest, Duby.dest_path)
+  dest = File.expand_path(options.fetch(:dest, Duby.dest_path))
   files = files.map {|f| f.sub(/^#{source_dir}\//, '')}
   flags = options.fetch(:options, Duby.compiler_options)
   args = ['-d', dest, *flags] + files
