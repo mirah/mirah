@@ -2347,4 +2347,22 @@ class TestJVMCompiler < Test::Unit::TestCase
 #      cls.main([].to_java :string)
 #    end
 #  end
+
+  def test_class_append_self
+    cls, = compile(<<-EOF)
+      class Append
+        class << self
+          def hi
+            print 'Static Hello'
+          end
+        end
+      end
+    EOF
+    
+    output = capture_output do
+      cls.hi
+    end
+    
+    assert_equal('Static Hello', output)
+  end
 end
