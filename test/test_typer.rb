@@ -1,5 +1,5 @@
 require 'test/unit'
-require 'duby'
+require 'mirah'
 
 class TestTyper < Test::Unit::TestCase
   include Duby

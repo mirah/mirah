@@ -1,6 +1,6 @@
 #!/usr/bin/env jruby
 $: << File.dirname(File.dirname(__FILE__)) + '/lib'
-require 'duby'
+require 'mirah'
 
 module Java::OrgJrubyparserAst
   class Node

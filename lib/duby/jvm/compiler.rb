@@ -1,4 +1,4 @@
-require 'duby'
+require 'mirah'
 require 'duby/jvm/base'
 require 'duby/jvm/method_lookup'
 require 'duby/jvm/types'
@@ -32,7 +32,7 @@ module Duby
         end
 
         def classname_from_filename(filename)
-          basename = File.basename(filename, '.duby')
+          basename = File.basename(filename).sub(/\.(duby|mirah)$/, '')
           basename.split(/_/).map{|x| x[0...1].upcase + x[1..-1]}.join
         end
       end

@@ -2,7 +2,7 @@ require 'ant'
 require 'appengine-sdk'
 
 $: << '../../../lib'
-require 'duby'
+require 'mirah_task'
 
 JUNIT_JAR = '../../../javalib/junit.jar'
 TESTING_JARS = [AppEngine::SDK::API_JAR, AppEngine::SDK::LABS_JAR, JUNIT_JAR] +
@@ -24,17 +24,13 @@ end
 task :compile => :init do
   # build the Duby sources
   puts "Compiling Duby sources"
-  Dir.chdir 'src' do
-    Duby.compile('-d', '../build', 'com/google/appengine')
-  end
+  mirahc 'com/google/appengine', :dir => 'src', :dest => '../build'
 end
 
 task :compile_test => :jar do
   puts "Compiling Duby tests"
-  $CLASSPATH << Dir.pwd + "/dist/dubydatastore.jar"
-  Dir.chdir 'test' do
-    Duby.compile('com/google/appengine')
-  end
+  mirahc 'com/google/appengine', :dir => 'test',
+         :options => ['--classpath', Dir.pwd + "/dist/dubydatastore.jar"]
 end
 
 task :jar => :compile do

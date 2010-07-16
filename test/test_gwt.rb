@@ -1,7 +1,7 @@
 $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
-require 'duby'
+require 'mirah'
 require 'jruby'
 
 class TestGWT < Test::Unit::TestCase
@@ -11,7 +11,7 @@ class TestGWT < Test::Unit::TestCase
     new_ast = parse("def_jsni void, _log(), 'hi'").body[0]
     # True after JsniMethodDefinition infer is called.
     assert_equal(new_ast.static?, false)
-    
+
     new_ast = parse("def_jsni void, self._log(), 'hi'").body[0]
     assert_equal(new_ast.static?, true)
 

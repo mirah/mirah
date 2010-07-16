@@ -1,4 +1,4 @@
-require 'duby'
+require 'mirah'
 module Duby
   def self.source_path
     @source_path ||= File.expand_path('.')
@@ -17,7 +17,7 @@ module Duby
   end
 
   def self.dest_to_source_path(path)
-    source = File.expand_path(path).sub(/\.(?:java|class)/, '.duby')
+    source = File.expand_path(path).sub(/\.(?:java|class)/, '.mirah')
     source = source.sub(/^#{dest_path}\//, "#{source_path}/")
     down = source[0,1].downcase + source[1,source.size]
     return down if File.exist?(down)
@@ -33,28 +33,28 @@ module Duby
   end
 end
 
-def dubyc(*files)
+def mirahc(*files)
   if files[-1].kind_of?(Hash)
     options = files.pop
   else
     options = {}
   end
   source_dir = options.fetch(:dir, Duby.source_path)
-  dest = options.fetch(:dest, Duby.dest_path)
+  dest = File.expand_path(options.fetch(:dest, Duby.dest_path))
   files = files.map {|f| f.sub(/^#{source_dir}\//, '')}
   flags = options.fetch(:options, Duby.compiler_options)
   args = ['-d', dest, *flags] + files
   chdir(source_dir) do
-    puts "dubyc #{args.join ' '}"
+    puts "mirahc #{args.join ' '}"
     Duby.compile(*args)
     Duby.reset
   end
 end
 
 rule '.java' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
-  dubyc(t.source, :options=>['-java'])
+  mirahc(t.source, :options=>['-java'])
 end
 
 rule '.class' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
-  dubyc(t.source)
+  mirahc(t.source)
 end

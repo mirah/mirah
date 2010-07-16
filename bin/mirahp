@@ -1,10 +1,9 @@
 #!/usr/bin/env jruby
 begin
-  require 'mirah'
+  require 'duby'
 rescue LoadError
   $: << File.dirname(File.dirname(__FILE__)) + '/lib'
-  require 'mirah'
+  require 'duby'
 end
 
-puts 'WARNING: Duby is now Mirah. Please use the `mirahp` command.'
 puts Duby.parse(*ARGV).inspect

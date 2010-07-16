@@ -19,6 +19,13 @@ module AppEngine
 
     Primitives = ['Long', 'Double', 'Boolean', 'Rating']
 
+    Boxes = {
+      'int' => 'Integer',
+      'boolean' => 'Boolean',
+      'long' => 'Long',
+      'double' => 'Double',
+    }
+
     Defaults = {
       'Rating' => '0',
       'Long' => 'long(0)',
@@ -119,11 +126,12 @@ module AppEngine
         get_properties = eval(parent, <<-EOF)
           def properties
             result = super()
+            nil
+            result
           end
         EOF
-        @get_properties = Duby::AST::Body.new(get_properties, position)
-        get_properties.body << @get_properties
-        get_properties.body << eval(parent, "result")
+        @get_properties = get_properties.body.children[1] =
+            Duby::AST::Body.new(get_properties.body, position)
         ast << get_properties
         update = eval(parent, <<-EOF)
           def update(properties:Map)
@@ -327,7 +335,7 @@ module AppEngine
       EOF
 
       model.extend_get_properties(<<-EOF)
-        result.put("#{name}", self.#{name})
+        result.put("#{name}", #{maybe_box(duby_type, 'self.' + name)})
       EOF
 
       result << model.eval(parent, <<-EOF)
@@ -345,6 +353,14 @@ module AppEngine
       EOF
 
       result
+    end
+
+    def self.maybe_box(duby_type, value)
+      if Boxes.include?(duby_type)
+        "#{Boxes[duby_type]}.valueOf(#{value})"
+      else
+        value
+      end
     end
 
     def self.reset

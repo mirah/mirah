@@ -353,8 +353,8 @@ module Duby::JVM::Types
 
       # TODO: assert that no args are being passed, though that should have failed lookup
 
-      convert_args(compiler, ast.parameters)
       if @member.static?
+        convert_args(compiler, ast.parameters)
         compiler.method.dup if expression
         compiler.method.putstatic(target, name, @member.type)
       else

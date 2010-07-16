@@ -1,4 +1,4 @@
-require 'duby'
+require 'mirah'
 
 module Duby
   module AST

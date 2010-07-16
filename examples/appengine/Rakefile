@@ -1,12 +1,19 @@
-$: << File.expand_path(File.dirname(__FILE__) + '/lib')
-require 'duby/appengine_tasks'
+# Hack to use the latest version instead of the gems when developing Mirah
+if File.exist?('../../lib/mirah.rb')
+  $: << File.expand_path('../../lib')
+end
+if File.exist?('../../../bitescript/lib/bitescript.rb')
+  $: << File.expand_path('../../../bitescript/lib/')
+end
+require 'mirah/appengine_tasks'
 
 appengine_app :app
 
-DUBY_APP = "#{Duby.dest_path}/com/ribrdb/DubyApp.class"
-LIST = "#{Duby.source_path}/com/ribrdb/list.dhtml"
+MIRAH_APP = "#{Duby.dest_path}/org/mirah/MirahApp.class"
+LIST = "#{Duby.source_path}/org/mirah/list.dhtml"
 
-Rake::Task[DUBY_APP].enhance([LIST])
+# We want to recompile the app if the template gets modified
+Rake::Task[MIRAH_APP].enhance([LIST])
 
-task :app => DUBY_APP
+task :app => MIRAH_APP
 task :default => :server
