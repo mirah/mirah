@@ -1,27 +1,69 @@
 require 'mirah'
 module Duby
+  class PathArray < Array
+    def <<(value)
+      super(File.expand_path(value))
+    end
+  end
+
   def self.source_path
-    @source_path ||= File.expand_path('.')
+    source_paths[0] ||= File.expand_path('.')
+  end
+
+  def self.source_paths
+    @source_paths ||= PathArray.new
   end
 
   def self.source_path=(path)
-    @source_path = File.expand_path(path)
+    source_paths[0] = File.expand_path(path)
+  end
+
+  def self.dest_paths
+    @dest_paths ||= PathArray.new
   end
 
   def self.dest_path
-    @dest_path ||= File.expand_path('.')
+    dest_paths[0] ||= File.expand_path('.')
   end
 
   def self.dest_path=(path)
-    @dest_path = File.expand_path(path)
+    dest_paths[0] = File.expand_path(path)
   end
 
-  def self.dest_to_source_path(path)
-    source = File.expand_path(path).sub(/\.(?:java|class)/, '.mirah')
-    source = source.sub(/^#{dest_path}\//, "#{source_path}/")
-    down = source[0,1].downcase + source[1,source.size]
-    return down if File.exist?(down)
-    source
+  def self.find_dest(path)
+    expanded = File.expand_path(path)
+    dest_paths.each do |destdir|
+      if expanded =~ /^#{destdir}\//
+        return destdir
+      end
+    end
+  end
+
+  def self.find_source(path)
+    expanded = File.expand_path(path)
+    source_paths.each do |sourcedir|
+      if expanded =~ /^#{sourcedir}\//
+        return sourcedir
+      end
+    end
+  end
+
+  def self.dest_to_source_path(target_path)
+    destdir = find_dest(target_path)
+    path = File.expand_path(target_path).sub(/^#{destdir}\//, '')
+    path.sub!(/\.(java|class)$/, '')
+    snake_case = File.basename(path).gsub(/[A-Z]/, '_\0').sub(/_/, '').downcase
+    snake_case = "#{File.dirname(path)}/#{snake_case}"
+    source_paths.each do |source_path|
+      ["mirah", "duby"].each do |suffix|
+        filename = "#{source_path}/#{path}.#{suffix}"
+        return filename if File.exist?(filename)
+        filename = "#{source_path}/#{snake_case}.#{suffix}"
+        return filename if File.exist?(filename)
+      end
+    end
+    # No source file exists. Just go with the first source path and .mirah
+    return "#{self.source_path}/#{path}.mirah"
   end
 
   def self.compiler_options
@@ -52,9 +94,14 @@ def mirahc(*files)
 end
 
 rule '.java' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
-  mirahc(t.source, :options=>['-java'])
+  mirahc(t.source,
+         :dir=>Duby.find_source(t.source),
+         :dest=>Duby.find_dest(t.name),
+         :options=>['-java'])
 end
 
 rule '.class' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
-  mirahc(t.source)
+  mirahc(t.source,
+         :dir=>Duby.find_source(t.source),
+         :dest=>Duby.find_dest(t.name))
 end

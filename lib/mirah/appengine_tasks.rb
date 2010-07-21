@@ -30,8 +30,8 @@ module AppEngine::Rake
       webinf_lib_jars.each do |jar|
         $CLASSPATH << jar unless $CLASSPATH.include?(jar)
       end
-      Duby.source_path = src
-      Duby.dest_path = webinf_classes
+      Duby.source_paths << src
+      Duby.dest_paths << webinf_classes
       directory(webinf_classes)
       directory(webinf_lib)
 
@@ -84,14 +84,17 @@ module AppEngine::Rake
         updated = false
         real_prerequisites.each do |dep|
           if dep.needed?
+            puts "Executing #{dep.name}"
             dep.execute
             updated = true
           end
         end
         if updated || (timestamp != @last_app_yaml_timestamp)
-          #touch aeweb_xml
-          open('http://localhost:8080/_ah/reloadwebapp')
-          @last_app_yaml_timestamp = timestamp
+          begin
+            open('http://localhost:8080/_ah/reloadwebapp')
+            @last_app_yaml_timestamp = timestamp
+          rescue OpenURI::HTTPError
+          end
         end
       rescue Exception
         puts $!, $@
