@@ -68,15 +68,7 @@ module Duby::JVM::Types
     NEGATIVE_INFINITY = java.lang.Float::NEGATIVE_INFINITY
 
     def initialize(literal)
-      narrowed_type = case literal
-      when FLOAT_RANGE, NaN, POSITIVE_INFINITY, NEGATIVE_INFINITY
-        Float
-      else
-        Double
-      end
-      
-      # TODO Double should be default once it supports operators
-      super(narrowed_type, narrowed_type)
+      super(Double, Double)
     end
   end
 end

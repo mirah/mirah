@@ -232,7 +232,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo; a = float[2]; a; end")
     assert_equal(Java::float[].java_class, cls.foo.class.java_class)
     assert_equal([0.0,0.0], cls.foo.to_a)
-    cls, = compile("def foo; a = float[2]; a[0] = 1.0; a[0]; end")
+    cls, = compile("def foo; a = float[2]; a[0] = float(1.0); a[0]; end")
     assert_equal(Float, cls.foo.class)
     assert_equal(1.0, cls.foo)
 
@@ -242,13 +242,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo
         a = double[2]
-        # awaiting implicit F2D
-        # a[0] = 1.0
+        a[0] = 1.0
         a[0]
       end
     EOF
     assert_equal(Float, cls.foo.class)
-    assert_equal(0.0, cls.foo)
+    assert_equal(1.0, cls.foo)
   end
 
   def test_array_with_dynamic_size
@@ -265,8 +264,26 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_string_concat
-    cls, = compile("def foo; a = 'a'; b = 'b'; a + b; end")
-    assert_equal("ab", cls.foo)
+    cls, = compile("
+      def str_str; a = 'a'; b = 'b'; a + b; end
+      def str_boolean; a = 'a'; b = false; a + b; end
+      def str_float; a = 'a'; b = float(1.0); a + b; end
+      def str_double; a = 'a'; b = 1.0; a + b; end
+      def str_byte; a = 'a'; b = byte(1); a + b; end
+      def str_short; a = 'a'; b = short(1); a + b; end
+      def str_char; a = 'a'; b = char(123); a + b; end
+      def str_int; a = 'a'; b = 1; a + b; end
+      def str_long; a = 'a'; b = long(1); a + b; end
+    ")
+    assert_equal("ab", cls.str_str)
+    assert_equal("afalse", cls.str_boolean)
+    assert_equal("a1.0", cls.str_float)
+    assert_equal("a1.0", cls.str_double)
+    assert_equal("a1", cls.str_byte)
+    assert_equal("a1", cls.str_short)
+    assert_equal("a{", cls.str_char)
+    assert_equal("a1", cls.str_int)
+    assert_equal("a1", cls.str_long)
   end
 
   def test_void_selfcall
@@ -2132,7 +2149,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   end
 
-  def test_string_concat
+  def test_string_interpolation
     cls, = compile(<<-EOF)
       def foo(name:String)
         print "Hello \#{name}."
