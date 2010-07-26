@@ -26,9 +26,14 @@ class Helper < HttpServlet
   def markdown(text:String)
     return "" unless text
     flags = 0x5ff
-    flags |= 0x200 unless @allow_html
-    @markdown ||= PegDownProcessorStub.new(flags)
-    @markdown.markdownToHtml(text)
+    if @allow_html
+      flags |= 0x200 unless @allow_html
+      @html_markdown ||= PegDownProcessorStub.new(flags)
+      @html_markdown.markdownToHtml(text)
+    else
+      @nohtml_markdown ||= PegDownProcessorStub.new(flags)
+      @nohtml_markdown.markdownToHtml(text)
+    end
   end
 
   def html=(enabled:boolean)
@@ -106,6 +111,7 @@ class ViewPage < Helper
 
   def doGet(request, response)
     @url = request.getRequestURI
+    puts @url
     self.title = @name = page_name(request.getPathInfo)
     canonical = "/" + @name
     unless canonical.equals(request.getPathInfo)
