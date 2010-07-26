@@ -40,7 +40,7 @@ module Duby::JVM::Types
       when Double
         builder.f2d
       else
-        raise ArgumentError, "Invalid widening conversion from Int to #{type}"
+        raise ArgumentError, "Invalid widening conversion from float to #{type}"
       end
     end
   end
@@ -79,7 +79,7 @@ module Duby::JVM::Types
     
     def widen(builder, type)
       if type != Double
-        raise ArgumentError, "Invalid widening conversion from Int to #{type}"
+        raise ArgumentError, "Invalid widening conversion from double to #{type}"
       end
     end
   end

@@ -261,6 +261,22 @@ module Duby::JVM::Types
           java_method('concat', String).call(compiler, call, expression)
         end
       end
+      add_method('+', [Boolean], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokestatic String, "valueOf", [String, Boolean]
+          compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
+      add_method('+', [Char], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokestatic String, "valueOf", [String, Char]
+          compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
       add_method('+', [Int], String) do |compiler, call, expression|
         if expression
           call.target.compile(compiler, true)
@@ -269,11 +285,27 @@ module Duby::JVM::Types
           compiler.method.invokevirtual String, "concat", [String, String]
         end
       end
+      add_method('+', [Long], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokestatic String, "valueOf", [String, Long]
+          compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
       add_method('+', [Float], String) do |compiler, call, expression|
         if expression
           call.target.compile(compiler, true)
           call.parameters[0].compile(compiler, true)
           compiler.method.invokestatic String, "valueOf", [String, Float]
+          compiler.method.invokevirtual String, "concat", [String, String]
+        end
+      end
+      add_method('+', [Double], String) do |compiler, call, expression|
+        if expression
+          call.target.compile(compiler, true)
+          call.parameters[0].compile(compiler, true)
+          compiler.method.invokestatic String, "valueOf", [String, Double]
           compiler.method.invokevirtual String, "concat", [String, String]
         end
       end
