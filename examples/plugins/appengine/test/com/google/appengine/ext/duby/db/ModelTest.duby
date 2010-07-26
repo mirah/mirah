@@ -1,11 +1,11 @@
-import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestConfig;
-import com.google.appengine.tools.development.testing.LocalServiceTestHelper;
+import com.google.appengine.tools.development.testing.LocalDatastoreServiceTestConfig
+import com.google.appengine.tools.development.testing.LocalServiceTestConfig
+import com.google.appengine.tools.development.testing.LocalServiceTestHelper
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.Assert;
+import org.junit.After
+import org.junit.Before
+import org.junit.Test
+import org.junit.Assert
 
 import com.google.appengine.api.datastore.Blob
 import com.google.appengine.api.datastore.Category
@@ -21,6 +21,7 @@ import com.google.appengine.api.datastore.ShortBlob
 import com.google.appengine.api.datastore.Text
 import java.util.Date
 import java.util.HashMap
+import com.google.appengine.api.users.User
 
 class TestModel < Model
   property 'date', Date
@@ -39,6 +40,7 @@ class TestModel < Model
   property 'string', String
   property 'integer', Long
   property 'afloat', Double
+  property 'user', User
 end
 
 class ModelTest

@@ -11,6 +11,8 @@ import 'FilterOperator', 'com.google.appengine.api.datastore.Query$FilterOperato
 import 'SortDirection', 'com.google.appengine.api.datastore.Query$SortDirection'
 import com.google.appengine.api.datastore.GeoPt
 import com.google.appengine.api.datastore.IMHandle
+import com.google.appengine.api.users.User
+
 import java.util.Date
 import java.util.HashMap
 import java.util.Map
@@ -242,6 +244,14 @@ RUBY
           "Expected GeoPt, got #{object} (#{object.getClass.getName})")
     end
     GeoPt(object)
+  end
+
+  def coerce_user(object:Object)
+    unless object.kind_of?(User) || object.nil?
+      raise IllegalArgumentException.new(
+          "Expected User, got #{object} (#{object.getClass.getName})")
+    end
+    User(object)
   end
 
   def coerce_imhandle(object:Object)

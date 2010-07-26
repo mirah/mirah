@@ -9,6 +9,8 @@ TESTING_JARS = [AppEngine::SDK::API_JAR, AppEngine::SDK::LABS_JAR, JUNIT_JAR] +
   AppEngine::SDK::RUNTIME_JARS.reject {|j| j =~ /appengine-local-runtime/}
 TESTING_JARS.each {|jar| $CLASSPATH << jar}
 
+#Duby.compiler_options = ['-V']
+
 task :default => :test
 
 task :init do
@@ -24,7 +26,7 @@ end
 task :compile => :init do
   # build the Duby sources
   puts "Compiling Duby sources"
-  mirahc 'com/google/appengine', :dir => 'src', :dest => '../build'
+  mirahc 'com/google/appengine', :dir => 'src', :dest => 'build'
 end
 
 task :compile_test => :jar do
