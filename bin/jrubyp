@@ -30,5 +30,5 @@ when '-', nil
 else
   contents = IO.read(filename)
 end
-require 'duby'
+
 puts Duby::AST.parse_ruby(contents, filename).pp
