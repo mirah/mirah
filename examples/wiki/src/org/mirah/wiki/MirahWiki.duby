@@ -111,7 +111,6 @@ class ViewPage < Helper
 
   def doGet(request, response)
     @url = request.getRequestURI
-    puts @url
     self.title = @name = page_name(request.getPathInfo)
     canonical = "/" + @name
     unless canonical.equals(request.getPathInfo)
