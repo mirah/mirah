@@ -66,7 +66,7 @@ module Duby::AST
       if static_scope.self_node
         str << "\n#{indent_str}self:\n" << static_scope.self_node.inspect(indent + 1)
       end
-      str << "\n#{indent_str}body:\n" << super(indent + 1)
+      str << "\n#{indent_str}body:" << super(indent + 1)
     end
   end
 

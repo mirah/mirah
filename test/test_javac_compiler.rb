@@ -41,6 +41,7 @@ class TestJavacCompiler < TestJVMCompiler
     @tmp_classes.clear
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
     transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
+    Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
     name = "script" + System.nano_time.to_s
     typer = Typer::JVM.new(name, transformer)

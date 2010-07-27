@@ -55,6 +55,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
     transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
+    Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(name, transformer)
     ast.infer(typer)
@@ -2375,11 +2376,23 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
-    
+
     output = capture_output do
       cls.hi
     end
-    
+
     assert_equal('Static Hello', output)
+  end
+
+  def test_hashes
+    cls, = compile(<<-EOF)
+      def foo
+        return {a:"A", b:"B"}
+      end
+    EOF
+
+    map = cls.foo
+    assert_equal("A", map["a"])
+    assert_equal("B", map["b"])
   end
 end
