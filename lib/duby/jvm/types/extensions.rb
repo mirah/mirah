@@ -12,6 +12,22 @@ module Duby::JVM::Types
       self
     end
 
+    def meta
+      if meta?
+        self
+      else
+        __getobj__.meta
+      end
+    end
+
+    def unmeta
+      if meta?
+        __getobj__.unmeta
+      else
+        self
+      end
+    end
+
     def get_method(name, args)
       method = __getobj__.get_method(name, args)
       return method if method
