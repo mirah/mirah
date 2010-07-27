@@ -75,9 +75,6 @@ module Duby
 
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
         static = target_type.meta?
-        unless target_type.unmeta.kind_of?(TypeDefinition)
-          raise "Method defined on #{target_type}"
-        end
         if static
           target_type.unmeta.declare_static_method(name, parameter_types, type, exceptions)
         else
