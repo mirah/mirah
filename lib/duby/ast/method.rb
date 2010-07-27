@@ -179,7 +179,9 @@ module Duby::AST
       super(typer) do
         type = yield
         if type
-          typer.learn_method_type(defining_class, name, arguments.inferred_type, type, signature[:throws])
+          argument_types = arguments.inferred_type
+          argument_types ||= [Duby::AST.error_type] if type.error?
+          typer.learn_method_type(defining_class, name, argument_types, type, signature[:throws])
 
           # learn the other overloads as well
           args_for_opt = []
