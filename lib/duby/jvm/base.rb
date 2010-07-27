@@ -168,8 +168,11 @@ module Duby
           if scope != @self_scope
             @self_scope = scope
             if scope.self_node
-              local_assign(
-                  scope, 'self', scope.self_type, false, scope.self_node)
+              # FIXME This is a horrible hack!
+              unless scope.self_type.name == 'mirah.impl.Builtin'
+                local_assign(
+                    scope, 'self', scope.self_type, false, scope.self_node)
+              end
             end
           end
         end

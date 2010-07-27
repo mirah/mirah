@@ -49,7 +49,9 @@ task :compile => :init do
       '-c', classpath,
       '-d', '../build',
       'org/jruby/duby',
-      'duby/lang')
+      'duby/lang',
+      'mirah'
+      )
   end
 end
 

@@ -59,6 +59,15 @@ module Duby::AST
       static_scope.self_type ||= typer.self_type
       super
     end
+
+    def inspect_children(indent=0)
+      indent_str = ' ' * indent
+      str = ''
+      if static_scope.self_node
+        str << "\n#{indent_str}self:\n" << static_scope.self_node.inspect(indent + 1)
+      end
+      str << "\n#{indent_str}body:\n" << super(indent + 1)
+    end
   end
 
   class Block < Node

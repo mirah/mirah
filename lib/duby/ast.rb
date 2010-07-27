@@ -39,7 +39,12 @@ module Duby
         @children[i] if @children
       end
 
+      def child_nodes
+        java.util.ArrayList.new(@children)
+      end
+
       def initialize(parent, position, children = [])
+        JRuby.reference(self.class).setRubyClassAllocator(JRuby.reference(self.class).reified_class)
         unless parent.nil? || Duby::AST::Node === parent
           raise "Duby::AST::Node.new parent #{parent.class} must be nil or === Duby::AST::Node."
         end
@@ -96,9 +101,9 @@ module Duby
         puts "* [AST] [#{simple_name}] " + message if AST.verbose
       end
 
-      def inspect(indent = 0)
+      def inspect_children(indent = 0)
         indent_str = ' ' * indent
-        str = indent_str + to_s
+        str = ''
         children.each_with_index do |child, i|
           extra_indent = 0
           if child
@@ -125,6 +130,11 @@ module Duby
           end
         end
         str
+      end
+
+      def inspect(indent = 0)
+        indent_str = ' ' * indent
+        indent_str << to_s << inspect_children(indent)
       end
 
       def simple_name

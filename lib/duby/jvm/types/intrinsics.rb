@@ -17,6 +17,7 @@ end
 
 module Duby::JVM::Types
   class Type
+
     def load(builder, index)
       builder.send "#{prefix}load", index
     end
@@ -94,9 +95,16 @@ module Duby::JVM::Types
       methods
     end
 
-    def load_extensions
-      if jvm_type
-        extensions = jvm_type.getDeclaredAnnotation('duby.anno.Extensions')
+    def load_extensions(klass=nil)
+      mirror = nil
+      if klass
+        factory = Duby::AST.type_factory
+        mirror = factory.get_mirror(klass.getName)
+      elsif jvm_type
+        mirror = jvm_type
+      end
+      if mirror
+        extensions = mirror.getDeclaredAnnotation('duby.anno.Extensions')
         return self if extensions.nil?
         macros = extensions['macros']
         return self if macros.nil?

@@ -188,6 +188,7 @@ class DubyImpl
       raise ex if @state.verbose
     end
     @transformer = Duby::Transform::Transformer.new(@state)
+    Java::MirahImpl::Builtin.initialize_builtins(@transformer)
     ast = @transformer.transform(ast, nil)
     @transformer.errors.each do |ex|
       Duby.print_error(ex.message, ex.position)

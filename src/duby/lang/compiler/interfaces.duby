@@ -1,7 +1,10 @@
 import java.util.List
+import java.lang.Class as JavaClass
 
 interface Node do
-  
+  def child_nodes
+    returns List
+  end
 end
 
 interface Block < Node do
@@ -36,12 +39,21 @@ interface Macro do
 end
 
 interface Class do
-  def add_macro(macro:Macro)
+  def load_extensions(from:JavaClass)
     returns void
   end
 end
 
 interface Compiler do
+  defmacro quote(&block) do
+    encoded = @duby.dump_ast(block.body)
+    quote { @duby.load_ast(`encoded`) }
+  end
+
+  def find_class(name:String)
+    returns Class
+  end
+
   def dump_ast(node:Node)
     returns Object
   end
@@ -51,6 +63,14 @@ interface Compiler do
   end
 
   def __ruby_eval(code:String, arg:Object)
+    returns Node
+  end
+
+  def fixnum(x:int)
+    returns Node
+  end
+
+  def constant(name:String)
     returns Node
   end
 end

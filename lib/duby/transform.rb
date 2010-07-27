@@ -136,6 +136,22 @@ module Duby
         Kernel.eval(code)
       end
 
+      def fixnum(value)
+        node = eval("1")
+        node.literal = value
+        node
+      end
+
+      def constant(name)
+        node = eval("Foo")
+        node.name = name
+        node
+      end
+
+      def find_class(name)
+        AST.type(name, false, false)
+      end
+
       def expand(fvcall, parent)
         result = yield self, fvcall, parent
         unless AST::Node === result
@@ -732,7 +748,18 @@ module Duby
           if @declaration
             Noop.new(parent, position)
           else
-            super
+            
+            Call.new(parent, position, 'new_hash') do |call|
+              [
+                Builtin.new(call, position),
+                [
+                  Array.new(call, position) do |array|
+                    list_node.child_nodes.map {|child| transformer.transform(child, array)}
+                  end
+                ]
+              ]
+            end
+
           end
         end
 
@@ -1024,6 +1051,10 @@ module Duby
       end
 
       class SymbolNode
+        def transform(transformer, parent)
+          String.new(parent, position, name)
+        end
+
         def type_reference(parent)
           AST::type(name)
         end

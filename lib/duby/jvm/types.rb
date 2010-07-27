@@ -7,6 +7,7 @@ module Duby
   module JVM
     module Types
       class Type < AST::TypeReference
+        include Java::DubyLangCompiler::Class
         include Duby::JVM::MethodLookup
 
         attr_writer :inner_class

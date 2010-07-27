@@ -90,4 +90,10 @@ module Duby::AST
       return @inferred_type
     end
   end
+
+  class Builtin < Node
+    def infer(typer)
+      resolve_if(typer) {Duby::AST.type('mirah.impl.Builtin')}
+    end
+  end
 end

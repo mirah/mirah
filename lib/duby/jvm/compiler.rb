@@ -389,7 +389,7 @@ module Duby
             # ok
             primitive = true
           else
-            raise TypeError.new "not a reference type: #{castee.inferred_type}"
+            raise TypeError.new "Cannot cast #{castee.inferred_type} to #{fcall.inferred_type}: not a reference type."
           end
         elsif fcall.inferred_type.primitive?
           raise TypeError.new "not a primitive type: #{castee.inferred_type}"
