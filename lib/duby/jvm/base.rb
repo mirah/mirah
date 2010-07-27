@@ -169,6 +169,7 @@ module Duby
             @self_scope = scope
             if scope.self_node
               # FIXME This is a horrible hack!
+              # Instead we should eliminate unused self's.
               unless scope.self_type.name == 'mirah.impl.Builtin'
                 local_assign(
                     scope, 'self', scope.self_type, false, scope.self_node)
@@ -183,7 +184,7 @@ module Duby
           i += 1
         end
         yield body.children[last] if last >= 0
-        @current_self = saved_self
+        @self_scope = saved_self
       end
 
       def scoped_body(scope, expression)
