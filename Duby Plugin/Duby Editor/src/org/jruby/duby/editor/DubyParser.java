@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package org.jruby.duby.editor;
+package org.mirah.editor;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -12,8 +12,8 @@ import java.util.logging.Logger;
 import javax.swing.event.ChangeListener;
 import org.jruby.Ruby;
 import org.jruby.RubyInstanceConfig;
-import org.jruby.duby.DubyCompiler;
-import org.jruby.duby.ParseResult;
+import org.mirah.DubyCompiler;
+import org.mirah.ParseResult;
 import org.jruby.exceptions.RaiseException;
 import org.jruby.javasupport.JavaEmbedUtils;
 import org.jrubyparser.CompatVersion;

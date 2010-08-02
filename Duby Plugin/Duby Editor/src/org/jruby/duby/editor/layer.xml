@@ -43,7 +43,7 @@
         <folder name="text">
             <folder name="x-duby">
                 <file name="language.instance">
-                    <attr name="instanceClass" stringvalue="org.jruby.duby.editor.DubyLanguage"/>
+                    <attr name="instanceClass" stringvalue="org.mirah.editor.DubyLanguage"/>
                 </file>
             </folder>
         </folder>
@@ -104,7 +104,7 @@
                 <folder name="Factories">
                     <file name="DubyDataLoader.instance">
                         <attr name="SystemFileSystem.icon" urlvalue="nbresloc:/org/jruby/duby/editor/duby-icon.png"/>
-                        <attr name="dataObjectClass" stringvalue="org.jruby.duby.editor.DubyDataObject"/>
+                        <attr name="dataObjectClass" stringvalue="org.mirah.editor.DubyDataObject"/>
                         <attr name="instanceCreate" methodvalue="org.openide.loaders.DataLoaderPool.factory"/>
                         <attr name="mimeType" stringvalue="text/x-duby"/>
                     </file>
@@ -115,14 +115,14 @@
     <folder name="Services">
         <folder name="MIMEResolver">
             <file name="DubyResolver.xml" url="DubyResolver.xml">
-                <attr name="SystemFileSystem.localizingBundle" stringvalue="org.jruby.duby.editor.Bundle"/>
+                <attr name="SystemFileSystem.localizingBundle" stringvalue="org.mirah.editor.Bundle"/>
             </file>
         </folder>
     </folder>
     <folder name="Templates">
         <folder name="Other">
             <file name="DubyTemplate.duby" url="DubyTemplate.duby">
-                <attr name="SystemFileSystem.localizingBundle" stringvalue="org.jruby.duby.editor.Bundle"/>
+                <attr name="SystemFileSystem.localizingBundle" stringvalue="org.mirah.editor.Bundle"/>
                 <attr name="template" boolvalue="true"/>
             </file>
         </folder>

@@ -789,7 +789,7 @@ module Duby
           def @class.bootstrapped; true; end
           method = @class.build_method("<clinit>", :public, :static, [], Java::void)
           method.start
-          method.ldc org.jruby.duby.DynalangBootstrap
+          method.ldc org.mirah.DynalangBootstrap
           method.ldc "bootstrap"
           method.invokestatic java.dyn.Linkage, "registerBootstrapMethod", [method.void, java.lang.Class, method.string]
           method.returnvoid

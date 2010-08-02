@@ -1,7 +1,7 @@
 import org.apache.tools.ant.Task
 import org.apache.tools.ant.types.Path
 import java.io.File
-import org.jruby.duby.DubyCommand
+import org.mirah.MirahCommand
 import java.util.ArrayList
 
 class Compile < Task
@@ -14,7 +14,7 @@ class Compile < Task
 
   def execute; returns void
     handleOutput("compiling Duby source in #{@src} to #{@target}")
-    DubyCommand.compile(
+    MirahCommand.compile(
         ['-d', @target, '--cd', @dir, '-c', @classpath.toString, @src])
   end
 

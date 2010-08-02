@@ -1,9 +1,9 @@
-package org.jruby.duby.editor;
+package org.mirah.editor;
 
 import java.util.ArrayList;
 import java.util.List;
-import org.jruby.duby.ParseError;
-import org.jruby.duby.ParseResult;
+import org.mirah.ParseError;
+import org.mirah.ParseResult;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jrubyparser.SourcePosition;
 import org.jrubyparser.lexer.SyntaxException;

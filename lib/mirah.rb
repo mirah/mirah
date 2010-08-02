@@ -312,6 +312,8 @@ class DubyImpl
   end
 end
 
+Mirah = Duby
+
 if __FILE__ == $0
   Duby.run(ARGV[0], *ARGV[1..-1])
 end

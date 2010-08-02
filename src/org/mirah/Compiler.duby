@@ -1,7 +1,7 @@
 import org.jrubyparser.SourcePosition
 
 class ParseError
-  def initialize(message => String, position => SourcePosition)
+  def initialize(message:String, position:SourcePosition)
     @message = message
     @position = position
   end
@@ -30,7 +30,7 @@ interface ParseResult do
 end
 
 interface DubyCompiler do
-  def parse(text => String)
+  def parse(text:String)
     returns ParseResult
   end
 end

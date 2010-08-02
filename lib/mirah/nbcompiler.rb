@@ -1,12 +1,12 @@
 require 'mirah'
 module Duby
   class NbCompiler
-    include org.jruby.duby.DubyCompiler
+    include org.mirah.DubyCompiler
 
     class ParseResult
-      ParseError = org.jruby.duby.ParseError
+      ParseError = org.mirah.ParseError
 
-      include org.jruby.duby.ParseResult
+      include org.mirah.ParseResult
 
       attr_reader :ast, :errors
       def initialize(ast, errors)
