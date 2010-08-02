@@ -1,4 +1,4 @@
-require 'duby/transform'
+require 'mirah/transform'
 
 module Duby
   module AST
@@ -635,12 +635,12 @@ module Duby
   end
 end
 
-require 'duby/ast/local'
-require 'duby/ast/call'
-require 'duby/ast/flow'
-require 'duby/ast/literal'
-require 'duby/ast/method'
-require 'duby/ast/class'
-require 'duby/ast/structure'
-require 'duby/ast/type'
-require 'duby/ast/intrinsics'
+require 'mirah/ast/local'
+require 'mirah/ast/call'
+require 'mirah/ast/flow'
+require 'mirah/ast/literal'
+require 'mirah/ast/method'
+require 'mirah/ast/class'
+require 'mirah/ast/structure'
+require 'mirah/ast/type'
+require 'mirah/ast/intrinsics'

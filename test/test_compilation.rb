@@ -1,5 +1,5 @@
 require 'mirah'
-require 'duby/compiler'
+require 'mirah/compiler'
 require 'test/unit'
 require 'jruby'
 

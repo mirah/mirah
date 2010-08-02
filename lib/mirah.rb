@@ -1,19 +1,19 @@
 require 'fileutils'
 require 'rbconfig'
-require 'duby/transform'
-require 'duby/ast'
-require 'duby/typer'
-require 'duby/compiler'
-require 'duby/env'
+require 'mirah/transform'
+require 'mirah/ast'
+require 'mirah/typer'
+require 'mirah/compiler'
+require 'mirah/env'
 begin
   require 'bitescript'
 rescue LoadError
   $: << File.dirname(__FILE__) + '/../../bitescript/lib'
   require 'bitescript'
 end
-require 'duby/jvm/compiler'
-require 'duby/jvm/typer'
-Dir[File.dirname(__FILE__) + "/duby/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
+require 'mirah/jvm/compiler'
+require 'mirah/jvm/typer'
+Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
 module Duby
@@ -248,7 +248,7 @@ class DubyImpl
         @state.verbose = true
         args.shift
       when '--java', '-j'
-        require 'duby/jvm/source_compiler'
+        require 'mirah/jvm/source_compiler'
         @compiler_class = Duby::Compiler::JavaSource
         args.shift
       when '--dest', '-d'
@@ -260,7 +260,7 @@ class DubyImpl
       when '--plugin', '-p'
         args.shift
         plugin = args.shift
-        require "duby/plugin/#{plugin}"
+        require "mirah/plugin/#{plugin}"
       when '-I'
         args.shift
         $: << args.shift

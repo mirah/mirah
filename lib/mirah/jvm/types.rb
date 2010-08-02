@@ -1,7 +1,7 @@
 require 'bitescript'
-require 'duby/ast'
-require 'duby/jvm/method_lookup'
-require 'duby/jvm/compiler'
+require 'mirah/ast'
+require 'mirah/jvm/method_lookup'
+require 'mirah/jvm/compiler'
 
 module Duby
   module JVM
@@ -388,12 +388,12 @@ module Duby
   end
 end
 
-require 'duby/jvm/types/intrinsics'
-require 'duby/jvm/types/methods'
-require 'duby/jvm/types/number'
-require 'duby/jvm/types/integers'
-require 'duby/jvm/types/boolean'
-require 'duby/jvm/types/floats'
-require 'duby/jvm/types/basic_types'
-require 'duby/jvm/types/literals'
-require 'duby/jvm/types/extensions'
+require 'mirah/jvm/types/intrinsics'
+require 'mirah/jvm/types/methods'
+require 'mirah/jvm/types/number'
+require 'mirah/jvm/types/integers'
+require 'mirah/jvm/types/boolean'
+require 'mirah/jvm/types/floats'
+require 'mirah/jvm/types/basic_types'
+require 'mirah/jvm/types/literals'
+require 'mirah/jvm/types/extensions'

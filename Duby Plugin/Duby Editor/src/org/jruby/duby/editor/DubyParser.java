@@ -44,7 +44,7 @@ class DubyParser extends Parser {
         config.processArguments(new String[]{"-d"});
         runtime = JavaEmbedUtils.initialize(new ArrayList());
         parser = (DubyCompiler) JavaEmbedUtils.newRuntimeAdapter().eval(
-                runtime, "require 'duby/nbcompiler';Duby::NbCompiler.new").toJava(DubyCompiler.class);
+                runtime, "require 'mirah/nbcompiler';Duby::NbCompiler.new").toJava(DubyCompiler.class);
     }
 
     Result result;

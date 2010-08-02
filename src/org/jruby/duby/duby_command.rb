@@ -1,5 +1,5 @@
 require 'java'
-require 'duby'
+require 'mirah'
 java_import 'java.util.List'
 
 java_package "org.jruby.duby"

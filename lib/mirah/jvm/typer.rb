@@ -1,6 +1,6 @@
-require 'duby/typer'
-require 'duby/jvm/types'
-require 'duby/jvm/types/factory'
+require 'mirah/typer'
+require 'mirah/jvm/types'
+require 'mirah/jvm/types/factory'
 
 module Duby
   module Typer
