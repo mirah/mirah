@@ -634,6 +634,7 @@ module Duby
               for node in body_node.child_nodes
                 sig = node.signature(defn)
                 break unless sig
+                signature.update(sig) if sig.kind_of? ::Hash
               end
             end
             [
@@ -668,6 +669,7 @@ module Duby
               for node in body_node.child_nodes
                 sig = node.signature(defn)
                 break unless sig
+                signature.update(sig) if sig.kind_of? ::Hash
               end
             end
             [

@@ -244,7 +244,7 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_signature
-    new_ast = AST.parse("def self.foo(a, b); {a => :foo, b => :bar, :return => :baz}; 1; end").body[0]
+    new_ast = AST.parse("def self.foo(a:foo, b:bar) returns :baz; 1; end").body[0]
 
     assert_not_nil(new_ast.signature)
     inspected = "StaticMethodDefinition(foo)\n {:return=>Type(baz), :a=>Type(foo), :b=>Type(bar)}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Body\n  Noop\n  Fixnum(1)"
@@ -257,20 +257,6 @@ class TestAst < Test::Unit::TestCase
     assert_equal("foo", signature[:a].name)
     assert(AST::TypeReference === signature[:b])
     assert_equal("bar", signature[:b].name)
-  end
-
-  def test_type_reference
-    signature = AST.parse_ruby("{a => :foo, b => java.lang.Object, :return => ArrayList}").child_nodes[0].signature(nil)
-
-    inspected = "{:return=>Type(ArrayList), :a=>Type(foo), :b=>Type(java.lang.Object)}"
-    assert_equal(inspected, signature.inspect)
-    assert_equal(3, signature.size)
-    assert(AST::TypeReference === signature[:return])
-    assert_equal("ArrayList", signature[:return].name)
-    assert(AST::TypeReference === signature[:a])
-    assert_equal("foo", signature[:a].name)
-    assert(AST::TypeReference === signature[:b])
-    assert_equal("java.lang.Object", signature[:b].name)
   end
 
   def test_return
