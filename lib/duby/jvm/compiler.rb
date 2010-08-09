@@ -414,7 +414,8 @@ module Duby
               end
             end
           else
-            if source_type_name != target_type_name
+            if (source_type_name != target_type_name ||
+                castee.inferred_type.array? != fcall.inferred_type.array?)
               @method.checkcast fcall.inferred_type
             end
           end
