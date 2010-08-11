@@ -6,7 +6,9 @@ module Java::OrgJrubyparserAst
   class Node
     def pp(indent = 0)
       return if self.invisible?
+      name = ""
       name = ":#{self.name}" if respond_to? :getName
+      name += " #{value.inspect}" if respond_to? :getValue
       name += " (#{depth})" if respond_to? :getDepth
       print "#{' '*indent}(#{node_name}#{name}"
       if child_nodes.size == 0
