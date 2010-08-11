@@ -65,10 +65,6 @@ module Duby::JVM::Types
     def exceptions
       []
     end
-
-    def actual_return_type
-      return_type
-    end
   end
 
   class JavaCallable
@@ -106,10 +102,6 @@ module Duby::JVM::Types
 
     def return_type
       declaring_class
-    end
-
-    def actual_return_type
-      return_type
     end
 
     def exceptions
@@ -151,10 +143,6 @@ module Duby::JVM::Types
           AST.type(@member.return_type)
         end
       end
-    end
-
-    def actual_return_type
-      return_type
     end
 
     def static?
@@ -302,8 +290,6 @@ module Duby::JVM::Types
     def return_type
       AST.type(@member.type)
     end
-
-    alias actual_return_type return_type
 
     def public?
       @member.public?

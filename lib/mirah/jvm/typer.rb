@@ -116,7 +116,7 @@ module Duby
             classes << cls.superclass if cls.superclass
           end
           if found && !ambiguous
-            signature[:return] = found.actual_return_type
+            signature[:return] = found.return_type
             signature[:throws] = found.exceptions
             args.zip(found.argument_types) do |arg, type|
               signature[arg.name.intern] = type
@@ -135,7 +135,7 @@ module Duby
                 interface, method_def.name, arg_types, false)
           end
           if method
-            signature[:return] = method.actual_return_type
+            signature[:return] = method.return_type
             signature[:throws] = method.exceptions
           end
         end

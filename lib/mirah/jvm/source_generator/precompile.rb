@@ -78,11 +78,11 @@ module Duby::AST
       target.expr?(compiler) &&
           parameters.all? {|p| p.expr?(compiler)} &&
           !method.return_type.kind_of?(Duby::AST::InlineCode) &&
-          !method.actual_return_type.void?
+          !method.return_type.void?
     end
 
     def precompile_target(compiler)
-      if method.actual_return_type.void? && target.expr?(compiler)
+      if method.return_type.void? && target.expr?(compiler)
         TempValue.new(target, compiler)
       else
         target.precompile(compiler)
@@ -100,7 +100,7 @@ module Duby::AST
 
     def expr?(compiler)
       parameters.all? {|p| p.expr?(compiler)} &&
-          (cast? || !method(compiler).actual_return_type.void?)
+          (cast? || !method(compiler).return_type.void?)
     end
   end
 
@@ -115,7 +115,7 @@ module Duby::AST
 
     def expr?(compiler)
       parameters.all? {|p| p.expr?(compiler)} &&
-          !method(compiler).actual_return_type.void?
+          !method(compiler).return_type.void?
     end
   end
 

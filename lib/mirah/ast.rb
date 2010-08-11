@@ -528,6 +528,10 @@ module Duby
         TypeReference.new(name, array, true)
       end
 
+      def void?
+        name == :void
+      end
+
       def error?
         name == :error
       end

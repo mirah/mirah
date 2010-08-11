@@ -144,7 +144,7 @@ module Duby::AST
       impl_methods.each do |method|
         mdef = klass.define_method(position,
                                    method.name,
-                                   method.actual_return_type,
+                                   method.return_type,
                                    args.dup)
         mdef.static_scope = static_scope
         mdef.body = body.dup

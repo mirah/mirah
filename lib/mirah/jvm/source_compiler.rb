@@ -498,7 +498,7 @@ module Duby
       def super_method_call(target, call, params, expression)
         simple = call.expr?(self)
         method = call.method(self)
-        unless simple || method.actual_return_type.void?
+        unless simple || method.return_type.void?
           @method.print @lvalue if expression
         end
         if method.constructor?
@@ -515,7 +515,7 @@ module Duby
         else
           @method.puts ');'
         end
-        if method.actual_return_type.void? && expression
+        if method.return_type.void? && expression
           @method.print @lvalue
           if method.static?
             @method.puts 'null;'
@@ -530,7 +530,7 @@ module Duby
       def method_call(target, call, params, expression)
         simple = call.expr?(self)
         method = call.method(self)
-        unless simple || method.actual_return_type.void?
+        unless simple || method.return_type.void?
           @method.print @lvalue if expression
         end
 
@@ -569,7 +569,7 @@ module Duby
         end
 
         # cleanup
-        if method.actual_return_type.void? && expression
+        if method.return_type.void? && expression
           @method.print @lvalue
           if method.static?
             @method.puts 'null;'
