@@ -303,6 +303,28 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("Hello there\n") { cls.foo }
+
+    script, a, b = compile(<<-EOF)
+      class VoidBase
+        def foo
+          returns void
+          puts "foo"
+        end
+      end
+      class VoidChain < VoidBase
+        def bar
+          returns void
+          puts "bar"
+        end
+
+        def self.foobar
+          VoidChain.new.foo.bar
+        end
+      end
+    EOF
+
+    assert_output("foo\nbar\n") { b.foobar }
+
   end
 
   def test_import

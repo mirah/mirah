@@ -146,7 +146,7 @@ module Duby::JVM::Types
     def return_type
       @return_type ||= begin
         if void?
-          declaring_class
+          Void
         else
           AST.type(@member.return_type)
         end
@@ -154,11 +154,7 @@ module Duby::JVM::Types
     end
 
     def actual_return_type
-      if void?
-        Void
-      else
-        return_type
-      end
+      return_type
     end
 
     def static?

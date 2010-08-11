@@ -429,8 +429,6 @@ module Duby
       end
     end
 
-    class VoidType < Node; end
-
     class Annotation < Node
       attr_reader :values
       attr_accessor :runtime

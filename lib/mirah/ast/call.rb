@@ -97,6 +97,7 @@ module Duby::AST
             method = receiver_type.get_method(name, parameter_types)
             block.prepare(typer, method)
           end
+          @inferred_type = receiver_type if @inferred_type.void?
           resolved!
         else
           typer.defer(proxy)
@@ -162,6 +163,7 @@ module Duby::AST
             method = receiver_type.get_method(name, parameter_types)
             block.prepare(typer, method)
           end
+          @inferred_type = receiver_type if @inferred_type.void?
           resolved!
         else
           typer.defer(proxy)
