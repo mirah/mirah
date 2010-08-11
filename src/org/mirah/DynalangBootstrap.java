@@ -1,4 +1,4 @@
-package org.jruby.duby;
+package org.mirah;
 
 import org.dynalang.dynalink.*;
 import org.dynalang.dynalink.beans.*;

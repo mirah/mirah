@@ -1,6 +1,6 @@
-require 'duby/typer'
-require 'duby/jvm/method_lookup'
-require 'duby/jvm/types'
+require 'mirah/typer'
+require 'mirah/jvm/method_lookup'
+require 'mirah/jvm/types'
 require 'java'
 
 module Duby

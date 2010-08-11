@@ -1,5 +1,5 @@
-require 'duby/jvm/typer'
-require 'duby/jvm/source_generator/builder'
+require 'mirah/jvm/typer'
+require 'mirah/jvm/source_generator/builder'
 
 module Duby
   module Typer

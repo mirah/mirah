@@ -32,23 +32,22 @@ task :compile => :init do
   JRuby::Compiler.compile_argv([
     '-t', 'build',
     '--javac',
-    'src/org/jruby/duby/duby_command.rb'
+    'src/org/mirah/mirah_command.rb'
   ])
 
-  # build the Duby sources
-  puts "Compiling Duby sources"
+  # build the Mirah sources
+  puts "Compiling Mirah sources"
   Dir.chdir 'src' do
     classpath = Duby::Env.encode_paths([
         'javalib/jruby-complete.jar',
         'javalib/JRubyParser.jar',
-        'dist/duby.jar',
         'build',
         '/usr/share/ant/lib/ant.jar'
       ])
     Duby.compile(
       '-c', classpath,
       '-d', '../build',
-      'org/jruby/duby',
+      'org/mirah',
       'duby/lang',
       'mirah'
       )
@@ -56,31 +55,31 @@ task :compile => :init do
 end
 
 task :jar => :compile do
-  ant.jar :jarfile => 'dist/duby.jar' do
+  ant.jar :jarfile => 'dist/mirah.jar' do
     fileset :dir => 'lib'
     fileset :dir => 'build'
     fileset :dir => '.', :includes => 'bin/*'
     fileset :dir => '../bitescript/lib'
     manifest do
-      attribute :name => 'Main-Class', :value => 'org.jruby.duby.DubyCommand'
+      attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
   end
 end
 
 namespace :jar do
   task :complete => :jar do
-    ant.jar :jarfile => 'dist/duby-complete.jar' do
-      zipfileset :src => 'dist/duby.jar'
+    ant.jar :jarfile => 'dist/mirah-complete.jar' do
+      zipfileset :src => 'dist/mirah.jar'
       zipfileset :src => 'javalib/jruby-complete.jar'
       zipfileset :src => 'javalib/JRubyParser.jar'
       manifest do
-        attribute :name => 'Main-Class', :value => 'org.jruby.duby.DubyCommand'
+        attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
       end
     end
   end
 
   task :bootstrap => :compile do
-    ant.jar :jarfile => 'javalib/duby-bootstrap.jar' do
+    ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
       fileset :dir => 'build'
     end
   end

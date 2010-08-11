@@ -1,4 +1,4 @@
-require 'duby/ast'
+require 'mirah/ast'
 
 module Duby::AST
   class TempValue

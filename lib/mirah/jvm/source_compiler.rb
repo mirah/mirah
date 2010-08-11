@@ -1,10 +1,10 @@
 require 'mirah'
-require 'duby/ast'
-require 'duby/jvm/types'
-require 'duby/jvm/compiler'
-require 'duby/jvm/source_generator/builder'
-require 'duby/jvm/source_generator/precompile'
-require 'duby/jvm/source_generator/loops'
+require 'mirah/ast'
+require 'mirah/jvm/types'
+require 'mirah/jvm/compiler'
+require 'mirah/jvm/source_generator/builder'
+require 'mirah/jvm/source_generator/precompile'
+require 'mirah/jvm/source_generator/loops'
 
 class String
   def compile(compiler, expression)

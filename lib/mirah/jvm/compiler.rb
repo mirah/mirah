@@ -1,9 +1,9 @@
 require 'mirah'
-require 'duby/jvm/base'
-require 'duby/jvm/method_lookup'
-require 'duby/jvm/types'
-require 'duby/typer'
-require 'duby/plugin/java'
+require 'mirah/jvm/base'
+require 'mirah/jvm/method_lookup'
+require 'mirah/jvm/types'
+require 'mirah/typer'
+require 'mirah/plugin/java'
 require 'bitescript'
 
 module Duby
@@ -790,7 +790,7 @@ module Duby
           def @class.bootstrapped; true; end
           method = @class.build_method("<clinit>", :public, :static, [], Java::void)
           method.start
-          method.ldc org.jruby.duby.DynalangBootstrap
+          method.ldc org.mirah.DynalangBootstrap
           method.ldc "bootstrap"
           method.invokestatic java.dyn.Linkage, "registerBootstrapMethod", [method.void, java.lang.Class, method.string]
           method.returnvoid

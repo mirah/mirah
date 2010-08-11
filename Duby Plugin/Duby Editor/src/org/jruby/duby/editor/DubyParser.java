@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 
-package org.jruby.duby.editor;
+package org.mirah.editor;
 
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -12,8 +12,8 @@ import java.util.logging.Logger;
 import javax.swing.event.ChangeListener;
 import org.jruby.Ruby;
 import org.jruby.RubyInstanceConfig;
-import org.jruby.duby.DubyCompiler;
-import org.jruby.duby.ParseResult;
+import org.mirah.DubyCompiler;
+import org.mirah.ParseResult;
 import org.jruby.exceptions.RaiseException;
 import org.jruby.javasupport.JavaEmbedUtils;
 import org.jrubyparser.CompatVersion;
@@ -44,7 +44,7 @@ class DubyParser extends Parser {
         config.processArguments(new String[]{"-d"});
         runtime = JavaEmbedUtils.initialize(new ArrayList());
         parser = (DubyCompiler) JavaEmbedUtils.newRuntimeAdapter().eval(
-                runtime, "require 'duby/nbcompiler';Duby::NbCompiler.new").toJava(DubyCompiler.class);
+                runtime, "require 'mirah/nbcompiler';Duby::NbCompiler.new").toJava(DubyCompiler.class);
     }
 
     Result result;

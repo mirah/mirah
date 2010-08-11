@@ -1,4 +1,4 @@
-require 'duby/jvm/types'
+require 'mirah/jvm/types'
 
 module Duby
   class JVM::Types::Type

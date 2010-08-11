@@ -1,10 +1,10 @@
 $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
-require 'duby/typer'
-require 'duby/plugin/java'
-require 'duby/jvm/compiler'
-require 'duby/jvm/typer'
+require 'mirah/typer'
+require 'mirah/plugin/java'
+require 'mirah/jvm/compiler'
+require 'mirah/jvm/typer'
 
 class TestJavaTyper < Test::Unit::TestCase
   include Duby

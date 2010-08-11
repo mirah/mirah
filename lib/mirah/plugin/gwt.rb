@@ -1,4 +1,4 @@
-require 'duby/jvm/source_generator/builder'
+require 'mirah/jvm/source_generator/builder'
 
 module Duby::JavaSource
   class ClassBuilder

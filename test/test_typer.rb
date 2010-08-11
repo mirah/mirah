@@ -57,7 +57,7 @@ class TestTyper < Test::Unit::TestCase
 
   def test_signature
     ["def foo", "def self.foo"].each do |def_foo|
-      ast1 = AST.parse("#{def_foo}(a); {a => :string}; end")
+      ast1 = AST.parse("#{def_foo}(a:string); end")
       typer = Typer::Simple.new :bar
 
       ast1.infer(typer)
@@ -77,7 +77,7 @@ class TestTyper < Test::Unit::TestCase
       assert_equal(typer.no_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
 
-      ast1 = AST.parse("#{def_foo}(a); {a => :string}; a; end")
+      ast1 = AST.parse("#{def_foo}(a:string); a; end")
       typer = Typer::Simple.new :bar
 
       ast1.infer(typer)
@@ -87,7 +87,7 @@ class TestTyper < Test::Unit::TestCase
       assert_equal(typer.string_type, ast1.body[0].inferred_type)
       assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
 
-      ast1 = AST.parse("#{def_foo}(a); {:return => :string}; end")
+      ast1 = AST.parse("#{def_foo}(a) returns :string; end")
       typer = Typer::Simple.new :bar
 
       assert_raise(Typer::InferenceError) do
@@ -108,7 +108,7 @@ class TestTyper < Test::Unit::TestCase
 
     assert_equal(typer.string_type, ast.inferred_type)
 
-    ast = AST.parse("def bar(a, b); {a => :fixnum, b => :string}; 1.0; end; def baz; bar(1, 'x'); end")
+    ast = AST.parse("def bar(a:fixnum, b:string); 1.0; end; def baz; bar(1, 'x'); end")
 
     ast.infer(typer)
     ast = ast.body
@@ -119,7 +119,7 @@ class TestTyper < Test::Unit::TestCase
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
     # Reverse the order, ensure deferred inference succeeds
-    ast = AST.parse("def baz; bar(1, 'x'); end; def bar(a, b); {a => :fixnum, b => :string}; 1.0; end")
+    ast = AST.parse("def baz; bar(1, 'x'); end; def bar(a:fixnum, b:string); 1.0; end")
     typer = Typer::Simple.new("bar")
 
     ast.infer(typer)
@@ -139,7 +139,7 @@ class TestTyper < Test::Unit::TestCase
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
     # modify bar call to have bogus types, ensure resolution fails
-    ast = AST.parse("def baz; bar(1, 1); end; def bar(a, b); {a => :fixnum, b => :string}; 1.0; end")
+    ast = AST.parse("def baz; bar(1, 1); end; def bar(a:fixnum, b:string); 1.0; end")
     typer = Typer::Simple.new("bar")
 
     ast.infer(typer)

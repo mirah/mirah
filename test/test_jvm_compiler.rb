@@ -2386,12 +2386,18 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_hashes
     cls, = compile(<<-EOF)
-      def foo
+      def foo1
+        {a:"A", b:"B"}
+      end
+      def foo2
         return {a:"A", b:"B"}
       end
     EOF
 
-    map = cls.foo
+    map = cls.foo1
+    assert_equal("A", map["a"])
+    assert_equal("B", map["b"])
+    map = cls.foo2
     assert_equal("A", map["a"])
     assert_equal("B", map["b"])
   end

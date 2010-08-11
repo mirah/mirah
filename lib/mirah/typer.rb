@@ -1,5 +1,5 @@
-require 'duby/ast'
-require 'duby/transform'
+require 'mirah/ast'
+require 'mirah/transform'
 
 module Duby
   module Typer

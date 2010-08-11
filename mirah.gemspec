@@ -17,7 +17,7 @@ output either JVM bytecode or Java source files.}
   s.homepage = %q{http://www.mirah.org/}
   s.rdoc_options = ["--main", "README.txt"]
   s.require_paths = ["lib"]
-  s.rubyforge_project = %q{duby}
+  s.rubyforge_project = %q{mirah}
   s.rubygems_version = %q{1.3.5}
   s.summary = %q{Mirah is a customizable programming language featuring static types, local type inference and a heavily Ruby-inspired syntax}
   s.test_files = Dir["test/**/test*.rb"]

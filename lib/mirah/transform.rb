@@ -762,26 +762,6 @@ module Duby
 
           end
         end
-
-        # Create a signature definition using a literal hash syntax
-        def signature(parent)
-          # flag this as a declaration, so it transforms to a noop
-          @declaration = true
-
-          arg_types = {:return => nil}
-
-          list = list_node.child_nodes.to_a
-          list.each_index do |index|
-            if index % 2 == 0
-              if SymbolNode === list[index] && list[index].name == 'return'
-                arg_types[:return] = list[index + 1].type_reference(parent)
-              else
-                arg_types[list[index].name.intern] = list[index + 1].type_reference(parent)
-              end
-            end
-          end
-          return arg_types
-        end
       end
 
       class IfNode

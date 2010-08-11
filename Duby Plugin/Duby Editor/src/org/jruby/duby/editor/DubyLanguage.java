@@ -1,4 +1,4 @@
-package org.jruby.duby.editor;
+package org.mirah.editor;
 
 import org.netbeans.api.lexer.Language;
 import org.netbeans.modules.csl.api.Formatter;

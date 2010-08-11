@@ -1,4 +1,4 @@
-require 'duby/jvm/types'
+require 'mirah/jvm/types'
 
 class Java::JavaMethod
   def static?
