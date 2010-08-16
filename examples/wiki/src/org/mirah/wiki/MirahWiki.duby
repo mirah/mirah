@@ -260,6 +260,31 @@ EOS
   end
 end
 
+import test.MirahParser
+import jmeta.BaseParser
+class MirahParserPage < Helper
+  def_edb(render, 'org/mirah/wiki/parser.eduby.html')
+
+  def initialize
+    self.title = "Mirah Parser Test"
+  end
+
+  def doGet(request, response)
+    doPost(request, response)
+  end
+
+  def doPost(request, response)
+    @code = String(request.getParameter("code")) || "puts 'Hello, world!'"
+    parser = MirahParser.new
+    begin
+      @parsed = BaseParser.print_r(parser.parse(@code))
+    rescue => ex
+      @parsed = ex.getMessage
+    end
+    response.getWriter.write(with_layout(render))
+  end
+end
+
 class FederatedLogin < Helper
   def doGet(request, response)
     provider = request.getPathInfo

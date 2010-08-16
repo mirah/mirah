@@ -8,6 +8,8 @@ welcome_files:
 handlers:
   - url: /
     filter: org.mirah.wiki.MainFilter
+  - url: /parser
+    servlet: org.mirah.wiki.MirahParserPage
   - url: /edit/*
     login: required
     servlet: org.mirah.wiki.EditPage
