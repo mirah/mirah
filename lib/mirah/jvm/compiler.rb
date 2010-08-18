@@ -313,6 +313,13 @@ module Duby
         unless predicate.inferred_type == Types::Boolean
           raise "Expected boolean, found #{predicate.inferred_type}"
         end
+        if Duby::AST::Call === predicate
+          method = extract_method(predicate)
+          if method.respond_to? :jump_if
+            method.jump_if(self, predicate, target)
+            return
+          end
+        end
         predicate.compile(self, true)
         @method.ifne(target)
       end
@@ -321,17 +328,28 @@ module Duby
         unless predicate.inferred_type == Types::Boolean
           raise "Expected boolean, found #{predicate.inferred_type}"
         end
+        if Duby::AST::Call === predicate
+          method = extract_method(predicate)
+          if method.respond_to? :jump_if_not
+            method.jump_if_not(self, predicate, target)
+            return
+          end
+        end
         predicate.compile(self, true)
         @method.ifeq(target)
       end
 
-      def call(call, expression)
-        return cast(call, expression) if call.cast?
+      def extract_method(call)
         target = call.target.inferred_type!
         params = call.parameters.map do |param|
           param.inferred_type!
         end
-        method = target.get_method(call.name, params)
+        target.get_method(call.name, params)
+      end
+
+      def call(call, expression)
+        return cast(call, expression) if call.cast?
+        method = extract_method(call)
         if method
           method.call(self, call, expression)
         else

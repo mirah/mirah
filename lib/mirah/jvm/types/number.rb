@@ -1,4 +1,27 @@
 module Duby::JVM::Types
+  class ComparisonIntrinsic < Intrinsic
+    attr_reader :name, :op
+    def initialize(type, name, op, args)
+      super(type, name, args, Boolean) do; end
+      @type = type
+      @op = op
+    end
+
+    def call(compiler, call, expression)
+      if expression
+        @type.compile_boolean_operator(compiler, op, false, call, nil)
+      end
+    end
+
+    def jump_if(compiler, call, label)
+      @type.compile_boolean_operator(compiler, @op, false, call, label)
+    end
+
+    def jump_if_not(compiler, call, label)
+      @type.compile_boolean_operator(compiler, @op, true, call, label)
+    end
+  end
+
   class Number < PrimitiveType
     # The type returned by arithmetic operations with this type.
     def math_type
@@ -14,9 +37,13 @@ module Duby::JVM::Types
     def delegate_intrinsic(name, type, return_type)
       args = [type]
       delegate = type.intrinsics[name][args]
-      add_method(name, args, return_type) do |compiler, call, expression|
-        if expression
-          delegate.call(compiler, call, expression)
+      if delegate.kind_of?(ComparisonIntrinsic)
+        add_method(name, args, ComparisonIntrinsic.new(type, name, delegate.op, args))
+      else
+        add_method(name, args, return_type) do |compiler, call, expression|
+          if expression
+            delegate.call(compiler, call, expression)
+          end
         end
       end
     end
@@ -36,20 +63,41 @@ module Duby::JVM::Types
     end
 
     def boolean_operator(name, op)
-      add_method(name, [math_type], Boolean) do |compiler, call, expression|
-        if expression
-          # Promote the target or the argument if necessary
-          convert_args(compiler,
-                       [call.target, *call.parameters],
-                       [math_type, math_type])
-          compiler.method.op_to_bool do |label|
-            jump_if(compiler.method, op, label)
-          end
-        end
-      end
+      args = [math_type]
+      add_method(name, args, ComparisonIntrinsic.new(self, name, op, args))
       add_delegates(name, Boolean)
     end
-    
+
+    def invert_op(op)
+      inverted = {
+        :lt => :ge,
+        :le => :gt,
+        :eq => :ne,
+        :ne => :eq,
+        :gt => :le,
+        :ge => :lt
+      }[op]
+      raise "Can't invert #{op}." unless inverted
+      inverted
+    end
+
+    def compile_boolean_operator(compiler, op, negated, call, label)
+      # Promote the target or the argument if necessary
+      convert_args(compiler,
+                   [call.target, *call.parameters],
+                   [math_type, math_type])
+      if negated
+        op = invert_op(op)
+      end
+      if label
+        jump_if(compiler.method, op, label)
+      else
+        compiler.method.op_to_bool do |label|
+          jump_if(compiler.method, op, label)
+        end
+      end
+    end
+
     def math_operator(name, op)
       add_method(name, [math_type], math_type) do |compiler, call, expression|
         if expression
