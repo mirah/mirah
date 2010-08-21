@@ -312,13 +312,21 @@ module AppEngine
       duby_type = TypeMap.fetch(type, type)
       coercion = "coerce_" + duby_type.downcase.sub("[]", "s")
 
-      model.extend_query(<<-EOF)
-        def #{name}(value:#{duby_type})
-          returns :void
-          _query.addFilter("#{name}", _eq_op, #{to_datastore(type, 'value')})
-        end
-      EOF
-
+      if duby_type == 'List'
+        model.extend_query(<<-EOF)
+          def #{name}(value:Object)
+            returns :void
+            _query.addFilter("#{name}", _eq_op, value)
+          end
+        EOF
+      else
+        model.extend_query(<<-EOF)
+          def #{name}(value:#{duby_type})
+            returns :void
+            _query.addFilter("#{name}", _eq_op, #{to_datastore(type, 'value')})
+          end
+        EOF
+      end
       temp = transformer.tmp
 
       model.extend_read(<<-EOF)

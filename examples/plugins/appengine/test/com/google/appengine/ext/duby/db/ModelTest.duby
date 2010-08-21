@@ -21,6 +21,8 @@ import com.google.appengine.api.datastore.ShortBlob
 import com.google.appengine.api.datastore.Text
 import java.util.Date
 import java.util.HashMap
+import java.util.List
+import java.util.ArrayList
 import com.google.appengine.api.users.User
 
 class TestModel < Model
@@ -41,6 +43,7 @@ class TestModel < Model
   property 'integer', Long
   property 'afloat', Double
   property 'user', User
+  property 'list', List
 end
 
 class ModelTest
@@ -95,6 +98,16 @@ class ModelTest
     assertEquals(Integer.valueOf(10), properties.get("rating"))
     assertTrue(properties.containsKey("blob"))
     assertEquals(nil, properties.get("blob"))
+  end
+
+  $Test
+  def test_query_list
+    returns void
+    e = TestModel.new
+    e.list = ["a", "b", "c"]
+    e.save
+    e2 = TestModel.all.list("b").first
+    assertEquals(e.key, e2.key)
   end
   # TODO more tests.
 end

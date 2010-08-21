@@ -31,7 +31,7 @@ end
 
 task :compile_test => :jar do
   puts "Compiling Duby tests"
-  mirahc 'com/google/appengine', :dir => 'test',
+  mirahc 'com/google/appengine', :dir => 'test', :dest => 'test',
          :options => ['--classpath', Dir.pwd + "/dist/dubydatastore.jar"]
 end
 

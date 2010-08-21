@@ -13,8 +13,10 @@ import com.google.appengine.api.datastore.GeoPt
 import com.google.appengine.api.datastore.IMHandle
 import com.google.appengine.api.users.User
 
+import java.util.Arrays
 import java.util.Date
 import java.util.HashMap
+import java.util.List
 import java.util.Map
 
 class DQuery
@@ -184,6 +186,17 @@ RUBY
 
   def parent
     @parent
+  end
+
+  def coerce_list(object:Object)
+    if object.kind_of?(List)
+      List(object)
+    elsif object.kind_of?(Object[])
+      Arrays.asList(Object[].cast(object))
+    else
+      raise IllegalArgumentException.new(
+          "Expected List, got #{object} (#{object.getClass.getName})")
+    end
   end
 
   def coerce_long(object:Object)
