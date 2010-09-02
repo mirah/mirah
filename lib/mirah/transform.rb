@@ -99,7 +99,7 @@ module Duby
           @errors << ex
           Duby::AST::ErrorNode.new(parent, ex)
         rescue Exception => ex
-          error = Error.new(ex.message, node.position, ex)
+          error = Error.new(ex.message, position(node), ex)
           @errors << error
           Duby::AST::ErrorNode.new(parent, error)
         end

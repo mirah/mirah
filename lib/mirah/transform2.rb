@@ -13,7 +13,7 @@ module Duby::AST
     end
 
     def transform_fixnum(node, parent)
-      AST::fixnum(parent, position(node), node[1].intValue)
+      Duby::AST::fixnum(parent, position(node), node[1])
     end
   end
 end
