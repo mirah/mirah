@@ -306,6 +306,98 @@ module Duby::AST
       Duby::AST::type(name)
     end
 
+    def transform_call(node, parent)
+      name = node[1]
+      target = node[2]
+      args = node[3]
+      iter_node = node[4]
+      position = position(node)
+
+      actual_name = name
+      case actual_name
+      when '[]'
+        # could be array instantiation
+        case target[0]
+        when 'Identifier'
+          case target[1]
+          when 'boolean', 'byte', 'short', 'char', 'int', 'long', 'float', 'double'
+            if args.size == 0
+              constant = Constant.new(parent, position, target[1])
+              constant.array = true
+              return constant
+            else
+              return EmptyArray.new(
+                  parent, position,
+                  AST::type(target[1])) do |array|
+                transformer.transform(args[0], array)
+              end
+            end
+          # TODO look for imported, lower case class names
+          end
+        when 'Constant'
+          if args.size == 0
+            constant = Constant.new(parent, position, target[1])
+            constant.array = true
+            return constant
+          else
+            return EmptyArray.new(
+                parent, position, AST::type(target[1])) do |array|
+              transformer.transform(args[0], array)
+            end
+          end
+        end
+      when /=$/
+        if name.size > 2 || name =~ /^\w/
+          actual_name = name[0..-2] + '_set'
+        end
+      end
+
+      Call.new(parent, position, actual_name) do |call|
+        [
+          transformer.transform(target, call),
+          args ? args.map {|arg| transformer.transform(arg, call)} : [],
+          iter_node ? transformer.transform(iter_node, call) : nil
+        ]
+      end
+    end
+
+    def typeref_call(node, parent)
+      name = node[1]
+      receiver = node[2]
+      if name == "[]"
+        # array type, top should be a constant; find the rest
+        array = true
+        elements = []
+      else
+        array = false
+        elements = [name]
+      end
+
+      loop do
+        case receiver[0]
+        when 'Constant'
+          elements << receiver[1]
+          break
+        when 'Call'
+          elements.unshift(receiver[1])
+          receiver = receiver[2]
+        when 'Symbol'
+          elements.unshift(receiver[1])
+          break
+        when 'Identifier'
+          elements.unshift(receiver[1])
+          break
+        when 'Annotation'
+          elements.unshift(receiver[1])
+          break
+        end
+      end
+
+      # join and load
+      class_name = elements.join(".")
+      Duby::AST::type(class_name, array)
+    end
+
     def transform_constant(node, parent)
       Constant.new(parent, position(node), node[1])
     end
@@ -327,7 +419,7 @@ module Duby::AST
       elsif ['public', 'private', 'protected'].include?(name)
         AccessLevel.new(parent, position, name)
       else
-        macro = AST.macro(name)
+        macro = Duby::AST.macro(name)
         fcall = FunctionalCall.new(parent, position, name) do |call|
           [
             [],
