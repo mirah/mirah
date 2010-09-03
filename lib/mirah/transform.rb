@@ -105,6 +105,11 @@ module Duby
         end
       end
 
+      def type_reference(node, parent)
+        method = "typeref_#{camelize(node[0])}"
+        @helper.send method, node, parent
+      end
+
       def captured?(node)
         depth = node.depth
         scope = @scopes[-1]

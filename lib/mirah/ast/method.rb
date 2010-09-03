@@ -3,6 +3,7 @@ module Duby::AST
     child :args
     child :opt_args
     child :rest_arg
+    child :args2
     child :block_arg
 
     def initialize(parent, line_number, &block)
