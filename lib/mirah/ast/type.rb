@@ -32,7 +32,7 @@ module Duby::AST
         case node.parameters.size
         when 0
           pieces = [node.name]
-          while node.kind_of? Call
+          while Call === node
             node = node.target
             pieces << node.name
           end
@@ -46,7 +46,7 @@ module Duby::AST
           end
           short = arg.parameters[0].name
           pieces = [node.name]
-          while node.kind_of? Call
+          while Call === node
             node = node.target
             pieces << node.name
           end

@@ -121,16 +121,8 @@ module Duby
       end
 
       def eval(src, filename='-', parent=nil, *vars)
-        unless vars.empty?
-          src = "#{vars.join ','} = [];begin;#{src};end"
-        end
         node = Duby::AST.parse_ruby(src, filename)
         duby_node = transform(node, nil).body
-        unless vars.empty?
-          # We have
-          # (Script (Body ({vars} (NewlineNode (BeginNode ({src}))))))
-          duby_node = duby_node.children[1]
-        end
         duby_node.parent = parent
         duby_node
       end

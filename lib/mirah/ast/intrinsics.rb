@@ -238,42 +238,40 @@ module Duby::AST
   end
 
   defmacro('defmacro') do |duby, fcall, parent|
-    macro = fcall.args_node[0]
+    macro = fcall.parameters[0]
     block_arg = nil
-    args_node = macro.args_node if macro.respond_to?(:args_node)
-    body = if macro.respond_to?(:iter_node) && macro.iter_node
-      macro.iter_node
+    args = macro.parameters if macro.respond_to?(:parameters)
+    body = if macro.respond_to?(:block) && macro.block
+      macro.block
     else
-      fcall.iter_node
+      fcall.block
     end
-    if args_node.respond_to? :getBodyNode
-      block_arg = args_node.body_node
-      args_node = args_node.args_node
-      body = fcall.iter_node
-    end
+    body = body.body if body
+
     MacroDefinition.new(parent, fcall.position, macro.name) do |mdef|
       # TODO optional args?
-      args = if args_node
-        args_node.map do |arg|
+      args = if args
+        args.map do |arg|
           case arg
-          when JRubyAst::LocalAsgnNode
+          when LocalAssignment
             OptionalArgument.new(mdef, arg.position, arg.name) do |optarg|
               # TODO check that they actually passed nil as the value
               Null.new(parent, arg.value_node.position)
             end
-          when JRubyAst::VCallNode, JRubyAst::LocalVarNode
+          when FunctionalCall
             RequiredArgument.new(mdef, arg.position, arg.name)
+          # when BlockPass
+          # BlockArgument.new(mdef, arg.position, arg.name)
+          # set optional correctly
+          else
+            raise "Unsupported argument #{arg}"
           end
         end
       else
         []
       end
-      if block_arg
-        args << BlockArgument.new(mdef, block_arg.position, block_arg.name)
-        args[-1].optional = block_arg.kind_of?(JRubyAst::LocalAsgnNode)
-      end
-      body_node = duby.transform(body.body_node, mdef) if body.body_node
-      [args,  body_node]
+      body.parent = mdef if body
+      [args,  body]
     end
   end
 
@@ -282,7 +280,7 @@ module Duby::AST
     #   macro def foo(...);...;end
     # This one supports special names like []=,
     # but you can't use optional blocks.
-    method = transformer.transform(fcall.args_node[0], parent)
+    method = fcall.parameters[0]
     macro = MacroDefinition.new(parent, fcall.position, method.name)
     macro.arguments = method.arguments.args || []
     macro.body = method.body
@@ -291,12 +289,9 @@ module Duby::AST
 
   defmacro('puts') do |transformer, fcall, parent|
     Call.new(parent, fcall.position, "println") do |x|
-      args = if fcall.respond_to?(:args_node) && fcall.args_node
-        fcall.args_node.child_nodes.map do |arg|
-          transformer.transform(arg, x)
-        end
-      else
-        []
+      args = fcall.parameters
+      args.each do |arg|
+        arg.parent = x
       end
       [
         Call.new(x, fcall.position, "out") do |y|
@@ -313,12 +308,9 @@ module Duby::AST
 
   defmacro('print') do |transformer, fcall, parent|
     Call.new(parent, fcall.position, "print") do |x|
-      args = if fcall.respond_to?(:args_node) && fcall.args_node
-        fcall.args_node.child_nodes.map do |arg|
-          transformer.transform(arg, x)
-        end
-      else
-        []
+      args = fcall.parameters
+      args.each do |arg|
+        arg.parent = x
       end
       [
         Call.new(x, fcall.position, "out") do |y|

@@ -83,7 +83,7 @@ module Duby::AST
     end
 
     def typeref_symbol(node, parent)
-      Duby::AST::Type(node[1])
+      Duby::AST::type(node[1])
     end
     def transform_body(node, parent)
       Body.new(parent, position(node)) do |body|
@@ -153,15 +153,20 @@ module Duby::AST
       end
       BlockArgument.new(parent, position(node), name)
     end
-    # TODO OptBlockArg, UnnamedRestArg
+
+    def transform_opt_block_arg(node, parent)
+      block_arg = transform_block_arg(node, parent)
+      block_arg.optional = true
+      return block_arg
+    end
+
+    # TODO UnnamedRestArg
 
     def transform_sclass(node, parent)
       ClassAppendSelf.new(parent, position(node)) do |class_append_self|
         raise "Singleton class not supported" unless node[1][0] == 'Self'
 
-        node[2].children.map do |child|
-          transformer.transform(child, class_append_self)
-        end
+        [transformer.transform(node[2], class_append_self)]
       end
     end
 
@@ -212,7 +217,7 @@ module Duby::AST
                           name,
                           transformer.annotations) do |class_def|
         [
-          super_node ? transfomer.type_reference(super_node, class_def) : nil,
+          super_node ? transformer.type_reference(super_node, class_def) : nil,
           body_node ? transformer.transform(body_node, class_def) : nil
         ]
       end
@@ -251,7 +256,7 @@ module Duby::AST
       end
     end
 
-    def transform_defstatic(node, parent)
+    def transform_def_static(node, parent)
       name, args_node, body_node = node[1], node[2], node[3]
       position = position(node)
       actual_name = name
@@ -265,8 +270,8 @@ module Duby::AST
         defn.signature = signature = {:return => nil}
 
         if body_node
-          for node in body_node.child_nodes
-            sig = node.signature(defn)
+          for node in body_node.children
+            sig = signature(node, defn)
             break unless sig
             signature.update(sig) if sig.kind_of? ::Hash
           end
@@ -280,7 +285,7 @@ module Duby::AST
     end
 
     def transform_fcall(node, parent)
-      if node.respond_to?(:declaration?) && node.declaration
+      if node.respond_to?(:declaration?) && node.declaration?
         return Noop.new(parent, position(node))
       end
 
@@ -328,20 +333,20 @@ module Duby::AST
             else
               return EmptyArray.new(
                   parent, position,
-                  AST::type(target[1])) do |array|
+                  Duby::AST::type(target[1])) do |array|
                 transformer.transform(args[0], array)
               end
             end
           # TODO look for imported, lower case class names
           end
         when 'Constant'
-          if args.size == 0
+          if args && args.size == 0
             constant = Constant.new(parent, position, target[1])
             constant.array = true
             return constant
-          else
+          elsif args && args.size == 1
             return EmptyArray.new(
-                parent, position, AST::type(target[1])) do |array|
+                parent, position, Duby::AST::type(target[1])) do |array|
               transformer.transform(args[0], array)
             end
           end
@@ -437,6 +442,263 @@ module Duby::AST
     def typeref_identifier(node, parent)
       name = node[1]
       Duby::AST::type(name)
+    end
+
+    def transform_local_assign(node, parent)
+      name = node[1]
+      value_node = node[2]
+      position = position(node)
+      case value_node[0]
+      when 'Symbol', 'Constant'
+        LocalDeclaration.new(parent, position, name) {|local_decl| [typeref(value_node, local_decl)]}
+      else
+        LocalAssignment.new(parent, position, name) {|local| [transform(value_node, local)]}
+      end
+    end
+
+    def transform_local(node, parent)
+      name = node[1]
+      Local.new(parent, position(node), name)
+    end
+
+    def transform_iter(node, parent)
+      args = node[1]
+      body = node[2]
+      Block.new(parent, position(node)) do |block|
+        [
+          args ? transformer.transform(args, block) : nil,
+          body ? transformer.transform(body, block) : nil,
+        ]
+      end
+    end
+
+    def transform_inst_var(node, parent)
+      name = node[1]
+      Field.new(parent, position(node), name, transformer.annotations)
+    end
+
+    def transform_inst_var_assign(node, parent)
+      name = node[1]
+      value_node = node[2]
+      position = position(node)
+      case value_node[0]
+      when 'Symbol', 'Constant'
+        FieldDeclaration.new(parent, position,
+                             name, transformer.annotations) do |field_decl|
+          [typeref(value_node, field_decl)]
+        end
+      else
+        FieldAssignment.new(parent, position, name, transformer.annotations) {|field| [transformer.transform(value_node, field)]}
+      end
+    end
+
+    def transform_if(node, parent)
+      condition = node[1]
+      then_body = node[2]
+      else_body = node[3]
+      If.new(parent, position(node)) do |iff|
+        [
+          Condition.new(iff, position(condition)) {|cond| [transformer.transform(condition, cond)]},
+          then_body ? transformer.transform(then_body, iff) : nil,
+          else_body ? transformer.transform(else_body, iff) : nil
+        ]
+      end
+    end
+
+    def transform_zsuper(node, parent)
+      Super.new(parent, position(node))
+    end
+
+    def transform_super(node, parent)
+      args = node[1]
+      iter = node[2]
+      Super.new(parent, position(node)) do |s|
+        [args ? args.map {|arg| transformer.transform(arg, s)} : []]
+      end
+    end
+
+    def transform_return(node, parent)
+      value_node = node[1] if node.size > 1
+      Return.new(parent, position(node)) do |ret|
+        [transformer.transform(value_node, ret)]
+      end
+    end
+
+    def transform_dstring(node, parent)
+      StringConcat.new(parent, position(node)) do |p|
+        node.children.map{|n| transform(n, p)}
+      end
+    end
+
+    def transform_ev_string(node, parent)
+      ToString.new(parent, position(node)) do |p|
+        [transform(node[1], p)]
+      end
+    end
+
+    def transform_and(node, parent)
+      first_node = node[1]
+      second_node = node[2]
+      If.new(parent, position(node)) do |iff|
+        [
+          Condition.new(iff, position(first_node)) {|cond| [transform(first_node, cond)]},
+          transform(second_node, iff),
+          nil
+        ]
+      end
+    end
+
+    def transform_or(node, parent)
+      first_node = node[1]
+      second_node = node[2]
+      Body.new(parent, position(node)) do |block|
+        temp = transformer.tmp
+        [
+          LocalAssignment.new(block, position(first_node), temp) do |l|
+            [transform(first_node, l)]
+          end,
+          If.new(parent, position(node)) do |iff|
+            [
+              Condition.new(iff, position(first_node)) do |cond|
+                [Local.new(cond, position(first_node), temp)]
+              end,
+              Local.new(iff, position(first_node), temp),
+              transform(second_node, iff)
+            ]
+          end
+        ]
+      end
+    end
+
+    def transform_next(node, parent)
+      Next.new(parent, position(node))
+    end
+
+    def transform_not(node, parent)
+      Not.new(parent, position(node)) {|nott| [transform(node[1], nott)]}
+    end
+
+    def transform_redo(node, parent)
+      Redo.new(parent, position(node))
+    end
+
+    def transform_regex(node, parent)
+      contents = node[1]
+      modifiers = node[2]
+      if contents.size == 1 && contents[0][0] == 'String'
+        value = contents[0][1]
+        Regexp.new(parent, position(node), value)
+      else
+        raise "Unsupported regex #{node}"
+      end
+    end
+
+    def transform_ensure(node, parent)
+      Ensure.new(parent, position(node)) do |n|
+        node.children.map {|c| transform(c, n)}
+      end
+    end
+
+    def evaluate_at_start?(node)
+      node[0] =~ /Mod$/ && node[2] && node[2][0] == 'Begin'
+    end
+
+    def transform_while(node, parent)
+      condition_node = node[1]
+      body_node = node[2]
+      Loop.new(parent, position(node), evaluate_at_start?(node), false) do |loop|
+        [
+          Condition.new(loop, position(condition_node)) {|cond| [transform(condition_node, cond)]},
+          transform(body_node, loop)
+        ]
+      end
+    end
+    def transform_while_mod(node, parent)
+      transform_while(node, parent)
+    end
+
+    def transform_until(node, parent)
+      condition_node = node[1]
+      body_node = node[2]
+      Loop.new(parent, position(node), evaluate_at_start?(node), true) do |loop|
+        [
+          Condition.new(loop, position(condition_node)) {|cond| [transform(condition_node, cond)]},
+          transform(body_node, loop)
+        ]
+      end
+    end
+    def transform_until_mod(node, parent)
+      transform_until(node, parent)
+    end
+
+    def transform_for(node, parent)
+      var_node = node[1]
+      body_node = node[2]
+      iter_node = node[3]
+      Call.new(parent, position(node), 'each') do |each|
+        [
+          transformer.transform(iter_node, each),
+          [],
+          Block.new(each, position(body_node)) do |block|
+            [
+              Arguments.new(block, position(var_node)) do |args|
+                [
+                  # TODO support for multiple assignment?
+                  [RequiredArgument.new(args,
+                                        position(var_node),
+                                        var_node[1])
+                  ]
+                ]
+              end,
+              transformer.transform(body_node, block)
+            ]
+          end
+        ]
+      end
+    end
+
+    def transform_rescue(node, parent)
+      body_node = node[1]
+      clauses = node[2]
+      Rescue.new(parent, position(node)) do |node|
+        [
+          transformer.transform(body_node, node),
+          clauses.map {|clause| transformer.transform(clause, node)}
+        ]
+      end
+    end
+
+    def transform_rescue_clause(node, parent)
+      exceptions = node[1].map {|name| Duby::AST.type(name)}
+      var_name = node[2]
+      body = node[3]
+      exceptions = [Duby::AST.type('java.lang.Exception')] if exceptions.size == 0
+      RescueClause.new(parent, position(node)) do |clause|
+        clause.name = var_name if var_name
+        [
+          exceptions,
+          body ? transformer.transform(body, clause) : nil
+        ]
+      end
+    end
+
+    def transform_hash(node, parent)
+      Call.new(parent, position(node), 'new_hash') do |call|
+        [
+          Builtin.new(call, position(node)),
+          [
+            Array.new(call, position(node)) do |array|
+              values = []
+              node.children.each do |assoc|
+                assoc.children.each do |child|
+                  values << transform(child, array)
+                end
+              end
+              values
+            end
+          ]
+        ]
+      end
     end
 
     def transform_(node, parent)

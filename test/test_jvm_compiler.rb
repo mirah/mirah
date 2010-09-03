@@ -8,19 +8,20 @@ require 'stringio'
 unless Duby::AST.macro "__gloop__"
   Duby::AST.defmacro "__gloop__" do |transformer, fcall, parent|
     Duby::AST::Loop.new(parent, parent.position, true, false) do |loop|
-      init, condition, check_first, pre, post = fcall.args_node.child_nodes.to_a
-      loop.check_first = check_first.kind_of?(Duby::AST::JRubyAst::TrueNode)
+      init, condition, check_first, pre, post = fcall.parameters
+      loop.check_first = check_first.literal
 
-      nil_t = Duby::AST::JRubyAst::NilNode
-      loop.init = transformer.transform(init, loop) unless init.kind_of?(nil_t)
-      loop.pre = transformer.transform(pre, loop) unless pre.kind_of?(nil_t)
-      loop.post = transformer.transform(post, loop) unless post.kind_of?(nil_t)
+      nil_t = Duby::AST::Null
+      loop.init = init
+      loop.pre = pre
+      loop.post = post
 
-      body = transformer.transform(fcall.iter_node, loop).body
+      body = fcall.block.body
       body.parent = loop
       [
         Duby::AST::Condition.new(loop, parent.position) do |c|
-          [transformer.transform(condition, c)]
+          condition.parent = c
+          [condition]
         end,
         body
       ]

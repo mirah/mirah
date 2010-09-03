@@ -55,7 +55,7 @@ module Duby
         @resolved = false
         @position = position
         if block_given?
-          @children = []
+          @children ||= []
           @children = yield(self) || []
         else
           @children = children
