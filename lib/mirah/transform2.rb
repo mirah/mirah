@@ -752,7 +752,34 @@ module Duby::AST
       end
     end
 
-    def transform_(node, parent)
+    def transform_annotation(node, parent)
+      classname = node[1]
+      values = if node[2]
+        node[2].children
+      else
+        []
+      end
+      annotation = Annotation.new(parent, position(node), Duby::AST.type(classname))
+      values.each do |_, key, value|
+        name = key[1]
+        annotation[name] = annotation_value(value, annotation)
+      end
+      transformer.add_annotation(annotation)
+      return Noop.new(parent, position(node))
+    end
+
+    def annotation_value(node, annotation)
+      case node[0]
+      when 'String'
+        java.lang.String.new(value[1])
+      when 'Array'
+        value.children.map {|node| annotation_value(node, annotation)}
+      else
+        # TODO Support other types
+        ref = typeref(value, annotation)
+        desc = BiteScript::Signature.class_id(ref)
+        BiteScript::ASM::Type.getType(desc)
+      end
     end
 
   end
