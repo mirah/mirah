@@ -93,7 +93,7 @@ module Duby::AST
     end
 
     def infer(typer)
-      @static ||= scope.self_type.meta? unless scope.nil?
+      @static ||= scope.static_scope.self_type.meta? unless scope.nil?
       @defining_class ||= begin
         static_scope.self_type = if static?
           scope.static_scope.self_type.meta
@@ -121,15 +121,16 @@ module Duby::AST
   end
 
   defmacro 'def_jsni' do |transformer, fcall, parent|
-    args_node = fcall.args_node
+    args = fcall.parameters
 
-    unless fcall.class == JRubyAst::FCallNode &&
-        args_node.size == 3
+    unless args.size == 3
       raise "def_jsni must have 3 arguments."
     end
 
-    call_node = fcall[0][1]
-    is_static = call_node[0].class == Java::OrgJrubyparserAst::SelfNode
+    call_node = args[1]
+    if Self === call_node.target
+      is_static = true
+    end
 
     JsniMethodDefinition.new(is_static,
       parent,
@@ -137,19 +138,18 @@ module Duby::AST
       call_node.name,
       transformer.annotations) do |defn|
 
-      signature = {:return => args_node.first.type_reference(defn)}
-      method = fcall.args_node[1][0][0]
+      signature = {:return => Duby::AST::type(args[0].name)}
+      method = call_node.parameters[0]
 
       unless method.nil?
-        hash_node = method[0]
+        hash_node = method.parameters[0]
 
         args = Arguments.new(defn, defn.position) do |args_new|
           arg_list = []
           hash_node.child_nodes.each_slice(2) do |name, type|
-            position = Java::OrgJrubyparser::SourcePosition.
-              combinePosition(name.position, type.position)
-            name = name.name
-            type = type.type_reference(args_node)
+            position = name.position + type.position
+            name = name.literal
+            type = Duby::AST::type(type.name)
             signature[name.intern] = type
             arg_list.push(RequiredArgument.new(args_new, position, name))
           end
@@ -161,7 +161,7 @@ module Duby::AST
         end
       end
 
-      body_node = transformer.transform(args_node.last, defn)
+      body_node = fcall.parameters[-1]
 
       [
         signature,

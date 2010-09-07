@@ -56,8 +56,11 @@ module Duby
 
       class JMetaPosition
         attr_accessor :start_line, :end_line, :start_offset, :end_offset, :file
+        attr_accessor :startpos, :endpos
 
         def initialize(startpos, endpos)
+          @startpos = startpos
+          @endpos = endpos
           @file = startpos.filename
           @start_line = startpos.line
           @start_offset = startpos.pos
@@ -65,6 +68,10 @@ module Duby
           @end_line = endpos.line
           @end_offset = endpos.pos
           @end_col = endpos.col
+        end
+
+        def +(other)
+          JMetaPosition.new(@startpos, other.endpos)
         end
       end
 

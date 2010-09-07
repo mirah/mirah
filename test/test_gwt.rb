@@ -10,7 +10,7 @@ class TestGWT < Test::Unit::TestCase
   def test_jsni_static
     new_ast = parse("def_jsni void, _log(), 'hi'").body[0]
     # True after JsniMethodDefinition infer is called.
-    assert_equal(new_ast.static?, false)
+    assert(!new_ast.static?)
 
     new_ast = parse("def_jsni void, self._log(), 'hi'").body[0]
     assert_equal(new_ast.static?, true)
@@ -20,7 +20,7 @@ class TestGWT < Test::Unit::TestCase
         def_jsni void, _log(), 'hi'
       end
     S
-    assert_equal(new_ast.static?, false)
+    assert(!new_ast.static?)
   end
 
   def test_jsni_no_arg
@@ -37,7 +37,7 @@ class TestGWT < Test::Unit::TestCase
     assert_equal(return_type, true)
 
     has_arguments = new_ast.arguments.args
-    assert_equal(has_arguments, nil)
+    assert_equal(has_arguments, [])
   end
 
   def test_jsni_one_arg
