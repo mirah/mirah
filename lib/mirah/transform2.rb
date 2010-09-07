@@ -691,7 +691,7 @@ module Duby::AST
         clause.name = var_name if var_name
         [
           exceptions,
-          body ? transformer.transform(body, clause) : nil
+          body ? transformer.transform(body, clause) : Null.new(clause, position(node))
         ]
       end
     end
