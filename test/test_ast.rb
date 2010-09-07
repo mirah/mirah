@@ -59,10 +59,10 @@ class TestAst < Test::Unit::TestCase
     var = new_ast[1]
 
     assert(AST::FieldAssignment === asgn)
-    assert_equal("@a", asgn.name)
+    assert_equal("a", asgn.name)
     assert(AST::Fixnum === asgn.value)
     assert(AST::Field === var)
-    assert_equal("@a", var.name)
+    assert_equal("a", var.name)
   end
 
   def test_array
@@ -197,13 +197,12 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def foo; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments\n   Null(nil)", new_ast.inspect)
+    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments\n Null(nil)", new_ast.inspect)
     assert_not_nil(new_ast.arguments)
-    assert_equal(nil, new_ast.arguments.args)
+    assert_equal([], new_ast.arguments.args)
     assert_equal(nil, new_ast.arguments.opt_args)
     assert_equal(nil, new_ast.arguments.rest_arg)
     assert_equal(nil, new_ast.arguments.block_arg)
-    assert_nil(new_ast.body)
   end
 
   def test_defs
@@ -223,13 +222,12 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def self.foo; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("StaticMethodDefinition(foo)\n {:return=>nil}\n Arguments\n   Null(nil)", new_ast.inspect)
+    assert_equal("StaticMethodDefinition(foo)\n {:return=>nil}\n Arguments\n Null(nil)", new_ast.inspect)
     assert_not_nil(new_ast.arguments)
-    assert_equal(nil, new_ast.arguments.args)
+    assert_equal([], new_ast.arguments.args)
     assert_equal(nil, new_ast.arguments.opt_args)
     assert_equal(nil, new_ast.arguments.rest_arg)
     assert_equal(nil, new_ast.arguments.block_arg)
-    assert_nil(new_ast.body)
   end
 
   def test_signature
