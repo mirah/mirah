@@ -345,7 +345,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_imported_decl
-    cls, = compile("import 'java.util.ArrayList'; def foo(a => ArrayList); a.size; end")
+    cls, = compile("import 'java.util.ArrayList'; def foo(a:ArrayList); a.size; end")
     assert_equal 0, cls.foo(java.util.ArrayList.new)
   end
 
@@ -362,7 +362,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_interface
     cls, = compile(<<-EOF)
       import 'java.util.concurrent.Callable'
-      def foo(a => Callable)
+      def foo(a:Callable)
         throws Exception
         a.call
       end
@@ -802,7 +802,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         a.nil?
       end
 
-      def equal(a => Object, b => Object)
+      def equal(a:Object, b:Object)
         a == b
       end
     EOF

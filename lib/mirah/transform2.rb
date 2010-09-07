@@ -179,7 +179,7 @@ module Duby::AST
     def transform_attr_assign(node, parent)
       name = node[1]
       target = node[2]
-      args = node[3]
+      args = node[3] + [node[4]]
       position = position(node)
       case name
       when '[]='
@@ -326,11 +326,11 @@ module Duby::AST
         when 'Identifier'
           case target[1]
           when 'boolean', 'byte', 'short', 'char', 'int', 'long', 'float', 'double'
-            if args.size == 0
+            if args.nil? || args.size == 0
               constant = Constant.new(parent, position, target[1])
               constant.array = true
               return constant
-            else
+            elsif args && args.size == 1
               return EmptyArray.new(
                   parent, position,
                   Duby::AST::type(target[1])) do |array|
@@ -340,7 +340,7 @@ module Duby::AST
           # TODO look for imported, lower case class names
           end
         when 'Constant'
-          if args && args.size == 0
+          if args.nil? || args.size == 0
             constant = Constant.new(parent, position, target[1])
             constant.array = true
             return constant
@@ -466,7 +466,7 @@ module Duby::AST
       body = node[2]
       Block.new(parent, position(node)) do |block|
         [
-          args ? transformer.transform(args, block) : nil,
+          args ? transformer.transform(args, block) : Arguments.new(block, position(node)),
           body ? transformer.transform(body, block) : nil,
         ]
       end
@@ -600,7 +600,11 @@ module Duby::AST
     end
 
     def evaluate_at_start?(node)
-      node[0] =~ /Mod$/ && node[2] && node[2][0] == 'Begin'
+      if node[0] =~ /Mod$/ && node[2] && node[2][0] == 'Begin'
+        false
+      else
+        true
+      end
     end
 
     def transform_while(node, parent)
@@ -701,9 +705,45 @@ module Duby::AST
       end
     end
 
-    def transform_(node, parent)
+    def transform_op_assign(node, parent)
+      target = node[1]
+      attribute = node[2]
+      op = node[3]
+      value = node[4]
+      temp = transformer.tmp
+      tempval = transformer.tmp
+      position = position(node)
+      setter = "#{attribute}="
+      getter = attribute
+      Body.new(parent, position) do |body|
+        [
+          LocalAssignment.new(body, position, temp) {|l| transform(target, l)},
+          LocalAssignment.new(body, position, tempval) do |l|
+            Call.new(l, position, op) do |op_call|
+              [
+                Call.new(op_call, position, getter) do |get_call|
+                  [
+                    Local.new(get_call, position, temp),
+                    []
+                  ]
+                end,
+                [transform(value, op_call)],
+              ]
+            end
+          end,
+          Call.new(body, position, setter) do |set_call|
+            [
+              Local.new(set_call, position, temp),
+              [ Local.new(set_call, position, tempval) ],
+            ]
+          end,
+          Local.new(body, position, tempval),
+        ]
+      end
     end
 
+    def transform_(node, parent)
+    end
 
   end
 end
