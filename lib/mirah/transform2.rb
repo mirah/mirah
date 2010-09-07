@@ -242,7 +242,12 @@ module Duby::AST
         defn.signature = signature = {:return => nil}
 
         if body_node
-          for node in body_node.children
+          if body_node[0] == 'Body'
+            children = body_node.children
+          else
+            children = [body_node]
+          end
+          for node in children
             sig = signature(node, defn)
             break unless sig
             signature.update(sig) if sig.kind_of? ::Hash
@@ -270,7 +275,12 @@ module Duby::AST
         defn.signature = signature = {:return => nil}
 
         if body_node
-          for node in body_node.children
+          if body_node[0] == 'Body'
+            children = body_node.children
+          else
+            children = [body_node]
+          end
+          for node in children
             sig = signature(node, defn)
             break unless sig
             signature.update(sig) if sig.kind_of? ::Hash
