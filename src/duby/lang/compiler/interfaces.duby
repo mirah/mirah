@@ -54,10 +54,10 @@ interface Class do
 end
 
 interface Compiler do
-  # defmacro quote(&block) do
-  #   encoded = @duby.dump_ast(block.body)
-  #   quote { @duby.load_ast(`encoded`) }
-  # end
+  defmacro quote(&block) do
+    encoded = @mirah.dump_ast(block.body)
+    quote { @mirah.load_ast(`encoded`) }
+  end
 
   def find_class(name:String)
     returns Class
