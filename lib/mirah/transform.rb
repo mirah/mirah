@@ -208,9 +208,6 @@ module Duby
       java_import 'mirah.impl.MirahParser'
     rescue NameError
       $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/mirah-parser.jar'
-      # Temporary hack. We need to be able to load old macros containing
-      # JRubyParser's SourcePosition until we can rebuild mirah-bootstrap.jar.
-      $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/JRubyParser.jar'
       java_import 'mirah.impl.MirahParser'
     end
 
