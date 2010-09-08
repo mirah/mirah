@@ -139,7 +139,10 @@ module Duby
         values = Duby::AST::Unquote.extract_values do
           encoded = Base64.encode64(Marshal.dump(node))
         end
-        eval("['#{encoded}', #{values.join(', ')}]")
+        result = Duby::AST::Array.new(nil, node.position)
+        result << Duby::AST::String.new(result, node.position, encoded)
+        values.each {|value| result << value}
+        return result
       end
 
       def load_ast(args)
@@ -205,6 +208,9 @@ module Duby
       java_import 'mirah.impl.MirahParser'
     rescue NameError
       $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/mirah-parser.jar'
+      # Temporary hack. We need to be able to load old macros containing
+      # JRubyParser's SourcePosition until we can rebuild mirah-bootstrap.jar.
+      $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/JRubyParser.jar'
       java_import 'mirah.impl.MirahParser'
     end
 

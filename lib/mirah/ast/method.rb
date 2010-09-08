@@ -23,7 +23,9 @@ module Duby::AST
     end
 
     def args
-      (required || []) + (opt_args || [])
+      args = (required || []) + (opt_args || [])
+      args << block_arg if block_arg
+      return args
     end
   end
 

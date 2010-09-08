@@ -32,9 +32,18 @@ interface Macro do
     returns Node
   end
 
-  defmacro quote(&block) do
-    encoded = @duby.dump_ast(block.body)
-    quote { @duby.load_ast(`encoded`) }
+  # defmacro quote(&block) do
+  #   encoded = @duby.dump_ast(block.body)
+  #   quote { @duby.load_ast(`encoded`) }
+  # end
+  macro def quote(&block)
+    encoded = @mirah.dump_ast(block.body)
+    code = <<RUBY
+  call = eval("@mirah.load_ast(x)")
+  call.parameters[0] = arg
+  arg.parent = call
+RUBY
+    @mirah.__ruby_eval(code, encoded)
   end
 end
 
@@ -45,10 +54,10 @@ interface Class do
 end
 
 interface Compiler do
-  defmacro quote(&block) do
-    encoded = @duby.dump_ast(block.body)
-    quote { @duby.load_ast(`encoded`) }
-  end
+  # defmacro quote(&block) do
+  #   encoded = @duby.dump_ast(block.body)
+  #   quote { @duby.load_ast(`encoded`) }
+  # end
 
   def find_class(name:String)
     returns Class

@@ -214,4 +214,8 @@ module Duby::AST
       @inferred_type
     end
   end
+
+  class BlockPass < Node
+    child :value
+  end
 end

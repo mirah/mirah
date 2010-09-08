@@ -752,6 +752,18 @@ module Duby::AST
       end
     end
 
+    def transform_unquote(node, parent)
+      Unquote.new(parent, position(node)) do |unquote|
+        [transform(node[1], unquote)]
+      end
+    end
+
+    def transform_block_pass(node, parent)
+      BlockPass.new(parent, position(node)) do |blockpass|
+        [transform(node[1], blockpass)]
+      end
+    end
+
     def transform_annotation(node, parent)
       classname = node[1]
       values = if node[2]

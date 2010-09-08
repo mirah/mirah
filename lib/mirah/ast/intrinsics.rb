@@ -3,11 +3,10 @@ require 'fileutils'
 module Duby::AST
 
   class Unquote < Node
-    attr_accessor :value
+    child :value
 
-    def initialize(parent, position, value)
+    def initialize(parent, position)
       super(parent, position)
-      @value = value
     end
 
     def infer(typer)
@@ -199,9 +198,9 @@ module Duby::AST
       # The constructor just saves the state
       extension.define_constructor(
           position,
-          ['duby', Duby::AST.type('duby.lang.compiler.Compiler')],
+          ['mirah', Duby::AST.type('duby.lang.compiler.Compiler')],
           ['call', Duby::AST.type('duby.lang.compiler.Call')]) do |c|
-        transformer.eval("@duby = duby;@call = call", '-', c, 'duby', 'call')
+        transformer.eval("@mirah = mirah;@call = call", '-', c, 'mirah', 'call')
       end
 
       node_type = Duby::AST.type('duby.lang.compiler.Node')
@@ -260,9 +259,10 @@ module Duby::AST
             end
           when FunctionalCall
             RequiredArgument.new(mdef, arg.position, arg.name)
-          # when BlockPass
-          # BlockArgument.new(mdef, arg.position, arg.name)
-          # set optional correctly
+          when BlockPass
+            farg = BlockArgument.new(mdef, arg.position, arg.value.name)
+            farg.optional = true if LocalAssignment === arg.value
+            farg
           else
             raise "Unsupported argument #{arg}"
           end
