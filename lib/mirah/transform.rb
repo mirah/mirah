@@ -17,7 +17,7 @@ module Duby
       begin
         include Java::DubyLangCompiler.Compiler
       rescue NameError
-        $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/duby-bootstrap.jar'
+        $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/mirah-bootstrap.jar'
         include Java::DubyLangCompiler.Compiler
       end
 
