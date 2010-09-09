@@ -70,7 +70,7 @@ module Duby
         @method.print "#{name}("
         @method.print args_for_opt.map(&:name).join(', ')
         @method.print ', 'if args_for_opt.size > 0
-        arg.children[0].value.compile(self, true)
+        arg.value.compile(self, true)
 
         # invoke the next one in the chain
         @method.print ");\n"
@@ -188,7 +188,7 @@ module Duby
       end
 
       def field(name, type, annotations)
-        name = name[1..-1]
+        name = name[1..-1] if name =~ /^@/
         declare_field(name, type, annotations)
         @method.print "#{this}.#{name}"
       end
@@ -233,7 +233,7 @@ module Duby
       end
 
       def field_declare(name, type, annotations)
-        name = name[1..-1]
+        name = name[1..-1] if name =~ /^@/
         declare_field(name, type, annotations)
       end
 
@@ -243,7 +243,7 @@ module Duby
       end
 
       def field_assign(name, type, expression, value, annotations)
-        name = name[1..-1]
+        name = name[1..-1] if name =~ /^@/
         declare_field(name, type, annotations)
         lvalue = "#{@lvalue if expression}#{this}.#{name} = "
         store_value(lvalue, value)

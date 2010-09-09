@@ -30,8 +30,8 @@ class Builtin
     items = node.child_nodes
     capacity = int(items.size * 0.84)
     capacity = 16 if capacity < 16
-    literal = @duby.fixnum(capacity)
-    hashmap = @duby.constant("java.util.HashMap")
+    literal = @mirah.fixnum(capacity)
+    hashmap = @mirah.constant("java.util.HashMap")
     map = quote {`hashmap`.new(`literal`)}
     items.size.times do |i|
       next unless i % 2 == 0

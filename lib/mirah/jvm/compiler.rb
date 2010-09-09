@@ -134,7 +134,7 @@ module Duby
         args_for_opt.each do |req_arg|
           req_arg.inferred_type.load(@method, @method.local(req_arg.name, req_arg.inferred_type))
         end
-        arg.children[0].value.compile(self, true)
+        arg.value.compile(self, true)
 
         # invoke the next one in the chain
         if @static
@@ -546,7 +546,7 @@ module Duby
       end
 
       def field(name, type, annotations)
-        name = name[1..-1]
+        name = name[1..-1] if name =~ /^@/
 
         real_type = declared_fields[name] || type
 
@@ -581,12 +581,12 @@ module Duby
       end
 
       def field_declare(name, type, annotations)
-        name = name[1..-1]
+        name = name[1..-1] if name =~ /^@/
         declare_field(name, type, annotations)
       end
 
       def field_assign(name, type, expression, value, annotations)
-        name = name[1..-1]
+        name = name[1..-1] if name =~ /^@/
 
         real_type = declared_fields[name] || type
 

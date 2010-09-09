@@ -183,9 +183,9 @@ class DubyImpl
     Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
     begin
       ast = Duby::AST.parse_ruby(src, @filename)
-    rescue org.jrubyparser.lexer.SyntaxException => ex
-      Duby.print_error(ex.message, ex.position)
-      raise ex if @state.verbose
+    # rescue org.jrubyparser.lexer.SyntaxException => ex
+    #   Duby.print_error(ex.message, ex.position)
+    #   raise ex if @state.verbose
     end
     @transformer = Duby::Transform::Transformer.new(@state)
     Java::MirahImpl::Builtin.initialize_builtins(@transformer)

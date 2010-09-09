@@ -269,11 +269,7 @@ module Duby
 
     defmacro('raise') do |transformer, fcall, parent|
       Raise.new(parent, fcall.position) do |raise_node|
-        if fcall.args_node
-          fcall.args_node.child_nodes.map do |arg|
-            transformer.transform(arg, raise_node)
-          end
-        end
+        fcall.parameters
       end
     end
 

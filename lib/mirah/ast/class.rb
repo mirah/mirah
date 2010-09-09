@@ -98,8 +98,8 @@ module Duby::AST
   end
 
   defmacro('implements') do |transformer, fcall, parent|
-    interfaces = fcall.args_node.child_nodes.map do |interface|
-      interface.type_reference(parent)
+    interfaces = fcall.parameters.map do |interface|
+      Duby::AST::type(interface.name)
     end
     klass = parent
     klass = klass.parent unless ClassDefinition === klass
@@ -131,21 +131,22 @@ module Duby::AST
   end
 
   defmacro('interface') do |transformer, fcall, parent|
-    raise "Interface name required" unless fcall.args_node
-    interfaces = fcall.args_node.child_nodes.to_a
+    raise "Interface name required" unless fcall.parameters.size > 0
+    interfaces = fcall.parameters
     interface_name = interfaces.shift
-    if (JRubyAst::CallNode === interface_name &&
-        interface_name.args_node.size == 1)
-      interfaces.unshift(interface_name.args_node.get(0))
-      interface_name = interface_name.receiver_node
+    if (Call === interface_name &&
+        interface_name.parameters.size == 1)
+      interfaces.unshift(interface_name.parameters[0])
+      interface_name = interface_name.target
     end
-    raise 'Interface body required' unless fcall.iter_node
+    raise 'Interface body required' unless fcall.block
     InterfaceDeclaration.new(parent, fcall.position,
                              interface_name.name,
                              transformer.annotations) do |interface|
-      [interfaces.map {|p| p.type_reference(interface)},
-       if fcall.iter_node.body_node
-         transformer.transform(fcall.iter_node.body_node, interface)
+      [interfaces.map {|p| Duby::AST.type(p.name) },
+       if fcall.block.body
+         fcall.block.body.parent = interface
+         fcall.block.body
        end
       ]
     end
@@ -256,9 +257,9 @@ module Duby::AST
   end
 
   defmacro("include") do |transformer, fcall, parent|
-    raise "Included Class name required" unless fcall.args_node
-    types = fcall.args_node.child_nodes.map do |type|
-      type.type_reference(parent)
+    raise "Included Class name required" unless fcall.parameters.size > 0
+    types = fcall.parameters.map do |const|
+      Duby::AST::type(const.name)
     end
     Include.new(parent, fcall.position, types)
   end

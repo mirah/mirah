@@ -8,19 +8,20 @@ require 'stringio'
 unless Duby::AST.macro "__gloop__"
   Duby::AST.defmacro "__gloop__" do |transformer, fcall, parent|
     Duby::AST::Loop.new(parent, parent.position, true, false) do |loop|
-      init, condition, check_first, pre, post = fcall.args_node.child_nodes.to_a
-      loop.check_first = check_first.kind_of?(Duby::AST::JRubyAst::TrueNode)
+      init, condition, check_first, pre, post = fcall.parameters
+      loop.check_first = check_first.literal
 
-      nil_t = Duby::AST::JRubyAst::NilNode
-      loop.init = transformer.transform(init, loop) unless init.kind_of?(nil_t)
-      loop.pre = transformer.transform(pre, loop) unless pre.kind_of?(nil_t)
-      loop.post = transformer.transform(post, loop) unless post.kind_of?(nil_t)
+      nil_t = Duby::AST::Null
+      loop.init = init
+      loop.pre = pre
+      loop.post = post
 
-      body = transformer.transform(fcall.iter_node, loop).body
+      body = fcall.block.body
       body.parent = loop
       [
         Duby::AST::Condition.new(loop, parent.position) do |c|
-          [transformer.transform(condition, c)]
+          condition.parent = c
+          [condition]
         end,
         body
       ]
@@ -252,7 +253,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_array_with_dynamic_size
-    cls, = compile("def foo(size => :int); a = int[size + 1];end")
+    cls, = compile("def foo(size:int); a = int[size + 1];end")
     array = cls.foo(3)
     assert_equal(Java::int[].java_class, array.class.java_class)
     assert_equal([0,0,0,0], array.to_a)
@@ -344,7 +345,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_imported_decl
-    cls, = compile("import 'java.util.ArrayList'; def foo(a => ArrayList); a.size; end")
+    cls, = compile("import 'java.util.ArrayList'; def foo(a:ArrayList); a.size; end")
     assert_equal 0, cls.foo(java.util.ArrayList.new)
   end
 
@@ -361,7 +362,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_interface
     cls, = compile(<<-EOF)
       import 'java.util.concurrent.Callable'
-      def foo(a => Callable)
+      def foo(a:Callable)
         throws Exception
         a.call
       end
@@ -430,7 +431,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_unless_fixnum
     cls, = compile(<<-EOF)
-      def foo(a => :fixnum)
+      def foo(a:fixnum)
         values = boolean[5]
         values[0] = true unless a < 0
         values[1] = true unless a <= 0
@@ -447,7 +448,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_unless_float
     cls, = compile(<<-EOF)
-      def foo(a => :float)
+      def foo(a:float)
         values = boolean[5]
         values[0] = true unless a < 0.0
         values[1] = true unless a <= 0.0
@@ -464,7 +465,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_if_fixnum
     cls, = compile(<<-EOF)
-      def foo(a => :fixnum)
+      def foo(a:fixnum)
         if a < -5
           -6
         elsif a <= 0
@@ -492,7 +493,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_if_float
     cls, = compile(<<-EOF)
-      def foo(a => :float)
+      def foo(a:float)
         if a < -5.0
           -6
         elsif a <= 0.0
@@ -520,7 +521,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_if_boolean
     cls, = compile(<<-EOF)
-      def foo(a => :boolean)
+      def foo(a:boolean)
         if a
           'true'
         else
@@ -534,14 +535,14 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_if_int
     # conditions don't work with :int
-    # cls, = compile("def foo(a => :int); if a < 0; -a; else; a; end; end")
+    # cls, = compile("def foo(a:int); if a < 0; -a; else; a; end; end")
     # assert_equal 1, cls.foo(-1)
     # assert_equal 3, cls.foo(3)
   end
 
   def test_trailing_conditions
     cls, = compile(<<-EOF)
-      def foo(a => :fixnum)
+      def foo(a:fixnum)
         return '+' if a > 0
         return '0' unless a < 0
         '-'
@@ -591,25 +592,25 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_loop
     cls, = compile(
-        'def foo(a => :fixnum);while a > 0; a -= 1; puts ".";end;end')
+        'def foo(a:fixnum);while a > 0; a -= 1; puts ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a => :fixnum);begin;a -= 1; puts ".";end while a > 0;end')
+        'def foo(a:fixnum);begin;a -= 1; puts ".";end while a > 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a => :fixnum);until a <= 0; a -= 1; puts ".";end;end')
+        'def foo(a:fixnum);until a <= 0; a -= 1; puts ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a => :fixnum);begin;a -= 1; puts ".";end until a <= 0;end')
+        'def foo(a:fixnum);begin;a -= 1; puts ".";end until a <= 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
@@ -777,7 +778,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_fields
     cls, = compile(<<-EOF)
       class FieldTest
-        def initialize(a => :fixnum)
+        def initialize(a:fixnum)
           @a = a
         end
 
@@ -797,11 +798,11 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_object_intrinsics
     cls, = compile(<<-EOF)
       import 'java.lang.Object'
-      def nil(a => :Object)
+      def nil(a:Object)
         a.nil?
       end
 
-      def equal(a => Object, b => Object)
+      def equal(a:Object, b:Object)
         a == b
       end
     EOF
@@ -831,27 +832,27 @@ class TestJVMCompiler < Test::Unit::TestCase
 
   def test_argument_widening
     cls, = compile(<<-EOF)
-      def _Byte(a => :byte)
+      def _Byte(a:byte)
         _Short(a)
       end
 
-      def _Short(a => :short)
+      def _Short(a:short)
         _Int(a)
       end
 
-      def _Int(a => :int)
+      def _Int(a:int)
         _Long(a)
       end
 
-      def _Long(a => :long)
+      def _Long(a:long)
         _Float(a)
       end
 
-      def _Float(a => :float)
+      def _Float(a:float)
         _Double(a)
       end
 
-      def _Double(a => :double)
+      def _Double(a:double)
         a
       end
       EOF

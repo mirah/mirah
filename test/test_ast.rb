@@ -16,7 +16,7 @@ class TestAst < Test::Unit::TestCase
     assert(AST::Arguments === arguments)
     children = arguments.children
     assert_not_nil(children)
-    assert_equal(4, children.size)
+    assert_equal(5, children.size)
     assert(Array === children[0])
     assert(AST::RequiredArgument === children[0][0])
     assert_equal("a", children[0][0].name)
@@ -24,9 +24,9 @@ class TestAst < Test::Unit::TestCase
     assert(AST::RestArgument === children[2])
     assert_equal("c", children[2].name)
     assert_equal(arguments, children[2].parent)
-    assert(AST::BlockArgument === children[3])
-    assert_equal("d", children[3].name)
-    assert_equal(arguments, children[3].parent)
+    assert(AST::BlockArgument === children[4])
+    assert_equal("d", children[4].name)
+    assert_equal(arguments, children[4].parent)
   end
 
   def test_locals
@@ -36,18 +36,14 @@ class TestAst < Test::Unit::TestCase
     assert(AST::Body === new_ast)
     inspected = "Body\n LocalAssignment(name = a, scope = Script, captured = false)\n  Fixnum(1)\n FunctionalCall(a)"
     assert_equal(inspected, new_ast.inspect)
-    assert(!new_ast.newline)
 
     asgn = new_ast[0]
     var = new_ast[1]
 
     assert(AST::LocalAssignment === asgn)
-    assert(asgn.newline)
     assert_equal("a", asgn.name)
     assert(AST::Fixnum === asgn.value)
-    assert(!asgn.value.newline)
     assert(AST::FunctionalCall === var)
-    assert(var.newline)
     assert_equal("a", var.name)
   end
 
@@ -56,21 +52,17 @@ class TestAst < Test::Unit::TestCase
 
     assert_not_nil(new_ast)
     assert(AST::Body === new_ast)
-    inspected = "Body\n FieldAssignment(@a)\n  Fixnum(1)\n Field(@a)"
+    inspected = "Body\n FieldAssignment(a)\n  Fixnum(1)\n Field(a)"
     assert_equal(inspected, new_ast.inspect)
-    assert(!new_ast.newline)
 
     asgn = new_ast[0]
     var = new_ast[1]
 
     assert(AST::FieldAssignment === asgn)
-    assert(asgn.newline)
-    assert_equal("@a", asgn.name)
+    assert_equal("a", asgn.name)
     assert(AST::Fixnum === asgn.value)
-    assert(!asgn.value.newline)
     assert(AST::Field === var)
-    assert(var.newline)
-    assert_equal("@a", var.name)
+    assert_equal("a", var.name)
   end
 
   def test_array
@@ -138,9 +130,6 @@ class TestAst < Test::Unit::TestCase
 
     new_ast = AST.parse("begin; 1; end").body[0]
     assert(AST::Fixnum === new_ast)
-
-    new_ast = AST.parse("begin; end").body[0]
-    assert(AST::Noop === new_ast)
   end
 
   def test_block
@@ -188,7 +177,7 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("class Foo < Bar; def foo; end; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("ClassDefinition(Foo)\n Type(Bar)\n Body\n  MethodDefinition(foo)\n   {:return=>nil}\n   Arguments", new_ast.inspect)
+    assert_equal("ClassDefinition(Foo)\n Type(Bar)\n Body\n  MethodDefinition(foo)\n   {:return=>nil}\n   Arguments\n   Null(nil)", new_ast.inspect)
     assert_equal(new_ast, new_ast.body.parent)
   end
 
@@ -208,13 +197,12 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def foo; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments", new_ast.inspect)
+    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments\n Null(nil)", new_ast.inspect)
     assert_not_nil(new_ast.arguments)
-    assert_equal(nil, new_ast.arguments.args)
+    assert_equal([], new_ast.arguments.args)
     assert_equal(nil, new_ast.arguments.opt_args)
     assert_equal(nil, new_ast.arguments.rest_arg)
     assert_equal(nil, new_ast.arguments.block_arg)
-    assert_nil(new_ast.body)
   end
 
   def test_defs
@@ -234,13 +222,12 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def self.foo; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("StaticMethodDefinition(foo)\n {:return=>nil}\n Arguments", new_ast.inspect)
+    assert_equal("StaticMethodDefinition(foo)\n {:return=>nil}\n Arguments\n Null(nil)", new_ast.inspect)
     assert_not_nil(new_ast.arguments)
-    assert_equal(nil, new_ast.arguments.args)
+    assert_equal([], new_ast.arguments.args)
     assert_equal(nil, new_ast.arguments.opt_args)
     assert_equal(nil, new_ast.arguments.rest_arg)
     assert_equal(nil, new_ast.arguments.block_arg)
-    assert_nil(new_ast.body)
   end
 
   def test_signature

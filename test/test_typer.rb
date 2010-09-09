@@ -35,7 +35,7 @@ class TestTyper < Test::Unit::TestCase
     ast2 = AST.parse("begin; end")
 
     assert_equal(AST::TypeReference.new("fixnum"), ast1.infer(Typer::Simple.new(:bar)))
-    assert_equal(AST::no_type, ast2.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::TypeReference::NullType, ast2.infer(Typer::Simple.new(:bar)))
   end
 
   def test_local
@@ -72,9 +72,9 @@ class TestTyper < Test::Unit::TestCase
         type = typer.self_type
       end
 
-      assert_equal(typer.no_type, typer.method_type(type, 'foo', [typer.string_type]))
+      assert_equal(typer.null_type, typer.method_type(type, 'foo', [typer.string_type]))
       assert_equal(typer.string_type, typer.local_type(ast1.body[0].static_scope, 'a'))
-      assert_equal(typer.no_type, ast1.body.inferred_type)
+      assert_equal(typer.null_type, ast1.body.inferred_type)
       assert_equal(typer.string_type, ast1.body[0].arguments.args[0].inferred_type)
 
       ast1 = AST.parse("#{def_foo}(a:string); a; end")

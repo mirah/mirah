@@ -1,8 +1,9 @@
 module Duby::AST
   class Arguments < Node
-    child :args
+    child :required
     child :opt_args
     child :rest_arg
+    child :required2
     child :block_arg
 
     def initialize(parent, line_number, &block)
@@ -19,6 +20,12 @@ module Duby::AST
         end
       end
       @inferred_type
+    end
+
+    def args
+      args = (required || []) + (opt_args || [])
+      args << block_arg if block_arg
+      return args
     end
   end
 
@@ -58,7 +65,7 @@ module Duby::AST
   class OptionalArgument < Argument
     include Named
     include Scoped
-    child :child
+    child :value
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
@@ -72,8 +79,8 @@ module Duby::AST
         # for signature info
         method_def = parent.parent
         signature = method_def.signature
-
-        signature[name.intern] = child.infer(typer)
+        value_type = value.infer(typer)
+        signature[name.intern] ||= value_type
       end
     end
   end
