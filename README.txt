@@ -45,6 +45,9 @@ Only JRuby is supported at this time.
 
 To build the Duby jars from source you should have a checkout of both jruby and
 bitescript in Duby's parent directory. Run "ant jar-complete" in jruby, then in
-the duby directory "../jruby/bin/jruby -S rake jar" to build the Duby jar. Use
-"jar:complete" instead to produce a free-standing jar file with JRuby and the
-JRubyParser libraries included.
+the duby directory:
+
+* jruby -I `pwd`/../../lib:`pwd`/../bitescript/lib -S rake jar
+ 
+to build the Duby jar. Use "jar:complete" instead to produce a free-standing jar 
+file with JRuby and the JRubyParser libraries included.
