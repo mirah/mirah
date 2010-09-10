@@ -3,7 +3,7 @@
     <type>org.netbeans.modules.ruby.rubyproject</type>
     <configuration>
         <data xmlns="http://www.netbeans.org/ns/ruby-project/1">
-            <name>Duby</name>
+            <name>Mirah</name>
             <source-roots>
                 <root id="src.src.dir"/>
                 <root id="examples.dir"/>
