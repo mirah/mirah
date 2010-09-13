@@ -2424,4 +2424,22 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("A", map["a"])
     assert_equal("B", map["b"])
   end
+
+  def test_loop_in_ensure
+    cls, = compile(<<-EOF)
+    begin
+      puts "a"
+      begin
+        puts "b"
+        break
+      end while false
+      puts "c"
+    ensure
+      puts "ensure"
+    end
+    EOF
+
+    assert_output("a\nb\nc\nensure\n") { cls.main(nil) }
+  end
+
 end
