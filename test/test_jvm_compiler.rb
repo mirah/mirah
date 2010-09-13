@@ -2356,6 +2356,38 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("foobar", script.macro)
   end
 
+  def test_unquote
+    # TODO fix annotation output and create a duby.anno.Extensions annotation.
+    return if self.class.name == 'TestJavacCompiler'
+    # TODO figure out why this fails to compile in the unittests but works
+    # otherwise.
+    return
+    script, cls = compile(<<-EOF)
+      import duby.lang.compiler.StringNode
+      class UnquoteMacros
+        macro def make_attr(name_node, type)
+          name = StringNode(name_node).literal()
+          quote do
+            def `name`
+              @`name`
+            end
+            def `"#{name}_set"`(`name`:`type`)
+              @`name` = `name`
+            end
+          end
+        end
+
+        make_attr :foo, :int
+      end
+
+      x = UnquoteMacros.new
+      puts x.foo
+      x.foo = 3
+      puts x.foo
+    EOF
+    assert_output("1\n3\n") {script.main(nil)}
+  end
+
   def test_static_import
     cls, = compile(<<-EOF)
       import java.util.Arrays

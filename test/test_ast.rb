@@ -234,16 +234,11 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("def self.foo(a:foo, b:bar) returns :baz; 1; end").body[0]
 
     assert_not_nil(new_ast.signature)
-    inspected = "StaticMethodDefinition(foo)\n {:return=>Type(baz), :a=>Type(foo), :b=>Type(bar)}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Body\n  Noop\n  Fixnum(1)"
+    inspected = "StaticMethodDefinition(foo)\n {:return=>Type(baz)}\n Arguments\n  RequiredArgument(a)\n   FunctionalCall(foo)\n  RequiredArgument(b)\n   FunctionalCall(bar)\n Body\n  Noop\n  Fixnum(1)"
     assert_equal(inspected, new_ast.inspect)
     signature = new_ast.signature
-    assert_equal(3, signature.size)
+    assert_equal(1, signature.size)
     assert(AST::TypeReference === signature[:return])
-    assert_equal("baz", signature[:return].name)
-    assert(AST::TypeReference === signature[:a])
-    assert_equal("foo", signature[:a].name)
-    assert(AST::TypeReference === signature[:b])
-    assert_equal("bar", signature[:b].name)
   end
 
   def test_return

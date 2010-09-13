@@ -17,14 +17,21 @@ module Duby::AST
       vals = Unquote.__extracted
       index = vals.size
       vals << self.value
-      index.to_s
+      Marshal.dump([position, index])
     end
 
+
     def self._load(str)
-      # This just returns the exact node passed in.
-      # We need to be smarter (convert strings to nodes, merge lists, etc.)
-      index = str.to_i
-      Unquote.__injected[index].dup
+      if str =~ /^\d+$/
+        # This just returns the exact node passed in.
+        index = str.to_i
+        Unquote.__injected[index].dup
+      else
+        position, index = Marshal.load(str)
+        holder = UnquotedValue.new(nil, position)
+        holder << Unquote.__injected[index].dup
+        holder
+      end
     end
 
     def self.__extracted
@@ -59,6 +66,55 @@ module Duby::AST
         yield
       ensure
         self.__injected = nil
+      end
+    end
+  end
+
+  class UnquotedValue < Node
+    java_import 'java.lang.Character'
+    child :value
+
+    def name
+      case value
+      when Duby::AST::String
+        value.literal
+      when ::String
+        value
+      when Named
+        value.name
+      else
+        raise "Bad unquote value #{value}"
+      end
+    end
+
+    def node
+      case value
+      when Node
+        value
+      when ::String
+        c = value[0]
+        if c == ?@
+          return Field.new(nil, position, value[1, value.length])
+        elsif Character.isUpperCase(c)
+          return Constant.new(nil, position, value)
+        else
+          return Local.new(nil, position, value)
+        end
+      else
+        raise "Bad unquote value"
+      end
+    end
+
+    def f_arg
+      case value
+      when Arguments, Argument
+        value
+      when Named
+        RequiredArgument.new(nil, position, value.name)
+      when ::String
+        RequiredArgument.new(nil, position, value)
+      else
+        raise "Bad unquote value"
       end
     end
   end
@@ -187,13 +243,16 @@ module Duby::AST
 
     def build_ast(name, parent, transformer)
       # TODO should use a new type factory too.
-      ast = Duby::AST.parse_ruby("import duby.lang.compiler.Node")
+      
+      ast = Duby::AST.parse_ruby("begin;end")
       ast = transformer.transform(ast, nil)
 
       # Start building the extension class
       extension = transformer.define_class(position, name)
       #extension.superclass = Duby::AST.type('duby.lang.compiler.Macro')
       extension.implements(Duby::AST.type('duby.lang.compiler.Macro'))
+
+      extension.append_node(transformer.eval("import duby.lang.compiler.Node"))
 
       # The constructor just saves the state
       extension.define_constructor(
@@ -232,6 +291,7 @@ module Duby::AST
       end
       m = extension.define_method(position, '_expand', node_type, *actual_args)
       m.body = self.body
+      ast.body = extension
       ast
     end
   end

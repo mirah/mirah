@@ -99,7 +99,7 @@ module Duby::AST
 
   defmacro('implements') do |transformer, fcall, parent|
     interfaces = fcall.parameters.map do |interface|
-      Duby::AST::type(interface.name)
+      interface.type_reference
     end
     klass = parent
     klass = klass.parent unless ClassDefinition === klass
@@ -143,7 +143,7 @@ module Duby::AST
     InterfaceDeclaration.new(parent, fcall.position,
                              interface_name.name,
                              transformer.annotations) do |interface|
-      [interfaces.map {|p| Duby::AST.type(p.name) },
+      [interfaces.map {|p| p.type_reference },
        if fcall.block.body
          fcall.block.body.parent = interface
          fcall.block.body
@@ -259,7 +259,7 @@ module Duby::AST
   defmacro("include") do |transformer, fcall, parent|
     raise "Included Class name required" unless fcall.parameters.size > 0
     types = fcall.parameters.map do |const|
-      Duby::AST::type(const.name)
+      const.type_reference
     end
     Include.new(parent, fcall.position, types)
   end

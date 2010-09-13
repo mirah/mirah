@@ -115,27 +115,32 @@ module Duby::AST
 
     def transform_required_argument(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
-      if type
-        defn = parent.parent
-        defn.signature[name.intern] = @mirah.type_reference(type, parent)
-      end
-      RequiredArgument.new(parent, position(node), name)
+      type_node = transform(type, parent) if type
+      RequiredArgument.new(parent, position(node), name, type_node)
     end
 
     def transform_opt_arg(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
       value = node[3]
       if type
         defn = parent.parent
         defn.signature[name.intern] = @mirah.type_reference(type, parent)
       end
-      OptionalArgument.new(parent, position(node), name) {|optarg| [@mirah.transform(value, optarg)]}
+      OptionalArgument.new(parent, position(node), name) do |optarg| 
+        [
+          type ? transform(type, optarg) : nil,
+          transform(value, optarg),
+        ]
+      end
     end
 
     def transform_rest_arg(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
       if type
         defn = parent.parent
@@ -146,6 +151,7 @@ module Duby::AST
 
     def transform_block_arg(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
       if type
         defn = parent.parent
@@ -213,6 +219,7 @@ module Duby::AST
       else
         raise "Unsupported class name #{cpath[0]}"
       end
+      name = transform(name, nil) unless name.kind_of?(::String)
       ClassDefinition.new(parent, position(node),
                           name,
                           transformer.annotations) do |class_def|
@@ -225,6 +232,7 @@ module Duby::AST
 
     def transform_def(node, parent)
       name, args_node, body_node = node[1], node[2], node[3]
+      name = transform(name, nil) unless name.kind_of?(::String)
       position = position(node)
       actual_name = name
       if name =~ /=$/
@@ -263,6 +271,7 @@ module Duby::AST
 
     def transform_def_static(node, parent)
       name, args_node, body_node = node[1], node[2], node[3]
+      name = transform(name, nil) unless name.kind_of?(::String)
       position = position(node)
       actual_name = name
       if name =~ /=$/
@@ -300,6 +309,7 @@ module Duby::AST
       end
 
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       args = node[2]
       iter_node = node[3]
       fcall = FunctionalCall.new(parent, position(node), name) do |call|
@@ -323,6 +333,7 @@ module Duby::AST
 
     def transform_call(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       target = node[2]
       args = node[3]
       iter_node = node[4]
@@ -484,11 +495,13 @@ module Duby::AST
 
     def transform_inst_var(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       Field.new(parent, position(node), name, transformer.annotations)
     end
 
     def transform_inst_var_assign(node, parent)
       name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
       value_node = node[2]
       position = position(node)
       case value_node[0]
@@ -685,6 +698,7 @@ module Duby::AST
     def transform_rescue_clause(node, parent)
       exceptions = node[1].map {|name| Duby::AST.type(name)}
       var_name = node[2]
+      name = transform(var_name, nil) unless var_name.nil? || var_name.kind_of?(::String)
       body = node[3]
       exceptions = [Duby::AST.type('java.lang.Exception')] if exceptions.size == 0
       RescueClause.new(parent, position(node)) do |clause|

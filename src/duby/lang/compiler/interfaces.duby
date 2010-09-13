@@ -27,6 +27,12 @@ interface Call < Node do
   end
 end
 
+interface StringNode < Node do
+  def literal
+    returns String
+  end
+end
+
 interface Macro do
   def expand
     returns Node

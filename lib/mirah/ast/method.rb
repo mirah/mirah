@@ -22,6 +22,60 @@ module Duby::AST
       @inferred_type
     end
 
+    def arg_types_match(arg_node, child_index)
+      if RequiredArgument == arg_node && (child_index == 0 || child_index == 3)
+        return true
+      else
+        return OptionalArgument == arg_node && child_index == 1
+      end
+    end
+
+    def validate_child(args, child_index)
+      if args.kind_of?(Array)
+        args.each_with_index do |arg, arg_index|
+          if UnquotedValue === arg
+            actual_arg = arg.f_arg
+            if arg_types_match(actual_arg, child_index)
+              args[arg_index] = actual_arg
+              actual_arg.parent = self
+            else
+              args[arg_index, 1] = []
+              merge_args(actual_arg, child_index)
+            end
+          end
+        end
+      elsif UnquotedValue == args
+        @children[child_index] = nil
+        merge_args(args.f_arg, child_index)
+      end
+    end
+
+    def merge_args(args, child_index)
+      args.parent = self if Argument === args
+      case args
+      when Arguments
+        args.children.each_with_index {|child, i| merge_args(child, i)}
+      when Array
+        args.each {|arg| merge_args(arg, child_index)}
+      when RequiredArgument
+        if child_index > 2
+          self.required2 << args
+        else
+          self.required << args
+        end
+      when OptionalArgument
+        self.opt_args << args
+      when RestArgument
+        raise "Multiple rest args" unless rest_arg.nil?
+        self.rest_arg = args
+      when BlockArgument
+        raise "Multiple block args" unless block_arg.nil?
+        self.block_arg = args
+      else
+        raise "Unknown argument type #{args.class}"
+      end
+    end
+
     def args
       args = (required || []) + (opt_args || [])
       args << block_arg if block_arg
@@ -41,9 +95,10 @@ module Duby::AST
   class RequiredArgument < Argument
     include Named
     include Scoped
+    child :type_node
 
-    def initialize(parent, line_number, name)
-      super(parent, line_number)
+    def initialize(parent, line_number, name, type=nil)
+      super(parent, line_number, [type])
 
       @name = name
     end
@@ -56,6 +111,10 @@ module Duby::AST
         method_def = parent.parent
         signature = method_def.signature
 
+        if type_node
+          signature[name.intern] = type_node.type_reference
+        end
+
         # if signature, search for this argument
         signature[name.intern] || typer.local_type(scope, name)
       end
@@ -65,6 +124,7 @@ module Duby::AST
   class OptionalArgument < Argument
     include Named
     include Scoped
+    child :type_node
     child :value
 
     def initialize(parent, line_number, name, &block)
@@ -80,7 +140,8 @@ module Duby::AST
         method_def = parent.parent
         signature = method_def.signature
         value_type = value.infer(typer)
-        signature[name.intern] ||= value_type
+        declared_type = type_node.type_reference if type_node
+        signature[name.intern] = declared_type || value_type
       end
     end
   end

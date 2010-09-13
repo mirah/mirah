@@ -65,6 +65,7 @@ module Duby::AST
 
   class String < Node
     include Literal
+    include Java::DubyLangCompiler.StringNode
 
     def initialize(parent, line_number, literal)
       super(parent, line_number)
@@ -75,6 +76,14 @@ module Duby::AST
       return @inferred_type if resolved?
       resolved!
       @inferred_type ||= typer.string_type
+    end
+
+    def type_reference
+      Duby::AST::type(@literal)
+    end
+
+    def toString
+      @literal
     end
   end
 

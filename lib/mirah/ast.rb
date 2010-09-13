@@ -63,7 +63,7 @@ module Duby
       end
 
       def _dump(depth)
-        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @typer)
+        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @class_scope @typer)
         vars = {}
         instance_variables.each do |name|
           next if to_skip.include?(name)
@@ -87,7 +87,27 @@ module Duby
         node.children.each do |child|
           node._set_parent(child)
         end
+        node.validate_children
         node
+      end
+
+      def validate_children
+        validate_name if respond_to?(:validate_name)
+        children.each_with_index do |child, i|
+          validate_child(child, i)
+        end
+      end
+
+      def validate_child(child, i)
+        name = self.class.child_name(i)
+        validator = :"validate_#{name}"
+        if name && respond_to?(validator)
+          send validator
+        else
+          if UnquotedValue === child
+            self[i] = child.node
+          end
+        end
       end
 
       def line_number
@@ -145,6 +165,11 @@ module Duby
       def to_s; simple_name; end
 
       def [](index) children[index] end
+
+      def []=(index, node)
+        node.parent = self
+        @children[index] = node
+      end
 
       def each(&b) children.each(&b) end
 
@@ -233,6 +258,12 @@ module Duby
 
       def to_s
         "#{super}(#{name})"
+      end
+
+      def validate_name
+        if UnquotedValue === @name
+          @name = @name.name
+        end
       end
     end
 
@@ -420,6 +451,10 @@ module Duby
         @inferred_type ||= begin
           typer.type_reference(name, @array, true)
         end
+      end
+
+      def type_reference
+        Duby::AST::type(@name, @array)
       end
     end
 

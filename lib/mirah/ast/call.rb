@@ -59,6 +59,15 @@ module Duby::AST
       nil
     end
 
+    def validate_parameters
+      parameters.each_with_index do |child, i|
+        if UnquotedValue === child
+          child.parent = self
+          parameters[i] = child.node
+        end
+      end
+    end
+
     def infer(typer)
       unless @inferred_type
         @self_type ||= scope.static_scope.self_type
@@ -106,6 +115,10 @@ module Duby::AST
 
       @inferred_type
     end
+
+    def type_reference
+      Duby::AST::type(name)
+    end
   end
 
   class Call < Node
@@ -126,6 +139,15 @@ module Duby::AST
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, &kids)
       @name = name
+    end
+
+    def validate_parameters
+      parameters.each_with_index do |child, i|
+        if UnquotedValue === child
+          child.parent = self
+          parameters[i] = child.node
+        end
+      end
     end
 
     def arguments
@@ -171,6 +193,14 @@ module Duby::AST
       end
 
       @inferred_type
+    end
+
+    def type_reference
+      if name == '[]'
+        target.type_reference.array
+      else
+        raise "Unsupported type node #{self}"
+      end
     end
   end
 
