@@ -1987,6 +1987,18 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("Hello Closures\n") do
       cls.foo
     end
+
+    cls, = compile(<<-EOF)
+      def run(x:Runnable)
+        x.run
+      end
+      def foo
+        a = 1
+        run {a += 1}
+        a
+      end
+    EOF
+    assert_equal(2, cls.foo)
   end
 
   def test_block_with_method_def
