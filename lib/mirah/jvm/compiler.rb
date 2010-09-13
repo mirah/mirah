@@ -81,7 +81,7 @@ module Duby
           if Duby::AST::Ensure === scope
             found << scope
           end
-          break if scope === before
+          break if before === scope
         end
         found
       end
