@@ -38,32 +38,29 @@ module Duby
   end
 
   def self.print_error(message, position)
-    puts "#{position.file}:#{position.start_line + 1}: #{message}"
+    puts "#{position.file}:#{position.start_line}: #{message}"
     file_offset = 0
-    startline = position.start_line
-    endline = position.end_line
-    start_offset = position.start_offset
-    end_offset = position.end_offset
+    startline = position.start_line - 1
+    endline = position.end_line - 1
+    start_col = position.start_col - 1
+    end_col = position.end_col - 1
     # don't try to search dash_e
     # TODO: show dash_e source the same way
     if File.exist? position.file
       File.open(position.file).each_with_index do |line, lineno|
-        line_end = file_offset + line.size
-        skip = [start_offset - file_offset, line.size].min
         if lineno >= startline && lineno <= endline
           puts line.chomp
-          if skip > 0
-            print ' ' * (skip)
+          if lineno == startline
+            print ' ' * start_col
           else
-            skip = 0
+            start_col = 0
           end
-          if line_end <= end_offset
-            puts '^' * (line.size - skip)
+          if lineno < endline
+            puts '^' * (line.size - start_col)
           else
-            puts '^' * [end_offset - skip - file_offset, 1].max
+            puts '^' * [end_col - start_col, 1].max
           end
         end
-        file_offset = line_end
       end
     end
   end
