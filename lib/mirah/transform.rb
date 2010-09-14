@@ -149,7 +149,12 @@ module Duby
         nodes = args.to_a
         encoded = nodes.shift
         Duby::AST::Unquote.inject_values(nodes) do
-          Marshal.load(Base64.decode64(encoded))
+          result = Marshal.load(Base64.decode64(encoded))
+          if Duby::AST::UnquotedValue === result
+            result.node
+          else
+            result
+          end
         end
       end
 

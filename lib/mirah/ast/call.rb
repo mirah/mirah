@@ -2,16 +2,22 @@ require 'delegate'
 
 module Duby::AST
   class NodeProxy < DelegateClass(Node)
+    include Java::DubyLangCompiler::Node
     def __inline__(node)
       node.parent = parent
       __setobj__(node)
     end
 
     def dup
-      new = super
-      new.__setobj__(__getobj__.dup)
-      new.proxy = new
-      new
+      value = __getobj__.dup
+      if value.respond_to?(:proxy=)
+        new = super
+        new.__setobj__(value)
+        new.proxy = new
+        new
+      else
+        value
+      end
     end
 
     def _dump(depth)
@@ -19,8 +25,13 @@ module Duby::AST
     end
 
     def self._load(str)
-      proxy = NodeProxy.new(Marshal.load(str))
-      proxy.proxy = proxy
+      value = Marshal.load(str)
+      if value.respond_to?(:proxy=)
+        proxy = NodeProxy.new(value)
+        proxy.proxy = proxy
+      else
+        value
+      end
     end
   end
 

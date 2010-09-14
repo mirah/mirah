@@ -5,10 +5,6 @@ module Duby::AST
   class Unquote < Node
     child :value
 
-    def initialize(parent, position)
-      super(parent, position)
-    end
-
     def infer(typer)
       raise "Unquote used outside of macro"
     end
@@ -116,6 +112,69 @@ module Duby::AST
       else
         raise "Bad unquote value"
       end
+    end
+  end
+
+  class UnquoteAssign < Node
+    child :name
+    child :value
+
+    def infer(typer)
+      raise "UnquoteAssign used outside of macro"
+    end
+
+    def _dump(depth)
+      vals = Unquote.__extracted
+      index = vals.size
+      vals << self.name
+      Marshal.dump([position, index, self.value])
+    end
+
+
+    def self._load(str)
+      position, index, value = Marshal.load(str)
+      holder = UnquotedValueAssign.new(nil, position)
+      holder << Unquote.__injected[index].dup
+      holder << value
+      holder
+    end
+  end
+
+  class UnquotedValueAssign < UnquotedValue
+    child :name_node
+    child :value
+
+    def name
+      raise "Bad unquote value #{value}"
+    end
+
+    def node
+      klass = LocalAssignment
+      if Field === name_node
+        name = name_node.name
+        klass = FieldAssignment
+      # TODO support AttrAssign
+      elsif Named === name_node
+        name = name_node.name
+      elsif String === name_node
+        name = name_node.literal
+      elsif ::String === name_node
+        name = name
+      else
+        raise "Bad unquote value"
+      end
+      if name[0] == ?@
+        name = name[1, name.length]
+        klass = FieldAssignment
+      end
+      n = klass.new(nil, position, name)
+      n << value
+      n.validate_children
+      return n
+    end
+
+    def f_arg
+      raise "Bad unquote value"
     end
   end
 

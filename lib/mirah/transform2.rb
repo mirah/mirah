@@ -772,6 +772,13 @@ module Duby::AST
       end
     end
 
+    def transform_unquote_assign(node, parent)
+      name, value = node[1], node[2]
+      UnquoteAssign.new(parent, position(node)) do |unquote|
+        [transform(name, unquote), transform(value, unquote)]
+      end
+    end
+
     def transform_block_pass(node, parent)
       BlockPass.new(parent, position(node)) do |blockpass|
         [transform(node[1], blockpass)]
