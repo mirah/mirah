@@ -127,8 +127,12 @@ module Duby::AST
       @inferred_type
     end
 
-    def type_reference
-      Duby::AST::type(name)
+    def type_reference(typer=nil)
+      if typer
+        typer.type_reference(name)
+      else
+        Duby::AST::type(name)
+      end
     end
   end
 
@@ -206,9 +210,9 @@ module Duby::AST
       @inferred_type
     end
 
-    def type_reference
+    def type_reference(typer=nil)
       if name == '[]'
-        target.type_reference.array
+        target.type_reference(typer).array
       else
         raise "Unsupported type node #{self}"
       end

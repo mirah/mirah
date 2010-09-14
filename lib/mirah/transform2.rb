@@ -21,27 +21,6 @@ module Duby::AST
       @mirah.type_reference(node, parent)
     end
 
-    def signature(node, parent)
-      if node[0] == 'FCall'
-        name = node[1]
-        args = node[2]
-        case node[1]
-        when 'returns'
-          def node.declaration?
-            true
-          end
-          return {:return => transformer.type_reference(args[0], parent)}
-        when 'throws'
-          def node.declaration?
-            true
-          end
-          exceptions = args.map {|n| transformer.type_reference(n, parent)}
-          return {:throws => exceptions}
-        end
-      end
-      return nil
-    end
-
     def transform_script(node, parent)
       Script.new(parent, position(node)) {|script| [@mirah.transform(node.children[0], script)]}
     end
@@ -248,19 +227,6 @@ module Duby::AST
                 actual_name,
                 transformer.annotations) do |defn|
         defn.signature = signature = {:return => nil}
-
-        if body_node
-          if body_node[0] == 'Body'
-            children = body_node.children
-          else
-            children = [body_node]
-          end
-          for node in children
-            sig = signature(node, defn)
-            break unless sig
-            signature.update(sig) if sig.kind_of? ::Hash
-          end
-        end
         [
           signature,
           args_node ? transformer.transform(args_node, defn) : nil,
@@ -283,18 +249,6 @@ module Duby::AST
                                  transformer.annotations) do |defn|
         defn.signature = signature = {:return => nil}
 
-        if body_node
-          if body_node[0] == 'Body'
-            children = body_node.children
-          else
-            children = [body_node]
-          end
-          for node in children
-            sig = signature(node, defn)
-            break unless sig
-            signature.update(sig) if sig.kind_of? ::Hash
-          end
-        end
         [
           signature,
           args_node ? transformer.transform(args_node, defn) : nil,
@@ -814,6 +768,5 @@ module Duby::AST
         BiteScript::ASM::Type.getType(desc)
       end
     end
-
   end
 end

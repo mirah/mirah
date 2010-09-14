@@ -60,7 +60,6 @@ module Duby::JVM::Types
     def add_compiled_macro(klass, name, arg_types)
       add_macro(name, *arg_types) do |duby, call|
         expander = klass.constructors[0].newInstance(duby, call)
-        puts "**args**: " + call.arguments.toString
         ast = expander.expand
         if ast
           if call.target

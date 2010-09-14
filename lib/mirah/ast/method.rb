@@ -191,6 +191,7 @@ module Duby::AST
     child :signature
     child :arguments
     child :body
+    attr_accessor :return_type, :exceptions
 
     attr_accessor :defining_class
     attr_accessor :visibility
@@ -216,6 +217,10 @@ module Duby::AST
           end
         end
         typer.infer(arguments)
+        signature[:return] = @return_type.type_reference(typer) if @return_type
+        if @exceptions
+          signature[:throws] = @exceptions.map {|e| e.type_reference(typer)}
+        end
         typer.infer_signature(self)
         forced_type = signature[:return]
         inferred_type = body ? typer.infer(body) : typer.no_type
@@ -334,5 +339,16 @@ module Duby::AST
       end
       super
     end
+  end
+
+  defmacro('returns') do |transformer, fcall, parent|
+    fcall.scope.return_type = fcall.parameters[0]
+    Noop.new(parent, fcall.position)
+  end
+
+
+  defmacro('throws') do |transformer, fcall, parent|
+    fcall.scope.exceptions = fcall.parameters
+    Noop.new(parent, fcall.position)
   end
 end
