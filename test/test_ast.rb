@@ -166,18 +166,17 @@ class TestAst < Test::Unit::TestCase
     new_ast = AST.parse("class Foo < Bar; 1; 2; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("ClassDefinition(Foo)\n Type(Bar)\n Body\n  Body\n   Fixnum(1)\n   Fixnum(2)", new_ast.inspect)
+    assert_equal("ClassDefinition(Foo)\n Constant(Bar)\n Body\n  Body\n   Fixnum(1)\n   Fixnum(2)", new_ast.inspect)
     assert(AST::ClassDefinition === new_ast)
     assert_equal("Foo", new_ast.name)
 
-    assert(AST::TypeReference === new_ast.superclass)
     assert(AST::Body === new_ast.body)
     assert(AST::Fixnum === new_ast.body[0][0])
 
     new_ast = AST.parse("class Foo < Bar; def foo; end; end").body[0]
 
     assert_not_nil(new_ast)
-    assert_equal("ClassDefinition(Foo)\n Type(Bar)\n Body\n  MethodDefinition(foo)\n   {:return=>nil}\n   Arguments\n   Null(nil)", new_ast.inspect)
+    assert_equal("ClassDefinition(Foo)\n Constant(Bar)\n Body\n  MethodDefinition(foo)\n   {:return=>nil}\n   Arguments\n   Null(nil)", new_ast.inspect)
     assert_equal(new_ast, new_ast.body.parent)
   end
 

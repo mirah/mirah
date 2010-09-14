@@ -6,8 +6,10 @@ module Duby::AST
     attr_accessor :interfaces
     attr_accessor :current_access_level
 
-    child :superclass
+    child :superclass_node
     child :body
+
+    attr_accessor :superclass
 
     def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
@@ -84,6 +86,7 @@ module Duby::AST
 
     def infer(typer)
       resolve_if(typer) do
+        @superclass = superclass_node.type_reference(typer) if superclass_node
         typer.define_type(name, superclass, @interfaces) do
           static_scope.self_type = typer.self_type
           typer.infer(body) if body
@@ -108,8 +111,8 @@ module Duby::AST
   end
 
   class InterfaceDeclaration < ClassDefinition
-    attr_accessor :superclass
-    child :interfaces
+    attr_accessor :superclass, :interfaces
+    child :interface_nodes
     child :body
 
     def initialize(parent, position, name, annotations)
@@ -117,6 +120,17 @@ module Duby::AST
       @name = name
       @children = [[], nil]
       @children = yield(self)
+    end
+
+    def infer(typer)
+      resolve_if(typer) do
+        @interfaces = interface_nodes.map {|i| i.type_reference(typer)}
+        super
+      end
+    end
+
+    def superclass_node
+      nil
     end
   end
 
@@ -143,7 +157,8 @@ module Duby::AST
     InterfaceDeclaration.new(parent, fcall.position,
                              interface_name.name,
                              transformer.annotations) do |interface|
-      [interfaces.map {|p| p.type_reference },
+      interfaces.each {|x| x.parent = interface}
+      [interfaces,
        if fcall.block.body
          fcall.block.body.parent = interface
          fcall.block.body
@@ -158,7 +173,8 @@ module Duby::AST
     include ClassScoped
     include Typed
 
-    child :type
+    child :type_node
+    attr_accessor :type
 
     def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
@@ -167,17 +183,14 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless resolved?
-        resolved!
-        @inferred_type = typer.known_types[type]
-        if @inferred_type
-          resolved!
-          typer.learn_field_type(class_scope, name, @inferred_type)
-        else
-          typer.defer(self)
-        end
+      resolve_if(typer) do
+        @type = type_node.type_reference(typer)
       end
-      @inferred_type
+    end
+
+    def resolved!(typer)
+      typer.learn_field_type(class_scope, name, @inferred_type)
+      super
     end
   end
 

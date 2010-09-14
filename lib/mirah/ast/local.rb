@@ -4,7 +4,8 @@ module Duby::AST
     include Typed
     include Scoped
 
-    child :type
+    child :type_node
+    attr_accessor :type
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
@@ -18,7 +19,7 @@ module Duby::AST
     def infer(typer)
       resolve_if(typer) do
         scope.static_scope << name
-        typer.known_types[type] || type
+        @type = type_node.type_reference(typer)
       end
     end
 

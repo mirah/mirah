@@ -105,10 +105,6 @@ module Duby::AST
       name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
       value = node[3]
-      if type
-        defn = parent.parent
-        defn.signature[name.intern] = @mirah.type_reference(type, parent)
-      end
       OptionalArgument.new(parent, position(node), name) do |optarg| 
         [
           type ? transform(type, optarg) : nil,
@@ -121,22 +117,18 @@ module Duby::AST
       name = node[1]
       name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
-      if type
-        defn = parent.parent
-        defn.signature[name.intern] = @mirah.type_reference(type, parent)
+      RestArgument.new(parent, position(node), name) do |restarg|
+        [type ? transform(type, restarg) : nil]
       end
-      RestArgument.new(parent, position(node), name)
     end
 
     def transform_block_arg(node, parent)
       name = node[1]
       name = transform(name, nil) unless name.kind_of?(::String)
       type = node[2]
-      if type
-        defn = parent.parent
-        defn.signature[name.intern] = @mirah.type_reference(type, parent)
+      BlockArgument.new(parent, position(node), name) do |blkarg|
+        [type ? transform(type, blkarg) : nil]
       end
-      BlockArgument.new(parent, position(node), name)
     end
 
     def transform_opt_block_arg(node, parent)
@@ -203,8 +195,8 @@ module Duby::AST
                           name,
                           transformer.annotations) do |class_def|
         [
-          super_node ? transformer.type_reference(super_node, class_def) : nil,
-          body_node ? transformer.transform(body_node, class_def) : nil
+          super_node ? transform(super_node, class_def) : nil,
+          body_node ? transform(body_node, class_def) : nil
         ]
       end
     end
@@ -425,7 +417,7 @@ module Duby::AST
       position = position(node)
       case value_node[0]
       when 'Symbol', 'Constant'
-        LocalDeclaration.new(parent, position, name) {|local_decl| [typeref(value_node, local_decl)]}
+        LocalDeclaration.new(parent, position, name) {|local_decl| [transform(value_node, local_decl)]}
       else
         LocalAssignment.new(parent, position, name) {|local| [transform(value_node, local)]}
       end
@@ -462,7 +454,7 @@ module Duby::AST
       when 'Symbol', 'Constant'
         FieldDeclaration.new(parent, position,
                              name, transformer.annotations) do |field_decl|
-          [typeref(value_node, field_decl)]
+          [transform(value_node, field_decl)]
         end
       else
         FieldAssignment.new(parent, position, name, transformer.annotations) {|field| [transformer.transform(value_node, field)]}
