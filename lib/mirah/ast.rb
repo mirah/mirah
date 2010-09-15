@@ -499,6 +499,31 @@ module Duby
       def [](name)
         @values[name]
       end
+
+      def infer(typer)
+        @inferred ||= begin
+          @values.each do |name, value|
+            if Node === value
+              @values[name] = annotation_value(value, typer)
+            end
+          end
+          true
+        end
+      end
+
+      def annotation_value(node, typer)
+        case node
+        when String
+          java.lang.String.new(node.literal)
+        when Array
+          value.children.map {|node| annotation_value(node, typer)}
+        else
+          # TODO Support other types
+          ref = value.type_refence(typer)
+          desc = BiteScript::Signature.class_id(ref)
+          BiteScript::ASM::Type.getType(desc)
+        end
+      end
     end
 
     class TypeReference < Node
@@ -513,6 +538,10 @@ module Duby
         @name = name
         @array = array
         @meta = meta
+      end
+
+      def type_reference(typer)
+        typer.type_reference(name, array, meta)
       end
 
       def to_s

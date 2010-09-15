@@ -17,10 +17,6 @@ module Duby::AST
       @mirah.transform(node, parent)
     end
 
-    def typeref(node, parent)
-      @mirah.type_reference(node, parent)
-    end
-
     def transform_script(node, parent)
       Script.new(parent, position(node)) {|script| [@mirah.transform(node.children[0], script)]}
     end
@@ -53,17 +49,10 @@ module Duby::AST
       String.new(parent, position(node), node[1])
     end
 
-    def typeref_string(node, parent)
-      Duby::AST::Type(node[1])
-    end
-
     def transform_symbol(node, parent)
       String.new(parent, position(node), node[1])
     end
 
-    def typeref_symbol(node, parent)
-      Duby::AST::type(node[1])
-    end
     def transform_body(node, parent)
       Body.new(parent, position(node)) do |body|
         node.children.map {|child| @mirah.transform(child, body)}
@@ -272,11 +261,6 @@ module Duby::AST
       end
     end
 
-    def typeref_fcall(fcall, parent)
-      name = fcall[1]
-      Duby::AST::type(name)
-    end
-
     def transform_call(node, parent)
       name = node[1]
       name = transform(name, nil) unless name.kind_of?(::String)
@@ -333,50 +317,8 @@ module Duby::AST
       end
     end
 
-    def typeref_call(node, parent)
-      name = node[1]
-      receiver = node[2]
-      if name == "[]"
-        # array type, top should be a constant; find the rest
-        array = true
-        elements = []
-      else
-        array = false
-        elements = [name]
-      end
-
-      loop do
-        case receiver[0]
-        when 'Constant'
-          elements << receiver[1]
-          break
-        when 'Call'
-          elements.unshift(receiver[1])
-          receiver = receiver[2]
-        when 'Symbol'
-          elements.unshift(receiver[1])
-          break
-        when 'Identifier'
-          elements.unshift(receiver[1])
-          break
-        when 'Annotation'
-          elements.unshift(receiver[1])
-          break
-        end
-      end
-
-      # join and load
-      class_name = elements.join(".")
-      Duby::AST::type(class_name, array)
-    end
-
     def transform_constant(node, parent)
       Constant.new(parent, position(node), node[1])
-    end
-
-    def typeref_constant(node, parent)
-      name = node[1]
-      Duby::AST::type(name)
     end
 
     def transform_identifier(node, parent)
@@ -404,11 +346,6 @@ module Duby::AST
           fcall
         end
       end
-    end
-
-    def typeref_identifier(node, parent)
-      name = node[1]
-      Duby::AST::type(name)
     end
 
     def transform_local_assign(node, parent)
@@ -741,24 +678,10 @@ module Duby::AST
       annotation = Annotation.new(parent, position(node), Duby::AST.type(classname))
       values.each do |_, key, value|
         name = key[1]
-        annotation[name] = annotation_value(value, annotation)
+        annotation[name] = transform(value, annotation)
       end
       transformer.add_annotation(annotation)
       return Noop.new(parent, position(node))
-    end
-
-    def annotation_value(node, annotation)
-      case node[0]
-      when 'String'
-        java.lang.String.new(value[1])
-      when 'Array'
-        value.children.map {|node| annotation_value(node, annotation)}
-      else
-        # TODO Support other types
-        ref = typeref(value, annotation)
-        desc = BiteScript::Signature.class_id(ref)
-        BiteScript::ASM::Type.getType(desc)
-      end
     end
   end
 end

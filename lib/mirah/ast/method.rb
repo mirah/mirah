@@ -216,6 +216,7 @@ module Duby::AST
             scope.static_scope.self_type
           end
         end
+        @annotations.each {|a| a.infer(typer)} if @annotations
         typer.infer(arguments)
         signature[:return] = @return_type.type_reference(typer) if @return_type
         if @exceptions

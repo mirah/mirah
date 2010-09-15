@@ -211,10 +211,33 @@ module Duby::AST
     end
 
     def type_reference(typer=nil)
-      if name == '[]'
-        target.type_reference(typer).array
+      if name == "[]"
+        # array type, top should be a constant; find the rest
+        array = true
+        elements = []
       else
-        raise "Unsupported type node #{self}"
+        array = false
+        elements = [name]
+      end
+      receiver = self.target
+      loop do
+        case receiver
+        when Constant, FCall, Local, Annotation
+          elements << receiver.name
+        when Call
+          elements.unshift(receiver.name)
+          receiver = receiver.target
+        when String
+          elements.unshift(receiver.literal)
+        end
+      end
+
+      # join and load
+      class_name = elements.join(".")
+      if typer
+        typer.type_reference(class_name, array)
+      else
+        Duby::AST::type(class_name, array)
       end
     end
   end

@@ -87,6 +87,7 @@ module Duby::AST
     def infer(typer)
       resolve_if(typer) do
         @superclass = superclass_node.type_reference(typer) if superclass_node
+        @annotations.each {|a| a.infer(typer)} if @annotations
         typer.define_type(name, superclass, @interfaces) do
           static_scope.self_type = typer.self_type
           typer.infer(body) if body
@@ -184,6 +185,7 @@ module Duby::AST
 
     def infer(typer)
       resolve_if(typer) do
+        @annotations.each {|a| a.infer(typer)} if @annotations
         @type = type_node.type_reference(typer)
       end
     end
@@ -209,13 +211,10 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless resolved?
-        @inferred_type = typer.learn_field_type(class_scope, name, typer.infer(value))
-
-        @inferred_type ? resolved! : typer.defer(self)
+      resolve_if(typer) do
+        @annotations.each {|a| a.infer(typer)} if @annotations
+        typer.learn_field_type(class_scope, name, typer.infer(value))
       end
-
-      @inferred_type
     end
   end
 
@@ -231,13 +230,10 @@ module Duby::AST
     end
 
     def infer(typer)
-      unless resolved?
-        @inferred_type = typer.field_type(class_scope, name)
-
-        @inferred_type ? resolved! : typer.defer(self)
+      resolve_if(typer) do
+        @annotations.each {|a| a.infer(typer)} if @annotations
+        typer.field_type(class_scope, name)
       end
-
-      @inferred_type
     end
   end
 
