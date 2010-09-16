@@ -208,11 +208,11 @@ module Duby::AST
                 actual_name,
                 transformer.annotations) do |defn|
         defn.signature = signature = {:return => nil}
+        defn.return_type = transform(type_node, defn) if type_node
         [
           signature,
           args_node ? transformer.transform(args_node, defn) : nil,
           body_node ? transformer.transform(body_node, defn) : nil,
-          type_node ? transformer.transform(type_node, defn) : nil,
         ]
       end
     end
@@ -230,12 +230,11 @@ module Duby::AST
                                  actual_name,
                                  transformer.annotations) do |defn|
         defn.signature = signature = {:return => nil}
-
+        defn.return_type = transform(type_node, defn) if type_node
         [
           signature,
           args_node ? transformer.transform(args_node, defn) : nil,
           body_node ? transformer.transform(body_node, defn) : nil,
-          type_node ? transformer.transform(type_node, defn) : nil,
         ]
       end
     end

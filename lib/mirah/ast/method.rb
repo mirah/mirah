@@ -191,6 +191,7 @@ module Duby::AST
     child :signature
     child :arguments
     child :body
+    # TODO change return_type to a child if we remove the 'returns' macro.
     attr_accessor :return_type, :exceptions
 
     attr_accessor :defining_class

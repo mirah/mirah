@@ -2486,4 +2486,26 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("a\nb\nc\nensure\n") { cls.main(nil) }
   end
 
+  def test_return_type
+    assert_raise Duby::Typer::InferenceError do
+      compile(<<-EOF)
+        class ReturnsA
+          def a:int
+            :foo
+          end
+        end
+      EOF
+    end
+
+    assert_raise Duby::Typer::InferenceError do
+      compile(<<-EOF)
+        class ReturnsB
+          def self.a:String
+            2
+          end
+        end
+      EOF
+    end
+  end
+
 end
