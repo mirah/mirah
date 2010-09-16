@@ -252,9 +252,12 @@ module Duby::AST
 
     def resolve_if(typer)
       super(typer) do
-        type = yield
+        actual_type = type = yield
+        argument_types = arguments.inferred_type
+        # If we know the return type go ahead and tell the typer
+        # even if we can't infer the body yet.
+        type ||= signature[:return] if argument_types && argument_types.all?
         if type
-          argument_types = arguments.inferred_type
           argument_types ||= [Duby::AST.error_type] if type.error?
           typer.learn_method_type(defining_class, name, argument_types, type, signature[:throws])
 
@@ -272,7 +275,7 @@ module Duby::AST
             end
           end
         end
-        type
+        actual_type
       end
     end
 
