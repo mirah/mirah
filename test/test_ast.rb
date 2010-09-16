@@ -202,6 +202,11 @@ class TestAst < Test::Unit::TestCase
     assert_equal(nil, new_ast.arguments.opt_args)
     assert_equal(nil, new_ast.arguments.rest_arg)
     assert_equal(nil, new_ast.arguments.block_arg)
+
+    new_ast = AST.parse("def foo(a, b):int; 1; end").body[0]
+
+    assert_not_nil(new_ast)
+    assert_equal("MethodDefinition(foo)\n {:return=>nil}\n Arguments\n  RequiredArgument(a)\n  RequiredArgument(b)\n Fixnum(1)\n FunctionalCall(int)", new_ast.inspect)
   end
 
   def test_defs

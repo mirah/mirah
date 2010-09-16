@@ -191,7 +191,7 @@ module Duby::AST
     end
 
     def transform_def(node, parent)
-      name, args_node, body_node = node[1], node[2], node[3]
+      name, args_node, type_node, body_node = node[1], node[2], node[3], node[4]
       name = transform(name, nil) unless name.kind_of?(::String)
       position = position(node)
       actual_name = name
@@ -211,13 +211,14 @@ module Duby::AST
         [
           signature,
           args_node ? transformer.transform(args_node, defn) : nil,
-          body_node ? transformer.transform(body_node, defn) : nil
+          body_node ? transformer.transform(body_node, defn) : nil,
+          type_node ? transformer.transform(type_node, defn) : nil,
         ]
       end
     end
 
     def transform_def_static(node, parent)
-      name, args_node, body_node = node[1], node[2], node[3]
+      name, args_node, type_node, body_node = node[1], node[2], node[3], node[4]
       name = transform(name, nil) unless name.kind_of?(::String)
       position = position(node)
       actual_name = name
@@ -233,7 +234,8 @@ module Duby::AST
         [
           signature,
           args_node ? transformer.transform(args_node, defn) : nil,
-          body_node ? transformer.transform(body_node, defn) : nil
+          body_node ? transformer.transform(body_node, defn) : nil,
+          type_node ? transformer.transform(type_node, defn) : nil,
         ]
       end
     end
