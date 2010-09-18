@@ -136,7 +136,29 @@ module Duby
 
       def annotate(annotations)
         annotations.each do |annotation|
-          puts "@#{annotation.name}"
+          print "@#{annotation.name.gsub("$", ".")}("
+          first = true
+          annotation.values.each do |name, value|
+            print ", " unless first
+            first = false
+            print "#{name}="
+            print annotation_value(value)
+          end
+          puts ")"
+        end
+      end
+
+      def annotation_value(value)
+        case value
+        when Java::JavaLang::String
+          value.to_s.inspect
+        when Array
+          values = value.map{|x|annotation_value(x)}.join(", ")
+          "{#{values}}"
+        when BiteScript::ASM::Type
+          value.getClassName.gsub("$", ".")
+        else
+          raise "Unsupported annotation value #{value.inspect}"
         end
       end
     end
