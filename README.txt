@@ -1,11 +1,12 @@
-= duby
+= mirah
 
+* http://groups.google.com/group/mirah
 * http://kenai.com/projects/duby
 
 == DESCRIPTION:
 
-Duby is a customizable programming language featuring static types,
-local type inference and a heavily Ruby-inspired syntax. Duby
+Mirah is a customizable programming language featuring static types,
+local type inference and a heavily Ruby-inspired syntax. Mirah
 currently includes a typer/compiler backend for the JVM which can
 output either JVM bytecode or Java source files.
 
@@ -17,12 +18,12 @@ output either JVM bytecode or Java source files.
 
 == SYNOPSIS:
 
-duby <script.duby>
-duby -e "inline script"
-dubyc <script.duby>
-dubyc -e "inline script" # produces DashE.class
-dubyc -java <script.duby>
-dubyc -java -e "inline script" # produces DashE.java
+mirah <script.mirah>
+mirah -e "inline script"
+mirahc <script.mirah>
+mirahc -e "inline script" # produces DashE.class
+mirahc -java <script.mirah>
+mirahc -java -e "inline script" # produces DashE.java
 
 == REQUIREMENTS:
 
@@ -33,18 +34,18 @@ dubyc -java -e "inline script" # produces DashE.java
 
 If your "gem" command is the one from JRuby:
 
-* gem install duby
+* gem install mirah
 
 Otherwise:
 
-* jruby -S gem install duby
+* jruby -S gem install mirah
 
 Only JRuby is supported at this time.
 
 == For Java tools:
 
-To build the Duby jars from source you should have a checkout of both jruby and
-bitescript in Duby's parent directory. Run "ant jar-complete" in jruby, then in
-the duby directory "../jruby/bin/jruby -S rake jar" to build the Duby jar. Use
+To build the Mirah jars from source you should have a checkout of both jruby and
+bitescript in Mirah's parent directory. Run "ant jar-complete" in jruby, then in
+the mirah directory "../jruby/bin/jruby -S rake jar" to build the Mirah jar. Use
 "jar:complete" instead to produce a free-standing jar file with JRuby and the
 JRubyParser libraries included.
