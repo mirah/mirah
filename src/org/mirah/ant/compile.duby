@@ -15,24 +15,43 @@ class Compile < Task
   end
 
   def execute:void
-    handleOutput("compiling Duby source in #{@src} to #{@target}")
-    System.err.println("project: #{getProject}")
-    args = ArrayList.new(
-         ['-d', @target, '--cd', @dir, '-c', @classpath.toString, @src])
-    args.add(0, '--java') unless @bytecode 
-    MirahCommand.compile(args)
+    
+    handleOutput("compiling Duby source in #{expand(@src)} to #{expand(@target)}")
+    log("classpath: #{@classpath}", 3)
+    # JRuby wants to use the context classloader, but that's ant's
+    # classloader, not the one that contains JRuby.
+    target = @target
+    dir = @dir
+    classpath = @classpath.toString
+    src = @src
+    bytecode = @bytecode
+    exception = Exception(nil)
+    t = Thread.new do
+      Thread.currentThread.setContextClassLoader(Compile.class.getClassLoader())
+      args = ArrayList.new(
+          ['-d', target, '--cd', dir, '-c', classpath, src])
+      args.add(0, '--java') unless bytecode
+      begin
+        MirahCommand.compile(args)
+      rescue => ex
+        exception = ex
+      end
+    end
+    t.start
+    t.join
+    raise exception if exception
   end
 
   def setSrc(a:File):void
-    @src = a.getAbsolutePath
+    @src = a.toString
   end
 
   def setDestdir(a:File):void
-    @target = a.getAbsolutePath
+    @target = a.toString
   end
 
   def setDir(a:File):void
-    @dir = a.getAbsolutePath
+    @dir = a.toString
   end
 
   def setClasspath(s:Path):void
@@ -40,7 +59,6 @@ class Compile < Task
   end
 
   def setClasspathref(ref:Reference):void
-    System.err.println("Reference project: #{ref.getProject}")
     createClasspath.setRefid(ref)
   end
 
@@ -50,5 +68,14 @@ class Compile < Task
 
   def createClasspath
     @classpath.createPath
+  end
+
+  def expand(path:String)
+    file = File.new(path)
+    if file.isAbsolute || @dir.nil?
+      path
+    else
+      File.new(@dir, path).toString
+    end
   end
 end
