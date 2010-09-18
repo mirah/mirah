@@ -406,6 +406,12 @@ module Duby::AST
     macro
   end
 
+  defmacro('abstract') do |transformer, fcall, parent|
+    class_or_method = fcall.parameters[0]
+    class_or_method.abstract = true
+    class_or_method
+  end
+
   defmacro('puts') do |transformer, fcall, parent|
     Call.new(parent, fcall.position, "println") do |x|
       args = fcall.parameters

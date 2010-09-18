@@ -5,6 +5,7 @@ module Duby::AST
     include Scope
     attr_accessor :interfaces
     attr_accessor :current_access_level
+    attr_accessor :abstract
 
     child :superclass_node
     child :body
@@ -12,6 +13,7 @@ module Duby::AST
     attr_accessor :superclass
 
     def initialize(parent, position, name, annotations=[], &block)
+      @abstract = false
       @annotations = annotations
       @interfaces = []
       @name = name
@@ -118,6 +120,7 @@ module Duby::AST
 
     def initialize(parent, position, name, annotations)
       super(parent, position, name, annotations) {|p| }
+      @abstract = true
       @name = name
       @children = [[], nil]
       @children = yield(self)

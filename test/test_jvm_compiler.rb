@@ -2508,4 +2508,28 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_abstract
+    script, cls1, cls2 = compile(<<-EOF)
+      abstract class Abstract
+        abstract def foo:void; end
+        def bar; puts "bar"; end
+      end
+      class Concrete < Abstract
+        def foo; puts :foo; end
+      end
+    EOF
+
+    assert_output("foo\nbar\n") do
+      a = cls2.new
+      a.foo
+      a.bar
+    end
+    begin
+      cls1.new
+      fail "Expected InstantiationException"
+    rescue java.lang.InstantiationException
+      # expected
+    end
+  end
+
 end
