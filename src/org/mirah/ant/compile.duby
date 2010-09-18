@@ -12,11 +12,12 @@ class Compile < Task
     @classpath = Path.new(getProject)
     @dir = '.'
     @bytecode = true
+    @verbose = false
   end
 
   def execute:void
     
-    handleOutput("compiling Duby source in #{expand(@src)} to #{expand(@target)}")
+    handleOutput("compiling Duby source in #{expand(@src)} to #{@target}")
     log("classpath: #{@classpath}", 3)
     # JRuby wants to use the context classloader, but that's ant's
     # classloader, not the one that contains JRuby.
@@ -25,12 +26,14 @@ class Compile < Task
     classpath = @classpath.toString
     src = @src
     bytecode = @bytecode
+    verbose = @verbose
     exception = Exception(nil)
     t = Thread.new do
       Thread.currentThread.setContextClassLoader(Compile.class.getClassLoader())
       args = ArrayList.new(
           ['-d', target, '--cd', dir, '-c', classpath, src])
       args.add(0, '--java') unless bytecode
+      args.add(0, '-V') if verbose
       begin
         MirahCommand.compile(args)
       rescue => ex
@@ -64,6 +67,10 @@ class Compile < Task
 
   def setBytecode(bytecode:boolean):void
     @bytecode = bytecode
+  end
+
+  def setVerbose(verbose:boolean):void
+    @verbose = verbose
   end
 
   def createClasspath
