@@ -156,7 +156,7 @@ class DubyImpl
         filename = "#{@state.destination}#{filename}"
         FileUtils.mkdir_p(File.dirname(filename))
         bytes = builder.generate
-        File.open(filename, 'w') {|f| f.write(bytes)}
+        File.open(filename, 'wb') {|f| f.write(bytes)}
       end
       @filename = nil
     end
