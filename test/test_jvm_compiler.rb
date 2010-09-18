@@ -67,7 +67,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     loader = DubyClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     compiler.generate do |name, builder|
       bytes = builder.generate
-      open("#{name}", "w") do |f|
+      open("#{name}", "wb") do |f|
         f << bytes
       end
       classes[name[0..-7]] = bytes

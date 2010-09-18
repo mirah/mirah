@@ -37,7 +37,7 @@ module Duby
           if block_given?
             yield filename, builder
           else
-            File.open(filename, 'w') {|f| f.write(builder.generate)}
+            File.open(filename, 'wb') {|f| f.write(builder.generate)}
           end
         end
         log "...done!"

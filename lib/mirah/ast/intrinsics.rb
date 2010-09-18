@@ -290,7 +290,7 @@ module Duby::AST
       compiler.generate do |outfile, builder|
         outfile = "#{transformer.destination}#{outfile}"
         FileUtils.mkdir_p(File.dirname(outfile))
-        File.open(outfile, 'w') do |f|
+        File.open(outfile, 'wb') do |f|
           bytes = builder.generate
           name = builder.class_name.gsub(/\//, '.')
           class_map[name] = bytes
