@@ -1,5 +1,6 @@
 import org.apache.tools.ant.Task
 import org.apache.tools.ant.types.Path
+import org.apache.tools.ant.types.Reference
 import java.io.File
 import org.mirah.MirahCommand
 import java.util.ArrayList
@@ -10,32 +11,41 @@ class Compile < Task
     @target = '.'
     @classpath = Path.new(getProject)
     @dir = '.'
+    @bytecode = true
   end
 
-  def execute; returns void
+  def execute:void
     handleOutput("compiling Duby source in #{@src} to #{@target}")
-    MirahCommand.compile(
-        ['-d', @target, '--cd', @dir, '-c', @classpath.toString, @src])
+    System.err.println("project: #{getProject}")
+    args = ArrayList.new(
+         ['-d', @target, '--cd', @dir, '-c', @classpath.toString, @src])
+    args.add(0, '--java') unless @bytecode 
+    MirahCommand.compile(args)
   end
 
-  def setSrc(a:File)
+  def setSrc(a:File):void
     @src = a.getAbsolutePath
-    return
   end
 
-  def setDestdir(a:File)
+  def setDestdir(a:File):void
     @target = a.getAbsolutePath
-    return
   end
 
-  def setDir(a:File)
+  def setDir(a:File):void
     @dir = a.getAbsolutePath
-    return
   end
 
-  def setClasspath(s:Path)
+  def setClasspath(s:Path):void
     createClasspath.append(s)
-    return
+  end
+
+  def setClasspathref(ref:Reference):void
+    System.err.println("Reference project: #{ref.getProject}")
+    createClasspath.setRefid(ref)
+  end
+
+  def setBytecode(bytecode:boolean):void
+    @bytecode = bytecode
   end
 
   def createClasspath
