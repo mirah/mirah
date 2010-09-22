@@ -12,6 +12,14 @@ module Duby::AST
     def _dump(depth)
       vals = Unquote.__extracted
       index = vals.size
+      # Make sure the scope is saved
+      if Scoped === value
+        value.scope
+        scoped_value = value
+      else
+        scoped_value = ScopedBody.new(value.parent, value.position) {[value]}
+        scoped_value.static_scope = scoped_value.scope.static_scope
+      end
       vals << self.value
       Marshal.dump([position, index])
     end

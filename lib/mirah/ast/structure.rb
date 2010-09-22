@@ -54,6 +54,7 @@ module Duby::AST
 
   class ScopedBody < Body
     include Scope
+    include Scoped
 
     def infer(typer)
       static_scope.self_type ||= typer.self_type

@@ -2508,4 +2508,15 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_return_void
+    script, = compile(<<-EOF)
+      def foo:void
+        puts :hi
+        return
+      end
+    EOF
+
+    assert_output("hi\n") { script.foo }
+  end
+
 end

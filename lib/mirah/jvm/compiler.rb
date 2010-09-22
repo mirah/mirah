@@ -739,7 +739,7 @@ module Duby
       end
 
       def return(return_node)
-        return_node.value.compile(self, true)
+        return_node.value.compile(self, true) if return_node.value
         handle_ensures(find_ensures(Duby::AST::MethodDefinition))
         return_node.inferred_type.return(@method)
       end

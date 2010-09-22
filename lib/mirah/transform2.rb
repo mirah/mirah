@@ -427,7 +427,7 @@ module Duby::AST
     def transform_return(node, parent)
       value_node = node[1] if node.size > 1
       Return.new(parent, position(node)) do |ret|
-        [transformer.transform(value_node, ret)]
+        [value_node ? transform(value_node, ret) : nil]
       end
     end
 
