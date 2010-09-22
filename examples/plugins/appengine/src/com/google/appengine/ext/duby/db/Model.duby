@@ -93,7 +93,7 @@ class Model
       require 'com/google/appengine/ext/duby/db/datastore.rb'
       AppEngine::DubyDatastorePlugin.add_property(*arg.to_a)
 RUBY
-    @duby.__ruby_eval(code, [name, type, @duby, @call])
+    @mirah.__ruby_eval(code, [name, type, @mirah, @call])
   end
 
   def initialize; end
@@ -307,8 +307,7 @@ RUBY
 
   def before_save; end
 
-  def self.transaction(block:Runnable)
-    returns void
+  def self.transaction(block:Runnable):void
     tries = 3
     while tries > 0
       begin
