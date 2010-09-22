@@ -14,6 +14,7 @@ module Duby::AST
     def initialize(parent, position, name, annotations=[], &block)
       @annotations = annotations
       @interfaces = []
+      @interface_nodes = []
       @name = name
       if Duby::AST.type_factory.respond_to? :declare_type
         Duby::AST.type_factory.declare_type(self)
@@ -88,6 +89,7 @@ module Duby::AST
       resolve_if(typer) do
         @superclass = superclass_node.type_reference(typer) if superclass_node
         @annotations.each {|a| a.infer(typer)} if @annotations
+        @interfaces.concat(@interface_nodes.map{|n| n.type_reference(typer)})
         typer.define_type(name, superclass, @interfaces) do
           static_scope.self_type = typer.self_type
           typer.infer(body) if body
@@ -97,16 +99,24 @@ module Duby::AST
 
     def implements(*types)
       raise ArgumentError if types.any? {|x| x.nil?}
-      @interfaces.concat types
+      types.each do |type|
+        if Duby::AST::TypeReference === type
+          @interfaces << type
+        else
+          @interface_nodes << type
+        end
+      end
     end
   end
 
   defmacro('implements') do |transformer, fcall, parent|
-    interfaces = fcall.parameters.map do |interface|
-      interface.type_reference
-    end
     klass = parent
     klass = klass.parent unless ClassDefinition === klass
+
+    interfaces = fcall.parameters.map do |interface|
+      interface.parent = klass
+      interface
+    end
     klass.implements(*interfaces)
     Noop.new(parent, fcall.position)
   end
@@ -257,8 +267,9 @@ module Duby::AST
 
     def infer(typer)
       children.each do |type|
+        typeref = type.type_reference(typer)
         the_scope = scope.static_scope
-        the_scope.self_type = the_scope.self_type.include(type)
+        the_scope.self_type = the_scope.self_type.include(typeref)
       end
     end
 
@@ -267,9 +278,11 @@ module Duby::AST
 
   defmacro("include") do |transformer, fcall, parent|
     raise "Included Class name required" unless fcall.parameters.size > 0
-    types = fcall.parameters.map do |const|
-      const.type_reference
+    Include.new(parent, fcall.position) do |include_node|
+      fcall.parameters.map do |constant|
+        constant.parent = include_node
+        constant
+      end
     end
-    Include.new(parent, fcall.position, types)
   end
 end

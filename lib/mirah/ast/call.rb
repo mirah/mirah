@@ -127,12 +127,8 @@ module Duby::AST
       @inferred_type
     end
 
-    def type_reference(typer=nil)
-      if typer
-        typer.type_reference(name)
-      else
-        Duby::AST::type(name)
-      end
+    def type_reference(typer)
+      typer.type_reference(name)
     end
   end
 
@@ -210,7 +206,7 @@ module Duby::AST
       @inferred_type
     end
 
-    def type_reference(typer=nil)
+    def type_reference(typer)
       if name == "[]"
         # array type, top should be a constant; find the rest
         array = true
@@ -234,11 +230,7 @@ module Duby::AST
 
       # join and load
       class_name = elements.join(".")
-      if typer
-        typer.type_reference(class_name, array)
-      else
-        Duby::AST::type(class_name, array)
-      end
+      typer.type_reference(class_name, array)
     end
   end
 

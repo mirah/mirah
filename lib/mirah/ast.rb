@@ -326,12 +326,8 @@ module Duby
         end
       end
 
-      def type_reference(typer=nil)
-        if typer
-          typer.type_reference(@name, @array)
-        else
-          Duby::AST::type(@name, @array)
-        end
+      def type_reference(typer)
+        typer.type_reference(@name, @array)
       end
     end
 

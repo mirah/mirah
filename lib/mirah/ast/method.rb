@@ -112,7 +112,7 @@ module Duby::AST
         signature = method_def.signature
 
         if type_node
-          signature[name.intern] = type_node.type_reference
+          signature[name.intern] = type_node.type_reference(typer)
         end
 
         # if signature, search for this argument
@@ -140,7 +140,7 @@ module Duby::AST
         method_def = parent.parent
         signature = method_def.signature
         value_type = value.infer(typer)
-        declared_type = type_node.type_reference if type_node
+        declared_type = type_node.type_reference(typer) if type_node
         signature[name.intern] = declared_type || value_type
       end
     end

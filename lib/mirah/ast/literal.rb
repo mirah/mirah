@@ -78,12 +78,8 @@ module Duby::AST
       @inferred_type ||= typer.string_type
     end
 
-    def type_reference(typer=nil)
-      if typer
-        typer.type_reference(@literal)
-      else
-        Duby::AST::type(@literal)
-      end
+    def type_reference(typer)
+      typer.type_reference(@literal)
     end
 
     def toString
