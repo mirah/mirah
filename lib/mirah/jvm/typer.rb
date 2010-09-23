@@ -30,10 +30,6 @@ module Duby
         @factory.type(scope, name, array, meta)
       end
 
-      def alias_types(short, long)
-        @factory.alias(short, long)
-      end
-
       def name
         "JVM"
       end

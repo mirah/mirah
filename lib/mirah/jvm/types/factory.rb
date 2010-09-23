@@ -39,7 +39,6 @@ module Duby::JVM::Types
       @known_types = ParanoidHash.new
       @known_types.update(BASIC_TYPES)
       @declarations = []
-      @search_packages = []
       @mirrors = {}
     end
 
@@ -109,7 +108,6 @@ module Duby::JVM::Types
       if name !~ /\./
         packages << scope.static_scope.package unless scope.static_scope.package.empty?
         packages.concat(scope.static_scope.search_packages)
-        packages.concat(@search_packages)
         packages << 'java.lang'
       end
       packages.each do |package|
@@ -165,14 +163,6 @@ module Duby::JVM::Types
         end
         node.scope.static_scope.import(full_name, name)
         @known_types[full_name] = klass.new(full_name, node)
-      end
-    end
-
-    def alias(from, to)
-      if from == '*'
-        @search_packages << to.sub(".*", "")
-      else
-        @known_types[from] = type(nil, to)
       end
     end
 

@@ -319,7 +319,7 @@ module Duby::AST
       #extension.superclass = Duby::AST.type(nil, 'duby.lang.compiler.Macro')
       extension.implements(Duby::AST.type(nil, 'duby.lang.compiler.Macro'))
 
-      extension.append_node(transformer.eval("import duby.lang.compiler.Node"))
+      extension.static_scope.import('duby.lang.compiler.Node', 'Node')
 
       # The constructor just saves the state
       extension.define_constructor(

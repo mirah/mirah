@@ -261,11 +261,6 @@ module Duby
         AST::TypeDefinition.new(name, AST::TypeReference.new(superclass), interfaces)
       end
 
-      def alias_type(short, long)
-        @known_types[type_reference(nil, short, false, false)] = type_reference(nil, long, false, false)
-        @known_types[type_reference(nil, short, false, true)] = type_reference(nil, long, false, true)
-      end
-
       def deferred_nodes
         @deferred_nodes ||= {}
       end

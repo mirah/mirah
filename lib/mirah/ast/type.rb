@@ -1,12 +1,13 @@
 module Duby::AST
   class Import < Node
+    include Scoped
     attr_accessor :short
     attr_accessor :long
     def initialize(parent, line_number, short, long)
       @short = short
       @long = long
       super(parent, line_number, [])
-      Duby::AST.type_factory.alias(short, long) if Duby::AST.type_factory
+      scope.static_scope.import(long, short)
     end
 
     def to_s
@@ -14,8 +15,6 @@ module Duby::AST
     end
 
     def infer(typer)
-      # add both the meta and non-meta imports
-      typer.alias_types(short, long)
       typer.no_type
     end
   end

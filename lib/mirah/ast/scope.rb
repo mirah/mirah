@@ -165,9 +165,9 @@ module Duby
       def import(full_name, short_name)
         return if full_name == short_name
         if short_name == '*'
-          @search_packages << fullname.sub(/\.\*$/, '')
+          @search_packages << full_name.sub(/\.\*$/, '')
         else
-          @imports[full_name] = short_name
+          @imports[short_name] = full_name
         end
       end
     end
