@@ -90,7 +90,7 @@ class TestAst < Test::Unit::TestCase
     new_ast.infer(typer)
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:local_assign, a(Duby::AST::StaticScope), "a", AST.type(:fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
+    assert_equal([[:local_assign, a(Duby::AST::StaticScope), "a", AST.type(nil, :fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
   end
 
   def test_return
@@ -106,7 +106,7 @@ class TestAst < Test::Unit::TestCase
 
     assert_equal(1, @compiler.calls.size)
     size = @compiler.calls[0].pop
-    assert_equal([[:empty_array, AST.type(:int)]], @compiler.calls)
+    assert_equal([[:empty_array, nil]], @compiler.calls)
     assert_equal(5, size.literal)
   end
 end

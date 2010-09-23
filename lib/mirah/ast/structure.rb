@@ -191,18 +191,28 @@ module Duby::AST
     child :body
 
     attr_accessor :defining_class
+    attr_reader :filename
 
     def initialize(parent, line_number, &block)
       super(parent, line_number, children, &block)
+      @package = ""
     end
 
     def infer(typer)
       resolve_if(typer) do
+        typer.set_filename(self, filename)
         @defining_class ||= begin
           static_scope.self_type = typer.self_type
         end
         typer.infer(body)
       end
+    end
+
+    def filename=(filename)
+      @filename = filename
+      package = File.dirname(@filename).tr('/', '.')
+      package.sub! /^\.+/, ''
+      static_scope.package = package
     end
   end
 end

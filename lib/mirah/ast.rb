@@ -313,6 +313,7 @@ module Duby
 
     class Constant < Node
       include Named
+      include Scoped
       attr_accessor :array
 
       def initialize(parent, position, name)
@@ -322,12 +323,13 @@ module Duby
 
       def infer(typer)
         @inferred_type ||= begin
-          typer.type_reference(name, @array, true)
+          # TODO lookup constant, inline if we're supposed to.
+          typer.type_reference(scope, name, @array, true)
         end
       end
 
       def type_reference(typer)
-        typer.type_reference(@name, @array)
+        typer.type_reference(scope, @name, @array)
       end
     end
 
@@ -343,12 +345,16 @@ module Duby
       attr_accessor :runtime
       alias runtime? runtime
 
-      def initialize(parent, position, klass)
-        super(parent, position)
-        @name = if klass.respond_to?(:class_name)
-          klass.class_name
-        else
-          klass.name
+      child :name_node
+
+      def initialize(parent, position, name=nil, &block)
+        super(parent, position, &block)
+        if name
+          @name = if name.respond_to?(:class_name)
+            name.class_name
+          else
+            name.name
+          end
         end
         @values = {}
       end
@@ -371,6 +377,7 @@ module Duby
 
       def infer(typer)
         @inferred ||= begin
+          @name = name_node.type_reference(typer).name if name_node
           @values.each do |name, value|
             if Node === value
               @values[name] = annotation_value(value, typer)
@@ -410,7 +417,7 @@ module Duby
       end
 
       def type_reference(typer)
-        typer.type_reference(name, array, meta)
+        typer.type_reference(nil, name, array, meta)
       end
 
       def to_s
@@ -446,7 +453,7 @@ module Duby
       end
 
       def component_type
-        AST.type(name) if array?
+        AST.type(nil, name) if array?
       end
 
       def narrow(other)
@@ -525,10 +532,10 @@ module Duby
     end
 
     # Shortcut method to construct type references
-    def self.type(typesym, array = false, meta = false)
+    def self.type(scope, typesym, array = false, meta = false)
       factory = type_factory
       if factory
-        factory.type(typesym, array, meta)
+        factory.type(scope, typesym, array, meta)
       else
         TypeReference.new(typesym, array, meta)
       end

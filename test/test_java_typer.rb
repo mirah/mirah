@@ -11,8 +11,8 @@ class TestJavaTyper < Test::Unit::TestCase
 
   def setup
     AST.type_factory = Duby::JVM::Types::TypeFactory.new
-    @typer = Typer::JVM.new('foobar', nil)
-    compiler = Duby::Compiler::JVM.new('foobar')
+    @typer = Typer::JVM.new(nil)
+    compiler = Duby::Compiler::JVM.new
 
     @java_typer = Typer::JavaTyper.new
   end
@@ -22,52 +22,52 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_simple_overtyped_meta_method
-    string_meta = AST::type('java.lang.String', false, true)
-    string = AST::type('java.lang.String')
+    string_meta = AST.type(nil, 'java.lang.String', false, true)
+    string = AST.type(nil, 'java.lang.String')
 
     # integral types
     ['boolean', 'char', 'double', 'float', 'int', 'long'].each do |type_name|
-      type = AST::type(type_name)
+      type = AST.type(nil, type_name)
       return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [type])
       assert_equal(string, return_type, "valueOf(#{type}) should return #{string}")
     end
 
     # char[]
-    type = AST::type('char', true)
+    type = AST.type(nil, 'char', true)
     return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [type])
     assert_equal(string, return_type)
 
     # Object
-    type = AST::type('java.lang.Object')
+    type = AST.type(nil, 'java.lang.Object')
     return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [type])
     assert_equal(string, return_type)
   end
 
   def test_non_overtyped_method
-    string = AST::type('java.lang.String')
+    string = AST.type(nil, 'java.lang.String')
 
-    int = AST::type('int')
+    int = AST.type(nil, 'int')
     return_type = @java_typer.method_type(@typer, string, 'length', [])
     assert_equal(int, return_type)
 
-    byte_array = AST::type('byte', true)
+    byte_array = AST.type(nil, 'byte', true)
     return_type = @java_typer.method_type(@typer, string, 'getBytes', [])
     assert_equal(byte_array, return_type)
   end
 
   def test_simple_overtyped_method
-    string_meta = AST::type('java.lang.String', false, true)
-    string = AST::type('java.lang.String')
+    string_meta = AST.type(nil, 'java.lang.String', false, true)
+    string = AST.type(nil, 'java.lang.String')
 
     return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [string])
     assert_equal(string, return_type)
   end
 
   def test_primitive_conversion_method
-    string = AST::type('java.lang.String')
-    byte = AST::type('byte')
-    char = AST::type('char')
-    long = AST::type('long')
+    string = AST.type(nil, 'java.lang.String')
+    byte = AST.type(nil, 'byte')
+    char = AST.type(nil, 'char')
+    long = AST.type(nil, 'long')
 
     return_type = @java_typer.method_type(@typer, string, 'charAt', [byte])
     assert_equal(char, return_type)
@@ -173,11 +173,11 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_primitive_array
-    ary = AST.type('byte', true)
-    int = AST.type('int')
+    ary = AST.type(nil, 'byte', true)
+    int = AST.type(nil, 'int')
 
     java_typer = Typer::JavaTyper.new
 
-    assert_equal(AST.type('byte'), java_typer.method_type(nil, ary, "[]", [int]))
+    assert_equal(AST.type(nil, 'byte'), java_typer.method_type(nil, ary, "[]", [int]))
   end
 end

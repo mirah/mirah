@@ -48,7 +48,8 @@ module Duby
         @vars = {}
         @parent = parent
         @children = {}
-        @imports = LinkedHashMap.new
+        @imports = {}
+        @search_packages = []
       end
 
       def <<(name)
@@ -88,6 +89,11 @@ module Duby
         @parent = parent
       end
 
+      def outer_scope
+        node = @scope_node.scope
+        node && node.static_scope
+      end
+
       def self_type
         if @self_type.nil? && parent
           @self_type = parent.self_type
@@ -110,7 +116,7 @@ module Duby
             name = "#{defining_class.name}$#{duby.tmp}"
             factory = Duby::AST.type_factory
             if factory
-              factory.declare_type(name)
+              factory.declare_type(@scope_node, name)
             else
               Duby::AST::TypeReference.new(name, false, false)
             end
@@ -131,26 +137,38 @@ module Duby
       end
 
       def package
-        @package || scope_node.scope.package
+        @package || outer_scope.package
       end
 
       def fetch_imports(map)
-        if scope_node.scope
-          scope_node.scope.fetch_imports(map)
-        end
-        map.addAll(@imports)
-        map
+        parent_scope = outer_scope
+        parent_scope.fetch_imports(map) if parent_scope
+
+        map.update(@imports)
+      end
+
+      def fetch_packages(list)
+        parent_scope = outer_scope
+        parent_scope.fetch_packages(list) if parent_scope
+
+        list.concat(@search_packages)
       end
 
       def imports
-        @cached_imports ||= begin
-          map = LinkedHashMap.new
-          fetch_imports(map)
-        end
+        @cached_imports ||= fetch_imports({})
+      end
+
+      def search_packages
+        @cached_packages ||= fetch_packages([])
       end
 
       def import(full_name, short_name)
-        @imports[full_name] = short_name
+        return if full_name == short_name
+        if short_name == '*'
+          @search_packages << fullname.sub(/\.\*$/, '')
+        else
+          @imports[full_name] = short_name
+        end
       end
     end
   end

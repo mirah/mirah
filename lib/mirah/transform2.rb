@@ -18,7 +18,10 @@ module Duby::AST
     end
 
     def transform_script(node, parent)
-      Script.new(parent, position(node)) {|script| [@mirah.transform(node.children[0], script)]}
+      Script.new(parent, position(node)) do |script|
+        script.filename = transformer.filename
+        [@mirah.transform(node.children[0], script)]
+      end
     end
 
     def transform_fixnum(node, parent)
@@ -283,10 +286,8 @@ module Duby::AST
               constant.array = true
               return constant
             elsif args && args.size == 1
-              return EmptyArray.new(
-                  parent, position,
-                  Duby::AST::type(target[1])) do |array|
-                transformer.transform(args[0], array)
+              return EmptyArray.new(parent, position) do |array|
+                [transform(target, array), transform(args[0], array)]
               end
             end
           # TODO look for imported, lower case class names
@@ -297,9 +298,8 @@ module Duby::AST
             constant.array = true
             return constant
           elsif args && args.size == 1
-            return EmptyArray.new(
-                parent, position, Duby::AST::type(target[1])) do |array|
-              transformer.transform(args[0], array)
+            return EmptyArray.new(parent, position) do |array|
+              [transform(target, array), transform(args[0], array)]
             end
           end
         end
@@ -580,15 +580,18 @@ module Duby::AST
     end
 
     def transform_rescue_clause(node, parent)
-      exceptions = node[1].map {|name| Duby::AST.type(name)}
+      exceptions = node[1]
       var_name = node[2]
       name = transform(var_name, nil) unless var_name.nil? || var_name.kind_of?(::String)
       body = node[3]
-      exceptions = [Duby::AST.type('java.lang.Exception')] if exceptions.size == 0
       RescueClause.new(parent, position(node)) do |clause|
         clause.name = var_name if var_name
         [
-          exceptions,
+          if exceptions.size == 0
+            [String.new(clause, position(node), 'java.lang.Exception')]
+          else
+            exceptions.map {|name| Constant.new(clause, position(node), name)}
+          end,
           body ? transformer.transform(body, clause) : Null.new(clause, position(node))
         ]
       end
@@ -676,7 +679,9 @@ module Duby::AST
       else
         []
       end
-      annotation = Annotation.new(parent, position(node), Duby::AST.type(classname))
+      annotation = Annotation.new(parent, position(node)) do |anno|
+        [String.new(anno, position(node), classname)]
+      end
       values.each do |_, key, value|
         name = key[1]
         annotation[name] = transform(value, annotation)

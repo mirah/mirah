@@ -58,10 +58,10 @@ class TestJVMCompiler < Test::Unit::TestCase
     transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
-    typer = Typer::JVM.new(name, transformer)
+    typer = Typer::JVM.new(transformer)
     ast.infer(typer)
     typer.resolve(true)
-    compiler = Compiler::JVM.new(name)
+    compiler = Compiler::JVM.new
     compiler.compile(ast)
     classes = {}
     loader = DubyClassLoader.new(JRuby.runtime.jruby_class_loader, classes)

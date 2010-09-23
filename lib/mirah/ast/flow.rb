@@ -233,7 +233,7 @@ module Duby
       def infer(typer)
         unless resolved?
           @inferred_type = AST.unreachable_type
-          throwable = AST.type('java.lang.Throwable')
+          throwable = AST.type(nil, 'java.lang.Throwable')
           if children.size == 1
             arg_type = typer.infer(self.exception)
             unless arg_type
@@ -275,8 +275,8 @@ module Duby
 
     class RescueClause < Node
       include Scoped
-      attr_accessor :name, :type
-      child :types
+      attr_accessor :name, :type, :types
+      child :type_nodes
       child :body
 
       def initialize(parent, position, &block)
@@ -285,11 +285,12 @@ module Duby
 
       def infer(typer)
         unless resolved?
+          @types ||= type_nodes.map {|n| n.type_reference(typer)}
           if name
             scope.static_scope << name
             orig_type = typer.local_type(containing_scope, name)
             # TODO find the common parent Throwable
-            @type = types.size == 1 ? types[0] : AST.type('java.lang.Throwable')
+            @type = types.size == 1 ? types[0] : AST.type(nil, 'java.lang.Throwable')
             typer.learn_local_type(containing_scope, name, @type)
           end
           @inferred_type = typer.infer(body)

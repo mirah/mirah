@@ -95,7 +95,7 @@ module Duby::JVM::Types
         if arg.kind_of?(AST::TypeReference) || arg.nil?
           arg
         else
-          AST.type(arg)
+          AST.type(nil, arg)
         end
       end
     end
@@ -109,13 +109,13 @@ module Duby::JVM::Types
         if exception.kind_of?(Duby::JVM::Types::Type)
           exception
         else
-          Duby::AST.type(exception.class_name)
+          Duby::AST.type(nil, exception.class_name)
         end
       end
     end
 
     def declaring_class
-      AST.type(@member.declaring_class)
+      AST.type(nil, @member.declaring_class)
     end
 
     def call(compiler, ast, expression)
@@ -140,7 +140,7 @@ module Duby::JVM::Types
         if void?
           Void
         else
-          AST.type(@member.return_type)
+          AST.type(nil, @member.return_type)
         end
       end
     end
@@ -251,7 +251,7 @@ module Duby::JVM::Types
     end
 
     def return_type
-      AST.type('dynamic')
+      AST.type(nil, 'dynamic')
     end
 
     def declaring_class
@@ -288,7 +288,7 @@ module Duby::JVM::Types
     end
 
     def return_type
-      AST.type(@member.type)
+      AST.type(nil, @member.type)
     end
 
     def public?
@@ -323,11 +323,11 @@ module Duby::JVM::Types
 
   class JavaFieldSetter < JavaFieldAccessor
     def return_type
-      AST.type(@member.type)
+      AST.type(nil, @member.type)
     end
 
     def argument_types
-      [AST.type(@member.type)]
+      [AST.type(nil, @member.type)]
     end
 
     def call(compiler, ast, expression)
@@ -477,7 +477,7 @@ module Duby::JVM::Types
 
     def inner_class_getter(name)
       full_name = "#{self.name}$#{name}"
-      inner_class = Duby::AST.type(full_name) rescue nil
+      inner_class = Duby::AST.type(nil, full_name) rescue nil
       return unless inner_class
       inner_class.inner_class = true
       add_macro(name) do |transformer, call|

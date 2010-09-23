@@ -35,14 +35,11 @@ module Duby::JVM::Types
       end
     end
 
-    def initialize(filename='')
+    def initialize
       @known_types = ParanoidHash.new
       @known_types.update(BASIC_TYPES)
       @declarations = []
-      @package = File.dirname(filename).tr('/', '.')
-      @package.sub! /^\.+/, ''
-      @package = nil if @package.empty?
-      @search_packages = [@package, 'java.lang']
+      @search_packages = []
       @mirrors = {}
     end
 
@@ -60,21 +57,21 @@ module Duby::JVM::Types
       end
     end
 
-    def type(name, array=false, meta=false)
+    def type(scope, name, array=false, meta=false)
       if name.kind_of?(BiteScript::ASM::Type)
         if name.getDescriptor[0] == ?[
-          return type(name.getElementType, true, meta)
+          return type(scope, name.getElementType, true, meta)
         else
           name = name.getClassName
         end
       end
-      type = basic_type(name)
+      type = basic_type(scope, name)
       type = type.array_type if array
       type = type.meta if meta
       return type
     end
 
-    def basic_type(name)
+    def basic_type(scope, name)
       if name.kind_of?(Type) || name.kind_of?(NarrowingType)
         return name.basic_type
       end
@@ -91,41 +88,69 @@ module Duby::JVM::Types
       name = name.to_s unless name.kind_of?(::String)
       raise ArgumentError, "Bad Type #{orig}" if name =~ /Java::/
       raise ArgumentError, "Bad Type #{orig.inspect}" if name == '' || name.nil?
-      if name.include? '.'
-        alt_names = []
-      else
-        alt_names = @search_packages.map {|package| "#{package}.#{name}"}
-      end
-      full_name = name
+      find_type(scope, name)
+    end
+
+    def find_type(scope, name)
       begin
-        type = @known_types[full_name].basic_type if @known_types[full_name]
-        type ||= begin
-          Type.new(get_mirror(full_name)).load_extensions
-        end
-        @known_types[name] = @known_types[full_name] = type
-      rescue NameError
-        unless alt_names.empty?
-          full_name = alt_names.shift
-          retry
-        end
-        raise $!
-      end
-    end
-
-    def known_type(name)
-      basic_type(name) rescue nil
-    end
-
-    def declare_type(node)
-      if node.kind_of? ::String
-        name = node
-        node = nil
-      else
-        name = node.name
+        return get_type(name)
+      rescue NameError => ex
+        raise ex if scope.nil?
       end
 
+      imports = scope.static_scope.imports
+      if imports.include?(name)
+        name = imports[name] while imports.include?(name)
+        return get_type(name)
+      end
+
+      packages = []
+      # TODO support inner class names
+      if name !~ /\./
+        packages << scope.static_scope.package unless scope.static_scope.package.empty?
+        packages.concat(scope.static_scope.search_packages)
+        packages.concat(@search_packages)
+        packages << 'java.lang'
+      end
+      packages.each do |package|
+        begin
+          return get_type("#{package}.#{name}")
+        rescue
+        end
+      end
+      raise NameError, "Cannot find class #{name}"
+    end
+
+    def get_type(full_name)
+      type = @known_types[full_name]
+      return type.basic_type if type
+      type = Type.new(get_mirror(full_name)).load_extensions
+      @known_types[full_name] = type
+    end
+
+    def known_type(scope, name)
+      basic_type(scope, name) rescue nil
+    end
+
+    def declare_type(scope, name)
       full_name = name
-      if !name.include?('.') && package
+      package = scope.static_scope.package
+      if !name.include?('.') && !package.empty?
+        full_name = "#{package}.#{name}"
+      end
+      if @known_types.include? full_name
+        @known_types[full_name]
+      else
+        scope.static_scope.import(full_name, name)
+        @known_types[full_name] = TypeDefinition.new(full_name, nil)
+      end
+    end
+
+    def define_type(node)
+      name = node.name
+      full_name = name
+      package = node.static_scope.package
+      if !name.include?('.') && !package.empty?
         full_name = "#{package}.#{name}"
       end
       if @known_types.include? full_name
@@ -138,8 +163,8 @@ module Duby::JVM::Types
         else
           klass = TypeDefinition
         end
+        node.scope.static_scope.import(full_name, name)
         @known_types[full_name] = klass.new(full_name, node)
-        @known_types[name] = @known_types[full_name]
       end
     end
 
@@ -147,7 +172,7 @@ module Duby::JVM::Types
       if from == '*'
         @search_packages << to.sub(".*", "")
       else
-        @known_types[from] = type(to)
+        @known_types[from] = type(nil, to)
       end
     end
 

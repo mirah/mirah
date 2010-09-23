@@ -65,6 +65,7 @@ module Duby::AST
 
   class String < Node
     include Literal
+    include Scoped
     include Java::DubyLangCompiler.StringNode
 
     def initialize(parent, line_number, literal)
@@ -79,7 +80,7 @@ module Duby::AST
     end
 
     def type_reference(typer)
-      typer.type_reference(@literal)
+      typer.type_reference(scope, @literal)
     end
 
     def toString

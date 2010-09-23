@@ -53,12 +53,16 @@ module Duby
         end
       end
 
-      def initialize(filename)
+      def initialize
         super
         BiteScript.bytecode_version = BiteScript::JAVA1_5
-        @file = BiteScript::FileBuilder.new(@filename)
-        AST.type_factory.define_types(@file)
         @jump_scope = []
+      end
+
+      def file_builder(filename)
+        builder = BiteScript::FileBuilder.new(filename)
+        AST.type_factory.define_types(builder)
+        builder
       end
 
       def output_type
@@ -88,7 +92,7 @@ module Duby
 
       def begin_main
         # declare argv variable
-        @method.local('argv', AST.type('string', true))
+        @method.local('argv', AST.type(nil, 'string', true))
       end
 
       def finish_main
@@ -615,7 +619,7 @@ module Duby
       def build_string(nodes, expression)
         if expression
           # could probably be more efficient with non-default constructor
-          builder_class = Duby::AST.type('java.lang.StringBuilder')
+          builder_class = Duby::AST.type(nil, 'java.lang.StringBuilder')
           @method.new builder_class
           @method.dup
           @method.invokespecial builder_class, "<init>", [@method.void]

@@ -29,9 +29,12 @@ module Duby
 
       ImplicitReturn = Struct.new(:value)
 
-      def initialize(filename)
+      def initialize
         super
-        @file = Duby::JavaSource::Builder.new(filename, self)
+      end
+
+      def file_builder(filename)
+        Duby::JavaSource::Builder.new(filename, self)
       end
 
       def output_type
@@ -406,7 +409,7 @@ module Duby
       end
 
       def self_type
-        type = AST::type(@class.name.tr('/', '.'))
+        type = AST.type(nil, @class.name.tr('/', '.'))
         type = type.meta if @static
         type
       end

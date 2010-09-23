@@ -69,25 +69,25 @@ module Duby::AST
   class EmptyArray < Node
     attr_accessor :size
     attr_accessor :component_type
-    def initialize(parent, line_number, type, &block)
-      super(parent, line_number, [])
-      @component_type = type
-      @size = size
-      @inferred_type = Duby::AST::type(type.name, true)
+    child :type_node
+    child :size
 
-      @size = yield(self)
+    def initialize(*args)
+      super(*args)
     end
 
     def infer(typer)
-      typer.infer(size)
-      resolved!
-      return @inferred_type
+      resolve_if(typer) do
+        @component_type = type_node.type_reference(typer)
+        typer.infer(size)
+        typer.type_reference(nil, @component_type, true)
+      end
     end
   end
 
   class Builtin < Node
     def infer(typer)
-      resolve_if(typer) {Duby::AST.type('mirah.impl.Builtin')}
+      resolve_if(typer) {Duby::AST.type(nil, 'mirah.impl.Builtin')}
     end
   end
 end

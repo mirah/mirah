@@ -22,6 +22,7 @@ module Duby
       end
 
       attr_reader :errors, :state
+      attr_accessor :filename
       def initialize(state)
         @errors = []
         @tmp_count = 0
@@ -170,7 +171,7 @@ module Duby
       end
 
       def find_class(name)
-        AST.type(name, false, false)
+        AST.type(nil, name, false, false)
       end
 
       def expand(fvcall, parent)
@@ -187,17 +188,18 @@ module Duby
       end
 
       def define_class(position, name, &block)
-        append_node Duby::AST::ClassDefinition.new(nil, position, name, &block)
+        append_node Duby::AST::ClassDefinition.new(@extra_body, position, name, &block)
       end
 
       def define_closure(position, name, enclosing_type)
         target = self
+        parent = @extra_body
         enclosing_type = enclosing_type.unmeta
         if enclosing_type.respond_to?(:node) && enclosing_type.node
-          target = enclosing_type.node
+          parent = target = enclosing_type.node
         end
         target.append_node(Duby::AST::ClosureDefinition.new(
-            nil, position, name, enclosing_type))
+            parent, position, name, enclosing_type))
       end
     end
   end
@@ -211,9 +213,10 @@ module Duby
       java_import 'mirah.impl.MirahParser'
     end
 
-    def parse(src, filename='-', raise_errors=false, transformer=nil)
+    def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
       ast = parse_ruby(src, filename)
       transformer ||= Transform::Transformer.new(Duby::CompilationState.new)
+      transformer.filename = filename
       ast = transformer.transform(ast, nil)
       if raise_errors
         transformer.errors.each do |e|

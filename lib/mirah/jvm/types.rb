@@ -85,11 +85,11 @@ module Duby
         def iterable?
           ['java.lang.Iterable',
            'java.util.Iterator',
-           'java.util.Enumeration'].any? {|n| AST.type(n).assignable_from(self)}
+           'java.util.Enumeration'].any? {|n| AST.type(nil, n).assignable_from(self)}
         end
 
         def component_type
-          AST.type('java.lang.Object') if iterable?
+          AST.type(nil, 'java.lang.Object') if iterable?
         end
 
         def meta
@@ -127,13 +127,13 @@ module Duby
 
         def superclass
           raise "Incomplete type #{self}" unless jvm_type
-          AST.type(jvm_type.superclass) if jvm_type.superclass
+          AST.type(nil, jvm_type.superclass) if jvm_type.superclass
         end
 
         def interfaces
           raise "Incomplete type #{self} (#{self.class})" unless jvm_type
           @interfaces ||= jvm_type.interfaces.map do |interface|
-            AST.type(interface)
+            AST.type(nil, interface)
           end
         end
 

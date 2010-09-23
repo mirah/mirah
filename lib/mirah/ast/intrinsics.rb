@@ -250,6 +250,7 @@ module Duby::AST
 
     def build_and_load_extension(parent, name, state)
       transformer = Duby::Transform::Transformer.new(state)
+      transformer.filename = name.gsub(".", "/")
       orig_factory = Duby::AST.type_factory
       new_factory = orig_factory.dup
       Duby::AST.type_factory = new_factory
@@ -288,11 +289,10 @@ module Duby::AST
     end
 
     def compile_ast(name, ast, transformer)
-      filename = name.gsub(".", "/")
-      typer = Duby::Typer::JVM.new(filename, transformer)
+      typer = Duby::Typer::JVM.new(transformer)
       typer.infer(ast)
       typer.resolve(true)
-      compiler = Duby::Compiler::JVM.new(filename)
+      compiler = Duby::Compiler::JVM.new
       ast.compile(compiler, false)
       class_map = {}
       compiler.generate do |outfile, builder|
@@ -316,20 +316,20 @@ module Duby::AST
 
       # Start building the extension class
       extension = transformer.define_class(position, name)
-      #extension.superclass = Duby::AST.type('duby.lang.compiler.Macro')
-      extension.implements(Duby::AST.type('duby.lang.compiler.Macro'))
+      #extension.superclass = Duby::AST.type(nil, 'duby.lang.compiler.Macro')
+      extension.implements(Duby::AST.type(nil, 'duby.lang.compiler.Macro'))
 
       extension.append_node(transformer.eval("import duby.lang.compiler.Node"))
 
       # The constructor just saves the state
       extension.define_constructor(
           position,
-          ['mirah', Duby::AST.type('duby.lang.compiler.Compiler')],
-          ['call', Duby::AST.type('duby.lang.compiler.Call')]) do |c|
+          ['mirah', Duby::AST.type(nil, 'duby.lang.compiler.Compiler')],
+          ['call', Duby::AST.type(nil, 'duby.lang.compiler.Call')]) do |c|
         transformer.eval("@mirah = mirah;@call = call", '-', c, 'mirah', 'call')
       end
 
-      node_type = Duby::AST.type('duby.lang.compiler.Node')
+      node_type = Duby::AST.type(nil, 'duby.lang.compiler.Node')
 
       # expand() parses the arguments out of call and then passes them off to
       # _expand
@@ -350,7 +350,7 @@ module Duby::AST
       end
       actual_args = arguments.map do |arg|
         type = if arg.kind_of?(BlockArgument)
-          Duby::AST.type('duby.lang.compiler.Block')
+          Duby::AST.type(nil, 'duby.lang.compiler.Block')
         else
           node_type
         end

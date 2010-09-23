@@ -116,7 +116,7 @@ module Duby::JVM::Types
             if type.class_name == 'duby.lang.compiler.Block'
               Duby::AST::TypeReference::BlockType
             else
-              Duby::AST.type(type)
+              Duby::AST.type(nil, type)
             end
           end
           klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)

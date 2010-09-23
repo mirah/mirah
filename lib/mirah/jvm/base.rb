@@ -3,11 +3,7 @@ module Duby
     class JVMCompilerBase
       attr_accessor :filename, :method, :static, :class
 
-      def initialize(filename)
-        @filename = File.basename(filename)
-        @static = true
-        classname = JVM.classname_from_filename(filename)
-        @type = AST::type(classname)
+      def initialize
         @jump_scope = []
         @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
         @captured_locals = Hash.new {|h, binding| h[binding] = {}}
@@ -44,6 +40,11 @@ module Duby
       end
 
       def define_main(script)
+        @static = true
+        @filename = File.basename(script.filename)
+        classname = JVM.classname_from_filename(@filename)
+        @type = AST.type(script, classname)
+        @file = file_builder(@filename)
         body = script.body
         body = body[0] if body.children.size == 1
         if body.class != AST::ClassDefinition

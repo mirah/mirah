@@ -9,7 +9,7 @@ module Duby::JVM::Types
     end
 
     def box(builder)
-      box_type = Duby::AST::type('java.lang.Boolean')
+      box_type = Duby::AST::type(nil, 'java.lang.Boolean')
       builder.invokestatic box_type, "valueOf", [box_type, self]
     end
 

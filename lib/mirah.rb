@@ -177,7 +177,7 @@ class DubyImpl
       print_help
       exit(1)
     end
-    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new(@filename)
+    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
     begin
       ast = Duby::AST.parse_ruby(src, @filename)
     # rescue org.jrubyparser.lexer.SyntaxException => ex
@@ -186,17 +186,19 @@ class DubyImpl
     end
     @transformer = Duby::Transform::Transformer.new(@state)
     Java::MirahImpl::Builtin.initialize_builtins(@transformer)
+    @transformer.filename = @filename
     ast = @transformer.transform(ast, nil)
     @transformer.errors.each do |ex|
       Duby.print_error(ex.message, ex.position)
       raise ex.cause || ex if @state.verbose
     end
     @error = @transformer.errors.size > 0
+
     ast
   end
 
   def compile_ast(ast, &block)
-    typer = Duby::Typer::JVM.new(@filename, @transformer)
+    typer = Duby::Typer::JVM.new(@transformer)
     typer.infer(ast)
     begin
       typer.resolve(false)
@@ -219,7 +221,7 @@ class DubyImpl
     end
 
     begin
-      compiler = @compiler_class.new(@filename)
+      compiler = @compiler_class.new
       ast.compile(compiler, false)
       compiler.generate(&block)
     rescue Exception => ex

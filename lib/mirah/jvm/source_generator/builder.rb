@@ -237,7 +237,7 @@ module Duby
 
       def build_method(name, visibility, static, exceptions, type, *args)
         finish_declaration
-        type ||= Duby::AST::type(:void)
+        type ||= Duby::AST::type(nil, :void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :visibility => visibility,
@@ -287,7 +287,7 @@ module Duby
       def build_method(name, visibility, static, exceptions, type, *args)
         raise "Interfaces can't have static methods" if static
         finish_declaration
-        type ||= Duby::AST::type(:void)
+        type ||= Duby::AST::type(nil, :void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :visibility => visibility,

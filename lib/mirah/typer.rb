@@ -35,17 +35,19 @@ module Duby
       def initialize(self_type)
         @known_types = {}
 
-        @known_types["self"] = type_reference(self_type)
-        @known_types["fixnum"] = type_reference("fixnum")
-        @known_types["float"] = type_reference("float")
-        @known_types["string"] = type_reference("string")
-        @known_types["boolean"] = type_reference("boolean")
+        @known_types["self"] = type_reference(nil, self_type)
+        @known_types["fixnum"] = type_reference(nil, "fixnum")
+        @known_types["float"] = type_reference(nil, "float")
+        @known_types["string"] = type_reference(nil, "string")
+        @known_types["boolean"] = type_reference(nil, "boolean")
         @errors = []
       end
 
       def name
         "Simple"
       end
+
+      def set_filename(scope, name); end
 
       def self_type
         known_types["self"]
@@ -93,9 +95,9 @@ module Duby
         @known_types[name]
       end
 
-      def define_type(name, superclass, interfaces)
+      def define_type(scope, name, superclass, interfaces)
         log "New type defined: '#{name}' < '#{superclass}'"
-        known_types[name] = type_definition(name, superclass, interfaces)
+        known_types[name] = type_definition(scope, name, superclass, interfaces)
 
         old_self, known_types["self"] = known_types["self"], known_types[name]
         yield
@@ -251,17 +253,17 @@ module Duby
         current
       end
 
-      def type_reference(name, array=false, meta=false)
+      def type_reference(scope, name, array=false, meta=false)
         AST::TypeReference.new(name, array, meta)
       end
 
-      def type_definition(name, superclass, interfaces)
+      def type_definition(scope, name, superclass, interfaces)
         AST::TypeDefinition.new(name, AST::TypeReference.new(superclass), interfaces)
       end
 
       def alias_type(short, long)
-        @known_types[type_reference(short, false, false)] = type_reference(long, false, false)
-        @known_types[type_reference(short, false, true)] = type_reference(long, false, true)
+        @known_types[type_reference(nil, short, false, false)] = type_reference(nil, long, false, false)
+        @known_types[type_reference(nil, short, false, true)] = type_reference(nil, long, false, true)
       end
 
       def deferred_nodes

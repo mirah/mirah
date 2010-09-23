@@ -92,11 +92,11 @@ module Duby::AST
         parameter_types << Duby::AST.block_type if block
 
         unless should_defer
-          if parameters.size == 1 && typer.known_type(name)
+          if parameters.size == 1 && typer.known_type(scope, name)
             # cast operation
             resolved!
             self.cast = true
-            @inferred_type = typer.known_type(name)
+            @inferred_type = typer.known_type(scope, name)
           elsif parameters.size == 0 && scope.static_scope.include?(name)
             @inlined = Local.new(parent, position, name)
             proxy.__inline__(@inlined)
@@ -128,13 +128,14 @@ module Duby::AST
     end
 
     def type_reference(typer)
-      typer.type_reference(name)
+      typer.type_reference(scope, name)
     end
   end
 
   class Call < Node
     include Java::DubyLangCompiler.Call
     include Named
+    include Scoped
     attr_accessor :cast, :inlined, :proxy
     alias cast? cast
 
@@ -230,7 +231,7 @@ module Duby::AST
 
       # join and load
       class_name = elements.join(".")
-      typer.type_reference(class_name, array)
+      typer.type_reference(scope, class_name, array)
     end
   end
 

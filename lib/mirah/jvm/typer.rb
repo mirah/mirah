@@ -9,22 +9,25 @@ module Duby
 
       attr_reader :transformer
 
-      def initialize(filename, transformer)
+      def initialize(transformer)
         @factory = AST.type_factory
         @transformer = transformer
         unless @factory.kind_of? TypeFactory
           raise "TypeFactory not installed"
         end
         @known_types = @factory.known_types
-        classname = Duby::Compiler::JVM.classname_from_filename(filename)
-        main_class = @factory.declare_type(classname)
-        @known_types['self'] = main_class.meta
         @known_types['dynamic'] = DynamicType.new
         @errors = []
       end
 
-      def type_reference(name, array=false, meta=false)
-        @factory.type(name, array, meta)
+      def set_filename(scope, filename)
+        classname = Duby::Compiler::JVM.classname_from_filename(filename)
+        main_class = @factory.declare_type(scope, classname)
+        @known_types['self'] = main_class.meta
+      end
+
+      def type_reference(scope, name, array=false, meta=false)
+        @factory.type(scope, name, array, meta)
       end
 
       def alias_types(short, long)
@@ -35,7 +38,14 @@ module Duby
         "JVM"
       end
 
-      def type_definition(name, superclass, interfaces)
+      def type_definition(scope, name, superclass, interfaces)
+        imports = scope.static_scope.imports
+        name = imports[name] while imports.include?(name)
+        package = scope.static_scope.package
+        unless name =~ /\./ || package.empty?
+          name = "#{package}.#{name}"
+        end
+
         @known_types[name]
       end
 
@@ -49,20 +59,20 @@ module Duby
 
       def array_type
         # TODO: allow other types for pre-1.2 profiles
-        type_reference("java.util.List")
+        type_reference(nil, "java.util.List")
       end
 
       def hash_type
         # TODO: allow other types for pre-1.2 profiles
-        type_reference("java.util.Map")
+        type_reference(nil, "java.util.Map")
       end
 
       def regexp_type
-        type_reference("java.util.regex.Pattern")
+        type_reference(nil, "java.util.regex.Pattern")
       end
 
-      def known_type(name)
-        @factory.known_type(name)
+      def known_type(scope, name)
+        @factory.known_type(scope, name)
       end
 
       def fixnum_type(value)

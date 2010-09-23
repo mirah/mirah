@@ -291,7 +291,7 @@ class FederatedLogin < Helper
     if provider && provider.length > 1
       provider = provider.substring(1)
     else
-      provider = 'gmail.com'
+      provider = 'www.google.com/accounts/o8/id'
     end
     continue = String(request.getParameter('continue')) || '/'
     url = users.createLoginURL(continue, nil, provider, nil)
@@ -304,7 +304,7 @@ class LoginRequired < Helper
     # This should be a page allowing people to select an OpenID provider.
     # But I'm lazy so I'll just force them to use gmail...
     continue = String(request.getParameter('continue'))
-    url = users.createLoginURL(continue, nil, 'gmail.com', nil)
+    url = users.createLoginURL(continue, nil, 'www.google.com/accounts/o8/id', nil)
     response.sendRedirect(url)
   end
 end

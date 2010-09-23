@@ -4,7 +4,7 @@ module Duby::JavaSource
   class ClassBuilder
     def build_jsni_method(name, visibility, static, exceptions, type, *args)
       finish_declaration
-      type ||= Duby::AST::type(:void)
+      type ||= Duby::AST.type(nil, :void)
       @methods << JsniMethodBuilder.new(self,
         :name => name,
         :visibility => visibility,
@@ -138,7 +138,7 @@ module Duby::AST
       call_node.name,
       transformer.annotations) do |defn|
 
-      signature = {:return => Duby::AST::type(args[0].name)}
+      signature = {:return => Duby::AST.type(nil, args[0].name)}
       method = call_node.parameters[0]
 
       unless method.nil?
@@ -149,7 +149,7 @@ module Duby::AST
           hash_node.child_nodes.each_slice(2) do |name, type|
             position = name.position + type.position
             name = name.literal
-            type = Duby::AST::type(type.name)
+            type = Duby::AST.type(nil, type.name)
             signature[name.intern] = type
             arg_list.push(RequiredArgument.new(args_new, position, name))
           end

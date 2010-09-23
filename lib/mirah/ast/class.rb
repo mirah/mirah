@@ -16,8 +16,9 @@ module Duby::AST
       @interfaces = []
       @interface_nodes = []
       @name = name
-      if Duby::AST.type_factory.respond_to? :declare_type
-        Duby::AST.type_factory.declare_type(self)
+      self.parent = parent
+      if Duby::AST.type_factory.respond_to? :define_type
+        Duby::AST.type_factory.define_type(self)
       end
       # We need somewhere to collect nodes that get appended during
       # the transform phase.
@@ -90,7 +91,7 @@ module Duby::AST
         @superclass = superclass_node.type_reference(typer) if superclass_node
         @annotations.each {|a| a.infer(typer)} if @annotations
         @interfaces.concat(@interface_nodes.map{|n| n.type_reference(typer)})
-        typer.define_type(name, superclass, @interfaces) do
+        typer.define_type(self, name, superclass, @interfaces) do
           static_scope.self_type = typer.self_type
           typer.infer(body) if body
         end
