@@ -329,9 +329,9 @@ RUBY
   end
 
   # protected
-  def _save_to(e:Entity)
+  def _save_to(e:Entity):void
   end
 
-  def _read_from(e:Entity)
+  def _read_from(e:Entity):void
   end
 end

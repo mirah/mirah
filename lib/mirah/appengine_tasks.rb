@@ -48,7 +48,7 @@ module AppEngine::Rake
           'com.google.appengine.tools.development.DevAppServerMain',
           @war
         ]
-        sh *args
+        system *args
         @done = true
         @update_thread.join
       end

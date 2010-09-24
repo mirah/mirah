@@ -109,7 +109,7 @@ module AppEngine
               self
             end
           EOF
-          [Duby::AST.type('com.google.appengine.ext.duby.db.DQuery'),
+          [Duby::AST.type(nil, 'com.google.appengine.ext.duby.db.DQuery'),
            eval(classdef, queryinit)]
         end
         ast << @query
@@ -154,25 +154,16 @@ module AppEngine
 
       def init_static(parent, ast)
         # TODO These imports don't work any more.  Figure out how to fix that.
+        scope = ast.static_scope
+        package = "#{scope.package}." unless scope.package.empty?
+        scope.import('java.util.Map', 'Map')
+        scope.import("#{package}#{kind}$Query", "#{kind}__Query__")
+        %w( Entity Blob Category Email GeoPt IMHandle Key
+            Link PhoneNumber PostalAddress Rating ShortBlob
+            Text KeyFactory EntityNotFoundException ).each do |name|
+          scope.import("com.google.appengine.api.datastore.#{name}", name)
+        end
         ast << eval(parent, <<-EOF)
-          import com.google.appengine.api.datastore.Entity
-          import com.google.appengine.api.datastore.Blob
-          import com.google.appengine.api.datastore.Category
-          import com.google.appengine.api.datastore.Email
-          import com.google.appengine.api.datastore.GeoPt
-          import com.google.appengine.api.datastore.IMHandle
-          import com.google.appengine.api.datastore.Key
-          import com.google.appengine.api.datastore.Link
-          import com.google.appengine.api.datastore.PhoneNumber
-          import com.google.appengine.api.datastore.PostalAddress
-          import com.google.appengine.api.datastore.Rating
-          import com.google.appengine.api.datastore.ShortBlob
-          import com.google.appengine.api.datastore.Text
-          import com.google.appengine.api.datastore.KeyFactory
-          import com.google.appengine.api.datastore.EntityNotFoundException
-          import java.util.Map
-          import '#{kind}__Query__', '#{kind}$Query'
-
           def initialize
             super
           end
@@ -301,7 +292,8 @@ module AppEngine
       type = type.name
       type = 'Long' if type == 'Integer'
 
-      result = Duby::AST::Body.new(parent, fcall.position) {[]}
+      result = Duby::AST::ScopedBody.new(parent, fcall.position) {[]}
+      result.static_scope = fcall.scope.static_scope
       klass = find_class(parent)
       unless @models[klass]
         @models[klass] = ModelState.new(

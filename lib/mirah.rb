@@ -187,7 +187,11 @@ class DubyImpl
     @transformer = Duby::Transform::Transformer.new(@state)
     Java::MirahImpl::Builtin.initialize_builtins(@transformer)
     @transformer.filename = @filename
+    begin
     ast = @transformer.transform(ast, nil)
+    rescue => ex
+      puts ex
+    end
     @transformer.errors.each do |ex|
       Duby.print_error(ex.message, ex.position)
       raise ex.cause || ex if @state.verbose
