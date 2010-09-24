@@ -105,13 +105,16 @@ class DubyClassLoader < java::security::SecureClassLoader
 end
 
 class DubyImpl
+  def initialize
+    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
+  end
+
   def run(*args)
-    ast = parse(*args)
     main = nil
     class_map = {}
 
     # generate all bytes for all classes
-    compile_ast(ast) do |outfile, builder|
+    generate(args) do |outfile, builder|
       bytes = builder.generate
       name = builder.class_name.gsub(/\//, '.')
       class_map[name] = bytes
@@ -139,26 +142,38 @@ class DubyImpl
   end
 
   def compile(*args)
+    generate(args) do |filename, builder|
+      filename = "#{@state.destination}#{filename}"
+      FileUtils.mkdir_p(File.dirname(filename))
+      bytes = builder.generate
+      File.open(filename, 'wb') {|f| f.write(bytes)}
+    end
+  end
+
+  def generate(args, &block)
     process_flags!(args)
 
+    # collect all ASTs from all files
+    all_nodes = []
     expand_files(args).each do |duby_file|
       if duby_file == '-e'
         @filename = '-e'
         next
       elsif @filename == '-e'
-        ast = parse('-e', duby_file)
+        all_nodes << parse('-e', duby_file)
       else
-        ast = parse(duby_file)
-      end
-      exit 1 if @error
-
-      compile_ast(ast) do |filename, builder|
-        filename = "#{@state.destination}#{filename}"
-        FileUtils.mkdir_p(File.dirname(filename))
-        bytes = builder.generate
-        File.open(filename, 'wb') {|f| f.write(bytes)}
+        all_nodes << parse(duby_file)
       end
       @filename = nil
+      exit 1 if @error
+    end
+
+    # enter all ASTs into inference engine
+    infer_asts(all_nodes)
+
+    # compile each AST in turn
+    all_nodes.each do |ast|
+      compile_ast(ast, &block)
     end
   end
 
@@ -177,7 +192,6 @@ class DubyImpl
       print_help
       exit(1)
     end
-    Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
     begin
       ast = Duby::AST.parse_ruby(src, @filename)
     # rescue org.jrubyparser.lexer.SyntaxException => ex
@@ -187,11 +201,7 @@ class DubyImpl
     @transformer = Duby::Transform::Transformer.new(@state)
     Java::MirahImpl::Builtin.initialize_builtins(@transformer)
     @transformer.filename = @filename
-    begin
     ast = @transformer.transform(ast, nil)
-    rescue => ex
-      puts ex
-    end
     @transformer.errors.each do |ex|
       Duby.print_error(ex.message, ex.position)
       raise ex.cause || ex if @state.verbose
@@ -201,13 +211,13 @@ class DubyImpl
     ast
   end
 
-  def compile_ast(ast, &block)
+  def infer_asts(asts)
     typer = Duby::Typer::JVM.new(@transformer)
-    typer.infer(ast)
+    asts.each {|ast| typer.infer(ast) }
     begin
       typer.resolve(false)
     ensure
-      puts ast.inspect if @state.verbose
+      puts asts.inspect if @state.verbose
 
       failed = !typer.errors.empty?
       if failed
@@ -223,7 +233,9 @@ class DubyImpl
         exit 1
       end
     end
+  end
 
+  def compile_ast(ast, &block)
     begin
       compiler = @compiler_class.new
       ast.compile(compiler, false)
