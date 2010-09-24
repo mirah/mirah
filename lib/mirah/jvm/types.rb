@@ -359,7 +359,13 @@ module Duby
 
         def define(builder)
           class_name = @name.tr('.', '/')
-          @type ||= builder.public_class(class_name, superclass, *interfaces)
+          abstract = node && node.abstract
+          @type ||= builder.define_class(
+              class_name,
+              :visibility => :public,
+              :abstract => abstract,
+              :superclass => superclass,
+              :interfaces => interfaces)
         end
 
         def meta

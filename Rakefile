@@ -71,7 +71,7 @@ namespace :jar do
     ant.jar :jarfile => 'dist/mirah-complete.jar' do
       zipfileset :src => 'dist/mirah.jar'
       zipfileset :src => 'javalib/jruby-complete.jar'
-      zipfileset :src => 'javalib/JRubyParser.jar'
+      zipfileset :src => 'javalib/mirah-parser.jar'
       manifest do
         attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
       end

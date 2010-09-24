@@ -682,7 +682,9 @@ module Duby::AST
       annotation = Annotation.new(parent, position(node)) do |anno|
         [String.new(anno, position(node), classname)]
       end
-      values.each do |_, key, value|
+      values.each do |assoc|
+        key = assoc[1]
+        value = assoc[2]
         name = key[1]
         annotation[name] = transform(value, annotation)
       end

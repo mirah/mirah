@@ -298,7 +298,7 @@ module Duby::AST
       compiler.generate do |outfile, builder|
         outfile = "#{transformer.destination}#{outfile}"
         FileUtils.mkdir_p(File.dirname(outfile))
-        File.open(outfile, 'w') do |f|
+        File.open(outfile, 'wb') do |f|
           bytes = builder.generate
           name = builder.class_name.gsub(/\//, '.')
           class_map[name] = bytes
@@ -412,6 +412,12 @@ module Duby::AST
     macro.arguments = method.arguments.args || []
     macro.body = method.body
     macro
+  end
+
+  defmacro('abstract') do |transformer, fcall, parent|
+    class_or_method = fcall.parameters[0]
+    class_or_method.abstract = true
+    class_or_method
   end
 
   defmacro('puts') do |transformer, fcall, parent|

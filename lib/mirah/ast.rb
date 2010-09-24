@@ -392,7 +392,7 @@ module Duby
         when String
           java.lang.String.new(node.literal)
         when Array
-          value.children.map {|node| annotation_value(node, typer)}
+          node.children.map {|node| annotation_value(node, typer)}
         else
           # TODO Support other types
           ref = value.type_refence(typer)

@@ -196,6 +196,7 @@ module Duby::AST
 
     attr_accessor :defining_class
     attr_accessor :visibility
+    attr_accessor :abstract
 
     def initialize(parent, line_number, name, annotations=[], &block)
       @annotations = annotations
@@ -280,7 +281,7 @@ module Duby::AST
     end
 
     def abstract?
-      InterfaceDeclaration === scope
+      @abstract || InterfaceDeclaration === class_scope
     end
 
     def static?

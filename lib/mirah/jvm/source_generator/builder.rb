@@ -21,8 +21,11 @@ module Duby
         @compiler = compiler
       end
 
-      def public_class(name, superclass=nil, *interfaces)
-        cls = ClassBuilder.new(self, name, superclass, interfaces)
+      def define_class(name, opts={})
+        superclass = opts[:superclass]
+        interfaces = opts[:interfaces]
+        abstract = opts[:abstract]
+        cls = ClassBuilder.new(self, name, superclass, interfaces, abstract)
         container = self
         if name.include? ?$
           path = name.split '$'
@@ -133,7 +136,29 @@ module Duby
 
       def annotate(annotations)
         annotations.each do |annotation|
-          puts "@#{annotation.name}"
+          print "@#{annotation.name.gsub("$", ".")}("
+          first = true
+          annotation.values.each do |name, value|
+            print ", " unless first
+            first = false
+            print "#{name}="
+            print annotation_value(value)
+          end
+          puts ")"
+        end
+      end
+
+      def annotation_value(value)
+        case value
+        when Java::JavaLang::String
+          value.to_s.inspect
+        when Array
+          values = value.map{|x|annotation_value(x)}.join(", ")
+          "{#{values}}"
+        when BiteScript::ASM::Type
+          value.getClassName.gsub("$", ".")
+        else
+          raise "Unsupported annotation value #{value.inspect}"
         end
       end
     end
@@ -142,8 +167,8 @@ module Duby
       include Helper
       include Duby::Compiler::JVM::JVMLogger
       attr_reader :package, :name, :superclass, :filename, :class_name, :out
-      attr_reader :interfaces
-      def initialize(builder, name, superclass, interfaces)
+      attr_reader :interfaces, :abstract
+      def initialize(builder, name, superclass, interfaces, abstract)
         @builder = builder
         @package = builder.package
         if @package
@@ -171,6 +196,7 @@ module Duby
         @methods = []
         @fields = {}
         @inner_classes = {}
+        @abstract = abstract
         start
       end
 
@@ -192,8 +218,8 @@ module Duby
       def finish_declaration
         return if @declaration_finished
         @declaration_finished = true
-        static = " static" if @static
-        print "public#{static} class #{class_name} extends #{superclass.name}"
+        modifiers = "public#{' static' if @static}#{' abstract' if @abstract}"
+        print "#{modifiers} class #{class_name} extends #{superclass.name}"
         unless @interfaces.empty?
           print " implements "
           @interfaces.each_with_index do |interface, index|
@@ -266,7 +292,7 @@ module Duby
 
     class InterfaceBuilder < ClassBuilder
       def initialize(builder, name, interfaces)
-        super(builder, name, nil, interfaces)
+        super(builder, name, nil, interfaces, true)
       end
 
       def finish_declaration
