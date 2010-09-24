@@ -27,7 +27,7 @@ class TestJavacCompiler < TestJVMCompiler
       classfile = name.sub /java$/, 'class'
       if File.exist? classfile
         bytecode = IO.read(classfile)
-        cls = loader.define_class(name[0..-6], bytecode.to_java_bytes)
+        cls = loader.define_class(name[0..-6].tr('/', '.'), bytecode.to_java_bytes)
         classes << JavaUtilities.get_proxy_class(cls.name)
         @tmp_classes << name
         @tmp_classes << classfile 
@@ -52,6 +52,7 @@ class TestJavacCompiler < TestJVMCompiler
     java_files = []
     compiler.generate do |name, builder|
       bytes = builder.generate
+      FileUtils.mkdir_p(File.dirname(name))
       open("#{name}", "w") do |f|
         f << bytes
       end

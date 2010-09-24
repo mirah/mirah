@@ -51,18 +51,50 @@ module Duby::AST
           end
           long = pieces.reverse.join '.'
         else
-          raise Duby::TransformError.new("unknown import syntax", args_node)
+          raise Duby::TransformError.new("unknown import syntax", fcall)
         end
       else
-        raise Duby::TransformError.new("unknown import syntax", args_node)
+        raise Duby::TransformError.new("unknown import syntax", fcall)
       end
     when 2
       short = fcall.parameters[0].literal
       long = fcall.parameters[1].literal
     else
-      raise Duby::TransformError.new("unknown import syntax", args_node)
+      raise Duby::TransformError.new("unknown import syntax", fcall)
     end
     Import.new(parent, fcall.position, short, long)
+  end
+
+  defmacro('package') do |transformer, fcall, parent|
+    node = fcall.parameters[0]
+    block = fcall.block
+    case node
+    when String
+      name = node.literal
+    when Call
+      pieces = [node.name]
+      block ||= node.block
+      while Call === node
+        node = node.target
+        pieces << node.name
+        block ||= node.block
+      end
+      name = pieces.reverse.join '.'
+    when FunctionalCall
+      name = node.name
+      block ||= node.block
+    else
+      raise Duby::TransformError.new("unknown package syntax", fcall)
+    end
+    if block
+      raise Duby::TransformError.new("unknown package syntax", block)
+      new_scope = ScopedBody.new(parent, fcall.position)
+      new_scope.static_scope.package = name
+      new_scope << block.body
+    else
+      fcall.scope.static_scope.package = name
+      Noop.new(parent, fcall.position)
+    end
   end
 
   class EmptyArray < Node

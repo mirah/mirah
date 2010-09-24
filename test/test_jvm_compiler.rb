@@ -4,6 +4,7 @@ require 'test/unit'
 require 'mirah'
 require 'jruby'
 require 'stringio'
+require 'fileutils'
 
 unless Duby::AST.macro "__gloop__"
   Duby::AST.defmacro "__gloop__" do |transformer, fcall, parent|
@@ -67,6 +68,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     loader = DubyClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     compiler.generate do |name, builder|
       bytes = builder.generate
+      FileUtils.mkdir_p(File.dirname(name))
       open("#{name}", "w") do |f|
         f << bytes
       end
@@ -74,7 +76,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
 
     classes.keys.map do |name|
-      cls = loader.load_class(name)
+      cls = loader.load_class(name.tr('/', '.'))
       proxy = JavaUtilities.get_proxy_class(cls.name)
       @tmp_classes << "#{name}.class"
       proxy
@@ -2517,6 +2519,32 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("hi\n") { script.foo }
+  end
+
+  def test_package
+    script, cls = compile(<<-EOF)
+      package foo
+      
+      # package foo.bar {
+      #   class PackagedBar
+      #     def self.dosomething
+      #       "bar"
+      #     end
+      #   end
+      # }
+      
+      def dosomething
+        "foo"
+      end
+    EOF
+
+    package = script.java_class.name.split('.')[0]
+    assert_equal('foo', package)
+    assert_equal('foo', script.dosomething)
+
+    # TODO move package to the parser so we can support blocks
+    # assert_equal('bar', cls.dosomething)
+    # assert_equal("foo.bar.PackagedBar", cls.java_class.name)
   end
 
 end
