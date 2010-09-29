@@ -287,6 +287,10 @@ module AppEngine
 
 
     def self.add_property(name, type, transformer, fcall)
+      if transformer.state != @state
+        reset
+        @state = transformer.state
+      end
       parent = fcall.parent
       name = name.literal
       type = type.name
