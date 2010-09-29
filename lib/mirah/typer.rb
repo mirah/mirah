@@ -97,13 +97,14 @@ module Duby
 
       def define_type(scope, name, superclass, interfaces)
         log "New type defined: '#{name}' < '#{superclass}'"
-        known_types[name] = type_definition(scope, name, superclass, interfaces)
+        result = type_definition(scope, name, superclass, interfaces)
 
-        old_self, known_types["self"] = known_types["self"], known_types[name]
+        # TODO Get rid of known_types["self"]
+        old_self, known_types["self"] = known_types["self"], result
         yield
         known_types["self"] = old_self
 
-        known_types[name]
+        result
       end
 
       def learn_local_type(scope, name, type)

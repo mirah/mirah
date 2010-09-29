@@ -217,9 +217,5 @@ class TestTyper < Test::Unit::TestCase
     ast.infer(typer)
 
     assert_nothing_raised {typer.resolve(true)}
-
-    assert_not_nil(typer.known_types["Foo"])
-    assert(AST::TypeDefinition === typer.known_types["Foo"])
-    assert_equal(typer.known_types["Foo"], cls.inferred_type)
   end
 end
