@@ -2571,4 +2571,19 @@ class TestJVMCompiler < Test::Unit::TestCase
     # assert_equal("foo.bar.PackagedBar", cls.java_class.name)
   end
 
+  def test_not
+    cls, = compile(<<-EOF)
+      def foo(x:boolean)
+        !x
+      end
+      def bar(x:Object)
+        !x
+      end
+    EOF
+    assert_equal(true, cls.foo(false))
+    assert_equal(false, cls.foo(true))
+    assert_equal(true, cls.bar(nil))
+    assert_equal(false, cls.bar(""))
+  end
+
 end

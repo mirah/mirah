@@ -104,18 +104,18 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_if
-    new_ast = AST.parse("if 1; 2; elsif !3; 4; else; 5; end").body[0]
+    new_ast = AST.parse("if 1; 2; elsif 3; 4; else; 5; end").body[0]
 
     assert_not_nil(new_ast)
     assert(AST::If === new_ast)
-    assert_equal("If\n Condition\n  Fixnum(1)\n Fixnum(2)\n If\n  Condition\n   Not\n    Fixnum(3)\n  Fixnum(4)\n  Fixnum(5)", new_ast.inspect)
+    assert_equal("If\n Condition\n  Fixnum(1)\n Fixnum(2)\n If\n  Condition\n   Fixnum(3)\n  Fixnum(4)\n  Fixnum(5)", new_ast.inspect)
 
     assert(AST::Condition === new_ast.condition)
     assert(AST::Fixnum === new_ast.condition.predicate)
     assert(AST::Fixnum === new_ast.body)
     assert(AST::If === new_ast.else)
     assert(AST::Condition === new_ast.else.condition)
-    assert(AST::Not === new_ast.else.condition.predicate)
+    assert(AST::Fixnum === new_ast.else.condition.predicate)
     assert(AST::Fixnum === new_ast.else.body)
     assert(AST::Fixnum === new_ast.else.else)
   end

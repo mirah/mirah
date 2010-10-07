@@ -482,7 +482,18 @@ module Duby::AST
     end
 
     def transform_not(node, parent)
-      Not.new(parent, position(node)) {|nott| [transform(node[1], nott)]}
+      # TODO it's probably better to keep a not node
+      # and actually implement compiling it properly.
+      # Bonus points for optimizing branches that use Not's.
+      If.new(parent, position(node)) do |iff|
+        [
+          Condition.new(iff, position(node)) do |cond|
+            [ transform(node[1], cond) ]
+          end,
+          Boolean.new(iff, position(node), false),
+          Boolean.new(iff, position(node), true)
+        ]
+      end
     end
 
     def transform_redo(node, parent)
