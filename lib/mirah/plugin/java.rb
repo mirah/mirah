@@ -21,8 +21,12 @@ module Duby
         if target_type.respond_to? :get_method
           method = target_type.get_method(name, parameter_types)
           unless method || target_type.basic_type.kind_of?(TypeDefinition)
-            raise NoMethodError, "Method %s(%s) on %s not found" %
-                [name, parameter_types.join(', '), target_type]
+            raise NoMethodError, "Cannot find %s method %s(%s) on %s" %
+                [ target_type.meta? ? "static" : "instance",
+                  name,
+                  parameter_types.map{|t| t.full_name}.join(', '),
+                  target_type.full_name
+                ]
           end
           if method
             result = method.return_type

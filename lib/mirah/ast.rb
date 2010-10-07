@@ -424,6 +424,10 @@ module Duby
         "Type(#{name}#{array? ? ' array' : ''}#{meta? ? ' meta' : ''})"
       end
 
+      def full_name
+        "#{name}#{array ? '[]' : ''}"
+      end
+
       def ==(other)
         to_s == other.to_s
       end

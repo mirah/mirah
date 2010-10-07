@@ -27,6 +27,11 @@ module Duby
           raise ArgumentError, "Bad type #{mirror_or_name}" if name =~ /Java::/
         end
 
+        def full_name
+          desc = BiteScript::Signature.class_id(self)
+          BiteScript::ASM::Type.get_type(desc).class_name
+        end
+
         def jvm_type
           @type
         end

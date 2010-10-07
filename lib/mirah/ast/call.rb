@@ -120,7 +120,16 @@ module Duby::AST
           @inferred_type = receiver_type if @inferred_type.void?
           resolved!
         else
-          typer.defer(proxy)
+          if should_defer
+            message = nil
+          else
+            parameter_names = parameter_types.map {|t| t.full_name}.join(', ')
+            receiver = receiver_type.full_name
+            desc = "#{name}(#{parameter_names})"
+            kind = receiver_type.meta? ? "static" : "instance"
+            message = "Cannot find #{kind} method #{desc} on #{receiver}"
+          end
+          typer.defer(proxy, message)
         end
       end
 
@@ -200,7 +209,16 @@ module Duby::AST
           @inferred_type = receiver_type if @inferred_type.void?
           resolved!
         else
-          typer.defer(proxy)
+          if should_defer
+            message = nil
+          else
+            parameter_names = parameter_types.map {|t| t.full_name}.join(', ')
+            receiver = receiver_type.full_name
+            desc = "#{name}(#{parameter_names})"
+            kind = receiver_type.meta? ? "static" : "instance"
+            message = "Cannot find #{kind} method #{desc} on #{receiver}"
+          end
+          typer.defer(proxy, message)
         end
       end
 

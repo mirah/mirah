@@ -292,11 +292,11 @@ module Duby
         end
       end
 
-      def defer(node)
+      def defer(node, error_message=nil)
         if @error_next
           log "Marking #{node} as an error"
           @error_next = false
-          error(node)
+          error(node, error_message)
         else
           raise "Can't defer nil" if node.nil?
           return if deferred_nodes.include? node

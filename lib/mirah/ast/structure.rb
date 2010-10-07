@@ -194,7 +194,7 @@ module Duby::AST
     attr_reader :filename
 
     def initialize(parent, line_number, &block)
-      super(parent, line_number, children, &block)
+      super(parent, line_number, &block)
       @package = ""
     end
 
