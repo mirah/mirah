@@ -120,7 +120,7 @@ module Duby::AST
           @inferred_type = receiver_type if @inferred_type.void?
           resolved!
         else
-          if should_defer
+          if should_defer || receiver_type.nil?
             message = nil
           else
             parameter_names = parameter_types.map {|t| t.full_name}.join(', ')
