@@ -347,4 +347,13 @@ class TestAst < Test::Unit::TestCase
     assert_equal(5, new_ast.size.literal)
     assert_equal(AST.type(:int), new_ast.inferred_type)
   end
+
+  def test_block_comment
+    new_ast = AST.parse("/* foo\nbar*/1").body[0]
+
+    assert_not_nil(new_ast)
+    assert_equal("Fixnum(1)", new_ast.inspect)
+    assert(AST::Fixnum === new_ast)
+    assert_equal(1, new_ast.literal)
+  end
 end
