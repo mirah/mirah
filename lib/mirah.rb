@@ -282,6 +282,9 @@ class DubyImpl
       when '--classpath', '-c'
         args.shift
         Duby::Env.decode_paths(args.shift, $CLASSPATH)
+      when '--explicit-packages'
+        args.shift
+        Duby::AST::Script.explicit_packages = true
       when '--help', '-h'
         print_help
         exit(0)
@@ -304,6 +307,7 @@ class DubyImpl
   -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
   -p, --plugin PLUGIN\tLoad and use plugin during compilation
   -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
+  --explicit-packages\tDisable guessing the package from the filename
   -h, --help\t\tPrint this help message
   -e\t\t\tCompile or run the script following -e (naming it \"DashE\")"
   end

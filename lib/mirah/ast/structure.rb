@@ -210,9 +210,17 @@ module Duby::AST
 
     def filename=(filename)
       @filename = filename
-      package = File.dirname(@filename).tr('/', '.')
-      package.sub! /^\.+/, ''
-      static_scope.package = package
+      if Script.explicit_packages
+        static_scope.package = ''
+      else
+        package = File.dirname(@filename).tr('/', '.')
+        package.sub! /^\.+/, ''
+        static_scope.package = package
+      end
+    end
+
+    class << self
+      attr_accessor :explicit_packages
     end
   end
 end
