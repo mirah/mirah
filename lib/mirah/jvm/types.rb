@@ -140,6 +140,10 @@ module Duby
           @interfaces ||= jvm_type.interfaces.map do |interface|
             AST.type(nil, interface)
           end
+          if superclass
+            @interfaces.concat superclass.interfaces
+          end
+          @interfaces
         end
 
         def astore(builder)
