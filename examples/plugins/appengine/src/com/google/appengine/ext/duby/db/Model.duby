@@ -46,8 +46,7 @@ class DQuery
     end
   end
 
-  def _sort(name:String, descending:boolean)
-    returns void
+  def sort(name:String, descending=false):void
     if descending
       @query.addSort(name, _desc)
     else

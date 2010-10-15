@@ -324,12 +324,22 @@ module Duby
       def infer(typer)
         @inferred_type ||= begin
           # TODO lookup constant, inline if we're supposed to.
-          typer.type_reference(scope, name, @array, true)
+          begin
+            typer.type_reference(scope, name, @array, true)
+          rescue NameError => ex
+            typer.known_types[@name] = Duby::AST.error_type
+            raise ex
+          end
         end
       end
 
       def type_reference(typer)
-        typer.type_reference(scope, @name, @array)
+        begin
+          typer.type_reference(scope, @name, @array)
+        rescue NameError => ex
+          typer.known_types[@name] = Duby::AST.error_type
+          raise ex
+        end
       end
     end
 
@@ -458,6 +468,14 @@ module Duby
 
       def component_type
         AST.type(nil, name) if array?
+      end
+
+      def basic_type
+        if array? || meta?
+          TypeReference.new(name, false, false)
+        else
+          self
+        end
       end
 
       def narrow(other)

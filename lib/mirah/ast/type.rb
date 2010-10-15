@@ -15,6 +15,12 @@ module Duby::AST
     end
 
     def infer(typer)
+      begin
+        typer.type_reference(scope, @long)
+      rescue NameError => ex
+        typer.known_types[short] = Duby::AST.error_type
+        raise ex
+      end
       typer.no_type
     end
   end
