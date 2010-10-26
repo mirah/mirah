@@ -103,13 +103,17 @@ module Duby::JVM::Types
         return get_type(name)
       end
 
-      packages = []
       # TODO support inner class names
       if name !~ /\./
-        packages << scope.static_scope.package unless scope.static_scope.package.empty?
-        packages.concat(scope.static_scope.search_packages)
-        packages << 'java.lang'
+        return package_search(name, scope)
       end
+    end
+
+    def package_search(name, scope)
+      packages = []
+      packages << scope.static_scope.package unless scope.static_scope.package.empty?
+      packages.concat(scope.static_scope.search_packages)
+      packages << 'java.lang'
       packages.each do |package|
         begin
           return get_type("#{package}.#{name}")

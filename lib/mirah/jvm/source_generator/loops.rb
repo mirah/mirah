@@ -37,7 +37,7 @@ class Duby::Compiler::JavaSource < Duby::Compiler::JVMCompilerBase
     end
 
     def compile_body
-      loop.body.compile(compiler, false)
+      loop.body.compile(compiler, false) if loop.body
     end
 
     def prepare
@@ -63,7 +63,7 @@ class Duby::Compiler::JavaSource < Duby::Compiler::JVMCompilerBase
       compiler.method.puts "#{@inner}:"
       compiler.method.block "do" do
         compiler.method.puts "#{@redo} = false;"
-        block.compile(compiler, false)
+        block.compile(compiler, false) if block
       end
       compiler.method.puts "while (#{@redo});"
     end
@@ -102,7 +102,7 @@ class Duby::Compiler::JavaSource < Duby::Compiler::JVMCompilerBase
       else
         compiler.method.puts "#{@inner}:"
         compiler.method.block do
-          loop.body.compile(compiler, false)
+          loop.body.compile(compiler, false) if loop.body
         end
       end
     end

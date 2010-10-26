@@ -274,7 +274,7 @@ module Duby
 
 
             @redo_label.set!
-            loop.body.compile(self, false)
+            loop.body.compile(self, false) if loop.body
 
             if loop.check_first && !loop.post?
               @method.goto(@next_label)
