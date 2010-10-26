@@ -212,6 +212,24 @@ module Duby
       $CLASSPATH << File.dirname(__FILE__) + '/../../javalib/mirah-parser.jar'
       java_import 'mirah.impl.MirahParser'
     end
+    java_import 'jmeta.ErrorHandler'
+
+    class MirahErrorHandler
+      include ErrorHandler
+      def warning(messages, positions)
+        print "Warning: "
+        messages.each_with_index do |message, i|
+          jpos = positions[i]
+          if jpos
+            dpos = Duby::Transform::Transformer::JMetaPosition.new(jpos, jpos)
+            print "#{message} at "
+            Duby.print_error("", dpos)
+          else
+            print message
+          end
+        end
+      end
+    end
 
     def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
       ast = parse_ruby(src, filename)
@@ -231,6 +249,7 @@ module Duby
       raise ArgumentError if src.nil?
       parser = MirahParser.new
       parser.filename = filename
+      parser.errorHandler = MirahErrorHandler.new
       begin
         parser.parse(src)
       rescue => ex
