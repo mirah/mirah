@@ -234,11 +234,13 @@ module Duby::AST
         array = false
         elements = [name]
       end
+      old_receiver = nil
       receiver = self.target
-      loop do
+      while !receiver.eql?(old_receiver)
+        old_receiver = receiver
         case receiver
-        when Constant, FCall, Local, Annotation
-          elements << receiver.name
+        when Constant, FunctionalCall, Local, Annotation
+          elements.unshift(receiver.name)
         when Call
           elements.unshift(receiver.name)
           receiver = receiver.target
@@ -249,7 +251,12 @@ module Duby::AST
 
       # join and load
       class_name = elements.join(".")
-      typer.type_reference(scope, class_name, array)
+      begin
+        typer.type_reference(scope, class_name, array)
+      rescue NameError => ex
+        typer.known_types[class_name] = Duby::AST.error_type
+        raise ex
+      end
     end
   end
 
