@@ -486,14 +486,17 @@ module Duby
       end
 
       def break(node)
+        error("break outside of loop", node) unless @loop
         @loop.break
       end
 
       def next(node)
+        error("next outside of loop", node) unless @loop
         @loop.next
       end
 
       def redo(node)
+        error("redo outside of loop", node) unless @loop
         @loop.redo
       end
 

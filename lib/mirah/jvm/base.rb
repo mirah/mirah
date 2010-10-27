@@ -3,11 +3,23 @@ module Duby
     class JVMCompilerBase
       attr_accessor :filename, :method, :static, :class
 
+      class CompilationError < Exception
+        attr_accessor :node
+        def initialize(msg, node = nil)
+          super(msg)
+          @node = node
+        end
+      end
+
       def initialize
         @jump_scope = []
         @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
         @captured_locals = Hash.new {|h, binding| h[binding] = {}}
         @self_scope = nil
+      end
+
+      def error(message, node)
+        raise CompilationError.new(message, node)
       end
 
       def compile(ast, expression = false)

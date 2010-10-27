@@ -299,16 +299,19 @@ module Duby
       end
 
       def break(node)
+        error("break outside of loop", node) unless @break_label
         handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@break_label)
       end
 
       def next(node)
+        error("next outside of loop", node) unless @next_label
         handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@next_label)
       end
 
       def redo(node)
+        error("redo outside of loop", node) unless @redo_label
         handle_ensures(find_ensures(Duby::AST::Loop))
         @method.goto(@redo_label)
       end
