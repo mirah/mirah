@@ -66,6 +66,7 @@ module Duby
 
             @method.start
             @current_scope = script.static_scope
+            declare_locals(@current_scope)
             begin_main
 
             prepare_binding(script) do
@@ -178,6 +179,7 @@ module Duby
         saved_self = @self_scope
         if body.kind_of?(Duby::AST::ScopedBody)
           scope = body.static_scope
+          declare_locals(scope)
           if scope != @self_scope
             @self_scope = scope
             if scope.self_node

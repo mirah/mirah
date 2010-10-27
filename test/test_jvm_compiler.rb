@@ -1963,7 +1963,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
 
       o = MyObservable.new
-      o.addObserver {|o, a| puts a}
+      o.addObserver {|x, a| puts a}
       o.notifyObservers("Hello Observer")
     EOF
     assert_output("Hello Observer\n") do

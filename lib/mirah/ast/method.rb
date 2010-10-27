@@ -116,7 +116,7 @@ module Duby::AST
         end
 
         # if signature, search for this argument
-        signature[name.intern] || typer.local_type(scope, name)
+        signature[name.intern] || typer.local_type(containing_scope, name)
       end
     end
   end

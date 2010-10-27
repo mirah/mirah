@@ -19,14 +19,7 @@ module Duby::AST
     def infer(typer)
       resolve_if(typer) do
         scope.static_scope << name
-        declared_type = typer.local_type(containing_scope, name)
-        if declared_type
-          @inferred_type = @type = Duby::AST.error_type
-          typer.error("Variable already declared as #{declared_type.full_name}")
-        else
-          @type = type_node.type_reference(typer)
-        end
-        @type
+        @type = type_node.type_reference(typer)
       end
     end
 
@@ -59,17 +52,7 @@ module Duby::AST
     def infer(typer)
       resolve_if(typer) do
         scope.static_scope << name
-        declared_type = typer.local_type(containing_scope, name)
-        inferred_type = typer.infer(value)
-        if declared_type && inferred_type
-          unless declared_type.assignable_from?(inferred_type)
-            @inferred_type = Duby::AST.error_type
-            typer.error(value, "Can't assign #{inferred_type.full_name} to " \
-                              "variable of type #{declared_type.full_name}")
-            inferred_type = @inferred_type
-          end
-        end
-        inferred_type
+        typer.infer(value)
       end
     end
 

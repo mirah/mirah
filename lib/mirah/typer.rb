@@ -108,21 +108,14 @@ module Duby
       end
 
       def learn_local_type(scope, name, type)
-        existing_type = local_type_hash(scope)[name]
-        if existing_type
-          # TODO check for compatibility?
-          existing_type
-        elsif type
-          log "Learned local type under #{scope} : #{name} = #{type}"
-
-          local_type_hash(scope)[name] = known_types[type] || type
-        end
+        type = scope.learn_local_type(name, known_types[type] || type)
+        log "Learned local type under #{scope} : #{name} = #{type}"
+        type
       end
 
       def local_type(scope, name)
-        type = local_type_hash(scope)[name]
+        type = scope.local_type(name)
         log "Retrieved local type in #{scope} : #{name} = #{type}" if type
-
         type
       end
 

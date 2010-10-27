@@ -46,6 +46,7 @@ module Duby
       def initialize(node, parent=nil)
         @scope_node = node
         @vars = {}
+        @var_types = {}
         @parent = parent
         @children = {}
         @imports = {}
@@ -54,6 +55,29 @@ module Duby
 
       def <<(name)
         @vars[name] = true
+      end
+
+      def locals
+        @vars.keys
+      end
+
+      def local_type(name)
+        @var_types[name]
+      end
+
+      def learn_local_type(name, type)
+        return unless type
+        existing_type = local_type(name)
+        if existing_type
+          unless existing_type.assignable_from?(type)
+            raise Duby::Typer::InferenceError.new(
+                "Can't assign #{type.full_name} to " \
+                "variable of type #{existing_type.full_name}")
+          end
+          existing_type
+        elsif type
+          @var_types[name] = type
+        end
       end
 
       def include?(name, include_parent=true)

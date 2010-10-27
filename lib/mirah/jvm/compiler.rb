@@ -186,10 +186,14 @@ module Duby
 
           method.start
 
+          scope = node.static_scope
+
           # declare all args so they get their values
           if args
-            args.each {|arg| @method.local(arg.name, arg.inferred_type)}
+            args.each {|arg| declare_local(scope, arg.name, arg.inferred_type)}
           end
+          declare_locals(scope)
+
           yield if block_given?
 
           prepare_binding(node) do
@@ -206,10 +210,6 @@ module Duby
       def define_closure(class_def, expression)
         compiler = ClosureCompiler.new(@file, @type, self)
         compiler.define_class(class_def, expression)
-      end
-
-      def declare_argument(name, type)
-        # declare local vars for arguments here
       end
 
       def branch(iff, expression)
@@ -506,6 +506,10 @@ module Duby
         end
       end
 
+      def declared?(scope, name)
+        declared_locals.include?(scoped_local_name(name, scope))
+      end
+
       def declare_local(scope, name, type)
         # TODO confirm types are compatible
         name = scoped_local_name(name, scope)
@@ -516,9 +520,17 @@ module Duby
       end
 
       def local_declare(scope, name, type)
-        declare_local(scope, name, type)
-        type.init_value(@method)
-        type.store(@method, @method.local(scoped_local_name(name, scope), type))
+      end
+
+      def declare_locals(scope)
+        scope.locals.each do |name|
+          unless scope.captured?(name) || declared?(scope, name)
+            type = scope.local_type(name)
+            declare_local(scope, name, type)
+            type.init_value(@method)
+            type.store(@method, @method.local(scoped_local_name(name, scope), type))
+          end
+        end
       end
 
       def get_binding(type)
@@ -766,12 +778,12 @@ module Duby
         rescue_node.clauses.each do |clause|
           target = @method.label.set!
           if clause.name
-            @method.astore(@method.push_local(clause.name, clause.type))
+            @method.astore(declare_local(clause.static_scope, clause.name, clause.type))
           else
             @method.pop
           end
+          declare_locals(clause.static_scope)
           clause.body.compile(self, expression)
-          @method.pop_local(clause.name) if clause.name
           @method.goto(done)
           clause.types.each do |type|
             @method.trycatch(start, body_end, target, type)

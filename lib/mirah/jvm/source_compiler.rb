@@ -48,6 +48,7 @@ module Duby
             @method.start
 
             prepare_binding(node) do
+              declare_locals(node.static_scope)
               unless @method.type.nil? || @method.type.void?
                 self.return(ImplicitReturn.new(node.body))
               else
@@ -99,6 +100,7 @@ module Duby
             end
 
             prepare_binding(node) do
+              declare_locals(node.static_scope)
               node.body.compile(self, false) if node.body
             end
             method.stop
@@ -157,8 +159,10 @@ module Duby
         end
         node.clauses.each do |clause|
           clause.types.each do |type|
-            name = clause.name || 'tmp$ex'
+            name = scoped_local_name(clause.name || 'tmp$ex', clause.static_scope)
+            @method.declare_local(type, name, false)
             @method.block "catch (#{type.to_source} #{name})" do
+              declare_locals(clause.static_scope)
               maybe_store(clause.body, expression)
             end
           end
@@ -203,6 +207,15 @@ module Duby
           scoped_local_name('self', @self_scope)
         else
           @static ? @class.class_name : 'this'
+        end
+      end
+
+      def declare_locals(scope)
+        scope.locals.each do |name|
+          full_name = scoped_local_name(name, scope)
+          unless scope.captured?(name) || method.local?(full_name)
+            declare_local(full_name, scope.local_type(name))
+          end
         end
       end
 

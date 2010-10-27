@@ -381,15 +381,17 @@ module Duby
         puts "}"
       end
 
-      def declare_local(type, name)
+      def declare_local(type, name, initialize=true)
         unless @locals[name]
-          print "#{type.to_source} #{name} = "
-          if block_given?
-            yield self
-          else
-            print init_value(type)
+          if initialize
+            print "#{type.to_source} #{name} = "
+            if block_given?
+              yield self
+            else
+              print init_value(type)
+            end
+            puts ';'
           end
-          puts ';'
           @locals[name] = type
         end
         name
