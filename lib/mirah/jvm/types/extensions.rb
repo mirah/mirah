@@ -1,5 +1,9 @@
 require 'delegate'
 
+class BiteScript::ASM::MethodMirror
+  alias parameter_types argument_types
+end
+
 module Duby::JVM::Types
   class ExtendedType < DelegateClass(Type)
     def initialize(*args)
@@ -47,21 +51,23 @@ module Duby::JVM::Types
     end
 
     def declared_instance_methods(name=nil)
-      __combine_methods(__getobj__.declared_instance_methods)
+      __combine_methods(__getobj__.declared_instance_methods, name)
     end
 
     def declared_class_methods(name=nil)
-      __combine_methods(__getobj__.declared_class_methods)
+      __combine_methods(__getobj__.declared_class_methods, name)
     end
 
-    def __combine_methods(basic_methods)
+    def __combine_methods(basic_methods, name)
       methods = {}
       basic_methods.each do |method|
+        next unless name.nil? || method.name == name
         key = [method.name, method.parameter_types, method.return_type]
         methods[key] = method
       end
       @static_includes.each do |type|
         type.declared_class_methods.each do |method|
+          next unless name.nil? || method.name == name
           key = [method.name, method.parameter_types, method.return_type]
           methods[key] ||= method
         end
