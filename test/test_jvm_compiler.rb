@@ -2586,4 +2586,22 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(false, cls.bar(""))
   end
 
+  def test_rescue_scope
+    cls, = compile(<<-EOF)
+      def foo
+        a = 1
+        b = 2
+        begin
+          raise "Foo"
+        rescue => b
+          puts a
+          puts b.getMessage
+        end
+        puts b
+      end
+    EOF
+
+    assert_output("1\nFoo\n2\n") { cls.foo }
+  end
+
 end
