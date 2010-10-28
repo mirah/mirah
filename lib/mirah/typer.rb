@@ -102,7 +102,7 @@ module Duby
 
         # TODO Get rid of known_types["self"]
         old_self, known_types["self"] = known_types["self"], result
-        yield
+        yield(result)
         known_types["self"] = old_self
 
         result

@@ -214,9 +214,6 @@ module Duby::AST
                                          extension_name,
                                          typer.transformer.state)
 
-        # restore the self type since we're sharing a type factory
-        typer.known_types['self'] = self_type
-
         arg_types = argument_types
         macro = self_type.add_compiled_macro(klass, name, arg_types)
         if arguments[-1].kind_of?(BlockArgument) && arguments[-1].optional?

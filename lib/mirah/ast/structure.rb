@@ -57,7 +57,7 @@ module Duby::AST
     include Scoped
 
     def infer(typer)
-      static_scope.self_type ||= typer.self_type
+      static_scope.self_type ||= scope.static_scope.self_type
       super
     end
 

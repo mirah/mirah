@@ -93,8 +93,8 @@ module Duby::AST
         @superclass = superclass_node.type_reference(typer) if superclass_node
         @annotations.each {|a| a.infer(typer)} if @annotations
         @interfaces.concat(@interface_nodes.map{|n| n.type_reference(typer)})
-        typer.define_type(self, name, superclass, @interfaces) do
-          static_scope.self_type = typer.self_type
+        typer.define_type(self, name, superclass, @interfaces) do |self_type|
+          static_scope.self_type = self_type
           typer.infer(body) if body
         end
       end
