@@ -28,8 +28,12 @@ module Duby
         end
 
         def full_name
+          asm_type.class_name
+        end
+
+        def asm_type
           desc = BiteScript::Signature.class_id(self)
-          BiteScript::ASM::Type.get_type(desc).class_name
+          BiteScript::ASM::Type.get_type(desc)
         end
 
         def jvm_type

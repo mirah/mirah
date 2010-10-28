@@ -65,6 +65,10 @@ module Duby::JVM::Types
     def exceptions
       []
     end
+
+    def parameter_types
+      @parameter_types ||= @argument_types.map {|t| t.asm_type}
+    end
   end
 
   class JavaCallable

@@ -97,12 +97,13 @@ module Duby
         exceptions = sig_args.delete(:throws)
         args = method_def.arguments.args || []
         static = method_def.kind_of? Duby::AST::StaticMethodDefinition
+        klass = method_def.defining_class.unmeta
         if sig_args.size != args.size
           # If the superclass declares one method with the same name and
           # same number of arguments, assume we're overriding it.
           found = nil
           ambiguous = false
-          classes = [self_type.superclass] + self_type.interfaces
+          classes = [klass.superclass] + klass.interfaces
           while classes.size > 0
             cls = classes.pop
             if static
@@ -133,9 +134,9 @@ module Duby
           arg_types = args.map do |arg|
             signature[arg.name.intern]
           end
-          method = self_type.find_method(
-              self_type, method_def.name, arg_types, false)
-          interfaces = self_type.interfaces.dup
+          method = klass.find_method(
+              klass, method_def.name, arg_types, false)
+          interfaces = klass.interfaces.dup
           until method || interfaces.empty?
             interface = interfaces.pop
             method = interface.find_method(
