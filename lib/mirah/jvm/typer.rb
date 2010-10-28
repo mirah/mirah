@@ -1,4 +1,5 @@
 require 'mirah/typer'
+require 'mirah/threads'
 require 'mirah/jvm/types'
 require 'mirah/jvm/types/factory'
 
@@ -17,7 +18,7 @@ module Duby
         end
         @known_types = @factory.known_types
         @known_types['dynamic'] = DynamicType.new
-        @errors = []
+        @errors = Duby::Threads::SynchronizedArray.new
       end
 
       def set_filename(scope, filename)

@@ -1,5 +1,6 @@
 require 'mirah/ast'
 require 'mirah/transform'
+require 'mirah/threads'
 
 module Duby
   module Typer
@@ -33,14 +34,14 @@ module Duby
       attr_accessor :known_types, :errors, :last_chance
 
       def initialize(self_type)
-        @known_types = {}
+        @known_types = Duby::Threads::SynchronizedHash.new
 
         @known_types["self"] = type_reference(nil, self_type)
         @known_types["fixnum"] = type_reference(nil, "fixnum")
         @known_types["float"] = type_reference(nil, "float")
         @known_types["string"] = type_reference(nil, "string")
         @known_types["boolean"] = type_reference(nil, "boolean")
-        @errors = []
+        @errors = Duby::Threads::SynchronizedArray.new
       end
 
       def name
@@ -119,20 +120,12 @@ module Duby
         type
       end
 
-      def local_types
-        @local_types ||= {}
-      end
-
-      def local_type_hash(scope)
-        local_types[scope] ||= {}
-      end
-
       def field_types
-        @field_types ||= {}
+        @field_types ||= Duby::Threads::SynchronizedHash.new
       end
 
       def field_type_hash(cls)
-        field_types[cls] ||= {}
+        field_types[cls] ||= Duby::Threads::SynchronizedHash.new
       end
 
       def infer_signature(method_def)
@@ -152,7 +145,8 @@ module Duby
       end
 
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
-        log "Learned method #{name} (#{parameter_types}) on #{target_type} = #{type}"
+        type_names = parameter_types.map{|t| t.full_name}.join(', ')
+        log "Learned method #{name}(#{type_names}) on #{target_type} = #{type}"
 
         get_method_type_hash(target_type, name, parameter_types)[:type] = known_types[type] || type
 
@@ -176,8 +170,9 @@ module Duby
         end
 
 
+        type_names = parameter_types.map{|t| t.full_name}.join(', ')
         if !simple_type
-          log "Method type for \"#{name}\" #{parameter_types} on #{target_type} not found."
+          log "Method type for \"#{name}\" #{type_names} on #{target_type} not found."
 
           # allow plugins a go if we're in the inference phase
           simple_type = plugins do |plugin|
@@ -188,10 +183,10 @@ module Duby
         return nil unless simple_type
 
         if constructor
-          log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{target_type}"
+          log "Method type for #{name}(#{type_names}) on #{target_type} = #{target_type}"
           target_type.unmeta
         else
-          log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{simple_type}"
+          log "Method type for #{name}(#{type_names}) on #{target_type} = #{simple_type}"
           simple_type
         end
       end
@@ -232,17 +227,20 @@ module Duby
       end
 
       def method_types
-        @method_types ||= {}
+        @method_types ||= Duby::Threads::SynchronizedHash.new
       end
 
       def get_method_type_hash(target_type, name, parameter_types)
-        method_types[target_type] ||= {}
-        method_types[target_type][name] ||= {}
-        method_types[target_type][name][parameter_types.size] ||= {}
+        method_types[target_type] ||= Duby::Threads::SynchronizedHash.new
+        method_types[target_type][name] ||= Duby::Threads::SynchronizedHash.new
+        method_types[target_type][name][parameter_types.size] ||= Duby::Threads::SynchronizedHash.new
 
         current = method_types[target_type][name][parameter_types.size]
 
-        parameter_types.each {|type| current[type] ||= {}; current = current[type]}
+        parameter_types.each do |type|
+          current[type] ||= Duby::Threads::SynchronizedHash.new
+          current = current[type]
+        end
 
         current
       end
@@ -256,7 +254,7 @@ module Duby
       end
 
       def deferred_nodes
-        @deferred_nodes ||= {}
+        @deferred_nodes ||= Duby::Threads::SynchronizedHash.new
       end
 
       def infer(node)
@@ -307,7 +305,7 @@ module Duby
         retried = false
         cycle(count) do |i|
           old_deferred = @deferred_nodes
-          @deferred_nodes = {}
+          @deferred_nodes = Duby::Threads::SynchronizedHash.new
           old_deferred.each do |node, saved_type|
             known_types["self"] = saved_type
             type = infer(node)
@@ -365,7 +363,7 @@ module Duby
   end
 
   def self.typer_plugins
-    @typer_plugins ||= []
+    @typer_plugins ||= Duby::Threads::SynchronizedArray.new
   end
 end
 

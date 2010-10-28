@@ -122,11 +122,11 @@ module Duby
         push_jump_scope(node) do
           base_define_method(node, true) do |method, arg_types|
             return if @class.interface?
-
-            log "Starting new #{node.static? ? 'static ' : ''}method #{node.name}(#{arg_types})"
+            type_names = arg_types.map{|t| t.full_name}.join(', ')
+            log "Starting new #{node.static? ? 'static ' : ''}method #{node.name}(#{type_names})"
             args = node.arguments.args
             method_body(method, args, node, node.signature[:return])
-            log "Method #{node.name}(#{arg_types}) complete!"
+            log "Method #{node.name}(#{type_names}) complete!"
           end
         end
       end

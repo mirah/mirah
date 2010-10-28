@@ -15,6 +15,11 @@ require 'mirah/jvm/compiler'
 require 'mirah/jvm/typer'
 Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
+require 'jruby/synchronized'
+
+class Duby::AST::Node
+  include JRuby::Synchronized
+end
 
 module Duby
   def self.run(*args)
@@ -328,6 +333,30 @@ class DubyImpl
       end
     end
     expanded
+  end
+end
+
+module JRuby::Synchronized
+  def respond_to?(*args)
+    m = Object.instance_method(:respond_to?)
+    begin
+      m.bind(self).call(*args)
+    rescue java.lang.NullPointerException
+      nil
+    end
+  end
+end
+
+class Array
+  alias join_unsynchronized join
+  def join(*args)
+    map{|x| x.to_s}.join_unsynchronized(*args)
+  end
+
+  alias to_s_unsynchronized to_s
+
+  def to_s
+    map{|x| x.to_s}.to_s_unsynchronized
   end
 end
 

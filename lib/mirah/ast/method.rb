@@ -1,3 +1,4 @@
+require 'jruby/synchronized'
 module Duby::AST
   class Arguments < Node
     child :required
@@ -202,6 +203,7 @@ module Duby::AST
       @annotations = annotations
       super(parent, line_number, &block)
       @name = name
+      signature.extend JRuby::Synchronized if signature
       @visibility = (class_scope && class_scope.current_access_level) || :public
     end
 
@@ -286,6 +288,12 @@ module Duby::AST
 
     def static?
       scope.static_scope.self_type.meta?
+    end
+
+    alias :set_signature_unsynchronized :signature=
+    def signature=(signature)
+      signature.extend JRuby::Synchronized if signature
+      set_signature_unsynchronized(signature)
     end
   end
 

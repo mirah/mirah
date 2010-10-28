@@ -40,10 +40,11 @@ module Duby
           end
         end
 
+        type_names = parameter_types.map{|t| t.full_name}
         if result
-          log "Method type for \"#{name}\" #{parameter_types} on #{target_type} = #{result}"
+          log "Method type for #{name}(#{type_names}) on #{target_type} = #{result}"
         else
-          log "Method type for \"#{name}\" #{parameter_types} on #{target_type} not found"
+          log "Method type for #{name}(#{type_names}) on #{target_type} not found"
         end
 
         result

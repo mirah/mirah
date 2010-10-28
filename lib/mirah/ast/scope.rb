@@ -1,3 +1,5 @@
+require 'jruby/synchronized'
+
 module Duby
   module AST
     module Scoped
@@ -40,6 +42,7 @@ module Duby
 
     class StaticScope
       java_import 'java.util.LinkedHashMap'
+      include JRuby::Synchronized
       attr_reader :parent
       attr_writer :self_type, :self_node, :package
 

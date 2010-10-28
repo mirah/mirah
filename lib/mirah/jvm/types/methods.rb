@@ -156,8 +156,11 @@ module Duby::JVM::Types
     def void?
       return_type = @member.return_type
       return true if return_type.nil?
-      if return_type.respond_to?(:descriptor) && return_type.descriptor == 'V'
-        return true
+      begin
+        if return_type.respond_to?(:descriptor) && return_type.descriptor == 'V'
+          return true
+        end
+      rescue java.lang.NullPointerException
       end
       false
     end
@@ -395,13 +398,16 @@ module Duby::JVM::Types
       rescue => ex
         log(ex.message)
       end
-      raise NameError, "No constructor #{name}(#{types.join ', '})"
+      raise NameError, "No constructor #{name}(#{types.map{|t| t.full_name}.join ', '})"
     end
 
     def java_method(name, *types)
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
-      jvm_types = types.map {|type| type.jvm_type}
+      jvm_types = types.map do |type|
+        raise NameError, "jvm_type" unless type.respond_to?(:jvm_type)
+        type.jvm_type
+      end
 
       return JavaDynamicMethod.new(name, *jvm_types) if dynamic?
 
@@ -428,7 +434,7 @@ module Duby::JVM::Types
       rescue   => ex
         log(ex.message)
       end
-      raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
+      raise NameError, "No method #{self.name}.#{name}(#{types.map{|t| t.full_name}.join ', '})"
     end
 
     def declared_instance_methods(name=nil)
@@ -493,7 +499,7 @@ module Duby::JVM::Types
       return method if method
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
-      raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
+      raise NameError, "No method #{self.name}.#{name}(#{types.map{|x|x.full_name}.join ', '})"
     end
 
     def java_static_method(name, *types)
@@ -501,13 +507,13 @@ module Duby::JVM::Types
       return method if method
       intrinsic = meta.intrinsics[name][types]
       return intrinsic if intrinsic
-      raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
+      raise NameError, "No method #{self.name}.#{name}(#{types.map{|x|x.full_name}.join ', '})"
     end
 
     def constructor(*types)
       constructor = constructors.find {|c| c.argument_types == types}
       return constructor if constructor
-      raise NameError, "No constructor #{name}(#{types.join ', '})"
+      raise NameError, "No constructor #{name}(#{types.map{|x|x.full_name}.join ', '})"
     end
 
     def declared_instance_methods(name=nil)

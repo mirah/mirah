@@ -1,6 +1,10 @@
 require 'jruby'
+require 'mirah/threads'
+
 module Duby::JVM::Types
   class TypeFactory
+    include JRuby::Synchronized
+
     BASIC_TYPES = {
       "boolean" => Boolean,
       "byte" => Byte,
@@ -28,7 +32,7 @@ module Duby::JVM::Types
     attr_accessor :package
     attr_reader :known_types
 
-    class ParanoidHash < Hash
+    class ParanoidHash < Duby::Threads::SynchronizedHash
       def []=(k, v)
         raise ArgumentError, "Can't store nil for key #{k.inspect}" if v.nil?
         super(k, v)
