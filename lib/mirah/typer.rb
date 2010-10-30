@@ -30,13 +30,15 @@ module Duby
       end
     end
 
+    # This class is not threadsafe and should only be used in tests.
+    # Subclasses must override the declare_main_type method.
     class Simple < BaseTyper
       attr_accessor :known_types, :errors, :last_chance
 
-      def initialize(self_type)
+      def initialize(main_type_name)
         @known_types = Duby::Threads::SynchronizedHash.new
 
-        @known_types["self"] = type_reference(nil, self_type)
+        @main_type = type_reference(nil, main_type_name)
         @known_types["fixnum"] = type_reference(nil, "fixnum")
         @known_types["float"] = type_reference(nil, "float")
         @known_types["string"] = type_reference(nil, "string")
@@ -48,10 +50,8 @@ module Duby
         "Simple"
       end
 
-      def set_filename(scope, name); end
-
-      def self_type
-        known_types["self"]
+      def declare_main_type(scope, filename)
+        @main_type
       end
 
       def default_type
@@ -100,10 +100,7 @@ module Duby
         log "New type defined: '#{name}' < '#{superclass}'"
         result = type_definition(scope, name, superclass, interfaces)
 
-        # TODO Get rid of known_types["self"]
-        old_self, known_types["self"] = known_types["self"], result
         yield(result)
-        known_types["self"] = old_self
 
         result
       end
@@ -293,7 +290,7 @@ module Duby
           return if deferred_nodes.include? node
           log "Deferring inference for #{node}"
 
-          deferred_nodes[node] = self_type
+          deferred_nodes[node] = true
         end
       end
 
@@ -307,7 +304,6 @@ module Duby
           old_deferred = @deferred_nodes
           @deferred_nodes = Duby::Threads::SynchronizedHash.new
           old_deferred.each do |node, saved_type|
-            known_types["self"] = saved_type
             type = infer(node)
 
             log "[Cycle #{i}]: Inferred type for #{node}: #{type || 'FAILED'}"

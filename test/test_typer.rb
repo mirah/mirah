@@ -67,9 +67,9 @@ class TestTyper < Test::Unit::TestCase
 
 
       if def_foo =~ /self/
-        type = typer.self_type.meta
+        type = typer.type_reference(nil, :bar, false, true)
       else
-        type = typer.self_type
+        type = typer.type_reference(nil, :bar, false, false)
       end
 
       assert_equal(typer.null_type, typer.method_type(type, 'foo', [typer.string_type]))
@@ -113,8 +113,10 @@ class TestTyper < Test::Unit::TestCase
     ast.infer(typer)
     ast = ast.body
 
-    assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
-    assert_equal(typer.float_type, typer.method_type(typer.self_type, "baz", []))
+    self_type = typer.type_reference(nil, :bar)
+
+    assert_equal(typer.float_type, typer.method_type(self_type, "bar", [typer.fixnum_type, typer.string_type]))
+    assert_equal(typer.float_type, typer.method_type(self_type, "baz", []))
     assert_equal(typer.float_type, ast.children[0].inferred_type)
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
@@ -125,16 +127,18 @@ class TestTyper < Test::Unit::TestCase
     ast.infer(typer)
     ast = ast.body
 
-    assert_equal(typer.default_type, typer.method_type(typer.self_type, "baz", []))
-    assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
+    self_type = typer.type_reference(nil, :bar)
+
+    assert_equal(typer.default_type, typer.method_type(self_type, "baz", []))
+    assert_equal(typer.float_type, typer.method_type(self_type, "bar", [typer.fixnum_type, typer.string_type]))
     assert_equal(typer.default_type, ast.children[0].inferred_type)
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
     # allow resolution to run
     assert_nothing_raised {typer.resolve}
 
-    assert_equal(typer.float_type, typer.method_type(typer.self_type, "baz", []))
-    assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
+    assert_equal(typer.float_type, typer.method_type(self_type, "baz", []))
+    assert_equal(typer.float_type, typer.method_type(self_type, "bar", [typer.fixnum_type, typer.string_type]))
     assert_equal(typer.float_type, ast.children[0].inferred_type)
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 
@@ -145,8 +149,10 @@ class TestTyper < Test::Unit::TestCase
     ast.infer(typer)
     ast = ast.body
 
-    assert_equal(typer.default_type, typer.method_type(typer.self_type, "baz", []))
-    assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
+    self_type = typer.type_reference(nil, :bar)
+
+    assert_equal(typer.default_type, typer.method_type(self_type, "baz", []))
+    assert_equal(typer.float_type, typer.method_type(self_type, "bar", [typer.fixnum_type, typer.string_type]))
     assert_equal(typer.default_type, ast.children[0].inferred_type)
     assert_equal(typer.float_type, ast.children[1].inferred_type)
 

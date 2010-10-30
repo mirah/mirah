@@ -287,7 +287,9 @@ module Duby::AST
     end
 
     def static?
-      scope.static_scope.self_type.meta?
+      type = scope.static_scope.self_type
+      # type should never be nil, but it can be in tests
+      type && type.meta?
     end
 
     alias :set_signature_unsynchronized :signature=

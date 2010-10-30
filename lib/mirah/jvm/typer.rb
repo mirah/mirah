@@ -21,10 +21,10 @@ module Duby
         @errors = Duby::Threads::SynchronizedArray.new
       end
 
-      def set_filename(scope, filename)
+      def declare_main_type(scope, filename)
         classname = Duby::Compiler::JVM.classname_from_filename(filename)
         main_class = @factory.declare_type(scope, classname)
-        @known_types['self'] = main_class.meta
+        main_class.meta
       end
 
       def type_reference(scope, name, array=false, meta=false)
@@ -96,7 +96,7 @@ module Duby
         return_type = sig_args.delete(:return)
         exceptions = sig_args.delete(:throws)
         args = method_def.arguments.args || []
-        static = method_def.kind_of? Duby::AST::StaticMethodDefinition
+        static = method_def.static?
         klass = method_def.defining_class.unmeta
         if sig_args.size != args.size
           # If the superclass declares one method with the same name and

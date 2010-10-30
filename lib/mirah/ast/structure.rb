@@ -8,7 +8,6 @@ module Duby::AST
     def infer(typer)
       unless @inferred_type
         @typer ||= typer
-        @self_type ||= typer.self_type
         if children.size == 0
           @inferred_type = typer.no_type
         else
@@ -27,12 +26,7 @@ module Duby::AST
 
     def <<(node)
       super
-      if @typer
-        orig_self = @typer.self_type
-        @typer.known_types['self'] = @self_type
-        @typer.infer(node)
-        @typer.known_types['self'] = orig_self
-      end
+      @typer.infer(node) if @typer
       self
     end
   end
@@ -200,9 +194,8 @@ module Duby::AST
 
     def infer(typer)
       resolve_if(typer) do
-        typer.set_filename(self, filename)
         @defining_class ||= begin
-          static_scope.self_type = typer.self_type
+          static_scope.self_type = typer.declare_main_type(self, filename)
         end
         typer.infer(body)
       end
