@@ -135,6 +135,14 @@ module Duby
         field_types[cls] ||= {}
       end
 
+      def static_field_types
+        @static_field_types ||= {}
+      end
+
+      def static_field_type_hash(cls)
+        static_field_types[cls] ||= {}
+      end
+      
       def infer_signature(method_def)
       end
 
@@ -149,6 +157,19 @@ module Duby
 
       def field_type(cls, name)
         field_type_hash(cls)[name]
+      end
+
+      def learn_static_field_type(cls, name, type)
+        log "Learned field type under #{cls} : #{name} = #{type}"
+
+        # TODO check for compatibility?
+        static_field_type_hash(cls)[name] ||= known_types[type] || type
+
+        type
+      end
+
+      def static_field_type(cls, name)
+        static_field_type_hash(cls)[name]
       end
 
       def learn_method_type(target_type, name, parameter_types, type, exceptions)

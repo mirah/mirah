@@ -229,14 +229,14 @@ module Duby
 
     class FieldDeclaration
       def compile(compiler, expression)
-        compiler.field_declare(name, inferred_type, annotations)
+        compiler.field_declare(name, inferred_type, annotations, static)
       end
     end
 
     class FieldAssignment
       def compile(compiler, expression)
         compiler.line(line_number)
-        compiler.field_assign(name, inferred_type, expression, value, annotations)
+        compiler.field_assign(name, inferred_type, expression, value, annotations, static)
       end
     end
 
@@ -244,7 +244,7 @@ module Duby
       def compile(compiler, expression)
         compiler.line(line_number)
         if expression
-          compiler.field(name, inferred_type, annotations)
+          compiler.field(name, inferred_type, annotations, static)
         end
       end
     end
