@@ -2,6 +2,7 @@ require 'bitescript'
 require 'mirah/ast'
 require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/compiler'
+require 'set'
 
 module Duby
   module JVM
@@ -137,11 +138,12 @@ module Duby
 
         def interfaces
           raise "Incomplete type #{self} (#{self.class})" unless jvm_type
-          @interfaces ||= jvm_type.interfaces.map do |interface|
-            AST.type(nil, interface)
-          end
-          if superclass
-            @interfaces.concat superclass.interfaces
+          @interfaces ||= begin
+            interfaces = jvm_type.interfaces.map {|i| AST.type(nil, i)}.to_set
+            if superclass
+              interfaces |= superclass.interfaces
+            end
+            interfaces.to_a
           end
           @interfaces
         end
