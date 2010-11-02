@@ -190,11 +190,13 @@ module Duby::AST
 
     child :type_node
     attr_accessor :type
+    attr_accessor :static
 
-    def initialize(parent, position, name, annotations=[], &block)
+    def initialize(parent, position, name, annotations=[], static = false, &block)
       @annotations = annotations
       super(parent, position, &block)
       @name = name
+      @static = static
     end
 
     def infer(typer)
@@ -205,7 +207,11 @@ module Duby::AST
     end
 
     def resolved!(typer)
-      typer.learn_field_type(class_scope, name, @inferred_type)
+      if static
+        typer.learn_static_field_type(class_scope, name, @inferred_type)
+      else
+        typer.learn_field_type(class_scope, name, @inferred_type)
+      end
       super
     end
   end
@@ -217,17 +223,23 @@ module Duby::AST
     include ClassScoped
 
     child :value
+    attr_accessor :static
 
-    def initialize(parent, position, name, annotations=[], &block)
+    def initialize(parent, position, name, annotations=[], static = false, &block)
       @annotations = annotations
       super(parent, position, &block)
       @name = name
+      @static = static
     end
 
     def infer(typer)
       resolve_if(typer) do
         @annotations.each {|a| a.infer(typer)} if @annotations
-        typer.learn_field_type(class_scope, name, typer.infer(value))
+        if static
+          typer.learn_static_field_type(class_scope, name, typer.infer(value))
+        else
+          typer.learn_field_type(class_scope, name, typer.infer(value))
+        end
       end
     end
   end
@@ -236,17 +248,24 @@ module Duby::AST
     include Annotated
     include Named
     include ClassScoped
+    
+    attr_accessor :static
 
-    def initialize(parent, position, name, annotations=[], &block)
+    def initialize(parent, position, name, annotations=[], static = false, &block)
       @annotations = annotations
       super(parent, position, &block)
       @name = name
+      @static = static
     end
 
     def infer(typer)
       resolve_if(typer) do
         @annotations.each {|a| a.infer(typer)} if @annotations
-        typer.field_type(class_scope, name)
+        if static
+          typer.static_field_type(class_scope, name)
+        else
+          typer.field_type(class_scope, name)
+        end
       end
     end
   end

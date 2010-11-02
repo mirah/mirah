@@ -275,20 +275,23 @@ module Duby
 
     class RescueClause < Node
       include Scope
+      include Scoped
       attr_accessor :name, :type, :types
       child :type_nodes
       child :body
 
-      def initialize(parent, position, &block)
-        super(parent, position, &block)
+      def initialize(parent, position)
+        super(parent, position) do
+          static_scope.parent = scope.static_scope
+          yield(self) if block_given?
+        end
       end
 
       def infer(typer)
         unless resolved?
           @types ||= type_nodes.map {|n| n.type_reference(typer)}
           if name
-            static_scope << name
-            orig_type = typer.local_type(static_scope, name)
+            static_scope.shadow(name)
             # TODO find the common parent Throwable
             @type = types.size == 1 ? types[0] : AST.type(nil, 'java.lang.Throwable')
             typer.learn_local_type(static_scope, name, @type)
@@ -303,6 +306,18 @@ module Duby
         end
 
         @inferred_type
+      end
+
+      def binding_type(duby=nil)
+        static_scope.parent.binding_type(defining_class, duby)
+      end
+
+      def binding_type=(type)
+        static_scope.parent.binding_type = type
+      end
+
+      def has_binding?
+        static_scope.parent.has_binding?
       end
     end
 

@@ -15,7 +15,7 @@ module Duby
 
       def containing_scope
         scope = self.scope.static_scope
-        while scope.parent && scope.parent.include?(name)
+        while !scope.shadowed?(name) && scope.parent && scope.parent.include?(name)
           scope = scope.parent
         end
         scope
@@ -54,10 +54,19 @@ module Duby
         @children = {}
         @imports = {}
         @search_packages = []
+        @shadowed = {}
       end
 
       def <<(name)
         @vars[name] = true
+      end
+
+      def shadow(name)
+        @shadowed[name] = @vars[name] = true
+      end
+
+      def shadowed?(name)
+        @shadowed[name]
       end
 
       def locals

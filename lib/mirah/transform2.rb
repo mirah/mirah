@@ -399,6 +399,28 @@ module Duby::AST
       end
     end
 
+    def transform_class_var(node, parent)
+      name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
+      Field.new(parent, position(node), name, transformer.annotations, true)
+    end
+
+    def transform_class_var_assign(node, parent)
+      name = node[1]
+      name = transform(name, nil) unless name.kind_of?(::String)
+      value_node = node[2]
+      position = position(node)
+      case value_node[0]
+      when 'Symbol', 'Constant'
+        FieldDeclaration.new(parent, position,
+                             name, transformer.annotations, true) do |field_decl|
+          [transform(value_node, field_decl)]
+        end
+      else
+        FieldAssignment.new(parent, position, name, transformer.annotations, true) {|field| [transformer.transform(value_node, field)]}
+      end
+    end
+
     def transform_if(node, parent)
       condition = node[1]
       then_body = node[2]

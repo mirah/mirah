@@ -564,17 +564,17 @@ module Duby
         @method.putfield(scope.binding_type, name, type)
       end
 
-      def field(name, type, annotations)
+      def field(name, type, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
 
         real_type = declared_fields[name] || type
 
-        declare_field(name, real_type, annotations)
+        declare_field(name, real_type, annotations, static_field)
 
         # load self object unless static
-        method.aload 0 unless static
+        method.aload 0 unless static || static_field
 
-        if static
+        if static || static_field
           @method.getstatic(@class, name, type)
         else
           @method.getfield(@class, name, type)
@@ -586,11 +586,11 @@ module Duby
         @declared_fields[@class] ||= {}
       end
 
-      def declare_field(name, type, annotations)
+      def declare_field(name, type, annotations, static_field)
         # TODO confirm types are compatible
         unless declared_fields[name]
           declared_fields[name] = type
-          field = if static
+          field = if static || static_field
             @class.private_static_field name, type
           else
             @class.private_field name, type
@@ -599,28 +599,28 @@ module Duby
         end
       end
 
-      def field_declare(name, type, annotations)
+      def field_declare(name, type, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
-        declare_field(name, type, annotations)
+        declare_field(name, type, annotations, static_field)
       end
 
-      def field_assign(name, type, expression, value, annotations)
+      def field_assign(name, type, expression, value, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
 
         real_type = declared_fields[name] || type
 
-        declare_field(name, real_type, annotations)
+        declare_field(name, real_type, annotations, static_field)
 
-        method.aload 0 unless static
+        method.aload 0 unless static || static_field
         value.compile(self, true)
         if expression
           instruction = 'dup'
           instruction << '2' if type.wide?
-          instruction << '_x1' unless static
+          instruction << '_x1' unless static || static_field
           method.send instruction
         end
 
-        if static
+        if static || static_field
           @method.putstatic(@class, name, real_type)
         else
           @method.putfield(@class, name, real_type)
