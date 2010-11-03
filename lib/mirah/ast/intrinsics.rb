@@ -252,7 +252,7 @@ module Duby::AST
       new_factory = orig_factory.dup
       Duby::AST.type_factory = new_factory
       ast = build_ast(name, parent, transformer)
-      puts ast.inspect if state.verbose
+      state.log(ast.inspect)
       classes = compile_ast(name, ast, transformer)
       loader = DubyClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)

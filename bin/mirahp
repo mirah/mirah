@@ -6,4 +6,12 @@ rescue LoadError
   require 'mirah'
 end
 
-puts Duby.parse(*ARGV).inspect
+asts = Duby.parse(*ARGV)
+if asts.size == 1
+  puts asts[0].inspect
+else
+  asts.each do |ast|
+    next if Duby::AST::ErrorNode === ast
+    puts "#{ast.filename}:", ast.inspect, ""
+  end
+end

@@ -2,6 +2,7 @@ require 'fileutils'
 require 'rbconfig'
 require 'mirah/transform'
 require 'mirah/ast'
+require 'mirah/threads'
 require 'mirah/typer'
 require 'mirah/compiler'
 require 'mirah/env'
@@ -71,7 +72,23 @@ module Duby
   end
 
   class CompilationState
-    attr_accessor :verbose, :destination
+    attr_accessor :verbose, :destination, :builtins_initialized
+    attr_reader :executor, :mutex, :main_thread
+
+    def initialize
+      @executor = Duby::Threads::Executor.new
+      @mutex = Mutex.new
+      @main_thread = Thread.current
+    end
+
+    def log(message)
+      # TODO allow filtering which logs to show.
+      if verbose
+        @mutex.synchronize {
+          puts message
+        }
+      end
+    end
   end
 end
 
@@ -83,7 +100,7 @@ class DubyClassLoader < java::security::SecureClassLoader
     super(parent)
     @class_map = class_map
   end
-  
+
   def findClass(name)
     if @class_map[name]
       bytes = @class_map[name].to_java_bytes
@@ -156,22 +173,7 @@ class DubyImpl
   end
 
   def generate(args, &block)
-    process_flags!(args)
-
-    # collect all ASTs from all files
-    all_nodes = []
-    expand_files(args).each do |duby_file|
-      if duby_file == '-e'
-        @filename = '-e'
-        next
-      elsif @filename == '-e'
-        all_nodes << parse('-e', duby_file)
-      else
-        all_nodes << parse(duby_file)
-      end
-      @filename = nil
-      exit 1 if @error
-    end
+    all_nodes = parse(*args)
 
     # enter all ASTs into inference engine
     infer_asts(all_nodes)
@@ -184,36 +186,42 @@ class DubyImpl
 
   def parse(*args)
     process_flags!(args)
-    @filename = args.shift
 
-    if @filename
-      if @filename == '-e'
-        @filename = 'DashE'
-        src = args[0]
-      else
-        src = File.read(@filename)
-      end
-    else
+    files = expand_files(args)
+    if files.empty?
       print_help
       exit(1)
     end
-    begin
-      ast = Duby::AST.parse_ruby(src, @filename)
-    # rescue org.jrubyparser.lexer.SyntaxException => ex
-    #   Duby.print_error(ex.message, ex.position)
-    #   raise ex if @state.verbose
-    end
-    @transformer = Duby::Transform::Transformer.new(@state)
-    Java::MirahImpl::Builtin.initialize_builtins(@transformer)
-    @transformer.filename = @filename
-    ast = @transformer.transform(ast, nil)
-    @transformer.errors.each do |ex|
-      Duby.print_error(ex.message, ex.position)
-      raise ex.cause || ex if @state.verbose
-    end
-    @error = @transformer.errors.size > 0
 
-    ast
+    # collect all ASTs from all files
+    all_nodes = @state.executor.each(files) do |pair|
+      filename, src = pair
+      begin
+        ast = Duby::AST.parse_ruby(src, filename)
+      # rescue org.jrubyparser.lexer.SyntaxException => ex
+      #   Duby.print_error(ex.message, ex.position)
+      #   raise ex if @state.verbose
+      end
+      transformer = Duby::Transform::Transformer.new(@state)
+      @state.mutex.synchronize {
+        @state.builtins_initialized ||= begin
+          Java::MirahImpl::Builtin.initialize_builtins(transformer)
+          true
+        end
+      }
+      transformer.filename = filename
+      ast = transformer.transform(ast, nil)
+      @state.mutex.synchronize {
+        transformer.errors.each do |ex|
+          Duby.print_error(ex.message, ex.position)
+          raise ex.cause || ex if @state.verbose
+        end
+      }
+      @error ||= transformer.errors.size > 0
+      ast
+    end
+
+    all_nodes
   end
 
   def infer_asts(asts)
@@ -247,9 +255,11 @@ class DubyImpl
       compiler.generate(&block)
     rescue Exception => ex
       if ex.respond_to? :node
-        Duby.print_error(ex.message, ex.node.position)
-        puts ex.backtrace if @state.verbose
-        exit 1
+        @state.mutex.synchronize {
+          Duby.print_error(ex.message, ex.node.position)
+          @state.log(ex.backtrace)
+        }
+        @error = true
       else
         raise ex
       end
@@ -319,17 +329,24 @@ class DubyImpl
 
   def expand_files(files)
     expanded = []
+    dash_e = false
     files.each do |filename|
-      if File.directory?(filename)
+      if dash_e
+        expanded << ['DashE', filename]
+        dash_e = false
+      elsif filename == '-e'
+        dash_e = true
+        next
+      elsif File.directory?(filename)
         Dir[File.join(filename, '*')].each do |child|
           if File.directory?(child)
             files << child
           elsif child =~ /\.(duby|mirah)$/
-            expanded << child
+            expanded << [child, File.read(child)]
           end
         end
       else
-        expanded << filename
+        expanded << [filename, File.read(filename)]
       end
     end
     expanded
