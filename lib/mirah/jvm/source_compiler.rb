@@ -185,8 +185,8 @@ module Duby
         @method.declare_local(type, name)
       end
 
-      def declare_field(name, type, annotations)
-        @class.declare_field(name, type, @static, 'private', annotations)
+      def declare_field(name, type, annotations, static_field)
+        @class.declare_field(name, type, @static || static_field, 'private', annotations)
       end
 
       def local(scope, name, type)
@@ -194,9 +194,9 @@ module Duby
         @method.print name
       end
 
-      def field(name, type, annotations)
+      def field(name, type, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
-        declare_field(name, type, annotations)
+        declare_field(name, type, annotations, static_field)
         @method.print "#{this}.#{name}"
       end
 
@@ -258,9 +258,9 @@ module Duby
         declare_local(name, type)
       end
 
-      def field_assign(name, type, expression, value, annotations)
+      def field_assign(name, type, expression, value, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
-        declare_field(name, type, annotations)
+        declare_field(name, type, annotations, static_field)
         lvalue = "#{@lvalue if expression}#{this}.#{name} = "
         store_value(lvalue, value)
       end

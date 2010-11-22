@@ -787,6 +787,14 @@ class TestJVMCompiler < Test::Unit::TestCase
         def a
           @a
         end
+        
+        def self.set_b(b:fixnum)
+          @@b = b
+        end
+        
+        def b
+          @@b
+        end
       end
     EOF
     first = cls.new(1)
@@ -795,6 +803,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     second = cls.new(2)
     assert_equal(1, first.a)
     assert_equal(2, second.a)
+    
+    cls.set_b 0
+    assert_equal(0, first.b)
+    assert_equal(0, second.b)
+    assert_equal(1, cls.set_b(1))
+    assert_equal(1, first.b)
+    assert_equal(1, second.b)
   end
 
   def test_object_intrinsics
