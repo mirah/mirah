@@ -363,7 +363,7 @@ module Duby
           print ' throws '
           @exceptions.each_with_index do |exception, i|
             print ', ' unless i == 0
-            print exception.name
+            print exception.to_source
           end
         end
         if @abstract
