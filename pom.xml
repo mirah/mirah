@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
+  <properties>
+    <mirah.version>0.5.dev</mirah.version>
+    <mirah.maven.version>0.5.0-SNAPSHOT</mirah.maven.version>
+  </properties>
+
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.mirah</groupId>
+  <artifactId>shared</artifactId>
+  <packaging>pom</packaging>
+  <version>${mirah.version}</version>
+  <name>Mirah Shared</name>
+  <url>http://mirah.org</url>
+  <description>The Mirah Programming Language</description>
+
+  <issueManagement>
+    <system>Github issues</system>
+    <url>https://github.com/mirah/mirah/issues</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:git:git://github.com/mirah/mirah.git</connection>
+    <developerConnection>git@github.com:mirah/mirah.git</developerConnection>
+    <url>http://github.com/mirah/mirah</url>
+  </scm>
+
+  <!-- TODO: Add license -->
+  <!-- TODO: Add distribution management -->
+
+  <developers>
+    <developer>
+      <id>headius</id>
+      <name>Charles Nutter</name>
+      <email>charles.o.nutter@sun.com</email>
+    </developer>
+    <!-- TODO: Add other developers -->
+  </developers>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jruby</groupId>
+      <artifactId>jruby-complete</artifactId>
+      <version>[1.5.3,)</version>
+    </dependency>
+  </dependencies>
+
+  <modules>
+    <module>maven/mirah</module>
+    <module>maven/mirah-complete</module>
+  </modules>
+
+  <build>
+    <defaultGoal>install</defaultGoal>
+  </build>
+</project>
