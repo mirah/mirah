@@ -1,11 +1,13 @@
 <?xml version="1.0"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <properties><base>../..</base></properties>
+
   <parent>
     <groupId>org.mirah</groupId>
     <artifactId>shared</artifactId>
     <version>${mirah.version}</version>
-    <relativePath>../../pom.xml</relativePath>
+    <relativePath>${base}/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.mirah</groupId>
@@ -15,7 +17,7 @@
   <name>Mirah Complete</name>
 
   <build>
-    <directory>dist</directory>
+    <directory>${base}/dist</directory>
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
@@ -23,18 +25,34 @@
         <executions>
           <execution>
             <id>jar</id>
-            <phase>package</phase>
+            <phase>compile</phase>
             <goals><goal>exec</goal></goals>
             <configuration>
               <executable>/bin/sh</executable>
-              <workingDirectory>../..</workingDirectory>
+              <workingDirectory>${base}</workingDirectory>
               <arguments>
                 <argument>-c</argument>
-                <argument>jruby -S rake jar:complete</argument>
+                <argument>
+                  jruby -S rake jar:complete
+                  rm -rf dist/classes
+                  mkdir dist/classes
+                  unzip dist/mirah-complete.jar -d dist/classes > /dev/null
+                </argument>
               </arguments>
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <configuration>
+            <archive>
+              <manifest>
+                <mainClass>org.mirah.MirahCommand</mainClass>
+              </manifest>
+            </archive>
+          </configuration>
       </plugin>
     </plugins>
   </build>
