@@ -2,16 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
-  <properties>
-    <mirah.version>0.5.dev</mirah.version>
-    <mirah.maven.version>0.5.0-SNAPSHOT</mirah.maven.version>
-  </properties>
-
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.mirah</groupId>
   <artifactId>shared</artifactId>
   <packaging>pom</packaging>
-  <version>${mirah.version}</version>
+  <version>0.5.dev</version>
   <name>Mirah Shared</name>
   <url>http://mirah.org</url>
   <description>The Mirah Programming Language</description>
