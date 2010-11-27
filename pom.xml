@@ -34,14 +34,6 @@
     <!-- TODO: Add other developers -->
   </developers>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.jruby</groupId>
-      <artifactId>jruby-complete</artifactId>
-      <version>[1.5.3,)</version>
-    </dependency>
-  </dependencies>
-
   <modules>
     <module>maven/mirah</module>
     <module>maven/mirah-complete</module>
