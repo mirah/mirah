@@ -2,6 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
+  <parent>
+    <groupId>org.sonatype.oss</groupId>
+    <artifactId>oss-parent</artifactId>
+    <version>5</version>
+  </parent>
+
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.mirah</groupId>
   <artifactId>shared</artifactId>
@@ -22,8 +28,13 @@
     <url>http://github.com/mirah/mirah</url>
   </scm>
 
-  <!-- TODO: Add license -->
-  <!-- TODO: Add distribution management -->
+  <licenses>
+    <license>
+      <name>Apache License, Version 2</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <developers>
     <developer>
