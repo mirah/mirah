@@ -126,7 +126,24 @@ module Duby::JVM::Types
     def get_type(full_name)
       type = @known_types[full_name]
       return type.basic_type if type
-      type = Type.new(get_mirror(full_name)).load_extensions
+      begin
+        mirror = get_mirror(full_name)
+      rescue NameError => ex
+        if full_name =~ /^(.+)\.([^.]+)/
+          outer_name = $1
+          inner_name = $2
+          outer_type = get_type(outer_name)
+          puts outer_type.name
+          full_name = "#{outer_type.name}$#{inner_name}"
+          mirror = get_mirror(full_name)
+        else
+          raise ex
+        end
+      end
+      type = Type.new(mirror).load_extensions
+      if full_name.include? '$'
+        @known_types[full_name.gsub('$', '.')] = type
+      end
       @known_types[full_name] = type
     end
 
