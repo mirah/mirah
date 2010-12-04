@@ -9,8 +9,8 @@ require 'mirah/appengine_tasks'
 
 appengine_app :app
 
-MIRAH_APP = "#{Duby.dest_path}/org/mirah/MirahApp.class"
-LIST = "#{Duby.source_path}/org/mirah/list.dhtml"
+MIRAH_APP = "#{Mirah.dest_path}/org/mirah/MirahApp.class"
+LIST = "#{Mirah.source_path}/org/mirah/list.dhtml"
 
 # We want to recompile the app if the template gets modified
 Rake::Task[MIRAH_APP].enhance([LIST])

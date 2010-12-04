@@ -51,7 +51,7 @@ module AppEngine
     }
 
     class ModelState
-      include Duby::AST
+      include Mirah::AST
       attr_reader :kind, :query, :read, :save, :transformer
 
       def initialize(transformer, klass, parent, position, ast)
@@ -109,7 +109,7 @@ module AppEngine
               self
             end
           EOF
-          [Duby::AST.type(nil, 'com.google.appengine.ext.duby.db.DQuery'),
+          [Mirah::AST.type(nil, 'com.google.appengine.ext.duby.db.DQuery'),
            eval(classdef, queryinit)]
         end
         ast << @query
@@ -131,7 +131,7 @@ module AppEngine
           end
         EOF
         @get_properties = get_properties.body.children[1] =
-            Duby::AST::Body.new(get_properties.body, position)
+            Mirah::AST::Body.new(get_properties.body, position)
         ast << get_properties
         update = eval(parent, <<-EOF)
           def update(properties:Map)
@@ -260,7 +260,7 @@ module AppEngine
     end
 
     def self.find_class(node)
-      node = node.parent until Duby::AST::ClassDefinition === node
+      node = node.parent until Mirah::AST::ClassDefinition === node
       node
     end
 
@@ -296,7 +296,7 @@ module AppEngine
       type = type.name
       type = 'Long' if type == 'Integer'
 
-      result = Duby::AST::ScopedBody.new(parent, fcall.position) {[]}
+      result = Mirah::AST::ScopedBody.new(parent, fcall.position) {[]}
       result.static_scope = fcall.scope.static_scope
       klass = find_class(parent)
       unless @models[klass]
@@ -371,5 +371,5 @@ module AppEngine
       @models = {}
     end
   end
-  ::Duby.plugins << DubyDatastorePlugin
+  ::Mirah.plugins << DubyDatastorePlugin
 end

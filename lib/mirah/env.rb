@@ -1,6 +1,6 @@
 require 'rbconfig'
 
-module Duby
+module Mirah
   module Env
 
     # Returns the system PATH_SEPARATOR environment variable value. This is used when

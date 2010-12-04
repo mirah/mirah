@@ -13,7 +13,7 @@ class BiteScript::MethodBuilder
   end
 end
 
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class IntegerType < Number
     def literal(builder, value)
       builder.push_int(value)
@@ -68,7 +68,7 @@ module Duby::JVM::Types
         op = "-="
       end
       comparison << "=" if inclusive
-      forloop = Duby::AST::Loop.new(parent, position, true, false) do |forloop|
+      forloop = Mirah::AST::Loop.new(parent, position, true, false) do |forloop|
         first, last = duby.tmp, duby.tmp
         init = duby.eval("#{first} = 0; #{last} = 0;")
         init.children[-2].value = first_value
@@ -82,7 +82,7 @@ module Duby::JVM::Types
         end
         forloop.post << duby.eval("#{first} #{op} 1")
         [
-          Duby::AST::Condition.new(forloop, position) do |c|
+          Mirah::AST::Condition.new(forloop, position) do |c|
             [duby.eval("#{first} #{comparison} #{last}",
                        '', forloop, first, last)]
           end,
@@ -103,17 +103,17 @@ module Duby::JVM::Types
       math_operator('^', 'xor')
       unary_operator('~', 'not')
 
-      add_macro('downto', Int, Duby::AST.block_type) do |transformer, call|
+      add_macro('downto', Int, Mirah::AST.block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], false, true)
       end
-      add_macro('upto', Int, Duby::AST.block_type) do |transformer, call|
+      add_macro('upto', Int, Mirah::AST.block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], true, true)
       end
-      add_macro('times', Duby::AST.block_type) do |transformer, call|
+      add_macro('times', Mirah::AST.block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
-                   call.block, Duby::AST::fixnum(nil, call.position, 0),
+                   call.block, Mirah::AST::fixnum(nil, call.position, 0),
                    call.target, true, false)
       end
     end

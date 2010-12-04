@@ -1,4 +1,4 @@
-module Duby::AST
+module Mirah::AST
   class Arguments < Node
     child :required
     child :opt_args
@@ -241,7 +241,7 @@ module Duby::AST
           if !abstract? &&
               forced_type != typer.no_type &&
               !actual_type.is_parent(inferred_type)
-            raise Duby::Typer::InferenceError.new(
+            raise Mirah::Typer::InferenceError.new(
                 "Inferred return type %s is incompatible with declared %s" %
                 [inferred_type, actual_type], self)
           end
@@ -259,7 +259,7 @@ module Duby::AST
         # even if we can't infer the body yet.
         type ||= signature[:return] if argument_types && argument_types.all?
         if type
-          argument_types ||= [Duby::AST.error_type] if type.error?
+          argument_types ||= [Mirah::AST.error_type] if type.error?
           typer.learn_method_type(defining_class, name, argument_types, type, signature[:throws])
 
           # learn the other overloads as well

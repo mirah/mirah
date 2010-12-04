@@ -1,4 +1,4 @@
-module Duby
+module Mirah
   module JVM
     module MethodLookup
       # dummy log; it's expected the inclusion target will have it

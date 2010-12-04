@@ -1,6 +1,6 @@
 require 'delegate'
 
-module Duby::JVM::Types
+module Mirah::JVM::Types
 
   # Represents a literal number that can be represented
   # in multiple types

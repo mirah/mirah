@@ -1,4 +1,4 @@
-module Duby
+module Mirah
   module AST
     module Scoped
       def scope
@@ -79,7 +79,7 @@ module Duby
         existing_type = local_type(name)
         if existing_type
           unless existing_type.assignable_from?(type)
-            raise Duby::Typer::InferenceError.new(
+            raise Mirah::Typer::InferenceError.new(
                 "Can't assign #{type.full_name} to " \
                 "variable of type #{existing_type.full_name}")
           end
@@ -147,11 +147,11 @@ module Duby
             parent.binding_type(defining_class, duby)
           else
             name = "#{defining_class.name}$#{duby.tmp}"
-            factory = Duby::AST.type_factory
+            factory = Mirah::AST.type_factory
             if factory
               factory.declare_type(@scope_node, name)
             else
-              Duby::AST::TypeReference.new(name, false, false)
+              Mirah::AST::TypeReference.new(name, false, false)
             end
           end
         end

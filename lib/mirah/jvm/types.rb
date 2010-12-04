@@ -4,17 +4,17 @@ require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/compiler'
 require 'set'
 
-module Duby
+module Mirah
   module JVM
     module Types
       class Type < AST::TypeReference
         include Java::DubyLangCompiler::Class
-        include Duby::JVM::MethodLookup
+        include Mirah::JVM::MethodLookup
 
         attr_writer :inner_class
 
         def log(message)
-          puts "* [JVM::Types] #{message}" if Duby::Compiler::JVM.verbose
+          puts "* [JVM::Types] #{message}" if Mirah::Compiler::JVM.verbose
         end
 
         def initialize(mirror_or_name)
@@ -111,7 +111,7 @@ module Duby
         end
 
         def array_type
-          @array_type ||= Duby::JVM::Types::ArrayType.new(self)
+          @array_type ||= Mirah::JVM::Types::ArrayType.new(self)
         end
 
         def prefix

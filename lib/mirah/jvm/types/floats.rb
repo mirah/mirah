@@ -1,4 +1,4 @@
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class FloatType < Number
     def prefix
       'f'

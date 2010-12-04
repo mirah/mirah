@@ -2,7 +2,7 @@ require 'test/unit'
 require 'mirah'
 
 class TestTyper < Test::Unit::TestCase
-  include Duby
+  include Mirah
 
   def test_fixnum
     ast = AST.parse("1")

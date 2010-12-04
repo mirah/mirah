@@ -39,8 +39,8 @@ class TestJavacCompiler < TestJVMCompiler
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
-    AST.type_factory = Duby::JVM::Types::TypeFactory.new
-    transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
+    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+    transformer = Mirah::Transform::Transformer.new(Mirah::CompilationState.new)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     name = "script" + System.nano_time.to_s
     ast  = AST.parse(code, name, true, transformer)

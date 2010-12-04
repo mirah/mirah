@@ -1,4 +1,4 @@
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class ComparisonIntrinsic < Intrinsic
     attr_reader :name, :op
     def initialize(type, name, op, args)

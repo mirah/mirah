@@ -1,5 +1,5 @@
 require 'jruby'
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class TypeFactory
     BASIC_TYPES = {
       "boolean" => Boolean,
@@ -45,7 +45,7 @@ module Duby::JVM::Types
     def initialize_copy(other)
       @known_types = other.known_types.dup
       @known_types.delete_if do |key, value|
-        value.basic_type.kind_of?(Duby::JVM::Types::TypeDefinition)
+        value.basic_type.kind_of?(Mirah::JVM::Types::TypeDefinition)
       end
       @declarations = []
     end
@@ -160,7 +160,7 @@ module Duby::JVM::Types
         existing.node ||= node
         existing
       else
-        if Duby::AST::InterfaceDeclaration === node
+        if Mirah::AST::InterfaceDeclaration === node
           klass = InterfaceDefinition
         else
           klass = TypeDefinition

@@ -1,4 +1,4 @@
-module Duby::JVM::Types
+module Mirah::JVM::Types
   Boolean = BooleanType.new('boolean', java.lang.Boolean)
   Byte = IntegerType.new('byte', java.lang.Byte)
   Char = IntegerType.new('char', java.lang.Character)

@@ -1,10 +1,10 @@
 require 'mirah/jvm/typer'
 require 'mirah/jvm/source_generator/builder'
 
-module Duby
+module Mirah
   module Typer
     class JavaSource < JVM
-      include Duby::JVM::Types
+      include Mirah::JVM::Types
       
     end
   end

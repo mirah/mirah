@@ -12,10 +12,10 @@ class String
   end
 end
 
-module Duby
+module Mirah
   module Compiler
     class JavaSource < JVMCompilerBase
-      JVMTypes = Duby::JVM::Types
+      JVMTypes = Mirah::JVM::Types
       attr_accessor :lvalue
 
       Operators = [
@@ -34,7 +34,7 @@ module Duby
       end
 
       def file_builder(filename)
-        Duby::JavaSource::Builder.new(filename, self)
+        Mirah::JavaSource::Builder.new(filename, self)
       end
 
       def output_type
@@ -377,7 +377,7 @@ module Duby
       end
 
       def expr?(target, params)
-        !([target] + params).any? {|x| x.kind_of? Duby::AST::TempValue}
+        !([target] + params).any? {|x| x.kind_of? Mirah::AST::TempValue}
       end
 
       def operator(target, op, params, expression)
@@ -409,7 +409,7 @@ module Duby
         else
           nodes.map do |node|
             tempval = node.precompile(self)
-            if node == tempval && !node.kind_of?(Duby::AST::Literal)
+            if node == tempval && !node.kind_of?(Mirah::AST::Literal)
               tempval = node.temp(self)
             end
             tempval
@@ -457,7 +457,7 @@ module Duby
 
       def call(call, expression)
         return cast(call, expression) if call.cast?
-        if Duby::AST::Constant === call.target
+        if Mirah::AST::Constant === call.target
           target = call.target.inferred_type.to_source
         else
           target = call.precompile_target(self)
@@ -564,7 +564,7 @@ module Duby
           if method.argument_types.size == 1
             @method.print " = ("
           end
-        elsif Duby::JVM::Types::Intrinsic === method
+        elsif Mirah::JVM::Types::Intrinsic === method
           method.call(self, call, expression)
           return
         else
@@ -663,7 +663,7 @@ module Duby
             @method.print(lvalue)
           end
           first = true
-          unless nodes[0].kind_of?(Duby::AST::String)
+          unless nodes[0].kind_of?(Mirah::AST::String)
             @method.print '""'
             first = false
           end

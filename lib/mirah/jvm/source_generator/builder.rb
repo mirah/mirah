@@ -1,6 +1,6 @@
 require 'mirah/jvm/types'
 
-module Duby
+module Mirah
   class JVM::Types::Type
     def to_source
       java_name = name
@@ -10,7 +10,7 @@ module Duby
   end
 
   module JavaSource
-    JVMTypes ||= Duby::JVM::Types
+    JVMTypes ||= Mirah::JVM::Types
 
     class Builder
       attr_accessor :package, :classes, :filename, :compiler
@@ -165,7 +165,7 @@ module Duby
 
     class ClassBuilder
       include Helper
-      include Duby::Compiler::JVM::JVMLogger
+      include Mirah::Compiler::JVM::JVMLogger
       attr_reader :package, :name, :superclass, :filename, :class_name, :out
       attr_reader :interfaces, :abstract
       def initialize(builder, name, superclass, interfaces, abstract)
@@ -263,7 +263,7 @@ module Duby
 
       def build_method(name, visibility, static, exceptions, type, *args)
         finish_declaration
-        type ||= Duby::AST::type(nil, :void)
+        type ||= Mirah::AST::type(nil, :void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :visibility => visibility,
@@ -313,7 +313,7 @@ module Duby
       def build_method(name, visibility, static, exceptions, type, *args)
         raise "Interfaces can't have static methods" if static
         finish_declaration
-        type ||= Duby::AST::type(nil, :void)
+        type ||= Mirah::AST::type(nil, :void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :visibility => visibility,

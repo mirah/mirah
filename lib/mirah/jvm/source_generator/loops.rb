@@ -1,4 +1,4 @@
-class Duby::Compiler::JavaSource < Duby::Compiler::JVMCompilerBase
+class Mirah::Compiler::JavaSource < Mirah::Compiler::JVMCompilerBase
   class SimpleWhileLoop
     attr_reader :compiler, :loop
     def initialize(loop, compiler)

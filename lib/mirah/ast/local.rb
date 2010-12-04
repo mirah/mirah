@@ -1,4 +1,4 @@
-module Duby::AST
+module Mirah::AST
   class LocalDeclaration < Node
     include Named
     include Typed

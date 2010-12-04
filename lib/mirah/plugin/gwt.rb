@@ -1,10 +1,10 @@
 require 'mirah/jvm/source_generator/builder'
 
-module Duby::JavaSource
+module Mirah::JavaSource
   class ClassBuilder
     def build_jsni_method(name, visibility, static, exceptions, type, *args)
       finish_declaration
-      type ||= Duby::AST.type(nil, :void)
+      type ||= Mirah::AST.type(nil, :void)
       @methods << JsniMethodBuilder.new(self,
         :name => name,
         :visibility => visibility,
@@ -50,11 +50,11 @@ module Duby::JavaSource
   end
 end
 
-module Duby::Compiler
+module Mirah::Compiler
   class JVMCompilerBase
     # arg_types must be an Array
     def create_method_builder(name, node, static, exceptions, return_type, arg_types)
-      unless node.class == Duby::AST::JsniMethodDefinition
+      unless node.class == Mirah::AST::JsniMethodDefinition
         @class.build_method(name.to_s, node.visibility, static,
           exceptions, return_type, *arg_types)
       else
@@ -81,7 +81,7 @@ module Duby::Compiler
   end
 end
 
-module Duby::AST
+module Mirah::AST
   class JsniMethodDefinition < MethodDefinition
     def initialize(static, parent, line_number, name, annotations=[], &block)
       super(parent, line_number, name, annotations, &block)
@@ -138,7 +138,7 @@ module Duby::AST
       call_node.name,
       transformer.annotations) do |defn|
 
-      signature = {:return => Duby::AST.type(nil, args[0].name)}
+      signature = {:return => Mirah::AST.type(nil, args[0].name)}
       method = call_node.parameters[0]
 
       unless method.nil?
@@ -149,7 +149,7 @@ module Duby::AST
           hash_node.child_nodes.each_slice(2) do |name, type|
             position = name.position + type.position
             name = name.literal
-            type = Duby::AST.type(nil, type.name)
+            type = Mirah::AST.type(nil, type.name)
             signature[name.intern] = type
             arg_list.push(RequiredArgument.new(args_new, position, name))
           end

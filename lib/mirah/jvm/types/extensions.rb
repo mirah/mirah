@@ -1,6 +1,6 @@
 require 'delegate'
 
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class ExtendedType < DelegateClass(Type)
     def initialize(*args)
       super

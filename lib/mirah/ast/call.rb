@@ -1,6 +1,6 @@
 require 'delegate'
 
-module Duby::AST
+module Mirah::AST
   class NodeProxy < DelegateClass(Node)
     include Java::DubyLangCompiler::Node
     def __inline__(node)
@@ -89,7 +89,7 @@ module Duby::AST
           typer.infer(param) || should_defer = true
         end
 
-        parameter_types << Duby::AST.block_type if block
+        parameter_types << Mirah::AST.block_type if block
 
         unless should_defer
           if parameters.size == 1 && typer.known_type(scope, name)
@@ -189,7 +189,7 @@ module Duby::AST
           typer.infer(param) || should_defer = true
         end
 
-        parameter_types << Duby::AST.block_type if block
+        parameter_types << Mirah::AST.block_type if block
 
         unless should_defer
           @inferred_type = typer.method_type(receiver_type, name,
@@ -254,7 +254,7 @@ module Duby::AST
       begin
         typer.type_reference(scope, class_name, array)
       rescue NameError => ex
-        typer.known_types[class_name] = Duby::AST.error_type
+        typer.known_types[class_name] = Mirah::AST.error_type
         raise ex
       end
     end
