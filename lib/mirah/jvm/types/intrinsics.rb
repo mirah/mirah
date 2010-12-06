@@ -15,7 +15,7 @@ class BiteScript::MethodBuilder
   end
 end
 
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class Type
 
     def load(builder, index)
@@ -51,7 +51,7 @@ module Duby::JVM::Types
     end
 
     def add_macro(name, *args, &block)
-      type = Duby::AST::InlineCode.new(&block)
+      type = Mirah::AST::InlineCode.new(&block)
       intrinsics[name][args] = Intrinsic.new(self, name, args, type) do
         raise "Macro should be expanded, no called!"
       end
@@ -63,7 +63,7 @@ module Duby::JVM::Types
         ast = expander.expand
         if ast
           if call.target
-            body = Duby::AST::ScopedBody.new(call.parent, call.position)
+            body = Mirah::AST::ScopedBody.new(call.parent, call.position)
             body.static_scope.self_type = call.target.inferred_type!
             body.static_scope.self_node = call.target
             body << ast
@@ -72,7 +72,7 @@ module Duby::JVM::Types
             ast
           end
         else
-          Duby::AST::Noop.new(call.parent, call.position)
+          Mirah::AST::Noop.new(call.parent, call.position)
         end
       end
     end
@@ -98,7 +98,7 @@ module Duby::JVM::Types
     def load_extensions(klass=nil)
       mirror = nil
       if klass
-        factory = Duby::AST.type_factory
+        factory = Mirah::AST.type_factory
         mirror = factory.get_mirror(klass.getName)
       elsif jvm_type
         mirror = jvm_type
@@ -114,9 +114,9 @@ module Duby::JVM::Types
           types = BiteScript::ASM::Type.get_argument_types(macro['signature'])
           args = types.map do |type|
             if type.class_name == 'duby.lang.compiler.Block'
-              Duby::AST::TypeReference::BlockType
+              Mirah::AST::TypeReference::BlockType
             else
-              Duby::AST.type(nil, type)
+              Mirah::AST.type(nil, type)
             end
           end
           klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)
@@ -160,7 +160,7 @@ module Duby::JVM::Types
 
       add_macro('kind_of?', ClassType) do |transformer, call|
         klass, object = call.parameters[0], call.target
-        Duby::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
+        Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
           klass.parent = object.parent = call2
           [
             klass,
@@ -209,8 +209,8 @@ module Duby::JVM::Types
         compiler.method.arraylength
       end
 
-      add_macro('each', Duby::AST.block_type) do |transformer, call|
-        Duby::AST::Loop.new(call.parent,
+      add_macro('each', Mirah::AST.block_type) do |transformer, call|
+        Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           index = transformer.tmp
           array = transformer.tmp
@@ -229,7 +229,7 @@ module Duby::JVM::Types
           forloop.post << transformer.eval("#{index} += 1")
           call.block.body.parent = forloop if call.block.body
           [
-            Duby::AST::Condition.new(forloop, call.position) do |c|
+            Mirah::AST::Condition.new(forloop, call.position) do |c|
               [transformer.eval("#{index} < #{array}.length",
                                 '', forloop, index, array)]
             end,
@@ -341,8 +341,8 @@ module Duby::JVM::Types
     def add_intrinsics
       super
       add_enumerable_macros
-      add_macro('each', Duby::AST.block_type) do |transformer, call|
-        Duby::AST::Loop.new(call.parent,
+      add_macro('each', Mirah::AST.block_type) do |transformer, call|
+        Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           it = transformer.tmp
 
@@ -358,7 +358,7 @@ module Duby::JVM::Types
           end
           call.block.body.parent = forloop if call.block.body
           [
-            Duby::AST::Condition.new(forloop, call.position) do |c|
+            Mirah::AST::Condition.new(forloop, call.position) do |c|
               [transformer.eval("#{it}.hasNext", '', forloop, it)]
             end,
             call.block.body

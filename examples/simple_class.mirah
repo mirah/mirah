@@ -9,4 +9,4 @@ class Foo
   end
 end
 
-Foo.new.hello('Duby')
+Foo.new.hello('Mirah')

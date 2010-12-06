@@ -1,4 +1,4 @@
-module Duby::AST
+module Mirah::AST
   class TransformHelper
     java_import 'jmeta.Ast'
     def initialize(transformer)
@@ -25,11 +25,11 @@ module Duby::AST
     end
 
     def transform_fixnum(node, parent)
-      Duby::AST::fixnum(parent, position(node), node[1])
+      Mirah::AST::fixnum(parent, position(node), node[1])
     end
 
     def transform_float(node, parent)
-      Duby::AST::float(parent, position(node), node[1])
+      Mirah::AST::float(parent, position(node), node[1])
     end
 
     def transform_true(node, parent)
@@ -257,7 +257,7 @@ module Duby::AST
           iter_node ? transformer.transform(iter_node, call) : nil
         ]
       end
-      macro = Duby::AST.macro(name)
+      macro = Mirah::AST.macro(name)
       if macro
         transformer.expand(fcall, parent, &macro)
       else
@@ -334,7 +334,7 @@ module Duby::AST
       elsif ['public', 'private', 'protected'].include?(name)
         AccessLevel.new(parent, position, name)
       else
-        macro = Duby::AST.macro(name)
+        macro = Mirah::AST.macro(name)
         fcall = FunctionalCall.new(parent, position, name) do |call|
           [
             [],

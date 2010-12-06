@@ -1,6 +1,6 @@
 require 'mirah/ast'
 
-module Duby::AST
+module Mirah::AST
   class TempValue
     def initialize(node, compiler=nil, value=nil)
       if compiler.nil?
@@ -77,7 +77,7 @@ module Duby::AST
     def expr?(compiler)
       target.expr?(compiler) &&
           parameters.all? {|p| p.expr?(compiler)} &&
-          !method.return_type.kind_of?(Duby::AST::InlineCode) &&
+          !method.return_type.kind_of?(Mirah::AST::InlineCode) &&
           !method.return_type.void?
     end
 

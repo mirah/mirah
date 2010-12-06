@@ -1,4 +1,4 @@
-module Duby
+module Mirah
   module AST
     class Condition < Node
       child :predicate

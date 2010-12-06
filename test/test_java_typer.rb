@@ -7,12 +7,12 @@ require 'mirah/jvm/compiler'
 require 'mirah/jvm/typer'
 
 class TestJavaTyper < Test::Unit::TestCase
-  include Duby
+  include Mirah
 
   def setup
-    AST.type_factory = Duby::JVM::Types::TypeFactory.new
+    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     @typer = Typer::JVM.new(nil)
-    compiler = Duby::Compiler::JVM.new
+    compiler = Mirah::Compiler::JVM.new
 
     @java_typer = Typer::JavaTyper.new
   end
@@ -77,7 +77,7 @@ class TestJavaTyper < Test::Unit::TestCase
     end
   end
 
-  include Duby::JVM::MethodLookup
+  include Mirah::JVM::MethodLookup
 
   def test_is_more_specific
     object = java.lang.Object.java_class
@@ -90,14 +90,14 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_primitive_convertible
-    boolean = Duby::JVM::Types::Boolean
-    byte = Duby::JVM::Types::Byte
-    short = Duby::JVM::Types::Short
-    char = Duby::JVM::Types::Char
-    int = Duby::JVM::Types::Int
-    long = Duby::JVM::Types::Long
-    float = Duby::JVM::Types::Float
-    double = Duby::JVM::Types::Double
+    boolean = Mirah::JVM::Types::Boolean
+    byte = Mirah::JVM::Types::Byte
+    short = Mirah::JVM::Types::Short
+    char = Mirah::JVM::Types::Char
+    int = Mirah::JVM::Types::Int
+    long = Mirah::JVM::Types::Long
+    float = Mirah::JVM::Types::Float
+    double = Mirah::JVM::Types::Double
 
     assert !primitive_convertible?(boolean, byte)
     assert !primitive_convertible?(boolean, short)

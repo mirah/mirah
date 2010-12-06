@@ -9,8 +9,8 @@ require 'mirah/appengine_tasks'
 
 appengine_app :app
 
-DUBY_APP = "#{Duby.dest_path}/org/mirah/wiki/MirahWiki.class"
-Templates = Dir.glob("#{Duby.source_path}/org/mirah/wiki/*.eduby.html")
+DUBY_APP = "#{Mirah.dest_path}/org/mirah/wiki/MirahWiki.class"
+Templates = Dir.glob("#{Mirah.source_path}/org/mirah/wiki/*.eduby.html")
 
 Rake::Task[DUBY_APP].enhance(Templates)
 

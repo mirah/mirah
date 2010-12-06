@@ -6,4 +6,4 @@ rescue LoadError
   require 'mirah'
 end
 
-puts Duby.parse(*ARGV).inspect
+puts Mirah.parse(*ARGV).inspect

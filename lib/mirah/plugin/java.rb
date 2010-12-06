@@ -3,11 +3,11 @@ require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/types'
 require 'java'
 
-module Duby
+module Mirah
   module Typer
     class JavaTyper < BaseTyper
-      include Duby::JVM::MethodLookup
-      include Duby::JVM::Types
+      include Mirah::JVM::MethodLookup
+      include Mirah::JVM::Types
       
       def initialize
       end

@@ -38,13 +38,13 @@ task :compile => :init do
   # build the Mirah sources
   puts "Compiling Mirah sources"
   Dir.chdir 'src' do
-    classpath = Duby::Env.encode_paths([
+    classpath = Mirah::Env.encode_paths([
         'javalib/jruby-complete.jar',
         'javalib/JRubyParser.jar',
         'build',
         '/usr/share/ant/lib/ant.jar'
       ])
-    Duby.compile(
+    Mirah.compile(
       '-c', classpath,
       '-d', '../build',
       'org/mirah',

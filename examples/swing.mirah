@@ -4,7 +4,7 @@ import javax.swing.JButton
 # FIXME blocks need to be inside a MethodDefinition, but main doesn't
 # have one.
 def self.run
-  frame = JFrame.new "Welcome to Duby"
+  frame = JFrame.new "Welcome to Mirah"
   frame.setSize 300, 300
   frame.setVisible true
 
@@ -13,7 +13,7 @@ def self.run
   frame.show
 
   button.addActionListener do |event|
-    JButton(event.getSource).setText "Duby Rocks!"
+    JButton(event.getSource).setText "Mirah Rocks!"
   end
 end
 

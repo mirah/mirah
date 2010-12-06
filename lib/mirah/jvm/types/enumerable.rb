@@ -1,7 +1,7 @@
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class Type
     def expand_each(transformer, call)
-      arg_types = [Duby::AST.block_type]
+      arg_types = [Mirah::AST.block_type]
       code = intrinsics['each'][arg_types].return_type
       code.inline(transformer, call)
     end
@@ -36,11 +36,11 @@ module Duby::JVM::Types
         
         # Loops don't have a return value, so we need somewhere to
         # put the result.
-        result = Duby::AST::Body.new(call.parent, call.position)
+        result = Mirah::AST::Body.new(call.parent, call.position)
         result << forloop << transformer.eval("#{all}", '', nil, all)
       end
       add_macro('all?', &all_proc)
-      add_macro('all?', Duby::AST.block_type, &all_proc)
+      add_macro('all?', Mirah::AST.block_type, &all_proc)
 
       any_proc = proc do |transformer, call|
         if !call.block
@@ -55,11 +55,11 @@ module Duby::JVM::Types
         body.condition.predicate = call.block.body
         forloop.body = call.block.body.parent = body
         
-        result = Duby::AST::Body.new(call.parent, call.position)
+        result = Mirah::AST::Body.new(call.parent, call.position)
         result << forloop << transformer.eval("#{any}", '', nil, any)
       end
       add_macro('any?', &any_proc)
-      add_macro('any?', Duby::AST.block_type, &any_proc)
+      add_macro('any?', Mirah::AST.block_type, &any_proc)
     end
   end
 end

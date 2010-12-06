@@ -4,7 +4,7 @@ require 'test/unit'
 require 'jruby'
 
 class TestAst < Test::Unit::TestCase
-  include Duby
+  include Mirah
 
   class MockCompiler
     attr_accessor :calls
@@ -81,7 +81,7 @@ class TestAst < Test::Unit::TestCase
 
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:local_assign, a(Duby::AST::StaticScope), "a", nil, true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
+    assert_equal([[:local_assign, a(Mirah::AST::StaticScope), "a", nil, true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
   end
 
   def test_local_typed
@@ -90,7 +90,7 @@ class TestAst < Test::Unit::TestCase
     new_ast.infer(typer)
     new_ast.compile(@compiler, true)
 
-    assert_equal([[:local_assign, a(Duby::AST::StaticScope), "a", AST.type(nil, :fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
+    assert_equal([[:local_assign, a(Mirah::AST::StaticScope), "a", AST.type(nil, :fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)
   end
 
   def test_return

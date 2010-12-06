@@ -30,8 +30,8 @@ module AppEngine::Rake
       webinf_lib_jars.each do |jar|
         $CLASSPATH << jar unless $CLASSPATH.include?(jar)
       end
-      Duby.source_paths << src
-      Duby.dest_paths << webinf_classes
+      Mirah.source_paths << src
+      Mirah.dest_paths << webinf_classes
       directory(webinf_classes)
       directory(webinf_lib)
 

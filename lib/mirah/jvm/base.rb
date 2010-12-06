@@ -1,4 +1,4 @@
-module Duby
+module Mirah
   module Compiler
     class JVMCompilerBase
       attr_accessor :filename, :method, :static, :class
@@ -26,7 +26,7 @@ module Duby
         begin
           ast.compile(self, expression)
         rescue => ex
-          Duby.print_error(ex.message, ast.position)
+          Mirah.print_error(ex.message, ast.position)
           raise ex
         end
         log "Compilation successful!"
@@ -177,7 +177,7 @@ module Duby
 
       def body(body, expression)
         saved_self = @self_scope
-        if body.kind_of?(Duby::AST::ScopedBody)
+        if body.kind_of?(Mirah::AST::ScopedBody)
           scope = body.static_scope
           declare_locals(scope)
           if scope != @self_scope

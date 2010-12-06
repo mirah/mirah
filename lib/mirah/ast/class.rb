@@ -1,4 +1,4 @@
-module Duby::AST
+module Mirah::AST
   class ClassDefinition < Node
     include Annotated
     include Named
@@ -19,8 +19,8 @@ module Duby::AST
       @interface_nodes = []
       @name = name
       self.parent = parent
-      if Duby::AST.type_factory.respond_to? :define_type
-        Duby::AST.type_factory.define_type(self)
+      if Mirah::AST.type_factory.respond_to? :define_type
+        Mirah::AST.type_factory.define_type(self)
       end
       # We need somewhere to collect nodes that get appended during
       # the transform phase.
@@ -103,7 +103,7 @@ module Duby::AST
     def implements(*types)
       raise ArgumentError if types.any? {|x| x.nil?}
       types.each do |type|
-        if Duby::AST::TypeReference === type
+        if Mirah::AST::TypeReference === type
           @interfaces << type
         else
           @interface_nodes << type

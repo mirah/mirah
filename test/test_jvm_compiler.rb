@@ -6,13 +6,13 @@ require 'jruby'
 require 'stringio'
 require 'fileutils'
 
-unless Duby::AST.macro "__gloop__"
-  Duby::AST.defmacro "__gloop__" do |transformer, fcall, parent|
-    Duby::AST::Loop.new(parent, parent.position, true, false) do |loop|
+unless Mirah::AST.macro "__gloop__"
+  Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|
+    Mirah::AST::Loop.new(parent, parent.position, true, false) do |loop|
       init, condition, check_first, pre, post = fcall.parameters
       loop.check_first = check_first.literal
 
-      nil_t = Duby::AST::Null
+      nil_t = Mirah::AST::Null
       loop.init = init
       loop.pre = pre
       loop.post = post
@@ -20,7 +20,7 @@ unless Duby::AST.macro "__gloop__"
       body = fcall.block.body
       body.parent = loop
       [
-        Duby::AST::Condition.new(loop, parent.position) do |c|
+        Mirah::AST::Condition.new(loop, parent.position) do |c|
           condition.parent = c
           [condition]
         end,
@@ -31,7 +31,7 @@ unless Duby::AST.macro "__gloop__"
 end
 
 class TestJVMCompiler < Test::Unit::TestCase
-  include Duby
+  include Mirah
   import java.lang.System
   import java.io.PrintStream
 
@@ -54,9 +54,9 @@ class TestJVMCompiler < Test::Unit::TestCase
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
-    AST.type_factory = Duby::JVM::Types::TypeFactory.new
+    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
+    transformer = Mirah::Transform::Transformer.new(Mirah::CompilationState.new)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(transformer)
@@ -65,7 +65,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     compiler = Compiler::JVM.new
     compiler.compile(ast)
     classes = {}
-    loader = DubyClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
+    loader = MirahClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     compiler.generate do |name, builder|
       bytes = builder.generate
       FileUtils.mkdir_p(File.dirname(name))
@@ -909,7 +909,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('B', b.java_class.name)
     assert_equal('C', c.java_class.name)
 
-    assert_raise Duby::Typer::InferenceError do
+    assert_raise Mirah::Typer::InferenceError do
       compile(<<-EOF)
         interface A do
           def a
@@ -926,12 +926,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def assert_throw(type, message=nil)
+  def assert_throw(type, message="")
     ex = assert_raise(NativeException) do
       yield
     end
     assert_equal type, ex.cause.class
-    assert_equal message, ex.cause.message
+    assert_equal message, ex.cause.message.to_s
   end
 
   def test_raise
@@ -2504,7 +2504,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_return_type
-    assert_raise Duby::Typer::InferenceError do
+    assert_raise Mirah::Typer::InferenceError do
       compile(<<-EOF)
         class ReturnsA
           def a:int
@@ -2514,7 +2514,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       EOF
     end
 
-    assert_raise Duby::Typer::InferenceError do
+    assert_raise Mirah::Typer::InferenceError do
       compile(<<-EOF)
         class ReturnsB
           def self.a:String

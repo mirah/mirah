@@ -1,6 +1,6 @@
 require 'mirah'
 
-module Duby
+module Mirah
   module AST
     class Fixnum
       def compile(compiler, expression)

@@ -6,4 +6,4 @@ rescue LoadError
   require 'mirah'
 end
 
-Duby.run(*ARGV)
+Mirah.run(*ARGV)

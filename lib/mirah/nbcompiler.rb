@@ -1,5 +1,5 @@
 require 'mirah'
-module Duby
+module Mirah
   class NbCompiler
     include org.mirah.DubyCompiler
 
@@ -19,9 +19,9 @@ module Duby
     end
 
     def parse(text)
-      Duby::AST.type_factory = Duby::JVM::Types::TypeFactory.new
-      ast = Duby::AST.parse_ruby(text)
-      transformer = Duby::Transform::Transformer.new(Duby::CompilationState.new)
+      Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+      ast = Mirah::AST.parse_ruby(text)
+      transformer = Mirah::Transform::Transformer.new(Mirah::CompilationState.new)
       return ParseResult.new(
           transformer.transform(ast, nil), transformer.errors)
     end

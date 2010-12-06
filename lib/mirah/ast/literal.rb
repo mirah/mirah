@@ -1,4 +1,4 @@
-module Duby::AST
+module Mirah::AST
   class Array < Node
     def initialize(parent, line_number, &block)
       super(parent, line_number, &block)
