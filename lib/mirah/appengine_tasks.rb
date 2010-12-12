@@ -122,7 +122,7 @@ module AppEngine::Rake
     end
 
     def app_yaml
-      @war + '/app.yaml'
+      @war + '/WEB-INF/app.yaml'
     end
 
     def webinf_classes
