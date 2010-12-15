@@ -36,6 +36,7 @@ task :init do
   mkdir_p 'build'
 end
 
+desc "clean up build artifacts"
 task :clean do
   ant.delete :quiet => true, :dir => 'build'
   ant.delete :quiet => true, :dir => 'dist'
@@ -69,6 +70,7 @@ task :compile => :init do
   end
 end
 
+desc "build basic jar for distribution"
 task :jar => :compile do
   ant.jar :jarfile => 'dist/mirah.jar' do
     fileset :dir => 'lib'
@@ -82,6 +84,7 @@ task :jar => :compile do
 end
 
 namespace :jar do
+  desc "build self-contained, complete jar"
   task :complete => :jar do
     ant.jar :jarfile => 'dist/mirah-complete.jar' do
       zipfileset :src => 'dist/mirah.jar'
@@ -93,6 +96,7 @@ namespace :jar do
     end
   end
 
+  desc "build bootstrap jar used by the gem"
   task :bootstrap => :compile do
     ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
       fileset :dir => 'build'
