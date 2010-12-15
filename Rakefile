@@ -15,11 +15,20 @@
 
 require 'rake'
 require 'rake/testtask'
+require 'rubygems'
+require 'rubygems/package_task'
 require 'java'
 $: << './lib'
 require 'mirah'
 require 'jruby/compiler'
 require 'ant'
+
+Gem::PackageTask.new Gem::Specification.load('mirah.gemspec') do |pkg|
+  pkg.need_zip = true
+  pkg.need_tar = true
+end
+
+task :gem => 'jar:bootstrap'
 
 task :default => :test
 

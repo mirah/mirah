@@ -1,5 +1,6 @@
 # -*- encoding: utf-8 -*-
-require 'lib/mirah/version.rb'
+$: << './lib'
+require 'mirah/version'
 
 Gem::Specification.new do |s|
   s.name = 'mirah'

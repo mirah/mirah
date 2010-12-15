@@ -45,9 +45,8 @@ $ gem build bitescript.gemspec
 $ gem install bitescript-*
 $ cd -
 $ cd mirah
-$ rake jar:bootstrap
-$ gem build mirah.gemspec
-$ gem install mirah-*
+$ rake gem
+$ gem install pkg/mirah-*
 $ cd -
 
 
