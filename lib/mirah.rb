@@ -157,7 +157,7 @@ class MirahImpl
     end
 
     # load all classes
-    dcl = MirahClassLoader.new(java.lang.ClassLoader.system_class_loader, class_map)
+    dcl = MirahClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
     class_map.each do |name,|
       cls = dcl.load_class(name)
       # TODO: using first main; find correct one

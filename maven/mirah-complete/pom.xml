@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <properties><base>../..</base></properties>
+
+  <parent>
+    <groupId>org.mirah</groupId>
+    <artifactId>shared</artifactId>
+    <version>0.5.dev</version>
+    <relativePath>${base}/pom.xml</relativePath>
+  </parent>
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>org.mirah</groupId>
+  <artifactId>mirah-complete</artifactId>
+  <packaging>jar</packaging>
+  <version>0.5.0-SNAPSHOT</version>
+  <name>Mirah Complete</name>
+
+  <build>
+    <directory>${base}/dist</directory>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>jar</id>
+            <phase>compile</phase>
+            <goals><goal>exec</goal></goals>
+            <configuration>
+              <executable>/bin/sh</executable>
+              <workingDirectory>${base}</workingDirectory>
+              <arguments>
+                <argument>-c</argument>
+                <argument>
+                  jruby -S rake jar:complete
+                  rm -rf dist/classes
+                  mkdir dist/classes
+                  unzip dist/mirah-complete.jar -d dist/classes > /dev/null
+                </argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <configuration>
+            <archive>
+              <manifest>
+                <mainClass>org.mirah.MirahCommand</mainClass>
+              </manifest>
+            </archive>
+          </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
