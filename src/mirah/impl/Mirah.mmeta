@@ -1,0 +1,1013 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.InputStream
+import java.io.FileInputStream
+import java.util.ArrayList
+import java.util.List
+import java.util.LinkedList
+import java.util.Collections
+import java.util.EnumSet
+import jmeta.Ast
+import 'Token', 'jmeta.BaseParser$Token'
+
+public class HeredocContext {
+  def initialize(node:Object)
+    @node = Ast(node)
+    @id = String(@node.get(1))
+    @type = '"'
+    if @id.startsWith("-")
+      @id = @id.substring(1)
+      @no_indent = false
+    else
+      @no_indent = true
+    end
+    if @id.startsWith("'")
+      @type = "'"
+      @id = @id.substring(1, @id.length - 1)
+    elsif @id.startsWith('"')
+      @id = @id.substring(1, @id.length - 1)
+    end
+  end
+
+  def id
+    @id
+  end
+
+  def node
+    @node
+  end
+
+  def no_indent
+    @no_indent
+  end
+
+  def type
+    @type
+  end
+}
+
+parser MirahParser {
+  digits x=_ : a = oneOf(x) b=("_" c=oneOf(x) {c})*
+                               d={[a] + b} { join(d) };
+  rlistOf r=_: h=apply(r) t=(comma apply(r))* { [h] + t };
+  listOf e=_: rlistOf(e)
+              | empty                                               { ArrayList.new } ;
+  sp: oneOf(" \t\f\r\v") | "\\" nl | comment;
+  @Memo
+  ws: (oneOf(" \t\f\r\v") | "\\" nl | comment)*;
+  comment: "#" (~"\n" _)* | block_comment;
+  block_comment: "/*"! (block_comment | (~"*/" _))* "*/";
+  start: ! prog=compstmt $EOF heredoc -> ^(Script prog);
+  compstmt scope(@cond)
+          : UNCOND
+            terms? a=(s=statement terms {s})*
+            b=statement?
+            {addToBlock(a, b)};
+
+  bodystmt: b=compstmt r=Rescue? e=Else? f=Ensure? {
+    node = b
+    if r != nil
+      node = build_node('Rescue', [b, r, e], _start, _pos)
+    elsif e != nil
+      # Warning?
+      node = addToBlock(b, e)
+    end
+    unless f.nil?
+      end_pos = Ast(f).end_position
+      node ||= @nil
+      node = build_node('Ensure', [node, f], _start, _pos)
+    end
+    node || @nil
+  };
+
+  term: ($NL)=>nl
+      | $Semi;
+  terms: ( ($NL)=>nl
+         | $Semi
+         )+;
+
+  @Memo
+  nl: $NL heredoc;
+
+  @Memo
+  statement: f=statement2
+             ( ($If)=> $If c=value(expr) f=-> ^(If c f nil)
+             | ($Unless)=> $Unless c=value(expr) f=-> ^(If c nil f)
+             | ($While)=> $While c=value(expr) f=-> ^(WhileMod c f)
+             | ($Until)=> $Until c=value(expr) f=-> ^(UntilMod c f)
+             | ($Rescue)=> $Rescue r=statement f=-> ^(Rescue f [^(RescueClause [] nil r)] nil)
+             )* {f};
+  statement2: ( (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $AndEq)=>
+                l=var_lhs $AndEq opt_nl r=command_call
+                b=assign(l, r)
+                -> ^(If gettable2(l) b gettable2(l))
+              | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OrEq)=>
+                l=var_lhs $OrEq opt_nl r=command_call
+                b=assign(l, r)
+                -> ^(If gettable2(l) gettable2(l) b)
+              | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OpAssign)=>
+                l=var_lhs op=op_assign r=command_call
+                b= -> ^(Call op gettable2(l) [r])
+                assign(l, b)
+              | ( l=lhs $EQ opt_nl r=command_call assign(l, r)
+                | t=value(primary) (($LBrack)=> $LBrack opt_nl a=call_args? opt_nl ."]" op=op_assign v=command_call
+                                                op_attr_assign(t, "[]", a, op, v)
+                                   | ($Colons)=> colons f=identifier op=op_assign v=command_call
+                                                 op_attr_assign(t, f, [], op, v)
+                                   | dot f=(constant | identifier) op=op_assign v=command_call
+                                     op_attr_assign(t, f, [], op, v)
+                                   )
+              )
+            | expr
+            );
+
+  value v=_ : {checkExpression(v)};
+
+  @Memo
+  expr: a=( ($Not)=> $Not opt_nl e=expr -> ^(Not e)
+          | ($Bang)=> ($Bang e=command_call -> ^(Not e) | arg12)
+          | ( c=variable ."?" opt_nl t=arg opt_nl . ":" opt_nl e=arg -> ^(If c t e)
+            | command_call
+            | arg
+            )
+          )
+        ( ($And)=> $And opt_nl b=expr a=-> ^(And a b)
+        | ($Or)=> $Or opt_nl b=expr a=-> ^(Or a b))* {a};
+
+  # Node:command - fcall/call/yield/super [!null]
+  @Memo
+  command: ($Super)=> $Super a=command_args -> ^(Super a)
+         | ($Yield)=> $Yield a=command_args -> ^(Yield a)
+         | (op=operation a=command_args b=cmd_brace_block?-> ^(FCall op a b)
+           | t=value(primary) dot_or_colon op=operation2 a=command_args b=cmd_brace_block?-> ^(Call op t a b)
+           );
+
+  # Node:command - call with or without block on end [!null]
+  command_call scope(@BEG)
+              : block_command
+              | command
+              | $Return BEG a=call_args -> ^(Return a+);
+              # | $Break a=call_args -> ^(Break a+)
+              # | $Next a=call_args -> ^(Next a+)
+
+  # Node:block_command - A call with a block (foo.bar {...}, foo::bar {...}, bar {...}) [!null]
+  block_command: h=block_call (dot_or_colon op=operation2 a=command_args
+                               h=-> ^(Call op h a))* {h};
+  @Memo
+  primary: h=value(primary2) ( (dot_or_colon $LParen)=> dot_or_colon a=paren_args iter=brace_block? h=-> ^(Call "call" h a iter)
+                             | (dot)=> dot op=operation2 a=opt_paren_args iter=brace_block? h=-> ^(Call op h a iter)
+                             | (colons)=> colons (op=operation2 a=paren_args iter=brace_block? h=-> ^(Call op h a iter)
+                                                  |b=constant ~(paren_args|call_args|$EQ..$OpAssign) h=-> ^(Colon2Const h b)
+                                                  |op=operation3 ~($EQ..$OpAssign) iter=brace_block? h=-> ^(Call op h iter)
+                                                  )
+                             | ($LBrack)=> $LBrack opt_nl a=call_args? opt_nl ."]" iter=brace_block? ~($EQ..$OpAssign) h=-> ^(Call "[]" h a iter)
+                             )* {h};
+
+  primary2: ($Super)=> primary2_super
+          | ($LParen)=> primary2_lparen
+          | ($Begin)=> primary2_begin
+          | ($LBrack)=> primary2_lbrack
+          | ($LBrace)=> primary2_lbrace
+          | ($Yield)=> primary2_yield
+          | ($Bang)=> primary2_bang
+          | ($If)=> primary2_if
+          | ($Unless)=> primary2_unless
+          | ($While)=> primary2_while
+          | ($Until)=> primary2_until
+          | ($For)=> primary2_for
+          | ($Class)=> primary2_class
+          | ($Def)=> primary2_def
+          | ($Break)=> primary2_break
+          | ($Next)=> primary2_next
+          | ($Redo)=> primary2_redo
+          | ($Retry)=> primary2_retry
+          | ($Return)=> primary2_return
+          | ($Quote|$Question|$LShift)=> string
+          | ($Slash)=> regexp
+          | ($Backtick)=> unquote
+          | primary2_id
+          ;
+  primary2_super
+         : $Super ( a=paren_args iter=brace_block? -> ^(Super a iter)
+                  | iter=brace_block -> ^(Super [] iter)
+                  | -> ^(ZSuper)
+                  );
+  primary2_lparen
+         : $LParen opt_nl e=compstmt opt_nl . ")" {
+           unless e.nil?
+             ae = Ast(e)
+             ae.start_position = pos(_start)
+             ae.end_position = pos(_pos)
+           end
+           e
+         };
+  primary2_begin
+         : s=block_start $Begin! b=bodystmt verify_end(s)! $End -> ^(Begin b);
+  primary2_lbrack
+         : isBEG . "[" opt_nl . "]" -> ^(ZArray)
+         | isBEG . "[" opt_nl a=args trailer opt_nl . "]" -> ^(Array a+);
+  primary2_lbrace scope(@BEG)
+         : $LBrace opt_nl ( ."}" -> ^(Hash)
+                          | a=listOf(:assoc) trailer opt_nl . "}" -> ^(Hash a+)
+                          );
+  primary2_yield
+         : $Yield ( $LParen opt_nl ( .")" -> ^(Yield)
+                                   | a=call_args opt_nl . ")" -> ^(Yield a+)
+                                   )
+                  | -> ^(Yield)
+                  );
+  primary2_bang
+         : $Bang $LParen opt_nl (.")" -> ^(Not ^(Nil))
+                                | e=value(expr) opt_nl .")" -> ^(Not e)
+                                );
+  primary2_if
+         : isBEG2 s=block_start $If! opt_nl cond=value(expr)!
+           Then! body=compstmt! tail=if_tail verify_end(s)! $End
+           -> ^(If cond body tail);
+  primary2_unless
+         : isBEG2 s=block_start $Unless! opt_nl cond=value(expr)!
+           Then! body=compstmt! tail=Else? verify_end(s)! $End
+           -> ^(If cond tail body);
+  primary2_while scope(@cond)
+         : isBEG2 s=block_start $While! opt_nl COND cond=value(expr)!
+           Do! body=compstmt! verify_end(s)! $End {body ||= @nil}
+           -> ^(While cond body);
+  primary2_until scope(@cond)
+         : isBEG2 s=block_start $Until! opt_nl COND cond=value(expr)!
+           Do! body=compstmt! verify_end(s)! $End {body ||= @nil}
+           -> ^(Until cond body);
+  primary2_for scope(@cond)
+         : s=block_start $For! opt_nl var=variable! $In opt_nl COND!
+           list=value(expr)! Do! body=compstmt verify_end(s)! $End
+           -> ^(For var body list);
+  primary2_class scope(@BEG)
+         : sp=block_start
+           $Class! ( $LShift! BEG e=expr!  # Should this just allow $Self?
+                     term! b=compstmt! verify_end(sp)! $End {b ||= @nil}
+                     -> ^(SClass e b)
+                   | n=cpath! s=superclass!
+                     b=compstmt!  # JRuby has bodystmt, but that doesn't make much
+                                  # sense for mirah. Maybe rescuing exceptions
+                                  # in the static initializer?
+                     verify_end(sp)! $End {b ||= @nil}
+                     -> ^(Class n b s)
+                   );
+  primary2_def scope(@BEG)
+         : s=block_start
+           $Def! ( $Self! . dot_or_colon! name=fname!
+                   args=f_arglist! body=bodystmt! verify_end(s)! $End
+                   l={ [name] + args + [body] }
+                   -> ^(DefStatic l+)
+                 | name=fname! args=f_arglist! body=bodystmt! verify_end(s)! $End
+                   l={ [name] + args + [body] }
+                   -> ^(Def l+)
+                 );
+  primary2_break: $Break -> ^(Break);
+  primary2_next: $Next -> ^(Next);
+  primary2_redo: $Redo -> ^(Redo);
+  primary2_retry: $Retry -> ^(Retry);
+  primary2_return: $Return -> ^(Return);
+  primary2_id: ($Colons)=> colon3 c=constant ~($EQ..$OpAssign) -> ^(Colon3 c)
+             | ($Digit)=> numeric
+             | ($Colon)=> symbol
+             | (($FID|$CONSTANT|$IDENTIFIER) ($LParen|$LBrace|$Do))=>
+               ( op=operation ( ($LParen)=>
+                                a=paren_args iter=brace_block? -> ^(FCall op a iter)
+                              | ($LBrace|$Do)=>
+                                iter=brace_block -> ^(FCall op [] iter)
+                              )
+               | variable
+               )
+             | variable;
+
+  f_arglist: $LParen! opt_nl a=f_args opt_nl .")" (.":" type=primary)? BEG {[a, type]}
+           | a=f_args (.":" type=primary)? term {[a, type]};
+
+  @Memo
+  comma: ."," opt_nl;
+  f_args: req=f_arg! opt=(comma f_optarg)? rest=(comma f_rest_arg)? req2=(comma f_arg)? block=(comma f_block_arg)?
+            -> ^(Arguments req opt rest req2 block)
+        | opt=f_optarg! rest=(comma f_rest_arg)? req=(comma f_arg)? block=(comma f_block_arg)?
+            -> ^(Arguments nil opt rest req block)
+        | rest=f_rest_arg! req=(comma f_arg)? block=(comma f_block_arg)?
+            -> ^(Arguments nil nil rest req block)
+        | block=f_block_arg -> ^(Arguments nil nil nil nil block)
+        | -> ^(Arguments nil nil nil nil nil);
+
+  f_bad_arg: &constant !"formal argument not a constant" ?{false}
+           | &ivar !"formal argument not an instance variable" ?{false}
+           | &cvar !"formal argument not a class variable" ?{false};
+
+  @Memo
+  f_norm_arg: f_bad_arg
+            | l=label BEG t=value(primary) n={List(l).get(1)} { [n, t] }
+            | n=unquote ($Colon BEG t=value(primary))? { [n, t] }
+            | n=identifier { [n, nil] };
+
+  f_arg_item: ~f_opt n=f_norm_arg -> ^(RequiredArgument n+);
+            # | $LParen f_margs .")"
+
+  f_arg: rlistOf(:f_arg_item);
+
+  f_opt: n=f_norm_arg $EQ! opt_nl v=arg_value l={ n + [v] }-> ^(OptArg l+);
+  f_optarg: rlistOf(:f_opt);
+
+  f_rest_arg: ."*" n=f_norm_arg -> ^(RestArg n+)
+            | ."*" -> ^(UnnamedRestArg);
+
+  f_block_arg: ."&" n=f_norm_arg $EQ opt_nl !"nil" $Nil -> ^(OptBlockArg n+)
+             | ."&"! n=f_norm_arg -> ^(BlockArg n+);
+
+  block_arg: isBEG ."&" ~sp v=arg_value -> ^(BlockPass v);
+
+  # :brace_block - [!null]
+  cmd_brace_block: brace_block;
+  brace_block scope(@BEG)
+             : $LBrace opt_nl (p=block_param !"statement" b=compstmt opt_nl ."}"
+                              |p={nil} b=compstmt opt_nl ."}") -> ^(Iter p b)
+             | do_block;
+
+  do_block scope(@BEG): ~?{@cond} s=block_start $Do! opt_nl p=block_param?! b=compstmt verify_end(s)! $End -> ^(Iter p b);
+
+  # Do we need bv_decls?
+  block_param: ."|" opt_nl a=f_args opt_nl ."|" BEG {a};
+  block_call: c=command b=do_block
+              h={n=Ast(Ast(c).clone); n.add(b);n}
+              (dot_or_colon op=operation2 a=opt_paren_args h=-> ^(Call op h a))* {h};
+
+  paren_args: $LParen! opt_nl c=call_args? opt_nl .")" {c.nil? ? Object(ArrayList.new) : c};
+  opt_paren_args: ($EOF)=> {nil}
+                | ($LParen)=> paren_args
+                | ~(call_args | $EQ..$OpAssign) { nil };
+
+  maybe_rescue: a=arg $Rescue b=value(arg)
+                -> ^(Rescue a [^(RescueClause [] nil b)] nil)
+              | arg;
+
+  assign lhs=_ rhs=_ : { n=Ast(Ast(lhs).clone); n.add(rhs); n };
+
+  @Memo
+  arg scope(@BEG): h=arg0 (."?" opt_nl t=arg opt_nl .":" opt_nl e=arg
+                           h=-> ^(If h t e))* {h};
+  arg0: ( (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $AndEq)=>
+          l=var_lhs $AndEq opt_nl r=arg
+          b=assign(l, r)
+          -> ^(If gettable2(l) b gettable2(l))
+        | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OrEq)=>
+          l=var_lhs $OrEq opt_nl r=arg
+          b=assign(l, r)
+          -> ^(If gettable2(l) gettable2(l) b)
+        | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OpAssign)=>
+          l=var_lhs op=assignment_op r=arg
+          b= -> ^(Call op gettable2(l) [r])
+          assign(l, b)
+        | ( l=lhs $EQ opt_nl r=maybe_rescue assign(l, r)
+          | t=value(primary) ($LBrack opt_nl a=call_args? opt_nl ."]" op=assignment_op v=arg
+                               op_attr_assign(t, "[]", a, op, v)
+                             |colons constant assignment_op arg
+                               !"constant re-assignment prohibited" ?{false}
+                             |dot_or_colon f=(constant | identifier) op=assignment_op v=arg
+                              op_attr_assign(t, f, [], op, v)
+                             )
+          | colon3 constant assignment_op arg
+             !"constant re-assignment prohibited" ?{false}
+          | arg2
+          )
+        );
+
+  arg2: &(. oneOf("+-!~")|primary)
+        a=arg3 t=(."||" opt_nl BEG b=arg3 a=-> ^(Or a b))* {a};
+  arg3: a=arg4 t=(."&&" opt_nl BEG b=arg4 a=-> ^(And a b))* {a};
+  arg4: a=arg5 t=(. op=("<=>"|">="|">"|"<="|"<"|"==="|"=="|"!="|"=~") opt_nl BEG b=arg5
+                   a=-> ^(Call op a [b])
+                 |."!~" opt_nl BEG b=arg5 a=-> ^(Not ^(Call "=~" a [b])))* {a};
+  arg5: a=arg6 t=(."|" opt_nl BEG b=arg6 a=-> ^(Call "|" a [b])
+                 |."^" opt_nl BEG b=arg6 a=-> ^(Call "^" a [b]))* {a};
+  arg6: a=arg7 t=(."&" opt_nl BEG b=arg7 a=-> ^(Call "&" a [b]))* {a};
+  arg7: a=arg8 t=(. op=("<<<"|"<<"|">>") opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
+  arg8: a=arg9 t=(."+" opt_nl BEG b=arg9 a=-> ^(Call "+" a [b])
+                 |."-" opt_nl BEG b=arg9 a=-> ^(Call "-" a [b]))* {a};
+  arg9: a=arg10 t=(. oneOf("*%/") op={text(_pos-1, _pos)} opt_nl BEG b=arg10 a=-> ^(Call op a [b]))* {a};
+  arg10: uminus BEG v=arg11 ( ?{Ast(v).name.equals('Fixnum')} -> ^(Fixnum negateFixnum(v))
+                            | ?{Ast(v).name.equals('Float')} -> ^(Float negateFloat(v))
+                            | -> ^(Call "-@" v)
+                            )
+       | arg11;
+  arg11: a=arg12 ."**" opt_nl BEG b=arg11 -> ^(Call "**" a [b])
+       | arg12;
+  @Memo
+  arg12: ."~" opt_nl BEG v=arg12 -> ^(Call "~" v)
+       | ."!" opt_nl BEG v=arg12 -> ^(Not v)
+       | uplus BEG v=arg12 -> ^(Call "+@" v)
+       | value(primary);
+
+  arg_value: a=arg {checkExpression(a)};
+
+  trailer: . ("," | nl)?;
+  operation: ($FID)=>fid
+           | ($CONSTANT)=>constant
+           | ($IDENTIFIER|lastdot)=> identifier
+           | ($Backtick)=> unquote;
+  operation2: ($FID)=>fid
+            | ($CONSTANT)=>constant
+            | ($IDENTIFIER)=>identifier
+            | ($Backtick)=> unquote
+            | (lastdot)=> (identifier | op)
+            | op;
+  operation3: ($FID)=>fid
+            | ($IDENTIFIER)=>identifier
+            | ($Backtick)=> unquote
+            | (lastdot)=> (identifier | op)
+            | op;
+  dot: opt_nl $Dot ~"." opt_nl;
+  colons: $Colons opt_nl;
+  dot_or_colon: dot | colons;
+  opt_nl: ($NL)=>nl+|;
+
+  # This marks the beginning of an expression. It must be used inside
+  # a rule with scope(@BEG).
+  BEG: {@BEG = _pos;nil};
+  isBEG: isBEG2 | oneOf(" \t\f\r\v");
+  isBEG2: ?{_pos == @BEG}
+        | ?{Integer.valueOf(0).equals(col())}
+        | ?{@begchars.indexOf(_rpeek) > 0};
+  COND: {@cond = true;nil};
+  UNCOND: {@cond = false;nil};
+
+  colon3: isBEG . "::" opt_nl;
+  uminus: isBEG2 . "-"  opt_nl;
+  uplus: isBEG2 . "+" opt_nl;
+
+  splat: isBEG "*" ~sp v=arg_value s= -> ^(Splat v) { [s] };
+  one_arg: v=arg_value ~(."=>") {v};
+  args: l=rlistOf(:one_arg);
+      #  (comma s=splat {l+s} | { l })
+      #| splat;
+
+  call_assocs scope(@BEG): l=rlistOf(:assoc) -> ^(Hash l+);
+  call_args: c=command { [c] }
+           | a=args h=(comma call_assocs)? b=(comma! block_arg)? l={ a }
+             ( ?{h} l={ a + [h] } )?
+             ( ?{b} l={ l + [b] } )?
+             { l }
+           | h=call_assocs b=(comma! block_arg)? l={ [h] }
+             ( ?{b} l={l+[b]} )?
+             { l }
+           | b=block_arg { [b] };
+  command_args scope(@cond): ~$LParen COND call_args;
+
+  op_assign: t=$AndEq..$OpAssign opt_nl {text=Token(t).text;text.substring(0, text.length - 1)};
+  assignment_op: op_assign | $EQ opt_nl {"="};
+
+  @Memo
+  lhs: ($Colons $CONSTANT)=> colon3 n=constant -> ^(ConstAssign ^(Colon3 n))
+     | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $EQ)=> var_lhs
+     | ($Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
+     | lhs2;
+  lhs2: t=value(primary) (($LBrack)=> $LBrack opt_nl k=call_args? opt_nl ."]" -> ^(AttrAssign "[]=" t k)
+                         | dot_or_colon (($CONSTANT)=> n=constant -> ^(ConstAssign ^(Colon2Const t n))
+                                        |n=identifier l={ArrayList.new} -> ^(AttrAssign "#{n}=" t l)
+                                        )
+                         );
+
+  var_lhs: ($ClassVar|$ClassVarBacktick)=> n=cvar -> ^(ClassVarAssign n)
+         | ($InstVar|$InstVarBacktick)=> n=ivar -> ^(InstVarAssign n)
+         | ($CONSTANT)=> n=constant -> ^(ConstAssign n)
+         | ($IDENTIFIER)=> n=identifier -> ^(LocalAssign n)
+         | ($Backtick)=> u=unquote n={List(u).get(1)} -> ^(UnquoteAssign n);
+
+  assoc: a=arg_value . "=>"! opt_nl BEG b=arg_value -> ^(Assoc a b)
+       | l=label BEG v=arg_value -> ^(Assoc l v);
+
+  label: . n=identifier2 ":" ~":" opt_nl -> ^(Symbol n);
+
+  literal: numeric | symbol;
+
+  numeric: floatLiteral | fixnum;
+
+  constant: t=$CONSTANT ~(":" ~":") {Token(t).text};
+  identifier: t=( $IDENTIFIER
+                | lastdot $BEGIN..$Yield
+                ) ~(":" ~":") {Token(t).text};
+  unquote: $Backtick e=expr $Backtick -> ^(Unquote e);
+  identifier2: ~sp t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  cvar: t=$ClassVar {Token(t).text.substring(2)}
+      | $ClassVarBacktick e=expr $Backtick -> ^(Unquote e);
+  ivar: t=$InstVar {Token(t).text.substring(1)}
+      | $InstVarBacktick e=expr $Backtick -> ^(Unquote e);
+  fid: t=$FID {Token(t).text};
+  fname: ($FID)=> fid
+       | ($Backtick)=> unquote
+       | ( . n=identifier2 t=( &"=" $EQ {"="}
+                             | {""}
+                             )
+           {"#{n}#{t}"}
+         | op
+         );
+
+  annotation scope(@BEG): $Dollar n=$CONSTANT
+              arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl ."]" -> ^(Hash ^(Assoc ^(Symbol "value") e))
+                                              | a=listOf(:assoc) trailer opt_nl . "]" -> ^(Hash a+)
+                                              | ."]" {nil}
+                                              )
+                  | {nil} )
+              name={Token(n).text}
+              -> ^(Annotation name arg);
+
+  op: ($LT)=> $LT {"<"}
+    | ($LE)=> $LE {"<="}
+    | ($LEG)=> $LEG {"<=>"}
+    | ($GT)=> $GT {">"}
+    | ($GE)=> $GE {">="}
+    | ($LShift)=> $LShift {"<<"}
+    | ($LLShift)=> $LLShift {"<<<"}
+    | ($RShift)=> $RShift {">>"}
+    | ($Bang)=> $Bang {"!"}
+    | ($NE)=> $NE {"!="}
+    | ($NMatch)=> $NMatch {"!~"}
+    | ($Slash)=> $Slash {"/"}
+    | ($LBrack)=> . ("[]=" | "[]")
+    | ($UNKNOWN)=>
+      . ( "===" | "==" | "=~" | "**" | "+@" | "-@"
+        | oneOf("&|^+-*%~") { text(_real_start == -1 ? _start : _real_start, _pos) }
+        );
+
+  @Memo
+  cname: c=constant -> ^(Constant c)
+       | unquote
+       | &identifier !"class/module name must be CONSTANT" ?{false};
+
+  # JRuby allows primary_value in cpath. Do we want that?
+  cpath: colon3 n=cname -> ^(Colon3 n)
+       | a=(n=cname colons {n})* b=cname
+         (?{List(a).size == 0} {b} |
+          names={a+[b]}-> ^(Colon2 names+));
+
+  superclass: term {nil}
+            | $LT c=cpath term  # Should this be expr_value instead of cpath?
+              {c};
+
+  variable: ($Nil)=> $Nil                             -> ^(Nil)
+          | ($Self)=> $Self                           -> ^(Self)
+          | ($True)=> $True                           -> ^(True)
+          | ($False)=> $False                         -> ^(False)
+          | ($ClassVar|$ClassVarBacktick)=> v=cvar    -> ^(ClassVar v)
+          | ($InstVar|$InstVarBacktick)=> v=ivar      -> ^(InstVar v)
+          | ($Dollar)=> annotation
+          | ($FID)=> n=fid                            -> ^(FCall n)
+          | ($CONSTANT)=> c=constant                  -> ^(Constant c)
+          | ($IDENTIFIER)=> n=identifier              -> ^(Identifier n)
+          | (lastdot)=> n=identifier                  -> ^(Identifier n);
+
+  symbol: . ":" ~":" v=("@@" | "@" | {""}) n=identifierChar+ -> ^(Symbol join(concat([v], n)));
+
+  @Memo
+  string: character
+        | strings=string1+ {stringConcat(strings)};
+
+  string1: . "'"! s=squote_contents* "'" -> ^(String join(s))
+         | . "\"\"" -> ^(String "")
+         | . "\"" s=dquote_contents "\"" {s}
+         | . "\""! c=(dquote_contents | str_ev)* "\"" -> ^(DString c+)
+         | . "<<" x=heredoc_id n= -> ^(Heredoc x) { @heredocs.addLast(HeredocContext.new(n)); n }
+         ;
+
+  regexp: isBEG2 $Slash c=(regexp_contents | str_ev)* "/" options=letter*
+          -> ^(Regex c join(options));
+
+  str_ev: "\#@@"! n=identifier2 -> ^(EvString ^(ClassVar n))
+        | "\#@"! n=identifier2 -> ^(EvString ^(InstVar n))
+        | "\#{"! c=compstmt "}" -> ^(EvString c);
+
+  heredoc_id: "-"? ( "\""! identifier2 "\""
+                   | "'"! identifier2 "'"
+                   | identifier2
+                   ) {text(_start, _pos)};
+
+  squote_contents: "\\\\" { "\\" } | "\\'" { "'" } | ~"'" _;
+  dquote_contents: c=(escape | ~("\#{" | "\#@" | "\"")_)+ -> ^(String join(c));
+  regexp_contents: c=(re_escape | ~("\#{" | "\#@" | "/")_)+ -> ^(String join(c));
+
+  squote_heredoc id=_ : s=(~heredoc_marker(id) _)* heredoc_marker(id) {join(s)};
+  dquote_heredoc id=_ : n=( str_ev
+                          | s=(~(heredoc_marker(id) | "\#{" | "\#@") _)+
+                            -> ^(String join(s))
+                          )* heredoc_marker(id) {n};
+
+  heredoc_marker c=_ : ?{"\n".equals(text(_pos - 1, _pos))}
+                       ( ?{HeredocContext(c).no_indent}
+                       | oneOf(" \t\f\r\v")*
+                       ) {_str(HeredocContext(c).id)} "\n";
+
+  character: . "?" e=escape -> ^(Character getCodePoint(e))
+           | . "?" ~oneOf(" \t\f\r\v\n") c=codepoint -> ^(Character getCodePoint(c));
+
+  escape: unicode_escape
+        | "\\"! ("n" {"\n"}
+                |"s" {"\s"}
+                |"r" {"\r"}
+                |"t" {"\t"}
+                |"v" {"\v"}
+                |"f" {"\f"}
+                |"b" {"\b"}
+                |"a" {"\a"}
+                |"e" {"\e"}
+                |"\n" {""}
+                |codepoint
+                );
+
+  unicode_escape: "\\" ( "\n" {""}
+                       | "\\" {"\\"}
+                       | a=oneOf(@OCTAL) b=oneOf(@OCTAL) c=oneOf(@OCTAL)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}#{c}", 8)))}
+                       |"x"! a=oneOf(@HEX) b=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}", 16)))}
+                       |"u"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}", 16)))}
+                       |"U"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                             c5=oneOf(@HEX) c6=oneOf(@HEX) c7=oneOf(@HEX) c8=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
+                       );
+
+  re_escape: unicode_escape
+           | "\\"! c=codepoint {"\\#{c}"};
+
+  Then: . term? $Then | . term;
+  Ensure: $Ensure! compstmt;
+  Else: $Else! compstmt;
+  Do: ($Do | . term) UNCOND;
+
+  if_tail: Else
+         | $Elsif! opt_nl cond=value(expr) Then body=compstmt tail=if_tail
+           -> ^(If cond body tail)
+         | {nil};
+
+  Rescue: ($Rescue! c=listOf(:constant) (. "=>" opt_nl . n=identifier)?
+           Then b=compstmt -> ^(RescueClause c n b))+;
+
+  fixnum: . n=( "0"! ( oneOf("xX") d=digits(@HEX)+ { parseInt(join(d), 16) }
+                  | oneOf("dD") d=digits(@DECIMAL)+ { parseInt(join(d), 10) }
+                  | oneOf("oO") d=digits(@OCTAL)+ { parseInt(join(d), 8) }
+                  | oneOf("bB") d=digits(@BINARY)+ { parseInt(join(d), 2) }
+                  | d=digits(@OCTAL)* { parseInt("0" + join(d), 8) }
+                  )
+            | d=digits(@DECIMAL)+ { parseInt(join(d), 10) }
+            ) -> ^(Fixnum n);
+
+  floatLiteral: . f=(i=digits(@DECIMAL)+
+                     f=("." digits(@DECIMAL)+ | { [] })
+                     e=(oneOf("eE") digits(@DECIMAL)+ | { [] })
+                     ?{List(f).size() + List(e).size() > 0}
+                     s={i+["."]+f+["E0"]+e}
+                     { Double.new(join(s)) }
+                    ) -> ^(Float f);
+
+  lastdot: ?{_rpeek.indexOf(".") == 0};
+
+  op_attr_assign target=_ attr=_ args=_ op=_ value=_
+               : target2=-> ^(LocalAssign temp target)
+                 args2=save_temps(args)
+                 assignment=op_attr_assign_body(op, target2, attr, args2, value)
+                 l={[target2] + args2 + [assignment]}
+                 -> ^(Body l+);
+
+  op_attr_assign_body op=:'&&' target=_ attr=_ args=_ value=_
+      : -> ^(And ^(Call attr gettable2(target) get_temps(args))
+                 ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args) value)
+            );
+  op_attr_assign_body op=:'||' target=_ attr=_ args=_ value=_
+      : -> ^(Or ^(Call attr gettable2(target) get_temps(args))
+                ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args) value)
+            );
+  op_attr_assign_body op=_ target=_ attr=_ args=_ value=_
+      : -> ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args)
+                        ^(Call op ^(Call attr gettable2(target) get_temps(args))
+                                  value
+                         )
+            );
+
+  assign_temp value=_ : -> ^(LocalAssign temp value);
+
+  block_start: . {pos};
+  verify_end start=_ : ( &$End . {verify_columns(start, pos);nil}
+                       | {nil});
+
+  def self.parse_args(args:String[]) {
+    argc = args.length
+    if args[0].equals "-v"
+      BaseParser.tracing = true
+      argc -= 1
+    elsif args[0].equals "--tree"
+      BaseParser.debug_parse_tree = true
+      argc -= 1
+    end
+    if argc > 0
+      filename = args[args.length - 1]
+      stream = InputStream(FileInputStream.new(filename))
+    else
+      stream = System.in
+    end
+    reader = BufferedReader.new(InputStreamReader.new(stream))
+    buffer = char[8192]
+    builder = StringBuilder.new
+    while (read = reader.read(buffer, 0, buffer.length)) > 0
+      builder.append(buffer, 0, read);
+    end
+    return builder.toString
+  }
+
+  def self.main(args:String[]) {
+      returns void
+      parser = MirahParser.new
+      code = parse_args(args)
+      begin
+        result = parser.parse(code)
+        puts BaseParser.print_r(result) unless BaseParser.debug_parse_tree
+      ensure
+        unless BaseParser.debug_parse_tree
+          mb = 1024 * 1024
+          runtime = Runtime.getRuntime
+          puts "##### Heap utilization statistics [MB] #####"
+          puts "Used Memory: #{(runtime.totalMemory - runtime.freeMemory) / mb}"
+          puts "Total Memory: #{runtime.totalMemory / mb}"
+          puts "Free Memory: #{runtime.freeMemory / mb}"
+          puts "Max Memory: #{runtime.maxMemory / mb}"
+        end
+      end
+  }
+
+  def initialize {
+    @error = BaseParser.__ERROR__
+    @BEG = 0
+    @begchars = " ([{,;=" #}
+    @HEX = "0123456789abcdefABCDEF"
+    @DECIMAL = "0123456789"
+    @OCTAL = "01234567"
+    @BINARY = "01"
+    @reserved = EnumSet.range(Tokens.tBEGIN, Tokens.tYield)
+    @heredocs = LinkedList.new
+    @nil = Ast.new('Nil')
+    @nil.start_position = @nil.end_position = Position.new('', 0, 0, 0)
+    @lhs_map = {
+      "ConstAssign" => "Constant",
+      "LocalAssign" => "Local",
+      "InstVarAssign" => "InstVar",
+      "ClassVarAssign" => "ClassVar",
+    }
+  }
+
+  def init {
+    @lexer = MirahLexer.new(_string, @chars, self)
+    @temps = 0
+  }
+
+  def temp {
+    "$ptemp#{@temps += 1}"
+  }
+
+  def save_temps {
+    items = List(_pop)
+    temps = ArrayList.new
+    items.each do |item|
+      _push(item)
+      temps.add(assign_temp)
+    end
+    temps
+  }
+
+  def get_temps(_items:Object) {
+    items = List(_items)
+    gets = ArrayList.new
+    items.each do |item|
+      gets.add(gettable2(item))
+    end
+    gets
+  }
+
+  def oneOf() {
+    chars = String(_pop)
+    _char(chars)
+  }
+
+  def _codepoint() {
+    t = _any
+    return (-1) if t == @error
+    character = Character(t).charValue
+    if character >= 0xd800 && character <= 0xdbff
+      t = _any
+      if t == @error
+        return (-1)
+      end
+      return Character.toCodePoint(character, Character(t).charValue)
+    else
+      return int(character)
+    end
+  }
+
+  def codepoint {
+    start = _pos
+    t = _codepoint
+    if t == -1
+      self._pos = start
+      return Object(@error)
+    else
+      return Object(String.new(Character.toChars(t)))
+    end
+  }
+
+  def identifierChar() {
+    start = _pos
+    c = _codepoint
+    if c == 95 || Character.isLetterOrDigit(c)
+      Object(String.new(Character.toChars(c)))
+    else
+      self._pos = start
+      @error
+    end
+  }
+
+  def heredoc {
+    # Note: This won't parse if we backtrack over the newline and not
+    # the heredoc identifier. However the nl rule should be memoized
+    # so we should be safe.
+
+    # Set up a new list so nested heredocs match properly.
+    heredocs = @heredocs
+    @heredocs = LinkedList.new
+
+    while heredocs.size > 0
+      context = HeredocContext(heredocs.removeFirst)
+      _push(context)
+      node = context.node
+      node.children.clear
+      _t = if context.type == '"'
+        dquote_heredoc
+      else
+        squote_heredoc
+      end
+      if _t == @error
+        raise SyntaxError.new("Missing heredoc terminator #{context.id}.", _pos, _string, _list)
+      elsif _t.kind_of?(String)
+        node.name = 'String'
+        node.add(_t)
+      else
+        l = List(_t)
+        if l.size == 0
+          node.name = 'String'
+          node.add("")
+        elsif l.size == 1 && Ast(l.get(0)).name.equals('String')
+          node.name = 'String'
+          node.addAll(Ast(l.get(0)).children)
+        else
+          node.name = 'DString'
+          node.addAll(l)
+        end
+      end
+    end
+    "\n"
+  }
+
+  def parseInt(string:string, radix:int) {
+    Integer.valueOf(Integer.parseInt(string, radix))
+  }
+
+  def stringConcat(strings:Object) {
+    result = nil
+    List(strings).each do |s|
+      result = stringConcat(result, s)
+    end
+    return result
+  }
+
+  def stringConcat(a:Object, b:Object) {
+    la = Ast(a)
+    lb = Ast(b)
+    return la if lb.nil?
+    return lb if la.nil?
+    result = Ast.new("DString")
+    [la, lb].each do |n|
+      node = Ast(n)
+      if node.name.equals("DString")
+        result.addAll(node.children)
+      else
+        result.add(node)
+      end
+    end
+    result.start_position = la.start_position
+    result.end_position = lb.end_position
+    result
+  }
+
+  def getCodePoint(c:Object) {
+    String(c).codePointAt(0)
+  }
+
+  def obj2ast(x:Object) {
+    if x.kind_of?(Ast)
+      Ast(x)
+    elsif x.kind_of?(List)
+      l = List(x)
+      if l.size == 0
+        Ast(nil)
+      elsif l.size == 1
+        obj2ast(l.get(0))
+      else
+        ast = Ast.new('Body', l)
+        first = obj2ast(l.get(0))
+        last = obj2ast(l.get(l.size - 1))
+        ast.start_position = first.start_position
+        ast.end_position = last.end_position
+        ast
+      end
+    elsif x.nil?
+      Ast(nil)
+    else
+      raise "Expected Ast, got #{x} (#{x.getClass})"
+    end
+  }
+
+  def addToBlock(a:Object, b:Object) {
+    x = obj2ast(a)
+    y = obj2ast(b)
+    if x.nil?
+      return y
+    elsif y.nil?
+      return x
+    end
+    x_kids = 'Body'.equals(x.name) ? x.children : [x]
+    y_kids = 'Body'.equals(y.name) ? y.children : [y]
+    body = Ast.new('Body', x_kids)
+    body.addAll(y_kids)
+    body.start_position = x.start_position
+    body.end_position = y.end_position
+    body
+  }
+
+  def checkExpression(e:Object) {
+    # TODO actually check
+    e || @nil
+  }
+
+  def gettable2(e:Object) {
+    n = Ast(e)
+    n2 = Ast(n.clone)
+    n2.name = String(@lhs_map.get(n.name))
+    n2.remove(2) if n2.size == 3
+    n2
+  }
+
+  def negateFixnum(f:Object) {
+    n = Integer(Ast(f).get(1)).intValue
+    Integer.valueOf(-n)
+  }
+
+  def negateFloat(f:Object) {
+    d = Double(Ast(f).get(1)).doubleValue
+    Double.valueOf(-d)
+  }
+
+  def lex {
+    t = @lexer.lex(_pos)
+    _enter(t.text)
+    _exit(t)
+  }
+
+  def _memo_key(s:String) {
+    "#{s}:#{@BEG}:#{@cond}"
+  }
+
+  def verify_columns(_start:Object, _end:Object) {
+    start_pos = Position(_start)
+    end_pos = Position(_end)
+    if end_pos.col != start_pos.col
+      if start_of_line(start_pos) && start_of_line(end_pos)
+        warn("Misaligned end", "closes block", start_pos.pos)
+      end
+    end
+  }
+
+  def start_of_line(position:Position) {
+    1.upto(position.col - 1) do |n|
+      c = _string.charAt(position.pos - n)
+      if " \t\f\r\v".indexOf(c) == -1
+        return false
+      end
+    end
+    return true
+  }
+}
