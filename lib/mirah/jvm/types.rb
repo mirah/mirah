@@ -262,6 +262,10 @@ module Mirah
         def compatible?(other)
           !other.primitive?
         end
+        
+        def assignable_from?(other)
+          !other.primitive?
+        end
       end
 
       class VoidType < PrimitiveType

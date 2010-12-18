@@ -170,7 +170,7 @@ module Mirah
       end
 
       def __ruby_eval(code, arg)
-        Kernel.eval(code)
+        self.instance_eval(code)
       end
 
       def fixnum(value)
