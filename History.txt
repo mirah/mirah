@@ -1,3 +1,26 @@
+=== 0.0.5 / 2010-12-22
+
+8e00222 Update mirah-parser.jar to one built from mirah-parser project.
+466a21c Update mirah-bootstrap.jar for re-namespaced Mirah classes and modules.
+b62603f Fix a bug in __ruby_eval caused by a fix for JRUBY-5163.
+d17af25 NullType is assignable from any non-primitive type.
+805586f add rake gem task
+3be367b update readme install instructions
+6ac3fb1 add descriptions to rake tasks
+0ca5b96 use the JRuby classloader as parent for the Mirah class loader. Otherwise it doesn't load th
+e6c95c3 add license to the pom and parent to release artifacts into the sonatype repository
+c767233 mirah-complete already includes jruby-complete, so it's not a dependency
+f7d36af variable versions mess the pom descriptor
+137e859 fix distribution directory and allow maven to complete the package lifecycle
+52ff7d1 add maven descriptor files to publish mirah into a maven repository
+
+=== 0.0.4 / 2010-11-17
+
+* Lots of cleanup, bugs fixed
+* New parser written in Mirah
+* Improved annotation support
+* New macro syntax
+
 === 0.0.3 / 2010-06-09
 
 * Even more language features!
