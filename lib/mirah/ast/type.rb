@@ -1,4 +1,19 @@
-module Duby::AST
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module Mirah::AST
   class Import < Node
     include Scoped
     attr_accessor :short
@@ -18,7 +33,7 @@ module Duby::AST
       begin
         typer.type_reference(scope, @long)
       rescue NameError => ex
-        typer.known_types[short] = Duby::AST.error_type
+        typer.known_types[short] = Mirah::AST.error_type
         raise ex
       end
       typer.no_type
@@ -47,7 +62,7 @@ module Duby::AST
           arg = node.parameters[0]
           unless (FunctionalCall === arg &&
                   arg.name == 'as' && arg.parameters.size == 1)
-            raise Duby::TransformError.new("unknown import syntax", fcall)
+            raise Mirah::TransformError.new("unknown import syntax", fcall)
           end
           short = arg.parameters[0].name
           pieces = [node.name]
@@ -57,16 +72,16 @@ module Duby::AST
           end
           long = pieces.reverse.join '.'
         else
-          raise Duby::TransformError.new("unknown import syntax", fcall)
+          raise Mirah::TransformError.new("unknown import syntax", fcall)
         end
       else
-        raise Duby::TransformError.new("unknown import syntax", fcall)
+        raise Mirah::TransformError.new("unknown import syntax", fcall)
       end
     when 2
       short = fcall.parameters[0].literal
       long = fcall.parameters[1].literal
     else
-      raise Duby::TransformError.new("unknown import syntax", fcall)
+      raise Mirah::TransformError.new("unknown import syntax", fcall)
     end
     Import.new(parent, fcall.position, short, long)
   end
@@ -90,10 +105,10 @@ module Duby::AST
       name = node.name
       block ||= node.block
     else
-      raise Duby::TransformError.new("unknown package syntax", fcall)
+      raise Mirah::TransformError.new("unknown package syntax", fcall)
     end
     if block
-      raise Duby::TransformError.new("unknown package syntax", block)
+      raise Mirah::TransformError.new("unknown package syntax", block)
       new_scope = ScopedBody.new(parent, fcall.position)
       new_scope.static_scope.package = name
       new_scope << block.body
@@ -124,7 +139,7 @@ module Duby::AST
 
   class Builtin < Node
     def infer(typer)
-      resolve_if(typer) {Duby::AST.type(nil, 'mirah.impl.Builtin')}
+      resolve_if(typer) {Mirah::AST.type(nil, 'mirah.impl.Builtin')}
     end
   end
 end

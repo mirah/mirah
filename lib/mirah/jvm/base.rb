@@ -1,4 +1,19 @@
-module Duby
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module Mirah
   module Compiler
     class JVMCompilerBase
       attr_accessor :filename, :method, :static, :class
@@ -26,7 +41,7 @@ module Duby
         begin
           ast.compile(self, expression)
         rescue => ex
-          Duby.print_error(ex.message, ast.position)
+          Mirah.print_error(ex.message, ast.position)
           raise ex
         end
         log "Compilation successful!"
@@ -177,7 +192,7 @@ module Duby
 
       def body(body, expression)
         saved_self = @self_scope
-        if body.kind_of?(Duby::AST::ScopedBody)
+        if body.kind_of?(Mirah::AST::ScopedBody)
           scope = body.static_scope
           declare_locals(scope)
           if scope != @self_scope

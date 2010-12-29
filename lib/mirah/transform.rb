@@ -1,7 +1,22 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'base64'
 require 'jruby'
 
-module Duby
+module Mirah
   module Transform
     class Error < StandardError
       attr_reader :position, :cause
@@ -30,7 +45,7 @@ module Duby
         @scopes = []
         @extra_body = nil
         @state = state
-        @helper = Duby::AST::TransformHelper.new(self)
+        @helper = Mirah::AST::TransformHelper.new(self)
       end
 
       def destination
@@ -48,7 +63,7 @@ module Duby
 
       def add_annotation(annotation)
         @annotations << annotation
-        Duby::AST::Noop.new(annotation.parent, annotation.position)
+        Mirah::AST::Noop.new(annotation.parent, annotation.position)
       end
 
       def tmp(format="__xform_tmp_%d")
@@ -88,13 +103,13 @@ module Duby
         begin
           top = @extra_body.nil?
           if top
-            @extra_body = Duby::AST::Body.new(nil, position(node))
+            @extra_body = Mirah::AST::Body.new(nil, position(node))
           end
           method = "transform_#{camelize(node[0])}"
           result = @helper.send method, node, parent
           if top
             body = result.body
-            if body.kind_of?(Duby::AST::Body) && @extra_body.empty?
+            if body.kind_of?(Mirah::AST::Body) && @extra_body.empty?
               @extra_body = body
             else
               result.body = @extra_body
@@ -105,11 +120,11 @@ module Duby
           return result
         rescue Error => ex
           @errors << ex
-          Duby::AST::ErrorNode.new(parent, ex)
+          Mirah::AST::ErrorNode.new(parent, ex)
         rescue Exception => ex
           error = Error.new(ex.message, position(node), ex)
           @errors << error
-          Duby::AST::ErrorNode.new(parent, error)
+          Mirah::AST::ErrorNode.new(parent, error)
         end
       end
 
@@ -124,7 +139,7 @@ module Duby
       end
 
       def eval(src, filename='-', parent=nil, *vars)
-        node = Duby::AST.parse_ruby(src, filename)
+        node = Mirah::AST.parse_ruby(src, filename)
         duby_node = transform(node, nil).body
         duby_node.parent = parent
         duby_node
@@ -132,11 +147,11 @@ module Duby
 
       def dump_ast(node)
         encoded = nil
-        values = Duby::AST::Unquote.extract_values do
+        values = Mirah::AST::Unquote.extract_values do
           encoded = Base64.encode64(Marshal.dump(node))
         end
-        result = Duby::AST::Array.new(nil, node.position)
-        result << Duby::AST::String.new(result, node.position, encoded)
+        result = Mirah::AST::Array.new(nil, node.position)
+        result << Mirah::AST::String.new(result, node.position, encoded)
         values.each {|value| result << value}
         return result
       end
@@ -144,9 +159,9 @@ module Duby
       def load_ast(args)
         nodes = args.to_a
         encoded = nodes.shift
-        Duby::AST::Unquote.inject_values(nodes) do
+        Mirah::AST::Unquote.inject_values(nodes) do
           result = Marshal.load(Base64.decode64(encoded))
-          if Duby::AST::UnquotedValue === result
+          if Mirah::AST::UnquotedValue === result
             result.node
           else
             result
@@ -155,7 +170,7 @@ module Duby
       end
 
       def __ruby_eval(code, arg)
-        Kernel.eval(code)
+        self.instance_eval(code)
       end
 
       def fixnum(value)
@@ -188,7 +203,7 @@ module Duby
       end
 
       def define_class(position, name, &block)
-        append_node Duby::AST::ClassDefinition.new(@extra_body, position, name, &block)
+        append_node Mirah::AST::ClassDefinition.new(@extra_body, position, name, &block)
       end
 
       def define_closure(position, name, enclosing_type)
@@ -198,7 +213,7 @@ module Duby
         if enclosing_type.respond_to?(:node) && enclosing_type.node
           parent = target = enclosing_type.node
         end
-        target.append_node(Duby::AST::ClosureDefinition.new(
+        target.append_node(Mirah::AST::ClosureDefinition.new(
             parent, position, name, enclosing_type))
       end
     end
@@ -221,9 +236,9 @@ module Duby
         messages.each_with_index do |message, i|
           jpos = positions[i]
           if jpos
-            dpos = Duby::Transform::Transformer::JMetaPosition.new(jpos, jpos)
+            dpos = Mirah::Transform::Transformer::JMetaPosition.new(jpos, jpos)
             print "#{message} at "
-            Duby.print_error("", dpos)
+            Mirah.print_error("", dpos)
           else
             print message
           end
@@ -233,7 +248,7 @@ module Duby
 
     def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
       ast = parse_ruby(src, filename)
-      transformer ||= Transform::Transformer.new(Duby::CompilationState.new)
+      transformer ||= Transform::Transformer.new(Mirah::CompilationState.new)
       transformer.filename = filename
       ast = transformer.transform(ast, nil)
       if raise_errors
@@ -255,7 +270,7 @@ module Duby
       rescue => ex
         if ex.cause.respond_to? :position
           position = ex.cause.position
-          Duby.print_error(ex.cause.message, position)
+          Mirah.print_error(ex.cause.message, position)
         end
         raise ex
       end

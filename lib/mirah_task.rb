@@ -1,5 +1,20 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah'
-module Duby
+module Mirah
   class PathArray < Array
     def <<(value)
       super(File.expand_path(value))
@@ -81,27 +96,27 @@ def mirahc(*files)
   else
     options = {}
   end
-  source_dir = options.fetch(:dir, Duby.source_path)
-  dest = File.expand_path(options.fetch(:dest, Duby.dest_path))
+  source_dir = options.fetch(:dir, Mirah.source_path)
+  dest = File.expand_path(options.fetch(:dest, Mirah.dest_path))
   files = files.map {|f| f.sub(/^#{source_dir}\//, '')}
-  flags = options.fetch(:options, Duby.compiler_options)
+  flags = options.fetch(:options, Mirah.compiler_options)
   args = ['-d', dest, *flags] + files
   chdir(source_dir) do
     puts "mirahc #{args.join ' '}"
-    Duby.compile(*args)
-    Duby.reset
+    Mirah.compile(*args)
+    Mirah.reset
   end
 end
 
-rule '.java' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
+rule '.java' => [proc {|n| Mirah.dest_to_source_path(n)}] do |t|
   mirahc(t.source,
-         :dir=>Duby.find_source(t.source),
-         :dest=>Duby.find_dest(t.name),
+         :dir=>Mirah.find_source(t.source),
+         :dest=>Mirah.find_dest(t.name),
          :options=>['-java'])
 end
 
-rule '.class' => [proc {|n| Duby.dest_to_source_path(n)}] do |t|
+rule '.class' => [proc {|n| Mirah.dest_to_source_path(n)}] do |t|
   mirahc(t.source,
-         :dir=>Duby.find_source(t.source),
-         :dest=>Duby.find_dest(t.name))
+         :dir=>Mirah.find_source(t.source),
+         :dest=>Mirah.find_dest(t.name))
 end

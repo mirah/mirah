@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'appengine-sdk'
 require 'mirah_task'
 require 'java'
@@ -6,8 +21,7 @@ require 'rake'
 require 'yaml'
 
 module AppEngine::Rake
-  SERVLET = AppEngine::SDK::SDK_ROOT +
-            '/lib/shared/geronimo-servlet_2.5_spec-1.2.jar'
+  SERVLET = AppEngine::SDK::SDK_ROOT + '/lib/shared/servlet-api.jar'
   APIS = AppEngine::SDK::API_JAR
   TOOLS = AppEngine::SDK::TOOLS_JAR
 
@@ -30,8 +44,8 @@ module AppEngine::Rake
       webinf_lib_jars.each do |jar|
         $CLASSPATH << jar unless $CLASSPATH.include?(jar)
       end
-      Duby.source_paths << src
-      Duby.dest_paths << webinf_classes
+      Mirah.source_paths << src
+      Mirah.dest_paths << webinf_classes
       directory(webinf_classes)
       directory(webinf_lib)
 
@@ -108,7 +122,7 @@ module AppEngine::Rake
     end
 
     def app_yaml
-      @war + '/app.yaml'
+      @war + '/WEB-INF/app.yaml'
     end
 
     def webinf_classes

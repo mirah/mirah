@@ -1,7 +1,22 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah/transform'
 require 'mirah/ast/scope'
 
-module Duby
+module Mirah
   module AST
     class << self
       attr_accessor :verbose
@@ -46,8 +61,8 @@ module Duby
 
       def initialize(parent, position, children = [])
         JRuby.reference(self.class).setRubyClassAllocator(JRuby.reference(self.class).reified_class)
-        unless parent.nil? || Duby::AST::Node === parent
-          raise "Duby::AST::Node.new parent #{parent.class} must be nil or === Duby::AST::Node."
+        unless parent.nil? || Mirah::AST::Node === parent
+          raise "Mirah::AST::Node.new parent #{parent.class} must be nil or === Mirah::AST::Node."
         end
 
         @parent = parent
@@ -130,13 +145,13 @@ module Duby
           extra_indent = 0
           if child
             name = self.class.child_name(i)
-            if Duby::AST.verbose && name
+            if Mirah::AST.verbose && name
               str << "\n#{indent_str} #{name}:"
               extra_indent = 1
             end
             if ::Array === child
               child.each {|ary_child|
-                if Duby::AST.verbose && Node === ary_child && ary_child.parent != self
+                if Mirah::AST.verbose && Node === ary_child && ary_child.parent != self
                    str << "\n#{indent_str} (wrong parent)"
                  end
                 str << "\n#{ary_child.inspect(indent + extra_indent + 1)}"
@@ -144,7 +159,7 @@ module Duby
             elsif ::Hash === child
               str << "\n#{indent_str} #{child.inspect}"
             else
-              if Duby::AST.verbose && Node === child && child.parent != self
+              if Mirah::AST.verbose && Node === child && child.parent != self
                 str << "\n#{indent_str} (wrong parent)"
               end
               str << "\n#{child.inspect(indent + extra_indent + 1)}"
@@ -234,7 +249,7 @@ module Duby
 
       def inferred_type!
         unless @inferred_type
-          raise Duby::Typer::InferenceError.new(
+          raise Mirah::Typer::InferenceError.new(
               "Internal Error: #{self.class} never inferred", self)
         end
         inferred_type
@@ -327,7 +342,7 @@ module Duby
           begin
             typer.type_reference(scope, name, @array, true)
           rescue NameError => ex
-            typer.known_types[@name] = Duby::AST.error_type
+            typer.known_types[@name] = Mirah::AST.error_type
             raise ex
           end
         end
@@ -337,7 +352,7 @@ module Duby
         begin
           typer.type_reference(scope, @name, @array)
         rescue NameError => ex
-          typer.known_types[@name] = Duby::AST.error_type
+          typer.known_types[@name] = Mirah::AST.error_type
           raise ex
         end
       end

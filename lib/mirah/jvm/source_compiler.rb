@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah'
 require 'mirah/ast'
 require 'mirah/jvm/types'
@@ -12,10 +27,10 @@ class String
   end
 end
 
-module Duby
+module Mirah
   module Compiler
     class JavaSource < JVMCompilerBase
-      JVMTypes = Duby::JVM::Types
+      JVMTypes = Mirah::JVM::Types
       attr_accessor :lvalue
 
       Operators = [
@@ -34,7 +49,7 @@ module Duby
       end
 
       def file_builder(filename)
-        Duby::JavaSource::Builder.new(filename, self)
+        Mirah::JavaSource::Builder.new(filename, self)
       end
 
       def output_type
@@ -185,8 +200,8 @@ module Duby
         @method.declare_local(type, name)
       end
 
-      def declare_field(name, type, annotations)
-        @class.declare_field(name, type, @static, 'private', annotations)
+      def declare_field(name, type, annotations, static_field)
+        @class.declare_field(name, type, @static || static_field, 'private', annotations)
       end
 
       def local(scope, name, type)
@@ -194,9 +209,9 @@ module Duby
         @method.print name
       end
 
-      def field(name, type, annotations)
+      def field(name, type, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
-        declare_field(name, type, annotations)
+        declare_field(name, type, annotations, static_field)
         @method.print "#{this}.#{name}"
       end
 
@@ -258,9 +273,9 @@ module Duby
         declare_local(name, type)
       end
 
-      def field_assign(name, type, expression, value, annotations)
+      def field_assign(name, type, expression, value, annotations, static_field)
         name = name[1..-1] if name =~ /^@/
-        declare_field(name, type, annotations)
+        declare_field(name, type, annotations, static_field)
         lvalue = "#{@lvalue if expression}#{this}.#{name} = "
         store_value(lvalue, value)
       end
@@ -377,7 +392,7 @@ module Duby
       end
 
       def expr?(target, params)
-        !([target] + params).any? {|x| x.kind_of? Duby::AST::TempValue}
+        !([target] + params).any? {|x| x.kind_of? Mirah::AST::TempValue}
       end
 
       def operator(target, op, params, expression)
@@ -409,7 +424,7 @@ module Duby
         else
           nodes.map do |node|
             tempval = node.precompile(self)
-            if node == tempval && !node.kind_of?(Duby::AST::Literal)
+            if node == tempval && !node.kind_of?(Mirah::AST::Literal)
               tempval = node.temp(self)
             end
             tempval
@@ -457,7 +472,7 @@ module Duby
 
       def call(call, expression)
         return cast(call, expression) if call.cast?
-        if Duby::AST::Constant === call.target
+        if Mirah::AST::Constant === call.target
           target = call.target.inferred_type.to_source
         else
           target = call.precompile_target(self)
@@ -564,7 +579,7 @@ module Duby
           if method.argument_types.size == 1
             @method.print " = ("
           end
-        elsif Duby::JVM::Types::Intrinsic === method
+        elsif Mirah::JVM::Types::Intrinsic === method
           method.call(self, call, expression)
           return
         else
@@ -663,7 +678,7 @@ module Duby
             @method.print(lvalue)
           end
           first = true
-          unless nodes[0].kind_of?(Duby::AST::String)
+          unless nodes[0].kind_of?(Mirah::AST::String)
             @method.print '""'
             first = false
           end

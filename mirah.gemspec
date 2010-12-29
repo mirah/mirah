@@ -1,8 +1,10 @@
 # -*- encoding: utf-8 -*-
+$: << './lib'
+require 'mirah/version'
 
 Gem::Specification.new do |s|
   s.name = 'mirah'
-  s.version = "0.0.4"
+  s.version = Mirah::VERSION
   s.authors = ["Charles Oliver Nutter", "Ryan Brown"]
   s.date = Time.now.strftime("YYYY-MM-DD")
   s.description = %q{Mirah is a customizable programming language featuring static types,

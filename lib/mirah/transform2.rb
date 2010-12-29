@@ -1,4 +1,19 @@
-module Duby::AST
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module Mirah::AST
   class TransformHelper
     java_import 'jmeta.Ast'
     def initialize(transformer)
@@ -25,11 +40,11 @@ module Duby::AST
     end
 
     def transform_fixnum(node, parent)
-      Duby::AST::fixnum(parent, position(node), node[1])
+      Mirah::AST::fixnum(parent, position(node), node[1])
     end
 
     def transform_float(node, parent)
-      Duby::AST::float(parent, position(node), node[1])
+      Mirah::AST::float(parent, position(node), node[1])
     end
 
     def transform_true(node, parent)
@@ -257,7 +272,7 @@ module Duby::AST
           iter_node ? transformer.transform(iter_node, call) : nil
         ]
       end
-      macro = Duby::AST.macro(name)
+      macro = Mirah::AST.macro(name)
       if macro
         transformer.expand(fcall, parent, &macro)
       else
@@ -334,7 +349,7 @@ module Duby::AST
       elsif ['public', 'private', 'protected'].include?(name)
         AccessLevel.new(parent, position, name)
       else
-        macro = Duby::AST.macro(name)
+        macro = Mirah::AST.macro(name)
         fcall = FunctionalCall.new(parent, position, name) do |call|
           [
             [],

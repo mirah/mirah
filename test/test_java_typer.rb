@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
@@ -7,12 +22,12 @@ require 'mirah/jvm/compiler'
 require 'mirah/jvm/typer'
 
 class TestJavaTyper < Test::Unit::TestCase
-  include Duby
+  include Mirah
 
   def setup
-    AST.type_factory = Duby::JVM::Types::TypeFactory.new
+    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     @typer = Typer::JVM.new(nil)
-    compiler = Duby::Compiler::JVM.new
+    compiler = Mirah::Compiler::JVM.new
 
     @java_typer = Typer::JavaTyper.new
   end
@@ -77,7 +92,7 @@ class TestJavaTyper < Test::Unit::TestCase
     end
   end
 
-  include Duby::JVM::MethodLookup
+  include Mirah::JVM::MethodLookup
 
   def test_is_more_specific
     object = java.lang.Object.java_class
@@ -90,14 +105,14 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_primitive_convertible
-    boolean = Duby::JVM::Types::Boolean
-    byte = Duby::JVM::Types::Byte
-    short = Duby::JVM::Types::Short
-    char = Duby::JVM::Types::Char
-    int = Duby::JVM::Types::Int
-    long = Duby::JVM::Types::Long
-    float = Duby::JVM::Types::Float
-    double = Duby::JVM::Types::Double
+    boolean = Mirah::JVM::Types::Boolean
+    byte = Mirah::JVM::Types::Byte
+    short = Mirah::JVM::Types::Short
+    char = Mirah::JVM::Types::Char
+    int = Mirah::JVM::Types::Int
+    long = Mirah::JVM::Types::Long
+    float = Mirah::JVM::Types::Float
+    double = Mirah::JVM::Types::Double
 
     assert !primitive_convertible?(boolean, byte)
     assert !primitive_convertible?(boolean, short)

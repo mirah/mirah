@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah'
 require 'mirah/jvm/base'
 require 'mirah/jvm/method_lookup'
@@ -6,7 +21,7 @@ require 'mirah/typer'
 require 'mirah/plugin/java'
 require 'bitescript'
 
-module Duby
+module Mirah
   module AST
     class FunctionalCall
       attr_accessor :target
@@ -21,8 +36,8 @@ module Duby
     class JVM < JVMCompilerBase
       java_import java.lang.System
       java_import java.io.PrintStream
-      include Duby::JVM::MethodLookup
-      Types = Duby::JVM::Types
+      include Mirah::JVM::MethodLookup
+      Types = Mirah::JVM::Types
 
       class << self
         attr_accessor :verbose
@@ -55,7 +70,6 @@ module Duby
 
       def initialize
         super
-        BiteScript.bytecode_version = BiteScript::JAVA1_5
         @jump_scope = []
       end
 
@@ -70,7 +84,7 @@ module Duby
       end
 
       def push_jump_scope(node)
-        raise "Not a node" unless Duby::AST::Node === node
+        raise "Not a node" unless Mirah::AST::Node === node
         begin
           @jump_scope << node
           yield
@@ -82,7 +96,7 @@ module Duby
       def find_ensures(before)
         found = []
         @jump_scope.reverse_each do |scope|
-          if Duby::AST::Ensure === scope
+          if Mirah::AST::Ensure === scope
             found << scope
           end
           break if before === scope
@@ -300,19 +314,19 @@ module Duby
 
       def break(node)
         error("break outside of loop", node) unless @break_label
-        handle_ensures(find_ensures(Duby::AST::Loop))
+        handle_ensures(find_ensures(Mirah::AST::Loop))
         @method.goto(@break_label)
       end
 
       def next(node)
         error("next outside of loop", node) unless @next_label
-        handle_ensures(find_ensures(Duby::AST::Loop))
+        handle_ensures(find_ensures(Mirah::AST::Loop))
         @method.goto(@next_label)
       end
 
       def redo(node)
         error("redo outside of loop", node) unless @redo_label
-        handle_ensures(find_ensures(Duby::AST::Loop))
+        handle_ensures(find_ensures(Mirah::AST::Loop))
         @method.goto(@redo_label)
       end
 
@@ -320,7 +334,7 @@ module Duby
         unless predicate.inferred_type == Types::Boolean
           raise "Expected boolean, found #{predicate.inferred_type}"
         end
-        if Duby::AST::Call === predicate
+        if Mirah::AST::Call === predicate
           method = extract_method(predicate)
           if method.respond_to? :jump_if
             method.jump_if(self, predicate, target)
@@ -335,7 +349,7 @@ module Duby
         unless predicate.inferred_type == Types::Boolean
           raise "Expected boolean, found #{predicate.inferred_type}"
         end
-        if Duby::AST::Call === predicate
+        if Mirah::AST::Call === predicate
           method = extract_method(predicate)
           if method.respond_to? :jump_if_not
             method.jump_if_not(self, predicate, target)
@@ -487,7 +501,7 @@ module Duby
 
       def annotation_value(builder, name, value)
         case value
-        when Duby::AST::Annotation
+        when Mirah::AST::Annotation
           type = value.type
           type = type.jvm_type if type.respond_to?(:jvm_type)
           builder.annotation(name, type) do |child|
@@ -634,7 +648,7 @@ module Duby
       def build_string(nodes, expression)
         if expression
           # could probably be more efficient with non-default constructor
-          builder_class = Duby::AST.type(nil, 'java.lang.StringBuilder')
+          builder_class = Mirah::AST.type(nil, 'java.lang.StringBuilder')
           @method.new builder_class
           @method.dup
           @method.invokespecial builder_class, "<init>", [@method.void]
@@ -759,7 +773,7 @@ module Duby
 
       def return(return_node)
         return_node.value.compile(self, true) if return_node.value
-        handle_ensures(find_ensures(Duby::AST::MethodDefinition))
+        handle_ensures(find_ensures(Mirah::AST::MethodDefinition))
         return_node.inferred_type.return(@method)
       end
 
@@ -835,7 +849,7 @@ module Duby
         end
       end
 
-      class ClosureCompiler < Duby::Compiler::JVM
+      class ClosureCompiler < Mirah::Compiler::JVM
         def initialize(file, type, parent)
           @file = file
           @type = type
@@ -869,16 +883,16 @@ module Duby
 end
 
 if __FILE__ == $0
-  Duby::Typer.verbose = true
-  Duby::AST.verbose = true
-  Duby::Compiler::JVM.verbose = true
-  ast = Duby::AST.parse(File.read(ARGV[0]))
+  Mirah::Typer.verbose = true
+  Mirah::AST.verbose = true
+  Mirah::Compiler::JVM.verbose = true
+  ast = Mirah::AST.parse(File.read(ARGV[0]))
 
-  typer = Duby::Typer::Simple.new(:script)
+  typer = Mirah::Typer::Simple.new(:script)
   ast.infer(typer)
   typer.resolve(true)
 
-  compiler = Duby::Compiler::JVM.new(ARGV[0])
+  compiler = Mirah::Compiler::JVM.new(ARGV[0])
   compiler.compile(ast)
 
   compiler.generate

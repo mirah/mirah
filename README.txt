@@ -32,15 +32,23 @@ mirahc -java -e "inline script" # produces DashE.java
 
 == INSTALL:
 
-If your "gem" command is the one from JRuby:
+If your gem and rake are not from from JRuby, prefix the commands with jruby -S
 
-* gem install mirah
+$ gem install mirah
 
-Otherwise:
+To build and install from source,
 
-* jruby -S gem install mirah
+$ git clone http://github.com/headius/bitescript.git
+$ git clone http://github.com/mirah/mirah.git
+$ cd bitescript
+$ gem build bitescript.gemspec
+$ gem install bitescript-*
+$ cd -
+$ cd mirah
+$ rake gem
+$ gem install pkg/mirah-*
+$ cd -
 
-Only JRuby is supported at this time.
 
 == For Java tools:
 

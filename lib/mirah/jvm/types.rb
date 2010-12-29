@@ -1,20 +1,35 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'bitescript'
 require 'mirah/ast'
 require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/compiler'
 require 'set'
 
-module Duby
+module Mirah
   module JVM
     module Types
       class Type < AST::TypeReference
         include Java::DubyLangCompiler::Class
-        include Duby::JVM::MethodLookup
+        include Mirah::JVM::MethodLookup
 
         attr_writer :inner_class
 
         def log(message)
-          puts "* [JVM::Types] #{message}" if Duby::Compiler::JVM.verbose
+          puts "* [JVM::Types] #{message}" if Mirah::Compiler::JVM.verbose
         end
 
         def initialize(mirror_or_name)
@@ -111,7 +126,7 @@ module Duby
         end
 
         def array_type
-          @array_type ||= Duby::JVM::Types::ArrayType.new(self)
+          @array_type ||= Mirah::JVM::Types::ArrayType.new(self)
         end
 
         def prefix
@@ -245,6 +260,10 @@ module Duby
         end
 
         def compatible?(other)
+          !other.primitive?
+        end
+        
+        def assignable_from?(other)
           !other.primitive?
         end
       end

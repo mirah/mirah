@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 class BiteScript::MethodBuilder
   def inot
     iconst_m1
@@ -13,7 +28,7 @@ class BiteScript::MethodBuilder
   end
 end
 
-module Duby::JVM::Types
+module Mirah::JVM::Types
   class IntegerType < Number
     def literal(builder, value)
       builder.push_int(value)
@@ -68,7 +83,7 @@ module Duby::JVM::Types
         op = "-="
       end
       comparison << "=" if inclusive
-      forloop = Duby::AST::Loop.new(parent, position, true, false) do |forloop|
+      forloop = Mirah::AST::Loop.new(parent, position, true, false) do |forloop|
         first, last = duby.tmp, duby.tmp
         init = duby.eval("#{first} = 0; #{last} = 0;")
         init.children[-2].value = first_value
@@ -82,7 +97,7 @@ module Duby::JVM::Types
         end
         forloop.post << duby.eval("#{first} #{op} 1")
         [
-          Duby::AST::Condition.new(forloop, position) do |c|
+          Mirah::AST::Condition.new(forloop, position) do |c|
             [duby.eval("#{first} #{comparison} #{last}",
                        '', forloop, first, last)]
           end,
@@ -103,17 +118,17 @@ module Duby::JVM::Types
       math_operator('^', 'xor')
       unary_operator('~', 'not')
 
-      add_macro('downto', Int, Duby::AST.block_type) do |transformer, call|
+      add_macro('downto', Int, Mirah::AST.block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], false, true)
       end
-      add_macro('upto', Int, Duby::AST.block_type) do |transformer, call|
+      add_macro('upto', Int, Mirah::AST.block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], true, true)
       end
-      add_macro('times', Duby::AST.block_type) do |transformer, call|
+      add_macro('times', Mirah::AST.block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
-                   call.block, Duby::AST::fixnum(nil, call.position, 0),
+                   call.block, Mirah::AST::fixnum(nil, call.position, 0),
                    call.target, true, false)
       end
     end

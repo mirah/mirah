@@ -1,4 +1,19 @@
-module Duby
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+module Mirah
   module AST
     module Scoped
       def scope
@@ -79,7 +94,7 @@ module Duby
         existing_type = local_type(name)
         if existing_type
           unless existing_type.assignable_from?(type)
-            raise Duby::Typer::InferenceError.new(
+            raise Mirah::Typer::InferenceError.new(
                 "Can't assign #{type.full_name} to " \
                 "variable of type #{existing_type.full_name}")
           end
@@ -147,11 +162,11 @@ module Duby
             parent.binding_type(defining_class, duby)
           else
             name = "#{defining_class.name}$#{duby.tmp}"
-            factory = Duby::AST.type_factory
+            factory = Mirah::AST.type_factory
             if factory
               factory.declare_type(@scope_node, name)
             else
-              Duby::AST::TypeReference.new(name, false, false)
+              Mirah::AST::TypeReference.new(name, false, false)
             end
           end
         end

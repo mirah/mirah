@@ -1,11 +1,26 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah/typer'
 require 'mirah/jvm/types'
 require 'mirah/jvm/types/factory'
 
-module Duby
+module Mirah
   module Typer
     class JVM < Simple
-      include Duby::JVM::Types
+      include Mirah::JVM::Types
 
       attr_reader :transformer
 
@@ -21,7 +36,7 @@ module Duby
       end
 
       def set_filename(scope, filename)
-        classname = Duby::Compiler::JVM.classname_from_filename(filename)
+        classname = Mirah::Compiler::JVM.classname_from_filename(filename)
         main_class = @factory.declare_type(scope, classname)
         @known_types['self'] = main_class.meta
       end
@@ -95,7 +110,7 @@ module Duby
         return_type = sig_args.delete(:return)
         exceptions = sig_args.delete(:throws)
         args = method_def.arguments.args || []
-        static = method_def.kind_of? Duby::AST::StaticMethodDefinition
+        static = method_def.kind_of? Mirah::AST::StaticMethodDefinition
         if sig_args.size != args.size
           # If the superclass declares one method with the same name and
           # same number of arguments, assume we're overriding it.

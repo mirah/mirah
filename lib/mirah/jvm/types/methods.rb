@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah/jvm/types'
 
 class Java::JavaMethod
@@ -10,8 +25,8 @@ class Java::JavaMethod
   end
 end
 
-module Duby::JVM::Types
-  AST ||= Duby::AST
+module Mirah::JVM::Types
+  AST ||= Mirah::AST
 
   module ArgumentConversion
     def convert_args(compiler, values, types=nil)
@@ -106,10 +121,10 @@ module Duby::JVM::Types
 
     def exceptions
       @member.exception_types.map do |exception|
-        if exception.kind_of?(Duby::JVM::Types::Type)
+        if exception.kind_of?(Mirah::JVM::Types::Type)
           exception
         else
-          Duby::AST.type(nil, exception.class_name)
+          Mirah::AST.type(nil, exception.class_name)
         end
       end
     end
@@ -348,7 +363,7 @@ module Duby::JVM::Types
     end
   end
 
-  class DubyMember
+  class MirahMember
     attr_reader :name, :argument_types, :declaring_class, :return_type
     attr_reader :exception_types
 
@@ -477,11 +492,11 @@ module Duby::JVM::Types
 
     def inner_class_getter(name)
       full_name = "#{self.name}$#{name}"
-      inner_class = Duby::AST.type(nil, full_name) rescue nil
+      inner_class = Mirah::AST.type(nil, full_name) rescue nil
       return unless inner_class
       inner_class.inner_class = true
       add_macro(name) do |transformer, call|
-        Duby::AST::Constant.new(call.parent, call.position, full_name)
+        Mirah::AST::Constant.new(call.parent, call.position, full_name)
       end
       intrinsics[name][[]]
     end
@@ -554,7 +569,7 @@ module Duby::JVM::Types
 
     def declare_method(name, arguments, type, exceptions)
       raise "Bad args" unless arguments.all?
-      member = DubyMember.new(self, name, arguments, type, false, exceptions)
+      member = MirahMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
         if @default_constructor_added
           unless arguments.empty?
@@ -569,7 +584,7 @@ module Duby::JVM::Types
     end
 
     def declare_static_method(name, arguments, type, exceptions)
-      member = DubyMember.new(self, name, arguments, type, true, exceptions)
+      member = MirahMember.new(self, name, arguments, type, true, exceptions)
       static_methods[name] << JavaStaticMethod.new(member)
     end
 

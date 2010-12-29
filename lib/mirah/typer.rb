@@ -1,7 +1,22 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah/ast'
 require 'mirah/transform'
 
-module Duby
+module Mirah
   module Typer
     class << self
       attr_accessor :verbose
@@ -20,7 +35,7 @@ module Duby
     end
 
     class BaseTyper
-      include Duby
+      include Mirah
 
       def log(message); Typer.log(message); end
 
@@ -219,7 +234,7 @@ module Duby
 
       def plugins
         if cycling?
-          Duby.typer_plugins.each do |plugin|
+          Mirah.typer_plugins.each do |plugin|
             log "Invoking plugin: #{plugin}"
 
             result = yield plugin
@@ -391,14 +406,14 @@ module Duby
 end
 
 if __FILE__ == $0
-  Duby::AST.verbose = true
-  Duby::Typer.verbose = true
-  ast = Duby::AST.parse(File.read(ARGV[0]))
-  typer = Duby::Typer::Simple.new("script")
+  Mirah::AST.verbose = true
+  Mirah::Typer.verbose = true
+  ast = Mirah::AST.parse(File.read(ARGV[0]))
+  typer = Mirah::Typer::Simple.new("script")
   typer.infer(ast)
   begin
     typer.resolve(true)
-  rescue Duby::Typer::InferenceError => e
+  rescue Mirah::Typer::InferenceError => e
     puts e.message
   end
 

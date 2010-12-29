@@ -1,3 +1,18 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'ant'
 require 'appengine-sdk'
 
@@ -9,7 +24,7 @@ TESTING_JARS = [AppEngine::SDK::API_JAR, AppEngine::SDK::LABS_JAR, JUNIT_JAR] +
   AppEngine::SDK::RUNTIME_JARS.reject {|j| j =~ /appengine-local-runtime/}
 TESTING_JARS.each {|jar| $CLASSPATH << jar}
 
-# Duby.compiler_options = ['-V']
+# Mirah.compiler_options = ['-V']
 
 task :default => :test
 
@@ -24,13 +39,13 @@ task :clean do
 end
 
 task :compile => :init do
-  # build the Duby sources
-  puts "Compiling Duby sources"
+  # build the Mirah sources
+  puts "Compiling Mirah sources"
   mirahc 'com/google/appengine', :dir => 'src', :dest => 'build'
 end
 
 task :compile_test => :jar do
-  puts "Compiling Duby tests"
+  puts "Compiling Mirah tests"
   mirahc 'com/google/appengine', :dir => 'test', :dest => 'test',
          :options => ['--classpath', Dir.pwd + "/dist/dubydatastore.jar"]
 end

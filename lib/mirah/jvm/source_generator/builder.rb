@@ -1,6 +1,21 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'mirah/jvm/types'
 
-module Duby
+module Mirah
   class JVM::Types::Type
     def to_source
       java_name = name
@@ -10,7 +25,7 @@ module Duby
   end
 
   module JavaSource
-    JVMTypes ||= Duby::JVM::Types
+    JVMTypes ||= Mirah::JVM::Types
 
     class Builder
       attr_accessor :package, :classes, :filename, :compiler
@@ -165,7 +180,7 @@ module Duby
 
     class ClassBuilder
       include Helper
-      include Duby::Compiler::JVM::JVMLogger
+      include Mirah::Compiler::JVM::JVMLogger
       attr_reader :package, :name, :superclass, :filename, :class_name, :out
       attr_reader :interfaces, :abstract
       def initialize(builder, name, superclass, interfaces, abstract)
@@ -263,7 +278,7 @@ module Duby
 
       def build_method(name, visibility, static, exceptions, type, *args)
         finish_declaration
-        type ||= Duby::AST::type(nil, :void)
+        type ||= Mirah::AST::type(nil, :void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :visibility => visibility,
@@ -313,7 +328,7 @@ module Duby
       def build_method(name, visibility, static, exceptions, type, *args)
         raise "Interfaces can't have static methods" if static
         finish_declaration
-        type ||= Duby::AST::type(nil, :void)
+        type ||= Mirah::AST::type(nil, :void)
         @methods << MethodBuilder.new(self,
                                       :name => name,
                                       :visibility => visibility,
@@ -363,7 +378,7 @@ module Duby
           print ' throws '
           @exceptions.each_with_index do |exception, i|
             print ', ' unless i == 0
-            print exception.name
+            print exception.to_source
           end
         end
         if @abstract

@@ -1,6 +1,21 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 require 'fileutils'
 
-module Duby::AST
+module Mirah::AST
 
   class Unquote < Node
     child :value
@@ -39,19 +54,19 @@ module Duby::AST
     end
 
     def self.__extracted
-      Thread.current[:'Duby::AST::Unqote.extracted']
+      Thread.current[:'Mirah::AST::Unqote.extracted']
     end
 
     def self.__extracted=(value)
-      Thread.current[:'Duby::AST::Unqote.extracted'] = value
+      Thread.current[:'Mirah::AST::Unqote.extracted'] = value
     end
 
     def self.__injected
-      Thread.current[:'Duby::AST::Unqote.injected']
+      Thread.current[:'Mirah::AST::Unqote.injected']
     end
 
     def self.__injected=(value)
-      Thread.current[:'Duby::AST::Unqote.injected'] = value
+      Thread.current[:'Mirah::AST::Unqote.injected'] = value
     end
 
     def self.extract_values
@@ -80,7 +95,7 @@ module Duby::AST
 
     def name
       case value
-      when Duby::AST::String
+      when Mirah::AST::String
         value.literal
       when ::String
         value
@@ -235,7 +250,7 @@ module Duby::AST
         else
           # TODO support typed args. Also there should be a way
           # to accept any AST node.
-          Duby::JVM::Types::Object
+          Mirah::JVM::Types::Object
         end
       end
     end
@@ -249,19 +264,19 @@ module Duby::AST
     end
 
     def build_and_load_extension(parent, name, state)
-      transformer = Duby::Transform::Transformer.new(state)
+      transformer = Mirah::Transform::Transformer.new(state)
       transformer.filename = name.gsub(".", "/")
-      orig_factory = Duby::AST.type_factory
+      orig_factory = Mirah::AST.type_factory
       new_factory = orig_factory.dup
-      Duby::AST.type_factory = new_factory
+      Mirah::AST.type_factory = new_factory
       ast = build_ast(name, parent, transformer)
       puts ast.inspect if state.verbose
       classes = compile_ast(name, ast, transformer)
-      loader = DubyClassLoader.new(
+      loader = MirahClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)
       klass = loader.loadClass(name, true)
       annotate(parent, name)
-      Duby::AST.type_factory = orig_factory
+      Mirah::AST.type_factory = orig_factory
       klass
     end
 
@@ -289,10 +304,10 @@ module Duby::AST
     end
 
     def compile_ast(name, ast, transformer)
-      typer = Duby::Typer::JVM.new(transformer)
+      typer = Mirah::Typer::JVM.new(transformer)
       typer.infer(ast)
       typer.resolve(true)
-      compiler = Duby::Compiler::JVM.new
+      compiler = Mirah::Compiler::JVM.new
       ast.compile(compiler, false)
       class_map = {}
       compiler.generate do |outfile, builder|
@@ -311,25 +326,25 @@ module Duby::AST
     def build_ast(name, parent, transformer)
       # TODO should use a new type factory too.
       
-      ast = Duby::AST.parse_ruby("begin;end")
+      ast = Mirah::AST.parse_ruby("begin;end")
       ast = transformer.transform(ast, nil)
 
       # Start building the extension class
       extension = transformer.define_class(position, name)
-      #extension.superclass = Duby::AST.type(nil, 'duby.lang.compiler.Macro')
-      extension.implements(Duby::AST.type(nil, 'duby.lang.compiler.Macro'))
+      #extension.superclass = Mirah::AST.type(nil, 'duby.lang.compiler.Macro')
+      extension.implements(Mirah::AST.type(nil, 'duby.lang.compiler.Macro'))
 
       extension.static_scope.import('duby.lang.compiler.Node', 'Node')
 
       # The constructor just saves the state
       extension.define_constructor(
           position,
-          ['mirah', Duby::AST.type(nil, 'duby.lang.compiler.Compiler')],
-          ['call', Duby::AST.type(nil, 'duby.lang.compiler.Call')]) do |c|
+          ['mirah', Mirah::AST.type(nil, 'duby.lang.compiler.Compiler')],
+          ['call', Mirah::AST.type(nil, 'duby.lang.compiler.Call')]) do |c|
         transformer.eval("@mirah = mirah;@call = call", '-', c, 'mirah', 'call')
       end
 
-      node_type = Duby::AST.type(nil, 'duby.lang.compiler.Node')
+      node_type = Mirah::AST.type(nil, 'duby.lang.compiler.Node')
 
       # expand() parses the arguments out of call and then passes them off to
       # _expand
@@ -350,7 +365,7 @@ module Duby::AST
       end
       actual_args = arguments.map do |arg|
         type = if arg.kind_of?(BlockArgument)
-          Duby::AST.type(nil, 'duby.lang.compiler.Block')
+          Mirah::AST.type(nil, 'duby.lang.compiler.Block')
         else
           node_type
         end
