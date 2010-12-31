@@ -41,6 +41,16 @@ class Map
   end
 end
 
+class ObjectExtension
+  macro def loop(&block)
+    quote do
+      while true do
+        `block.body`
+      end
+    end
+  end
+end
+
 class Builtin
   defmacro new_hash(node) do
     items = node.child_nodes
@@ -65,5 +75,6 @@ class Builtin
 
   def self.initialize_builtins(mirah:Compiler)
     mirah.find_class("java.util.Map").load_extensions(Map.class)
+    mirah.find_class("java.lang.Object").load_extensions(ObjectExtension.class)
   end
 end
