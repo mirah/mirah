@@ -43,7 +43,7 @@ file 'dist/mirah-parser.jar' => ['build/mirah/impl/MirahParser.class'] do
   end
 end
 
-file 'build/mirah/impl/MirahParser.class' => 
+file 'build/mirah/impl/MirahParser.class' =>
     ['build/mirah/impl/Mirah.mirah', 'build/mirah/impl/MirahLexer.class'] do
   mirahc('build/mirah/impl/Mirah.mirah',
          :dir => 'build',
@@ -68,6 +68,13 @@ end
 
 directory 'dist'
 directory 'build/mirah/impl'
+
+Rake::TestTask.new :test do |t|
+  # t.libs << 'build/test'
+  t.test_files = FileList['test/*.rb']
+end
+
+task :test => :build_parser
 
 def runjava(jar, *args)
   options = {:failonerror => true, :fork => true}
