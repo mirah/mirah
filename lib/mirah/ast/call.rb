@@ -13,43 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'delegate'
-
 module Mirah::AST
-  class NodeProxy < DelegateClass(Node)
-    include Java::DubyLangCompiler::Node
-    def __inline__(node)
-      node.parent = parent
-      __setobj__(node)
-    end
-
-    def dup
-      value = __getobj__.dup
-      if value.respond_to?(:proxy=)
-        new = super
-        new.__setobj__(value)
-        new.proxy = new
-        new
-      else
-        value
-      end
-    end
-
-    def _dump(depth)
-      Marshal.dump(__getobj__)
-    end
-
-    def self._load(str)
-      value = Marshal.load(str)
-      if value.respond_to?(:proxy=)
-        proxy = NodeProxy.new(value)
-        proxy.proxy = proxy
-      else
-        value
-      end
-    end
-  end
-
   class FunctionalCall < Node
     include Java::DubyLangCompiler.Call
     include Named
@@ -67,7 +31,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, &kids)
-      @name = name
+      self.name = name
       @cast = false
     end
 
@@ -174,7 +138,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &kids)
       super(parent, line_number, &kids)
-      @name = name
+      self.name = name
     end
 
     def validate_parameters

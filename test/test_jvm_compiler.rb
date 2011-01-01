@@ -2393,9 +2393,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_unquote
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
     return if self.class.name == 'TestJavacCompiler'
-    # TODO figure out why this fails to compile in the unittests but works
-    # otherwise.
-    return
+
     script, cls = compile(<<-EOF)
       import duby.lang.compiler.StringNode
       class UnquoteMacros
@@ -2405,7 +2403,7 @@ class TestJVMCompiler < Test::Unit::TestCase
             def `name`
               @`name`
             end
-            def `"#{name}_set"`(`name`:`type`)
+            def `"\#{name}_set"`(`name`:`type`)
               @`name` = `name`
             end
           end
@@ -2419,7 +2417,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       x.foo = 3
       puts x.foo
     EOF
-    assert_output("1\n3\n") {script.main(nil)}
+    assert_output("0\n3\n") {script.main(nil)}
   end
 
   def test_static_import

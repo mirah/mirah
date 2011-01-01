@@ -115,7 +115,7 @@ module Mirah::AST
     def initialize(parent, line_number, name, type=nil)
       super(parent, line_number, [type])
 
-      @name = name
+      self.name = name
     end
 
     def infer(typer)
@@ -144,7 +144,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @name = name
+      self.name = name
     end
 
     def infer(typer)
@@ -168,7 +168,7 @@ module Mirah::AST
     def initialize(parent, line_number, name)
       super(parent, line_number)
 
-      @name = name
+      self.name = name
     end
 
     def infer(typer)
@@ -186,7 +186,7 @@ module Mirah::AST
     def initialize(parent, line_number, name)
       super(parent, line_number)
 
-      @name = name
+      self.name = name
     end
 
     def infer(typer)
@@ -216,7 +216,7 @@ module Mirah::AST
     def initialize(parent, line_number, name, annotations=[], &block)
       @annotations = annotations
       super(parent, line_number, &block)
-      @name = name
+      self.name = name
       @visibility = (class_scope && class_scope.current_access_level) || :public
     end
 

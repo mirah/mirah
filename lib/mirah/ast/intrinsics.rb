@@ -217,7 +217,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @name = name
+      self.name = name
     end
 
     def infer(typer)
@@ -270,7 +270,6 @@ module Mirah::AST
       new_factory = orig_factory.dup
       Mirah::AST.type_factory = new_factory
       ast = build_ast(name, parent, transformer)
-      puts ast.inspect if state.verbose
       classes = compile_ast(name, ast, transformer)
       loader = MirahClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)
@@ -306,9 +305,13 @@ module Mirah::AST
     end
 
     def compile_ast(name, ast, transformer)
-      typer = Mirah::Typer::JVM.new(transformer)
-      typer.infer(ast)
-      typer.resolve(true)
+      begin
+        typer = Mirah::Typer::JVM.new(transformer)
+        typer.infer(ast)
+        typer.resolve(true)
+      ensure
+        puts ast.inspect if transformer.state.verbose
+      end
       compiler = Mirah::Compiler::JVM.new
       ast.compile(compiler, false)
       class_map = {}
@@ -329,7 +332,7 @@ module Mirah::AST
 
     def build_ast(name, parent, transformer)
       # TODO should use a new type factory too.
-      
+
       ast = Mirah::AST.parse_ruby("begin;end")
       ast = transformer.transform(ast, nil)
 
@@ -376,6 +379,12 @@ module Mirah::AST
         [arg.name, type, arg.position]
       end
       m = extension.define_method(position, '_expand', node_type, *actual_args)
+      scope.static_scope.imports.each do |short, long|
+        m.static_scope.import(long, short)
+      end
+      scope.static_scope.search_packages.each do |package|
+        m.static_scope.import(package, '*')
+      end
       m.body = self.body
       ast.body = extension
       ast

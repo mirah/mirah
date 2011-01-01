@@ -24,7 +24,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @name = name
+      self.name = name
     end
 
     def captured?
@@ -53,7 +53,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @name = name
+      self.name = name
     end
 
     def captured?
@@ -83,7 +83,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name)
       super(parent, line_number, [])
-      @name = name
+      self.name = name
     end
 
     def captured?

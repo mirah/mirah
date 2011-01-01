@@ -18,6 +18,7 @@ module Mirah::AST
     include Annotated
     include Named
     include Scope
+
     attr_accessor :interfaces
     attr_accessor :current_access_level
     attr_accessor :abstract
@@ -32,7 +33,7 @@ module Mirah::AST
       @annotations = annotations
       @interfaces = []
       @interface_nodes = []
-      @name = name
+      self.name = name
       self.parent = parent
       if Mirah::AST.type_factory.respond_to? :define_type
         Mirah::AST.type_factory.define_type(self)
@@ -147,7 +148,7 @@ module Mirah::AST
     def initialize(parent, position, name, annotations)
       super(parent, position, name, annotations) {|p| }
       @abstract = true
-      @name = name
+      self.name = name
       @children = [[], nil]
       @children = yield(self)
     end
@@ -210,7 +211,7 @@ module Mirah::AST
     def initialize(parent, position, name, annotations=[], static = false, &block)
       @annotations = annotations
       super(parent, position, &block)
-      @name = name
+      self.name = name
       @static = static
     end
 
@@ -243,7 +244,7 @@ module Mirah::AST
     def initialize(parent, position, name, annotations=[], static = false, &block)
       @annotations = annotations
       super(parent, position, &block)
-      @name = name
+      self.name = name
       @static = static
     end
 
@@ -269,7 +270,7 @@ module Mirah::AST
     def initialize(parent, position, name, annotations=[], static = false, &block)
       @annotations = annotations
       super(parent, position, &block)
-      @name = name
+      self.name = name
       @static = static
     end
 
@@ -291,7 +292,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name)
       super(parent, line_number)
-      @name = name
+      self.name = name
       class_scope.current_access_level = name.to_sym
     end
 

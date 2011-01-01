@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'delegate'
 require 'mirah/transform'
 require 'mirah/ast/scope'
 
@@ -79,7 +80,7 @@ module Mirah
       end
 
       def _dump(depth)
-        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @class_scope @typer)
+        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @class_scope @static_scope @typer)
         vars = {}
         instance_variables.each do |name|
           next if to_skip.include?(name)
@@ -88,6 +89,7 @@ module Mirah
             Marshal.dump(vars[name]) if AST.verbose
           rescue
             puts "#{self}: Failed to marshal #{name}"
+            puts inspect
             puts $!, $@
             raise $!
           end
@@ -270,7 +272,14 @@ module Mirah
     end
 
     module Named
-      attr_accessor :name
+      attr_reader :name
+
+      def name=(name)
+        if Node === name
+          name.parent = self
+        end
+        @name = name
+      end
 
       def to_s
         "#{super}(#{name})"
@@ -332,7 +341,7 @@ module Mirah
       attr_accessor :array
 
       def initialize(parent, position, name)
-        @name = name
+        self.name = name
         super(parent, position, [])
       end
 
@@ -427,6 +436,40 @@ module Mirah
       end
     end
 
+    class NodeProxy < DelegateClass(Node)
+      include Java::DubyLangCompiler::Node
+      def __inline__(node)
+        node.parent = parent
+        __setobj__(node)
+      end
+
+      def dup
+        value = __getobj__.dup
+        if value.respond_to?(:proxy=)
+          new = super
+          new.__setobj__(value)
+          new.proxy = new
+          new
+        else
+          value
+        end
+      end
+
+      def _dump(depth)
+        Marshal.dump(__getobj__)
+      end
+
+      def self._load(str)
+        value = Marshal.load(str)
+        if value.respond_to?(:proxy=)
+          proxy = NodeProxy.new(value)
+          proxy.proxy = proxy
+        else
+          value
+        end
+      end
+    end
+
     class TypeReference < Node
       include Named
       attr_accessor :array
@@ -436,7 +479,7 @@ module Mirah
 
       def initialize(name, array = false, meta = false, position=nil)
         super(nil, position)
-        @name = name
+        self.name = name
         @array = array
         @meta = meta
       end
