@@ -27,15 +27,7 @@ module Mirah::AST
     def _dump(depth)
       vals = Unquote.__extracted
       index = vals.size
-      # Make sure the scope is saved
-      if Scoped === value
-        value.scope
-        scoped_value = value
-      else
-        scoped_value = ScopedBody.new(value.parent, value.position) {[value]}
-        scoped_value.static_scope = scoped_value.scope.static_scope
-      end
-      vals << self.value
+      vals << value
       Marshal.dump([position, index])
     end
 
@@ -70,21 +62,22 @@ module Mirah::AST
     end
 
     def self.extract_values
-      values = self.__extracted = []
+      values = []
+      saved, self.__extracted = self.__extracted, values
       begin
         yield
         return values
       ensure
-        self.__extracted = nil
+        self.__extracted = saved
       end
     end
 
     def self.inject_values(values)
-      self.__injected = values
+      saved, self.__injected = self.__injected, values
       begin
         yield
       ensure
-        self.__injected = nil
+        self.__injected = saved
       end
     end
   end
@@ -309,6 +302,9 @@ module Mirah::AST
         typer = Mirah::Typer::JVM.new(transformer)
         typer.infer(ast)
         typer.resolve(true)
+        typer.errors.each do |e|
+          raise e
+        end
       ensure
         puts ast.inspect if transformer.state.verbose
       end

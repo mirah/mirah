@@ -86,7 +86,9 @@ module Mirah
           next if to_skip.include?(name)
           vars[name] = instance_variable_get(name)
           begin
-            Marshal.dump(vars[name]) if AST.verbose
+            Mirah::AST::Unquote.extract_values do
+              Marshal.dump(vars[name]) if AST.verbose
+            end
           rescue
             puts "#{self}: Failed to marshal #{name}"
             puts inspect
@@ -158,13 +160,17 @@ module Mirah
                  end
                 str << "\n#{ary_child.inspect(indent + extra_indent + 1)}"
               }
-            elsif ::Hash === child
+            elsif ::Hash === child || ::String === child
               str << "\n#{indent_str} #{child.inspect}"
             else
               if Mirah::AST.verbose && Node === child && child.parent != self
                 str << "\n#{indent_str} (wrong parent)"
               end
-              str << "\n#{child.inspect(indent + extra_indent + 1)}"
+              begin
+                str << "\n#{child.inspect(indent + extra_indent + 1)}"
+              rescue ArgumentError => ex
+                raise "can't inspect #{child.class.name}"
+              end
             end
           end
         end

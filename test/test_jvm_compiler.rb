@@ -2394,7 +2394,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
     return if self.class.name == 'TestJavacCompiler'
 
-    script, cls = compile(<<-EOF)
+    script, cls = compile(<<-'EOF')
       import duby.lang.compiler.StringNode
       class UnquoteMacros
         macro def make_attr(name_node, type)
@@ -2403,7 +2403,7 @@ class TestJVMCompiler < Test::Unit::TestCase
             def `name`
               @`name`
             end
-            def `"\#{name}_set"`(`name`:`type`)
+            def `"#{name}_set"`(`name`:`type`)
               @`name` = `name`
             end
           end
