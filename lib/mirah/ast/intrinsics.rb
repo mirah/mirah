@@ -275,7 +275,9 @@ module Mirah::AST
       loader = MirahClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)
       klass = loader.loadClass(name, true)
-      annotate(parent, name)
+      if state.save_extensions
+        annotate(parent, name)
+      end
       Mirah::AST.type_factory = orig_factory
       klass
     end
@@ -311,13 +313,15 @@ module Mirah::AST
       ast.compile(compiler, false)
       class_map = {}
       compiler.generate do |outfile, builder|
-        outfile = "#{transformer.destination}#{outfile}"
-        FileUtils.mkdir_p(File.dirname(outfile))
-        File.open(outfile, 'wb') do |f|
-          bytes = builder.generate
-          name = builder.class_name.gsub(/\//, '.')
-          class_map[name] = bytes
-          f.write(bytes)
+        bytes = builder.generate
+        name = builder.class_name.gsub(/\//, '.')
+        class_map[name] = bytes
+        if transformer.state.save_extensions
+          outfile = "#{transformer.destination}#{outfile}"
+          FileUtils.mkdir_p(File.dirname(outfile))
+          File.open(outfile, 'wb') do |f|
+            f.write(bytes)
+          end
         end
       end
       class_map

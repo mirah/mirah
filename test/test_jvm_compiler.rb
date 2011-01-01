@@ -71,7 +71,9 @@ class TestJVMCompiler < Test::Unit::TestCase
     @tmp_classes.clear
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    transformer = Mirah::Transform::Transformer.new(Mirah::CompilationState.new)
+    state = Mirah::CompilationState.new
+    state.save_extensions = false
+    transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(transformer)

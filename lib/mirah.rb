@@ -84,11 +84,13 @@ module Mirah
   class CompilationState
     def initialize
       BiteScript.bytecode_version = BiteScript::JAVA1_5
+      @save_extensions = true
     end
-    
+
     attr_accessor :verbose, :destination
     attr_accessor :version_printed
-    
+    attr_accessor :save_extensions
+
     def set_jvm_version(ver_str)
       case ver_str
       when '1.4'
@@ -114,7 +116,7 @@ class MirahClassLoader < java::security::SecureClassLoader
     super(parent)
     @class_map = class_map
   end
-  
+
   def findClass(name)
     if @class_map[name]
       bytes = @class_map[name].to_java_bytes
@@ -332,6 +334,9 @@ class MirahImpl
       when '--version', '-v'
         args.shift
         print_version
+      when '--no-save-extensions'
+        args.shift
+        @state.save_extensions = false
       else
         puts "unrecognized flag: " + args[0]
         print_help
