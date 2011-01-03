@@ -21,7 +21,7 @@ module Mirah::AST
     child :value
 
     def infer(typer)
-      raise "Unquote used outside of macro"
+      raise Mirah::SyntaxError.new("Unquote used outside of macro", self)
     end
 
     def _dump(depth)
@@ -136,7 +136,7 @@ module Mirah::AST
     child :value
 
     def infer(typer)
-      raise "UnquoteAssign used outside of macro"
+      raise Mirah::SyntaxError.new("UnquoteAssign used outside of macro")
     end
 
     def _dump(depth)

@@ -176,7 +176,7 @@ module Mirah::AST
   end
 
   defmacro('interface') do |transformer, fcall, parent|
-    raise "Interface name required" unless fcall.parameters.size > 0
+    raise Mirah::SyntaxError.new("Interface name required", fcall) unless fcall.parameters.size > 0
     interfaces = fcall.parameters
     interface_name = interfaces.shift
     if (Call === interface_name &&

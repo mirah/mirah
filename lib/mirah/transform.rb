@@ -15,16 +15,16 @@
 
 require 'base64'
 require 'jruby'
+require 'mirah/errors'
 
 module Mirah
   module Transform
-    class Error < StandardError
-      attr_reader :position, :cause
+    class Error < Mirah::MirahError
+      attr_reader :position
       def initialize(msg, position, cause=nil)
-        super(msg)
-        @position = position
-        @position = position.position if position.respond_to? :position
-        @cause = cause
+        position = position.position if position.respond_to? :position
+        super(msg, position)
+        self.cause = cause
       end
     end
 

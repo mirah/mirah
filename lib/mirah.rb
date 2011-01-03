@@ -21,6 +21,7 @@ require 'mirah/ast'
 require 'mirah/typer'
 require 'mirah/compiler'
 require 'mirah/env'
+require 'mirah/errors'
 begin
   require 'bitescript'
 rescue LoadError
@@ -54,6 +55,10 @@ module Mirah
   end
 
   def self.print_error(message, position)
+    if position.nil?
+      puts message
+      return
+    end
     puts "#{position.file}:#{position.start_line}: #{message}"
     file_offset = 0
     startline = position.start_line - 1
@@ -177,6 +182,12 @@ class MirahImpl
     else
       puts "No main found" unless @state.version_printed
     end
+  rescue Mirah::InternalCompilerError => ice
+    print_error(ice.message, ice.position) if ice.node
+    raise ice
+  rescue Mirah::MirahError => ex
+    print_error(ex.message, ex.position)
+    puts ex.backtrace if @state.verbose
   end
 
   def compile(*args)
@@ -186,6 +197,12 @@ class MirahImpl
       bytes = builder.generate
       File.open(filename, 'wb') {|f| f.write(bytes)}
     end
+  rescue Mirah::InternalCompilerError => ice
+    print_error(ice.message, ice.position) if ice.node
+    raise ice
+  rescue Mirah::MirahError => ex
+    print_error(ex.message, ex.position)
+    puts ex.backtrace if @state.verbose
   end
 
   def generate(args, &block)
@@ -247,6 +264,12 @@ class MirahImpl
     @error = @transformer.errors.size > 0
 
     ast
+  rescue Mirah::InternalCompilerError => ice
+    print_error(ice.message, ice.position) if ice.node
+    raise ice
+  rescue Mirah::MirahError => ex
+    print_error(ex.message, ex.position)
+    puts ex.backtrace if @state.verbose
   end
 
   def infer_asts(asts)
@@ -262,7 +285,7 @@ class MirahImpl
         puts "Inference Error:"
         typer.errors.each do |ex|
           if ex.node
-            Mirah.print_error(ex.message, ex.node.position)
+            Mirah.print_error(ex.message, ex.position)
           else
             puts ex.message
           end
@@ -280,7 +303,7 @@ class MirahImpl
       compiler.generate(&block)
     rescue Exception => ex
       if ex.respond_to? :node
-        Mirah.print_error(ex.message, ex.node.position)
+        Mirah.print_error(ex.message, ex.position)
         puts ex.backtrace if @state.verbose
         exit 1
       else
@@ -364,7 +387,7 @@ class MirahImpl
   -v, --version\t\tPrint the version of Mirah to the console
   -V, --verbose\t\tVerbose logging"
   end
-  
+
   def print_version
     puts "Mirah v#{Mirah::VERSION}"
     @state.version_printed = true
