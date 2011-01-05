@@ -27,13 +27,7 @@ module Mirah
       end
     end
 
-    class InferenceError < Mirah::NodeError
-      attr_accessor :node
-      def initialize(msg, node = nil)
-        super(msg)
-        @node = node
-      end
-    end
+    InferenceError = Mirah::InferenceError
 
     class BaseTyper
       include Mirah

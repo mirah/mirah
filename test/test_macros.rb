@@ -33,4 +33,19 @@ class TestMacros < Test::Unit::TestCase
     EOF
   end
 
+  def test_self_call_in_unquote
+    script = parse(<<-EOF)
+      import duby.lang.compiler.Compiler
+
+      def foobar(name:String)
+        name
+      end
+
+      def helper(mirah:Compiler)
+        name = "foobar"
+        mirah.quote { `foobar(name)` }
+      end
+    EOF
+  end
+
 end

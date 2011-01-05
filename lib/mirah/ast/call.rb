@@ -36,13 +36,11 @@ module Mirah::AST
     end
 
     def arguments
-      @arguments ||= begin
-        args = java.util.ArrayList.new(parameters.size)
-        parameters.each do |param|
-          args.add(param)
-        end
-        args
+      args = java.util.ArrayList.new(parameters.size)
+      parameters.each do |param|
+        args.add(param)
       end
+      args
     end
 
     def target
@@ -52,8 +50,9 @@ module Mirah::AST
     def validate_parameters
       parameters.each_with_index do |child, i|
         if UnquotedValue === child
+          child = child.node
           child.parent = self
-          parameters[i] = child.node
+          parameters[i] = child
         end
       end
     end
@@ -144,20 +143,19 @@ module Mirah::AST
     def validate_parameters
       parameters.each_with_index do |child, i|
         if UnquotedValue === child
+          child = child.node
           child.parent = self
-          parameters[i] = child.node
+          parameters[i] = child
         end
       end
     end
 
     def arguments
-      @arguments ||= begin
-        args = java.util.ArrayList.new(parameters.size)
-        parameters.each do |param|
-          args.add(param)
-        end
-        args
+      args = java.util.ArrayList.new(parameters.size)
+      parameters.each do |param|
+        args.add(param)
       end
+      args
     end
 
     def infer(typer)
@@ -230,12 +228,7 @@ module Mirah::AST
 
       # join and load
       class_name = elements.join(".")
-      begin
-        typer.type_reference(scope, class_name, array)
-      rescue NameError => ex
-        typer.known_types[class_name] = Mirah::AST.error_type
-        raise ex
-      end
+      typer.type_reference(scope, class_name, array)
     end
   end
 
@@ -249,20 +242,26 @@ module Mirah::AST
 
     def initialize(parent, line_number)
       super(parent, line_number)
-      @call_parent = parent
-      @call_parent = (@call_parent = @call_parent.parent) until MethodDefinition === @call_parent
       @cast = false
     end
 
+    def call_parent
+      @call_parent ||= begin
+        node = parent
+        node = (node && node.parent) until MethodDefinition === node
+        node
+      end
+    end
+
     def name
-      @call_parent.name
+      call_parent.name
     end
 
     def infer(typer)
       @self_type ||= scope.static_scope.self_type.superclass
 
       unless @inferred_type
-        receiver_type = @call_parent.defining_class.superclass
+        receiver_type = call_parent.defining_class.superclass
         should_defer = receiver_type.nil?
         parameter_types = parameters.map do |param|
           typer.infer(param) || should_defer = true

@@ -213,7 +213,7 @@ module Mirah::AST
       name = transform(name, nil) unless name.kind_of?(::String)
       position = position(node)
       actual_name = name
-      if name =~ /=$/
+      if name =~ /=$/ && name != '[]='
         actual_name = name[0..-2] + '_set'
       end
       if name == 'initialize'

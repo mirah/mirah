@@ -313,10 +313,6 @@ module Mirah
           end
           @inferred_type = typer.infer(body)
 
-          if (@inferred_type && !body.resolved?)
-            puts "#{body} not resolved"
-          end
-
           (@inferred_type && body.resolved?) ? resolved! : typer.defer(self)
         end
 

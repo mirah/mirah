@@ -183,10 +183,10 @@ class MirahImpl
       puts "No main found" unless @state.version_printed
     end
   rescue Mirah::InternalCompilerError => ice
-    print_error(ice.message, ice.position) if ice.node
+    Mirah.print_error(ice.message, ice.position) if ice.node
     raise ice
   rescue Mirah::MirahError => ex
-    print_error(ex.message, ex.position)
+    Mirah.print_error(ex.message, ex.position)
     puts ex.backtrace if @state.verbose
   end
 
@@ -198,10 +198,11 @@ class MirahImpl
       File.open(filename, 'wb') {|f| f.write(bytes)}
     end
   rescue Mirah::InternalCompilerError => ice
-    print_error(ice.message, ice.position) if ice.node
+    Mirah.print_error(ice.message, ice.position) if ice.position
+    puts "error on #{ice.node}(#{ice.node.object_id})"
     raise ice
   rescue Mirah::MirahError => ex
-    print_error(ex.message, ex.position)
+    Mirah.print_error(ex.message, ex.position)
     puts ex.backtrace if @state.verbose
   end
 
@@ -265,10 +266,10 @@ class MirahImpl
 
     ast
   rescue Mirah::InternalCompilerError => ice
-    print_error(ice.message, ice.position) if ice.node
+    Mirah.print_error(ice.message, ice.position) if ice.node
     raise ice
   rescue Mirah::MirahError => ex
-    print_error(ex.message, ex.position)
+    Mirah.print_error(ex.message, ex.position)
     puts ex.backtrace if @state.verbose
   end
 
@@ -297,20 +298,9 @@ class MirahImpl
   end
 
   def compile_ast(ast, &block)
-    begin
-      compiler = @compiler_class.new
-      ast.compile(compiler, false)
-      compiler.generate(&block)
-    rescue Exception => ex
-      if ex.respond_to? :node
-        Mirah.print_error(ex.message, ex.position)
-        puts ex.backtrace if @state.verbose
-        exit 1
-      else
-        raise ex
-      end
-    end
-
+    compiler = @compiler_class.new
+    ast.compile(compiler, false)
+    compiler.generate(&block)
   end
 
   def process_flags!(args)

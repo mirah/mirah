@@ -20,11 +20,29 @@ interface Node do
   def child_nodes
     returns List
   end
+
+  def parent
+    returns Node
+  end
+
+  # Returns the value of string-literalish nodes
+  def string_value
+    returns String
+  end
 end
 
 interface Block < Node do
   def body
     returns Node
+  end
+end
+
+interface Body < Node do
+  def add_node(node:Node):void
+  end
+
+  macro def <<(node)
+    quote { add_node(`node`) }
   end
 end
 
@@ -42,6 +60,22 @@ interface Call < Node do
   end
 end
 
+interface ClassDefinition < Node do
+  def name
+    returns String
+  end
+
+  def body
+    returns Node
+  end
+end
+
+interface MethodDefinition < Node do
+  def body
+    returns Node
+  end
+end
+
 interface StringNode < Node do
   def literal
     returns String
@@ -54,11 +88,11 @@ interface Macro do
   end
 
   # defmacro quote(&block) do
-  #   encoded = @duby.dump_ast(block.body)
-  #   quote { @duby.load_ast(`encoded`) }
+  #   encoded = @mirah.dump_ast(block.body, @call)
+  #   quote { @mirah.load_ast(`encoded`) }
   # end
   macro def quote(&block)
-    encoded = @mirah.dump_ast(block.body)
+    encoded = @mirah.dump_ast(block.body, @call)
     code = <<RUBY
   call = eval("@mirah.load_ast(x)")
   call.parameters[0] = arg
@@ -75,16 +109,20 @@ interface Class do
 end
 
 interface Compiler do
-  defmacro quote(&block) do
-    encoded = @mirah.dump_ast(block.body)
-    quote { @mirah.load_ast(`encoded`) }
+  macro def quote(&block)
+    encoded = @mirah.dump_ast(block.body, @call)
+    quote { load_ast(`encoded`) }
   end
 
   def find_class(name:String)
     returns Class
   end
 
-  def dump_ast(node:Node)
+  def defineClass(name:String, superclass:String)
+    returns ClassDefinition
+  end
+
+  def dump_ast(node:Node, call:Call)
     returns Object
   end
 
@@ -100,7 +138,31 @@ interface Compiler do
     returns Node
   end
 
+  def body
+    returns Body
+  end
+
+  def empty_array(type:Node, size:Node)
+    returns Node
+  end
+
   def constant(name:String)
+    returns Node
+  end
+
+  def constant(name:String, array:boolean)
+    returns Node
+  end
+
+  def string(value:String)
+    returns StringNode
+  end
+
+  def cast(type:String, value:Node)
+    returns Node
+  end
+
+  def cast(type:String, value:String)
     returns Node
   end
 end

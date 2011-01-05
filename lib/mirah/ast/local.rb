@@ -87,7 +87,7 @@ module Mirah::AST
     end
 
     def captured?
-      scope.static_scope.captured?(name)
+      scope && scope.static_scope.captured?(name)
     end
 
     def to_s

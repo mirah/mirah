@@ -96,7 +96,7 @@ module Mirah
             raise $!
           end
         end
-        Marshal.dump(vars)
+          Marshal.dump(vars)
       end
 
       def self._load(vars)
@@ -169,7 +169,7 @@ module Mirah
               begin
                 str << "\n#{child.inspect(indent + extra_indent + 1)}"
               rescue ArgumentError => ex
-                raise "can't inspect #{child.class.name}"
+                str << "\n#{indent_str} #{child.inspect}"
               end
             end
           end
@@ -187,6 +187,10 @@ module Mirah
       end
 
       def to_s; simple_name; end
+
+      def string_value
+        raise Mirah::SyntaxError.new("Can't use #{self.class} as string literal")
+      end
 
       def [](index) children[index] end
 
@@ -241,6 +245,11 @@ module Mirah
       end
 
       def initialize_copy(other)
+        # bug: node is deferred, but it's parent isn't
+        #      parent gets duped
+        #      duped parent is inferred so it's children aren't
+        #      original node gets inferred, but not the duplicate child
+        @inferred_type = @resolved = nil
         @parent = nil
         @children = []
         other.children.each do |child|
@@ -257,7 +266,7 @@ module Mirah
 
       def inferred_type!
         unless @inferred_type
-          raise Mirah::Typer::InferenceError.new(
+          raise Mirah::InternalCompilerError.new(
               "Internal Error: #{self.class} never inferred", self)
         end
         inferred_type
@@ -291,6 +300,10 @@ module Mirah
         "#{super}(#{name})"
       end
 
+      def string_value
+        name
+      end
+
       def validate_name
         if UnquotedValue === @name
           @name = @name.name
@@ -313,6 +326,10 @@ module Mirah
 
       def to_s
         "#{super}(#{literal.inspect})"
+      end
+
+      def string_value
+        literal.to_s
       end
     end
 
@@ -354,22 +371,12 @@ module Mirah
       def infer(typer)
         @inferred_type ||= begin
           # TODO lookup constant, inline if we're supposed to.
-          begin
-            typer.type_reference(scope, name, @array, true)
-          rescue NameError => ex
-            typer.known_types[@name] = Mirah::AST.error_type
-            raise ex
-          end
+          typer.type_reference(scope, name, @array, true)
         end
       end
 
       def type_reference(typer)
-        begin
-          typer.type_reference(scope, @name, @array)
-        rescue NameError => ex
-          typer.known_types[@name] = Mirah::AST.error_type
-          raise ex
-        end
+        typer.type_reference(scope, @name, @array)
       end
     end
 

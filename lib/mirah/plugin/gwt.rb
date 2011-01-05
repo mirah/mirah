@@ -110,6 +110,7 @@ module Mirah::AST
     def infer(typer)
       @static ||= scope.static_scope.self_type.meta? unless scope.nil?
       @defining_class ||= begin
+        static_scope.self_node = :self
         static_scope.self_type = if static?
           scope.static_scope.self_type.meta
         else

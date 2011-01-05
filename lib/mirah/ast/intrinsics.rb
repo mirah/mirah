@@ -94,6 +94,8 @@ module Mirah::AST
         value
       when Named
         value.name
+      when Node
+        value.string_value
       else
         raise "Bad unquote value #{value}"
       end
@@ -121,8 +123,8 @@ module Mirah::AST
       case value
       when Arguments, Argument
         value
-      when Named
-        RequiredArgument.new(nil, position, value.name)
+      when Node
+        RequiredArgument.new(nil, position, value.string_value)
       when ::String
         RequiredArgument.new(nil, position, value)
       else
@@ -165,6 +167,12 @@ module Mirah::AST
     end
 
     def node
+      if ScopedBody === self.name_node
+        scope = name_node
+        name_node = scope.children[0]
+      else
+        name_node = self.name_node
+      end
       klass = LocalAssignment
       if Field === name_node
         name = name_node.name
@@ -175,7 +183,7 @@ module Mirah::AST
       elsif String === name_node
         name = name_node.literal
       elsif ::String === name_node
-        name = name
+        name = name_node
       else
         raise "Bad unquote value"
       end
@@ -186,7 +194,12 @@ module Mirah::AST
       n = klass.new(nil, position, name)
       n << value
       n.validate_children
-      return n
+      if scope
+        scope.children.clear
+        scope << n
+      else
+        return n
+      end
     end
 
     def f_arg

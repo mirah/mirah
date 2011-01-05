@@ -18,6 +18,7 @@ module Mirah::AST
     include Annotated
     include Named
     include Scope
+    include Java::DubyLangCompiler.ClassDefinition
 
     attr_accessor :interfaces
     attr_accessor :current_access_level

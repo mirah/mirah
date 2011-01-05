@@ -202,6 +202,7 @@ module Mirah::AST
     include Scoped
     include ClassScoped
     include Binding
+    include Java::DubyLangCompiler.MethodDefinition
 
     child :signature
     child :arguments
@@ -227,6 +228,7 @@ module Mirah::AST
     def infer(typer)
       resolve_if(typer) do
         @defining_class ||= begin
+          static_scope.self_node = :self
           static_scope.self_type = if static?
             scope.static_scope.self_type.meta
           else
@@ -235,6 +237,10 @@ module Mirah::AST
         end
         @annotations.each {|a| a.infer(typer)} if @annotations
         typer.infer(arguments)
+        if @return_type.kind_of?(UnquotedValue)
+          @return_type = @return_type.node
+          @return_type.parent = self
+        end
         signature[:return] = @return_type.type_reference(typer) if @return_type
         if @exceptions
           signature[:throws] = @exceptions.map {|e| e.type_reference(typer)}
@@ -316,6 +322,13 @@ module Mirah::AST
     def initialize(*args)
       super
       extract_delegate_constructor
+    end
+
+    def validate_children
+      super
+      if @delegate_args
+        @delegate_args.each {|arg| arg.parent = self}
+      end
     end
 
     def first_node

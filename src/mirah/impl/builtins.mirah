@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import duby.lang.compiler.Compiler
+import duby.lang.compiler.Node
 
 class Map
   defmacro add(key, value) do
@@ -48,6 +49,11 @@ class Builtin
     literal = @mirah.fixnum(capacity)
     hashmap = @mirah.constant("java.util.HashMap")
     map = quote {`hashmap`.new(`literal`)}
+    # Strip off any wrapping bodies
+    while items.size == 1
+      child = Node(items.get(0))
+      items = child.child_nodes
+    end
     items.size.times do |i|
       next unless i % 2 == 0
       key = items.get(i)

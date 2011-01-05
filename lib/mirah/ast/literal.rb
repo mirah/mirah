@@ -20,10 +20,12 @@ module Mirah::AST
     end
 
     def infer(typer)
-      children.each do |kid|
-        kid.infer(typer)
+      resolve_if(typer) do
+        children.each do |kid|
+          kid.infer(typer)
+        end
+        @inferred_type = typer.array_type
       end
-      @inferred_type = typer.array_type
     end
   end
 

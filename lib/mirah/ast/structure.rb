@@ -15,6 +15,8 @@
 
 module Mirah::AST
   class Body < Node
+    include Java::DubyLangCompiler.Body
+
     def initialize(parent, line_number, &block)
       super(parent, line_number, &block)
     end
@@ -40,6 +42,14 @@ module Mirah::AST
       @inferred_type
     end
 
+    def string_value
+      if children.size == 1
+        children[0].string_value
+      else
+        super
+      end
+    end
+
     def <<(node)
       super
       if @typer
@@ -50,6 +60,11 @@ module Mirah::AST
       end
       self
     end
+
+    def add_node(node)
+      self << node
+    end
+
   end
 
   # class << self
@@ -76,11 +91,33 @@ module Mirah::AST
       super
     end
 
+    def binding_type(duby=nil)
+      static_scope.binding_type(defining_class, duby)
+    end
+
+    def binding_type=(type)
+      static_scope.binding_type = type
+    end
+
+    def has_binding?
+      static_scope.has_binding?
+    end
+
+    def type_reference(typer)
+      raise Mirah::SyntaxError.new("Invalid type", self) unless children.size == 1
+      children[0].type_reference(typer)
+    end
+
     def inspect_children(indent=0)
       indent_str = ' ' * indent
       str = ''
       if static_scope.self_node
-        str << "\n#{indent_str}self:\n" << static_scope.self_node.inspect(indent + 1)
+        str << "\n#{indent_str}self: "
+        if Node === static_scope.self_node
+          str << "\n" << static_scope.self_node.inspect(indent + 1)
+        else
+          str << static_scope.self_node.inspect
+        end
       end
       str << "\n#{indent_str}body:" << super(indent + 1)
     end

@@ -2395,10 +2395,9 @@ class TestJVMCompiler < Test::Unit::TestCase
     return if self.class.name == 'TestJavacCompiler'
 
     script, cls = compile(<<-'EOF')
-      import duby.lang.compiler.StringNode
       class UnquoteMacros
         macro def make_attr(name_node, type)
-          name = StringNode(name_node).literal()
+          name = name_node.string_value
           quote do
             def `name`
               @`name`
@@ -2499,6 +2498,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     map = cls.foo2
     assert_equal("A", map["a"])
     assert_equal("B", map["b"])
+
+    cls, = compile(<<-'EOF')
+      def set(b:Object)
+        map = { }
+        map["key"] = b
+        map["key"]
+      end
+    EOF
+
+    assert_equal("foo", cls.set("foo"))
   end
 
   def test_loop_in_ensure
@@ -2632,6 +2641,42 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("1\nFoo\n2\n") { cls.foo }
+  end
+
+  def test_scoped_self_through_method_call
+    cls, = compile(<<-EOF)
+      class ScopedSelfThroughMethodCall
+        def emptyMap
+          {}
+        end
+
+        def foo
+          emptyMap["a"] = "A"
+        end
+      end
+    EOF
+
+    # just make sure it can execute
+    m = cls.new.foo
+  end
+
+  def test_self_call_preserves_scope
+    cls, = compile(<<-EOF)
+      class SelfCallPreservesScope
+        def key
+          "key"
+        end
+        
+        def foo
+          map = {}
+          map[key] = "value"
+          map
+        end
+      end
+    EOF
+
+    map = cls.new.foo
+    assert_equal("value", map["key"])
   end
 
 end
