@@ -2679,4 +2679,24 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("value", map["key"])
   end
 
+  def test_macro_hygene
+    cls, = compile(<<-EOF)
+      macro def doubleIt(arg)
+        quote do
+          x = `arg`
+          x = x + x
+          x
+        end
+      end
+
+      def foo
+        x = "1"
+        puts doubleIt(x)
+        puts x
+      end
+    EOF
+
+    assert_output("11\n1\n") {cls.foo}
+  end
+
 end

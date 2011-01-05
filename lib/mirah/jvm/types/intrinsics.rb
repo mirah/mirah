@@ -86,16 +86,13 @@ module Mirah::JVM::Types
         expander = klass.constructors[0].newInstance(duby, call)
         ast = expander.expand
         if ast
+          body = Mirah::AST::ScopedBody.new(call.parent, call.position)
+          body << ast
           if call.target
-            body = Mirah::AST::ScopedBody.new(call.parent, call.position)
-            body.static_scope.parent = call.scope.static_scope
             body.static_scope.self_type = call.target.inferred_type!
             body.static_scope.self_node = call.target
-            body << ast
-            body
-          else
-            ast
           end
+          body
         else
           Mirah::AST::Noop.new(call.parent, call.position)
         end
