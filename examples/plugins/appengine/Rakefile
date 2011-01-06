@@ -41,7 +41,9 @@ end
 task :compile => :init do
   # build the Mirah sources
   puts "Compiling Mirah sources"
-  mirahc 'com/google/appengine', :dir => 'src', :dest => 'build'
+  mirahc 'com/google/appengine/ext/duby/db/MetaModel.mirah', :dir => 'src', :dest => 'build'
+  mirahc 'com/google/appengine/ext/duby/db/Model.duby', :dir => 'src', :dest => 'build',
+         :options => ['--classpath', Dir.pwd + '/build/']
 end
 
 task :compile_test => :jar do
