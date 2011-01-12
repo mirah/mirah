@@ -5,7 +5,7 @@ module Mirah
 
     def initialize(message, position=nil)
       super(message)
-      @position = node
+      @position = position
     end
   end
 
