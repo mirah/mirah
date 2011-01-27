@@ -422,7 +422,7 @@ module Mirah::JVM::Types
 
       begin
         descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
-        method = jvm_type.getDeclaredMethod(name, *descriptors)
+        method = jvm_type.getDeclaredMethod(name, *descriptors) if jvm_type
 
         if method.nil? && superclass
           method = superclass.java_method(name, *types) rescue nil

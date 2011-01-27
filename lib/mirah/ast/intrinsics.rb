@@ -21,21 +21,13 @@ module Mirah::AST
     child :value
 
     def infer(typer)
-      raise "Unquote used outside of macro"
+      raise Mirah::SyntaxError.new("Unquote used outside of macro", self)
     end
 
     def _dump(depth)
       vals = Unquote.__extracted
       index = vals.size
-      # Make sure the scope is saved
-      if Scoped === value
-        value.scope
-        scoped_value = value
-      else
-        scoped_value = ScopedBody.new(value.parent, value.position) {[value]}
-        scoped_value.static_scope = scoped_value.scope.static_scope
-      end
-      vals << self.value
+      vals << value
       Marshal.dump([position, index])
     end
 
@@ -70,21 +62,22 @@ module Mirah::AST
     end
 
     def self.extract_values
-      values = self.__extracted = []
+      values = []
+      saved, self.__extracted = self.__extracted, values
       begin
         yield
         return values
       ensure
-        self.__extracted = nil
+        self.__extracted = saved
       end
     end
 
     def self.inject_values(values)
-      self.__injected = values
+      saved, self.__injected = self.__injected, values
       begin
         yield
       ensure
-        self.__injected = nil
+        self.__injected = saved
       end
     end
   end
@@ -101,6 +94,8 @@ module Mirah::AST
         value
       when Named
         value.name
+      when Node
+        value.string_value
       else
         raise "Bad unquote value #{value}"
       end
@@ -128,8 +123,8 @@ module Mirah::AST
       case value
       when Arguments, Argument
         value
-      when Named
-        RequiredArgument.new(nil, position, value.name)
+      when Node
+        RequiredArgument.new(nil, position, value.string_value)
       when ::String
         RequiredArgument.new(nil, position, value)
       else
@@ -143,7 +138,7 @@ module Mirah::AST
     child :value
 
     def infer(typer)
-      raise "UnquoteAssign used outside of macro"
+      raise Mirah::SyntaxError.new("UnquoteAssign used outside of macro")
     end
 
     def _dump(depth)
@@ -172,6 +167,12 @@ module Mirah::AST
     end
 
     def node
+      if ScopedBody === self.name_node
+        scope = name_node
+        name_node = scope.children[0]
+      else
+        name_node = self.name_node
+      end
       klass = LocalAssignment
       if Field === name_node
         name = name_node.name
@@ -182,7 +183,7 @@ module Mirah::AST
       elsif String === name_node
         name = name_node.literal
       elsif ::String === name_node
-        name = name
+        name = name_node
       else
         raise "Bad unquote value"
       end
@@ -193,7 +194,12 @@ module Mirah::AST
       n = klass.new(nil, position, name)
       n << value
       n.validate_children
-      return n
+      if scope
+        scope.children.clear
+        scope << n
+      else
+        return n
+      end
     end
 
     def f_arg
@@ -217,7 +223,7 @@ module Mirah::AST
 
     def initialize(parent, line_number, name, &block)
       super(parent, line_number, &block)
-      @name = name
+      self.name = name
     end
 
     def infer(typer)
@@ -270,12 +276,13 @@ module Mirah::AST
       new_factory = orig_factory.dup
       Mirah::AST.type_factory = new_factory
       ast = build_ast(name, parent, transformer)
-      puts ast.inspect if state.verbose
       classes = compile_ast(name, ast, transformer)
       loader = MirahClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)
       klass = loader.loadClass(name, true)
-      annotate(parent, name)
+      if state.save_extensions
+        annotate(parent, name)
+      end
       Mirah::AST.type_factory = orig_factory
       klass
     end
@@ -304,20 +311,29 @@ module Mirah::AST
     end
 
     def compile_ast(name, ast, transformer)
-      typer = Mirah::Typer::JVM.new(transformer)
-      typer.infer(ast)
-      typer.resolve(true)
+      begin
+        typer = Mirah::Typer::JVM.new(transformer)
+        typer.infer(ast)
+        typer.resolve(true)
+        typer.errors.each do |e|
+          raise e
+        end
+      ensure
+        puts ast.inspect if transformer.state.verbose
+      end
       compiler = Mirah::Compiler::JVM.new
       ast.compile(compiler, false)
       class_map = {}
       compiler.generate do |outfile, builder|
-        outfile = "#{transformer.destination}#{outfile}"
-        FileUtils.mkdir_p(File.dirname(outfile))
-        File.open(outfile, 'wb') do |f|
-          bytes = builder.generate
-          name = builder.class_name.gsub(/\//, '.')
-          class_map[name] = bytes
-          f.write(bytes)
+        bytes = builder.generate
+        name = builder.class_name.gsub(/\//, '.')
+        class_map[name] = bytes
+        if transformer.state.save_extensions
+          outfile = "#{transformer.destination}#{outfile}"
+          FileUtils.mkdir_p(File.dirname(outfile))
+          File.open(outfile, 'wb') do |f|
+            f.write(bytes)
+          end
         end
       end
       class_map
@@ -325,7 +341,7 @@ module Mirah::AST
 
     def build_ast(name, parent, transformer)
       # TODO should use a new type factory too.
-      
+
       ast = Mirah::AST.parse_ruby("begin;end")
       ast = transformer.transform(ast, nil)
 
@@ -372,6 +388,12 @@ module Mirah::AST
         [arg.name, type, arg.position]
       end
       m = extension.define_method(position, '_expand', node_type, *actual_args)
+      scope.static_scope.imports.each do |short, long|
+        m.static_scope.import(long, short)
+      end
+      scope.static_scope.search_packages.each do |package|
+        m.static_scope.import(package, '*')
+      end
       m.body = self.body
       ast.body = extension
       ast

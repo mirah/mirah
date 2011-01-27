@@ -716,7 +716,7 @@ module Mirah
             @method.dup
             n.compile(self, true)
             # TODO this feels like it should be in the node.compile itself
-            if n.inferred_type.primitive?
+            if n.inferred_type!.primitive?
               n.inferred_type.box(@method)
             end
             @method.invokeinterface java::util::List, "add", [@method.boolean, @method.object]

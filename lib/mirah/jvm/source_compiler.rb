@@ -218,7 +218,7 @@ module Mirah
       def this(method=nil)
         if method && method.static?
           method.declaring_class.name
-        elsif @self_scope && @self_scope.self_node
+        elsif @self_scope && @self_scope.self_node && @self_scope.self_node != :self
           scoped_local_name('self', @self_scope)
         else
           @static ? @class.class_name : 'this'

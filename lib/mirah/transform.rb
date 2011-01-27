@@ -15,16 +15,16 @@
 
 require 'base64'
 require 'jruby'
+require 'mirah/errors'
 
 module Mirah
   module Transform
-    class Error < StandardError
-      attr_reader :position, :cause
+    class Error < Mirah::MirahError
+      attr_reader :position
       def initialize(msg, position, cause=nil)
-        super(msg)
-        @position = position
-        @position = position.position if position.respond_to? :position
-        @cause = cause
+        position = position.position if position.respond_to? :position
+        super(msg, position)
+        self.cause = cause
       end
     end
 
@@ -145,14 +145,35 @@ module Mirah
         duby_node
       end
 
-      def dump_ast(node)
+      def dump_ast(node, call=nil)
         encoded = nil
         values = Mirah::AST::Unquote.extract_values do
           encoded = Base64.encode64(Marshal.dump(node))
         end
+        scope = call.scope.static_scope if call
         result = Mirah::AST::Array.new(nil, node.position)
-        result << Mirah::AST::String.new(result, node.position, encoded)
-        values.each {|value| result << value}
+        if encoded.size < 65535
+          result << Mirah::AST::String.new(result, node.position, encoded)
+        else
+          strings = Mirah::AST::StringConcat.new(result, node.position)
+          result << strings
+          while encoded.size >= 65535
+            chunk = encoded[0, 65535]
+            encoded[0, 65535] = ""
+            strings << Mirah::AST::String.new(strings, node.position, chunk)
+          end
+          strings << Mirah::AST::String.new(strings, node.position, encoded)
+        end
+        values.each do |value|
+          if call
+            scoped_value = Mirah::AST::ScopedBody.new(result, value.position)
+            scoped_value << value
+            scoped_value.static_scope = scope
+          else
+            scoped_value = value
+          end
+          result << scoped_value
+        end
         return result
       end
 
@@ -179,9 +200,33 @@ module Mirah
         node
       end
 
-      def constant(name)
+      def constant(name, array=false)
         node = eval("Foo")
         node.name = name
+        node.array = array
+        node
+      end
+
+      def cast(type, value)
+        if value.kind_of?(String)
+          value = Mirah::AST::Local.new(@extra_body, @extra_body.position, value)
+        end
+        fcall = eval("Foo()")
+        fcall.name = type
+        fcall.parameters = [value]
+        fcall
+      end
+
+      def string(value)
+        node = eval('"Foo"')
+        node.literal = value
+        node
+      end
+
+      def empty_array(type_node, size_node)
+        node = eval('int[0]')
+        node.type_node = type_node
+        node.size = size_node
         node
       end
 
@@ -204,6 +249,19 @@ module Mirah
 
       def define_class(position, name, &block)
         append_node Mirah::AST::ClassDefinition.new(@extra_body, position, name, &block)
+      end
+
+      def defineClass(name, superclass=nil)
+        define_class(@extra_body.position, name) do |class_def|
+          superclass = constant(superclass)
+          superclass.parent = class_def
+          [superclass, body(class_def)]
+        end
+      end
+
+      def body(parent=nil)
+        parent ||= @extra_body
+        Mirah::AST::Body.new(parent, parent.position)
       end
 
       def define_closure(position, name, enclosing_type)

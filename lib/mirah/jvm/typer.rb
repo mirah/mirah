@@ -42,7 +42,12 @@ module Mirah
       end
 
       def type_reference(scope, name, array=false, meta=false)
-        @factory.type(scope, name, array, meta)
+        begin
+          @factory.type(scope, name, array, meta)
+        rescue NameError => ex
+          known_types[name] = Mirah::AST.error_type
+          raise Mirah::InferenceError.wrap(ex, nil)
+        end
       end
 
       def name

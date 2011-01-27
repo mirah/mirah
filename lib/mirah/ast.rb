@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'delegate'
 require 'mirah/transform'
 require 'mirah/ast/scope'
 
@@ -79,20 +80,23 @@ module Mirah
       end
 
       def _dump(depth)
-        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @class_scope @typer)
+        to_skip = %w(@parent @newline @inferred_type @resolved @proxy @scope @class_scope @static_scope @typer)
         vars = {}
         instance_variables.each do |name|
           next if to_skip.include?(name)
           vars[name] = instance_variable_get(name)
           begin
-            Marshal.dump(vars[name]) if AST.verbose
+            Mirah::AST::Unquote.extract_values do
+              Marshal.dump(vars[name]) if AST.verbose
+            end
           rescue
             puts "#{self}: Failed to marshal #{name}"
+            puts inspect
             puts $!, $@
             raise $!
           end
         end
-        Marshal.dump(vars)
+          Marshal.dump(vars)
       end
 
       def self._load(vars)
@@ -156,13 +160,17 @@ module Mirah
                  end
                 str << "\n#{ary_child.inspect(indent + extra_indent + 1)}"
               }
-            elsif ::Hash === child
+            elsif ::Hash === child || ::String === child
               str << "\n#{indent_str} #{child.inspect}"
             else
               if Mirah::AST.verbose && Node === child && child.parent != self
                 str << "\n#{indent_str} (wrong parent)"
               end
-              str << "\n#{child.inspect(indent + extra_indent + 1)}"
+              begin
+                str << "\n#{child.inspect(indent + extra_indent + 1)}"
+              rescue ArgumentError => ex
+                str << "\n#{indent_str} #{child.inspect}"
+              end
             end
           end
         end
@@ -179,6 +187,10 @@ module Mirah
       end
 
       def to_s; simple_name; end
+
+      def string_value
+        raise Mirah::SyntaxError.new("Can't use #{self.class} as string literal")
+      end
 
       def [](index) children[index] end
 
@@ -233,6 +245,11 @@ module Mirah
       end
 
       def initialize_copy(other)
+        # bug: node is deferred, but it's parent isn't
+        #      parent gets duped
+        #      duped parent is inferred so it's children aren't
+        #      original node gets inferred, but not the duplicate child
+        @inferred_type = @resolved = nil
         @parent = nil
         @children = []
         other.children.each do |child|
@@ -249,7 +266,7 @@ module Mirah
 
       def inferred_type!
         unless @inferred_type
-          raise Mirah::Typer::InferenceError.new(
+          raise Mirah::InternalCompilerError.new(
               "Internal Error: #{self.class} never inferred", self)
         end
         inferred_type
@@ -270,10 +287,21 @@ module Mirah
     end
 
     module Named
-      attr_accessor :name
+      attr_reader :name
+
+      def name=(name)
+        if Node === name
+          name.parent = self
+        end
+        @name = name
+      end
 
       def to_s
         "#{super}(#{name})"
+      end
+
+      def string_value
+        name
       end
 
       def validate_name
@@ -298,6 +326,10 @@ module Mirah
 
       def to_s
         "#{super}(#{literal.inspect})"
+      end
+
+      def string_value
+        literal.to_s
       end
     end
 
@@ -332,29 +364,19 @@ module Mirah
       attr_accessor :array
 
       def initialize(parent, position, name)
-        @name = name
+        self.name = name
         super(parent, position, [])
       end
 
       def infer(typer)
         @inferred_type ||= begin
           # TODO lookup constant, inline if we're supposed to.
-          begin
-            typer.type_reference(scope, name, @array, true)
-          rescue NameError => ex
-            typer.known_types[@name] = Mirah::AST.error_type
-            raise ex
-          end
+          typer.type_reference(scope, name, @array, true)
         end
       end
 
       def type_reference(typer)
-        begin
-          typer.type_reference(scope, @name, @array)
-        rescue NameError => ex
-          typer.known_types[@name] = Mirah::AST.error_type
-          raise ex
-        end
+        typer.type_reference(scope, @name, @array)
       end
     end
 
@@ -427,6 +449,40 @@ module Mirah
       end
     end
 
+    class NodeProxy < DelegateClass(Node)
+      include Java::DubyLangCompiler::Node
+      def __inline__(node)
+        node.parent = parent
+        __setobj__(node)
+      end
+
+      def dup
+        value = __getobj__.dup
+        if value.respond_to?(:proxy=)
+          new = super
+          new.__setobj__(value)
+          new.proxy = new
+          new
+        else
+          value
+        end
+      end
+
+      def _dump(depth)
+        Marshal.dump(__getobj__)
+      end
+
+      def self._load(str)
+        value = Marshal.load(str)
+        if value.respond_to?(:proxy=)
+          proxy = NodeProxy.new(value)
+          proxy.proxy = proxy
+        else
+          value
+        end
+      end
+    end
+
     class TypeReference < Node
       include Named
       attr_accessor :array
@@ -436,7 +492,7 @@ module Mirah
 
       def initialize(name, array = false, meta = false, position=nil)
         super(nil, position)
-        @name = name
+        self.name = name
         @array = array
         @meta = meta
       end

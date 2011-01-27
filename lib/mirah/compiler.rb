@@ -23,6 +23,8 @@ module Mirah
           compiler.line(line_number)
           compiler.fixnum(inferred_type, literal)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -32,6 +34,8 @@ module Mirah
           compiler.line(line_number)
           compiler.regexp(literal)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -41,18 +45,24 @@ module Mirah
           compiler.line(line_number)
           compiler.string(literal)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class StringConcat
       def compile(compiler, expression)
         compiler.build_string(children, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class ToString
       def compile(compiler, expression)
         compiler.to_string(body, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -62,6 +72,8 @@ module Mirah
           compiler.line(line_number)
           compiler.float(inferred_type, literal)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -71,12 +83,16 @@ module Mirah
           compiler.line(line_number)
           compiler.boolean(literal)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class Array
       def compile(compiler, expression)
         compiler.array(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -84,6 +100,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.body(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -91,6 +109,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.scoped_body(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -98,6 +118,8 @@ module Mirah
       def compile(compiler, expression)
         # TODO: what does it mean for import to be an expression?
         compiler.import(short, long)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -107,6 +129,8 @@ module Mirah
           compiler.line(line_number)
           compiler.constant(self)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -115,6 +139,8 @@ module Mirah
         # TODO: what does it mean for printline to be an expression?
         compiler.line(line_number)
         compiler.print(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -128,6 +154,8 @@ module Mirah
             compiler.local(containing_scope, name, inferred_type)
           end
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -139,6 +167,8 @@ module Mirah
         else
           compiler.local_declare(containing_scope, name, type)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -150,6 +180,8 @@ module Mirah
         else
           compiler.local_assign(containing_scope, name, inferred_type, expression, value)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -157,6 +189,8 @@ module Mirah
       def compile(compiler, expression)
         # TODO: what does it mean for a script to be an expression? possible?
         compiler.define_main(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -164,12 +198,16 @@ module Mirah
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?
         compiler.define_method(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class ConstructorDefinition
       def compile(compiler, expression)
         compiler.constructor(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -177,6 +215,8 @@ module Mirah
       def compile(compiler, expression)
         # TODO: what does it mean for a method to be an expression?
         args.each {|arg| compiler.declare_argument(arg.name, arg.inferred_type)} if args
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -184,6 +224,8 @@ module Mirah
       def compile(compiler, expression)
         # TODO: what does it mean for a noop to be an expression
         # nothing
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -191,6 +233,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.branch(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -199,6 +243,8 @@ module Mirah
         # TODO: can a condition ever be an expression? I don't think it can...
         compiler.line(line_number)
         predicate.compile(compiler, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -206,6 +252,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.self_call(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -213,6 +261,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.call(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -220,6 +270,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.super_call(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -227,24 +279,32 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.loop(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class ClassDefinition
       def compile(compiler, expression)
         compiler.define_class(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class ClosureDefinition
       def compile(compiler, expression)
         compiler.define_closure(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
     class FieldDeclaration
       def compile(compiler, expression)
         compiler.field_declare(name, inferred_type, annotations, static)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -252,6 +312,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.field_assign(name, inferred_type, expression, value, annotations, static)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -261,6 +323,8 @@ module Mirah
         if expression
           compiler.field(name, inferred_type, annotations, static)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -272,6 +336,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.return(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -281,6 +347,8 @@ module Mirah
           compiler.line(line_number)
           compiler.empty_array(component_type, size)
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -290,6 +358,8 @@ module Mirah
           compiler.line(line_number)
           compiler.null
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -297,6 +367,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.break(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -304,6 +376,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.next(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -311,6 +385,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.redo(self)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -318,6 +394,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler._raise(exception)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -325,6 +403,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.rescue(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -332,6 +412,8 @@ module Mirah
       def compile(compiler, expression)
         compiler.line(line_number)
         compiler.ensure(self, expression)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -341,6 +423,8 @@ module Mirah
           compiler.line(line_number)
           compiler.compile_self
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
 
@@ -350,6 +434,8 @@ module Mirah
           compiler.line(line_number)
           compiler.binding_reference
         end
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
   end

@@ -18,12 +18,7 @@ module Mirah
     class JVMCompilerBase
       attr_accessor :filename, :method, :static, :class
 
-      class CompilationError < Exception
-        attr_accessor :node
-        def initialize(msg, node = nil)
-          super(msg)
-          @node = node
-        end
+      class CompilationError < Mirah::NodeError
       end
 
       def initialize
@@ -41,8 +36,7 @@ module Mirah
         begin
           ast.compile(self, expression)
         rescue => ex
-          Mirah.print_error(ex.message, ast.position)
-          raise ex
+          raise Mirah::InternalCompilerError.wrap(ex, ast)
         end
         log "Compilation successful!"
       end
@@ -196,8 +190,7 @@ module Mirah
           scope = body.static_scope
           declare_locals(scope)
           if scope != @self_scope
-            @self_scope = scope
-            if scope.self_node
+            if scope.self_node && scope.self_node != :self
               # FIXME This is a horrible hack!
               # Instead we should eliminate unused self's.
               unless scope.self_type.name == 'mirah.impl.Builtin'
@@ -205,6 +198,7 @@ module Mirah
                     scope, 'self', scope.self_type, false, scope.self_node)
               end
             end
+            @self_scope = scope
           end
         end
         # all except the last element in a body of code is treated as a statement
@@ -238,7 +232,7 @@ module Mirah
       alias float fixnum
 
       def compile_self
-        if @self_scope && @self_scope.self_node
+        if @self_scope && @self_scope.self_node && @self_scope.self_node != :self
           local(@self_scope, 'self', @self_scope.self_type)
         else
           real_self

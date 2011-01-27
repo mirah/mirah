@@ -21,6 +21,7 @@ require 'mirah/ast'
 require 'mirah/typer'
 require 'mirah/compiler'
 require 'mirah/env'
+require 'mirah/errors'
 begin
   require 'bitescript'
 rescue LoadError
@@ -54,6 +55,10 @@ module Mirah
   end
 
   def self.print_error(message, position)
+    if position.nil?
+      puts message
+      return
+    end
     puts "#{position.file}:#{position.start_line}: #{message}"
     file_offset = 0
     startline = position.start_line - 1
@@ -84,11 +89,13 @@ module Mirah
   class CompilationState
     def initialize
       BiteScript.bytecode_version = BiteScript::JAVA1_5
+      @save_extensions = true
     end
-    
+
     attr_accessor :verbose, :destination
     attr_accessor :version_printed
-    
+    attr_accessor :save_extensions
+
     def set_jvm_version(ver_str)
       case ver_str
       when '1.4'
@@ -114,7 +121,7 @@ class MirahClassLoader < java::security::SecureClassLoader
     super(parent)
     @class_map = class_map
   end
-  
+
   def findClass(name)
     if @class_map[name]
       bytes = @class_map[name].to_java_bytes
@@ -175,6 +182,12 @@ class MirahImpl
     else
       puts "No main found" unless @state.version_printed
     end
+  rescue Mirah::InternalCompilerError => ice
+    Mirah.print_error(ice.message, ice.position) if ice.node
+    raise ice
+  rescue Mirah::MirahError => ex
+    Mirah.print_error(ex.message, ex.position)
+    puts ex.backtrace if @state.verbose
   end
 
   def compile(*args)
@@ -184,6 +197,13 @@ class MirahImpl
       bytes = builder.generate
       File.open(filename, 'wb') {|f| f.write(bytes)}
     end
+  rescue Mirah::InternalCompilerError => ice
+    Mirah.print_error(ice.message, ice.position) if ice.position
+    puts "error on #{ice.node}(#{ice.node.object_id})"
+    raise ice
+  rescue Mirah::MirahError => ex
+    Mirah.print_error(ex.message, ex.position)
+    puts ex.backtrace if @state.verbose
   end
 
   def generate(args, &block)
@@ -245,6 +265,12 @@ class MirahImpl
     @error = @transformer.errors.size > 0
 
     ast
+  rescue Mirah::InternalCompilerError => ice
+    Mirah.print_error(ice.message, ice.position) if ice.node
+    raise ice
+  rescue Mirah::MirahError => ex
+    Mirah.print_error(ex.message, ex.position)
+    puts ex.backtrace if @state.verbose
   end
 
   def infer_asts(asts)
@@ -260,7 +286,7 @@ class MirahImpl
         puts "Inference Error:"
         typer.errors.each do |ex|
           if ex.node
-            Mirah.print_error(ex.message, ex.node.position)
+            Mirah.print_error(ex.message, ex.position)
           else
             puts ex.message
           end
@@ -272,20 +298,9 @@ class MirahImpl
   end
 
   def compile_ast(ast, &block)
-    begin
-      compiler = @compiler_class.new
-      ast.compile(compiler, false)
-      compiler.generate(&block)
-    rescue Exception => ex
-      if ex.respond_to? :node
-        Mirah.print_error(ex.message, ex.node.position)
-        puts ex.backtrace if @state.verbose
-        exit 1
-      else
-        raise ex
-      end
-    end
-
+    compiler = @compiler_class.new
+    ast.compile(compiler, false)
+    compiler.generate(&block)
   end
 
   def process_flags!(args)
@@ -332,6 +347,9 @@ class MirahImpl
       when '--version', '-v'
         args.shift
         print_version
+      when '--no-save-extensions'
+        args.shift
+        @state.save_extensions = false
       else
         puts "unrecognized flag: " + args[0]
         print_help
@@ -359,7 +377,7 @@ class MirahImpl
   -v, --version\t\tPrint the version of Mirah to the console
   -V, --verbose\t\tVerbose logging"
   end
-  
+
   def print_version
     puts "Mirah v#{Mirah::VERSION}"
     @state.version_printed = true

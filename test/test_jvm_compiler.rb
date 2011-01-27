@@ -71,7 +71,9 @@ class TestJVMCompiler < Test::Unit::TestCase
     @tmp_classes.clear
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    transformer = Mirah::Transform::Transformer.new(Mirah::CompilationState.new)
+    state = Mirah::CompilationState.new
+    state.save_extensions = false
+    transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(transformer)
@@ -2391,14 +2393,11 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_unquote
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
     return if self.class.name == 'TestJavacCompiler'
-    # TODO figure out why this fails to compile in the unittests but works
-    # otherwise.
-    return
-    script, cls = compile(<<-EOF)
-      import duby.lang.compiler.StringNode
+
+    script, cls = compile(<<-'EOF')
       class UnquoteMacros
         macro def make_attr(name_node, type)
-          name = StringNode(name_node).literal()
+          name = name_node.string_value
           quote do
             def `name`
               @`name`
@@ -2417,7 +2416,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       x.foo = 3
       puts x.foo
     EOF
-    assert_output("1\n3\n") {script.main(nil)}
+    assert_output("0\n3\n") {script.main(nil)}
   end
 
   def test_static_import
@@ -2499,6 +2498,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     map = cls.foo2
     assert_equal("A", map["a"])
     assert_equal("B", map["b"])
+
+    cls, = compile(<<-'EOF')
+      def set(b:Object)
+        map = { }
+        map["key"] = b
+        map["key"]
+      end
+    EOF
+
+    assert_equal("foo", cls.set("foo"))
   end
 
   def test_loop_in_ensure
@@ -2632,6 +2641,62 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("1\nFoo\n2\n") { cls.foo }
+  end
+
+  def test_scoped_self_through_method_call
+    cls, = compile(<<-EOF)
+      class ScopedSelfThroughMethodCall
+        def emptyMap
+          {}
+        end
+
+        def foo
+          emptyMap["a"] = "A"
+        end
+      end
+    EOF
+
+    # just make sure it can execute
+    m = cls.new.foo
+  end
+
+  def test_self_call_preserves_scope
+    cls, = compile(<<-EOF)
+      class SelfCallPreservesScope
+        def key
+          "key"
+        end
+        
+        def foo
+          map = {}
+          map[key] = "value"
+          map
+        end
+      end
+    EOF
+
+    map = cls.new.foo
+    assert_equal("value", map["key"])
+  end
+
+  def test_macro_hygene
+    cls, = compile(<<-EOF)
+      macro def doubleIt(arg)
+        quote do
+          x = `arg`
+          x = x + x
+          x
+        end
+      end
+
+      def foo
+        x = "1"
+        puts doubleIt(x)
+        puts x
+      end
+    EOF
+
+    assert_output("11\n1\n") {cls.foo}
   end
 
 end

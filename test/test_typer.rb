@@ -14,6 +14,9 @@
 # limitations under the License.
 
 require 'test/unit'
+
+$:.unshift File.join(File.dirname(__FILE__),'..','lib')
+
 require 'mirah'
 
 class TestTyper < Test::Unit::TestCase
@@ -198,7 +201,7 @@ class TestTyper < Test::Unit::TestCase
     # unresolved types for the foo, bar, and baz calls
     assert_raise(Typer::InferenceError) {typer.resolve(true)}
 
-    ast2 = AST.parse("def foo; 1; end; def bar; 1.0; end")[0]
+    ast2 = AST.parse("def foo; 1; end; def bar; 1.0; end")
 
     ast2.infer(typer)
     ast.infer(typer)

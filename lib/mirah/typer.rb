@@ -15,6 +15,7 @@
 
 require 'mirah/ast'
 require 'mirah/transform'
+require 'mirah/errors'
 
 module Mirah
   module Typer
@@ -26,13 +27,7 @@ module Mirah
       end
     end
 
-    class InferenceError < Exception
-      attr_accessor :node
-      def initialize(msg, node = nil)
-        super(msg)
-        @node = node
-      end
-    end
+    InferenceError = Mirah::InferenceError
 
     class BaseTyper
       include Mirah
@@ -302,7 +297,7 @@ module Mirah
           ex.node ||= node
           error(node, ex)
         rescue Exception => ex
-          error(node, ex.message, ex.backtrace)
+          raise Mirah::InternalCompilerError.wrap(ex, node)
         end
       end
 

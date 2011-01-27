@@ -96,7 +96,7 @@ module Mirah
                   @inferred_type = then_type.narrow(else_type)
                   resolved! if condition_type
                 else
-                  raise Typer::InferenceError.new("if statement with incompatible result types #{then_type} and #{else_type}")
+                  raise Mirah::Typer::InferenceError.new("if statement with incompatible result types #{then_type} and #{else_type}")
                 end
               end
             else
@@ -312,10 +312,6 @@ module Mirah
             typer.learn_local_type(static_scope, name, @type)
           end
           @inferred_type = typer.infer(body)
-
-          if (@inferred_type && !body.resolved?)
-            puts "#{body} not resolved"
-          end
 
           (@inferred_type && body.resolved?) ? resolved! : typer.defer(self)
         end

@@ -106,22 +106,26 @@ module Mirah::JVM::Types
     end
 
     def find_type(scope, name)
+      saved_ex = nil
       begin
         return get_type(name)
       rescue NameError => ex
-        raise ex if scope.nil?
+        saved_ex = ex
       end
 
-      imports = scope.static_scope.imports
-      if imports.include?(name)
-        name = imports[name] while imports.include?(name)
-        return get_type(name)
-      end
+      if scope
+        imports = scope.static_scope.imports
+        if imports.include?(name)
+          name = imports[name] while imports.include?(name)
+          return get_type(name)
+        end
 
-      # TODO support inner class names
-      if name !~ /\./
-        return package_search(name, scope)
+        # TODO support inner class names
+        if name !~ /\./
+          return package_search(name, scope)
+        end
       end
+      raise saved_ex
     end
 
     def package_search(name, scope)
@@ -141,7 +145,27 @@ module Mirah::JVM::Types
     def get_type(full_name)
       type = @known_types[full_name]
       return type.basic_type if type
-      type = Type.new(get_mirror(full_name)).load_extensions
+      begin
+        mirror = get_mirror(full_name)
+      rescue NameError => ex
+        if full_name =~ /^(.+)\.([^.]+)/
+          outer_name = $1
+          inner_name = $2
+          begin
+            outer_type = get_type(outer_name)
+            full_name = "#{outer_type.name}$#{inner_name}"
+          rescue NameError
+            raise ex
+          end
+          mirror = get_mirror(full_name)
+        else
+          raise ex
+        end
+      end
+      type = Type.new(mirror).load_extensions
+      if full_name.include? '$'
+        @known_types[full_name.gsub('$', '.')] = type
+      end
       @known_types[full_name] = type
     end
 

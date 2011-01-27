@@ -22,7 +22,6 @@ module Mirah::AST
       @short = short
       @long = long
       super(parent, line_number, [])
-      scope.static_scope.import(long, short)
     end
 
     def to_s
@@ -30,13 +29,11 @@ module Mirah::AST
     end
 
     def infer(typer)
-      begin
-        typer.type_reference(scope, @long)
-      rescue NameError => ex
-        typer.known_types[short] = Mirah::AST.error_type
-        raise ex
+      resolve_if(typer) do
+        scope.static_scope.import(long, short)
+        typer.type_reference(scope, @long) if short != '*'
+        typer.no_type
       end
-      typer.no_type
     end
   end
 
