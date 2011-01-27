@@ -57,14 +57,14 @@ module Mirah::AST
       end
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       unless @inferred_type
         @self_type ||= scope.static_scope.self_type
         receiver_type = @self_type
         should_defer = false
 
         parameter_types = parameters.map do |param|
-          typer.infer(param) || should_defer = true
+          typer.infer(param, true) || should_defer = true
         end
 
         parameter_types << Mirah::AST.block_type if block
@@ -78,14 +78,14 @@ module Mirah::AST
           elsif parameters.size == 0 && scope.static_scope.include?(name)
             @inlined = Local.new(parent, position, name)
             proxy.__inline__(@inlined)
-            return proxy.infer(typer)
+            return proxy.infer(typer, expression)
           else
             @inferred_type = typer.method_type(receiver_type, name,
                                                parameter_types)
             if @inferred_type.kind_of? InlineCode
               @inlined = @inferred_type.inline(typer.transformer, self)
               proxy.__inline__(@inlined)
-              return proxy.infer(typer)
+              return proxy.infer(typer, expression)
             end
           end
         end
@@ -158,12 +158,12 @@ module Mirah::AST
       args
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       unless @inferred_type
-        receiver_type = typer.infer(target)
+        receiver_type = typer.infer(target, true)
         should_defer = receiver_type.nil?
         parameter_types = parameters.map do |param|
-          typer.infer(param) || should_defer = true
+          typer.infer(param, true) || should_defer = true
         end
 
         parameter_types << Mirah::AST.block_type if block
@@ -174,7 +174,7 @@ module Mirah::AST
           if @inferred_type.kind_of? InlineCode
             @inlined = @inferred_type.inline(typer.transformer, self)
             proxy.__inline__(@inlined)
-            return proxy.infer(typer)
+            return proxy.infer(typer, expression)
           end
         end
 
@@ -257,14 +257,14 @@ module Mirah::AST
       call_parent.name
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       @self_type ||= scope.static_scope.self_type.superclass
 
       unless @inferred_type
         receiver_type = call_parent.defining_class.superclass
         should_defer = receiver_type.nil?
         parameter_types = parameters.map do |param|
-          typer.infer(param) || should_defer = true
+          typer.infer(param, true) || should_defer = true
         end
 
         unless should_defer

@@ -275,7 +275,7 @@ class MirahImpl
 
   def infer_asts(asts)
     typer = Mirah::Typer::JVM.new(@transformer)
-    asts.each {|ast| typer.infer(ast) }
+    asts.each {|ast| typer.infer(ast, true) }
     begin
       typer.resolve(false)
     ensure

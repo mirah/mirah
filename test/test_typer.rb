@@ -25,49 +25,49 @@ class TestTyper < Test::Unit::TestCase
   def test_fixnum
     ast = AST.parse("1")
 
-    assert_equal(AST::TypeReference.new("fixnum"), ast.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::TypeReference.new("fixnum"), ast.infer(Typer::Simple.new(:bar), true))
   end
 
   def test_float
     ast = AST.parse("1.0")
 
-    assert_equal(AST::TypeReference.new("float"), ast.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::TypeReference.new("float"), ast.infer(Typer::Simple.new(:bar), true))
   end
 
   def test_string
     ast = AST.parse("'foo'")
 
-    assert_equal(AST::TypeReference.new("string"), ast.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::TypeReference.new("string"), ast.infer(Typer::Simple.new(:bar), true))
   end
 
   def test_boolean
     ast1 = AST.parse("true")
     ast2 = AST.parse("false")
 
-    assert_equal(AST::TypeReference.new("boolean"), ast1.infer(Typer::Simple.new(:bar)))
-    assert_equal(AST::TypeReference.new("boolean"), ast2.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::TypeReference.new("boolean"), ast1.infer(Typer::Simple.new(:bar), true))
+    assert_equal(AST::TypeReference.new("boolean"), ast2.infer(Typer::Simple.new(:bar), true))
   end
 
   def test_body
     ast1 = AST.parse("'foo'; 1.0; 1")
     ast2 = AST.parse("begin; end")
 
-    assert_equal(AST::TypeReference.new("fixnum"), ast1.infer(Typer::Simple.new(:bar)))
-    assert_equal(AST::TypeReference::NullType, ast2.infer(Typer::Simple.new(:bar)))
+    assert_equal(AST::TypeReference.new("fixnum"), ast1.infer(Typer::Simple.new(:bar), true))
+    assert_equal(AST::TypeReference::NullType, ast2.infer(Typer::Simple.new(:bar), true))
   end
 
   def test_local
     ast1 = AST.parse("a = 1; a")
     typer = Typer::Simple.new :bar
 
-    ast1.infer(typer)
+    ast1.infer(typer, true)
 
     assert_equal(AST::TypeReference.new("fixnum"), typer.local_type(ast1.static_scope, 'a'))
     assert_equal(AST::TypeReference.new("fixnum"), ast1.body.children[0].inferred_type)
     assert_equal(AST::TypeReference.new("fixnum"), ast1.body.children[1].inferred_type)
 
     ast2 = AST.parse("b = a = 1")
-    ast2.infer(typer)
+    ast2.infer(typer, true)
 
     assert_equal(AST::TypeReference.new("fixnum"), typer.local_type(ast2.static_scope, 'a'))
     assert_equal(AST::TypeReference.new("fixnum"), ast2.body.children[0].inferred_type)
@@ -78,7 +78,7 @@ class TestTyper < Test::Unit::TestCase
       ast1 = AST.parse("#{def_foo}(a:string); end")
       typer = Typer::Simple.new :bar
 
-      ast1.infer(typer)
+      ast1.infer(typer, true)
 
       assert_nothing_raised {typer.resolve(true)}
       assert_nothing_raised {typer.resolve}
@@ -98,7 +98,7 @@ class TestTyper < Test::Unit::TestCase
       ast1 = AST.parse("#{def_foo}(a:string); a; end")
       typer = Typer::Simple.new :bar
 
-      ast1.infer(typer)
+      ast1.infer(typer, true)
 
       assert_equal(typer.string_type, typer.method_type(type, 'foo', [typer.string_type]))
       assert_equal(typer.string_type, typer.local_type(ast1.body[0].static_scope, 'a'))
@@ -109,7 +109,7 @@ class TestTyper < Test::Unit::TestCase
       typer = Typer::Simple.new :bar
 
       assert_raise(Typer::InferenceError) do
-        ast1.infer(typer)
+        ast1.infer(typer, true)
         typer.resolve(true)
       end
     end
@@ -122,13 +122,13 @@ class TestTyper < Test::Unit::TestCase
     typer.learn_method_type(typer.fixnum_type, "foo", [typer.fixnum_type], typer.string_type, [])
     assert_equal(typer.string_type, typer.method_type(typer.fixnum_type, "foo", [typer.fixnum_type]))
 
-    ast.infer(typer)
+    ast.infer(typer, true)
 
     assert_equal(typer.string_type, ast.inferred_type)
 
     ast = AST.parse("def bar(a:fixnum, b:string); 1.0; end; def baz; bar(1, 'x'); end")
 
-    ast.infer(typer)
+    ast.infer(typer, true)
     ast = ast.body
 
     assert_equal(typer.float_type, typer.method_type(typer.self_type, "bar", [typer.fixnum_type, typer.string_type]))
@@ -140,7 +140,7 @@ class TestTyper < Test::Unit::TestCase
     ast = AST.parse("def baz; bar(1, 'x'); end; def bar(a:fixnum, b:string); 1.0; end")
     typer = Typer::Simple.new("bar")
 
-    ast.infer(typer)
+    ast.infer(typer, true)
     ast = ast.body
 
     assert_equal(typer.default_type, typer.method_type(typer.self_type, "baz", []))
@@ -160,7 +160,7 @@ class TestTyper < Test::Unit::TestCase
     ast = AST.parse("def baz; bar(1, 1); end; def bar(a:fixnum, b:string); 1.0; end")
     typer = Typer::Simple.new("bar")
 
-    ast.infer(typer)
+    ast.infer(typer, true)
     ast = ast.body
 
     assert_equal(typer.default_type, typer.method_type(typer.self_type, "baz", []))
@@ -180,11 +180,12 @@ class TestTyper < Test::Unit::TestCase
     typer = Typer::Simple.new("bar")
 
     # incompatible body types
-    assert_raise(Typer::InferenceError) {ast.infer(typer)}
+    assert_raise(Typer::InferenceError) {ast.infer(typer, true)}
+    assert_nothing_raised {ast.infer(typer, false)}
 
     ast = AST.parse("if true; 1.0; else; 2.0; end").body[0]
 
-    assert_nothing_raised {ast.infer(typer); typer.resolve(true)}
+    assert_nothing_raised {ast.infer(typer, true); typer.resolve(true)}
 
     assert_equal(typer.boolean_type, ast.condition.inferred_type)
     assert_equal(typer.float_type, ast.body.inferred_type)
@@ -192,7 +193,7 @@ class TestTyper < Test::Unit::TestCase
 
     ast = AST.parse("if foo; bar; else; baz; end").body[0]
 
-    assert_nothing_raised {ast.infer(typer)}
+    assert_nothing_raised {ast.infer(typer, true)}
 
     assert_equal(typer.default_type, ast.condition.inferred_type)
     assert_equal(typer.default_type, ast.body.inferred_type)
@@ -203,8 +204,8 @@ class TestTyper < Test::Unit::TestCase
 
     ast2 = AST.parse("def foo; 1; end; def bar; 1.0; end")
 
-    ast2.infer(typer)
-    ast.infer(typer)
+    ast2.infer(typer, true)
+    ast.infer(typer, true)
 
     # unresolved types for the baz call
     assert_raise(Typer::InferenceError) {typer.resolve(true)}
@@ -217,8 +218,8 @@ class TestTyper < Test::Unit::TestCase
 
     ast2 = AST.parse("def baz; 2.0; end")
 
-    ast2.infer(typer)
-    ast.infer(typer)
+    ast2.infer(typer, true)
+    ast.infer(typer, true)
 
     assert_nothing_raised {typer.resolve(true)}
 
@@ -232,7 +233,7 @@ class TestTyper < Test::Unit::TestCase
     baz = cls.body[1]
 
     typer = Typer::Simple.new("script")
-    ast.infer(typer)
+    ast.infer(typer, true)
 
     assert_nothing_raised {typer.resolve(true)}
   end

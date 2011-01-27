@@ -77,7 +77,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(transformer)
-    ast.infer(typer)
+    ast.infer(typer, true)
     typer.resolve(true)
     compiler = Compiler::JVM.new
     compiler.compile(ast)
