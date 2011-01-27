@@ -247,7 +247,8 @@ module Mirah::AST
         end
         typer.infer_signature(self)
         forced_type = signature[:return]
-        inferred_type = body ? typer.infer(body, true) : typer.no_type
+        body_is_expression = (forced_type != typer.no_type)
+        inferred_type = body ? typer.infer(body, body_is_expression) : typer.no_type
 
         if inferred_type && arguments.inferred_type.all?
           actual_type = if forced_type.nil?
