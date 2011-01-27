@@ -2699,4 +2699,32 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_output("11\n1\n") {cls.foo}
   end
 
+  def test_wide_nonexpressions
+    script, cls1, cls2 = compile(<<-EOF)
+      class WideA
+        def a
+          2.5
+        end
+      end
+      
+      class WideB < WideA
+        def a
+          super
+          3.5
+        end
+      end
+      
+      def self.b
+        1.5
+      end
+      
+      1.5
+      WideA.new.a
+      WideB.new.a
+      b
+    EOF
+
+    script.main(nil)
+  end
+
 end
