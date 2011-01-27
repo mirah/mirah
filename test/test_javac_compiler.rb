@@ -62,7 +62,7 @@ class TestJavacCompiler < TestJVMCompiler
     name = "script" + System.nano_time.to_s
     ast  = AST.parse(code, name, true, transformer)
     typer = Typer::JVM.new(transformer)
-    ast.infer(typer)
+    ast.infer(typer, true)
     typer.resolve(true)
     compiler = Compiler::JavaSource.new
     ast.compile(compiler, false)

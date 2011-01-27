@@ -19,10 +19,10 @@ module Mirah::AST
       super(parent, line_number, &block)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         children.each do |kid|
-          kid.infer(typer)
+          kid.infer(typer, true)
         end
         @inferred_type = typer.array_type
       end
@@ -37,7 +37,7 @@ module Mirah::AST
       @literal = literal
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) {@inferred_type = typer.fixnum_type(@literal)}
     end
 
@@ -58,7 +58,7 @@ module Mirah::AST
       @literal = literal
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) {@inferred_type = typer.float_type(@literal)}
     end
   end
@@ -73,7 +73,7 @@ module Mirah::AST
       @literal = literal
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       return @inferred_type if resolved?
       resolved!
       @inferred_type ||= typer.regexp_type
@@ -90,7 +90,7 @@ module Mirah::AST
       @literal = literal
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       return @inferred_type if resolved?
       resolved!
       @inferred_type ||= typer.string_type
@@ -110,10 +110,10 @@ module Mirah::AST
       super(parent, position, &block)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       unless resolved?
         resolved = true
-        children.each {|node| node.infer(typer); resolved &&= node.resolved?}
+        children.each {|node| node.infer(typer, true); resolved &&= node.resolved?}
         resolved! if resolved
         @inferred_type ||= typer.string_type
       end
@@ -128,9 +128,9 @@ module Mirah::AST
       super(parent, position)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       unless resolved?
-        body.infer(typer)
+        body.infer(typer, true)
         resolved! if body.resolved?
         @inferred_type ||= typer.string_type
       end
@@ -148,7 +148,7 @@ module Mirah::AST
       @literal = literal
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       return @inferred_type if resolved?
       resolved!
       @inferred_type ||= typer.boolean_type
@@ -162,7 +162,7 @@ module Mirah::AST
       super(parent, line_number)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       return @inferred_type if resolved?
       resolved!
       @inferred_type ||= typer.null_type

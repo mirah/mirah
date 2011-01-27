@@ -22,16 +22,16 @@ module Mirah
         super(parent, line_number, &block)
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
-          @inferred_type = typer.infer(predicate)
+          @inferred_type = typer.infer(predicate, true)
           if @inferred_type && !@inferred_type.primitive?
             call = Call.new(parent, position, '!=') do |call|
               predicate.parent = call
               [predicate, [Null.new(call, position)]]
             end
             self.predicate = call
-            @inferred_type = typer.infer(predicate)
+            @inferred_type = typer.infer(predicate, true)
           end
 
           @inferred_type ? resolved! : typer.defer(self)
@@ -50,46 +50,22 @@ module Mirah
         super(parent, line_number, &block)
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
-          condition_type = typer.infer(condition)
+          condition_type = typer.infer(condition, true)
           unless condition_type
             typer.defer(condition)
           end
 
           # condition type is unrelated to body types, so we proceed with bodies
-          then_type = typer.infer(body) if body
+          then_type = typer.infer(body, expression) if body
+          else_type = typer.infer(self.else, expression) if self.else
 
-          if !then_type
-            # attempt to determine else branch
-            if self.else
-              else_type = typer.infer(self.else)
-
-              if !else_type
-                # we have neither type, defer until later
-                typer.defer(self)
-              else
-                # we have else but not then, defer only then and use else type for now
-                @inferred_type = else_type
-                if body
-                  typer.defer(self)
-                else
-                  resolved! if condition_type
-                end
-              end
-            else
-              # no then type could be inferred and no else body, defer for now
-              typer.defer(self)
-            end
-          else
-            if self.else
-              else_type = typer.infer(self.else)
-
-              if !else_type
-                # we determined a then type, so we use that and defer the else body
-                @inferred_type = then_type
-                typer.defer(self)
-              else
+          if expression
+            have_body_type = body.nil? || then_type
+            have_else_type = self.else.nil? || else_type
+            if have_body_type && have_else_type
+              if then_type && else_type
                 # both then and else inferred, ensure they're compatible
                 if then_type.compatible?(else_type)
                   # types are compatible...if condition is resolved, we're done
@@ -98,12 +74,16 @@ module Mirah
                 else
                   raise Mirah::Typer::InferenceError.new("if statement with incompatible result types #{then_type} and #{else_type}")
                 end
+              else
+                @inferred_type = then_type || else_type
+                resolved!
               end
             else
-              # only then and type inferred, we're 100% resolved
-              @inferred_type = then_type
-              resolved! if condition_type
+              typer.defer(self)
             end
+          else
+            @inferred_type = typer.no_type
+            resolved!
           end
         end
 
@@ -136,13 +116,13 @@ module Mirah
         end
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
           child_types = children.map do |c|
             if c.nil? || (Body === c && c.empty?)
               typer.no_type
             else
-              typer.infer(c)
+              typer.infer(c, true)
             end
           end
           if child_types.any? {|t| t.nil?}
@@ -211,10 +191,10 @@ module Mirah
         super(parent, line_number, &block)
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         resolve_if(typer) do
           if value
-            typer.infer(value)
+            typer.infer(value, true)
           else
             typer.no_type
           end
@@ -223,7 +203,7 @@ module Mirah
     end
 
     class Break < Node;
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
           resolved!
           @inferred_type = typer.null_type
@@ -245,12 +225,12 @@ module Mirah
         super(parent, line_number, &block)
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
           @inferred_type = AST.unreachable_type
           throwable = AST.type(nil, 'java.lang.Throwable')
           if children.size == 1
-            arg_type = typer.infer(self.exception)
+            arg_type = typer.infer(self.exception, true)
             unless arg_type
               typer.defer(self)
               return
@@ -261,7 +241,7 @@ module Mirah
             end
           end
 
-          arg_types = children.map {|c| typer.infer(c)}
+          arg_types = children.map {|c| typer.infer(c, true)}
           if arg_types.any? {|c| c.nil?}
             typer.defer(self)
           else
@@ -275,7 +255,7 @@ module Mirah
             end
             resolved!
             @children = [exception]
-            typer.infer(exception)
+            typer.infer(exception, true)
           end
         end
         @inferred_type
@@ -302,7 +282,7 @@ module Mirah
         end
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
           @types ||= type_nodes.map {|n| n.type_reference(typer)}
           if name
@@ -311,7 +291,7 @@ module Mirah
             @type = types.size == 1 ? types[0] : AST.type(nil, 'java.lang.Throwable')
             typer.learn_local_type(static_scope, name, @type)
           end
-          @inferred_type = typer.infer(body)
+          @inferred_type = typer.infer(body, true)
 
           (@inferred_type && body.resolved?) ? resolved! : typer.defer(self)
         end
@@ -340,9 +320,9 @@ module Mirah
         @body, @clauses = children
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         unless resolved?
-          types = [typer.infer(body)] + clauses.map {|c| typer.infer(c)}
+          types = [typer.infer(body, true )] + clauses.map {|c| typer.infer(c, true)}
           if types.any? {|t| t.nil?}
             typer.defer(self)
           else
@@ -358,16 +338,16 @@ module Mirah
     class Ensure < Node
       child :body
       child :clause
-      attr_accessor :state  # Used by the some compilers.
+      attr_accessor :state  # Used by some compilers.
 
       def initialize(parent, position, &block)
         super(parent, position, &block)
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         resolve_if(typer) do
-          typer.infer(clause)
-          typer.infer(body)
+          typer.infer(clause, false)
+          typer.infer(body, true)
         end
       end
     end

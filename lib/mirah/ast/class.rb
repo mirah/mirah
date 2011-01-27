@@ -105,14 +105,14 @@ module Mirah::AST
       append_node(field)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         @superclass = superclass_node.type_reference(typer) if superclass_node
-        @annotations.each {|a| a.infer(typer)} if @annotations
+        @annotations.each {|a| a.infer(typer, true)} if @annotations
         @interfaces.concat(@interface_nodes.map{|n| n.type_reference(typer)})
         typer.define_type(self, name, superclass, @interfaces) do
           static_scope.self_type = typer.self_type
-          typer.infer(body) if body
+          typer.infer(body, false) if body
         end
       end
     end
@@ -154,7 +154,7 @@ module Mirah::AST
       @children = yield(self)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         @interfaces = interface_nodes.map {|i| i.type_reference(typer)}
         super
@@ -216,9 +216,9 @@ module Mirah::AST
       @static = static
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
-        @annotations.each {|a| a.infer(typer)} if @annotations
+        @annotations.each {|a| a.infer(typer, true)} if @annotations
         @type = type_node.type_reference(typer)
       end
     end
@@ -249,13 +249,13 @@ module Mirah::AST
       @static = static
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
-        @annotations.each {|a| a.infer(typer)} if @annotations
+        @annotations.each {|a| a.infer(typer, true)} if @annotations
         if static
-          typer.learn_static_field_type(class_scope, name, typer.infer(value))
+          typer.learn_static_field_type(class_scope, name, typer.infer(value, true))
         else
-          typer.learn_field_type(class_scope, name, typer.infer(value))
+          typer.learn_field_type(class_scope, name, typer.infer(value, true))
         end
       end
     end
@@ -275,9 +275,9 @@ module Mirah::AST
       @static = static
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
-        @annotations.each {|a| a.infer(typer)} if @annotations
+        @annotations.each {|a| a.infer(typer, true)} if @annotations
         if static
           typer.static_field_type(class_scope, name)
         else
@@ -297,7 +297,7 @@ module Mirah::AST
       class_scope.current_access_level = name.to_sym
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       typer.no_type
     end
   end
@@ -305,7 +305,7 @@ module Mirah::AST
   class Include < Node
     include Scoped
 
-    def infer(typer)
+    def infer(typer, expression)
       children.each do |type|
         typeref = type.type_reference(typer)
         the_scope = scope.static_scope

@@ -102,7 +102,7 @@ class TestAst < Test::Unit::TestCase
   def test_local_typed
     new_ast = AST.parse("a = 1").body[0]
     typer = Typer::Simple.new(:bar)
-    new_ast.infer(typer)
+    new_ast.infer(typer, true)
     new_ast.compile(@compiler, true)
 
     assert_equal([[:local_assign, a(Mirah::AST::StaticScope), "a", AST.type(nil, :fixnum), true, AST.fixnum(nil, nil, 1)]], @compiler.calls)

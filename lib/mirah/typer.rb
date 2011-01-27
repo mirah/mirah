@@ -290,9 +290,9 @@ module Mirah
         @deferred_nodes ||= {}
       end
 
-      def infer(node)
+      def infer(node, expression=true)
         begin
-          node.infer(self)
+          node.infer(self, expression)
         rescue InferenceError => ex
           ex.node ||= node
           error(node, ex)
