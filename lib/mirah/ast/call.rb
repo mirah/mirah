@@ -277,6 +277,25 @@ module Mirah::AST
 
       @inferred_type
     end
+
+    alias originial_parameters parameters
+
+    def parameters
+      if originial_parameters.nil?
+        self.parameters = default_parameters
+      end
+      originial_parameters
+    end
+
+    def default_parameters
+      node = self
+      node = node.parent until MethodDefinition === node || node.nil?
+      return [] if node.nil?
+      args = node.arguments.children.map {|x| x || []}
+      args.flatten.map do |arg|
+        Local.new(self, position, arg.name)
+      end
+    end
   end
 
   class BlockPass < Node

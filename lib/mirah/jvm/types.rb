@@ -146,6 +146,14 @@ module Mirah
           method.anewarray(self)
         end
 
+        def pop(method)
+          if wide?
+            method.pop2
+          else
+            method.pop
+          end
+        end
+
         def superclass
           raise "Incomplete type #{self}" unless jvm_type
           AST.type(nil, jvm_type.superclass) if jvm_type.superclass
