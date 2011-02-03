@@ -20,7 +20,7 @@ module Mirah::AST
   class Unquote < Node
     child :value
 
-    def infer(typer)
+    def infer(typer, expression)
       raise Mirah::SyntaxError.new("Unquote used outside of macro", self)
     end
 
@@ -137,7 +137,7 @@ module Mirah::AST
     child :name
     child :value
 
-    def infer(typer)
+    def infer(typer, expression)
       raise Mirah::SyntaxError.new("UnquoteAssign used outside of macro")
     end
 
@@ -226,7 +226,7 @@ module Mirah::AST
       self.name = name
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         self_type = scope.static_scope.self_type
         extension_name = "%s$%s" % [self_type.name,
@@ -245,7 +245,7 @@ module Mirah::AST
           self_type.add_method(name, arg_types, macro)
         end
         proxy.__inline__(Noop.new(parent, position))
-        proxy.infer(typer)
+        proxy.infer(typer, expression)
       end
     end
 
@@ -313,7 +313,7 @@ module Mirah::AST
     def compile_ast(name, ast, transformer)
       begin
         typer = Mirah::Typer::JVM.new(transformer)
-        typer.infer(ast)
+        typer.infer(ast, false)
         typer.resolve(true)
         typer.errors.each do |e|
           raise e

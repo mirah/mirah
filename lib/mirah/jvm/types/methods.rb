@@ -207,11 +207,7 @@ module Mirah::JVM::Types
       end
 
       unless expression || void?
-        if return_type.wide?
-          compiler.method.pop2
-        else
-          compiler.method.pop
-        end
+        return_type.pop(compiler.method)
       end
     end
 
@@ -238,7 +234,7 @@ module Mirah::JVM::Types
       end
 
       unless expression || void?
-        compiler.method.pop
+        return_type.pop(compiler.method)
       end
     end
   end
@@ -255,7 +251,7 @@ module Mirah::JVM::Types
       # TODO: inference phase needs to track that signature is void
       # but actual type is null object
       compiler.method.aconst_null if expression && void?
-      compiler.method.pop unless expression || void?
+      return_type.pop(compiler.method) unless expression || void?
     end
   end
 
@@ -290,7 +286,7 @@ module Mirah::JVM::Types
         [return_type, target, *@types])
 
       unless expression
-        compiler.method.pop
+        return_type.pop(compiler.method)
       end
 
       compiler.bootstrap_dynamic

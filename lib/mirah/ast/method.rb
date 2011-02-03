@@ -25,9 +25,9 @@ module Mirah::AST
       super(parent, line_number, &block)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       unless resolved?
-        @inferred_type = args ? args.map {|arg| typer.infer(arg)} : []
+        @inferred_type = args ? args.map {|arg| typer.infer(arg, true)} : []
         if @inferred_type.all?
           resolved!
         else
@@ -118,7 +118,7 @@ module Mirah::AST
       self.name = name
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name
         # if not already typed, check parent of parent (MethodDefinition)
@@ -147,14 +147,14 @@ module Mirah::AST
       self.name = name
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name
         # if not already typed, check parent of parent (MethodDefinition)
         # for signature info
         method_def = parent.parent
         signature = method_def.signature
-        value_type = value.infer(typer)
+        value_type = value.infer(typer, true)
         declared_type = type_node.type_reference(typer) if type_node
         signature[name.intern] = declared_type || value_type
       end
@@ -171,7 +171,7 @@ module Mirah::AST
       self.name = name
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       scope.static_scope << name
       super
     end
@@ -189,7 +189,7 @@ module Mirah::AST
       self.name = name
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       scope.static_scope << name
       super
     end
@@ -225,7 +225,7 @@ module Mirah::AST
       super
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         @defining_class ||= begin
           static_scope.self_node = :self
@@ -235,8 +235,8 @@ module Mirah::AST
             scope.static_scope.self_type
           end
         end
-        @annotations.each {|a| a.infer(typer)} if @annotations
-        typer.infer(arguments)
+        @annotations.each {|a| a.infer(typer, true)} if @annotations
+        typer.infer(arguments, true)
         if @return_type.kind_of?(UnquotedValue)
           @return_type = @return_type.node
           @return_type.parent = self
@@ -247,7 +247,8 @@ module Mirah::AST
         end
         typer.infer_signature(self)
         forced_type = signature[:return]
-        inferred_type = body ? typer.infer(body) : typer.no_type
+        body_is_expression = (forced_type != typer.no_type)
+        inferred_type = body ? typer.infer(body, body_is_expression) : typer.no_type
 
         if inferred_type && arguments.inferred_type.all?
           actual_type = if forced_type.nil?
@@ -289,7 +290,7 @@ module Mirah::AST
             arguments.args.each do |arg|
               if OptionalArgument === arg
                 arg_types_for_opt = args_for_opt.map do |arg_for_opt|
-                  arg_for_opt.infer(typer)
+                  arg_for_opt.infer(typer, true)
                 end
                 typer.learn_method_type(defining_class, name, arg_types_for_opt, type, signature[:throws])
               end
@@ -367,9 +368,9 @@ module Mirah::AST
       self.first_node = Noop.new(self, position) if @delegate_args
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       unless @inferred_type
-        delegate_args.each {|a| typer.infer(a)} if delegate_args
+        delegate_args.each {|a| typer.infer(a, true)} if delegate_args
       end
       super
     end

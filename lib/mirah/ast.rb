@@ -282,7 +282,7 @@ module Mirah
         @resolved = true
       end
 
-      def infer(typer)
+      def infer(typer, expression)
       end
     end
 
@@ -368,7 +368,7 @@ module Mirah
         super(parent, position, [])
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         @inferred_type ||= begin
           # TODO lookup constant, inline if we're supposed to.
           typer.type_reference(scope, name, @array, true)
@@ -382,7 +382,7 @@ module Mirah
 
     class Self < Node
       include Scoped
-      def infer(typer)
+      def infer(typer, expression)
         @inferred_type ||= scope.static_scope.self_type
       end
     end
@@ -422,7 +422,7 @@ module Mirah
         @values[name]
       end
 
-      def infer(typer)
+      def infer(typer, expression)
         @inferred ||= begin
           @name = name_node.type_reference(typer).name if name_node
           @values.each do |name, value|

@@ -22,14 +22,18 @@ module Mirah::AST
     end
 
     # Type of a block is the type of its final element
-    def infer(typer)
+    def infer(typer, expression)
       unless @inferred_type
         @typer ||= typer
         @self_type ||= typer.self_type
         if children.size == 0
           @inferred_type = typer.no_type
         else
-          children.each {|child| @inferred_type = typer.infer(child)}
+          last = children.size - 1
+          children.each_with_index do |child, i|
+            child_is_expression = (i == last && expression)
+            @inferred_type = typer.infer(child, child_is_expression)
+          end
         end
 
         if @inferred_type
@@ -55,7 +59,7 @@ module Mirah::AST
       if @typer
         orig_self = @typer.self_type
         @typer.known_types['self'] = @self_type
-        @typer.infer(node)
+        @typer.infer(node, true)
         @typer.known_types['self'] = orig_self
       end
       self
@@ -76,7 +80,7 @@ module Mirah::AST
       super(parent, line_number, &block)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       static_scope.self_type = scope.static_scope.self_type.meta
       super
     end
@@ -86,7 +90,7 @@ module Mirah::AST
     include Scope
     include Scoped
 
-    def infer(typer)
+    def infer(typer, expression)
       static_scope.self_type ||= typer.self_type
       super
     end
@@ -152,7 +156,7 @@ module Mirah::AST
 
       # TODO We need a special scope here that allows access to the
       # outer class.
-      static_scope.self_type = typer.infer(klass)
+      static_scope.self_type = typer.infer(klass, true)
 
       add_methods(klass, binding, typer)
 
@@ -164,7 +168,7 @@ module Mirah::AST
       ]
       call.parameters << instance
       call.block = nil
-      typer.infer(instance)
+      typer.infer(instance, true)
     end
 
     def add_methods(klass, binding, typer)
@@ -202,7 +206,7 @@ module Mirah::AST
         mdef.static_scope = static_scope
         mdef.body = body.dup
         mdef.binding_type = binding
-        typer.infer(mdef.body)
+        typer.infer(mdef.body, true)
       end
     end
 
@@ -224,14 +228,14 @@ module Mirah::AST
       @inferred_type = type
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolved! unless resolved?
       @inferred_type
     end
   end
 
   class Noop < Node
-    def infer(typer)
+    def infer(typer, expression)
       resolved!
       @inferred_type ||= typer.no_type
     end
@@ -250,13 +254,13 @@ module Mirah::AST
       @package = ""
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         typer.set_filename(self, filename)
         @defining_class ||= begin
           static_scope.self_type = typer.self_type
         end
-        typer.infer(body)
+        typer.infer(body, false)
       end
     end
 

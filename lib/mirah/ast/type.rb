@@ -28,7 +28,7 @@ module Mirah::AST
       "Import(#{short} = #{long})"
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope.import(long, short)
         typer.type_reference(scope, @long) if short != '*'
@@ -125,17 +125,17 @@ module Mirah::AST
       super(*args)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         @component_type = type_node.type_reference(typer)
-        typer.infer(size)
+        typer.infer(size, true)
         typer.type_reference(nil, @component_type, true)
       end
     end
   end
 
   class Builtin < Node
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) {Mirah::AST.type(nil, 'mirah.impl.Builtin')}
     end
   end

@@ -107,7 +107,7 @@ module Mirah::AST
       compiler.define_jsni_method(self)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       @static ||= scope.static_scope.self_type.meta? unless scope.nil?
       @defining_class ||= begin
         static_scope.self_node = :self
@@ -118,7 +118,7 @@ module Mirah::AST
         end
       end
       resolve_if(typer) do
-        argument_types = typer.infer(arguments)
+        argument_types = typer.infer(arguments, true)
         if argument_types.all?
           typer.learn_method_type(defining_class, name, argument_types,
             signature[:return], signature[:throws])

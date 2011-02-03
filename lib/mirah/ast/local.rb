@@ -31,7 +31,7 @@ module Mirah::AST
       scope.static_scope.captured?(name)
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name
         @type = type_node.type_reference(typer)
@@ -64,10 +64,10 @@ module Mirah::AST
       "LocalAssignment(name = #{name}, scope = #{scope}, captured = #{captured? == true})"
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name
-        typer.infer(value)
+        typer.infer(value, true)
       end
     end
 
@@ -94,7 +94,7 @@ module Mirah::AST
       "Local(name = #{name}, scope = #{scope}, captured = #{captured? == true})"
     end
 
-    def infer(typer)
+    def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name
         typer.local_type(containing_scope, name)
