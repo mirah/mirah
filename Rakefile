@@ -61,7 +61,7 @@ file 'build/mirah/impl/MirahLexer.class' do
   end
 end
 
-file 'build/mirah/impl/Mirah.mirah' do
+file 'build/mirah/impl/Mirah.mirah' => 'src/mirah/impl/Mirah.mmeta' do
   ant.mkdir :dir => 'build/mirah/impl'
   runjava 'javalib/mmeta.jar', 'src/mirah/impl/Mirah.mmeta', 'build/mirah/impl/Mirah.mirah'
 end
