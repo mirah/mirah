@@ -883,7 +883,7 @@ parser MirahParser {
   }
 
   def parseInt(string:string, radix:int) {
-    Integer.valueOf(Integer.parseInt(string, radix))
+    Long.valueOf(Long.parseLong(string, radix))
   }
 
   def stringConcat(strings:Object) {
@@ -918,6 +918,7 @@ parser MirahParser {
   }
 
   def obj2ast(x:Object) {
+    returns Ast
     if x.kind_of?(Ast)
       Ast(x)
     elsif x.kind_of?(List)
@@ -925,7 +926,7 @@ parser MirahParser {
       if l.size == 0
         Ast(nil)
       elsif l.size == 1
-        obj2ast(l.get(0))
+        Ast(obj2ast(l.get(0)))
       else
         ast = Ast.new('Body', l)
         first = obj2ast(l.get(0))
@@ -942,6 +943,7 @@ parser MirahParser {
   }
 
   def addToBlock(a:Object, b:Object) {
+    returns Ast
     x = obj2ast(a)
     y = obj2ast(b)
     if x.nil?
@@ -972,8 +974,8 @@ parser MirahParser {
   }
 
   def negateFixnum(f:Object) {
-    n = Integer(Ast(f).get(1)).intValue
-    Integer.valueOf(-n)
+    n = Number(Ast(f).get(1)).longValue
+    Long.valueOf(-n)
   }
 
   def negateFloat(f:Object) {

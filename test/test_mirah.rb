@@ -33,6 +33,8 @@ class TestParsing < Test::Unit::TestCase
     assert_parse("[Script, [Fixnum, 15]]", '0o17')
     assert_parse("[Script, [Fixnum, 15]]", '0b1111')
     assert_parse("[Script, [Fixnum, 15]]", '0d15')
+    assert_parse("[Script, [Fixnum, -15]]", '-15')
+    assert_parse("[Script, [Fixnum, 2800088046]]", '2800088046')
     assert_fails "0_"
     assert_fails "0X"
     assert_fails "0b1_"

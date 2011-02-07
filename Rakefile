@@ -69,6 +69,8 @@ end
 directory 'dist'
 directory 'build/mirah/impl'
 
+# TODO this uses the mirah parser from the compiler, not the version we
+# just built.
 Rake::TestTask.new :test do |t|
   # t.libs << 'build/test'
   t.test_files = FileList['test/*.rb']
