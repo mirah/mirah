@@ -2727,4 +2727,25 @@ class TestJVMCompiler < Test::Unit::TestCase
     script.main(nil)
   end
 
+  def test_parameter_used_in_block
+    cls, = compile(<<-EOF)
+      def foo(x:String):void
+        thread = Thread.new do
+          puts "Hello \#{x}"
+        end
+        begin
+          thread.run
+          thread.join
+        rescue
+          puts "Uh Oh!"
+        end
+      end
+      
+      foo('there')
+    EOF
+    assert_output("Hello there\n") do
+      cls.main(nil)
+    end
+  end
+
 end

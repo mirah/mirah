@@ -120,6 +120,17 @@ module Mirah
           @method.new type
           @method.dup
           @method.invokespecial type, "<init>", [@method.void]
+          if scope.respond_to? :arguments
+            scope.arguments.args.each do |param|
+              name = param.name
+              param_type = param.inferred_type
+              if scope.static_scope.captured?(param.name)
+                @method.dup
+                type.load(@method, @method.local(name, param_type))
+                @method.putfield(type, name, param_type)
+              end
+            end
+          end
           type.store(@method, @method.local('$binding', type))
         end
         begin

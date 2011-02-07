@@ -231,7 +231,9 @@ module Mirah
       end
 
       def finish_declaration
+        raise if @stopped
         return if @declaration_finished
+
         @declaration_finished = true
         modifiers = "public#{' static' if @static}#{' abstract' if @abstract}"
         print "#{modifiers} class #{class_name} extends #{superclass.name}"
@@ -247,8 +249,8 @@ module Mirah
       end
 
       def stop
-        finish_declaration
         return if @stopped
+        finish_declaration
         @methods.each do |method|
           @out << method.out
         end
