@@ -92,8 +92,9 @@ module Mirah::AST
     def expr?(compiler)
       target.expr?(compiler) &&
           parameters.all? {|p| p.expr?(compiler)} &&
-          !method.return_type.kind_of?(Mirah::AST::InlineCode) &&
-          !method.return_type.void?
+          cast || (
+            !method.return_type.kind_of?(Mirah::AST::InlineCode) &&
+            !method.return_type.void?)
     end
 
     def precompile_target(compiler)

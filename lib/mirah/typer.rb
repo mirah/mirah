@@ -101,7 +101,7 @@ module Mirah
         AST::TypeReference::NullType
       end
 
-      def known_type(name)
+      def known_type(scope, name)
         @known_types[name]
       end
 

@@ -45,12 +45,14 @@ class TestJavacCompiler < TestJVMCompiler
         cls = loader.define_class(name[0..-6].tr('/', '.'), bytecode.to_java_bytes)
         classes << JavaUtilities.get_proxy_class(cls.name)
         @tmp_classes << name
-        @tmp_classes << classfile 
+        @tmp_classes << classfile
+        pattern = classfile.sub /\.class$/, '$*.class'
+        @tmp_classes.concat(Dir.glob(pattern))
       end
     end
     classes
   end
-  
+
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear

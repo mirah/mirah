@@ -2757,4 +2757,15 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_kind_of(java.util.HashSet, cls.foo)
   end
+
+  def test_colon2_cast
+    cls, = compile(<<-EOF)
+      def foo(x:Object)
+        java.util::Map.Entry(x)
+      end
+    EOF
+
+    entry = java.util.HashMap.new(:a => 1).entrySet.iterator.next
+    assert_equal(entry, cls.foo(entry))
+  end
 end

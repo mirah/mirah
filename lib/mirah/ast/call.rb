@@ -169,6 +169,21 @@ module Mirah::AST
         parameter_types << Mirah::AST.block_type if block
 
         unless should_defer
+          class_name, array = self.type_name(true)
+          if class_name && parameters.size == 1 && typer.known_type(scope, class_name)
+            # Support casts to fully-qualified names and inner classes.
+            begin
+              type = inferred_type = typer.type_reference(scope, class_name, array)
+              @inferred_type = type unless (type && type.error?)
+              if @inferred_type
+                # cast operation
+                resolved!
+                self.cast = true
+                return @inferred_type
+              end
+            rescue
+            end
+          end
           @inferred_type = typer.method_type(receiver_type, name,
                                              parameter_types)
           if @inferred_type.kind_of? InlineCode
@@ -203,6 +218,14 @@ module Mirah::AST
     end
 
     def type_reference(typer)
+      class_name, array = type_name
+      typer.type_reference(scope, class_name, array)
+    end
+
+    def type_name(force=false)
+      if !force && parameters && !parameters.empty?
+        return nil
+      end
       if name == "[]"
         # array type, top should be a constant; find the rest
         array = true
@@ -216,19 +239,27 @@ module Mirah::AST
       while !receiver.eql?(old_receiver)
         old_receiver = receiver
         case receiver
-        when Constant, FunctionalCall, Local, Annotation
+        when Constant, Local, Annotation
           elements.unshift(receiver.name)
+        when FunctionalCall
+          if receiver.parameters.nil? || receiver.parameters.empty?
+            elements.unshift(receiver.name)
+          else
+            return nil, nil
+          end
         when Call
-          elements.unshift(receiver.name)
-          receiver = receiver.target
+          if receiver.parameters.nil? || receiver.parameters.empty?
+            elements.unshift(receiver.name)
+            receiver = receiver.target
+          else
+            return nil, nil
+          end
         when String
           elements.unshift(receiver.literal)
         end
       end
 
-      # join and load
-      class_name = elements.join(".")
-      typer.type_reference(scope, class_name, array)
+      return elements.join("."), array
     end
   end
 
