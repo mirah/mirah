@@ -200,4 +200,10 @@ module Mirah::AST
       false
     end
   end
+
+  class Colon2
+    def expr?(compiler)
+      true
+    end
+  end
 end

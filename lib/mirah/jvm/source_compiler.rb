@@ -480,7 +480,7 @@ module Mirah
 
       def call(call, expression)
         return cast(call, expression) if call.cast?
-        if Mirah::AST::Constant === call.target
+        if Mirah::AST::Constant === call.target || Mirah::AST::Colon2 === call.target
           target = call.target.inferred_type.to_source
         else
           target = call.precompile_target(self)

@@ -356,8 +356,6 @@ module Mirah
       end
     end
 
-    class Colon2 < Node; end
-
     class Constant < Node
       include Named
       include Scoped

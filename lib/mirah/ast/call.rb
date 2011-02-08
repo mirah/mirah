@@ -232,6 +232,15 @@ module Mirah::AST
     end
   end
 
+
+  class Colon2 < Call
+    def infer(typer, expression)
+      resolve_if(typer) do
+        type_reference(typer).meta
+      end
+    end
+  end
+
   class Super < Node
     include Named
     include Scoped

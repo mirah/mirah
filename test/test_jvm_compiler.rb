@@ -2748,4 +2748,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_colon2
+    cls, = compile(<<-EOF)
+      def foo
+        java.util::HashSet.new
+      end
+    EOF
+
+    assert_kind_of(java.util.HashSet, cls.foo)
+  end
 end
