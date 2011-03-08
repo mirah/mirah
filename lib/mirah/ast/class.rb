@@ -54,11 +54,6 @@ module Mirah::AST
       node
     end
 
-    def define_inner_class(position, name, &block)
-      name = "#{self.name}$#{name}"
-      append_node ClassDefinition.new(nil, position, name, &block)
-    end
-
     def define_method(position, name, type, *args)
       append_node(_define_method(MethodDefinition, position, name, type, args))
     end

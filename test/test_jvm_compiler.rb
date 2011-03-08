@@ -2727,4 +2727,34 @@ class TestJVMCompiler < Test::Unit::TestCase
     script.main(nil)
   end
 
+  def test_parameter_used_in_block
+    cls, = compile(<<-EOF)
+      def foo(x:String):void
+        thread = Thread.new do
+          puts "Hello \#{x}"
+        end
+        begin
+          thread.run
+          thread.join
+        rescue
+          puts "Uh Oh!"
+        end
+      end
+      
+      foo('there')
+    EOF
+    assert_output("Hello there\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_colon2
+    cls, = compile(<<-EOF)
+      def foo
+        java.util::HashSet.new
+      end
+    EOF
+
+    assert_kind_of(java.util.HashSet, cls.foo)
+  end
 end

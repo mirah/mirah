@@ -128,6 +128,14 @@ module Mirah
           type = scope.binding_type
           @binding = @bindings[type]
           @method.puts "#{type.to_source} $binding = new #{type.to_source}();"
+          if scope.respond_to? :arguments
+            scope.arguments.args.each do |param|
+              if scope.static_scope.captured?(param.name)
+                captured_local_declare(scope, param.name, param.inferred_type)
+                @method.puts "$binding.#{param.name} = #{param.name};"
+              end
+            end
+          end
         end
         begin
           yield
@@ -472,7 +480,7 @@ module Mirah
 
       def call(call, expression)
         return cast(call, expression) if call.cast?
-        if Mirah::AST::Constant === call.target
+        if Mirah::AST::Constant === call.target || Mirah::AST::Colon2 === call.target
           target = call.target.inferred_type.to_source
         else
           target = call.precompile_target(self)

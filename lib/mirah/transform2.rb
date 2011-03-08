@@ -337,6 +337,15 @@ module Mirah::AST
       Constant.new(parent, position(node), node[1])
     end
 
+    def transform_colon2const(node, parent)
+      name = node[2]
+      name = transform(name, nil) unless name.kind_of?(::String)
+      target = node[1]
+      Colon2.new(parent, position(node), name) do |colon2|
+        [ transform(target, colon2) ]
+      end
+    end
+
     def transform_identifier(node, parent)
       name = node[1]
       position = position(node)

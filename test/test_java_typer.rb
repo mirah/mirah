@@ -195,4 +195,14 @@ class TestJavaTyper < Test::Unit::TestCase
 
     assert_equal(AST.type(nil, 'byte'), java_typer.method_type(nil, ary, "[]", [int]))
   end
+
+  def test_int
+    ast = AST.parse("#{1 << 16}")
+    assert_equal(AST.type(nil, 'int'), ast.infer(@typer, true))
+  end
+
+  def test_long
+    ast = AST.parse("#{1 << 33}")
+    assert_equal(AST.type(nil, 'long'), ast.infer(@typer, true))
+  end
 end
