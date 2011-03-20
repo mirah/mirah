@@ -2,11 +2,19 @@ module Mirah
   class Impl
     def initialize
       Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+      @running = false
+    end
+    
+    def running?
+      @running
     end
     
     def run(*args)
       main = nil
       class_map = {}
+      
+      # we're running!
+      @running = true
       
       # generate all bytes for all classes
       generate(args) do |outfile, builder|
@@ -63,13 +71,16 @@ module Mirah
       
       # collect all ASTs from all files
       all_nodes = []
+      puts "Parsing..." unless running?
       expand_files(args).each do |duby_file|
         if duby_file == '-e'
           @filename = '-e'
           next
         elsif @filename == '-e'
+          puts "  <inline script>" unless running?
           all_nodes << parse('-e', duby_file)
         else
+          puts "  #{duby_file}" unless running?
           all_nodes << parse(duby_file)
         end
         @filename = nil
@@ -77,12 +88,17 @@ module Mirah
       end
       
       # enter all ASTs into inference engine
+      puts "Inferring types..." unless running?
       infer_asts(all_nodes)
       
       # compile each AST in turn
+      puts "Compiling..." unless running?
       all_nodes.each do |ast|
+        puts "  #{ast.position.file}" unless running?
         compile_ast(ast, &block)
       end
+      
+      puts "Done!" unless running?
     end
     
     def parse(*args)
