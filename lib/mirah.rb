@@ -94,6 +94,7 @@ module Mirah
 
     attr_accessor :verbose, :destination
     attr_accessor :version_printed
+    attr_accessor :help_printed
     attr_accessor :save_extensions
 
     def set_jvm_version(ver_str)
@@ -180,7 +181,7 @@ class MirahImpl
         raise e
       end
     else
-      puts "No main found" unless @state.version_printed
+      puts "No main found" unless @state.version_printed || @state.help_printed
     end
   rescue Mirah::InternalCompilerError => ice
     Mirah.print_error(ice.message, ice.position) if ice.node
@@ -323,7 +324,7 @@ class MirahImpl
         Mirah::AST::Script.explicit_packages = true
       when '--help', '-h'
         print_help
-        exit(0)
+        args.clear
       when '--java', '-j'
         require 'mirah/jvm/source_compiler'
         @compiler_class = Mirah::Compiler::JavaSource
@@ -353,7 +354,7 @@ class MirahImpl
       else
         puts "unrecognized flag: " + args[0]
         print_help
-        exit(1)
+        args.clear
       end
     end
     @state.destination ||= File.join(File.expand_path('.'), '')
@@ -361,7 +362,7 @@ class MirahImpl
   end
 
   def print_help
-    puts "#{$0} [flags] <files or \"-e SCRIPT\">
+    puts "#{$0} [flags] <files or -e SCRIPT>
   -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
   --cd DIR\t\tSwitch to the specified DIR befor compilation
   -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
@@ -370,12 +371,13 @@ class MirahImpl
   --explicit-packages\tRequire explicit 'package' lines in source
   -h, --help\t\tPrint this help message
   -I DIR\t\tAdd DIR to the Ruby load path before running
-  -j, --java\t\tOutput .java source (jrubyc only)
+  -j, --java\t\tOutput .java source (compile mode only)
   --jvm VERSION\t\tEmit JVM bytecode targeting specified JVM
   \t\t\t  version (1.4, 1.5, 1.6, 1.7)
   -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running
   -v, --version\t\tPrint the version of Mirah to the console
   -V, --verbose\t\tVerbose logging"
+    @state.help_printed = true
   end
 
   def print_version
