@@ -36,7 +36,7 @@
             <goals><goal>exec</goal></goals>
             <configuration>
               <executable>/bin/sh</executable>
-              <workingDirectory>${base}</workingDirectory>
+              <workingDirectory>../..</workingDirectory>
               <arguments>
                 <argument>-c</argument>
                 <argument>

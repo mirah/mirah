@@ -28,6 +28,8 @@ class MirahCommand
       MirahCommand.compile(rb_args)
     when "run"
       MirahCommand.run(rb_args)
+    else
+      $stderr.puts "Usage: compile <script> or run <script>"
     end
   end
 
