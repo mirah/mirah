@@ -1,3 +1,11 @@
+=== 0.0.7 / 2011-03-20
+
+248368c Fix assignability of dynamic type; only target of Object should be allowed.
+9734853 Allow abstract interface methods also on Object to use Object impl. Fixes #54.
+13b84d2 Add some simple logging of compiler phases (not for run mode).
+7dad0eb Fix recursive examples, since we now do try to infer both branches of an If.
+27409a0 Reorg mirah.rb into a few additional files under lib/mirah.
+
 === 0.0.6 / 2011-03-20
 
 ce9b740 Update dynalink stuff, add JSR292 mock to enable compiling/including invokedynamic logic.
