@@ -188,7 +188,10 @@ module Mirah::AST
       # find all methods which would not otherwise be on java.lang.Object
       impl_methods = find_methods(klass.interfaces).select do |m|
         begin
-          obj_m = java.lang.Object.java_class.java_method m.name, *m.parameter_types
+          # Very cumbersome. Not sure how it got this way.
+          mirror = BiteScript::ASM::ClassMirror.for_name('java.lang.Object')
+          mtype = Mirah::JVM::Types::Type.new(mirror)
+          mtype.java_method m.name, *m.argument_types
         rescue NameError
           # not found on Object
           next true
