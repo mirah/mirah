@@ -277,7 +277,7 @@ module Mirah::AST
       Mirah::AST.type_factory = new_factory
       ast = build_ast(name, parent, transformer)
       classes = compile_ast(name, ast, transformer)
-      loader = MirahClassLoader.new(
+      loader = Mirah::ClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)
       klass = loader.loadClass(name, true)
       if state.save_extensions
