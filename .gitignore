@@ -6,3 +6,4 @@ Duby Plugin/nbproject/private
 examples/appengine/war/
 *.class
 target
+.redcar
