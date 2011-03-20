@@ -77,6 +77,11 @@ task :compile => :init do
       'mirah'
       )
   end
+  
+  # compile invokedynamic stuff
+  ant.javac :destdir => 'build', :srcdir => 'src',
+    :includes => 'org/mirah/DynalangBootstrap.java',
+    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar'
 end
 
 desc "build basic jar for distribution"
