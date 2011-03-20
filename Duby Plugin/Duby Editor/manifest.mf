@@ -1,6 +1,0 @@
-Manifest-Version: 1.0
-OpenIDE-Module: org.mirah.editor
-OpenIDE-Module-Layer: org/jruby/duby/editor/layer.xml
-OpenIDE-Module-Localizing-Bundle: org/jruby/duby/editor/Bundle.properties
-OpenIDE-Module-Specification-Version: 1.0
-
