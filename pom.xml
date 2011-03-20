@@ -12,7 +12,7 @@
   <groupId>org.mirah</groupId>
   <artifactId>shared</artifactId>
   <packaging>pom</packaging>
-  <version>0.5.dev</version>
+  <version>0.0.6-SNAPSHOT</version>
   <name>Mirah Shared</name>
   <url>http://mirah.org</url>
   <description>The Mirah Programming Language</description>
@@ -40,7 +40,7 @@
     <developer>
       <id>headius</id>
       <name>Charles Nutter</name>
-      <email>charles.o.nutter@sun.com</email>
+      <email>headius@headius.com</email>
     </developer>
     <!-- TODO: Add other developers -->
   </developers>

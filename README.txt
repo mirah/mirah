@@ -27,8 +27,8 @@ mirahc -java -e "inline script" # produces DashE.java
 
 == REQUIREMENTS:
 
-* JRuby 1.5.0 or higher.
-* BiteScript 0.0.5 or higher
+* JRuby 1.6.0 or higher.
+* BiteScript 0.0.8 or higher
 
 == INSTALL:
 
@@ -48,7 +48,6 @@ $ cd mirah
 $ rake gem
 $ gem install pkg/mirah-*
 $ cd -
-
 
 == For Java tools:
 
