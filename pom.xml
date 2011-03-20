@@ -12,7 +12,7 @@
   <groupId>org.mirah</groupId>
   <artifactId>shared</artifactId>
   <packaging>pom</packaging>
-  <version>0.0.6-SNAPSHOT</version>
+  <version>0.0.7-SNAPSHOT</version>
   <name>Mirah Shared</name>
   <url>http://mirah.org</url>
   <description>The Mirah Programming Language</description>
