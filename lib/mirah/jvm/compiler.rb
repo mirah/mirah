@@ -14,7 +14,7 @@
 # limitations under the License.
 
 require 'mirah'
-require 'mirah/jvm/base'
+require 'mirah/jvm/compiler/base'
 require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/types'
 require 'mirah/typer'
