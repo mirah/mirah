@@ -68,7 +68,7 @@ class TestJavacCompiler < TestJVMCompiler
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     name = "script" + System.nano_time.to_s
     ast  = AST.parse(code, name, true, transformer)
-    typer = Typer::JVM.new(transformer)
+    typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
     compiler = Compiler::JavaSource.new

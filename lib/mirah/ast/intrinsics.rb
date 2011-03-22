@@ -312,7 +312,8 @@ module Mirah::AST
 
     def compile_ast(name, ast, transformer)
       begin
-        typer = Mirah::Typer::JVM.new(transformer)
+        # FIXME: This is JVM specific, and should move out of platform-independent code
+        typer = Mirah::JVM::Typer.new(transformer)
         typer.infer(ast, false)
         typer.resolve(true)
         typer.errors.each do |e|
@@ -321,6 +322,7 @@ module Mirah::AST
       ensure
         puts ast.inspect if transformer.state.verbose
       end
+      # FIXME: This is JVM specific, and should move out of platform-independent code
       compiler = Mirah::Compiler::JVM.new
       ast.compile(compiler, false)
       class_map = {}

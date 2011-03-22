@@ -18,8 +18,8 @@ require 'mirah/jvm/types'
 require 'mirah/jvm/types/factory'
 
 module Mirah
-  module Typer
-    class JVM < Simple
+  module JVM
+    class Typer < Mirah::Typer::Simple
       include Mirah::JVM::Types
 
       attr_reader :transformer

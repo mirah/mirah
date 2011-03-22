@@ -16,7 +16,7 @@ class TestMacros < Test::Unit::TestCase
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = Mirah::AST.parse(code, name, true, transformer)
-    typer = Mirah::Typer::JVM.new(transformer)
+    typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
     ast

@@ -41,7 +41,7 @@ module Mirah
     end
       
     def infer_asts(nodes)
-      typer = Mirah::Typer::JVM.new(parser.transformer)
+      typer = Mirah::JVM::Typer.new(parser.transformer)
       nodes.each {|ast| typer.infer(ast, true) }
       begin
         typer.resolve(false)
