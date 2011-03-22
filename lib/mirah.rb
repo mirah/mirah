@@ -32,21 +32,21 @@ end
 require 'mirah/jvm/compiler'
 require 'mirah/jvm/typer'
 Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
-require 'mirah/impl'
-require 'mirah/compilation_state'
 require 'jruby'
+
+require 'mirah/commands'
 
 module Mirah
   def self.run(*args)
-    Impl.new.run(*args)
+    Mirah::Commands::Run.new.execute(*args)
   end
 
   def self.compile(*args)
-    Impl.new.compile(*args)
+    Mirah::Commands::Compile.new.execute(*args)
   end
 
   def self.parse(*args)
-    Impl.new.parse(*args)
+    Mirah::Commands::Parse.new.execute(*args)
   end
 
   def self.plugins
