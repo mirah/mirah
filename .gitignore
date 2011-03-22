@@ -7,3 +7,4 @@ examples/appengine/war/
 *.class
 target
 .redcar
+.DS_Store
