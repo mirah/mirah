@@ -13,11 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah/compiler/call'
-require 'mirah/compiler/class'
-require 'mirah/compiler/flow'
-require 'mirah/compiler/literal'
-require 'mirah/compiler/local'
-require 'mirah/compiler/method'
-require 'mirah/compiler/structure'
-require 'mirah/compiler/type'
+module Mirah
+  module AST
+    class Import
+      def compile(compiler, expression)
+        # TODO: what does it mean for import to be an expression?
+        compiler.import(short, long)
+      rescue Exception => ex
+        raise Mirah::InternalCompilerError.wrap(ex, self)
+      end
+    end
+  end
+end

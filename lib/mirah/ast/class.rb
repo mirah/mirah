@@ -307,8 +307,6 @@ module Mirah::AST
         the_scope.self_type = the_scope.self_type.include(typeref)
       end
     end
-
-    def compile(compiler, expression); end
   end
 
   defmacro("include") do |transformer, fcall, parent|
@@ -318,6 +316,28 @@ module Mirah::AST
         constant.parent = include_node
         constant
       end
+    end
+  end
+
+  class Constant < Node
+    include Named
+    include Scoped
+    attr_accessor :array
+
+    def initialize(parent, position, name)
+      self.name = name
+      super(parent, position, [])
+    end
+
+    def infer(typer, expression)
+      @inferred_type ||= begin
+        # TODO lookup constant, inline if we're supposed to.
+        typer.type_reference(scope, name, @array, true)
+      end
+    end
+
+    def type_reference(typer)
+      typer.type_reference(scope, @name, @array)
     end
   end
 end
