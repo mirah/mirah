@@ -8,7 +8,7 @@ module Mirah
         attr_writer :inner_class
 
         def log(message)
-          puts "* [JVM::Types] #{message}" if Mirah::Compiler::JVMBytecode.verbose
+          puts "* [JVM::Types] #{message}" if Mirah::JVM::Compiler::JVMBytecode.verbose
         end
 
         def initialize(mirror_or_name)

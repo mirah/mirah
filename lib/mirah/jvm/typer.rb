@@ -36,7 +36,7 @@ module Mirah
       end
 
       def set_filename(scope, filename)
-        classname = Mirah::Compiler::JVMBytecode.classname_from_filename(filename)
+        classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
         main_class = @factory.declare_type(scope, classname)
         @known_types['self'] = main_class.meta
       end

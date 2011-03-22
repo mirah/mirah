@@ -30,7 +30,7 @@ end
 module Mirah
   module JVM
     module Compiler
-      class JavaSource < Mirah::Compiler::JVMCompilerBase
+      class JavaSource < JVMCompilerBase
         JVMTypes = Mirah::JVM::Types
         attr_accessor :lvalue
 

@@ -65,7 +65,7 @@ module Mirah::JavaSource
   end
 end
 
-module Mirah::Compiler
+module Mirah::JVM::Compiler
   class JVMCompilerBase
     # arg_types must be an Array
     def create_method_builder(name, node, static, exceptions, return_type, arg_types)

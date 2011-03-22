@@ -323,7 +323,7 @@ module Mirah::AST
         puts ast.inspect if transformer.state.verbose
       end
       # FIXME: This is JVM specific, and should move out of platform-independent code
-      compiler = Mirah::Compiler::JVMBytecode.new
+      compiler = Mirah::JVM::Compiler::JVMBytecode.new
       ast.compile(compiler, false)
       class_map = {}
       compiler.generate do |outfile, builder|

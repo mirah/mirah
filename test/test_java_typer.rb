@@ -24,7 +24,7 @@ class TestJavaTyper < Test::Unit::TestCase
   def setup
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     @typer = Mirah::JVM::Typer.new(nil)
-    compiler = Mirah::Compiler::JVMBytecode.new
+    compiler = Mirah::JVM::Compiler::JVMBytecode.new
 
     @java_typer = Typer::JavaTyper.new
   end
