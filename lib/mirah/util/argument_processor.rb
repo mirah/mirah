@@ -46,7 +46,7 @@ module Mirah
             args.clear
           when '--java', '-j'
             require 'mirah/jvm/source_compiler'
-            state.compiler_class = Mirah::Compiler::JavaSource
+            state.compiler_class = Mirah::JVM::Compiler::JavaSource
             args.shift
           when '--jvm'
             args.shift

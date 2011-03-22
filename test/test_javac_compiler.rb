@@ -71,7 +71,7 @@ class TestJavacCompiler < TestJVMCompiler
     typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
-    compiler = Compiler::JavaSource.new
+    compiler = JVM::Compiler::JavaSource.new
     ast.compile(compiler, false)
     java_files = []
     compiler.generate do |name, builder|
