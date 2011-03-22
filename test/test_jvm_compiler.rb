@@ -2775,4 +2775,14 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_kind_of(java.util.HashSet, cls.foo)
   end
+  
+  def test_covariant_arrays
+    cls, = compile(<<-EOF)
+      puts java::util::Arrays.toString(String[5])
+    EOF
+    
+    assert_output("[null, null, null, null, null]\n") do
+      cls.main(nil)
+    end
+  end
 end

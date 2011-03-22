@@ -321,7 +321,19 @@ module Mirah
         end
 
         def superclass
-          Object
+          if component_type.primitive?
+            Object
+          elsif component_type.array?
+            # fix covariance here for arrays of arrays
+            # see #55
+            Object
+          else
+            if component_type == Object
+              Object
+            else
+              component_type.superclass.array_type
+            end
+          end
         end
 
         def interfaces
