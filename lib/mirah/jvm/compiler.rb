@@ -33,7 +33,7 @@ module Mirah
   end
 
   module Compiler
-    class JVM < JVMCompilerBase
+    class JVMBytecode < JVMCompilerBase
       java_import java.lang.System
       java_import java.io.PrintStream
       include Mirah::JVM::MethodLookup
@@ -43,7 +43,7 @@ module Mirah
         attr_accessor :verbose
 
         def log(message)
-          puts "* [#{name}] #{message}" if JVM.verbose
+          puts "* [#{name}] #{message}" if JVMBytecode.verbose
         end
 
         def classname_from_filename(filename)
@@ -53,7 +53,7 @@ module Mirah
       end
 
       module JVMLogger
-        def log(message); JVM.log(message); end
+        def log(message); JVMBytecode.log(message); end
       end
 
       class ImplicitSelf
@@ -860,7 +860,7 @@ module Mirah
         end
       end
 
-      class ClosureCompiler < Mirah::Compiler::JVM
+      class ClosureCompiler < Mirah::Compiler::JVMBytecode
         def initialize(file, type, parent)
           @file = file
           @type = type
@@ -896,14 +896,14 @@ end
 if __FILE__ == $0
   Mirah::Typer.verbose = true
   Mirah::AST.verbose = true
-  Mirah::Compiler::JVM.verbose = true
+  Mirah::Compiler::JVMBytecode.verbose = true
   ast = Mirah::AST.parse(File.read(ARGV[0]))
 
   typer = Mirah::Typer::Simple.new(:script)
   ast.infer(typer)
   typer.resolve(true)
 
-  compiler = Mirah::Compiler::JVM.new(ARGV[0])
+  compiler = Mirah::Compiler::JVMBytecode.new(ARGV[0])
   compiler.compile(ast)
 
   compiler.generate

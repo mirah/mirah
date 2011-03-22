@@ -41,7 +41,7 @@ module Mirah
         log "Compilation successful!"
       end
 
-      def log(message); JVM.log(message); end
+      def log(message); JVMBytecode.log(message); end
 
       def toplevel_class
         @class = @type.define(@file)
@@ -63,7 +63,7 @@ module Mirah
       def define_main(script)
         @static = true
         @filename = File.basename(script.filename)
-        classname = JVM.classname_from_filename(@filename)
+        classname = JVMBytecode.classname_from_filename(@filename)
         @type = AST.type(script, classname)
         @file = file_builder(@filename)
         body = script.body

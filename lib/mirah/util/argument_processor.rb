@@ -77,7 +77,7 @@ module Mirah
           end
         end
         state.destination ||= File.join(File.expand_path('.'), '')
-        state.compiler_class ||= Mirah::Compiler::JVM
+        state.compiler_class ||= Mirah::Compiler::JVMBytecode
       end
 
       def print_help

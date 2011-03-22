@@ -180,7 +180,7 @@ module Mirah
 
     class ClassBuilder
       include Helper
-      include Mirah::Compiler::JVM::JVMLogger
+      include Mirah::Compiler::JVMBytecode::JVMLogger
       attr_reader :package, :name, :superclass, :filename, :class_name, :out
       attr_reader :interfaces, :abstract
       def initialize(builder, name, superclass, interfaces, abstract)
