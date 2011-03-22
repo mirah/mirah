@@ -13,24 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah/errors'
-require 'mirah/typer/base'
-require 'mirah/typer/simple'
-
 module Mirah
   module Typer
-    class << self
-      attr_accessor :verbose
+    class Base
+      include Mirah
 
-      def log(message)
-        puts "* [#{name}] #{message}" if Typer.verbose
+      def log(message); Typer.log(message); end
+
+      def to_s
+        name
       end
     end
-
-    InferenceError = Mirah::InferenceError
-  end
-
-  def self.typer_plugins
-    @typer_plugins ||= []
   end
 end
