@@ -320,7 +320,7 @@ module Mirah::AST
           raise e
         end
       ensure
-        puts ast.inspect if transformer.state.verbose
+        puts ast.inspect if transformer.verbose?
       end
       # FIXME: This is JVM specific, and should move out of platform-independent code
       compiler = Mirah::JVM::Compiler::JVMBytecode.new

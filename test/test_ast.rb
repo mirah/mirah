@@ -357,10 +357,13 @@ class TestAst < Test::Unit::TestCase
   def test_empty_array
     new_ast = AST.parse("int[5]").body[0]
 
+    new_ast.infer(Typer::Simple.new(new_ast), true)
+
     assert_not_nil(new_ast)
     assert(AST::EmptyArray === new_ast)
     assert_equal(5, new_ast.size.literal)
-    assert_equal(AST.type(:int), new_ast.inferred_type)
+    array_of_int = AST.type(nil, AST.type(nil, :int), true)
+    assert_equal(array_of_int, new_ast.inferred_type!)
   end
 
   def test_block_comment

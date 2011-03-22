@@ -15,6 +15,7 @@
 
 require 'mirah/util/process_errors'
 require 'mirah/transform'
+require 'mirah/util/compilation_state'
 require 'java'
 
 module Mirah
@@ -22,6 +23,7 @@ module Mirah
     include Mirah::Util::ProcessErrors
     
     def initialize(logging)
+      @state = Mirah::Util::CompilationState.new
       @transformer = Mirah::Transform::Transformer.new(@state)
       Java::MirahImpl::Builtin.initialize_builtins(@transformer)
       @logging = logging
@@ -53,7 +55,7 @@ module Mirah
     end
     
     def parse_file(filename)
-      puts "  #{duby_file}" if logging
+      puts "  #{filename}" if logging
       parse_and_transform(filename, File.read(filename))
     end
     
@@ -73,7 +75,7 @@ module Mirah
         if File.directory?(filename)
           Dir[File.join(filename, '*')].each do |child|
             if File.directory?(child)
-              files << child
+              files_or_scripts << child
             elsif child =~ /\.(duby|mirah)$/
               expanded << child
             end
