@@ -71,7 +71,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     @tmp_classes.clear
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    state = Mirah::CompilationState.new
+    state = Mirah::Util::CompilationState.new
     state.save_extensions = false
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
@@ -82,7 +82,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     compiler = Compiler::JVM.new
     compiler.compile(ast)
     classes = {}
-    loader = Mirah::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
+    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     compiler.generate do |name, builder|
       bytes = builder.generate
       FileUtils.mkdir_p(File.dirname(name))
