@@ -14,6 +14,8 @@
 # limitations under the License.
 
 require 'mirah/util/process_errors'
+require 'mirah/transform'
+require 'java'
 
 module Mirah
   class Parser

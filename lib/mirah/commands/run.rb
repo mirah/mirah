@@ -13,6 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'mirah/generator'
+require 'mirah/util/class_loader'
+
 module Mirah
   module Commands
     class Run < Base
@@ -40,7 +43,7 @@ module Mirah
       
       def load_classes_and_find_main(class_map)
         main = nil
-        dcl = Mirah::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
+        dcl = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
         class_map.each do |name,|
           cls = dcl.load_class(name)
           # TODO: using first main; find correct one?

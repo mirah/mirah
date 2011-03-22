@@ -14,6 +14,7 @@
 # limitations under the License.
 
 require 'mirah'
+
 module Mirah
   class PathArray < Array
     def <<(value)

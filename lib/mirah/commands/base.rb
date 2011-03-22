@@ -13,20 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah/argument_processor'
-require 'mirah/compilation_state'
-require 'mirah/parser'
-require 'mirah/compiler'
-require 'mirah/generator'
+require 'mirah/jvm/types'
+require 'mirah/util/compilation_state'
+require 'mirah/util/argument_processor'
+require 'mirah/errors'
 
 module Mirah
   module Commands
     class Base
       def initialize(args)
         Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-        @state = Mirah::CompilationState.new
+        @state = Mirah::Util::CompilationState.new
         @args = args
-        @argument_processor = Mirah::ArgumentProcessor.new(@state, @args)
+        @argument_processor = Mirah::Util::ArgumentProcessor.new(@state, @args)
       end
       
       attr_accessor :state, :args, :argument_processor

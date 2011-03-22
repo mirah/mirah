@@ -22,7 +22,6 @@ require 'mirah/typer'
 require 'mirah/compiler'
 require 'mirah/env'
 require 'mirah/errors'
-require 'mirah/class_loader'
 begin
   require 'bitescript'
 rescue LoadError
