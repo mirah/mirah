@@ -17,7 +17,7 @@ $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
 require 'mirah'
-require 'mirah/jvm/source_compiler'
+require 'mirah/jvm/compiler/java_source'
 require 'jruby'
 require 'stringio'
 require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
