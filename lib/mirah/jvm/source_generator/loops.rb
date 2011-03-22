@@ -16,7 +16,7 @@
 module Mirah
   module JVM
     module Compiler
-      class JavaSource < JVMCompilerBase
+      class JavaSource < Base
         class SimpleWhileLoop
           attr_reader :compiler, :loop
           def initialize(loop, compiler)

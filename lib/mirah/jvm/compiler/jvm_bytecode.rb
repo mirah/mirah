@@ -1,7 +1,7 @@
 module Mirah  
   module JVM
     module Compiler
-      class JVMBytecode < JVMCompilerBase
+      class JVMBytecode < Base
         java_import java.lang.System
         java_import java.io.PrintStream
         include Mirah::JVM::MethodLookup

@@ -16,7 +16,7 @@
 module Mirah
   module JVM
     module Compiler
-      class JVMCompilerBase
+      class Base
         attr_accessor :filename, :method, :static, :class
 
         class CompilationError < Mirah::NodeError
