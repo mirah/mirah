@@ -28,6 +28,13 @@ $CLASSPATH << '.'
 class TestJavacCompiler < TestJVMCompiler
   import javax.tools.ToolProvider
   import java.util.Arrays
+
+  def teardown
+    super
+    # wipe out Script*_xform_* classes, since we're messy
+    File.unlink(*Dir['Script*_xform_*.class'])
+  end
+  
   def javac(files)
     compiler = ToolProvider.system_java_compiler
     fm = compiler.get_standard_file_manager(nil, nil, nil)
