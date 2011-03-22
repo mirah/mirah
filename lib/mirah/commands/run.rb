@@ -16,23 +16,16 @@
 module Mirah
   module Commands
     class Run < Base
-      def initialize
-        super
-        
-        @state.running = true
-      end
-      
-      def execute(*args)
-        execute_base(args) do
+      def execute
+        execute_base do
           main = nil
           class_map = {}
           
-          # we're running!
-          @state.running = true
-          
           # generate all bytes for all classes
-          generate_bytes do |filename, classname, bytes|
-            class_map[classname.gsub(/\//, '.')] = bytes
+          generator = Mirah::Generator.new(@state.compiler_class, false, @state.verbose)
+          
+          generator.generate(args).each do |result|
+            class_map[result.classname.gsub(/\//, '.')] = result.bytes
           end
           
           # load all classes
@@ -59,7 +52,7 @@ module Mirah
       def run_main(main)
         if main
           begin
-            main.invoke(nil, [@state.args.to_java(:string)].to_java)
+            main.invoke(nil, [args.to_java(:string)].to_java)
           rescue java.lang.Exception => e
             e = e.cause if e.cause
             raise e

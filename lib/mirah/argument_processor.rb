@@ -14,8 +14,15 @@
 # limitations under the License.
 
 module Mirah
-  module ArgumentProcessor
-    def self.process_args(state, args)
+  class ArgumentProcessor
+    def initialize(state, args)
+      @state = state
+      @args = args
+    end
+    
+    attr_accessor :state, :args
+    
+    def process
       state.args = args
       while args.length > 0 && args[0] =~ /^-/
         case args[0]
@@ -70,6 +77,30 @@ module Mirah
       end
       state.destination ||= File.join(File.expand_path('.'), '')
       state.compiler_class ||= Mirah::Compiler::JVM
+    end
+      
+    def print_help
+      puts "#{$0} [flags] <files or -e SCRIPT>
+      -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
+      --cd DIR\t\tSwitch to the specified DIR befor compilation
+      -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
+      -e CODE\t\tCompile or run the inline script following -e
+      \t\t\t  (the class will be named \"DashE\")
+      --explicit-packages\tRequire explicit 'package' lines in source
+      -h, --help\t\tPrint this help message
+      -I DIR\t\tAdd DIR to the Ruby load path before running
+      -j, --java\t\tOutput .java source (compile mode only)
+      --jvm VERSION\t\tEmit JVM bytecode targeting specified JVM
+      \t\t\t  version (1.4, 1.5, 1.6, 1.7)
+      -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running
+      -v, --version\t\tPrint the version of Mirah to the console
+      -V, --verbose\t\tVerbose logging"
+      state.help_printed = true
+    end
+    
+    def print_version
+      puts "Mirah v#{Mirah::VERSION}"
+      state.version_printed = true
     end
   end
 end

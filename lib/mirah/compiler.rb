@@ -21,3 +21,42 @@ require 'mirah/compiler/local'
 require 'mirah/compiler/method'
 require 'mirah/compiler/structure'
 require 'mirah/compiler/type'
+
+module Mirah
+  module Compiler
+    class ASTCompiler
+      def initialize(compiler_class, logging)
+        @compiler_class = compiler_class
+        @logging = logging
+      end
+      
+      attr_accessor :compiler_class, :logging
+      
+      def compile_asts(nodes)
+        results = []
+        puts "Compiling..." if logging
+        nodes.each do |ast|
+          puts "  #{ast.position.file}" if logging
+          compile_ast(ast) do |filename, builder|
+            results << CompilerResult.new(filename, builder.class_name, builder.generate)
+          end
+        end
+        results
+      end
+      
+      def compile_ast(ast, &block)
+        compiler = compiler_class.new
+        ast.compile(compiler, false)
+        compiler.generate(&block)
+      end
+    end
+    
+    class CompilerResult
+      def initialize(filename, classname, bytes)
+        @filename, @classname, @bytes = filename, classname, bytes
+      end
+      
+      attr_accessor :filename, :classname, :bytes
+    end
+  end
+end

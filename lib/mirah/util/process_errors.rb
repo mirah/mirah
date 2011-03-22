@@ -14,17 +14,19 @@
 # limitations under the License.
 
 module Mirah
-  module Commands
-    class Compile < Base
-      def execute
-        execute_base do
-          generator = Mirah::Generator.new(@state.compiler_class, true, @state.verbose)
-          
-          generator.generate(@state.args).each do |result|
-            FileUtils.mkdir_p(File.dirname(result.filename))
-            File.open(result.filename, 'wb') {|f| f.write(result.bytes)}
+  module Util
+    module ProcessErrors
+      def process_errors(errors)
+        errors.each do |ex|
+          puts ex
+          if ex.node
+            Mirah.print_error(ex.message, ex.position)
+          else
+            puts ex.message
           end
+          puts ex.backtrace if @state.verbose
         end
+        exit 1 unless errors.empty?
       end
     end
   end

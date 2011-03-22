@@ -16,9 +16,11 @@
 module Mirah
   module Commands
     class Parse < Base
-      def execute(*args)
-        execute_base(args) do
-          parse_source(*args)
+      def execute
+        execute_base do
+          parser = Mirah::Parser.new(false)
+          
+          parser.parse_from_args(args)
         end
       end
     end

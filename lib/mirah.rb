@@ -38,15 +38,15 @@ require 'mirah/commands'
 
 module Mirah
   def self.run(*args)
-    Mirah::Commands::Run.new.execute(*args)
+    Mirah::Commands::Run.new(args).execute
   end
 
   def self.compile(*args)
-    Mirah::Commands::Compile.new.execute(*args)
+    Mirah::Commands::Compile.new(args).execute
   end
 
   def self.parse(*args)
-    Mirah::Commands::Parse.new.execute(*args)
+    Mirah::Commands::Parse.new(args).execute
   end
 
   def self.plugins
@@ -88,8 +88,4 @@ module Mirah
       end
     end
   end
-end
-
-if __FILE__ == $0
-  Mirah.run(ARGV[0], *ARGV[1..-1])
 end
