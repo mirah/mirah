@@ -119,7 +119,7 @@ namespace :jar do
 end
 
 desc "Build a distribution zip file"
-task :zip do#=> [:jar, 'jar:complete'] do
+task :zip => 'jar:complete' do
   mkdir_p 'tmp/lib'
   mkdir_p 'tmp/bin'
   cp 'dist/mirah-complete.jar', 'tmp/lib'
