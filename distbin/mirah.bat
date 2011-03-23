@@ -13,7 +13,7 @@ IF EXIST "%~dp0_mirahvars.bat" (set FULL_PATH=%~dp0) ELSE (set FULL_PATH=%~dp$PA
 
 call "%FULL_PATH%_mirahvars.bat" %*
 
-if %MIRAH_BAT_ERROR%==0 "%_STARTJAVA%" %_VM_OPTS% -jar "%JRUBY_CP%" run %_RUBY_OPTS%
+if %MIRAH_BAT_ERROR%==0 "%_STARTJAVA%" %_VM_OPTS% -jar "%MIRAH_CP%" run %_MIRAH_OPTS%
 set E=%ERRORLEVEL%
 
 call "%FULL_PATH%_mirahcleanup"
