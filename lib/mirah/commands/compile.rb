@@ -24,8 +24,9 @@ module Mirah
           generator = Mirah::Generator.new(@state, @state.compiler_class, true, @state.verbose)
           
           generator.generate(@state.args).each do |result|
-            FileUtils.mkdir_p(File.dirname(result.filename))
-            File.open(result.filename, 'wb') {|f| f.write(result.bytes)}
+            filename = "#{@state.destination}#{result.filename}"
+            FileUtils.mkdir_p(File.dirname(filename))
+            File.open(filename, 'wb') {|f| f.write(result.bytes)}
           end
         end
       end
