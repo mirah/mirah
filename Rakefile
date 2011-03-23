@@ -120,20 +120,21 @@ end
 
 desc "Build a distribution zip file"
 task :zip => 'jar:complete' do
-  mkdir_p 'tmp/lib'
-  mkdir_p 'tmp/bin'
-  cp 'dist/mirah-complete.jar', 'tmp/lib'
-  cp 'distbin/mirah.bash', 'tmp/bin/mirah'
-  cp 'distbin/mirahc.bash', 'tmp/bin/mirahc'
-  cp 'distbin/mirah.bat', 'tmp/bin/mirah.bat'
-  cp 'distbin/mirahc.bat', 'tmp/bin/mirahc.bat'
-  cp_r 'examples', 'tmp/examples'
-  rm_rf 'tmp/examples/wiki'
-  cp 'README.txt', 'tmp'
-  cp 'NOTICE', 'tmp'
-  cp 'LICENSE', 'tmp'
-  cp 'History.txt', 'tmp'
-  sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip *'"
+  basedir = "tmp/mirah-#{Mirah::VERSION}"
+  mkdir_p "#{basedir}/lib"
+  mkdir_p "#{basedir}/bin"
+  cp 'dist/mirah-complete.jar', "#{basedir}/lib"
+  cp 'distbin/mirah.bash', "#{basedir}/bin/mirah"
+  cp 'distbin/mirahc.bash', "#{basedir}/bin/mirahc"
+  cp 'distbin/mirah.bat', "#{basedir}/bin/mirah.bat"
+  cp 'distbin/mirahc.bat', "#{basedir}/bin/mirahc.bat"
+  cp_r 'examples', "#{basedir}/examples"
+  rm_rf "#{basedir}/examples/wiki"
+  cp 'README.txt', "#{basedir}"
+  cp 'NOTICE', "#{basedir}"
+  cp 'LICENSE', "#{basedir}"
+  cp 'History.txt', "#{basedir}"
+  sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip mirah-#{Mirah::VERSION}/*'"
   rm_rf 'tmp'
 end
 
