@@ -127,6 +127,8 @@ task :zip do#=> [:jar, 'jar:complete'] do
   cp 'distbin/mirahc.bash', 'tmp/bin/mirahc'
   cp 'distbin/mirah.bat', 'tmp/bin/mirah.bat'
   cp 'distbin/mirahc.bat', 'tmp/bin/mirahc.bat'
+  cp_r 'examples', 'tmp/examples'
+  rm_rf 'tmp/examples/wiki'
   cp 'README.txt', 'tmp'
   cp 'NOTICE', 'tmp'
   cp 'LICENSE', 'tmp'
