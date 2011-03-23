@@ -117,3 +117,28 @@ namespace :jar do
     end
   end
 end
+
+desc "Build a distribution zip file"
+task :zip do#=> [:jar, 'jar:complete'] do
+  mkdir_p 'tmp/lib'
+  mkdir_p 'tmp/bin'
+  cp 'dist/mirah-complete.jar', 'tmp/lib'
+  cp 'distbin/mirah.bash', 'tmp/bin/mirah'
+  cp 'distbin/mirahc.bash', 'tmp/bin/mirahc'
+  cp 'distbin/mirah.bat', 'tmp/bin/mirah.bat'
+  cp 'distbin/mirahc.bat', 'tmp/bin/mirahc.bat'
+  cp 'README.txt', 'tmp'
+  cp 'NOTICE', 'tmp'
+  cp 'LICENSE', 'tmp'
+  cp 'History.txt', 'tmp'
+  sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip *'"
+  rm_rf 'tmp'
+end
+
+desc "Build the gem file"
+task :gem => :bootstrap do
+  sh 'gem build mirah.gemspec'
+end
+
+desc "Build all redistributable files"
+task :dist => [:gem, :zip]
