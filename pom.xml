@@ -24,7 +24,7 @@
 
   <scm>
     <connection>scm:git:git://github.com/mirah/mirah.git</connection>
-    <developerConnection>git@github.com:mirah/mirah.git</developerConnection>
+    <developerConnection>scm:git:git@github.com:mirah/mirah.git</developerConnection>
     <url>http://github.com/mirah/mirah</url>
   </scm>
 
