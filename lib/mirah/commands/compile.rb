@@ -21,7 +21,7 @@ module Mirah
     class Compile < Base
       def execute
         execute_base do
-          generator = Mirah::Generator.new(@state.compiler_class, true, @state.verbose)
+          generator = Mirah::Generator.new(@state, @state.compiler_class, true, @state.verbose)
           
           generator.generate(@state.args).each do |result|
             FileUtils.mkdir_p(File.dirname(result.filename))

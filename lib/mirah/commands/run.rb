@@ -25,7 +25,7 @@ module Mirah
           class_map = {}
           
           # generate all bytes for all classes
-          generator = Mirah::Generator.new(@state.compiler_class, false, @state.verbose)
+          generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
           
           generator.generate(args).each do |result|
             class_map[result.classname.gsub(/\//, '.')] = result.bytes

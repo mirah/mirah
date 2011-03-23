@@ -15,8 +15,8 @@
 
 module Mirah
   class Generator
-    def initialize(compiler_class, logging, verbose)
-      @parser = Mirah::Parser.new(logging)
+    def initialize(state, compiler_class, logging, verbose)
+      @parser = Mirah::Parser.new(state, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
       @logging = logging
       @verbose = verbose
