@@ -12,10 +12,10 @@ local type inference and a heavily Ruby-inspired syntax. Mirah
 currently includes a typer/compiler backend for the JVM which can
 output either JVM bytecode or Java source files.}
   s.email = ["headius@headius.com", "ribrdb@google.com"]
-  s.executables = ["mirah", "mirahc", "mirahp", "duby", "dubyc", "dubyp"]
+  s.executables = ["mirah", "mirahc", "mirahp"]
   s.extra_rdoc_files = ["History.txt", "README.txt"]
-  files = Dir["{bin,lib,test,examples,javalib}/**/*"] + Dir["{*.txt,Rakefile}"]
-  s.files = files.reject {|file| file =~ /jruby-complete.jar/}
+  files = Dir["{bin,lib,test,examples,javalib}/**/*"] + Dir["{*.txt,Rakefile}"] - Dir["{examples/wiki/**/*}"]
+  s.files = files.reject {|file| file =~ /jruby-complete.jar|jsr292-mock.jar/}
   s.homepage = %q{http://www.mirah.org/}
   s.rdoc_options = ["--main", "README.txt"]
   s.require_paths = ["lib"]
