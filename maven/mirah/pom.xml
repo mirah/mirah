@@ -25,6 +25,7 @@
 
   <build>
     <directory>../../dist</directory>
+    <sourceDirectory>src</sourceDirectory>    
     <plugins>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
