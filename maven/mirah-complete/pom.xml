@@ -35,6 +35,9 @@
                   rm -rf dist/classes
                   mkdir dist/classes
                   unzip dist/mirah-complete.jar -d dist/classes &gt; /dev/null
+                  touch dist/fake.txt
+                  jar -cf dist/mirah-complete-javadoc-${project.version}.jar dist/fake.txt
+                  jar -cf dist/mirah-complete-sources-${project.version}.jar dist/fake.txt
                 </argument>
               </arguments>
             </configuration>
