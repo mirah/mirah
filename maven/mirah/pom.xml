@@ -29,7 +29,7 @@
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <excludes>**/*.*</excludes>
+          <excludes><exclude>**/*.*</exclude></excludes>
         </configuration>
       </plugin>
       <plugin>
