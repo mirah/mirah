@@ -71,18 +71,18 @@ class TestJVMCompiler < Test::Unit::TestCase
     @tmp_classes.clear
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    state = Mirah::CompilationState.new
+    state = Mirah::Util::CompilationState.new
     state.save_extensions = false
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = AST.parse(code, name, true, transformer)
-    typer = Typer::JVM.new(transformer)
+    typer = JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
-    compiler = Compiler::JVM.new
+    compiler = JVM::Compiler::JVMBytecode.new
     compiler.compile(ast)
     classes = {}
-    loader = MirahClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
+    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     compiler.generate do |name, builder|
       bytes = builder.generate
       FileUtils.mkdir_p(File.dirname(name))
@@ -2056,6 +2056,24 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_block_with_abstract_from_object
+    # Comparator interface also defines equals(Object) as abstract,
+    # but it can be inherited from Object. We test that here.
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      import java.util.Collections
+      list = ArrayList.new(["a", "ABC", "Cats", "b"])
+      Collections.sort(list) do |a, b|
+        String(a).compareToIgnoreCase(String(b))
+      end
+      list.each {|x| puts x}
+    EOF
+
+    assert_output("a\nABC\nb\nCats\n") do
+      cls.main(nil)
+    end
+  end
+
   def test_each
     cls, = compile(<<-EOF)
       def foo
@@ -2767,5 +2785,15 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     entry = java.util.HashMap.new(:a => 1).entrySet.iterator.next
     assert_equal(entry, cls.foo(entry))
+  end
+  
+  def test_covariant_arrays
+    cls, = compile(<<-EOF)
+      puts java::util::Arrays.toString(String[5])
+    EOF
+    
+    assert_output("[null, null, null, null, null]\n") do
+      cls.main(nil)
+    end
   end
 end

@@ -18,8 +18,8 @@ require 'mirah/jvm/types'
 require 'mirah/jvm/types/factory'
 
 module Mirah
-  module Typer
-    class JVM < Simple
+  module JVM
+    class Typer < Mirah::Typer::Simple
       include Mirah::JVM::Types
 
       attr_reader :transformer
@@ -36,7 +36,7 @@ module Mirah
       end
 
       def set_filename(scope, filename)
-        classname = Mirah::Compiler::JVM.classname_from_filename(filename)
+        classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
         main_class = @factory.declare_type(scope, classname)
         @known_types['self'] = main_class.meta
       end

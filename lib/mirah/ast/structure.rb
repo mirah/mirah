@@ -188,7 +188,10 @@ module Mirah::AST
       # find all methods which would not otherwise be on java.lang.Object
       impl_methods = find_methods(klass.interfaces).select do |m|
         begin
-          obj_m = java.lang.Object.java_class.java_method m.name, *m.parameter_types
+          # Very cumbersome. Not sure how it got this way.
+          mirror = BiteScript::ASM::ClassMirror.for_name('java.lang.Object')
+          mtype = Mirah::JVM::Types::Type.new(mirror)
+          mtype.java_method m.name, *m.argument_types
         rescue NameError
           # not found on Object
           next true
@@ -277,6 +280,68 @@ module Mirah::AST
 
     class << self
       attr_accessor :explicit_packages
+    end
+  end
+
+  class Annotation < Node
+    attr_reader :values
+    attr_accessor :runtime
+    alias runtime? runtime
+
+    child :name_node
+
+    def initialize(parent, position, name=nil, &block)
+      super(parent, position, &block)
+      if name
+        @name = if name.respond_to?(:class_name)
+          name.class_name
+        else
+          name.name
+        end
+      end
+      @values = {}
+    end
+
+    def name
+      @name
+    end
+
+    def type
+      BiteScript::ASM::Type.getObjectType(@name.tr('.', '/'))
+    end
+
+    def []=(name, value)
+      @values[name] = value
+    end
+
+    def [](name)
+      @values[name]
+    end
+
+    def infer(typer, expression)
+      @inferred ||= begin
+        @name = name_node.type_reference(typer).name if name_node
+        @values.each do |name, value|
+          if Node === value
+            @values[name] = annotation_value(value, typer)
+          end
+        end
+        true
+      end
+    end
+
+    def annotation_value(node, typer)
+      case node
+      when String
+        java.lang.String.new(node.literal)
+      when Array
+        node.children.map {|node| annotation_value(node, typer)}
+      else
+        # TODO Support other types
+        ref = value.type_refence(typer)
+        desc = BiteScript::Signature.class_id(ref)
+        BiteScript::ASM::Type.getType(desc)
+      end
     end
   end
 end

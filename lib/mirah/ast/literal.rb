@@ -168,4 +168,11 @@ module Mirah::AST
       @inferred_type ||= typer.null_type
     end
   end
+
+  class Self < Node
+    include Scoped
+    def infer(typer, expression)
+      @inferred_type ||= scope.static_scope.self_type
+    end
+  end
 end

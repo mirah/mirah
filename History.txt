@@ -1,3 +1,44 @@
+=== 0.0.7 / 2011-03-20
+
+248368c Fix assignability of dynamic type; only target of Object should be allowed.
+9734853 Allow abstract interface methods also on Object to use Object impl. Fixes #54.
+13b84d2 Add some simple logging of compiler phases (not for run mode).
+7dad0eb Fix recursive examples, since we now do try to infer both branches of an If.
+27409a0 Reorg mirah.rb into a few additional files under lib/mirah.
+
+=== 0.0.6 / 2011-03-20
+
+ce9b740 Update dynalink stuff, add JSR292 mock to enable compiling/including invokedynamic logic.
+2898b87 Remove unused JRubyParser jar.
+b1cb2e0 Clean up --help output for normal and MirahCommand-based command lines.
+94000eb Add .redcar dir to .gitignore
+c450943 Get Maven artifacts building again and add an "else" case to MirahCommand for running from jar.
+92f723c Move more files out that are specific to the NB plugin.
+48777a6 Move NetBeans plugin to mirah-netbeans-plugin project.
+b3979b7 Fix poms to reference parent.
+d23ec2c Add support for using Colon2Const as a fully-qualified type name
+f1fe06b Save method arguments into the binding if necessary
+929fbdf Merge branch 'master' of git@github.com:mirah/mirah
+b230d94 Fix parsing of long constants
+935031b Body of void methods is not an expression
+372e1a4 Don't require compatible types for an if statement unless the statement is an expression.
+cc861f4 Fix java.lang.VerifyError: Attempt to split long or double on the stack
+789ec6e Get rid of .class files left behind by test_javac_compiler.rb
+e1a5828 Body of void methods is not an expression
+7fa9c62 Don't require compatible types for an if statement unless the statement is an expression.
+2346c9e Fix java.lang.VerifyError: Attempt to split long or double on the stack
+a0b1de4 fix typo in errors.rb
+638f326 Replace the ruby portion of the datastore plugin with mirah code
+35f3936 Hygenic macros
+b455e90  - Try to differentiate between errors from compiler bugs and errors in user code.  - Fix a bunch of ma
+6032830 Try to clean up error handling, and avoid having compiler bugs show up as InferenceErrors
+2dc85ad Fix scoping unquotes
+f35eb86 Fix duplicate extracted values with -V
+8911a66 Fix parent on Unquotes used as a name
+4d75d84 Add --no-save-extensions flag, and use it in tests.
+97a705a Merge branch 'master' of git@github.com:mirah/mirah
+3298ff0 Merge branch 'my' of https://github.com/markokocic/mirah into markokocic-my
+
 === 0.0.5 / 2010-12-22
 
 8e00222 Update mirah-parser.jar to one built from mirah-parser project.

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def fib(a:int)
+def fib(a:int):int
   if a < 2
     a
   else

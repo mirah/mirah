@@ -20,7 +20,7 @@ require 'java'
 
 module Mirah
   module Typer
-    class JavaTyper < BaseTyper
+    class JavaTyper < Base
       include Mirah::JVM::MethodLookup
       include Mirah::JVM::Types
       

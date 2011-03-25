@@ -65,8 +65,8 @@ module Mirah::JavaSource
   end
 end
 
-module Mirah::Compiler
-  class JVMCompilerBase
+module Mirah::JVM::Compiler
+  class Base
     # arg_types must be an Array
     def create_method_builder(name, node, static, exceptions, return_type, arg_types)
       unless node.class == Mirah::AST::JsniMethodDefinition
@@ -79,7 +79,7 @@ module Mirah::Compiler
     end
   end
 
-  class JavaSource < JVMCompilerBase
+  class JavaSource < Base
     def define_jsni_method(node)
       base_define_method(node, false) do |method, arg_types|
         with :method => method do

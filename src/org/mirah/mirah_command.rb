@@ -15,7 +15,9 @@
 
 require 'java'
 require 'mirah'
+
 java_import 'java.util.List'
+java_import 'java.lang.System'
 
 java_package "org.mirah"
 class MirahCommand
@@ -23,11 +25,20 @@ class MirahCommand
   def self.main(args)
     rb_args = args.to_a
     command = rb_args.shift.to_s
+    
+    # force $0 to something explanatory
+    $0 = "<mirah #{command}>"
+    
+    # for OS X, set property for Dock title
+    System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Mirah Runner")
+    
     case command
     when "compile"
       MirahCommand.compile(rb_args)
     when "run"
       MirahCommand.run(rb_args)
+    else
+      $stderr.puts "Usage: compile <script> or run <script>"
     end
   end
 
