@@ -25,6 +25,7 @@ module Mirah
       @transformer = Mirah::Transform::Transformer.new(state)
       Java::MirahImpl::Builtin.initialize_builtins(@transformer)
       @logging = logging
+      @verbose = state.verbose
     end
     
     attr_accessor :transformer, :logging

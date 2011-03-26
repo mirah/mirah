@@ -12,9 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'mirah/util/process_errors'
 
 module Mirah
   class Generator
+    include Mirah::Util::ProcessErrors
     def initialize(state, compiler_class, logging, verbose)
       @parser = Mirah::Parser.new(state, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
@@ -33,7 +35,7 @@ module Mirah
       infer_asts(top_nodes)
       
       # compile each AST in turn
-      compiler_results = compiler.compile_asts(top_nodes)
+      compiler_results = compiler.compile_asts(top_nodes, parser.transformer)
       
       puts "Done!" if logging
       

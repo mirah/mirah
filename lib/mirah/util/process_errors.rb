@@ -24,7 +24,7 @@ module Mirah
           else
             puts ex.message
           end
-          puts ex.backtrace if @state.verbose
+          puts ex.backtrace if @verbose
         end
         exit 1 unless errors.empty?
       end

@@ -61,7 +61,7 @@ module Mirah
           when '--verbose', '-V'
             Mirah::Typer.verbose = true
             Mirah::AST.verbose = true
-            Mirah::Compiler::JVM.verbose = true
+            Mirah::JVM::Compiler::JVMBytecode.verbose = true
             state.verbose = true
             args.shift
           when '--version', '-v'
