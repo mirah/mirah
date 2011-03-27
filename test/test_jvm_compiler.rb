@@ -2796,4 +2796,14 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+  
+  def test_getClass_on_object_array
+    cls, = compile(<<-EOF)
+      puts Object[0].getClass.getName
+    EOF
+    
+    assert_output("[Ljava.lang.Object;\n") do
+      cls.main(nil)
+    end
+  end
 end
