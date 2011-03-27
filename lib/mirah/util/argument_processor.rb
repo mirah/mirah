@@ -45,9 +45,15 @@ module Mirah
             print_help
             args.clear
           when '--java', '-j'
-            require 'mirah/jvm/compiler/java_source'
-            state.compiler_class = Mirah::JVM::Compiler::JavaSource
-            args.shift
+            if state.command == :compile
+              require 'mirah/jvm/compiler/java_source'
+              state.compiler_class = Mirah::JVM::Compiler::JavaSource
+              args.shift
+            else
+              puts "-j/--java flag only applies to \"compile\" mode."
+              print_help
+              args.clear
+            end
           when '--jvm'
             args.shift
             state.set_jvm_version(args.shift)

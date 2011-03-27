@@ -30,6 +30,10 @@ module Mirah
           end
         end
       end
+      
+      def command_name
+        :compile
+      end
     end
   end
 end

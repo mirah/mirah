@@ -25,6 +25,10 @@ module Mirah
           parser.parse_from_args(args)
         end
       end
+      
+      def command_name
+        :parse
+      end
     end
   end
 end

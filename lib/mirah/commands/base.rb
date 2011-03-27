@@ -24,6 +24,7 @@ module Mirah
       def initialize(args)
         Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
         @state = Mirah::Util::CompilationState.new
+        @state.command = command_name
         @args = args
         @argument_processor = Mirah::Util::ArgumentProcessor.new(@state, @args)
       end
