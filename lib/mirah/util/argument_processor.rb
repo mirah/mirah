@@ -43,7 +43,7 @@ module Mirah
             Mirah::AST::Script.explicit_packages = true
           when '--help', '-h'
             print_help
-            args.clear
+            throw :exit
           when '--java', '-j'
             if state.command == :compile
               require 'mirah/jvm/compiler/java_source'
@@ -52,7 +52,7 @@ module Mirah
             else
               puts "-j/--java flag only applies to \"compile\" mode."
               print_help
-              args.clear
+              throw :exit
             end
           when '--jvm'
             args.shift
@@ -79,7 +79,7 @@ module Mirah
           else
             puts "unrecognized flag: " + args[0]
             print_help
-            args.clear
+            throw :exit
           end
         end
         state.destination ||= File.join(File.expand_path('.'), '')
