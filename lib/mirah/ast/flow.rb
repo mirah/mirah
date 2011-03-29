@@ -269,21 +269,20 @@ module Mirah
     end
 
     class RescueClause < Node
-      include Scope
-      include Scoped
       attr_accessor :name, :type, :types
       child :type_nodes
       child :body
 
       def initialize(parent, position)
         super(parent, position) do
-          static_scope.parent = scope.static_scope
           yield(self) if block_given?
         end
       end
 
       def infer(typer, expression)
         unless resolved?
+          static_scope = typer.add_scope(self)
+          static_scope.parent = typer.get_scope(self)
           @types ||= type_nodes.map {|n| n.type_reference(typer)}
           if name
             static_scope.shadow(name)
@@ -297,18 +296,6 @@ module Mirah
         end
 
         @inferred_type
-      end
-
-      def binding_type(duby=nil)
-        static_scope.parent.binding_type(defining_class, duby)
-      end
-
-      def binding_type=(type)
-        static_scope.parent.binding_type = type
-      end
-
-      def has_binding?
-        static_scope.parent.has_binding?
       end
     end
 

@@ -19,7 +19,7 @@ module Mirah
       def process_errors(errors)
         errors.each do |ex|
           puts ex
-          if ex.node
+          if ex.respond_to?(:node) && ex.node
             Mirah.print_error(ex.message, ex.position)
           else
             puts ex.message

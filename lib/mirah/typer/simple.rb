@@ -15,10 +15,12 @@
 
 require 'mirah/ast'
 require 'mirah/transform'
+require 'mirah/scoper'
 
 module Mirah
   module Typer
     class Simple < Base
+      include Mirah::Scoper
       attr_accessor :known_types, :errors, :last_chance
 
       def initialize(self_type)
@@ -90,7 +92,7 @@ module Mirah
 
         # TODO Get rid of known_types["self"]
         old_self, known_types["self"] = known_types["self"], result
-        yield
+        yield result
         known_types["self"] = old_self
 
         result

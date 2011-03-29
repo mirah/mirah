@@ -18,10 +18,11 @@ module Mirah
     class LocalDeclaration
       def compile(compiler, expression)
         compiler.line(line_number)
-        if captured? && scope.has_binding?
-          compiler.captured_local_declare(containing_scope, name, type)
+        scope = compiler.get_scope(self)
+        if scope.captured?(name) && scope.has_binding?
+          compiler.captured_local_declare(compiler.containing_scope(self), name, type)
         else
-          compiler.local_declare(containing_scope, name, type)
+          compiler.local_declare(compiler.containing_scope(self), name, type)
         end
       rescue Exception => ex
         raise Mirah::InternalCompilerError.wrap(ex, self)
@@ -31,10 +32,11 @@ module Mirah
     class LocalAssignment
       def compile(compiler, expression)
         compiler.line(line_number)
-        if captured? && scope.has_binding?
+        scope = compiler.get_scope(self)
+        if scope.captured?(name) && scope.has_binding?
           compiler.captured_local_assign(self, expression)
         else
-          compiler.local_assign(containing_scope, name, inferred_type, expression, value)
+          compiler.local_assign(compiler.containing_scope(self), name, inferred_type, expression, value)
         end
       rescue Exception => ex
         raise Mirah::InternalCompilerError.wrap(ex, self)
@@ -45,10 +47,11 @@ module Mirah
       def compile(compiler, expression)
         if expression
           compiler.line(line_number)
-          if captured? && scope.has_binding?
-            compiler.captured_local(containing_scope, name, inferred_type)
+          scope = compiler.get_scope(self)
+          if scope.captured?(name) && scope.has_binding?
+            compiler.captured_local(compiler.containing_scope(self), name, inferred_type)
           else
-            compiler.local(containing_scope, name, inferred_type)
+            compiler.local(compiler.containing_scope(self), name, inferred_type)
           end
         end
       rescue Exception => ex

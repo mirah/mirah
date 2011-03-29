@@ -17,7 +17,6 @@ module Mirah::AST
   class FunctionalCall < Node
     include Java::DubyLangCompiler.Call
     include Named
-    include Scoped
     attr_accessor :cast, :inlined, :proxy
     alias cast? cast
 
@@ -59,7 +58,7 @@ module Mirah::AST
 
     def infer(typer, expression)
       unless @inferred_type
-        @self_type ||= scope.static_scope.self_type
+        @self_type ||= typer.get_scope(self).self_type
         receiver_type = @self_type
         should_defer = false
 
@@ -69,13 +68,14 @@ module Mirah::AST
 
         parameter_types << Mirah::AST.block_type if block
 
+        scope = typer.get_scope(self)
         unless should_defer
           if parameters.size == 1 && typer.known_type(scope, name)
             # cast operation
             resolved!
             self.cast = true
             @inferred_type = typer.known_type(scope, name)
-          elsif parameters.size == 0 && scope.static_scope.include?(name)
+          elsif parameters.size == 0 && typer.get_scope(self).include?(name)
             @inlined = Local.new(parent, position, name)
             proxy.__inline__(@inlined)
             return proxy.infer(typer, expression)
@@ -115,14 +115,13 @@ module Mirah::AST
     end
 
     def type_reference(typer)
-      typer.type_reference(scope, name)
+      typer.type_reference(typer.get_scope(self), name)
     end
   end
 
   class Call < Node
     include Java::DubyLangCompiler.Call
     include Named
-    include Scoped
     attr_accessor :cast, :inlined, :proxy
     alias cast? cast
 
@@ -168,6 +167,7 @@ module Mirah::AST
 
         parameter_types << Mirah::AST.block_type if block
 
+        scope = typer.get_scope(self)
         unless should_defer
           class_name, array = self.type_name(true)
           if class_name && parameters.size == 1 && typer.known_type(scope, class_name)
@@ -219,7 +219,7 @@ module Mirah::AST
 
     def type_reference(typer)
       class_name, array = type_name
-      typer.type_reference(scope, class_name, array)
+      typer.type_reference(typer.get_scope(self), class_name, array)
     end
 
     def type_name(force=false)
@@ -274,7 +274,6 @@ module Mirah::AST
 
   class Super < Node
     include Named
-    include Scoped
     attr_accessor :method, :cast
     alias :cast? :cast
 
@@ -298,7 +297,7 @@ module Mirah::AST
     end
 
     def infer(typer, expression)
-      @self_type ||= scope.static_scope.self_type.superclass
+      @self_type ||= typer.get_scope(self).self_type.superclass
 
       unless @inferred_type
         receiver_type = call_parent.defining_class.superclass

@@ -102,14 +102,13 @@ module Mirah::AST
     include Typed
 
     def resolved!(typer)
-      typer.learn_local_type(containing_scope, name, @inferred_type)
+      typer.learn_local_type(typer.containing_scope(self), name, @inferred_type)
       super
     end
   end
 
   class RequiredArgument < Argument
     include Named
-    include Scoped
     child :type_node
 
     def initialize(parent, line_number, name, type=nil)
@@ -120,7 +119,7 @@ module Mirah::AST
 
     def infer(typer, expression)
       resolve_if(typer) do
-        scope.static_scope << name
+        typer.get_scope(self) << name
         # if not already typed, check parent of parent (MethodDefinition)
         # for signature info
         method_def = parent.parent
@@ -131,14 +130,13 @@ module Mirah::AST
         end
 
         # if signature, search for this argument
-        signature[name.intern] || typer.local_type(containing_scope, name)
+        signature[name.intern] || typer.local_type(typer.containing_scope(self), name)
       end
     end
   end
 
   class OptionalArgument < Argument
     include Named
-    include Scoped
     child :type_node
     child :value
 
@@ -149,7 +147,7 @@ module Mirah::AST
 
     def infer(typer, expression)
       resolve_if(typer) do
-        scope.static_scope << name
+        typer.get_scope(self) << name
         # if not already typed, check parent of parent (MethodDefinition)
         # for signature info
         method_def = parent.parent
@@ -163,7 +161,6 @@ module Mirah::AST
 
   class RestArgument < Argument
     include Named
-    include Scoped
 
     def initialize(parent, line_number, name)
       super(parent, line_number)
@@ -172,14 +169,14 @@ module Mirah::AST
     end
 
     def infer(typer, expression)
-      scope.static_scope << name
+      typer.get_scope(self) << name
       super
     end
   end
 
   class BlockArgument < Argument
     include Named
-    include Scoped
+
     attr_accessor :optional
     alias optional? optional
 
@@ -190,7 +187,7 @@ module Mirah::AST
     end
 
     def infer(typer, expression)
-      scope.static_scope << name
+      typer.get_scope(self) << name
       super
     end
   end
@@ -198,10 +195,7 @@ module Mirah::AST
   class MethodDefinition < Node
     include Annotated
     include Named
-    include Scope
-    include Scoped
     include ClassScoped
-    include Binding
     include Java::DubyLangCompiler.MethodDefinition
 
     child :signature
@@ -227,12 +221,15 @@ module Mirah::AST
 
     def infer(typer, expression)
       resolve_if(typer) do
+        static_scope = typer.add_scope(self)
         @defining_class ||= begin
           static_scope.self_node = :self
+          scope = typer.get_scope(self)
+          @static = scope.self_type.meta?
           static_scope.self_type = if static?
-            scope.static_scope.self_type.meta
+            scope.self_type.meta
           else
-            scope.static_scope.self_type
+            scope.self_type
           end
         end
         @annotations.each {|a| a.infer(typer, true)} if @annotations
@@ -307,7 +304,7 @@ module Mirah::AST
     end
 
     def static?
-      scope.static_scope.self_type.meta?
+      @static
     end
   end
 
@@ -377,13 +374,17 @@ module Mirah::AST
   end
 
   defmacro('returns') do |transformer, fcall, parent|
-    fcall.scope.return_type = fcall.parameters[0]
+    mdef = fcall.parent
+    mdef = mdef.parent until MethodDefinition === mdef
+    mdef.return_type = fcall.parameters[0]
     Noop.new(parent, fcall.position)
   end
 
 
   defmacro('throws') do |transformer, fcall, parent|
-    fcall.scope.exceptions = fcall.parameters
+    mdef = fcall.parent
+    mdef = mdef.parent until MethodDefinition === mdef
+    mdef.exceptions = fcall.parameters
     Noop.new(parent, fcall.position)
   end
 end

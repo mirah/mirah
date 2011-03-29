@@ -167,12 +167,6 @@ module Mirah::AST
     end
 
     def node
-      if ScopedBody === self.name_node
-        scope = name_node
-        name_node = scope.children[0]
-      else
-        name_node = self.name_node
-      end
       klass = LocalAssignment
       if Field === name_node
         name = name_node.name
@@ -194,12 +188,7 @@ module Mirah::AST
       n = klass.new(nil, position, name)
       n << value
       n.validate_children
-      if scope
-        scope.children.clear
-        scope << n
-      else
-        return n
-      end
+      return n
     end
 
     def f_arg
@@ -209,7 +198,6 @@ module Mirah::AST
 
   class MacroDefinition < Node
     include Named
-    include Scoped
 
     child :arguments
     child :body
@@ -228,10 +216,11 @@ module Mirah::AST
 
     def infer(typer, expression)
       resolve_if(typer) do
-        self_type = scope.static_scope.self_type
+        self_type = typer.get_scope(self).self_type
         extension_name = "%s$%s" % [self_type.name,
                                     typer.transformer.tmp("Extension%s")]
-        klass = build_and_load_extension(self_type,
+        klass = build_and_load_extension(typer.get_scope(self),
+                                         self_type,
                                          extension_name,
                                          typer.transformer.state)
 
@@ -269,13 +258,13 @@ module Mirah::AST
       [nil] + args
     end
 
-    def build_and_load_extension(parent, name, state)
+    def build_and_load_extension(scope, parent, name, state)
       transformer = Mirah::Transform::Transformer.new(state)
       transformer.filename = name.gsub(".", "/")
       orig_factory = Mirah::AST.type_factory
       new_factory = orig_factory.dup
       Mirah::AST.type_factory = new_factory
-      ast = build_ast(name, parent, transformer)
+      ast = build_ast(scope, name, parent, transformer)
       classes = compile_ast(name, ast, transformer)
       loader = Mirah::Util::ClassLoader.new(
           JRuby.runtime.jruby_class_loader, classes)
@@ -323,7 +312,7 @@ module Mirah::AST
         puts ast.inspect if transformer.state.verbose
       end
       # FIXME: This is JVM specific, and should move out of platform-independent code
-      compiler = Mirah::JVM::Compiler::JVMBytecode.new
+      compiler = Mirah::JVM::Compiler::JVMBytecode.new(transformer)
       ast.compile(compiler, false)
       class_map = {}
       compiler.generate do |outfile, builder|
@@ -341,18 +330,23 @@ module Mirah::AST
       class_map
     end
 
-    def build_ast(name, parent, transformer)
-      # TODO should use a new type factory too.
-
+    def build_ast(outer_scope, name, parent, transformer)
       ast = Mirah::AST.parse_ruby("begin;end")
       ast = transformer.transform(ast, nil)
 
       # Start building the extension class
       extension = transformer.define_class(position, name)
+      new_scope = transformer.add_scope(extension, nil, true)
       #extension.superclass = Mirah::AST.type(nil, 'duby.lang.compiler.Macro')
       extension.implements(Mirah::AST.type(nil, 'duby.lang.compiler.Macro'))
 
-      extension.static_scope.import('duby.lang.compiler.Node', 'Node')
+      new_scope.import('duby.lang.compiler.Node', 'Node')
+      outer_scope.imports.each do |short, long|
+        new_scope.import(long, short)
+      end
+      outer_scope.search_packages.each do |package|
+        new_scope.import(package, '*')
+      end
 
       # The constructor just saves the state
       extension.define_constructor(
@@ -390,12 +384,6 @@ module Mirah::AST
         [arg.name, type, arg.position]
       end
       m = extension.define_method(position, '_expand', node_type, *actual_args)
-      scope.static_scope.imports.each do |short, long|
-        m.static_scope.import(long, short)
-      end
-      scope.static_scope.search_packages.each do |package|
-        m.static_scope.import(package, '*')
-      end
       m.body = self.body
       ast.body = extension
       ast

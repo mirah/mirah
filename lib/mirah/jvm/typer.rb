@@ -33,6 +33,13 @@ module Mirah
         @known_types = @factory.known_types
         @known_types['dynamic'] = DynamicType.new
         @errors = []
+        self.scopes = transformer.scopes
+      end
+
+      def define_type(node, name, superclass, interfaces)
+        scope = get_scope(node)
+        @factory.define_type(scope, node)
+        super(scope, name, superclass, interfaces)
       end
 
       def set_filename(scope, filename)
@@ -55,9 +62,9 @@ module Mirah
       end
 
       def type_definition(scope, name, superclass, interfaces)
-        imports = scope.static_scope.imports
+        imports = scope.imports
         name = imports[name] while imports.include?(name)
-        package = scope.static_scope.package
+        package = scope.package
         unless name =~ /\./ || package.empty?
           name = "#{package}.#{name}"
         end

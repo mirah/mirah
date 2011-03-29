@@ -82,7 +82,6 @@ module Mirah::AST
 
   class String < Node
     include Literal
-    include Scoped
     include Java::DubyLangCompiler.StringNode
 
     def initialize(parent, line_number, literal)
@@ -97,7 +96,7 @@ module Mirah::AST
     end
 
     def type_reference(typer)
-      typer.type_reference(scope, @literal)
+      typer.type_reference(typer.get_scope(self), @literal)
     end
 
     def toString
@@ -170,9 +169,8 @@ module Mirah::AST
   end
 
   class Self < Node
-    include Scoped
     def infer(typer, expression)
-      @inferred_type ||= scope.static_scope.self_type
+      @inferred_type ||= typer.get_scope(self).self_type
     end
   end
 end

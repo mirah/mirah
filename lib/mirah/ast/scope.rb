@@ -15,34 +15,6 @@
 
 module Mirah
   module AST
-    module Scoped
-      def scope
-        @scope ||= begin
-          scope = parent
-          until scope.nil? || scope.class.include?(Scope)
-            scope = scope.parent
-          end
-          scope
-        end
-      end
-
-      def containing_scope
-        scope = self.scope.static_scope
-        while !scope.shadowed?(name) && scope.parent && scope.parent.include?(name)
-          scope = scope.parent
-        end
-        scope
-      end
-    end
-
-    module Scope
-      include Scoped
-      attr_writer :static_scope, :type_scope
-      def static_scope
-        @static_scope ||= StaticScope.new(self)
-      end
-    end
-
     module ClassScoped
       def class_scope
         @class_scope ||= begin
@@ -58,7 +30,7 @@ module Mirah
       attr_reader :parent
       attr_writer :self_type, :self_node, :package
 
-      def initialize(node, parent=nil)
+      def initialize(node, scoper, parent=nil)
         @scope_node = node
         @vars = {}
         @var_types = {}
@@ -67,6 +39,7 @@ module Mirah
         @imports = {}
         @search_packages = []
         @shadowed = {}
+        @scoper = scoper
       end
 
       def <<(name)
@@ -138,8 +111,13 @@ module Mirah
       end
 
       def outer_scope
-        node = @scope_node.scope
-        node && node.static_scope
+        node = @scope_node
+        return nil if node.nil?
+        if @scoper.introduced_scope(node)
+          @scoper.get_scope(node.parent)
+        else
+          @scoper.get_scope(node)
+        end
       end
 
       def self_type
@@ -164,7 +142,7 @@ module Mirah
             name = "#{defining_class.name}$#{duby.tmp}"
             factory = Mirah::AST.type_factory
             if factory
-              factory.declare_type(@scope_node, name)
+              factory.declare_type(self, name)
             else
               Mirah::AST::TypeReference.new(name, false, false)
             end

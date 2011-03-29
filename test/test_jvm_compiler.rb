@@ -79,7 +79,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     typer = JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
-    compiler = JVM::Compiler::JVMBytecode.new
+    compiler = JVM::Compiler::JVMBytecode.new(typer)
     compiler.compile(ast)
     classes = {}
     loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)

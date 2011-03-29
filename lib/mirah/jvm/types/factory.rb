@@ -114,7 +114,7 @@ module Mirah::JVM::Types
       end
 
       if scope
-        imports = scope.static_scope.imports
+        imports = scope.imports
         if imports.include?(name)
           name = imports[name] while imports.include?(name)
           return get_type(name)
@@ -130,8 +130,8 @@ module Mirah::JVM::Types
 
     def package_search(name, scope)
       packages = []
-      packages << scope.static_scope.package unless scope.static_scope.package.empty?
-      packages.concat(scope.static_scope.search_packages)
+      packages << scope.package unless scope.package.empty?
+      packages.concat(scope.search_packages)
       packages << 'java.lang'
       packages.each do |package|
         begin
@@ -175,22 +175,22 @@ module Mirah::JVM::Types
 
     def declare_type(scope, name)
       full_name = name
-      package = scope.static_scope.package
+      package = scope.package
       if !name.include?('.') && !package.empty?
         full_name = "#{package}.#{name}"
       end
       if @known_types.include? full_name
         @known_types[full_name]
       else
-        scope.static_scope.import(full_name, name)
+        scope.import(full_name, name)
         @known_types[full_name] = TypeDefinition.new(full_name, nil)
       end
     end
 
-    def define_type(node)
+    def define_type(scope, node)
       name = node.name
       full_name = name
-      package = node.static_scope.package
+      package = scope.package
       if !name.include?('.') && !package.empty?
         full_name = "#{package}.#{name}"
       end
@@ -204,7 +204,7 @@ module Mirah::JVM::Types
         else
           klass = TypeDefinition
         end
-        node.scope.static_scope.import(full_name, name)
+        scope.import(full_name, name)
         @known_types[full_name] = klass.new(full_name, node)
       end
     end

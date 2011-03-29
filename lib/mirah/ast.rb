@@ -138,6 +138,12 @@ module Mirah
         end
       end
 
+      def find_parent(*types)
+        node = self
+        node = node.parent until node.nil? || types.any? {|type| type === node}
+        node
+      end
+
       def log(message)
         puts "* [AST] [#{simple_name}] " + message if AST.verbose
       end
@@ -339,20 +345,6 @@ module Mirah
       def annotation(name)
         name = name.to_s
         annotations.find {|a| a.name == name}
-      end
-    end
-
-    module Binding
-      def binding_type(duby=nil)
-        static_scope.binding_type(defining_class, duby)
-      end
-
-      def binding_type=(type)
-        static_scope.binding_type = type
-      end
-
-      def has_binding?
-        static_scope.has_binding?
       end
     end
 

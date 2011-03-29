@@ -36,7 +36,7 @@ module Mirah
           end
         end
         
-        def initialize
+        def initialize(scoper)
           super
           @jump_scope = []
         end
@@ -81,18 +81,19 @@ module Mirah
           @method.returnvoid
         end
         
-        def prepare_binding(scope)
+        def prepare_binding(node)
+          scope = introduced_scope(node)
           if scope.has_binding?
             type = scope.binding_type
             @binding = @bindings[type]
             @method.new type
             @method.dup
             @method.invokespecial type, "<init>", [@method.void]
-            if scope.respond_to? :arguments
-              scope.arguments.args.each do |param|
+            if node.respond_to? :arguments
+              node.arguments.args.each do |param|
                 name = param.name
                 param_type = param.inferred_type
-                if scope.static_scope.captured?(param.name)
+                if scope.captured?(param.name)
                   @method.dup
                   type.load(@method, @method.local(name, param_type))
                   @method.putfield(type, name, param_type)
@@ -179,7 +180,7 @@ module Mirah
             
             method.start
             
-            scope = node.static_scope
+            scope = introduced_scope(node)
             
             # declare all args so they get their values
             if args
@@ -359,7 +360,7 @@ module Mirah
         
         def self_call(fcall, expression)
           return cast(fcall, expression) if fcall.cast?
-          type = fcall.scope.static_scope.self_type
+          type = get_scope(fcall).self_type
           type = type.meta if (@static && type == @type)
           fcall.target = ImplicitSelf.new(type)
           
@@ -549,7 +550,7 @@ module Mirah
         end
         
         def captured_local_assign(node, expression)
-          scope, name, type = node.containing_scope, node.name, node.inferred_type
+          scope, name, type = containing_scope(node), node.name, node.inferred_type
           captured_local_declare(scope, name, type)
           binding_reference
           node.value.compile(self, true)
@@ -771,11 +772,11 @@ module Mirah
           rescue_node.clauses.each do |clause|
             target = @method.label.set!
             if clause.name
-              @method.astore(declare_local(clause.static_scope, clause.name, clause.type))
+              @method.astore(declare_local(introduced_scope(clause), clause.name, clause.type))
             else
               @method.pop
             end
-            declare_locals(clause.static_scope)
+            declare_locals(introduced_scope(clause))
             clause.body.compile(self, expression)
             @method.goto(done)
             clause.types.each do |type|
@@ -834,9 +835,11 @@ module Mirah
             @type = type
             @jump_scope = []
             @parent = parent
+            @scopes = parent.scopes
           end
           
-          def prepare_binding(scope)
+          def prepare_binding(node)
+            scope = introduced_scope(node)
             if scope.has_binding?
               type = scope.binding_type
               @binding = @parent.get_binding(type)

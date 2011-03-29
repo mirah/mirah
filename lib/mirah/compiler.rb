@@ -32,20 +32,20 @@ module Mirah
       
       attr_accessor :compiler_class, :logging
       
-      def compile_asts(nodes)
+      def compile_asts(nodes, scoper)
         results = []
         puts "Compiling..." if logging
         nodes.each do |ast|
           puts "  #{ast.position.file}" if logging
-          compile_ast(ast) do |filename, builder|
+          compile_ast(ast, scoper) do |filename, builder|
             results << CompilerResult.new(filename, builder.class_name, builder.generate)
           end
         end
         results
       end
       
-      def compile_ast(ast, &block)
-        compiler = compiler_class.new
+      def compile_ast(ast, scoper, &block)
+        compiler = compiler_class.new(scoper)
         ast.compile(compiler, false)
         compiler.generate(&block)
       end
