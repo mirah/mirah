@@ -24,6 +24,7 @@ module Mirah
       def initialize(args)
         Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
         @state = Mirah::Util::CompilationState.new
+        @state.command = command_name
         @args = args
         @argument_processor = Mirah::Util::ArgumentProcessor.new(@state, @args)
       end
@@ -31,14 +32,21 @@ module Mirah
       attr_accessor :state, :args, :argument_processor
       
       def execute_base
-        argument_processor.process
-        yield
-      rescue Mirah::InternalCompilerError => ice
-        Mirah.print_error(ice.message, ice.position) if ice.node
-        raise ice
-      rescue Mirah::MirahError => ex
-        Mirah.print_error(ex.message, ex.position)
-        puts ex.backtrace if state.verbose
+        # because MirahCommand is a JRuby Java class, SystemExit bubbles through and makes noise
+        # so we use a catch/throw to early exit instead
+        # see process_errors.rb
+        catch(:exit) do
+          begin
+            argument_processor.process
+            yield
+          rescue Mirah::InternalCompilerError => ice
+            Mirah.print_error(ice.message, ice.position) if ice.node
+            raise ice
+          rescue Mirah::MirahError => ex
+            Mirah.print_error(ex.message, ex.position)
+            puts ex.backtrace if state.verbose
+          end
+        end
       end
     end
   end

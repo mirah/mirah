@@ -138,7 +138,7 @@ task :zip => 'jar:complete' do
 end
 
 desc "Build the gem file"
-task :gem => :bootstrap do
+task :gem => "jar:bootstrap" do
   sh 'gem build mirah.gemspec'
 end
 

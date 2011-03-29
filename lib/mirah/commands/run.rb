@@ -39,6 +39,10 @@ module Mirah
         end
       end
       
+      def command_name
+        :run
+      end
+      
       private
       
       def load_classes_and_find_main(class_map)

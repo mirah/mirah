@@ -31,6 +31,7 @@ module Mirah
       alias running? running
       attr_accessor :compiler_class
       attr_accessor :args
+      attr_accessor :command
 
       def set_jvm_version(ver_str)
         case ver_str

@@ -26,7 +26,7 @@ module Mirah
           end
           puts ex.backtrace if @verbose
         end
-        exit 1 unless errors.empty?
+        throw :exit unless errors.empty?
       end
     end
   end
