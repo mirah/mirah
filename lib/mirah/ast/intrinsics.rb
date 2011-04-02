@@ -353,6 +353,7 @@ module Mirah::AST
       extension.implements(Mirah::AST.type(nil, 'duby.lang.compiler.Macro'))
 
       extension.static_scope.import('duby.lang.compiler.Node', 'Node')
+      extension.static_scope.package = scope.static_scope.package
 
       # The constructor just saves the state
       extension.define_constructor(

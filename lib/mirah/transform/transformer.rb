@@ -93,10 +93,10 @@ module Mirah
         rescue Error => ex
           @errors << ex
           Mirah::AST::ErrorNode.new(parent, ex)
-        rescue Exception => ex
-          error = Error.new(ex.message, position(node), ex)
-          @errors << error
-          Mirah::AST::ErrorNode.new(parent, error)
+        # rescue Exception => ex
+        #   error = Error.new(ex.message, position(node), ex)
+        #   @errors << error
+        #   Mirah::AST::ErrorNode.new(parent, error)
         end
       end
 

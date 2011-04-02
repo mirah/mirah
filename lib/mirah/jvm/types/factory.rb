@@ -14,6 +14,7 @@
 # limitations under the License.
 
 require 'jruby'
+require 'mirah/jvm/types/source_mirror'
 module Mirah::JVM::Types
   class TypeFactory
     BASIC_TYPES = {
@@ -136,7 +137,7 @@ module Mirah::JVM::Types
       packages.each do |package|
         begin
           return get_type("#{package}.#{name}")
-        rescue
+        rescue NameError
         end
       end
       raise NameError, "Cannot find class #{name}"
@@ -215,10 +216,23 @@ module Mirah::JVM::Types
 
     def get_mirror(name)
       @mirrors[name] ||= begin
-        classname = name.tr('.', '/') + ".class"
-        stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname)
-        raise NameError, "Class '#{name}' not found." unless stream
-        BiteScript::ASM::ClassMirror.load(stream)
+        classname = name.tr('.', '/')
+        stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname + ".class")
+        if stream
+          BiteScript::ASM::ClassMirror.load(stream) if stream
+        else
+          url = JRuby.runtime.jruby_class_loader.getResource(classname + ".java")
+          if url
+            file = java.io.File.new(url.toURI)
+            mirrors = JavaSourceMirror.load(file, self)
+            mirrors.each do |mirror|
+              @mirrors[mirror.type.class_name] = mirror
+            end if mirrors
+            @mirrors[name]
+          else
+            raise NameError, "Class '#{name}' not found."
+          end
+        end
       end
     end
   end
