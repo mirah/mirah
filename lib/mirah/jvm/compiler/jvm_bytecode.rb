@@ -730,7 +730,7 @@ module Mirah
         end
         
         def line(num)
-          @method.line(num) if @method
+          @method.line(num - 1) if @method
         end
         
         def print(print_node)
