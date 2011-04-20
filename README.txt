@@ -10,11 +10,12 @@ local type inference and a heavily Ruby-inspired syntax. Mirah
 currently includes a typer/compiler backend for the JVM which can
 output either JVM bytecode or Java source files.
 
-== FEATURES/PROBLEMS:
+== FEATURES:
 
-* Ruby syntax
+* Ruby-like syntax
 * Compiles to .class or .java
 * Fast as Java
+* No runtime library
 
 == SYNOPSIS:
 
@@ -27,8 +28,8 @@ mirahc -java -e "inline script" # produces DashE.java
 
 == REQUIREMENTS:
 
-* JRuby 1.5.0 or higher.
-* BiteScript 0.0.5 or higher
+* JRuby 1.6.0 or higher.
+* BiteScript 0.0.8 or higher
 
 == INSTALL:
 
@@ -48,7 +49,6 @@ $ cd mirah
 $ rake gem
 $ gem install pkg/mirah-*
 $ cd -
-
 
 == For Java tools:
 

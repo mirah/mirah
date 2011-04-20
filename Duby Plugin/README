@@ -1,3 +1,0 @@
-To use this you need to replace Netbean's jruby-parser with the duby version.
-I use this command
-$ cp duby/javalib/JRubyParser.jar /Applications/NetBeans/NetBeans\ 6.7.1.app/Contents/Resources/NetBeans/ruby2/modules/ext/jruby-parser-0.1.jar

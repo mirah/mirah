@@ -77,6 +77,11 @@ task :compile => :init do
       'mirah'
       )
   end
+  
+  # compile invokedynamic stuff
+  ant.javac :destdir => 'build', :srcdir => 'src',
+    :includes => 'org/mirah/DynalangBootstrap.java',
+    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar'
 end
 
 desc "build basic jar for distribution"
@@ -112,3 +117,30 @@ namespace :jar do
     end
   end
 end
+
+desc "Build a distribution zip file"
+task :zip => 'jar:complete' do
+  basedir = "tmp/mirah-#{Mirah::VERSION}"
+  mkdir_p "#{basedir}/lib"
+  mkdir_p "#{basedir}/bin"
+  cp 'dist/mirah-complete.jar', "#{basedir}/lib"
+  cp 'distbin/mirah.bash', "#{basedir}/bin/mirah"
+  cp 'distbin/mirahc.bash', "#{basedir}/bin/mirahc"
+  cp Dir['{distbin/*.bat}'], "#{basedir}/bin/"
+  cp_r 'examples', "#{basedir}/examples"
+  rm_rf "#{basedir}/examples/wiki"
+  cp 'README.txt', "#{basedir}"
+  cp 'NOTICE', "#{basedir}"
+  cp 'LICENSE', "#{basedir}"
+  cp 'History.txt', "#{basedir}"
+  sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip mirah-#{Mirah::VERSION}/*'"
+  rm_rf 'tmp'
+end
+
+desc "Build the gem file"
+task :gem => "jar:bootstrap" do
+  sh 'gem build mirah.gemspec'
+end
+
+desc "Build all redistributable files"
+task :dist => [:gem, :zip]

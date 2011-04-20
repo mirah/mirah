@@ -11,12 +11,12 @@ class TestMacros < Test::Unit::TestCase
   def parse(code)
     Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
-    state = Mirah::CompilationState.new
+    state = Mirah::Util::CompilationState.new
     state.save_extensions = false
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = Mirah::AST.parse(code, name, true, transformer)
-    typer = Mirah::Typer::JVM.new(transformer)
+    typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
     ast

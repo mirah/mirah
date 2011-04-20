@@ -16,18 +16,15 @@
 $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
-require 'mirah/typer'
-require 'mirah/plugin/java'
-require 'mirah/jvm/compiler'
-require 'mirah/jvm/typer'
+require 'mirah'
 
 class TestJavaTyper < Test::Unit::TestCase
   include Mirah
 
   def setup
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-    @typer = Typer::JVM.new(nil)
-    compiler = Mirah::Compiler::JVM.new
+    @typer = Mirah::JVM::Typer.new(nil)
+    compiler = Mirah::JVM::Compiler::JVMBytecode.new
 
     @java_typer = Typer::JavaTyper.new
   end
@@ -204,5 +201,13 @@ class TestJavaTyper < Test::Unit::TestCase
   def test_long
     ast = AST.parse("#{1 << 33}")
     assert_equal(AST.type(nil, 'long'), ast.infer(@typer, true))
+  end
+  
+  def test_dynamic_assignability
+    ast = AST.parse("a = 1; a = dynamic('foo')")
+    assert_equal :error, ast.infer(@typer, true).name
+    
+    ast = AST.parse("a = Object.new; a = dynamic('foo')")
+    assert_equal 'java.lang.Object', ast.infer(@typer, true).name
   end
 end

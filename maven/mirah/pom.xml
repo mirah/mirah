@@ -1,32 +1,37 @@
 <?xml version="1.0"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <properties><base>../..</base></properties>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
   <parent>
     <groupId>org.mirah</groupId>
     <artifactId>shared</artifactId>
-    <version>0.5.dev</version>
-    <relativePath>${base}/pom.xml</relativePath>
+    <version>0.0.8-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.mirah</groupId>
   <artifactId>mirah</artifactId>
   <packaging>jar</packaging>
-  <version>0.5.0-SNAPSHOT</version>
+  <version>0.0.8-SNAPSHOT</version>
   <name>Mirah</name>
 
   <dependencies>
     <dependency>
       <groupId>org.jruby</groupId>
       <artifactId>jruby-complete</artifactId>
-      <version>[1.5.3,)</version>
+      <version>1.6.0</version>
     </dependency>
   </dependencies>
 
   <build>
-    <directory>${base}/dist</directory>
+    <directory>../../dist</directory>
+    <sourceDirectory>../../src</sourceDirectory>
     <plugins>
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <excludes><exclude>**/*.*</exclude></excludes>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -37,14 +42,14 @@
             <goals><goal>exec</goal></goals>
             <configuration>
               <executable>/bin/sh</executable>
-              <workingDirectory>${base}</workingDirectory>
+              <workingDirectory>../..</workingDirectory>
               <arguments>
                 <argument>-c</argument>
                 <argument>
                   jruby -S rake jar
                   rm -rf dist/classes
                   mkdir dist/classes
-                  unzip dist/mirah.jar -d dist/classes > /dev/null
+                  unzip dist/mirah.jar -d dist/classes &gt; /dev/null
                 </argument>
               </arguments>
             </configuration>

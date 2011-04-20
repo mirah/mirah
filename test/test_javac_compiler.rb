@@ -17,7 +17,7 @@ $:.unshift File.join(File.dirname(__FILE__),'..','lib')
 
 require 'test/unit'
 require 'mirah'
-require 'mirah/jvm/source_compiler'
+require 'mirah/jvm/compiler/java_source'
 require 'jruby'
 require 'stringio'
 require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
@@ -28,6 +28,13 @@ $CLASSPATH << '.'
 class TestJavacCompiler < TestJVMCompiler
   import javax.tools.ToolProvider
   import java.util.Arrays
+
+  def teardown
+    super
+    # wipe out Script*_xform_* classes, since we're messy
+    File.unlink(*Dir['Script*_xform_*.class'])
+  end
+  
   def javac(files)
     compiler = ToolProvider.system_java_compiler
     fm = compiler.get_standard_file_manager(nil, nil, nil)
@@ -45,26 +52,28 @@ class TestJavacCompiler < TestJVMCompiler
         cls = loader.define_class(name[0..-6].tr('/', '.'), bytecode.to_java_bytes)
         classes << JavaUtilities.get_proxy_class(cls.name)
         @tmp_classes << name
-        @tmp_classes << classfile 
+        @tmp_classes << classfile
+        pattern = classfile.sub /\.class$/, '$*.class'
+        @tmp_classes.concat(Dir.glob(pattern))
       end
     end
     classes
   end
-  
+
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-    state = Mirah::CompilationState.new
+    state = Mirah::Util::CompilationState.new
     state.save_extensions = false
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
     name = "script" + System.nano_time.to_s
     ast  = AST.parse(code, name, true, transformer)
-    typer = Typer::JVM.new(transformer)
+    typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
     typer.resolve(true)
-    compiler = Compiler::JavaSource.new
+    compiler = JVM::Compiler::JavaSource.new
     ast.compile(compiler, false)
     java_files = []
     compiler.generate do |name, builder|

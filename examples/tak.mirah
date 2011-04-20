@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def tak(x:fixnum, y:fixnum, z:fixnum)
+def tak(x:int, y:int, z:int):int
   unless y < x
     z
   else
