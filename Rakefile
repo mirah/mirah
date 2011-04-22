@@ -17,9 +17,7 @@ require 'ant'
 require 'rake/testtask'
 
 # load mirah rake task
-if File.exist?('../duby/lib/mirah_task.rb')
-  $:.unshift '../duby/lib'
-elsif File.exist?('../mirah/lib/mirah_task.rb')
+if File.exist?('../mirah/lib/mirah_task.rb')
   $:.unshift '../mirah/lib'
 end
 require 'mirah_task'
@@ -33,9 +31,12 @@ end
 
 task :build_parser => 'dist/mirah-parser.jar'
 
-file 'dist/mirah-parser.jar' => ['build/mirah/impl/MirahParser.class'] do
+file 'dist/mirah-parser.jar' => ['build/mirah/impl/MirahParser.class',
+                                 'build/mirah/lang/ast/Node.class'] do
   ant.jar :destfile => 'dist/mirah-parser.jar' do
     fileset :dir => 'build', :includes => 'mirah/impl/*.class'
+    fileset :dir => 'build', :includes => 'mirah/lang/ast/*.class'
+    fileset :dir => 'build', :includes => 'org/mirah/ast/*.class'
     zipfileset :src => 'javalib/jmeta-runtime.jar'
     manifest do
       attribute :name=>"Main-Class", :value=>"mirah.impl.MirahParser"
@@ -49,6 +50,29 @@ file 'build/mirah/impl/MirahParser.class' =>
          :dir => 'build',
          :dest => 'build',
          :options => ['--classpath', 'dist/mmeta.jar'])
+end
+
+file 'build/org/mirah/ast/NodeMeta.class' => 'src/org/mirah/ast/meta.mirah' do
+  mirahc('src/org/mirah/ast/meta.mirah',
+         :dest => 'build'
+         #:options => ['-V']
+         )
+end
+
+file 'build/mirah/lang/ast/Node.class' =>
+    ['build/org/mirah/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
+      mirahc('.',
+             :dir => 'src/mirah/lang/ast',
+             :dest => 'build',
+             :options => ['--classpath', 'build'])
+end
+
+file 'build/mirah/lang/ast/Node.java' =>
+    ['build/org/mirah/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
+      mirahc('.',
+             :dir => 'src/mirah/lang/ast',
+             :dest => 'build',
+             :options => ['--java', '--classpath', 'build'])
 end
 
 file 'build/mirah/impl/MirahLexer.class' do
@@ -77,6 +101,10 @@ Rake::TestTask.new :test do |t|
 end
 
 task :test => :build_parser
+
+task :doc => 'build/mirah/lang/ast/Node.java' do
+  ant.javadoc :sourcepath => 'build/mirah/lang', :destdir => 'doc'
+end
 
 def runjava(jar, *args)
   options = {:failonerror => true, :fork => true}
