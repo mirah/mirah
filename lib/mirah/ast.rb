@@ -358,6 +358,7 @@ module Mirah
 
     class NodeProxy < DelegateClass(Node)
       include Java::DubyLangCompiler::Node
+      include Java::DubyLangCompiler.Call
       def __inline__(node)
         node.parent = parent
         __setobj__(node)

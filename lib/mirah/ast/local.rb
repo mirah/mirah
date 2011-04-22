@@ -94,6 +94,10 @@ module Mirah::AST
       "Local(name = #{name}, scope = #{scope}, captured = #{captured? == true})"
     end
 
+    def type_reference(typer)
+      typer.type_reference(scope, @name)
+    end
+
     def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name

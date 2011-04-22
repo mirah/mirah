@@ -40,7 +40,12 @@ module Mirah::AST
       else
         position, index = Marshal.load(str)
         holder = UnquotedValue.new(nil, position)
-        holder << Unquote.__injected[index].dup
+        value = Unquote.__injected[index]
+        begin
+          holder << value.dup
+        rescue TypeError
+          holder << value
+        end
         holder
       end
     end
@@ -97,8 +102,12 @@ module Mirah::AST
       when Node
         value.string_value
       else
-        raise "Bad unquote value #{value}"
+        raise "Bad unquote value for name #{value} (#{value.class})"
       end
+    end
+
+    def type
+      Constant.new(nil, position, name)
     end
 
     def node
@@ -114,12 +123,14 @@ module Mirah::AST
         else
           return Local.new(nil, position, value)
         end
+      when ::Fixnum
+        return Fixnum.new(nil, position, value)
       else
-        raise "Bad unquote value"
+        raise "Bad unquote value for node #{value} (#{value.class})"
       end
     end
 
-    def f_arg
+    def f_arg_item(value)
       case value
       when Arguments, Argument
         value
@@ -127,8 +138,26 @@ module Mirah::AST
         RequiredArgument.new(nil, position, value.string_value)
       when ::String
         RequiredArgument.new(nil, position, value)
+      when ::Array, java.util.List
+        name, type = value.map do |item|
+          if item.kind_of?(Node)
+            item.string_value
+          else
+            item.to_s
+          end
+        end
+        RequiredArgument.new(nil, position, name, type)
       else
-        raise "Bad unquote value"
+        raise "Bad unquote value for arg #{value} (#{value.class})"
+      end
+    end
+
+    def f_arg
+      case value
+      when ::Array, java.util.List
+        value.map {|item| f_arg_item(item)}
+      else
+        f_arg_item(value)
       end
     end
   end

@@ -568,7 +568,9 @@ module Mirah::JVM::Types
       member = MirahMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
         if @default_constructor_added
-          unless arguments.empty?
+          if arguments.empty?
+            @default_constructor_added = false
+          else
             raise "Can't add constructor #{member} after using the default."
           end
         else

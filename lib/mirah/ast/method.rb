@@ -46,7 +46,7 @@ module Mirah::AST
     end
 
     def validate_child(args, child_index)
-      if args.kind_of?(Array)
+      if args.kind_of?(::Array)
         args.each_with_index do |arg, arg_index|
           if UnquotedValue === arg
             actual_arg = arg.f_arg
@@ -70,7 +70,7 @@ module Mirah::AST
       case args
       when Arguments
         args.children.each_with_index {|child, i| merge_args(child, i)}
-      when Array
+      when ::Array
         args.each {|arg| merge_args(arg, child_index)}
       when RequiredArgument
         if child_index > 2
@@ -127,11 +127,21 @@ module Mirah::AST
         signature = method_def.signature
 
         if type_node
-          signature[name.intern] = type_node.type_reference(typer)
+          if ::String === type_node  # How does this happen?
+            signature[name.intern] = typer.type_reference(scope, type_node)
+          else
+            signature[name.intern] = type_node.type_reference(typer)
+          end
         end
 
         # if signature, search for this argument
         signature[name.intern] || typer.local_type(containing_scope, name)
+      end
+    end
+
+    def validate_type_node
+      if UnquotedValue === type_node
+        self.type_node = type_node.type
       end
     end
   end
@@ -237,11 +247,15 @@ module Mirah::AST
         end
         @annotations.each {|a| a.infer(typer, true)} if @annotations
         typer.infer(arguments, true)
-        if @return_type.kind_of?(UnquotedValue)
-          @return_type = @return_type.node
-          @return_type.parent = self
+        if @return_type
+          if @return_type.kind_of?(UnquotedValue)
+            @return_type = @return_type.node
+            @return_type.parent = self
+          else
+            @return_type.parent = self
+          end
+          signature[:return] = @return_type.type_reference(typer)
         end
-        signature[:return] = @return_type.type_reference(typer) if @return_type
         if @exceptions
           signature[:throws] = @exceptions.map {|e| e.type_reference(typer)}
         end

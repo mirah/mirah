@@ -98,7 +98,7 @@ module Mirah
 
       def learn_local_type(scope, name, type)
         type = scope.learn_local_type(name, known_types[type] || type)
-        log "Learned local type under #{scope} : #{name} = #{type}"
+        log "Learned local type under #{scope} : #{name} = #{type}" if type
         type
       end
 
@@ -136,7 +136,7 @@ module Mirah
       end
 
       def learn_field_type(cls, name, type)
-        log "Learned field type under #{cls} : #{name} = #{type}"
+        log "Learned field type under #{cls} : #{name} = #{type}" if type
 
         # TODO check for compatibility?
         field_type_hash(cls)[name] ||= known_types[type] || type
@@ -149,7 +149,7 @@ module Mirah
       end
 
       def learn_static_field_type(cls, name, type)
-        log "Learned field type under #{cls} : #{name} = #{type}"
+        log "Learned field type under #{cls} : #{name} = #{type}" if type
 
         # TODO check for compatibility?
         static_field_type_hash(cls)[name] ||= known_types[type] || type
@@ -162,7 +162,7 @@ module Mirah
       end
 
       def learn_method_type(target_type, name, parameter_types, type, exceptions)
-        log "Learned method #{name} (#{parameter_types}) on #{target_type} = #{type}"
+        log "Learned method #{name} (#{parameter_types}) on #{target_type} = #{type}" if type
 
         get_method_type_hash(target_type, name, parameter_types)[:type] = known_types[type] || type
 
@@ -231,7 +231,7 @@ module Mirah
         @cycling = true
         count.times do |i|
           begin
-            log "[Cycle #{i}]: Started..."
+            log "[Cycle #{i}]: Started... (#{@deferred_nodes.size} nodes to resolve)"
             yield i
           ensure
             log "[Cycle #{i}]: Complete!"
