@@ -105,7 +105,11 @@ module Mirah
         name = transform(name, nil) unless name.kind_of?(::String)
         type = node[2]
         type_node = transform(type, parent) if type
-        Mirah::AST::RequiredArgument.new(parent, position(node), name, type_node)
+        if Mirah::AST::Unquote === name && type.nil?
+          name
+        else
+          Mirah::AST::RequiredArgument.new(parent, position(node), name, type_node)
+        end
       end
 
       def transform_opt_arg(node, parent)

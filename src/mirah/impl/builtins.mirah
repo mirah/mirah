@@ -15,6 +15,7 @@
 
 import duby.lang.compiler.Compiler
 import duby.lang.compiler.Node
+import duby.lang.compiler.Body
 
 class Map
   defmacro add(key, value) do
@@ -43,24 +44,19 @@ end
 
 class Builtin
   defmacro new_hash(node) do
-    items = node.child_nodes
+    items = Node(node.child_nodes.get(0)).child_nodes
     capacity = int(items.size * 0.84)
     capacity = 16 if capacity < 16
     literal = @mirah.fixnum(capacity)
     hashmap = @mirah.constant("java.util.HashMap")
-    map = quote {`hashmap`.new(`literal`)}
-    # Strip off any wrapping bodies
-    while items.size == 1
-      child = Node(items.get(0))
-      items = child.child_nodes
-    end
+    body = Body(quote {map = `hashmap`.new(`literal`);nil})
     items.size.times do |i|
       next unless i % 2 == 0
       key = items.get(i)
       value = items.get(i + 1)
-      map = quote {`map`.add(`key`, `value`)}
+      body << quote {map.put(`key`, `value`)}
     end
-    map
+    body << quote {map}
   end
 
   def self.initialize_builtins(mirah:Compiler)

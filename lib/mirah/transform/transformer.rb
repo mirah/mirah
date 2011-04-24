@@ -223,10 +223,13 @@ module Mirah
         append_node Mirah::AST::ClassDefinition.new(@extra_body, position, name, &block)
       end
 
-      def defineClass(name, superclass=nil)
+      def defineClass(name, superclass=nil, interfaces=nil)
         define_class(@extra_body.position, name) do |class_def|
-          superclass = constant(superclass)
+          superclass = Mirah::AST::Constant.new(class_def, class_def.position, superclass)
           superclass.parent = class_def
+          if interfaces
+            class_def.implements(*interfaces.map {|i|  Mirah::AST::Constant.new(class_def, class_def.position, i)})
+          end
           [superclass, body(class_def)]
         end
       end

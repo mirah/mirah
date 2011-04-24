@@ -47,6 +47,10 @@ interface Body < Node do
 end
 
 interface Call < Node do
+  def name
+    returns String
+  end
+
   def arguments
     returns List
   end
@@ -119,6 +123,10 @@ interface Compiler do
   end
 
   def defineClass(name:String, superclass:String)
+    returns ClassDefinition
+  end
+
+  def defineClass(name:String, superclass:String, interfaces:List)
     returns ClassDefinition
   end
 

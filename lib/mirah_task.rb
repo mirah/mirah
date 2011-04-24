@@ -104,7 +104,7 @@ def mirahc(*files)
   args = ['-d', dest, *flags] + files
   chdir(source_dir) do
     puts "mirahc #{args.join ' '}"
-    Mirah.compile(*args)
+    Mirah.compile(*args) || exit(1)
     Mirah.reset
   end
 end
