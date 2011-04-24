@@ -765,8 +765,9 @@ module Mirah
           start = @method.label.set!
           body_end = @method.label
           done = @method.label
-          rescue_node.body.compile(self, expression)
+          rescue_node.body.compile(self, expression && rescue_node.else_node.nil?)
           body_end.set!
+          rescue_node.else_node.compile(self, expression) if rescue_node.else_node
           @method.goto(done)
           rescue_node.clauses.each do |clause|
             target = @method.label.set!

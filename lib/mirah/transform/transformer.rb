@@ -72,6 +72,7 @@ module Mirah
       end
 
       def transform(node, parent)
+        return nil if node.nil?
         begin
           top = @extra_body.nil?
           if top

@@ -1095,6 +1095,28 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("foo\n", output)
+
+
+    cls, = compile(<<-EOF)
+      def foo(x:boolean)
+        throws Exception
+        if x
+          raise Exception, "x"
+        end
+      rescue Exception
+        "x"
+      else
+        raise Exception, "!x"
+      end
+    EOF
+
+    assert_equal "x", cls.foo(true)
+    begin
+      cls.foo(false)
+      fail
+    rescue java.lang.Exception => ex
+      assert_equal "java.lang.Exception: !x", ex.message
+    end
   end
 
   def test_ensure
@@ -1135,7 +1157,6 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.foo
     end
     assert_equal "Hi\n", output
-
   end
 
   def test_cast
