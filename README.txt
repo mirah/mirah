@@ -1,7 +1,7 @@
 = mirah
 
 * http://groups.google.com/group/mirah
-* http://kenai.com/projects/duby
+* http://code.google.com/p/mirah/issues/list
 
 == DESCRIPTION:
 
