@@ -180,9 +180,9 @@ module Mirah
         def rescue(node, expression)
           @method.block 'try' do
             if node.else_node.nil?
-              maybe_store(node.body, expression)
+              maybe_store(node.body, expression) if node.body
             else
-              node.body.compile(self, false)
+              node.body.compile(self, false) if node.body
             end
           end
           node.clauses.each do |clause|

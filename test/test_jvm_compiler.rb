@@ -2848,4 +2848,23 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_empty_rescues
+    cls, = compile(<<-EOF)
+      begin
+      rescue
+        nil
+      end
+    EOF
+
+    cls, = compile(<<-EOF)
+      begin
+        ""
+      rescue
+        nil
+      end
+      nil
+    EOF
+
+  end
 end
