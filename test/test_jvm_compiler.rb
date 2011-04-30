@@ -2827,4 +2827,25 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_nil_assign
+    cls, = compile(<<-EOF)
+    def foo
+      a = nil
+      a = 'hello'
+      a.length
+    end
+    EOF
+
+    assert_equal(5, cls.foo)
+
+    cls, = compile(<<-EOF)
+      a = nil
+      puts a
+    EOF
+
+    assert_output("null\n") do
+      cls.main(nil)
+    end
+  end
 end
