@@ -14,7 +14,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 */
-package mirah.impl;
+package mirahparser.impl;
 
 public enum Tokens {
   // Keywords first

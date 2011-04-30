@@ -1,15 +1,15 @@
 require 'test/unit'
 require 'java'
 
-$CLASSPATH << 'dist/mirah-parser.jar'
+$CLASSPATH << 'build/mirah-parser.jar'
 
 class TestParsing < Test::Unit::TestCase
-  java_import 'jmeta.SyntaxError'
-  java_import 'jmeta.BaseParser'
-  java_import 'mirah.impl.MirahParser'
+  java_import 'org.mirahparser.mmeta.SyntaxError'
+  java_import 'org.mirahparser.mmeta.BaseParser'
+  java_import 'mirahparser.impl.MirahParser'
 
   def parse(text)
-    MirahParser.new.parse(text)
+    Java::MirahparserImpl::MirahParser.new.parse(text)
   end
 
   def assert_parse(expected, text)

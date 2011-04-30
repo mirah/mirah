@@ -30,26 +30,42 @@ task :clean do
 end
 
 task :build_parser => 'dist/mirah-parser.jar'
+ant.taskdef :name => 'jarjar', :classpath => 'javalib/jarjar-1.1.jar', :classname=>"com.tonicsystems.jarjar.JarJarTask"
 
-file 'dist/mirah-parser.jar' => ['build/mirah/impl/MirahParser.class',
-                                 'build/mirah/lang/ast/Node.class'] do
-  ant.jar :destfile => 'dist/mirah-parser.jar' do
-    fileset :dir => 'build', :includes => 'mirah/impl/*.class'
-    fileset :dir => 'build', :includes => 'mirah/lang/ast/*.class'
-    fileset :dir => 'build', :includes => 'org/mirah/ast/*.class'
-    zipfileset :src => 'javalib/jmeta-runtime.jar'
+file 'build/mirah-parser.jar' => ['build/mirahparser/impl/MirahParser.class',
+                                  'build/mirah/lang/ast/Node.class'] do
+  ant.jarjar :jarfile => 'build/mirah-parser.jar' do
+    fileset :dir => 'build', :includes => 'mirahparser/impl/*.class'
+    # fileset :dir => 'build', :includes => 'mirah/lang/ast/*.class'
+    # fileset :dir => 'build', :includes => 'org/mirah/ast/*.class'
+    zipfileset :src => 'javalib/mmeta-runtime.jar'
+    _element :rule, :pattern=>'mmeta.**', :result=>'org.mirahparser.mmeta.@1'
+    manifest do
+      attribute :name=>"Main-Class", :value=>"mirahparser.impl.MirahParser"
+    end
+  end
+end
+
+file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
+  # Mirahc picks up the built in classes instead of our versions.
+  # So we compile in a different package and then jarjar them to the correct
+  # one.
+  ant.jarjar :jarfile => 'dist/mirah-parser.jar' do
+    zipfileset :src => 'build/mirah-parser.jar'
+    _element :rule, :pattern=>'mirahparser.**', :result=>'mirah.@1'
+    _element :rule, :pattern=>'org.mirahparser.**', :result=>'org.mirah.@1'
     manifest do
       attribute :name=>"Main-Class", :value=>"mirah.impl.MirahParser"
     end
   end
 end
 
-file 'build/mirah/impl/MirahParser.class' =>
-    ['build/mirah/impl/Mirah.mirah', 'build/mirah/impl/MirahLexer.class'] do
-  mirahc('build/mirah/impl/Mirah.mirah',
+file 'build/mirahparser/impl/MirahParser.class' =>
+    ['build/mirahparser/impl/Mirah.mirah', 'build/mirahparser/impl/MirahLexer.class'] do
+  mirahc('build/mirahparser/impl/Mirah.mirah',
          :dir => 'build',
          :dest => 'build',
-         :options => ['--classpath', 'dist/mmeta.jar'])
+         :options => ['--classpath', 'build:javalib/mmeta-runtime.jar'])
 end
 
 file 'build/org/mirah/ast/NodeMeta.class' => 'src/org/mirah/ast/meta.mirah' do
@@ -75,23 +91,23 @@ file 'build/mirah/lang/ast/Node.java' =>
              :options => ['--java', '--classpath', 'build'])
 end
 
-file 'build/mirah/impl/MirahLexer.class' do
+file 'build/mirahparser/impl/MirahLexer.class' => Dir['src/mirahparser/impl/*.java'] do
   ant.javac :srcDir => 'src',
       :destDir => 'build',
       :debug => true do
-    include :name => 'mirah/impl/Tokens.java'
-    include :name => 'mirah/impl/MirahLexer.java'
-    classpath :path => 'javalib/jmeta-runtime.jar'
+    include :name => 'mirahparser/impl/Tokens.java'
+    include :name => 'mirahparser/impl/MirahLexer.java'
+    classpath :path => 'build:javalib/mmeta-runtime.jar'
   end
 end
 
-file 'build/mirah/impl/Mirah.mirah' => 'src/mirah/impl/Mirah.mmeta' do
-  ant.mkdir :dir => 'build/mirah/impl'
-  runjava 'javalib/mmeta.jar', 'src/mirah/impl/Mirah.mmeta', 'build/mirah/impl/Mirah.mirah'
+file 'build/mirahparser/impl/Mirah.mirah' => 'src/mirahparser/impl/Mirah.mmeta' do
+  ant.mkdir :dir => 'build/mirahparser/impl'
+  runjava 'javalib/mmeta.jar', 'src/mirahparser/impl/Mirah.mmeta', 'build/mirahparser/impl/Mirah.mirah'
 end
 
 directory 'dist'
-directory 'build/mirah/impl'
+directory 'build/mirahparser/impl'
 
 # TODO this uses the mirah parser from the compiler, not the version we
 # just built.
@@ -100,7 +116,7 @@ Rake::TestTask.new :test do |t|
   t.test_files = FileList['test/*.rb']
 end
 
-task :test => :build_parser
+task :test => 'build/mirah-parser.jar'
 
 task :doc => 'build/mirah/lang/ast/Node.java' do
   ant.javadoc :sourcepath => 'build/mirah/lang', :destdir => 'doc'
