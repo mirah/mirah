@@ -338,7 +338,7 @@ module Mirah
             # TODO check types for compatibility (maybe only if an expression)
             resolved!
             types.each do |type|
-              @inferred_type = type unless type.unreachable?
+              @inferred_type ||= type unless type.unreachable?
             end
             @inferred_type ||= types[0]
           end
