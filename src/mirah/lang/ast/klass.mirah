@@ -1,4 +1,4 @@
-package mirah.lang.ast
+package mirahparser.lang.ast
 
 # Note: com.sun.source.tree uses the same node for classes, interfaces, annotations, etc.
 class ClassDefinition < NodeImpl

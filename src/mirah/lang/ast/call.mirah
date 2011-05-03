@@ -1,4 +1,4 @@
-package mirah.lang.ast
+package mirahparser.lang.ast
 
 class FunctionalCall < NodeImpl
   implements Named, TypeName

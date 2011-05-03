@@ -1,4 +1,4 @@
-package mirah.lang.ast
+package mirahparser.lang.ast
 
 import java.util.ArrayList
 import java.util.List
@@ -232,5 +232,29 @@ class TypeRefImpl; implements TypeRef
     @isArray = isArray
     @isStatic = isStatic
     @position = position
+  end
+end
+
+class PositionImpl; implements Position
+  def initialize(filename:String, startLine:int, startColumn:int, endLine:int, endColumn: int)
+    @filename = filename
+    @startLine = startLine
+    @startColumn = startColumn
+    @endLine = endLine
+    @endColumn = endColumn
+  end
+  def filename:string; @filename; end
+  def startLine:int; @startLine; end
+  def startColumn:int; @startColumn; end
+  def endLine:int; @endLine; end
+  def endColumn:int; @endColumn; end
+  def add(other:Position):Position
+    if @filename.equals(other.filename)
+      PositionImpl.new(
+          @filename, Math.min(@startLine, other.startLine), Math.min(@startColumn, other.startColumn),
+          Math.max(@endLine, other.endLine), Math.max(@endColumn, other.endColumn))
+    else
+      self
+    end
   end
 end

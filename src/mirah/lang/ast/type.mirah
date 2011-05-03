@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package mirah.lang.ast
+package mirahparser.lang.ast
 
 class Import < NodeImpl
   init_node do

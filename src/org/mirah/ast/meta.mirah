@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.ast
+package org.mirahparser.ast
 
 import duby.lang.compiler.*
 import java.lang.ref.WeakReference
