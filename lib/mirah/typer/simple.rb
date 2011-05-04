@@ -97,6 +97,7 @@ module Mirah
       end
 
       def learn_local_type(scope, name, type)
+        return if type.null? && !@last_chance
         type = scope.learn_local_type(name, known_types[type] || type)
         log "Learned local type under #{scope} : #{name} = #{type}" if type
         type

@@ -67,7 +67,11 @@ module Mirah::AST
     def infer(typer, expression)
       resolve_if(typer) do
         scope.static_scope << name
-        typer.infer(value, true)
+        type = typer.infer(value, true)
+        if type && type.null?
+          type = typer.local_type(containing_scope, name) unless typer.last_chance
+        end
+        type
       end
     end
 

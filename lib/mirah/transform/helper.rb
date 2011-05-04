@@ -633,10 +633,12 @@ module Mirah
       def transform_rescue(node, parent)
         body_node = node[1]
         clauses = node[2]
+        else_node = node[3]
         Mirah::AST::Rescue.new(parent, position(node)) do |node|
           [
             transformer.transform(body_node, node),
-            clauses.map {|clause| transformer.transform(clause, node)}
+            clauses.map {|clause| transformer.transform(clause, node)},
+            transformer.transform(else_node, node)
           ]
         end
       end

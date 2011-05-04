@@ -10,10 +10,14 @@ module Mirah
           "Type(null)"
         end
 
+        def null?
+          true
+        end
+
         def compatible?(other)
           !other.primitive?
         end
-        
+
         def assignable_from?(other)
           !other.primitive?
         end

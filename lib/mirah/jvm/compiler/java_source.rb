@@ -179,7 +179,11 @@ module Mirah
 
         def rescue(node, expression)
           @method.block 'try' do
-            maybe_store(node.body, expression)
+            if node.else_node.nil?
+              maybe_store(node.body, expression) if node.body
+            else
+              node.body.compile(self, false) if node.body
+            end
           end
           node.clauses.each do |clause|
             clause.types.each do |type|
@@ -190,6 +194,9 @@ module Mirah
                 maybe_store(clause.body, expression)
               end
             end
+          end
+          if node.else_node
+            maybe_store(node.else_node, expression)
           end
         end
 

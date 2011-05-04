@@ -315,20 +315,32 @@ module Mirah
     class Rescue < Node
       child :body
       child :clauses
+      child :else_node
+
       def initialize(parent, position, &block)
         super(parent, position, &block)
-        @body, @clauses = children
       end
 
       def infer(typer, expression)
         unless resolved?
-          types = [typer.infer(body, true )] + clauses.map {|c| typer.infer(c, true)}
+          types = []
+          body_type = typer.infer(body, else_node.nil?) if body
+          else_type = typer.infer(else_node, true) if else_node
+          if else_node
+            types << else_type
+          elsif body
+            types << body_type
+          end
+          types += clauses.map {|c| typer.infer(c, true)}
           if types.any? {|t| t.nil?}
             typer.defer(self)
           else
             # TODO check types for compatibility (maybe only if an expression)
             resolved!
-            @inferred_type = types[0]
+            types.each do |type|
+              @inferred_type ||= type unless type.unreachable?
+            end
+            @inferred_type ||= types[0]
           end
         end
         @inferred_type
