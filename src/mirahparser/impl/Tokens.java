@@ -74,6 +74,7 @@ public enum Tokens {
   tColons,
   tColon,
   tDot,
+  tDots,
   tLParen,
   tRParen,
   tLBrack,
@@ -106,6 +107,14 @@ public enum Tokens {
   tDollar,
   tInstVarBacktick,
   tClassVarBacktick,
+  tComma,
+  tStar,
+  tStars,
+  tAmper,
+  tAmpers,
+  tPipe,
+  tPipes,
+  tRocket,
   tUNKNOWN,
   tEOF
 }

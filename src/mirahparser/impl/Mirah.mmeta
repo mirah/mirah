@@ -124,7 +124,7 @@ parser MirahParser {
                 b= -> ^(Call op gettable2(l) [r])
                 assign(l, b)
               | ( l=lhs $EQ opt_nl r=command_call assign(l, r)
-                | t=value(primary) (($LBrack)=> $LBrack opt_nl a=call_args? opt_nl ."]" op=op_assign v=command_call
+                | t=value(primary) (($LBrack)=> $LBrack opt_nl a=call_args? opt_nl $RBrack op=op_assign v=command_call
                                                 op_attr_assign(t, "[]", a, op, v)
                                    | ($Colons)=> colons f=identifier op=op_assign v=command_call
                                                  op_attr_assign(t, f, [], op, v)
@@ -140,7 +140,7 @@ parser MirahParser {
   $Memo[Ast]
   expr: a=( ($Not)=> $Not opt_nl e=expr -> ^(Not e)
           | ($Bang)=> ($Bang e=command_call -> ^(Not e) | arg12)
-          | ( c=variable ."?" opt_nl t=arg opt_nl . ":" opt_nl e=arg -> ^(If c t e)
+          | ( c=variable $Question opt_nl t=arg opt_nl $Colon opt_nl e=arg -> ^(If c t e)
             | command_call
             | arg
             )
@@ -174,7 +174,7 @@ parser MirahParser {
                                                   |b=constant ~(paren_args|call_args|$EQ..$OpAssign) h=-> ^(Colon2Const h b)
                                                   |op=operation3 ~($EQ..$OpAssign) iter=brace_block? h=-> ^(Call op h iter)
                                                   )
-                             | ($LBrack)=> $LBrack opt_nl a=call_args? opt_nl ."]" iter=brace_block? ~($EQ..$OpAssign) h=-> ^(Call "[]" h a iter)
+                             | ($LBrack)=> $LBrack opt_nl a=call_args? opt_nl $RBrack iter=brace_block? ~($EQ..$OpAssign) h=-> ^(Call "[]" h a iter)
                              )* {h};
 
   primary2: ($Super)=> primary2_super
@@ -207,7 +207,7 @@ parser MirahParser {
                   | -> ^(ZSuper)
                   );
   primary2_lparen
-         : $LParen opt_nl e=compstmt opt_nl . ")" {
+         : $LParen opt_nl e=compstmt opt_nl $RParen {
            unless e.nil?
              ae = Ast(e)
              ae.start_position = pos(_start)
@@ -218,21 +218,21 @@ parser MirahParser {
   primary2_begin
          : s=block_start $Begin! b=bodystmt verify_end(s)! $End -> ^(Begin b);
   primary2_lbrack
-         : isBEG . "[" opt_nl . "]" -> ^(ZArray)
-         | isBEG . "[" opt_nl a=args trailer opt_nl . "]" -> ^(Array a+);
+         : isBEG $LBrack opt_nl $RBrack -> ^(ZArray)
+         | isBEG $LBrack opt_nl a=args trailer opt_nl $RBrack -> ^(Array a+);
   primary2_lbrace scope(@BEG)
-         : $LBrace opt_nl ( ."}" -> ^(Hash)
-                          | a=listOf(:assoc) trailer opt_nl . "}" -> ^(Hash a+)
+         : $LBrace opt_nl ( $RBrace -> ^(Hash)
+                          | a=listOf(:assoc) trailer opt_nl $RBrace -> ^(Hash a+)
                           );
   primary2_yield
-         : $Yield ( $LParen opt_nl ( .")" -> ^(Yield)
-                                   | a=call_args opt_nl . ")" -> ^(Yield a+)
+         : $Yield ( $LParen opt_nl ( $RParen -> ^(Yield)
+                                   | a=call_args opt_nl $RParen -> ^(Yield a+)
                                    )
                   | -> ^(Yield)
                   );
   primary2_bang
-         : $Bang $LParen opt_nl (.")" -> ^(Not ^(Nil))
-                                | e=value(expr) opt_nl .")" -> ^(Not e)
+         : $Bang $LParen opt_nl ($RParen -> ^(Not ^(Nil))
+                                | e=value(expr) opt_nl $RParen -> ^(Not e)
                                 );
   primary2_if
          : isBEG2 s=block_start $If! opt_nl cond=value(expr)!
@@ -295,11 +295,11 @@ parser MirahParser {
                )
              | variable;
 
-  f_arglist: $LParen! opt_nl a=f_args opt_nl .")" (.":" type=primary)? BEG {[a, type]}
-           | a=f_args (.":" type=primary)? term {[a, type]};
+  f_arglist: $LParen! opt_nl a=f_args opt_nl $RParen ($Colon type=primary)? BEG {[a, type]}
+           | a=f_args ($Colon type=primary)? term {[a, type]};
 
   $Memo
-  comma: ."," opt_nl;
+  comma: $Comma opt_nl;
   f_args: req=f_arg! opt=(comma f_optarg)? rest=(comma f_rest_arg)? req2=(comma f_arg)? block=(comma f_block_arg)?
             -> ^(Arguments req opt rest req2 block)
         | opt=f_optarg! rest=(comma f_rest_arg)? req=(comma f_arg)? block=(comma f_block_arg)?
@@ -320,37 +320,38 @@ parser MirahParser {
             | n=identifier { [n, nil] };
 
   f_arg_item: ~f_opt n=f_norm_arg -> ^(RequiredArgument n+);
-            # | $LParen f_margs .")"
+            # | $LParen f_margs $RParen
 
   f_arg: rlistOf(:f_arg_item);
 
   f_opt: n=f_norm_arg $EQ! opt_nl v=arg_value l={ n + [v] }-> ^(OptArg l+);
   f_optarg: rlistOf(:f_opt);
 
-  f_rest_arg: ."*" n=f_norm_arg -> ^(RestArg n+)
-            | ."*" -> ^(UnnamedRestArg);
+  f_rest_arg: $Star n=f_norm_arg -> ^(RestArg n+)
+            | $Star -> ^(UnnamedRestArg);
 
-  f_block_arg: ."&" n=f_norm_arg $EQ opt_nl !"nil" $Nil -> ^(OptBlockArg n+)
-             | ."&"! n=f_norm_arg -> ^(BlockArg n+);
+  f_block_arg: $Amper n=f_norm_arg $EQ opt_nl !"nil" $Nil -> ^(OptBlockArg n+)
+             | $Amper! n=f_norm_arg -> ^(BlockArg n+);
 
-  block_arg: isBEG ."&" ~sp v=arg_value -> ^(BlockPass v);
+  block_arg: isBEG $Amper ~sp v=arg_value -> ^(BlockPass v);
 
   # :brace_block - [!null]
   cmd_brace_block: brace_block;
   brace_block scope(@BEG)
-             : $LBrace opt_nl (p=block_param !"statement" b=compstmt opt_nl ."}"
-                              |p={nil} b=compstmt opt_nl ."}") -> ^(Iter p b)
+             : $LBrace opt_nl (p=block_param !"statement" b=compstmt opt_nl $RBrace
+                              |p={nil} b=compstmt opt_nl $RBrace) -> ^(Iter p b)
              | do_block;
 
   do_block scope(@BEG): ~?{@cond} s=block_start $Do! opt_nl p=block_param?! b=compstmt verify_end(s)! $End -> ^(Iter p b);
 
   # Do we need bv_decls?
-  block_param: ."|" opt_nl a=f_args opt_nl ."|" BEG {a};
+  block_param: $Pipe opt_nl a=f_args opt_nl $Pipe BEG {a}
+             | $Pipes BEG -> ^(Arguments nil nil nil nil nil);
   block_call: c=command b=do_block
               h={n=Ast(Ast(c).clone); n.add(b);n}
               (dot_or_colon op=operation2 a=opt_paren_args h=-> ^(Call op h a))* {h};
 
-  paren_args: $LParen! opt_nl c=call_args? opt_nl .")" {c.nil? ? Object(ArrayList.new) : c};
+  paren_args: $LParen! opt_nl c=call_args? opt_nl $RParen {c.nil? ? Object(ArrayList.new) : c};
   opt_paren_args: ($EOF)=> {List(nil)}
                 | ($LParen)=> paren_args
                 | ~(call_args | $EQ..$OpAssign) { List(nil) };
@@ -362,7 +363,7 @@ parser MirahParser {
   assign lhs=_ rhs=_ : { n=Ast(Ast(lhs).clone); n.add(rhs); n };
 
   $Memo[Ast]
-  arg scope(@BEG): h=arg0 (."?" opt_nl t=arg opt_nl .":" opt_nl e=arg
+  arg scope(@BEG): h=arg0 ($Question opt_nl t=arg opt_nl $Colon opt_nl e=arg
                            h=-> ^(If h t e))* {h};
   arg0: ( (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $AndEq)=>
           l=var_lhs $AndEq opt_nl r=arg
@@ -377,7 +378,7 @@ parser MirahParser {
           b= -> ^(Call op gettable2(l) [r])
           assign(l, b)
         | ( l=lhs $EQ opt_nl r=maybe_rescue assign(l, r)
-          | t=value(primary) ($LBrack opt_nl a=call_args? opt_nl ."]" op=assignment_op v=arg
+          | t=value(primary) ($LBrack opt_nl a=call_args? opt_nl $RBrack op=assignment_op v=arg
                                op_attr_assign(t, "[]", a, op, v)
                              |colons constant assignment_op arg
                                !"constant re-assignment prohibited" ?{false}
@@ -391,14 +392,14 @@ parser MirahParser {
         );
 
   arg2: &(. oneOf("+-!~")|primary)
-        a=arg3 t=(."||" opt_nl BEG b=arg3 a=-> ^(Or a b))* {a};
-  arg3: a=arg4 t=(."&&" opt_nl BEG b=arg4 a=-> ^(And a b))* {a};
+        a=arg3 t=($Pipes opt_nl BEG b=arg3 a=-> ^(Or a b))* {a};
+  arg3: a=arg4 t=($Ampers opt_nl BEG b=arg4 a=-> ^(And a b))* {a};
   arg4: a=arg5 t=(. op=("<=>"|">="|">"|"<="|"<"|"==="|"=="|"!="|"=~") opt_nl BEG b=arg5
                    a=-> ^(Call op a [b])
                  |."!~" opt_nl BEG b=arg5 a=-> ^(Not ^(Call "=~" a [b])))* {a};
-  arg5: a=arg6 t=(."|" opt_nl BEG b=arg6 a=-> ^(Call "|" a [b])
+  arg5: a=arg6 t=($Pipe opt_nl BEG b=arg6 a=-> ^(Call "|" a [b])
                  |."^" opt_nl BEG b=arg6 a=-> ^(Call "^" a [b]))* {a};
-  arg6: a=arg7 t=(."&" opt_nl BEG b=arg7 a=-> ^(Call "&" a [b]))* {a};
+  arg6: a=arg7 t=($Amper opt_nl BEG b=arg7 a=-> ^(Call "&" a [b]))* {a};
   arg7: a=arg8 t=(. op=("<<<"|"<<"|">>") opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
   arg8: a=arg9 t=(."+" opt_nl BEG b=arg9 a=-> ^(Call "+" a [b])
                  |."-" opt_nl BEG b=arg9 a=-> ^(Call "-" a [b]))* {a};
@@ -408,7 +409,7 @@ parser MirahParser {
                             | -> ^(Call "-@" v)
                             )
        | arg11;
-  arg11: a=arg12 ."**" opt_nl BEG b=arg11 -> ^(Call "**" a [b])
+  arg11: a=arg12 $Stars opt_nl BEG b=arg11 -> ^(Call "**" a [b])
        | arg12;
   $Memo[Ast]
   arg12: ."~" opt_nl BEG v=arg12 -> ^(Call "~" v)
@@ -418,7 +419,7 @@ parser MirahParser {
 
   arg_value: a=arg {checkExpression(a)};
 
-  trailer: . ("," | nl)? {Object(nil)};
+  trailer: ($Comma | nl)? {Object(nil)};
   $Memo
   operation: ($FID)=>fid
            | ($CONSTANT)=>constant
@@ -437,7 +438,7 @@ parser MirahParser {
             | ($Backtick)=> unquote
             | (lastdot)=> (identifier | op)
             | op;
-  dot: opt_nl $Dot ~"." opt_nl;
+  dot: opt_nl $Dot opt_nl;
   colons: $Colons opt_nl;
   dot_or_colon: dot | colons;
   opt_nl: ($NL)=>nl+|;
@@ -452,12 +453,11 @@ parser MirahParser {
   COND: {@cond = true;nil};
   UNCOND: {@cond = false;nil};
 
-  colon3: isBEG . "::" opt_nl;
+  colon3: isBEG $Colons opt_nl;
   uminus: isBEG2 . "-"  opt_nl;
   uplus: isBEG2 . "+" opt_nl;
 
-  splat: isBEG "*" ~sp v=arg_value s= -> ^(Splat v) { [s] };
-  one_arg: v=arg_value ~(."=>") {v};
+  one_arg: v=arg_value ~$Rocket {v};
   args: l=rlistOf(:one_arg);
       #  (comma s=splat {l+s} | { l })
       #| splat;
@@ -482,7 +482,7 @@ parser MirahParser {
      | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $EQ)=> var_lhs
      | ($Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
      | lhs2;
-  lhs2: t=value(primary) (($LBrack)=> $LBrack opt_nl k=call_args? opt_nl ."]" -> ^(AttrAssign "[]=" t k)
+  lhs2: t=value(primary) (($LBrack)=> $LBrack opt_nl k=call_args? opt_nl $RBrack -> ^(AttrAssign "[]=" t k)
                          | dot_or_colon (($CONSTANT)=> n=constant -> ^(ConstAssign ^(Colon2Const t n))
                                         |n=identifier l={ArrayList.new} -> ^(AttrAssign "#{n}=" t l)
                                         )
@@ -494,7 +494,7 @@ parser MirahParser {
          | ($IDENTIFIER)=> n=identifier -> ^(LocalAssign n)
          | ($Backtick)=> u=unquote i={List(u).get(1)} -> ^(UnquoteAssign i);
 
-  assoc: a=arg_value . "=>"! opt_nl BEG b=arg_value -> ^(Assoc a b)
+  assoc: a=arg_value $Rocket! opt_nl BEG b=arg_value -> ^(Assoc a b)
        | l=label BEG v=arg_value -> ^(Assoc l v);
 
   label: . n=identifier2 ":" ~":" opt_nl -> ^(Symbol n);
@@ -521,9 +521,9 @@ parser MirahParser {
          );
 
   annotation scope(@BEG): $Dollar n=$CONSTANT
-              arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl ."]" -> ^(Hash ^(Assoc ^(Symbol "value") e))
-                                              | a=listOf(:assoc) trailer opt_nl . "]" -> ^(Hash a+)
-                                              | ."]" {nil}
+              arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl $RBrack -> ^(Hash ^(Assoc ^(Symbol "value") e))
+                                              | a=listOf(:assoc) trailer opt_nl $RBrack -> ^(Hash a+)
+                                              | $RBrack {nil}
                                               )
                   | {nil} )
               name={Token(n).text}
@@ -542,9 +542,13 @@ parser MirahParser {
     | ($NMatch)=> $NMatch {"!~"}
     | ($Slash)=> $Slash {"/"}
     | ($LBrack)=> . ("[]=" | "[]")
+    | ($Pipe)=> $Pipe {"|"}
+    | ($Amper)=> $Amper {"&"}
+    | ($Star)=> $Star {"*"}
+    | ($Stars)=> $Stars {"**"}
     | ($UNKNOWN)=>
-      . ( "===" | "==" | "=~" | "**" | "+@" | "-@"
-        | oneOf("&|^+-*%~") { text(_real_start == -1 ? _start : _real_start, _pos) }
+      . ( "===" | "==" | "=~" | "+@" | "-@"
+        | oneOf("^+-%~") { text(_real_start == -1 ? _start : _real_start, _pos) }
         );
 
   $Memo[Ast]
@@ -657,7 +661,7 @@ parser MirahParser {
            -> ^(If cond body tail)
          | {nil};
 
-  Rescue: ($Rescue! c=listOf(:constant) (. "=>" opt_nl . n=identifier)?
+  Rescue: ($Rescue! c=listOf(:constant) ($Rocket opt_nl . n=identifier)?
            Then b=compstmt -> ^(RescueClause c n b))+;
 
   fixnum: t=$Integer n={ parseInt(Token(t).text) } -> ^(Fixnum n);

@@ -360,7 +360,12 @@ public class MirahLexer {
         }
         break;
       case '.':
-        type = Tokens.tDot;
+        if (i < end && chars[i] == '.') {
+          i += 1;
+          type = Tokens.tDots;
+        } else {
+          type = Tokens.tDot;
+        }
         break;
       case '(':
         type = Tokens.tLParen;
@@ -462,7 +467,12 @@ public class MirahLexer {
         type = Tokens.tQuestion;
         break;
       case '=':
-        if (i == end || (chars[i] != '=' && chars[i] != '~')) {
+        if (i == end) {
+          type = Tokens.tEQ;
+        } if (chars[i] == '>') {
+          i += 1;
+          type = Tokens.tRocket;
+        } else if (chars[i] != '=' && chars[i] != '~') {
           type = Tokens.tEQ;
         } else {
           // TODO
@@ -470,39 +480,51 @@ public class MirahLexer {
         }
         break;
       case '&':
-        if (i + 1 < end && chars[i] == '&' && chars[i + 1] == '=') {
-          i += 2;
-          type = Tokens.tAndEq;
+        if (i < end && chars[i] == '&') {
+          if (i + 1 < end && chars[i + 1] == '=') {
+            i += 2;
+            type = Tokens.tAndEq;
+          } else {
+            i += 1;
+            type = Tokens.tAmpers;
+          }
         } else if (i < end && chars[i] == '=') {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tAmper;
         }
         break;
       case '|':
-        if (i + 1 < end && chars[i] == '|' && chars[i + 1] == '=') {
-          i += 2;
-          type = Tokens.tOrEq;
+        if (i < end && chars[i] == '|') {
+          if (i + 1 < end && chars[i + 1] == '=') {
+            i += 2;
+            type = Tokens.tOrEq;
+          } else {
+            i += 1;
+            type = Tokens.tPipes;
+          }
         } else if (i < end && chars[i] == '=') {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tPipe;
         }
         break;
       case '*':
-        if (i + 1 < end && chars[i] == '*' && chars[i + 1] == '=') {
-          i += 2;
-          type = Tokens.tOpAssign;
+        if (i < end && chars[i] == '*') {
+          if (i + 1 < end && chars[i + 1] == '=') {
+            i += 2;
+            type = Tokens.tOpAssign;
+          } else {
+            i += 1;
+            type = Tokens.tStars;
+          }
         } else if (i < end && chars[i] == '=') {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tStar;
         }
         break;
       case '+':
@@ -543,6 +565,9 @@ public class MirahLexer {
         break;
       case '`':
         type = Tokens.tBacktick;
+        break;
+      case ',':
+        type = Tokens.tComma;
         break;
       case '0': case '1': case '2': case '3': case '4':
       case '5': case '6': case '7': case '8': case '9':
