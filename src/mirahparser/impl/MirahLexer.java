@@ -365,11 +365,20 @@ public class MirahLexer {
       case '(':
         type = Tokens.tLParen;
         break;
+      case ')':
+        type = Tokens.tRParen;
+        break;
       case '[':
         type = Tokens.tLBrack;
         break;
+      case ']':
+        type = Tokens.tRBrack;
+        break;
       case '{':
         type = Tokens.tLBrace;
+        break;
+      case '}':
+        type = Tokens.tRBrace;
         break;
       case ';':
         type = Tokens.tSemi;
@@ -583,6 +592,9 @@ public class MirahLexer {
 
   private Tokens readRestOfName(Tokens type) {
     int i = parser._pos;
+    if (type == Tokens.tDigit) {
+      return readNumber(i);
+    }
     if (Tokens.tFID.compareTo(type) >= 0) {
       while (i < end) {
         char c = chars[i];
@@ -615,6 +627,110 @@ public class MirahLexer {
       parser._pos = i;
     }
     return type;
+  }
+
+  private int readDigits(int pos, boolean oct, boolean dec, boolean hex) {
+    loop:
+    for (int i = pos; i < end; ++i) {
+      switch (chars[i]) {
+        case '0': case '1': case '_':
+          break;
+        case '2': case '3': case '4': case '5': case '6': case '7':
+          if (oct) {
+            break;
+          } else {
+            return i;
+          }
+        case '8': case '9':
+          if (dec) {
+            break;
+          } else {
+            return i;
+          }
+        case 'a': case 'A': case 'b': case 'B': case 'c': case 'C':
+        case 'd': case 'D': case 'e': case 'E': case 'f': case 'F':
+          if (hex) {
+            break;
+          } else {
+            return i;
+          }
+        default:
+          return i;
+      }
+    }
+    return end;
+  }
+
+  private Tokens readNumber(int pos) {
+    if (pos == end) {
+      parser._pos = pos;
+      return Tokens.tInteger;
+    }
+    boolean oct = true;
+    boolean dec = true;
+    boolean hex = false;
+    boolean maybeFloat = true;
+    if (chars[pos - 1] == '0') {
+      switch (chars[pos]) {
+        case 'd': case 'D':
+          pos += 1;
+          maybeFloat = false;
+          break;
+        case 'b': case 'B':
+          oct = dec = maybeFloat = false;
+          pos += 1;
+          break;
+        case 'x': case 'X':
+          hex = true;
+          maybeFloat = false;
+          pos += 1;
+        case '.': case 'e': case 'E':
+          break;
+        case 'o': case 'O':
+          pos += 1;
+        default:
+          maybeFloat = false;
+          dec = false;
+      }
+    }
+    int i = readDigits(pos, oct, dec, hex);
+    parser._pos = i;
+    if (i == end || !maybeFloat) {
+      return Tokens.tInteger;
+    }
+    switch (chars[i]) {
+      case '.':
+        if (readFraction(i + 1)) {
+          return Tokens.tFloat;
+        }
+        break;
+      case 'e': case 'E':
+        readExponent(i + 1);
+        return Tokens.tFloat;
+    }
+    return Tokens.tInteger;
+  }
+
+  private boolean readFraction(int pos) {
+    int i = readDigits(pos, true, true, false);
+    if (i == pos) {
+      return false;
+    }
+    if (i < end) {
+      if (chars[i] == 'e' || chars[i] == 'E') {
+        readExponent(i + 1);
+        return true;
+      }
+    }
+    parser._pos = i;
+    return true;
+  }
+
+  private void readExponent(int pos) {
+    if (pos < end && chars[pos] == '-') {
+      pos += 1;
+    }
+    parser._pos = readDigits(pos, true, true, false);
   }
 
   private String string;

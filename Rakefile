@@ -33,11 +33,12 @@ task :build_parser => 'dist/mirah-parser.jar'
 ant.taskdef :name => 'jarjar', :classpath => 'javalib/jarjar-1.1.jar', :classname=>"com.tonicsystems.jarjar.JarJarTask"
 
 file 'build/mirah-parser.jar' => ['build/mirahparser/impl/MirahParser.class',
-                                  'build/mirah/lang/ast/Node.class'] do
+                                  'build/mirahparser/lang/ast/Node.class',
+                                  'build/mirahparser/impl/MirahLexer.class'] do
   ant.jarjar :jarfile => 'build/mirah-parser.jar' do
     fileset :dir => 'build', :includes => 'mirahparser/impl/*.class'
-    # fileset :dir => 'build', :includes => 'mirah/lang/ast/*.class'
-    # fileset :dir => 'build', :includes => 'org/mirah/ast/*.class'
+    # fileset :dir => 'build', :includes => 'mirahparser/lang/ast/*.class'
+    # fileset :dir => 'build', :includes => 'org/mirahparser/ast/*.class'
     zipfileset :src => 'javalib/mmeta-runtime.jar'
     _element :rule, :pattern=>'mmeta.**', :result=>'org.mirahparser.mmeta.@1'
     manifest do
@@ -60,31 +61,30 @@ file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
   end
 end
 
-file 'build/mirahparser/impl/MirahParser.class' =>
-    ['build/mirahparser/impl/Mirah.mirah', 'build/mirahparser/impl/MirahLexer.class'] do
+file 'build/mirahparser/impl/MirahParser.class' => ['build/mirahparser/impl/Mirah.mirah'] do
   mirahc('build/mirahparser/impl/Mirah.mirah',
          :dir => 'build',
          :dest => 'build',
          :options => ['--classpath', 'build:javalib/mmeta-runtime.jar'])
 end
 
-file 'build/org/mirah/ast/NodeMeta.class' => 'src/org/mirah/ast/meta.mirah' do
+file 'build/org/mirahparser/ast/NodeMeta.class' => 'src/org/mirah/ast/meta.mirah' do
   mirahc('src/org/mirah/ast/meta.mirah',
          :dest => 'build'
          #:options => ['-V']
          )
 end
 
-file 'build/mirah/lang/ast/Node.class' =>
-    ['build/org/mirah/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
+file 'build/mirahparser/lang/ast/Node.class' =>
+    ['build/org/mirahparser/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
       mirahc('.',
              :dir => 'src/mirah/lang/ast',
              :dest => 'build',
              :options => ['--classpath', 'build'])
 end
 
-file 'build/mirah/lang/ast/Node.java' =>
-    ['build/org/mirah/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
+file 'build/mirahparser/lang/ast/Node.java' =>
+    ['build/org/mirahparser/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
       mirahc('.',
              :dir => 'src/mirah/lang/ast',
              :dest => 'build',
@@ -118,8 +118,8 @@ end
 
 task :test => 'build/mirah-parser.jar'
 
-task :doc => 'build/mirah/lang/ast/Node.java' do
-  ant.javadoc :sourcepath => 'build/mirah/lang', :destdir => 'doc'
+task :doc => 'build/mirahparser/lang/ast/Node.java' do
+  ant.javadoc :sourcepath => 'build/mirahparser/lang', :destdir => 'doc'
 end
 
 def runjava(jar, *args)

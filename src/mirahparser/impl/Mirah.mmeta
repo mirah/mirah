@@ -63,8 +63,6 @@ public class HeredocContext {
 }
 
 parser MirahParser {
-  digits x=_ : a = oneOf(x) b=("_" c=oneOf(x) {c})*
-                               d={[a] + b} { join(d) };
   rlistOf r=_: h=apply(r) t=(comma apply(r))* { [h] + t };
   listOf e=_: rlistOf(e)
               | empty                                               { ArrayList.new } ;
@@ -284,7 +282,8 @@ parser MirahParser {
   primary2_retry: $Retry -> ^(Retry);
   primary2_return: $Return -> ^(Return);
   primary2_id: ($Colons)=> colon3 c=constant ~($EQ..$OpAssign) -> ^(Colon3 c)
-             | ($Digit)=> numeric
+             | ($Integer)=> fixnum
+             | ($Float)=> floatLiteral
              | ($Colon)=> symbol
              | (($FID|$CONSTANT|$IDENTIFIER) ($LParen|$LBrace|$Do))=>
                ( op=operation ( ($LParen)=>
@@ -500,10 +499,6 @@ parser MirahParser {
 
   label: . n=identifier2 ":" ~":" opt_nl -> ^(Symbol n);
 
-  literal: numeric | symbol;
-
-  numeric: floatLiteral | fixnum;
-
   constant: t=$CONSTANT ~(":" ~":") {Token(t).text};
   identifier: t=( $IDENTIFIER
                 | lastdot $BEGIN..$Yield
@@ -665,22 +660,9 @@ parser MirahParser {
   Rescue: ($Rescue! c=listOf(:constant) (. "=>" opt_nl . n=identifier)?
            Then b=compstmt -> ^(RescueClause c n b))+;
 
-  fixnum: . n=( "0"! ( oneOf("xX") d=digits(@HEX)+ { parseInt(join(d), 16) }
-                  | oneOf("dD") d=digits(@DECIMAL)+ { parseInt(join(d), 10) }
-                  | oneOf("oO") d=digits(@OCTAL)+ { parseInt(join(d), 8) }
-                  | oneOf("bB") d=digits(@BINARY)+ { parseInt(join(d), 2) }
-                  | d=digits(@OCTAL)* { parseInt("0" + join(d), 8) }
-                  )
-            | d=digits(@DECIMAL)+ { parseInt(join(d), 10) }
-            ) -> ^(Fixnum n);
+  fixnum: t=$Integer n={ parseInt(Token(t).text) } -> ^(Fixnum n);
 
-  floatLiteral: . flt=(i=digits(@DECIMAL)+
-                       f=("." digits(@DECIMAL)+ | { [] })
-                       e=(oneOf("eE") digits(@DECIMAL)+ | { [] })
-                       ?{List(f).size() + List(e).size() > 0}
-                       s={i+["."]+f+["E0"]+e}
-                       { Double.new(join(s)) }
-                      ) -> ^(Float flt);
+  floatLiteral: t=$Float f={ parseFloat(Token(t).text) } -> ^(Float f);
 
   lastdot: ?{_rpeek.indexOf(".") == 0};
 
@@ -887,8 +869,34 @@ parser MirahParser {
     "\n"
   }
 
-  def parseInt(string:string, radix:int) {
-    Long.valueOf(Long.parseLong(string, radix))
+  def parseInt(string:String) {
+    radix = 10
+    if string.length > 1 && string.charAt(0) == 48 # '0'
+      type = string.toLowerCase.substring(1, 2)
+      if 'x'.equals(type)
+        radix = 16
+        string = string.substring(2)
+      elsif 'o'.equals(type)
+        radix = 8
+        string = string.substring(2)
+      elsif 'b'.equals(type)
+        radix = 2
+        string = string.substring(2)
+      elsif 'd'.equals(type)
+        string = string.substring(2)
+      else
+        radix = 8
+      end
+    end
+    begin
+      Long.valueOf(Long.parseLong(string.replace('_', ''), radix))
+    rescue NumberFormatException
+      raise SyntaxError.new('valid number', '', _pos, _string, _list)
+    end
+  }
+
+  def parseFloat(string:String) {
+    Double.new(string.replace('_', ''))
   }
 
   def stringConcat(strings:List) {
