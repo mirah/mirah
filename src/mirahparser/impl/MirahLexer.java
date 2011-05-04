@@ -472,11 +472,19 @@ public class MirahLexer {
         } if (chars[i] == '>') {
           i += 1;
           type = Tokens.tRocket;
-        } else if (chars[i] != '=' && chars[i] != '~') {
-          type = Tokens.tEQ;
+        } else if (chars[i] == '~') {
+          i += 1;
+          type = Tokens.tMatch;
+        } else if (chars[i] == '=') {
+          if (i + 1 < end && chars[i + 1] == '=') {
+            i += 2;
+            type = Tokens.tEEEQ;
+          } else {
+            i += 1;
+            type = Tokens.tEEQ;
+          }
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tEQ;
         }
         break;
       case '&':

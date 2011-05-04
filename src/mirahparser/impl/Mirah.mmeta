@@ -394,13 +394,13 @@ parser MirahParser {
   arg2: &(. oneOf("+-!~")|primary)
         a=arg3 t=($Pipes opt_nl BEG b=arg3 a=-> ^(Or a b))* {a};
   arg3: a=arg4 t=($Ampers opt_nl BEG b=arg4 a=-> ^(And a b))* {a};
-  arg4: a=arg5 t=(. op=("<=>"|">="|">"|"<="|"<"|"==="|"=="|"!="|"=~") opt_nl BEG b=arg5
+  arg4: a=arg5 t=(op_t=($Match..$EEEQ) op={Token(op_t).text} opt_nl BEG b=arg5
                    a=-> ^(Call op a [b])
-                 |."!~" opt_nl BEG b=arg5 a=-> ^(Not ^(Call "=~" a [b])))* {a};
+                 |$NMatch opt_nl BEG b=arg5 a=-> ^(Not ^(Call "=~" a [b])))* {a};
   arg5: a=arg6 t=($Pipe opt_nl BEG b=arg6 a=-> ^(Call "|" a [b])
                  |."^" opt_nl BEG b=arg6 a=-> ^(Call "^" a [b]))* {a};
   arg6: a=arg7 t=($Amper opt_nl BEG b=arg7 a=-> ^(Call "&" a [b]))* {a};
-  arg7: a=arg8 t=(. op=("<<<"|"<<"|">>") opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
+  arg7: a=arg8 t=(op_t=($LShift..$RShift) op={Token(op_t).text} opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
   arg8: a=arg9 t=(."+" opt_nl BEG b=arg9 a=-> ^(Call "+" a [b])
                  |."-" opt_nl BEG b=arg9 a=-> ^(Call "-" a [b]))* {a};
   arg9: a=arg10 t=(. oneOf("*%/") op={text(_pos-1, _pos)} opt_nl BEG b=arg10 a=-> ^(Call op a [b]))* {a};
@@ -529,25 +529,28 @@ parser MirahParser {
               name={Token(n).text}
               -> ^(Annotation name arg);
 
-  op: ($LT)=> $LT {"<"}
-    | ($LE)=> $LE {"<="}
-    | ($LEG)=> $LEG {"<=>"}
-    | ($GT)=> $GT {">"}
-    | ($GE)=> $GE {">="}
-    | ($LShift)=> $LShift {"<<"}
-    | ($LLShift)=> $LLShift {"<<<"}
-    | ($RShift)=> $RShift {">>"}
-    | ($Bang)=> $Bang {"!"}
-    | ($NE)=> $NE {"!="}
-    | ($NMatch)=> $NMatch {"!~"}
-    | ($Slash)=> $Slash {"/"}
-    | ($LBrack)=> . ("[]=" | "[]")
-    | ($Pipe)=> $Pipe {"|"}
-    | ($Amper)=> $Amper {"&"}
-    | ($Star)=> $Star {"*"}
-    | ($Stars)=> $Stars {"**"}
+  op: $LT {"<"}
+    | $LE {"<="}
+    | $LEG {"<=>"}
+    | $GT {">"}
+    | $GE {">="}
+    | $LShift {"<<"}
+    | $LLShift {"<<<"}
+    | $RShift {">>"}
+    | $Bang {"!"}
+    | $NE {"!="}
+    | $NMatch {"!~"}
+    | $Slash {"/"}
+    | $Pipe {"|"}
+    | $Amper {"&"}
+    | $Star {"*"}
+    | $Stars {"**"}
+    | $EEQ {"=="}
+    | $EEEQ {"==="}
+    | $Match {"=~"}
+    | &$LBrack .("[]=" | "[]")
     | ($UNKNOWN)=>
-      . ( "===" | "==" | "=~" | "+@" | "-@"
+      . ( "+@" | "-@"
         | oneOf("^+-%~") { text(_real_start == -1 ? _start : _real_start, _pos) }
         );
 
