@@ -33,6 +33,7 @@ module Mirah::JVM::Types
           BiteScript::ASM::ClassMirror.load('java.lang.Iterable'))
 
   Void = VoidType.new
+  Unreachable = UnreachableType.new
   Null = NullType.new
 
   WIDENING_CONVERSIONS = {

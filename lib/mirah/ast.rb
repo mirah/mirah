@@ -556,7 +556,12 @@ module Mirah
     end
 
     def self.unreachable_type
-      TypeReference::UnreachableType
+      factory = type_factory
+      if factory
+        factory.unreachable_type
+      else
+        TypeReference::UnreachableType
+      end
     end
 
     def self.block_type

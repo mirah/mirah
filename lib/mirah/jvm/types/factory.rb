@@ -214,6 +214,10 @@ module Mirah::JVM::Types
       Void
     end
 
+    def unreachable_type
+      Unreachable
+    end
+
     def get_mirror(name)
       @mirrors[name] ||= begin
         classname = name.tr('.', '/')
