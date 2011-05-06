@@ -31,7 +31,7 @@ public class MirahLexer {
     int start = skipWhitespace(pos);
     Tokens type = processFirstChar(start);
     type = checkKeyword(type);
-    type = readRestOfName(type);
+    type = readRestOfToken(type);
     return parser.build_token(type, pos, start);
   }
 
@@ -540,8 +540,7 @@ public class MirahLexer {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tPlus;
         }
         break;
       case '-':
@@ -549,8 +548,7 @@ public class MirahLexer {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tMinus;
         }
         break;
       case '%':
@@ -558,8 +556,7 @@ public class MirahLexer {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tPercent;
         }
         break;
       case '^':
@@ -567,9 +564,11 @@ public class MirahLexer {
           i += 1;
           type = Tokens.tOpAssign;
         } else {
-          // TODO
-          type = Tokens.tUNKNOWN;
+          type = Tokens.tCaret;
         }
+        break;
+      case '~':
+        type = Tokens.tTilde;
         break;
       case '`':
         type = Tokens.tBacktick;
@@ -623,42 +622,54 @@ public class MirahLexer {
     return type;
   }
 
-  private Tokens readRestOfName(Tokens type) {
+  private Tokens readRestOfToken(Tokens type) {
     int i = parser._pos;
-    if (type == Tokens.tDigit) {
-      return readNumber(i);
+    switch (type) {
+      case tDigit:
+        return readNumber(i);
+      case tQuestion:
+        return readCharacter(i);
     }
     if (Tokens.tFID.compareTo(type) >= 0) {
-      while (i < end) {
-        char c = chars[i];
-        i += 1;
-        if (c <= 0x7F) {
-          if (c == '_' ||
-              (c >= '0' && c <= '9') ||
-              (c >= 'A' && c <= 'Z') ||
-              (c >= 'a' && c <= 'z')) {
-            continue;
-          } else if (c == '?' || c == '!') {
-            if (i < end && chars[i] == '=') {
-              i -= 1;
-            } else {
-              type = Tokens.tFID;
-            }
-            break;
+      return readName(i, type);
+    }
+    return type;
+  }
+  
+  private Tokens readName(int pos, Tokens type) {
+    int i = pos;
+    while (i < end) {
+      char c = chars[i];
+      i += 1;
+      if (c <= 0x7F) {
+        if (c == '_' ||
+            (c >= '0' && c <= '9') ||
+            (c >= 'A' && c <= 'Z') ||
+            (c >= 'a' && c <= 'z')) {
+          continue;
+        } else if (c == '?' || c == '!') {
+          if (i < end && chars[i] == '=') {
+            i -= 1;
+          } else {
+            type = Tokens.tFID;
           }
+          break;
+        }
+        i -= 1;
+        break;
+      } else if (c >= 0xD800 && c <= 0xDFFF) {
+        continue;
+      } else {
+        if (!Character.isLetterOrDigit(c)) {
           i -= 1;
           break;
-        } else if (c >= 0xD800 && c <= 0xDFFF) {
-          continue;
-        } else {
-          if (!Character.isLetterOrDigit(c)) {
-            i -= 1;
-            break;
-          }
         }
       }
-      parser._pos = i;
     }
+    if (i == parser._pos && type == Tokens.tInstVar) {
+      type = Tokens.tAt;
+    }
+    parser._pos = i;
     return type;
   }
 
@@ -764,6 +775,55 @@ public class MirahLexer {
       pos += 1;
     }
     parser._pos = readDigits(pos, true, true, false);
+  }
+
+  private boolean isIdentifierChar(char c) {
+    return Character.isLetterOrDigit(c) || c == '_' || (c >= 0xD800 && c <= 0xDBFF);
+  }
+
+  private Tokens readCharacter(int pos) {
+    if (pos == end) {
+      return Tokens.tQuestion;
+    }
+    char c = chars[pos];
+    if (Character.isWhitespace(c)) {
+      return Tokens.tQuestion;
+    }
+    if (pos + 1 == end) {
+      parser._pos = end;
+      return Tokens.tCharacter;
+    }
+    char c1 = chars[pos + 1];
+    if ((c == '_' || Character.isLetterOrDigit(c)) && isIdentifierChar(c1) ) {
+      return Tokens.tQuestion;
+    }
+    if (c >= 0xD800 && c <= 0xDBFF) {
+      if (pos + 2 < end && isIdentifierChar(chars[pos + 2])) {
+        return Tokens.tQuestion;
+      }
+      parser._pos = pos + 2;
+      return Tokens.tCharacter;
+    }
+    if (c != '\\') {
+      parser._pos += 1;
+      return Tokens.tCharacter;
+    }
+    // Just gobble up any digits. Let the parser worry about whether it's a
+    // valid escape.
+    int i;
+    for (i = pos + 2; i < end; ++i) {
+      c = chars[i];
+      switch (chars[i]) {
+        case '0': case '1': case '2': case '3': case '4': case '5': case '6':
+        case '7': case '8': case '9': case 'a': case 'A': case 'b': case 'B':
+        case 'c': case 'C': case 'd': case 'D': case 'e': case 'E': case 'f':
+        case 'F':
+          continue;
+      }
+      break;
+    }
+    parser._pos = i;
+    return Tokens.tCharacter;
   }
 
   private String string;

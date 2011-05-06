@@ -67,6 +67,7 @@ parser MirahParser {
   listOf e=_: rlistOf(e)
               | empty                                               { ArrayList.new } ;
   sp: oneOf(" \t\f\r\v") | "\\" nl | comment;
+  nosp: t=lex ?{self._pos = _start;Token(t).startpos == _start} {nil};
   $Memo
   ws: (oneOf(" \t\f\r\v") | "\\" nl | comment)*;
   comment: ("#" (~"\n" _)* | block_comment) {Object(nil)};
@@ -196,7 +197,7 @@ parser MirahParser {
           | ($Redo)=> primary2_redo
           | ($Retry)=> primary2_retry
           | ($Return)=> primary2_return
-          | ($Quote|$Question|$LShift)=> string
+          | ($Quote|$Character|$LShift)=> string
           | ($Slash)=> regexp
           | ($Backtick)=> unquote
           | primary2_id
@@ -401,8 +402,8 @@ parser MirahParser {
                  |."^" opt_nl BEG b=arg6 a=-> ^(Call "^" a [b]))* {a};
   arg6: a=arg7 t=($Amper opt_nl BEG b=arg7 a=-> ^(Call "&" a [b]))* {a};
   arg7: a=arg8 t=(op_t=($LShift..$RShift) op={Token(op_t).text} opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
-  arg8: a=arg9 t=(."+" opt_nl BEG b=arg9 a=-> ^(Call "+" a [b])
-                 |."-" opt_nl BEG b=arg9 a=-> ^(Call "-" a [b]))* {a};
+  arg8: a=arg9 t=($Plus opt_nl BEG b=arg9 a=-> ^(Call "+" a [b])
+                 |$Minus opt_nl BEG b=arg9 a=-> ^(Call "-" a [b]))* {a};
   arg9: a=arg10 t=(. oneOf("*%/") op={text(_pos-1, _pos)} opt_nl BEG b=arg10 a=-> ^(Call op a [b]))* {a};
   arg10: uminus BEG v=arg11 ( ?{Ast(v).name.equals('Fixnum')} -> ^(Fixnum negateFixnum(v))
                             | ?{Ast(v).name.equals('Float')} -> ^(Float negateFloat(v))
@@ -412,8 +413,8 @@ parser MirahParser {
   arg11: a=arg12 $Stars opt_nl BEG b=arg11 -> ^(Call "**" a [b])
        | arg12;
   $Memo[Ast]
-  arg12: ."~" opt_nl BEG v=arg12 -> ^(Call "~" v)
-       | ."!" opt_nl BEG v=arg12 -> ^(Not v)
+  arg12: $Tilde opt_nl BEG v=arg12 -> ^(Call "~" v)
+       | $Bang opt_nl BEG v=arg12 -> ^(Not v)
        | uplus BEG v=arg12 -> ^(Call "+@" v)
        | value(primary);
 
@@ -497,14 +498,15 @@ parser MirahParser {
   assoc: a=arg_value $Rocket! opt_nl BEG b=arg_value -> ^(Assoc a b)
        | l=label BEG v=arg_value -> ^(Assoc l v);
 
-  label: . n=identifier2 ":" ~":" opt_nl -> ^(Symbol n);
+  label: . n=identifier2 nosp $Colon opt_nl -> ^(Symbol n);
 
-  constant: t=$CONSTANT ~(":" ~":") {Token(t).text};
+  constant: t=$CONSTANT ~(nosp $Colon) {Token(t).text};
   identifier: t=( $IDENTIFIER
                 | lastdot $BEGIN..$Yield
-                ) ~(":" ~":") {Token(t).text};
+                ) ~(nosp $Colon) {Token(t).text};
   unquote: $Backtick e=expr $Backtick -> ^(Unquote e);
-  identifier2: ~sp t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  identifier2: nosp t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  identifier3: nosp t=($InstVar|$ClassVar|$IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
   cvar: t=$ClassVar {Object(Token(t).text.substring(2))}
       | $ClassVarBacktick e=expr $Backtick -> ^(Unquote e);
   ivar: t=$InstVar {Object(Token(t).text.substring(1))}
@@ -513,7 +515,7 @@ parser MirahParser {
   $Memo
   fname: ($FID)=> fid
        | ($Backtick)=> unquote
-       | ( . n=identifier2 t=( &"=" $EQ {"="}
+       | ( . n=identifier2 t=( nosp $EQ {"="}
                              | {""}
                              )
            {"#{n}#{t}"}
@@ -548,11 +550,16 @@ parser MirahParser {
     | $EEQ {"=="}
     | $EEEQ {"==="}
     | $Match {"=~"}
-    | &$LBrack .("[]=" | "[]")
-    | ($UNKNOWN)=>
-      . ( "+@" | "-@"
-        | oneOf("^+-%~") { text(_real_start == -1 ? _start : _real_start, _pos) }
-        );
+    | $LBrack nosp $RBrack (nosp $EQ {"[]="}
+                           | {"[]"})
+    | $Plus (nosp $At {"+@"}
+            | {"+"})
+    | $Minus (nosp $At {"-@"}
+            | {"-"})
+    | $Caret {"^"}
+    | $Percent {"%"}
+    | $Tilde {"~"}
+    ;
 
   $Memo[Ast]
   cname: c=constant -> ^(Constant c)
@@ -581,7 +588,7 @@ parser MirahParser {
           | ($IDENTIFIER)=> n=identifier              -> ^(Identifier n)
           | (lastdot)=> n=identifier                  -> ^(Identifier n);
 
-  symbol: . ":" ~":" v=("@@" | "@" | {""}) n=identifierChar+ -> ^(Symbol join(concat([v], n)));
+  symbol: $Colon n=identifier3 -> ^(Symbol n);
 
   $Memo[Ast]
   string: character
@@ -621,8 +628,9 @@ parser MirahParser {
                        | oneOf(" \t\f\r\v")*
                        ) {_str(HeredocContext(c).id)} "\n";
 
-  character: . "?" e=escape -> ^(Character getCodePoint(e))
-           | . "?" ~oneOf(" \t\f\r\v\n") c=codepoint -> ^(Character getCodePoint(c));
+  character: t=$Character
+             e={parse_escape(Token(t).text.substring(1))}
+             -> ^(Character getCodePoint(e));
 
   escape: unicode_escape
         | "\\"! ("n" {"\n"}
@@ -650,6 +658,7 @@ parser MirahParser {
                              c5=oneOf(@HEX) c6=oneOf(@HEX) c7=oneOf(@HEX) c8=oneOf(@HEX)
                          {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
                        );
+
 
   re_escape: unicode_escape
            | "\\"! c=codepoint {"\\#{c}"};
@@ -762,6 +771,7 @@ parser MirahParser {
       "InstVarAssign" => "InstVar",
       "ClassVarAssign" => "ClassVar",
     }
+    @escape = EscapeParser.new
   }
 
   def init {
@@ -790,6 +800,14 @@ parser MirahParser {
       gets.add(gettable2(item))
     end
     gets
+  }
+
+  def parse_escape(character:String) {
+    if character.startsWith('\\')
+      String(@escape.parse(character))
+    else
+      character
+    end
   }
 
   def oneOf() {
@@ -1031,5 +1049,75 @@ parser MirahParser {
       end
     end
     return true
+  }
+}
+
+parser EscapeParser {
+  def initialize {
+    @HEX = "0123456789abcdefABCDEF"
+    @OCTAL = "01234567"
+  }
+
+  def oneOf() {
+    chars = String(_pop)
+    _char(chars)
+  }
+
+  start: escape;
+  unicode_escape: "\\" ( "\n" {""}
+                       | "\\" {"\\"}
+                       | a=oneOf(@OCTAL) b=oneOf(@OCTAL) c=oneOf(@OCTAL)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}#{c}", 8)))}
+                       |"x"! a=oneOf(@HEX) b=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}", 16)))}
+                       |"u"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}", 16)))}
+                       |"U"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                             c5=oneOf(@HEX) c6=oneOf(@HEX) c7=oneOf(@HEX) c8=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
+                       );
+
+  escape: unicode_escape
+        | "\\"! ("n" {"\n"}
+                |"s" {"\s"}
+                |"r" {"\r"}
+                |"t" {"\t"}
+                |"v" {"\v"}
+                |"f" {"\f"}
+                |"b" {"\b"}
+                |"a" {"\a"}
+                |"e" {"\e"}
+                |"\n" {""}
+                |codepoint
+                );
+
+  def _codepoint() {
+    begin
+      t = _any
+    rescue RuleFailure
+      return (-1)
+    end
+    character = Character(t).charValue
+    if character >= 0xd800 && character <= 0xdbff
+      begin
+        t = _any
+      rescue RuleFailure
+        return (-1)
+      end
+      return Character.toCodePoint(character, Character(t).charValue)
+    else
+      return int(character)
+    end
+  }
+
+  def codepoint {
+    start = _pos
+    t = _codepoint
+    if t == -1
+      self._pos = start
+      raise @error
+    else
+      return String.new(Character.toChars(t))
+    end
   }
 }

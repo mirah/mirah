@@ -81,7 +81,13 @@ public enum Tokens {
   tRBrack,
   tLBrace,
   tRBrace,
+  tAt,
   tBang,
+  tPlus,
+  tMinus,
+  tCaret,
+  tTilde,
+  tPercent,
   tNMatch,
   tMatch,
   tNE,
@@ -115,6 +121,7 @@ public enum Tokens {
   tPipe,
   tPipes,
   tRocket,
+  tCharacter,
   tUNKNOWN,
   tEOF
 }
