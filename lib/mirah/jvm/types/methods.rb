@@ -280,16 +280,21 @@ module Mirah::JVM::Types
       ast.parameters.each do |param|
         param.compile(compiler, true)
       end
+      handle = compiler.method.mh_invokestatic(
+        org.mirah.DynalangBootstrap,
+        "bootstrap",
+        java.lang.invoke.CallSite,
+        java.lang.invoke.MethodHandles::Lookup,
+        java.lang.String,
+        java.lang.invoke.MethodType)
       compiler.method.invokedynamic(
-        target,
         "dyn:callPropWithThis:#{name}",
-        [return_type, target, *@types])
+        [return_type, target, *@types],
+        handle)
 
       unless expression
         return_type.pop(compiler.method)
       end
-
-      compiler.bootstrap_dynamic
     end
   end
 

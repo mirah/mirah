@@ -19,7 +19,6 @@ module Mirah
   module Util
     class CompilationState
       def initialize
-        BiteScript.bytecode_version = BiteScript::JAVA1_5
         @save_extensions = true
       end
 
