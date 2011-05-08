@@ -18,7 +18,7 @@ package org.mirah;
 
 import org.dynalang.dynalink.*;
 import org.dynalang.dynalink.beans.*;
-import java.dyn.*;
+import java.lang.invoke.*;
 
 public class DynalangBootstrap {
     private static final DynamicLinker dynamicLinker = createDynamicLinker();
@@ -28,9 +28,9 @@ public class DynalangBootstrap {
         return factory.createLinker(); 
     }
     
-    public static CallSite bootstrap(Class caller, String name, MethodType type) {
-         final RelinkableCallSite callSite = new MonomorphicCallSite(caller, name, type);
+    public static CallSite bootstrap(MethodHandles.Lookup caller, String name, MethodType type) {
+         final RelinkableCallSite callSite = new MonomorphicCallSite(name, type);
          dynamicLinker.link(callSite);
-       return callSite;
+         return callSite;
     }
 }
