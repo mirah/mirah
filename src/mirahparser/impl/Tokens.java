@@ -70,7 +70,8 @@ public enum Tokens {
   tNL,
   tSemi,
   tSlash,
-  tQuote,
+  tDQuote,
+  tSQuote,
   tColons,
   tColon,
   tDot,
@@ -122,6 +123,9 @@ public enum Tokens {
   tPipes,
   tRocket,
   tCharacter,
+  tEscape,
+  tStringContent,
+  tStrEvBegin,
   tUNKNOWN,
   tEOF
 }

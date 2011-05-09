@@ -66,13 +66,10 @@ parser MirahParser {
   rlistOf r=_: h=apply(r) t=(comma apply(r))* { [h] + t };
   listOf e=_: rlistOf(e)
               | empty                                               { ArrayList.new } ;
-  sp: oneOf(" \t\f\r\v") | "\\" nl | comment;
-  nosp: t=lex ?{self._pos = _start;Token(t).startpos == _start} {nil};
-  $Memo
-  ws: (oneOf(" \t\f\r\v") | "\\" nl | comment)*;
-  comment: ("#" (~"\n" _)* | block_comment) {Object(nil)};
-  block_comment: "/*"! (block_comment | (~"*/" _))* "*/";
+  nosp: t=&lex ?{Token(t).startpos == _start};
+
   start: ! prog=compstmt $EOF heredoc -> ^(Script prog);
+
   compstmt scope(@cond)
           : UNCOND
             terms? a=(s=statement terms {s})*
@@ -197,7 +194,7 @@ parser MirahParser {
           | ($Redo)=> primary2_redo
           | ($Retry)=> primary2_retry
           | ($Return)=> primary2_return
-          | ($Quote|$Character|$LShift)=> string
+          | ($DQuote|$SQuote|$Character|$LShift)=> string
           | ($Slash)=> regexp
           | ($Backtick)=> unquote
           | primary2_id
@@ -269,7 +266,7 @@ parser MirahParser {
                    );
   primary2_def scope(@BEG)
          : s=block_start
-           $Def! ( $Self! . dot_or_colon! name=fname!
+           $Def! ( $Self! dot_or_colon! name=fname!
                    args=f_arglist! body=bodystmt! verify_end(s)! $End
                    l={ [name] + args + [body] }
                    -> ^(DefStatic l+)
@@ -392,19 +389,19 @@ parser MirahParser {
           )
         );
 
-  arg2: &(. oneOf("+-!~")|primary)
+  arg2: &($Bang..$Tilde|primary)
         a=arg3 t=($Pipes opt_nl BEG b=arg3 a=-> ^(Or a b))* {a};
   arg3: a=arg4 t=($Ampers opt_nl BEG b=arg4 a=-> ^(And a b))* {a};
-  arg4: a=arg5 t=(op_t=($Match..$EEEQ) op={Token(op_t).text} opt_nl BEG b=arg5
+  arg4: a=arg5 t=(tok=($Match..$EEEQ) op={Token(tok).text} opt_nl BEG b=arg5
                    a=-> ^(Call op a [b])
                  |$NMatch opt_nl BEG b=arg5 a=-> ^(Not ^(Call "=~" a [b])))* {a};
   arg5: a=arg6 t=($Pipe opt_nl BEG b=arg6 a=-> ^(Call "|" a [b])
-                 |."^" opt_nl BEG b=arg6 a=-> ^(Call "^" a [b]))* {a};
+                 |$Caret opt_nl BEG b=arg6 a=-> ^(Call "^" a [b]))* {a};
   arg6: a=arg7 t=($Amper opt_nl BEG b=arg7 a=-> ^(Call "&" a [b]))* {a};
-  arg7: a=arg8 t=(op_t=($LShift..$RShift) op={Token(op_t).text} opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
+  arg7: a=arg8 t=(tok=($LShift..$RShift) op={Token(tok).text} opt_nl BEG b=arg8 a=-> ^(Call op a [b]))* {a};
   arg8: a=arg9 t=($Plus opt_nl BEG b=arg9 a=-> ^(Call "+" a [b])
                  |$Minus opt_nl BEG b=arg9 a=-> ^(Call "-" a [b]))* {a};
-  arg9: a=arg10 t=(. oneOf("*%/") op={text(_pos-1, _pos)} opt_nl BEG b=arg10 a=-> ^(Call op a [b]))* {a};
+  arg9: a=arg10 t=(tok=($Star|$Slash|$Percent) op={Token(tok).text} opt_nl BEG b=arg10 a=-> ^(Call op a [b]))* {a};
   arg10: uminus BEG v=arg11 ( ?{Ast(v).name.equals('Fixnum')} -> ^(Fixnum negateFixnum(v))
                             | ?{Ast(v).name.equals('Float')} -> ^(Float negateFloat(v))
                             | -> ^(Call "-@" v)
@@ -447,7 +444,7 @@ parser MirahParser {
   # This marks the beginning of an expression. It must be used inside
   # a rule with scope(@BEG).
   BEG: {@BEG = _pos;nil};
-  isBEG: (isBEG2 | oneOf(" \t\f\r\v")) {nil};
+  isBEG: (isBEG2 | &oneOf(" \t\f\r\v")) {nil};
   isBEG2: ?{_pos == @BEG}
         | ?{Integer.valueOf(0).equals(col())}
         | ?{@begchars.indexOf(_rpeek) > 0};
@@ -455,8 +452,8 @@ parser MirahParser {
   UNCOND: {@cond = false;nil};
 
   colon3: isBEG $Colons opt_nl;
-  uminus: isBEG2 . "-"  opt_nl;
-  uplus: isBEG2 . "+" opt_nl;
+  uminus: isBEG2 $Minus  opt_nl;
+  uplus: isBEG2 $Plus opt_nl;
 
   one_arg: v=arg_value ~$Rocket {v};
   args: l=rlistOf(:one_arg);
@@ -498,14 +495,14 @@ parser MirahParser {
   assoc: a=arg_value $Rocket! opt_nl BEG b=arg_value -> ^(Assoc a b)
        | l=label BEG v=arg_value -> ^(Assoc l v);
 
-  label: . n=identifier2 nosp $Colon opt_nl -> ^(Symbol n);
+  label: n=identifier2 nosp $Colon opt_nl -> ^(Symbol n);
 
   constant: t=$CONSTANT ~(nosp $Colon) {Token(t).text};
   identifier: t=( $IDENTIFIER
                 | lastdot $BEGIN..$Yield
                 ) ~(nosp $Colon) {Token(t).text};
   unquote: $Backtick e=expr $Backtick -> ^(Unquote e);
-  identifier2: nosp t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  identifier2: t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
   identifier3: nosp t=($InstVar|$ClassVar|$IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
   cvar: t=$ClassVar {Object(Token(t).text.substring(2))}
       | $ClassVarBacktick e=expr $Backtick -> ^(Unquote e);
@@ -515,9 +512,9 @@ parser MirahParser {
   $Memo
   fname: ($FID)=> fid
        | ($Backtick)=> unquote
-       | ( . n=identifier2 t=( nosp $EQ {"="}
-                             | {""}
-                             )
+       | ( n=identifier2 t=( nosp $EQ {"="}
+                           | {""}
+                           )
            {"#{n}#{t}"}
          | op
          );
@@ -594,27 +591,36 @@ parser MirahParser {
   string: character
         | strings=string1+ {stringConcat(strings)};
 
-  string1: . "'"! s=squote_contents* "'" -> ^(String join(s))
-         | . "\"\"" -> ^(String "")
-         | . "\"" dc=dquote_contents "\"" {dc}
-         | . "\""! c=(dquote_contents | str_ev)* "\"" -> ^(DString c+)
-         | . "<<" x=heredoc_id n= -> ^(Heredoc x) { @heredocs.addLast(HeredocContext.new(n)); n }
+  string1: $SQuote! s=squote_contents* $SQuote -> ^(String join(s))
+         | $DQuote $DQuote -> ^(String "")
+         | $DQuote dc=dquote_contents $DQuote {dc}
+         | $DQuote! c=(dquote_contents | str_ev2)* $DQuote -> ^(DString c+)
+         | $LShift x=heredoc_id n= -> ^(Heredoc x) { @heredocs.addLast(HeredocContext.new(n)); n }
          ;
 
   regexp: isBEG2 $Slash c=(regexp_contents | str_ev)* "/" options=letter*
           -> ^(Regex c join(options));
 
-  str_ev: "\#@@"! n=identifier2 -> ^(EvString ^(ClassVar n))
-        | "\#@"! n=identifier2 -> ^(EvString ^(InstVar n))
+  str_ev: "\#@@"! nosp n=identifier2 -> ^(EvString ^(ClassVar n))
+        | "\#@"!  nosp n=identifier2 -> ^(EvString ^(InstVar n))
         | "\#{"! c=compstmt "}" -> ^(EvString c);
 
-  heredoc_id: "-"? ( "\""! identifier2 "\""
-                   | "'"! identifier2 "'"
-                   | identifier2
+  str_ev2: $StrEvBegin c=compstmt $RBrace -> ^(EvString c)
+         | $StrEvBegin cv=cvar -> ^(EvString ^(ClassVar cv))
+         | $StrEvBegin iv=ivar -> ^(EvString ^(InstVar iv))
+         ;
+
+  heredoc_id: "-"? ( "\""! nosp identifier2 "\""
+                   | "'"! nosp identifier2 "'"
+                   | nosp identifier2
                    ) {text(_start, _pos)};
 
-  squote_contents: "\\\\" { "\\" } | "\\'" { "'" } | ~"'" s=_ {s.toString};
-  dquote_contents: c=(escape | ~("\#{" | "\#@" | "\"")_)+ -> ^(String join(c));
+  squote_contents: e=$Escape {Token(e).text.substring(1)}
+                 | s=$StringContent {Token(s).text}
+                 ;
+  dquote_contents: c=(t=$Escape e={parse_escape(Token(t).text.substring(1))}
+                     |t=$StringContent {Token(t).text}
+                     )+ -> ^(String join(c));
   regexp_contents: c=(re_escape | ~("\#{" | "\#@" | "/")_)+ -> ^(String join(c));
 
   squote_heredoc id=_ : s=(~heredoc_marker(id) _)* heredoc_marker(id) {join(s)};
@@ -663,17 +669,17 @@ parser MirahParser {
   re_escape: unicode_escape
            | "\\"! c=codepoint {"\\#{c}"};
 
-  Then: . term? $Then | . term;
+  Then: term? $Then | term;
   Ensure: $Ensure! compstmt;
   Else: $Else! compstmt;
-  Do: ($Do | . term) UNCOND;
+  Do: ($Do | term) UNCOND;
 
   if_tail: Else
          | $Elsif! opt_nl cond=value(expr) Then body=compstmt tail=if_tail
            -> ^(If cond body tail)
          | {nil};
 
-  Rescue: ($Rescue! c=listOf(:constant) ($Rocket opt_nl . n=identifier)?
+  Rescue: ($Rescue! c=listOf(:constant) ($Rocket opt_nl n=identifier)?
            Then b=compstmt -> ^(RescueClause c n b))+;
 
   fixnum: t=$Integer n={ parseInt(Token(t).text) } -> ^(Fixnum n);
@@ -706,9 +712,12 @@ parser MirahParser {
 
   assign_temp value=_ : -> ^(LocalAssign temp value);
 
-  block_start: . {pos};
-  verify_end start=_ : ( &$End . {verify_columns(start, pos);nil}
+  block_start: {pos};
+  verify_end start=_ : ( t=&$End {verify_columns(start, pos(Token(t).startpos));nil}
                        | {nil});
+
+  $Memo[Token]
+  lex: {@lexer.lex(_pos)};
 
   def self.parse_args(args:String[]) {
     argc = args.length
@@ -1019,12 +1028,6 @@ parser MirahParser {
   def negateFloat(f:Object) {
     d = Double(Ast(f).get(1)).doubleValue
     Double.valueOf(-d)
-  }
-
-  def lex {
-    t = @lexer.lex(_pos)
-    _enter(t.text)
-    _exit(t)
   }
 
   def _memo_key(s:String) {
