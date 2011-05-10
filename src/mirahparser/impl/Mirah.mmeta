@@ -195,7 +195,7 @@ parser MirahParser {
           | ($Retry)=> primary2_retry
           | ($Return)=> primary2_return
           | ($DQuote|$SQuote|$Character|$LShift)=> string
-          | ($Slash)=> regexp
+          | ($RegexBegin)=> regexp
           | ($Backtick)=> unquote
           | primary2_id
           ;
@@ -598,8 +598,8 @@ parser MirahParser {
          | $LShift x=heredoc_id n= -> ^(Heredoc x) { @heredocs.addLast(HeredocContext.new(n)); n }
          ;
 
-  regexp: isBEG2 $Slash c=(regexp_contents | str_ev)* "/" options=letter*
-          -> ^(Regex c join(options));
+  regexp: $RegexBegin c=(regexp_contents | str_ev2)* e=$RegexEnd options={Token(e).text.substring(1)}
+          -> ^(Regex c options);
 
   str_ev: "\#@@"! nosp n=identifier2 -> ^(EvString ^(ClassVar n))
         | "\#@"!  nosp n=identifier2 -> ^(EvString ^(InstVar n))
@@ -621,7 +621,9 @@ parser MirahParser {
   dquote_contents: c=(t=$Escape e={parse_escape(Token(t).text)}
                      |t=$StringContent {Token(t).text}
                      )+ -> ^(String join(c));
-  regexp_contents: c=(re_escape | ~("\#{" | "\#@" | "/")_)+ -> ^(String join(c));
+  regexp_contents: c=(t=$Escape e={parse_escape(Token(t).text, 'regex')}
+                     |t=$StringContent {Token(t).text}
+                     )+ -> ^(String join(c));
 
   squote_heredoc id=_ : s=(~heredoc_marker(id) _)* heredoc_marker(id) {join(s)};
   dquote_heredoc id=_ : n=( str_ev
@@ -664,10 +666,6 @@ parser MirahParser {
                              c5=oneOf(@HEX) c6=oneOf(@HEX) c7=oneOf(@HEX) c8=oneOf(@HEX)
                          {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
                        );
-
-
-  re_escape: unicode_escape
-           | "\\"! c=codepoint {"\\#{c}"};
 
   Then: term? $Then | term;
   Ensure: $Ensure! compstmt;
@@ -811,10 +809,10 @@ parser MirahParser {
     gets
   }
 
-  def parse_escape(character:String) {
+  def parse_escape(character:String, rule:String=nil) {
     if character.startsWith('\\')
       begin
-        String(@escape.parse(character))
+        String(@escape.parse(character, rule))
       rescue SyntaxError
         raise SyntaxError.new("valid escape", "", _pos, _string, _list);
       end
@@ -1097,6 +1095,9 @@ parser EscapeParser {
                 |"\n" {""}
                 |codepoint
                 );
+
+  regex: unicode_escape
+       | "\\"! c=codepoint {"\\#{c}"};
 
   def _codepoint() {
     begin

@@ -126,6 +126,8 @@ public enum Tokens {
   tEscape,
   tStringContent,
   tStrEvBegin,
+  tRegexBegin,
+  tRegexEnd,
   tUNKNOWN,
   tEOF
 }

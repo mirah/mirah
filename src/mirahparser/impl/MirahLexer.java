@@ -17,6 +17,7 @@
 package mirahparser.impl;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.ListIterator;
 
 import mmeta.BaseParser;
@@ -107,10 +108,11 @@ public class MirahLexer {
     public Tokens lex() {
       char c = chars[pos];
       pos += 1;
+      if (isEndOfString(c)) {
+        popState();
+        return readEndOfString();
+      }
       switch (c) {
-        case '"':
-          popState();
-          return Tokens.tDQuote;
         case '\\':
           readEscape();
           return Tokens.tEscape;
@@ -129,7 +131,12 @@ public class MirahLexer {
       readRestOfString();
       return Tokens.tStringContent;
     }
-
+    public Tokens readEndOfString() {
+      return Tokens.tDQuote;
+    }
+    public boolean isEndOfString(char c) {
+      return c == '"';
+    }
     private void readEscape() {
       char c = chars[pos];
       switch (c) {
@@ -162,18 +169,33 @@ public class MirahLexer {
 
     private void readRestOfString() {
       int i;
-      loop:
       for (i = pos; i < end; ++i) {
-        switch (chars[i]) {
-          case '"': case '\\':
-            break loop;
-          case '#':
-            if (i + 1 < end && (chars[i + 1] == '{' || chars[i + 1] == '@')) {
-              break loop;
-            }
+        char c = chars[i];
+        if (isEndOfString(c) || c == '"') {
+          break;
+        } else if (c == '#') {
+          if (i + 1 < end && (chars[i + 1] == '{' || chars[i + 1] == '@')) {
+            break;
+          }
         }
       }
       pos = i;
+    }
+  }
+
+  private class RegexLexer extends DStringLexer {
+    public boolean isEndOfString(char c) {
+      return c == '/';
+    }
+    public Tokens readEndOfString() {
+      int i;
+      for (i = pos; i < end; ++i) {
+        if (!Character.isLetter(chars[pos])){
+          break;
+        }
+      }
+      MirahLexer.this.pos = i;
+      return Tokens.tRegexEnd;
     }
   }
 
@@ -489,9 +511,18 @@ public class MirahLexer {
           type = Tokens.tNL;
           break;
         case '/':
-          if (i < end && chars[i] == '=') {
-            i += 1;
-            type = Tokens.tOpAssign;
+          if (isBEG()) {
+            pushState(new RegexLexer());
+            type = Tokens.tRegexBegin;
+          } else if (i == end) {
+            type = Tokens.tSlash;
+
+          } else if (chars[i] == '=') {
+              i += 1;
+              type = Tokens.tOpAssign;
+          } else if (isARG() && spaceSeen && !Character.isWhitespace(chars[i])) {
+            // warn("Ambiguous first argument; make sure.")
+            type = Tokens.tRegexBegin;
           } else {
             type = Tokens.tSlash;
           }
@@ -989,6 +1020,26 @@ public class MirahLexer {
     this.parser = parser;
     this.pos = 0;
     pushState(new StandardLexer());
+    argTokens = EnumSet.of(Tokens.tSuper, Tokens.tYield, Tokens.tIDENTIFIER,
+                           Tokens.tCONSTANT, Tokens.tFID);
+    beginTokens = EnumSet.range(Tokens.tBang, Tokens.tOpAssign);
+    beginTokens.addAll(EnumSet.of(
+        Tokens.tElse, Tokens.tCase, Tokens.tEnsure, /*Tokens.tModule,*/
+        Tokens.tElsif, Tokens.tNot, Tokens.tThen, Tokens.tFor, Tokens.tReturn,
+        Tokens.tIf, Tokens.tIn, Tokens.tDo, Tokens.tUntil, Tokens.tUnless,
+        Tokens.tOr, Tokens.tWhen, Tokens.tAnd, Tokens.tBegin, Tokens.tWhile,
+        Tokens.tNL, Tokens.tSemi, Tokens.tColon, Tokens.tSlash, Tokens.tLBrace,
+        Tokens.tLBrack, Tokens.tLParen, Tokens.tDots));
+    beginTokens.addAll(EnumSet.range(Tokens.tComma, Tokens.tRocket));
+    // Comment?
+  }
+
+  private boolean isBEG() {
+    return tokens.size() == 0 || beginTokens.contains(tokens.get(tokens.size() - 1).type);
+  }
+  
+  private boolean isARG() {
+    return tokens.size() == 0 || argTokens.contains(tokens.get(tokens.size() - 1).type);
   }
 
   private void pushState(Lexer lexer) {
@@ -1022,6 +1073,7 @@ public class MirahLexer {
     boolean shouldPop = state.justOnce;
     int start = state.lexer.skipWhitespace(pos);
     this.pos = start;
+    this.spaceSeen = start != pos;
     Tokens type = state.lexer.lex();
     parser._pos = this.pos;
     if (shouldPop) {
@@ -1039,4 +1091,7 @@ public class MirahLexer {
   private BaseParser parser;
   private State state;
   private ArrayList<Token<Tokens>> tokens = new ArrayList<Token<Tokens>>();
+  private EnumSet<Tokens> beginTokens;
+  private EnumSet<Tokens> argTokens;
+  private boolean spaceSeen;
 }
