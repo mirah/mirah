@@ -54,13 +54,13 @@ module Mirah::AST
       node
     end
 
-    def define_method(position, name, type, *args)
-      append_node(_define_method(MethodDefinition, position, name, type, args))
+    def define_method(position, name, type, *args, &block)
+      append_node(_define_method(MethodDefinition, position, name, type, args, &block))
     end
 
-    def define_static_method(position, name, type, *args)
+    def define_static_method(position, name, type, *args, &block)
       append_node(
-          _define_method(StaticMethodDefinition, position, name, type, args))
+          _define_method(StaticMethodDefinition, position, name, type, args, &block))
     end
 
     def define_constructor(position, *args, &block)

@@ -203,13 +203,14 @@ module Mirah::AST
       raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
       impl_methods.each do |method|
         mdef = klass.define_method(position,
-                                   method.name,
-                                   method.return_type,
-                                   args.dup)
-        mdef.static_scope = static_scope
-        mdef.body = body.dup
-        mdef.binding_type = binding
-        typer.infer(mdef.body, true)
+                            method.name,
+                            method.return_type,
+                            args.dup) do |mdef|
+          mdef.static_scope = static_scope
+          mdef.binding_type = binding
+          body.dup
+        end
+        typer.infer(mdef.body, method.return_type != typer.no_type)
       end
     end
 
