@@ -147,6 +147,7 @@ EOF
     assert_parse("[Script, [String, ]]", '""')
     assert_parse("[Script, [String, a]]", '"a"')
     assert_parse("[Script, [String, \"]]", '"\\""')
+    assert_parse("[Script, [String, \\]]", '"\\\\"')
     assert_parse(
       "[Script, [DString, [String, a ], [EvString, [InstVar, b]], [String,  c]]]",
       '"a #@b c"')

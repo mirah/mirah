@@ -16,6 +16,9 @@
 */
 package mirahparser.impl;
 
+import java.util.ArrayList;
+import java.util.ListIterator;
+
 import mmeta.BaseParser;
 import mmeta.BaseParser.Token;
 
@@ -1004,9 +1007,13 @@ public class MirahLexer {
 
   public Token<Tokens> lex(int pos) {
     if (pos < this.pos) {
-      if (pos >= lastToken.pos && pos <= lastToken.startpos) {
-        System.out.println("Warning, uncached token " + lastToken.type + " at " + lastToken.pos);
-        return lastToken;
+      ListIterator<Token<Tokens>> it = tokens.listIterator(tokens.size());
+      while (it.hasPrevious()) {
+        Token<Tokens> savedToken = it.previous();
+        if (pos >= savedToken.pos && pos <= savedToken.startpos) {
+          System.out.println("Warning, uncached token " + savedToken.type + " at " + pos);
+          return savedToken;
+        }
       }
       throw new IllegalArgumentException("" + pos + " < " + this.pos);
     } else if (pos >= end) {
@@ -1020,8 +1027,9 @@ public class MirahLexer {
     if (shouldPop) {
       popState();
     }
-    lastToken = parser.build_token(type, pos, start);
-    return lastToken;
+    Token<Tokens> token = parser.build_token(type, pos, start);
+    tokens.add(token);
+    return token;
   }
 
   private String string;
@@ -1030,5 +1038,5 @@ public class MirahLexer {
   private int pos;
   private BaseParser parser;
   private State state;
-  private Token<Tokens> lastToken;
+  private ArrayList<Token<Tokens>> tokens = new ArrayList<Token<Tokens>>();
 }
