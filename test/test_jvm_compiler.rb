@@ -2094,6 +2094,22 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+  
+  def test_block_with_no_arguments_and_return_value
+    cls, = compile(<<-EOF)
+      import java.util.concurrent.Callable
+      def foo c:Callable
+         puts c.call
+      end
+      foo do
+        "an object"
+      end
+    EOF
+    assert_output("an object\n") do
+      cls.main(nil)
+    end
+
+  end
 
   def test_each
     cls, = compile(<<-EOF)
