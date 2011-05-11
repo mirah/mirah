@@ -128,6 +128,9 @@ public enum Tokens {
   tStrEvBegin,
   tRegexBegin,
   tRegexEnd,
+  tHereDocId,
+  tHereDocBegin,
+  tHereDocEnd,
   tUNKNOWN,
   tEOF
 }

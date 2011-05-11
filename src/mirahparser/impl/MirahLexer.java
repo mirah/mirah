@@ -18,6 +18,7 @@ package mirahparser.impl;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedList;
 import java.util.ListIterator;
 
 import mmeta.BaseParser;
@@ -29,11 +30,15 @@ public class MirahLexer {
     int skipWhitespace(int pos);
     Tokens lex();
   }
+  private abstract class BaseLexer implements Lexer {
+    public int skipWhitespace(int pos) { return pos; }
+  }
   private class State {
     public final Lexer lexer;
     public final State previous;
     public final boolean justOnce;
     public int braceDepth;
+    public final LinkedList<Lexer> hereDocs = new LinkedList<Lexer>();
 
     public State(State previous, Lexer lexer, boolean justOnce) {
       this.previous = previous;
@@ -56,7 +61,7 @@ public class MirahLexer {
     }
   }
 
-  private class SStringLexer implements Lexer {
+  private class SStringLexer extends BaseLexer {
     private boolean isEscape() {
       if (pos == end) {
         return false;
@@ -67,9 +72,7 @@ public class MirahLexer {
       }
       return false;
     }
-    public int skipWhitespace(int pos) {
-      return pos;
-    }
+
     public Tokens lex() {
       char c0 = chars[pos];
       pos += 1;
@@ -101,10 +104,7 @@ public class MirahLexer {
     }
   }
 
-  private class DStringLexer implements Lexer {
-    public int skipWhitespace(int pos) {
-      return pos;
-    }
+  private class DStringLexer extends BaseLexer {
     public Tokens lex() {
       char c = chars[pos];
       pos += 1;
@@ -199,6 +199,81 @@ public class MirahLexer {
     }
   }
 
+  private class HereDocLexer extends BaseLexer {
+    private final String marker;
+    private final boolean allowIndented;
+    private final boolean allowStrEv;
+
+    public HereDocLexer(String marker, boolean allowIndented, boolean allowStrEv) {
+      this.marker = marker;
+      this.allowIndented = allowIndented;
+      this.allowStrEv = allowStrEv;
+    }
+
+    public Tokens lex() {
+      int markerPos = readMarker(pos);
+      if (markerPos != -1) {
+        MirahLexer.this.pos = markerPos;
+        popState();
+        return Tokens.tHereDocEnd;
+      }
+      if (allowStrEv && chars[pos] == '#') {
+        if (pos + 1 < end && (chars[pos + 1] == '{' || chars[pos + 1] == '@')) {
+          pos += 1;
+          return readStrEv();
+        }
+      }
+      int i;
+      for (i = pos; i < end; ++i) {
+        char c = chars[i];
+        if (c == '\n') {
+          if (-1 != readMarker(i + 1)) {
+            i += 1;
+            break;
+          }
+        } else if (allowStrEv && c == '#') {
+          if (i + 1 < end && (chars[i + 1] == '{' || chars[i + 1] == '@')) {
+            break;
+          }
+        }
+      }
+      MirahLexer.this.pos = i;
+      return Tokens.tStringContent;
+    }
+
+    private int readMarker(int i) {
+      if (allowIndented) {
+        while (i < end) {
+          if (" \t\r\f\u000b".indexOf(chars[i]) != -1) {
+            i += 1;
+          } else {
+            break;
+          }
+        }
+      }
+      if (string.startsWith(marker, i)) {
+        i += marker.length();
+        if (i == end || chars[i] == '\n') {
+          return i;
+        }
+      }
+      return -1;
+    }
+
+    private Tokens readStrEv() {
+      if (chars[pos] == '{') {
+        pos += 1;
+        pushState(state.previous.lexer);
+        return Tokens.tStrEvBegin;
+      } else if (chars[pos] == '@') {
+        pushForOneToken(state.previous.lexer);
+        return Tokens.tStrEvBegin;
+      } else {
+        return Tokens.tUNKNOWN;
+      }
+    }
+  }
+
   private class StandardLexer implements Lexer {
     public Tokens lex() {
       Tokens type = processFirstChar(pos);
@@ -266,7 +341,11 @@ public class MirahLexer {
     private Tokens processFirstChar(int i) {
       Tokens type = null;
       if (i == end) {
-        type = Tokens.tEOF;
+        if (state.hereDocs.isEmpty()) {
+          type = Tokens.tEOF;
+        } else {
+          type = Tokens.tHereDocBegin;
+        }
       } else {
         char c0 = chars[i];
         i += 1;
@@ -508,7 +587,12 @@ public class MirahLexer {
           break;
         case '\n':
           parser.note_newline(i);
-          type = Tokens.tNL;
+          if (state.hereDocs.isEmpty()) {
+            type = Tokens.tNL;
+          } else {
+            type = Tokens.tHereDocBegin;
+            pushState(state.hereDocs.removeFirst());
+          }
           break;
         case '/':
           if (isBEG()) {
@@ -815,6 +899,8 @@ public class MirahLexer {
           return readNumber(i);
         case tQuestion:
           return readCharacter(i);
+        case tLShift:
+          return readHereDocIdentifier(i);
       }
       if (Tokens.tFID.compareTo(type) >= 0) {
         return readName(i, type);
@@ -1011,6 +1097,52 @@ public class MirahLexer {
       MirahLexer.this.pos = i;
       return Tokens.tCharacter;
     }
+
+    private Tokens readHereDocIdentifier(int pos) {
+      boolean allowIndented = false;
+      if (pos == end || isEND() || (isARG() && !spaceSeen)) {
+        return Tokens.tLShift;
+      }
+      if (chars[pos] == '-') {
+        allowIndented = true;
+        pos += 1;
+        if (pos == end) {
+          return Tokens.tLShift;
+        }
+      }
+      char quote = 0;
+      if (chars[pos] == '"') {
+        quote = '"';
+        pos += 1;
+      } else if (chars[pos] == '\'') {
+        quote = '\'';
+        pos += 1;
+      }
+      if (pos == end) {
+        return Tokens.tLShift;
+      }
+      int start = pos;
+      while (pos < end) {
+        if (!isIdentifierChar(chars[pos])) {
+          break;
+        }
+        pos += 1;
+      }
+      if (pos == start) {
+        return Tokens.tLShift;
+      }
+      String id = string.substring(start, pos);
+      if (quote != 0) {
+        if ((pos == end || chars[pos] != quote)) {
+          return Tokens.tLShift;
+        } else {
+          pos += 1;
+        }
+      }
+      state.hereDocs.add(new HereDocLexer(id, allowIndented, quote != '\''));
+      MirahLexer.this.pos = pos;
+      return Tokens.tHereDocId;
+    }
   }
 
   public MirahLexer(String string, char[] chars, BaseParser parser) {
@@ -1032,6 +1164,13 @@ public class MirahLexer {
         Tokens.tLBrack, Tokens.tLParen, Tokens.tDots));
     beginTokens.addAll(EnumSet.range(Tokens.tComma, Tokens.tRocket));
     // Comment?
+    endTokens = EnumSet.of(
+        Tokens.tDot, Tokens.tCharacter, Tokens.tSQuote, Tokens.tDQuote,
+        Tokens.tRParen, Tokens.tRBrace, Tokens.tRBrack, Tokens.tRegexEnd,
+        Tokens.tInteger, Tokens.tFloat, Tokens.tInstVar, Tokens.tClassVar,
+        Tokens.tEnd, Tokens.tSelf, Tokens.tFalse, Tokens.tTrue, Tokens.tRetry,
+        Tokens.tBreak, Tokens.tNil, Tokens.tNext, Tokens.tRedo, Tokens.tClass,
+        Tokens.tDef);
   }
 
   private boolean isBEG() {
@@ -1039,7 +1178,11 @@ public class MirahLexer {
   }
   
   private boolean isARG() {
-    return tokens.size() == 0 || argTokens.contains(tokens.get(tokens.size() - 1).type);
+    return tokens.size() > 0 && argTokens.contains(tokens.get(tokens.size() - 1).type);
+  }
+
+  private boolean isEND() {
+    return tokens.size() > 0 && endTokens.contains(tokens.get(tokens.size() - 1).type);
   }
 
   private void pushState(Lexer lexer) {
@@ -1068,7 +1211,7 @@ public class MirahLexer {
       }
       throw new IllegalArgumentException("" + pos + " < " + this.pos);
     } else if (pos >= end) {
-      return parser.build_token(Tokens.tEOF, pos, pos);
+      return parser.build_token(state.hereDocs.isEmpty() ? Tokens.tEOF : Tokens.tHereDocBegin, pos, pos);
     }
     boolean shouldPop = state.justOnce;
     int start = state.lexer.skipWhitespace(pos);
@@ -1093,5 +1236,6 @@ public class MirahLexer {
   private ArrayList<Token<Tokens>> tokens = new ArrayList<Token<Tokens>>();
   private EnumSet<Tokens> beginTokens;
   private EnumSet<Tokens> argTokens;
+  private EnumSet<Tokens> endTokens;
   private boolean spaceSeen;
 }

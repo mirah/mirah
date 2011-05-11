@@ -26,49 +26,13 @@ import java.util.Collections
 import java.util.EnumSet
 import mmeta.BaseParser.Token
 
-public class HeredocContext {
-  def initialize(node:Object)
-    @node = Ast(node)
-    @id = String(@node.get(1))
-    @type = '"'
-    if @id.startsWith("-")
-      @id = @id.substring(1)
-      @no_indent = false
-    else
-      @no_indent = true
-    end
-    if @id.startsWith("'")
-      @type = "'"
-      @id = @id.substring(1, @id.length - 1)
-    elsif @id.startsWith('"')
-      @id = @id.substring(1, @id.length - 1)
-    end
-  end
-
-  def id
-    @id
-  end
-
-  def node
-    @node
-  end
-
-  def no_indent
-    @no_indent
-  end
-
-  def type
-    @type
-  end
-}
-
 parser MirahParser {
   rlistOf r=_: h=apply(r) t=(comma apply(r))* { [h] + t };
   listOf e=_: rlistOf(e)
               | empty                                               { ArrayList.new } ;
   nosp: t=&lex ?{Token(t).startpos == _start};
 
-  start: ! prog=compstmt $EOF heredoc -> ^(Script prog);
+  start: ! prog=compstmt $EOF -> ^(Script prog);
 
   compstmt scope(@cond)
           : UNCOND
@@ -92,14 +56,15 @@ parser MirahParser {
     node || @nil
   };
 
-  term: ($NL)=>nl
+  term: ($NL|$HereDocBegin)=>nl
       | $Semi;
-  terms: ( ($NL)=>nl
+  terms: ( ($NL|$HereDocBegin)=>nl
          | $Semi
          )+;
 
   $Memo[String]
-  nl: $NL heredoc;
+  nl: $NL {"\n"}
+    | heredoc;
 
   $Memo[Ast]
   statement: f=statement2
@@ -194,7 +159,7 @@ parser MirahParser {
           | ($Redo)=> primary2_redo
           | ($Retry)=> primary2_retry
           | ($Return)=> primary2_return
-          | ($DQuote|$SQuote|$Character|$LShift)=> string
+          | ($DQuote|$SQuote|$Character|$HereDocId)=> string
           | ($RegexBegin)=> regexp
           | ($Backtick)=> unquote
           | primary2_id
@@ -439,7 +404,7 @@ parser MirahParser {
   dot: opt_nl $Dot opt_nl;
   colons: $Colons opt_nl;
   dot_or_colon: dot | colons;
-  opt_nl: ($NL)=>nl+|;
+  opt_nl: ($NL|$HereDocBegin)=>nl+|;
 
   # This marks the beginning of an expression. It must be used inside
   # a rule with scope(@BEG).
@@ -595,7 +560,7 @@ parser MirahParser {
          | $DQuote $DQuote -> ^(String "")
          | $DQuote dc=dquote_contents $DQuote {dc}
          | $DQuote! c=(dquote_contents | str_ev2)* $DQuote -> ^(DString c+)
-         | $LShift x=heredoc_id n= -> ^(Heredoc x) { @heredocs.addLast(HeredocContext.new(n)); n }
+         | x=heredoc_id n= -> ^(Heredoc x) { @heredocs.addLast(n); n }
          ;
 
   regexp: $RegexBegin c=(regexp_contents | str_ev2)* e=$RegexEnd options={Token(e).text.substring(1)}
@@ -610,10 +575,7 @@ parser MirahParser {
          | $StrEvBegin iv=ivar -> ^(EvString ^(InstVar iv))
          ;
 
-  heredoc_id: "-"? ( "\""! nosp identifier2 "\""
-                   | "'"! nosp identifier2 "'"
-                   | nosp identifier2
-                   ) {text(_start, _pos)};
+  heredoc_id: $HereDocId;
 
   squote_contents: e=$Escape {Token(e).text.substring(1)}
                  | s=$StringContent {Token(s).text}
@@ -625,16 +587,12 @@ parser MirahParser {
                      |t=$StringContent {Token(t).text}
                      )+ -> ^(String join(c));
 
-  squote_heredoc id=_ : s=(~heredoc_marker(id) _)* heredoc_marker(id) {join(s)};
-  dquote_heredoc id=_ : n=( str_ev
-                          | s=(~(heredoc_marker(id) | "\#{" | "\#@") _)+
-                            -> ^(String join(s))
-                          )* heredoc_marker(id) {n};
+  squote_heredoc: s=(t=$StringContent {Token(t).text})* heredoc_marker {join(s)};
+  dquote_heredoc: n=( str_ev
+                    | t=$StringContent s={Token(t).text} -> ^(String s)
+                    )* heredoc_marker {n};
 
-  heredoc_marker c=_ : ?{"\n".equals(text(_pos - 1, _pos))}
-                       ( ?{HeredocContext(c).no_indent}
-                       | oneOf(" \t\f\r\v")*
-                       ) {_str(HeredocContext(c).id)} "\n";
+  heredoc_marker: $HereDocEnd (nl | end);
 
   character: t=$Character
              e={parse_escape(Token(t).text.substring(1))}
@@ -867,43 +825,18 @@ parser MirahParser {
     end
   }
 
-  def heredoc {
-    # Note: This won't parse if we backtrack over the newline and not
-    # the heredoc identifier. However the nl rule should be memoized
-    # so we should be safe.
-
-    # Set up a new list so nested heredocs match properly.
-    heredocs = @heredocs
-    @heredocs = LinkedList.new
-
-    while heredocs.size > 0
-      context = HeredocContext(heredocs.removeFirst)
-      _push(context)
-      node = context.node
-      node.children.clear
-      begin
-        if context.type == '"'
-          l = dquote_heredoc
-          if l.size == 0
-            node.name = 'String'
-            node.add("")
-          elsif l.size == 1 && Ast(l.get(0)).name.equals('String')
-            node.name = 'String'
-            node.addAll(Ast(l.get(0)).children)
-          else
-            node.name = 'DString'
-            node.addAll(l)
-          end
-        else
-          node.name = 'String'
-          node.add(squote_heredoc)
-        end
-      rescue RuleFailure
-        raise SyntaxError.new("Missing heredoc terminator #{context.id}.", context.id, _pos, _string, _list)
-      end
-    end
-    "\n"
-  }
+  heredoc: $HereDocBegin!
+           n={Ast(@heredocs.removeFirst)}
+           c=heredoc1
+           heredoc_marker
+           {n.name = c.name;n.children.clear;n.children.addAll(c.children); "\n"}
+         ;
+  heredoc1  scope(@heredocs): {@heredocs = LinkedList.new} heredoc2;
+  heredoc2:  t=$StringContent s={Token(t).text} &$HereDocEnd -> ^(String s)
+          | c=(str_ev | t=$StringContent s={Token(t).text} -> ^(String s))+
+            -> ^(DString c*)
+          | /* empty */ -> ^(String "")
+          ;
 
   def parseInt(string:String) {
     radix = 10

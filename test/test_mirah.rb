@@ -176,6 +176,7 @@ EOF
     assert_parse("[Script, [String, a\n]]", "<<-'A'\na\n  A\n")
     assert_parse("[Script, [Body, [String, a\n], [String, b\n], [Fixnum, 1]]]",
                  "<<'A';<<'A'\na\nA\nb\nA\n1")
+    assert_parse("[Script, [String, AA\n]]", "<<A\nAA\nA\n")
     assert_parse("[Script, [String, a\n]]", "<<\"A\"\na\nA\n")
     assert_parse("[Script, [String, a\n  A\n]]", "<<A\na\n  A\nA\n")
     assert_parse("[Script, [String, a\n]]", "<<-A\na\n  A\n")
