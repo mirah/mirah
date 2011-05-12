@@ -1,5 +1,6 @@
 package mirahparser.lang.ast
 
+import java.io.Serializable
 import java.util.ArrayList
 import java.util.List
 import java.util.Iterator
@@ -15,7 +16,7 @@ interface Position do
   macro def +(other) quote { add(`other`) } end
 end
 
-interface Node do
+interface Node extends Serializable do
   def position:Position; end
   def parent:Node; end
   def setParent(parent:Node):void; end  # This should only be called by NodeImpl!
@@ -186,6 +187,11 @@ class NodeImpl
   private
   attr_writer parent: Node
   attr_writer originalNode: Node
+  # TODO clone
+  # TODO make parent transient, set parent when loading children.
+  def writeReplace
+    originalNode || self
+  end
 end
 
 # class DescendentFinder < NodeScanner

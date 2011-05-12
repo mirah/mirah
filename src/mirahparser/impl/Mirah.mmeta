@@ -27,15 +27,15 @@ import java.util.EnumSet
 import mmeta.BaseParser.Token
 
 parser MirahParser {
-  rlistOf r=_: h=apply(r) t=(comma apply(r))* { [h] + t };
-  listOf e=_: rlistOf(e)
-              | empty                                               { ArrayList.new } ;
-  nosp: t=&lex ?{Token(t).startpos == _start};
+  rlistOf(r:String): h=apply(r) t=(comma apply(r))* { [h] + t };
+  listOf(e:String): rlistOf(e)
+                  | empty                                               { ArrayList.new } ;
+  nosp: t=&{_lex} ?{Token(t).startpos == _start};
 
   start: ! prog=compstmt $EOF -> ^(Script prog);
 
-  compstmt scope(@cond)
-          : UNCOND
+  $Scope[@cond]
+  compstmt: UNCOND
             terms? a=(s=statement terms {s})*
             b=statement?
             {addToBlock(a, b)};
@@ -98,7 +98,7 @@ parser MirahParser {
             | expr
             );
 
-  value v=_ : {checkExpression(v)};
+  value(v:Object) : {checkExpression(v)};
 
   $Memo[Ast]
   expr: a=( ($Not)=> $Not opt_nl e=expr -> ^(Not e)
@@ -120,8 +120,8 @@ parser MirahParser {
            );
 
   # Node:command - call with or without block on end [!null]
-  command_call scope(@BEG)
-              : block_command
+  $Scope[@BEG]
+  command_call: block_command
               | command
               | $Return BEG a=call_args -> ^(Return a+);
               # | $Break a=call_args -> ^(Break a+)
@@ -183,7 +183,8 @@ parser MirahParser {
   primary2_lbrack
          : isBEG $LBrack opt_nl $RBrack -> ^(ZArray)
          | isBEG $LBrack opt_nl a=args trailer opt_nl $RBrack -> ^(Array a+);
-  primary2_lbrace scope(@BEG)
+  $Scope[@BEG]
+  primary2_lbrace
          : $LBrace opt_nl ( $RBrace -> ^(Hash)
                           | a=listOf(:assoc) trailer opt_nl $RBrace -> ^(Hash a+)
                           );
@@ -205,19 +206,23 @@ parser MirahParser {
          : isBEG2 t=$Unless s=block_start(t)! opt_nl cond=value(expr)!
            Then! body=compstmt! tail=Else? verify_end(s)! $End
            -> ^(If cond tail body);
-  primary2_while scope(@cond)
+  $Scope[@cond]
+  primary2_while
          : isBEG2 t=$While s=block_start(t)! opt_nl COND cond=value(expr)!
            Do! body=compstmt! verify_end(s)! $End {body ||= @nil}
            -> ^(While cond body);
-  primary2_until scope(@cond)
+  $Scope[@cond]
+  primary2_until
          : isBEG2 t=$Until s=block_start(t)! opt_nl COND cond=value(expr)!
            Do! body=compstmt! verify_end(s)! $End {body ||= @nil}
            -> ^(Until cond body);
-  primary2_for scope(@cond)
+  $Scope[@cond]
+  primary2_for
          : t=$For s=block_start(t)! opt_nl var=variable! $In opt_nl COND!
            list=value(expr)! Do! body=compstmt verify_end(s)! $End
            -> ^(For var body list);
-  primary2_class scope(@BEG)
+  $Scope[@BEG]
+  primary2_class
          : t=$Class sp=block_start(t)!
            ( $LShift! BEG e=expr!  # Should this just allow $Self?
              term! b=compstmt! verify_end(sp)! $End {b ||= @nil}
@@ -229,7 +234,8 @@ parser MirahParser {
              verify_end(sp)! $End {b ||= @nil}
              -> ^(Class n b s)
            );
-  primary2_def scope(@BEG)
+  $Scope[@BEG]
+  primary2_def
          : t=$Def s=block_start(t)!
            ( $Self! dot_or_colon! name=fname!
              args=f_arglist! body=bodystmt! verify_end(s)! $End
@@ -300,12 +306,13 @@ parser MirahParser {
 
   # :brace_block - [!null]
   cmd_brace_block: brace_block;
-  brace_block scope(@BEG)
-             : $LBrace opt_nl (p=block_param !"statement" b=compstmt opt_nl $RBrace
+  $Scope[@BEG]
+  brace_block: $LBrace opt_nl (p=block_param !"statement" b=compstmt opt_nl $RBrace
                               |p={nil} b=compstmt opt_nl $RBrace) -> ^(Iter p b)
              | do_block;
 
-  do_block scope(@BEG): ~?{@cond} t=$Do s=block_start(t)! opt_nl p=block_param?! b=compstmt verify_end(s)! $End -> ^(Iter p b);
+  $Scope[@BEG]
+  do_block: ~?{@cond} t=$Do s=block_start(t)! opt_nl p=block_param?! b=compstmt verify_end(s)! $End -> ^(Iter p b);
 
   # Do we need bv_decls?
   block_param: $Pipe opt_nl a=f_args opt_nl $Pipe BEG {a}
@@ -323,11 +330,12 @@ parser MirahParser {
                 -> ^(Rescue a [^(RescueClause [] nil b)] nil)
               | arg;
 
-  assign lhs=_ rhs=_ : { n=Ast(Ast(lhs).clone); n.add(rhs); n };
+  assign(lhs:Ast, rhs:Ast) : { n=Ast(lhs.clone); n.add(rhs); n };
 
   $Memo[Ast]
-  arg scope(@BEG): h=arg0 ($Question opt_nl t=arg opt_nl $Colon opt_nl e=arg
-                           h=-> ^(If h t e))* {h};
+  $Scope[@BEG]
+  arg: h=arg0 ($Question opt_nl t=arg opt_nl $Colon opt_nl e=arg
+               h=-> ^(If h t e))* {h};
   arg0: ( (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $AndEq)=>
           l=var_lhs $AndEq opt_nl r=arg
           b=assign(l, r)
@@ -425,7 +433,8 @@ parser MirahParser {
       #  (comma s=splat {l+s} | { l })
       #| splat;
 
-  call_assocs scope(@BEG): l=rlistOf(:assoc) -> ^(Hash l+);
+  $Scope[@BEG]
+  call_assocs: l=rlistOf(:assoc) -> ^(Hash l+);
   call_args: c=command { [c] }
            | a=args h=(comma call_assocs)? b=(comma! block_arg)? l={ a }
              ( ?{h} l={ a + [h] } )?
@@ -435,7 +444,8 @@ parser MirahParser {
              ( ?{b} l={l+[b]} )?
              { l }
            | b=block_arg { [b] };
-  command_args scope(@cond): ~$LParen COND call_args;
+  $Scope[@cond]
+  command_args: ~$LParen COND call_args;
 
   op_assign: t=$AndEq..$OpAssign opt_nl {text=Token(t).text;text.substring(0, text.length - 1)};
   assignment_op: op_assign | $EQ opt_nl {"="};
@@ -484,7 +494,8 @@ parser MirahParser {
          | op
          );
 
-  annotation scope(@BEG): $Dollar n=$CONSTANT
+  $Scope[@BEG]
+  annotation: $Dollar n=$CONSTANT
               arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl $RBrack -> ^(Hash ^(Assoc ^(Symbol "value") e))
                                               | a=listOf(:assoc) trailer opt_nl $RBrack -> ^(Hash a+)
                                               | $RBrack {nil}
@@ -625,7 +636,7 @@ parser MirahParser {
                          {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
                        );
 
-  Then: term? $Then | term;
+  Then: (term? $Then | term) {nil};
   Ensure: $Ensure! compstmt;
   Else: $Else! compstmt;
   Do: ($Do | term) UNCOND;
@@ -644,36 +655,44 @@ parser MirahParser {
 
   lastdot: ?{_rpeek.indexOf(".") == 0};
 
-  op_attr_assign target=_ attr=_ args=_ op=_ value=_
+  op_attr_assign(target:Object, attr:Object, args:List, op:String, value:Object)
                : target2=-> ^(LocalAssign temp target)
                  args2=save_temps(args)
                  assignment=op_attr_assign_body(op, target2, attr, args2, value)
                  l={[target2] + args2 + [assignment]}
                  -> ^(Body l+);
 
-  op_attr_assign_body op=:'&&' target=_ attr=_ args=_ value=_
-      : -> ^(And ^(Call attr gettable2(target) get_temps(args))
-                 ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args) value)
-            );
-  op_attr_assign_body op=:'||' target=_ attr=_ args=_ value=_
-      : -> ^(Or ^(Call attr gettable2(target) get_temps(args))
-                ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args) value)
-            );
-  op_attr_assign_body op=_ target=_ attr=_ args=_ value=_
-      : -> ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args)
+  op_attr_assign_body(op:String, target:Object, attr:Object, args:List, value:Object)
+      : ?{'&&'.equals(op)} -> ^(And ^(Call attr gettable2(target) get_temps(args))
+                                    ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args) value)
+                               )
+      | ?{'||'.equals(op)} -> ^(Or ^(Call attr gettable2(target) get_temps(args))
+                                   ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args) value)
+                               )
+      | -> ^(AttrAssign "#{attr}=" gettable2(target) get_temps(args)
                         ^(Call op ^(Call attr gettable2(target) get_temps(args))
                                   value
                          )
-            );
+            )
+      ;
 
-  assign_temp value=_ : -> ^(LocalAssign temp value);
+  assign_temp(value:Object): -> ^(LocalAssign temp value);
 
-  block_start token=_ : {pos(Token(token).startpos)};
-  verify_end start=_ : ( t=&$End {verify_columns(start, pos(Token(t).startpos));nil}
-                       | {nil});
+  block_start(token:Object) : {pos(Token(token).startpos)};
+  verify_end(start:Object) : ( t=&$End {verify_columns(start, pos(Token(t).startpos));nil}
+                           | {nil});
 
   $Memo[Token]
-  lex: {@lexer.lex(_pos)};
+  _lex: {@lexer.lex(_pos)};
+
+  def _lex(type:Tokens) {
+    token = _lex
+    unless token.type == type
+      self._pos = token.pos
+      raise @error
+    end
+    token
+  }
 
   def self.parse_args(args:String[]) {
     argc = args.length
@@ -748,12 +767,10 @@ parser MirahParser {
     "$ptemp#{@temps += 1}"
   }
 
-  def save_temps {
-    items = List(_pop)
+  def save_temps(items:List) {
     temps = ArrayList.new
     items.each do |item|
-      _push(item)
-      temps.add(assign_temp)
+      temps.add(assign_temp(item))
     end
     temps
   }
@@ -779,8 +796,7 @@ parser MirahParser {
     end
   }
 
-  def oneOf() {
-    chars = String(_pop)
+  def oneOf(chars:String) {
     _char(chars)
   }
 
@@ -831,7 +847,8 @@ parser MirahParser {
            heredoc_marker
            {n.name = c.name;n.children.clear;n.children.addAll(c.children); "\n"}
          ;
-  heredoc1  scope(@heredocs): {@heredocs = LinkedList.new} heredoc2;
+  $Scope[@heredocs]
+  heredoc1: {@heredocs = LinkedList.new} heredoc2;
   heredoc2:  t=$StringContent s={Token(t).text} &$HereDocEnd -> ^(String s)
           | c=(str_ev | t=$StringContent s={Token(t).text} -> ^(String s))+
             -> ^(DString c*)
@@ -996,8 +1013,7 @@ parser EscapeParser {
     @OCTAL = "01234567"
   }
 
-  def oneOf() {
-    chars = String(_pop)
+  def oneOf(chars:String) {
     _char(chars)
   }
 
