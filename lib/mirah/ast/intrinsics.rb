@@ -130,6 +130,16 @@ module Mirah::AST
       end
     end
 
+    def nodes
+      case value
+      when ::Array, Java::JavaUtil::List
+        # TODO convert items to nodes.
+        value.to_a
+      else
+        [node]
+      end
+    end
+
     def f_arg_item(value)
       case value
       when Arguments, Argument
