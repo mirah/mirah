@@ -208,7 +208,7 @@ module Mirah::AST
                             args.dup) do |mdef|
           mdef.static_scope = static_scope
           mdef.binding_type = binding
-          body.dup
+          mdef.body = body.dup
         end
         typer.infer(mdef.body, method.return_type != typer.no_type)
       end
