@@ -3,7 +3,7 @@ module Mirah
     module Types
       class NullType < Type
         def initialize
-          super('java.lang.Object')
+          super(BiteScript::ASM::ClassMirror.load('java.lang.Object'))
         end
 
         def to_s
