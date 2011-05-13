@@ -50,11 +50,12 @@ module Mirah::AST
     def validate_parameters
       parameters.each_with_index do |child, i|
         if UnquotedValue === child
-          child = child.node
-          child.parent = self
-          parameters[i] = child
+          children = child.nodes
+          children.each {|c| c.parent = self}
+          parameters[i] = children
         end
       end
+      parameters.flatten!
     end
 
     def infer(typer, expression)
