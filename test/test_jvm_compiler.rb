@@ -2885,6 +2885,24 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
       nil
     EOF
+  end
 
+  def test_add_args_in_macro
+    cls, = compile(<<-EOF)
+      macro def foo(a)
+        import duby.lang.compiler.Node
+        quote { bar "1", `Node(a.child_nodes.get(0)).child_nodes`, "2"}
+      end
+
+      def bar(a:String, b:String, c:String, d:String)
+        puts "\#{a} \#{b} \#{c} \#{d}"
+      end
+
+      foo(["a", "b"])
+    EOF
+
+    assert_output("1 a b 2\n") do
+      cls.main(nil)
+    end
   end
 end
