@@ -2099,16 +2099,20 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.util.concurrent.Callable
       def foo c:Callable
+        throws Exception
          puts c.call
       end
+      begin
       foo do
         "an object"
+      end
+      rescue
+        puts "never get here"
       end
     EOF
     assert_output("an object\n") do
       cls.main(nil)
     end
-
   end
 
   def test_each
