@@ -1206,6 +1206,7 @@ public class MirahLexer {
         Token<Tokens> savedToken = it.previous();
         if (pos >= savedToken.pos && pos <= savedToken.startpos) {
           System.out.println("Warning, uncached token " + savedToken.type + " at " + pos);
+          parser._pos = savedToken.endpos;
           return savedToken;
         }
       }

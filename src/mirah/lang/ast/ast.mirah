@@ -4,7 +4,7 @@ import java.io.Serializable
 import java.util.ArrayList
 import java.util.List
 import java.util.Iterator
-import org.mirah.ast.NodeMeta
+import org.mirahparser.ast.NodeMeta
 
 interface Position do
   def filename:string; end
@@ -16,7 +16,7 @@ interface Position do
   macro def +(other) quote { add(`other`) } end
 end
 
-interface Node extends Serializable do
+interface Node do
   def position:Position; end
   def parent:Node; end
   def setParent(parent:Node):void; end  # This should only be called by NodeImpl!
@@ -33,6 +33,10 @@ interface Node extends Serializable do
   def findDescendant(filter:NodeFilter):Node; end
   def findDescendants(filter:NodeFilter):List; end
   def findDescendants(filter:NodeFilter, list:List):List; end
+end
+
+interface Assignment < Node do
+  def value=(value:Node); end
 end
 
 interface Identifier < Node do
@@ -133,6 +137,19 @@ class NodeImpl
     node
   end
 
+  def toString
+    name = if self.kind_of?(Named)
+      ":#{Named(self).name}"
+    else
+      ""
+    end
+    "<#{getClass.getName}#{name}>"
+  end
+
+  def setParent(parent:Node)
+    @parent = parent
+  end
+
   # def findChild(filter:NodeFilter):Node
   #   finder = DescendentFinder.new(true, true, filter)
   #   finder.scan(self, nil)
@@ -170,11 +187,6 @@ class NodeImpl
       raise IllegalArgumentException, "Node already has a parent"
     end
     child.setParent(self)
-    if position.nil?
-      position = child.position
-    elsif child.position && position.filename.equals(child.position.filename)
-      position += child.position
-    end
     child
   end
 
@@ -185,13 +197,8 @@ class NodeImpl
   end
 
   private
-  attr_writer parent: Node
   attr_writer originalNode: Node
   # TODO clone
-  # TODO make parent transient, set parent when loading children.
-  def writeReplace
-    originalNode || self
-  end
 end
 
 # class DescendentFinder < NodeScanner

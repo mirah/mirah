@@ -14,6 +14,8 @@
 # limitations under the License.
 package mirahparser.lang.ast
 
+import java.util.List
+
 class Array < NodeImpl
   init_node do
     child_list values: Node
@@ -26,6 +28,10 @@ end
 
 class Float < NodeImpl
   init_literal 'double'
+end
+
+class CharLiteral < NodeImpl
+  init_literal 'int'
 end
 
 class Hash < NodeImpl
@@ -45,8 +51,12 @@ interface StringPiece < Node do
 end
 
 class SimpleString < NodeImpl
-  implements TypeName, StringPiece
+  implements TypeName, StringPiece, Identifier
   init_literal String
+
+  def identifier
+    value
+  end
 
   def typeref
     TypeRefImpl.new(@value, false, false, position)
@@ -57,11 +67,30 @@ class StringConcat < NodeImpl
   init_node do
     child_list strings: StringPiece
   end
+  def addAll(sc:StringConcat)
+    addAll(sc.strings)
+  end
+  def addAll(strings:StringPieceList)
+    until strings.size == 0
+      @strings.add(strings.remove(0))
+    end
+  end
+  def add(piece:StringPiece)
+    @strings.add(piece)
+  end
 end
 
 class StringEval < NodeImpl
+  implements StringPiece
   init_node do
     child value: Node
+  end
+end
+
+class Regex < NodeImpl
+  init_node do
+    child_list strings:StringPiece
+    child options: Identifier
   end
 end
 

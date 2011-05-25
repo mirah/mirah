@@ -62,9 +62,13 @@ class VisitorState < MetaTool
         nil
       end
 
+      def enterNullChild(arg:Object):Object
+        nil
+      end
+
       def scan(node:Node, arg:Object=nil):Object
         if node.nil?
-          nil
+          enterNullChild(arg)
         else
           node.accept(self, arg)
         end
@@ -160,6 +164,7 @@ class ListNodeState < BaseNodeState
 
   def init_list(type:Node)
     type_name = type.string_value
+    visitor_method = "visit#{name}"
     @visitors.addList(name)
     mirah.quote do
       def initialize()
@@ -172,14 +177,30 @@ class ListNodeState < BaseNodeState
       end
 
       def initialize(children:java::util::List)
-        children.each {|node:Node| childAdded(Node(node))}
-        @children = java::util::ArrayList.new(children)
+        if children
+          children.each {|node:Node| childAdded(Node(node))}
+          @children = java::util::ArrayList.new(children)
+          unless @children.isEmpty
+            self.position = get(0).position + get(size - 1).position
+          end
+        else
+          @children = java::util::ArrayList.new
+        end
+        nil
       end
 
       def initialize(position:Position, children:java::util::List)
         self.position = position
-        children.each {|node:Node| childAdded(Node(node))}
-        @children = java::util::ArrayList.new(children)
+        if children
+          children.each {|node:Node| childAdded(Node(node))}
+          @children = java::util::ArrayList.new(children)
+          unless @children.isEmpty
+            self.position = get(0).position + get(size - 1).position
+          end
+        else
+          @children = java::util::ArrayList.new
+        end
+        nil
       end
 
       def size:int
@@ -216,6 +237,10 @@ class ListNodeState < BaseNodeState
         childRemoved(node)
         `mirah.cast(type_name, 'node')`
       end
+
+      def accept(visitor, arg):Object
+        visitor.`visitor_method`(self, arg)
+      end
     end
   end
 end
@@ -239,6 +264,7 @@ class NodeState < BaseNodeState
       @visitors.addNode(name, nil)
       extra_setup = mirah.body
     end
+    visitor_method = "visit#{name}"
     mirah.quote do
 
       def initialize()
@@ -246,6 +272,10 @@ class NodeState < BaseNodeState
 
       def initialize(position:Position)
         self.position = position
+      end
+
+      def accept(visitor, arg):Object
+        visitor.`visitor_method`(self, arg)
       end
 
       `extra_setup`
@@ -292,7 +322,6 @@ class NodeState < BaseNodeState
   end
 
   def addGetters(name:String, type:String)
-    @children.add([name, type])
     mirah.quote do
       def `"#{name}"`: `type`
         @`name`
@@ -304,18 +333,22 @@ class NodeState < BaseNodeState
   end
 
   def child(name:String, type:String)
+    setter = "#{name}_set"
     @constructor << mirah.quote do
-      @`name` = `name`
+      self.`setter`(`name`)
     end
+    @children.add([name, type])
     addGetters(name, type)
   end
 
   def child_list(name:String, type:String)
     list_type = "#{type}List"
+    setter = "#{name}_set"
     @constructor << mirah.quote do
-      @`name` = if `name` then `name` else `list_type`.new(position) end
+      self.`setter`(`list_type`.new(position, `name`))
     end
     size_name = "#{name}_size"
+    @children.add([name, 'java.util.List'])
     mirah.quote do
       `addGetters(name, list_type)`
 

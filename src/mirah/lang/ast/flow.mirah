@@ -34,7 +34,19 @@ class Loop < NodeImpl
     child pre: Body
     child body: Body
     child post: Body
-    attr_accessor checkFirst: 'boolean', negative: 'boolean'
+    attr_accessor skipFirstCheck: 'boolean', negative: 'boolean'
+  end
+
+  def initialize(position:Position, condition:Node, body:Node, negative:boolean, skipFirstCheck:boolean)
+    super(position)
+    self.init = Body.new
+    self.condition = condition
+    self.pre = Body.new
+    self.body = Body.new
+    self.body.add(body)
+    self.post = Body.new
+    self.negative = negative
+    self.skipFirstCheck = skipFirstCheck
   end
 end
 
@@ -70,7 +82,7 @@ end
 
 class RescueClause < NodeImpl
   init_node do
-    child types: TypeNameList
+    child_list types: TypeName
     child name: Identifier
     child body: Node
   end
@@ -80,6 +92,7 @@ class Rescue < NodeImpl
   init_node do
     child body: Node
     child_list clauses: RescueClause
+    child elseClause: Node
   end
 end
 

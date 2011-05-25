@@ -15,8 +15,37 @@
 package mirahparser.lang.ast
 
 class Unquote < NodeImpl
+  implements TypeName, Identifier
   init_node do
     child value: Node
+    attr_accessor object: Object
+  end
+
+  def identifier:String
+    obj = @object || @value
+    if obj.kind_of?(Identifier)
+      Identifier(obj).identifier
+    elsif obj.kind_of?(String)
+      String(obj)
+    else
+      raise UnsupportedOperationException, "#{obj} is not an Identifier"
+    end
+  end
+
+  def typeref:TypeRef
+    obj = @object || @value
+    if obj.kind_of?(TypeRef)
+      TypeRef(obj)
+    elsif obj.kind_of?(TypeName)
+      TypeName(obj).typeref
+    elsif obj.kind_of?(Identifier)
+      id = Identifier(obj)
+      TypeRefImpl.new(id.identifier, false, false, id.position)
+    elsif obj.kind_of?(String)
+      TypeRefImpl.new(String(obj))
+    else
+      raise UnsupportedOperationException, "#{obj} does not name a type"
+    end
   end
 end
 
@@ -28,6 +57,7 @@ class UnquotedValue < NodeImpl
 end
 
 class UnquoteAssign < NodeImpl
+  implements Named, Assignment
   init_node do
     child name: Unquote
     child value: Node

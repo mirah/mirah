@@ -23,7 +23,7 @@ class LocalDeclaration < NodeImpl
 end
 
 class LocalAssignment < NodeImpl
-  implements Named
+  implements Named, Assignment
   init_node do
     child name: Identifier
     child value: Node

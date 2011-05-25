@@ -23,10 +23,10 @@ end
 class Arguments < NodeImpl
   init_node do
     # Is there a better way to represent this?
-    child required: RequiredArgumentList
-    child optional: OptionalArgumentList
+    child_list required: RequiredArgument
+    child_list optional: OptionalArgument
     child rest: RestArgument
-    child required2: RequiredArgumentList
+    child_list required2: RequiredArgument
     child block: BlockArgument
   end
 end
@@ -61,7 +61,7 @@ class BlockArgument < NodeImpl
   init_node do
     child name: Identifier
     child type: TypeName
-    child value: Node
+    attr_accessor optional: 'boolean'
   end
 end
 

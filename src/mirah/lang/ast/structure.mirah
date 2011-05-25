@@ -20,7 +20,9 @@ class Body < NodeImpl
 end
 
 class ClassAppendSelf < NodeImpl  # Better name? StaticScope or ClassScope maybe?
-  init_list Node
+  init_node do
+    child body: Node
+  end
 end
 
 class Block < NodeImpl
@@ -46,7 +48,7 @@ end
 
 class Annotation < NodeImpl
   init_node do
-    child name: Identifier
+    child type: TypeName
     child values: Hash
   end
 end

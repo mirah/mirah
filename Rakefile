@@ -32,13 +32,13 @@ end
 task :build_parser => 'dist/mirah-parser.jar'
 ant.taskdef :name => 'jarjar', :classpath => 'javalib/jarjar-1.1.jar', :classname=>"com.tonicsystems.jarjar.JarJarTask"
 
-file 'build/mirah-parser.jar' => ['build/mirahparser/impl/MirahParser.class',
-                                  'build/mirahparser/lang/ast/Node.class',
+file 'build/mirah-parser.jar' => ['build/mirahparser/lang/ast/Node.class',
+                                  'build/mirahparser/impl/MirahParser.class',
                                   'build/mirahparser/impl/MirahLexer.class'] do
   ant.jarjar :jarfile => 'build/mirah-parser.jar' do
     fileset :dir => 'build', :includes => 'mirahparser/impl/*.class'
-    # fileset :dir => 'build', :includes => 'mirahparser/lang/ast/*.class'
-    # fileset :dir => 'build', :includes => 'org/mirahparser/ast/*.class'
+    fileset :dir => 'build', :includes => 'mirahparser/lang/ast/*.class'
+    fileset :dir => 'build', :includes => 'org/mirahparser/ast/*.class'
     zipfileset :src => 'javalib/mmeta-runtime.jar'
     _element :rule, :pattern=>'mmeta.**', :result=>'org.mirahparser.mmeta.@1'
     manifest do
@@ -103,7 +103,7 @@ end
 
 file 'build/mirahparser/impl/Mirah.mirah' => 'src/mirahparser/impl/Mirah.mmeta' do
   ant.mkdir :dir => 'build/mirahparser/impl'
-  runjava 'javalib/mmeta.jar', 'src/mirahparser/impl/Mirah.mmeta', 'build/mirahparser/impl/Mirah.mirah'
+  runjava 'javalib/mmeta.jar', '--tpl', 'node=src/mirahparser/impl/node.xtm', 'src/mirahparser/impl/Mirah.mmeta', 'build/mirahparser/impl/Mirah.mirah'
 end
 
 directory 'dist'
@@ -119,7 +119,7 @@ end
 task :test => 'build/mirah-parser.jar'
 
 task :doc => 'build/mirahparser/lang/ast/Node.java' do
-  ant.javadoc :sourcepath => 'build/mirahparser/lang', :destdir => 'doc'
+  ant.javadoc :sourcepath => 'build', :destdir => 'doc'
 end
 
 def runjava(jar, *args)

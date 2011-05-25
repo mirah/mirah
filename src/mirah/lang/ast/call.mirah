@@ -44,8 +44,21 @@ class Call < NodeImpl
 end
 
 # This needs a better name. Maybe something like QualifiedName
-class Colon2 < Call
-  init_subclass(Call)
+class Colon2 < NodeImpl
+  implements Named, TypeName
+  init_node do
+    child target: Node
+    child name: Identifier
+  end
+
+  def typeref:TypeRef
+    if target.kind_of?(TypeName)
+      outerType = TypeName(target).typeref.name
+      TypeRefImpl.new("#{outerType}::#{name.identifier}", false, false, position)
+    else
+      raise UnsupportedOperationException, "#{target} does not name a type"
+    end
+  end
 end
 
 class ZSuper < NodeImpl
@@ -55,6 +68,7 @@ end
 class Super < NodeImpl  # < ZSuper?
   init_node do
     child_list parameters: Node
+    child block: Node
   end
 end
 
