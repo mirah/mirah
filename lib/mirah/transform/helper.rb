@@ -290,6 +290,7 @@ module Mirah
         name = transform(name, nil) unless name.kind_of?(::String)
         target = node[2]
         args = node[3]
+        args = [args] if args && args[0].kind_of?(String)
         iter_node = node[4]
         position = position(node)
 
