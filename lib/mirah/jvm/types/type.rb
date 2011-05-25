@@ -50,7 +50,7 @@ module Mirah
         def interface?
           # FIXME: Don't do rescue nil. Figure out a cleaner way to handle
           # mirrors for all incoming types without blowing up on e.g. 'boolean' or 'int'
-          (@type || BiteScript::ASM::ClassMirror.for_name(@name)).interface?
+          (@type || BiteScript::ASM::ClassMirror.for_name(@name)).interface? rescue nil
         end
 
         def dynamic?
