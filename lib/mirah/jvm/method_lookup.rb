@@ -53,6 +53,7 @@ module Mirah
       end
 
       def find_jls(mapped_type, name, mapped_params, meta, constructor)
+        interfaces = []
         if constructor
           by_name = mapped_type.unmeta.declared_constructors
         elsif meta
@@ -62,7 +63,18 @@ module Mirah
           cls = mapped_type
           while cls
             by_name += cls.declared_instance_methods(name)
+            interfaces.concat(cls.interfaces)
             cls = cls.superclass
+          end
+          if mapped_type.interface?  # TODO or abstract
+            seen = {}
+            until interfaces.empty?
+              interface = interfaces.pop
+              next if seen[interface]
+              seen[interface] = true
+              interfaces.concat(interface.interfaces)
+              by_name += interface.declared_instance_methods(name)
+            end
           end
         end
         # filter by arity
@@ -205,7 +217,7 @@ module Mirah
           end
 
           # object type is assignable
-          return false unless target_type.assignable_from? in_type
+          return false unless target_type.compatible? in_type
         end
         return true
       end
