@@ -235,7 +235,7 @@ module Mirah
               typer.defer(self)
               return
             end
-            if throwable.assignable_from?(arg_type) && !arg_type.meta?
+            if throwable.compatible?(arg_type) && !arg_type.meta?
               resolved!
               return @inferred_type
             end
@@ -245,7 +245,7 @@ module Mirah
           if arg_types.any? {|c| c.nil?}
             typer.defer(self)
           else
-            if arg_types[0] && throwable.assignable_from?(arg_types[0])
+            if arg_types[0] && throwable.compatible?(arg_types[0])
               klass = children.shift
             else
               klass = Constant.new(self, position, 'RuntimeException')

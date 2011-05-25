@@ -93,7 +93,7 @@ module Mirah
         return unless type
         existing_type = local_type(name)
         if existing_type
-          unless existing_type.assignable_from?(type)
+          unless existing_type.compatible?(type)
             raise Mirah::Typer::InferenceError.new(
                 "Can't assign #{type.full_name} to " \
                 "variable of type #{existing_type.full_name}")
