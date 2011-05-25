@@ -217,7 +217,12 @@ module Mirah
           end
 
           # object type is assignable
-          return false unless target_type.compatible? in_type
+          compatible = if target_type.respond_to?(:compatible?)
+            target_type.compatible? in_type
+          else
+            target_type.assignable_from? in_type
+          end
+          return false unless compatible
         end
         return true
       end
