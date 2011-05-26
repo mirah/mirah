@@ -14,6 +14,7 @@
 # limitations under the License.
 
 require 'rbconfig'
+require 'java'
 
 module Mirah
   module Env
@@ -23,7 +24,7 @@ module Mirah
     # is returned
     def self.path_seperator
       ps = RbConfig::CONFIG['PATH_SEPARATOR']
-      ps = ':' if ps.nil? || ps == ''
+      ps = Java::java::io::File.pathSeparator if ps.nil? || ps == ''
       ps
     end
 
