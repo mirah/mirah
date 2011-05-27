@@ -3,6 +3,7 @@ module Mirah
   module Transform
     class Transformer
       include Mirah::Scoper
+      def inspect; "<Transformer#{object_id}>"end
       begin
         include Java::DubyLangCompiler.Compiler
       rescue NameError

@@ -23,14 +23,19 @@ class TestJavaTyper < Test::Unit::TestCase
 
   def setup
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-    @typer = Mirah::JVM::Typer.new(nil)
-    compiler = Mirah::JVM::Compiler::JVMBytecode.new
+    @mirah = Mirah::Transform::Transformer.new(Mirah::Util::CompilationState.new)
+    @typer = Mirah::JVM::Typer.new(@mirah)
+    compiler = Mirah::JVM::Compiler::JVMBytecode.new(@mirah)
 
     @java_typer = Typer::JavaTyper.new
   end
 
   def teardown
     AST.type_factory = nil
+  end
+
+  def parse(text)
+    AST.parse(text, '-', false, @mirah)
   end
 
   def test_simple_overtyped_meta_method
@@ -194,20 +199,20 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_int
-    ast = AST.parse("#{1 << 16}")
+    ast = parse("#{1 << 16}")
     assert_equal(AST.type(nil, 'int'), ast.infer(@typer, true))
   end
 
   def test_long
-    ast = AST.parse("#{1 << 33}")
+    ast = parse("#{1 << 33}")
     assert_equal(AST.type(nil, 'long'), ast.infer(@typer, true))
   end
   
   def test_dynamic_assignability
-    ast = AST.parse("a = 1; a = dynamic('foo')")
+    ast = parse("a = 1; a = dynamic('foo')")
     assert_equal :error, ast.infer(@typer, true).name
     
-    ast = AST.parse("a = Object.new; a = dynamic('foo')")
+    ast = parse("a = Object.new; a = dynamic('foo')")
     assert_equal 'java.lang.Object', ast.infer(@typer, true).name
   end
 end

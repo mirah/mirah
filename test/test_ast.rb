@@ -49,7 +49,7 @@ class TestAst < Test::Unit::TestCase
 
     assert_not_nil(new_ast)
     assert(AST::Body === new_ast)
-    inspected = "Body\n LocalAssignment(name = a, scope = Script, captured = false)\n  Fixnum(1)\n FunctionalCall(a)"
+    inspected = "Body\n LocalAssignment(a)\n  Fixnum(1)\n FunctionalCall(a)"
     assert_equal(inspected, new_ast.inspect)
 
     asgn = new_ast[0]
@@ -85,7 +85,7 @@ class TestAst < Test::Unit::TestCase
 
     assert_not_nil(new_ast)
     assert(AST::Array === new_ast)
-    assert_equal("Array\n LocalAssignment(name = a, scope = Script, captured = false)\n  Fixnum(1)\n Fixnum(1)", new_ast.inspect)
+    assert_equal("Array\n LocalAssignment(a)\n  Fixnum(1)\n Fixnum(1)", new_ast.inspect)
 
     assert(AST::LocalAssignment === new_ast[0])
     assert(AST::Fixnum === new_ast[1])
@@ -360,7 +360,6 @@ class TestAst < Test::Unit::TestCase
     assert_not_nil(new_ast)
     assert(AST::EmptyArray === new_ast)
     assert_equal(5, new_ast.size.literal)
-    assert_equal(AST.type(:int), new_ast.inferred_type)
   end
 
   def test_block_comment
