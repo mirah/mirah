@@ -62,29 +62,6 @@ module Mirah
       return
     end
     puts "#{position.file}:#{position.start_line}: #{message}"
-    file_offset = 0
-    startline = position.start_line - 1
-    endline = position.end_line - 1
-    start_col = position.start_col - 1
-    end_col = position.end_col - 1
-    # don't try to search dash_e
-    # TODO: show dash_e source the same way
-    if File.exist? position.file
-      File.open(position.file).each_with_index do |line, lineno|
-        if lineno >= startline && lineno <= endline
-          puts line.chomp
-          if lineno == startline
-            print ' ' * start_col
-          else
-            start_col = 0
-          end
-          if lineno < endline
-            puts '^' * (line.size - start_col)
-          else
-            puts '^' * [end_col - start_col, 1].max
-          end
-        end
-      end
-    end
+    puts position.underline
   end
 end

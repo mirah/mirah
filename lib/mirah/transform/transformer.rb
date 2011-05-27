@@ -1,6 +1,9 @@
+require 'mirah/util/process_errors'
 module Mirah
   module Transform
     class Transformer
+      include Mirah::Util::ProcessErrors
+
       begin
         include Java::DubyLangCompiler.Compiler
       rescue NameError
@@ -18,6 +21,7 @@ module Mirah
         @extra_body = nil
         @state = state
         @helper = Mirah::Transform::Helper.new(self)
+        @files = {""=>{:filename => "", :line => 0, :code => ""}}
       end
 
       def destination
@@ -46,10 +50,13 @@ module Mirah
         attr_accessor :start_line, :end_line, :start_offset, :end_offset, :file
         attr_accessor :startpos, :endpos, :start_col, :end_col
 
-        def initialize(startpos, endpos)
+        def initialize(transformer, startpos, endpos)
           @startpos = startpos
           @endpos = endpos
-          @file = startpos.filename
+          @transformer = transformer
+          @fileinfo = transformer.fileinfo(startpos.filename)
+          puts "filename: #{startpos.filename.inspect}" unless @fileinfo
+          @file = @fileinfo[:filename]
           @start_line = startpos.line
           @start_offset = startpos.pos
           @start_col = startpos.col
@@ -59,12 +66,47 @@ module Mirah
         end
 
         def +(other)
-          JMetaPosition.new(@startpos, other.endpos)
+          JMetaPosition.new(@transformer, @startpos, other.endpos)
+        end
+
+        def start_line
+          if @fileinfo
+            @start_line + @fileinfo[:line]
+          else
+            @start_line
+          end
+        end
+
+        def get_code
+          code = @fileinfo[:code][@start_offset, @end_offset - @start_offset]
+          filename = "#{@start_line}:#{@file}"
+          [filename, code]
+        end
+
+        def underline
+          result = ""
+          @fileinfo[:code].each_with_index do |line, lineno|
+            lineno += 1
+            if lineno >= @start_line && lineno <= @end_line
+              chomped = line.chomp
+              result << chomped
+              result << "\n"
+              start = 0
+              start = @start_col if lineno == @start_line
+              result << " " * start
+              endcol = chomped.size
+              endcol = @end_col if lineno == @end_line
+              result << "^" * [endcol - start, 1].max
+              result << "\n"
+              break if lineno == @end_line
+            end
+          end
+          result
         end
       end
 
       def position(node)
-        JMetaPosition.new(node.start_position, node.end_position)
+        JMetaPosition.new(self, node.start_position, node.end_position)
       end
 
       def camelize(name)
@@ -111,8 +153,27 @@ module Mirah
         scope.isCaptured(node.index)
       end
 
+      def tag_filename(src, filename)
+        key = "#{@files.size}$#{filename}"
+        data = {:filename => filename, :line => 0, :code => src}
+        if filename =~ /^(\d+)\$(.+)/
+          data[:line] = $1.to_i
+          data[:filename] = $2
+        end
+        @files[key] = data
+        key
+      end
+
+      def untag_filename(filename)
+        @files[filename][:filename]
+      end
+
+      def fileinfo(filename)
+        @files[filename]
+      end
+
       def eval(src, filename='-', parent=nil, *vars)
-        node = Mirah::AST.parse_ruby(src, filename)
+        node = Mirah::AST.parse_ruby(self, src, filename)
         duby_node = transform(node, nil).body
         duby_node.parent = parent
         duby_node
@@ -120,9 +181,14 @@ module Mirah
 
       def dump_ast(node, call=nil)
         encoded = nil
-        values = Mirah::AST::Unquote.extract_values do
-          encoded = Base64.encode64(Marshal.dump(node))
+        values = []
+        node.each_descendant do |n|
+          if Mirah::AST::Unquote === n || Mirah::AST::UnquoteAssign === n
+            values << n.value
+          end
         end
+        filename, code = node.position.get_code
+        encoded = "#{filename}$#{code}"
         scope = call.scope.static_scope if call
         result = Mirah::AST::Array.new(nil, node.position)
         if encoded.size < 65535
@@ -153,14 +219,37 @@ module Mirah
       def load_ast(args)
         nodes = args.to_a
         encoded = nodes.shift
-        Mirah::AST::Unquote.inject_values(nodes) do
-          result = Marshal.load(Base64.decode64(encoded))
-          if Mirah::AST::UnquotedValue === result
-            result.node
-          else
-            result
+        filename, source = encoded.split('$', 2)
+        if source
+          saved = self.__unquote_values
+          begin
+            self.__unquote_values = nodes.reverse
+            mmeta_ast = Mirah::AST.parse_ruby(self, source, filename)
+            ast = transform(mmeta_ast, nil)
+            process_errors(self.errors)
+            result = ast[0]
+            result.parent = nil
+          ensure
+            self.__unquote_values = saved
+          end
+        else
+          Mirah::AST::Unquote.inject_values(nodes) do
+            result = Marshal.load(Base64.decode64(encoded))
           end
         end
+        if Mirah::AST::UnquotedValue === result
+          result.node
+        else
+          result
+        end
+      end
+
+      def __unquote_values
+        Thread.current[:'Mirah::Transform::Transformer.unquote_values']
+      end
+
+      def __unquote_values=(value)
+        Thread.current[:'Mirah::Transform::Transformer.unquote_values'] = value
       end
 
       def __ruby_eval(code, arg)

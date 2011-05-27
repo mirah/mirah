@@ -24,7 +24,7 @@ Mirah::AST.defmacro('def_edb') do |transformer, fcall, parent|
   compiler.pre_cmd = ["def #{name}", "_edbout = StringBuilder.new"]
   compiler.post_cmd = ["_edbout.toString", "end"]
   src = compiler.compile(IO.read(path))
-  ast = Mirah::AST.parse_ruby(src, path)
+  ast = Mirah::AST.parse_ruby(transformer, src, path)
   transformer.filename = path
   script = transformer.transform(ast, parent)
   script.body.parent = parent

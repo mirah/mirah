@@ -33,6 +33,15 @@ module Mirah
         @mirah.transform(node, parent)
       end
 
+      def transform_name(name)
+        if name.nil? || name.kind_of?(::String)
+          return name
+        end
+        node = Mirah::AST::Local.new(nil, position(name), transform(name, nil))
+        node.validate_name
+        node.name
+      end
+
       def transform_script(node, parent)
         Mirah::AST::Script.new(parent, position(node)) do |script|
           script.filename = transformer.filename
@@ -102,19 +111,20 @@ module Mirah
 
       def transform_required_argument(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         type = node[2]
-        type_node = transform(type, parent) if type
         if Mirah::AST::Unquote === name && type.nil?
           name
         else
-          Mirah::AST::RequiredArgument.new(parent, position(node), name, type_node)
+          Mirah::AST::RequiredArgument.new(parent, position(node), name, nil) do |arg|
+            [transform(type, arg)]
+          end
         end
       end
 
       def transform_opt_arg(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         type = node[2]
         value = node[3]
         Mirah::AST::OptionalArgument.new(parent, position(node), name) do |optarg|
@@ -127,7 +137,7 @@ module Mirah
 
       def transform_rest_arg(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         type = node[2]
         Mirah::AST::RestArgument.new(parent, position(node), name) do |restarg|
           [type ? transform(type, restarg) : nil]
@@ -136,7 +146,7 @@ module Mirah
 
       def transform_block_arg(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         type = node[2]
         Mirah::AST::BlockArgument.new(parent, position(node), name) do |blkarg|
           [type ? transform(type, blkarg) : nil]
@@ -202,7 +212,7 @@ module Mirah
         else
           raise "Unsupported class name #{cpath[0]}"
         end
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         Mirah::AST::ClassDefinition.new(parent, position(node),
         name,
         transformer.annotations) do |class_def|
@@ -215,7 +225,7 @@ module Mirah
 
       def transform_def(node, parent)
         name, args_node, type_node, body_node = node[1], node[2], node[3], node[4]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         position = position(node)
         actual_name = name
         if name =~ /=$/ && name != '[]='
@@ -242,7 +252,7 @@ module Mirah
 
       def transform_def_static(node, parent)
         name, args_node, type_node, body_node = node[1], node[2], node[3], node[4]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         position = position(node)
         actual_name = name
         if name =~ /=$/
@@ -268,7 +278,7 @@ module Mirah
         end
 
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         args = node[2]
         iter_node = node[3]
         fcall = Mirah::AST::FunctionalCall.new(parent, position(node), name) do |call|
@@ -287,7 +297,7 @@ module Mirah
 
       def transform_call(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         target = node[2]
         args = node[3]
         args = [args] if args && args[0].kind_of?(String)
@@ -345,7 +355,7 @@ module Mirah
 
       def transform_colon2const(node, parent)
         name = node[2]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         target = node[1]
         Mirah::AST::Colon2.new(parent, position(node), name) do |colon2|
           [ transform(target, colon2) ]
@@ -409,13 +419,13 @@ module Mirah
 
       def transform_inst_var(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         Mirah::AST::Field.new(parent, position(node), name, transformer.annotations)
       end
 
       def transform_inst_var_assign(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         value_node = node[2]
         position = position(node)
         case value_node[0]
@@ -431,13 +441,13 @@ module Mirah
 
       def transform_class_var(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         Mirah::AST::Field.new(parent, position(node), name, transformer.annotations, true)
       end
 
       def transform_class_var_assign(node, parent)
         name = node[1]
-        name = transform(name, nil) unless name.kind_of?(::String)
+        name = transform_name(name)
         value_node = node[2]
         position = position(node)
         case value_node[0]
@@ -647,7 +657,7 @@ module Mirah
       def transform_rescue_clause(node, parent)
         exceptions = node[1]
         var_name = node[2]
-        name = transform(var_name, nil) unless var_name.nil? || var_name.kind_of?(::String)
+        name = transform_name(var_name)
         body = node[3]
         Mirah::AST::RescueClause.new(parent, position(node)) do |clause|
           clause.name = var_name if var_name
@@ -719,15 +729,33 @@ module Mirah
       end
 
       def transform_unquote(node, parent)
-        Mirah::AST::Unquote.new(parent, position(node)) do |unquote|
-          [transform(node[1], unquote)]
+        if @mirah.__unquote_values
+          node = Mirah::AST::UnquotedValue.new(parent, position(node)) do |unquote|
+            value = @mirah.__unquote_values.pop
+            [value]
+          end
+          parent.instance_variable_set(:@needs_validate, true) if parent
+          node
+        else
+          Mirah::AST::Unquote.new(parent, position(node)) do |unquote|
+            [transform(node[1], unquote)]
+          end
         end
       end
 
       def transform_unquote_assign(node, parent)
         name, value = node[1], node[2]
-        Mirah::AST::UnquoteAssign.new(parent, position(node)) do |unquote|
-          [transform(name, unquote), transform(value, unquote)]
+        if @mirah.__unquote_values
+          node = Mirah::AST::UnquotedValueAssign.new(parent, position(node)) do |unquote|
+            name_node = @mirah.__unquote_values.pop
+            [name_node, transform(value, unquote)]
+          end
+          parent.instance_variable_set(:@needs_validate, true) if parent
+          node
+        else
+          Mirah::AST::UnquoteAssign.new(parent, position(node)) do |unquote|
+            [transform(name, unquote), transform(value, unquote)]
+          end
         end
       end
 

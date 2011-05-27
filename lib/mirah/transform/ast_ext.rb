@@ -10,12 +10,15 @@ module Mirah
 
     class MirahErrorHandler
       include ErrorHandler
+      def initialize(transformer)
+        @transformer = transformer
+      end
       def warning(messages, positions)
         print "Warning: "
         messages.each_with_index do |message, i|
           jpos = positions[i]
           if jpos
-            dpos = Mirah::Transform::Transformer::JMetaPosition.new(jpos, jpos)
+            dpos = Mirah::Transform::Transformer::JMetaPosition.new(@transformer, jpos, jpos)
             print "#{message} at "
             Mirah.print_error("", dpos)
           else
@@ -26,8 +29,8 @@ module Mirah
     end
 
     def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
-      ast = parse_ruby(src, filename)
       transformer ||= Transform::Transformer.new(Mirah::Util::CompilationState.new)
+      ast = parse_ruby(transformer, src, filename)
       transformer.filename = filename
       ast = transformer.transform(ast, nil)
       if raise_errors
@@ -39,11 +42,12 @@ module Mirah
     end
     module_function :parse
 
-    def parse_ruby(src, filename='-')
+    def parse_ruby(transformer, src, filename='-')
       raise ArgumentError if src.nil?
+      filename = transformer.tag_filename(src, filename)
       parser = MirahParser.new
       parser.filename = filename
-      parser.errorHandler = MirahErrorHandler.new
+      parser.errorHandler = MirahErrorHandler.new(transformer)
       begin
         parser.parse(src)
       rescue => ex

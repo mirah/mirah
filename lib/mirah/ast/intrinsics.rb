@@ -383,7 +383,7 @@ module Mirah::AST
     def build_ast(name, parent, transformer)
       # TODO should use a new type factory too.
 
-      ast = Mirah::AST.parse_ruby("begin;end")
+      ast = Mirah::AST.parse_ruby(transformer, "begin;end")
       ast = transformer.transform(ast, nil)
 
       # Start building the extension class

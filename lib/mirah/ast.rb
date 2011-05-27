@@ -71,9 +71,11 @@ module Mirah
         @inferred_type = nil
         @resolved = false
         @position = position
+        @needs_validate = false
         if block_given?
           @children ||= []
           @children = yield(self) || []
+          validate_children if @needs_validate
         else
           @children = children
         end
@@ -96,7 +98,7 @@ module Mirah
             raise $!
           end
         end
-          Marshal.dump(vars)
+        Marshal.dump(vars)
       end
 
       def self._load(vars)
@@ -200,6 +202,24 @@ module Mirah
       end
 
       def each(&b) children.each(&b) end
+
+      def each_descendant
+        to_visit = [self]
+        until to_visit.empty?
+          descendant = to_visit.delete_at(0)
+          if descendant.kind_of?(::Array)
+            to_visit[0,0] = descendant
+          else
+            yield descendant
+            if descendant.respond_to? :children
+              to_visit[0,0] = descendant.children
+            end
+            if descendant.kind_of?(Named)
+              to_visit[0,0] = descendant.name
+            end
+          end
+        end
+      end
 
       def <<(node)
         @children << _set_parent(node)

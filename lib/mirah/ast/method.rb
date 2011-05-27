@@ -112,8 +112,8 @@ module Mirah::AST
     include Scoped
     child :type_node
 
-    def initialize(parent, line_number, name, type=nil)
-      super(parent, line_number, [type])
+    def initialize(parent, line_number, name, type=nil, &block)
+      super(parent, line_number, [type], &block)
 
       self.name = name
     end
