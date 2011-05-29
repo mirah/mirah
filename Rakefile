@@ -17,9 +17,8 @@ require 'rake'
 require 'rake/testtask'
 require 'rubygems'
 require 'rubygems/package_task'
+require 'bundler/setup'
 require 'java'
-$: << './lib'
-require 'mirah'
 require 'jruby/compiler'
 require 'ant'
 
@@ -28,6 +27,8 @@ Gem::PackageTask.new Gem::Specification.load('mirah.gemspec') do |pkg|
   pkg.need_tar = true
 end
 
+bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
+
 task :gem => 'jar:bootstrap'
 
 task :default => :test
@@ -35,7 +36,7 @@ task :default => :test
 Rake::TestTask.new :test do |t|
   t.libs << "lib"
   # This is hacky, I know
-  t.libs.concat Dir["../bitescript*/lib"]
+  t.libs.concat Dir[bitescript_lib_dir]
   t.test_files = FileList["test/**/*.rb"]
   java.lang.System.set_property("jruby.duby.enabled", "true")
 end
@@ -52,6 +53,7 @@ task :clean do
 end
 
 task :compile => :init do
+  require 'mirah'
   # build the Ruby sources
   puts "Compiling Ruby sources"
   JRuby::Compiler.compile_argv([
@@ -91,7 +93,7 @@ task :jar => :compile do
     fileset :dir => 'lib'
     fileset :dir => 'build'
     fileset :dir => '.', :includes => 'bin/*'
-    fileset :dir => '../bitescript/lib'
+    fileset :dir => bitescript_lib_dir
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
@@ -137,11 +139,6 @@ task :zip => 'jar:complete' do
   cp 'History.txt', "#{basedir}"
   sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip mirah-#{Mirah::VERSION}/*'"
   rm_rf 'tmp'
-end
-
-desc "Build the gem file"
-task :gem => "jar:bootstrap" do
-  sh 'gem build mirah.gemspec'
 end
 
 desc "Build all redistributable files"
