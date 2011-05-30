@@ -62,8 +62,10 @@ module Mirah
           by_name = []
           cls = mapped_type
           while cls
-            by_name += cls.declared_instance_methods(name)
-            interfaces.concat(cls.interfaces)
+            if cls.full_name != 'error'
+              by_name += cls.declared_instance_methods(name) 
+              interfaces.concat(cls.interfaces)
+            end
             cls = cls.superclass
           end
           if mapped_type.interface?  # TODO or abstract
