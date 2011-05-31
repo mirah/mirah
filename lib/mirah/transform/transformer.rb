@@ -3,7 +3,6 @@ module Mirah
   module Transform
     class Transformer
       include Mirah::Scoper
-      def inspect; "<Transformer#{object_id}>"end
       begin
         include Java::DubyLangCompiler.Compiler
       rescue NameError
@@ -130,7 +129,7 @@ module Mirah
         end
         values.each do |value|
           if scope
-            add_scope(value, scope, true)
+            value.scope = scope
           end
           result << value
         end

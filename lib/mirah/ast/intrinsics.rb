@@ -27,7 +27,7 @@ module Mirah::AST
     def _dump(depth)
       vals = Unquote.__extracted
       index = vals.size
-      vals << value
+      vals << value.dup
       Marshal.dump([position, index])
     end
 
@@ -36,11 +36,11 @@ module Mirah::AST
       if str =~ /^\d+$/
         # This just returns the exact node passed in.
         index = str.to_i
-        Unquote.__injected[index].dup
+        Unquote.__injected[index]
       else
         position, index = Marshal.load(str)
         holder = UnquotedValue.new(nil, position)
-        holder << Unquote.__injected[index].dup
+        holder << Unquote.__injected[index]
         holder
       end
     end

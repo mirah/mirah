@@ -76,7 +76,7 @@ module Mirah::JVM::Types
       add_macro(name, *arg_types) do |duby, call|
         scope = duby.get_scope(call)
         call.parameters.each do |arg|
-          duby.add_scope(arg, scope, true)
+          arg.scope = scope
         end
         expander = klass.constructors[0].newInstance(duby, call)
         ast = expander.expand

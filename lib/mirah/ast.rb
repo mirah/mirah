@@ -36,6 +36,7 @@ module Mirah
       attr_accessor :position
       attr_accessor :newline
       attr_accessor :inferred_type
+      attr_accessor :scope
 
       def self.child(name)
         @children ||= []
