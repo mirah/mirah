@@ -72,7 +72,7 @@ task :compile => :init do
     Mirah.compile(
       '-c', classpath,
       '-d', '../build',
-      '--jvm', '1.5',
+      '--jvm', '1.6',
       'org/mirah',
       'duby/lang',
       'mirah'
