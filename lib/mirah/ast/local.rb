@@ -55,7 +55,7 @@ module Mirah::AST
         typer.get_scope(self) << name
         type = typer.infer(value, true)
         if type && type.null?
-          type = typer.local_type(containing_scope, name) unless typer.last_chance
+          type = typer.local_type(typer.containing_scope(self), name) unless typer.last_chance
         end
         type
       end
