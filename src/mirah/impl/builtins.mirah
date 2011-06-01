@@ -44,7 +44,7 @@ end
 
 class Builtin
   defmacro new_hash(node) do
-    items = Node(node.child_nodes.get(0)).child_nodes
+    items = node.child_nodes
     capacity = int(items.size * 0.84)
     capacity = 16 if capacity < 16
     literal = @mirah.fixnum(capacity)
