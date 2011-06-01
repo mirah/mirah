@@ -87,6 +87,8 @@ module Mirah::JVM::Types
           if call.target
             static_scope.self_type = call.target.inferred_type!
             static_scope.self_node = call.target
+          else
+            static_scope.self_type = scope.self_type
           end
           body
         else
