@@ -120,7 +120,7 @@ module Mirah
       def compile(compiler, expression)
         if expression
           compiler.line(line_number)
-          compiler.compile_self
+          compiler.compile_self(compiler.get_scope(self))
         end
       rescue Exception => ex
         raise Mirah::InternalCompilerError.wrap(ex, self)

@@ -27,12 +27,13 @@ module Mirah
         class ImplicitSelf
           attr_reader :inferred_type
           
-          def initialize(type)
+          def initialize(type, scope)
             @inferred_type = type
+            @scope = scope
           end
           
           def compile(compiler, expression)
-            compiler.compile_self if expression
+            compiler.compile_self(@scope) if expression
           end
         end
         
@@ -362,7 +363,7 @@ module Mirah
           return cast(fcall, expression) if fcall.cast?
           type = get_scope(fcall).self_type
           type = type.meta if (@static && type == @type)
-          fcall.target = ImplicitSelf.new(type)
+          fcall.target = ImplicitSelf.new(type, get_scope(fcall))
           
           params = fcall.parameters.map do |param|
             param.inferred_type
@@ -379,7 +380,7 @@ module Mirah
         
         def super_call(sup, expression)
           type = @type.superclass
-          sup.target = ImplicitSelf.new(type)
+          sup.target = ImplicitSelf.new(type, get_scope(sup))
           
           params = sup.parameters.map do |param|
             param.inferred_type

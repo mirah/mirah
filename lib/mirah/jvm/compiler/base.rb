@@ -234,9 +234,9 @@ module Mirah
         end
         alias float fixnum
 
-        def compile_self
-          if @self_scope && @self_scope.self_node && @self_scope.self_node != :self
-            local(@self_scope, 'self', @self_scope.self_type)
+        def compile_self(scope)
+          if scope.self_node && scope.self_node != :self
+            local(scope, 'self', scope.self_type)
           else
             real_self
           end

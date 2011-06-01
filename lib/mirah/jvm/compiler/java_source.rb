@@ -232,13 +232,17 @@ module Mirah
           @method.print "#{this}.#{name}"
         end
 
-        def this(method=nil)
+        def this(scope=nil, method=nil)
           if method && method.static?
             method.declaring_class.name
-          elsif @self_scope && @self_scope.self_node && @self_scope.self_node != :self
-            scoped_local_name('self', @self_scope)
-          else
+          elsif scope.nil?
             @static ? @class.class_name : 'this'
+          elsif scope.self_node && scope.self_node != :self
+            scoped_local_name('self', scope)
+          elsif scope.self_type.meta?
+            scope.self_type.name
+          else
+            'this'
           end
         end
 
@@ -460,7 +464,7 @@ module Mirah
         end
 
         def super_call(call, expression)
-          super_method_call(this, call, compile_args(call), expression)
+          super_method_call(this(get_scope(call)), call, compile_args(call), expression)
         end
 
         def cast(call, expression)
@@ -483,7 +487,7 @@ module Mirah
               param.inferred_type
             end
             method = type.get_method(call.name, params)
-            method_call(this(method), call, compile_args(call), expression)
+            method_call(this(get_scope(call), method), call, compile_args(call), expression)
           end
         end
 
