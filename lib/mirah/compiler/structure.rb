@@ -23,16 +23,7 @@ module Mirah
         raise Mirah::InternalCompilerError.wrap(ex, self)
       end
     end
-    
-    class ScopedBody
-      def compile(compiler, expression)
-        compiler.line(line_number)
-        compiler.scoped_body(self, expression)
-      rescue Exception => ex
-        raise Mirah::InternalCompilerError.wrap(ex, self)
-      end
-    end
-    
+
     class BindingReference
       def compile(compiler, expression)
         if expression

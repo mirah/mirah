@@ -44,7 +44,9 @@ module Mirah
 
       def transform_script(node, parent)
         Mirah::AST::Script.new(parent, position(node)) do |script|
+          scope = transformer.add_scope(script, nil, true)
           script.filename = transformer.filename
+          scope.package = script.package
           [@mirah.transform(node.children[0], script)]
         end
       end

@@ -36,6 +36,7 @@ module Mirah
       attr_accessor :position
       attr_accessor :newline
       attr_accessor :inferred_type
+      attr_accessor :scope
 
       def self.child(name)
         @children ||= []
@@ -138,6 +139,12 @@ module Mirah
         else
           0
         end
+      end
+
+      def find_parent(*types)
+        node = self
+        node = node.parent until node.nil? || types.any? {|type| type === node}
+        node
       end
 
       def log(message)
@@ -359,20 +366,6 @@ module Mirah
       def annotation(name)
         name = name.to_s
         annotations.find {|a| a.name == name}
-      end
-    end
-
-    module Binding
-      def binding_type(duby=nil)
-        static_scope.binding_type(defining_class, duby)
-      end
-
-      def binding_type=(type)
-        static_scope.binding_type = type
-      end
-
-      def has_binding?
-        static_scope.has_binding?
       end
     end
 

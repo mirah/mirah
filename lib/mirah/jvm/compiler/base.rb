@@ -17,16 +17,18 @@ module Mirah
   module JVM
     module Compiler
       class Base
+        include Mirah::Scoper
         attr_accessor :filename, :method, :static, :class
 
         class CompilationError < Mirah::NodeError
         end
 
-        def initialize
+        def initialize(scoper)
           @jump_scope = []
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
+          self.scopes = scoper.scopes
         end
 
         def error(message, node)
@@ -65,7 +67,7 @@ module Mirah
           @static = true
           @filename = File.basename(script.filename)
           classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(@filename)
-          @type = AST.type(script, classname)
+          @type = AST.type(get_scope(script), classname)
           @file = file_builder(@filename)
           body = script.body
           body = body[0] if body.children.size == 1
@@ -75,7 +77,7 @@ module Mirah
               log "Starting main method"
 
               @method.start
-              @current_scope = script.static_scope
+              @current_scope = get_scope(script)
               declare_locals(@current_scope)
               begin_main
 
@@ -117,7 +119,7 @@ module Mirah
           return_type = signature[:return]
           exceptions = signature[:throws]
 
-          with :static => @static || node.static?, :current_scope => node.static_scope do
+          with :static => @static || node.static?, :current_scope => introduced_scope(node) do
             method = create_method_builder(name, node, @static, exceptions,
             return_type, arg_types)
             annotate(method, node.annotations)
@@ -166,7 +168,7 @@ module Mirah
           exceptions = node.signature[:throws]
           method = @class.build_constructor(node.visibility, exceptions, *arg_types)
           annotate(method, node.annotations)
-          with :current_scope => node.static_scope do
+          with :current_scope => introduced_scope(node) do
             yield(method, args)
           end
         end
@@ -187,19 +189,19 @@ module Mirah
 
         def body(body, expression)
           saved_self = @self_scope
-          if body.kind_of?(Mirah::AST::ScopedBody)
-            scope = body.static_scope
-            declare_locals(scope)
-            if scope != @self_scope
-              if scope.self_node && scope.self_node != :self
+          new_scope = introduced_scope(body)
+          if new_scope
+            declare_locals(new_scope)
+            if new_scope != @self_scope
+              if new_scope.self_node && new_scope.self_node != :self
                 # FIXME This is a horrible hack!
                 # Instead we should eliminate unused self's.
-                unless scope.self_type.name == 'mirah.impl.Builtin'
+                unless new_scope.self_type.name == 'mirah.impl.Builtin'
                   local_assign(
-                  scope, 'self', scope.self_type, false, scope.self_node)
+                  new_scope, 'self', new_scope.self_type, false, new_scope.self_node)
                 end
               end
-              @self_scope = scope
+              @self_scope = new_scope
             end
           end
           # all except the last element in a body of code is treated as a statement

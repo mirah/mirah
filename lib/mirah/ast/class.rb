@@ -17,7 +17,6 @@ module Mirah::AST
   class ClassDefinition < Node
     include Annotated
     include Named
-    include Scope
     include Java::DubyLangCompiler.ClassDefinition
 
     attr_accessor :interfaces
@@ -36,9 +35,6 @@ module Mirah::AST
       @interface_nodes = []
       self.name = name
       self.parent = parent
-      if Mirah::AST.type_factory.respond_to? :define_type
-        Mirah::AST.type_factory.define_type(self)
-      end
       # We need somewhere to collect nodes that get appended during
       # the transform phase.
       @extra_body = Body.new(self, position)
@@ -102,11 +98,12 @@ module Mirah::AST
 
     def infer(typer, expression)
       resolve_if(typer) do
+        static_scope = typer.add_scope(self)
         @superclass = superclass_node.type_reference(typer) if superclass_node
         @annotations.each {|a| a.infer(typer, true)} if @annotations
         @interfaces.concat(@interface_nodes.map{|n| n.type_reference(typer)})
-        typer.define_type(self, name, superclass, @interfaces) do
-          static_scope.self_type = typer.self_type
+        typer.define_type(self, name, superclass, @interfaces) do |self_type|
+          static_scope.self_type = self_type
           typer.infer(body, false) if body
         end
       end
@@ -298,12 +295,10 @@ module Mirah::AST
   end
 
   class Include < Node
-    include Scoped
-
     def infer(typer, expression)
       children.each do |type|
         typeref = type.type_reference(typer)
-        the_scope = scope.static_scope
+        the_scope = typer.get_scope(self)
         the_scope.self_type = the_scope.self_type.include(typeref)
       end
     end
@@ -321,7 +316,6 @@ module Mirah::AST
 
   class Constant < Node
     include Named
-    include Scoped
     attr_accessor :array
 
     def initialize(parent, position, name)
@@ -332,12 +326,12 @@ module Mirah::AST
     def infer(typer, expression)
       @inferred_type ||= begin
         # TODO lookup constant, inline if we're supposed to.
-        typer.type_reference(scope, name, @array, true)
+        typer.type_reference(typer.get_scope(self), name, @array, true)
       end
     end
 
     def type_reference(typer)
-      typer.type_reference(scope, @name, @array)
+      typer.type_reference(typer.get_scope(self), @name, @array)
     end
   end
 end

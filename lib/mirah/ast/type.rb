@@ -15,7 +15,6 @@
 
 module Mirah::AST
   class Import < Node
-    include Scoped
     attr_accessor :short
     attr_accessor :long
     def initialize(parent, line_number, short, long)
@@ -30,7 +29,8 @@ module Mirah::AST
 
     def infer(typer, expression)
       resolve_if(typer) do
-        scope.static_scope.import(long, short)
+        scope = typer.get_scope(self)
+        scope.import(long, short)
         typer.type_reference(scope, @long) if short != '*'
         typer.no_type
       end
@@ -106,11 +106,12 @@ module Mirah::AST
     end
     if block
       raise Mirah::TransformError.new("unknown package syntax", block)
-      new_scope = ScopedBody.new(parent, fcall.position)
-      new_scope.static_scope.package = name
-      new_scope << block.body
+      body = Body.new(parent, fcall.position)
+      new_scope = transformer.typer.add_scope(body)
+      new_scope.package = name
+      body << block.body
     else
-      fcall.scope.static_scope.package = name
+      transformer.get_scope(fcall).package = name
       Noop.new(parent, fcall.position)
     end
   end

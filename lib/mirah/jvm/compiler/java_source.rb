@@ -45,7 +45,7 @@ module Mirah
 
         ImplicitReturn = Struct.new(:value)
 
-        def initialize
+        def initialize(scoper)
           super
         end
 
@@ -64,7 +64,7 @@ module Mirah
               @method.start
 
               prepare_binding(node) do
-                declare_locals(node.static_scope)
+                declare_locals(get_scope(node))
                 unless @method.type.nil? || @method.type.void?
                   self.return(ImplicitReturn.new(node.body))
                 else
@@ -116,7 +116,7 @@ module Mirah
               end
 
               prepare_binding(node) do
-                declare_locals(node.static_scope)
+                declare_locals(get_scope(node))
                 node.body.compile(self, false) if node.body
               end
               method.stop
@@ -124,14 +124,15 @@ module Mirah
           end
         end
 
-        def prepare_binding(scope)
+        def prepare_binding(node)
+          scope = introduced_scope(node)
           if scope.has_binding?
             type = scope.binding_type
             @binding = @bindings[type]
             @method.puts "#{type.to_source} $binding = new #{type.to_source}();"
-            if scope.respond_to? :arguments
-              scope.arguments.args.each do |param|
-                if scope.static_scope.captured?(param.name)
+            if node.respond_to? :arguments
+              node.arguments.args.each do |param|
+                if scope.captured?(param.name)
                   captured_local_declare(scope, param.name, param.inferred_type)
                   @method.puts "$binding.#{param.name} = #{param.name};"
                 end
@@ -187,10 +188,10 @@ module Mirah
           end
           node.clauses.each do |clause|
             clause.types.each do |type|
-              name = scoped_local_name(clause.name || 'tmp$ex', clause.static_scope)
+              name = scoped_local_name(clause.name || 'tmp$ex', introduced_scope(clause))
               @method.declare_local(type, name, false)
               @method.block "catch (#{type.to_source} #{name})" do
-                declare_locals(clause.static_scope)
+                declare_locals(introduced_scope(clause))
                 maybe_store(clause.body, expression)
               end
             end
@@ -309,7 +310,7 @@ module Mirah
         end
 
         def captured_local_assign(node, expression)
-          scope, name, type = node.containing_scope, node.name, node.inferred_type
+          scope, name, type = containing_scope(node), node.name, node.inferred_type
           captured_local_declare(scope, name, type)
           lvalue = "#{@lvalue if expression}$binding.#{name} = "
           store_value(lvalue, node.value)
@@ -476,7 +477,7 @@ module Mirah
           if call.cast?
             cast(call, expression)
           else
-            type = call.scope.static_scope.self_type
+            type = get_scope(call).self_type
             type = type.meta if (@static && type == @type)
             params = call.parameters.map do |param|
               param.inferred_type
@@ -742,9 +743,11 @@ module Mirah
             @file = file
             @type = type
             @parent = parent
+            @scopes = parent.scopes
           end
 
-          def prepare_binding(scope)
+          def prepare_binding(node)
+            scope = introduced_scope(node)
             if scope.has_binding?
               type = scope.binding_type
               @binding = @parent.get_binding(type)

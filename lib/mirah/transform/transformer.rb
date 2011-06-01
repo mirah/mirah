@@ -1,7 +1,9 @@
 require 'mirah/util/process_errors'
+require 'mirah/scoper'
 module Mirah
   module Transform
     class Transformer
+      include Mirah::Scoper
       include Mirah::Util::ProcessErrors
 
       begin
@@ -17,7 +19,6 @@ module Mirah
         @errors = []
         @tmp_count = 0
         @annotations = []
-        @scopes = []
         @extra_body = nil
         @state = state
         @helper = Mirah::Transform::Helper.new(self)
@@ -136,21 +137,11 @@ module Mirah
         rescue Error => ex
           @errors << ex
           Mirah::AST::ErrorNode.new(parent, ex)
-        # rescue Exception => ex
-        #   error = Error.new(ex.message, position(node), ex)
-        #   @errors << error
-        #   Mirah::AST::ErrorNode.new(parent, error)
+        rescue Exception => ex
+          error = Mirah::InternalCompilerError.wrap(ex, nil)
+          error.position = position(node)
+          raise error
         end
-      end
-
-      def captured?(node)
-        depth = node.depth
-        scope = @scopes[-1]
-        while depth > 0
-          depth -= 1
-          scope = scope.enclosing_scope
-        end
-        scope.isCaptured(node.index)
       end
 
       def tag_filename(src, filename)
@@ -189,7 +180,7 @@ module Mirah
         end
         filename, code = node.position.get_code
         encoded = "#{filename}$#{code}"
-        scope = call.scope.static_scope if call
+        scope = get_scope(call) if call
         result = Mirah::AST::Array.new(nil, node.position)
         if encoded.size < 65535
           result << Mirah::AST::String.new(result, node.position, encoded)
@@ -204,14 +195,10 @@ module Mirah
           strings << Mirah::AST::String.new(strings, node.position, encoded)
         end
         values.each do |value|
-          if call
-            scoped_value = Mirah::AST::ScopedBody.new(result, value.position)
-            scoped_value << value
-            scoped_value.static_scope = scope
-          else
-            scoped_value = value
+          if scope
+            value.scope = scope
           end
-          result << scoped_value
+          result << value
         end
         return result
       end

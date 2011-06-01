@@ -23,9 +23,11 @@ class TestAst < Test::Unit::TestCase
 
   class MockCompiler
     attr_accessor :calls
+    include Mirah::Scoper
 
-    def initialize
+    def initialize(scoper)
       @calls = []
+      @scopes = scoper.scopes
     end
     def compile(ast)
       ast.compile(self, true)
@@ -56,11 +58,16 @@ class TestAst < Test::Unit::TestCase
   end
 
   def setup
-    @compiler = MockCompiler.new
+    @mirah = Mirah::Transform::Transformer.new(Mirah::Util::CompilationState.new)
+    @compiler = MockCompiler.new(@mirah)
+  end
+
+  def parse(text)
+    AST.parse(text, '-', true, @mirah)
   end
 
   def test_fixnum
-    new_ast = AST.parse("1").body[0]
+    new_ast = parse("1").body[0]
 
     new_ast.compile(@compiler, true)
 
@@ -68,7 +75,7 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_string
-    new_ast = AST.parse("'foo'").body[0]
+    new_ast = parse("'foo'").body[0]
 
     new_ast.compile(@compiler, true)
 
@@ -76,7 +83,7 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_float
-    new_ast = AST.parse("1.0").body[0]
+    new_ast = parse("1.0").body[0]
 
     new_ast.compile(@compiler, true)
 
@@ -84,7 +91,7 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_boolean
-    new_ast = AST.parse("true").body[0]
+    new_ast = parse("true").body[0]
 
     new_ast.compile(@compiler, true)
 
@@ -92,7 +99,7 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_local
-    new_ast = AST.parse("a = 1").body[0]
+    new_ast = parse("a = 1").body[0]
 
     new_ast.compile(@compiler, true)
 
@@ -100,8 +107,9 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_local_typed
-    new_ast = AST.parse("a = 1").body[0]
+    new_ast = parse("a = 1").body[0]
     typer = Typer::Simple.new(:bar)
+    typer.scopes = @mirah.scopes
     new_ast.infer(typer, true)
     new_ast.compile(@compiler, true)
 
@@ -109,14 +117,14 @@ class TestAst < Test::Unit::TestCase
   end
 
   def test_return
-    new_ast = AST.parse("return 1").body[0]
+    new_ast = parse("return 1").body[0]
     new_ast.compile(@compiler, true)
 
     assert_equal([[:return, new_ast]], @compiler.calls)
   end
 
   def test_empty_array
-    new_ast = AST.parse("int[5]").body[0]
+    new_ast = parse("int[5]").body[0]
     new_ast.compile(@compiler, true)
 
     assert_equal(1, @compiler.calls.size)
