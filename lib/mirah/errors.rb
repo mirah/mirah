@@ -24,6 +24,7 @@ module Mirah
     end
 
     def self.wrap(ex, node)
+      puts 'internal location:' + ex.backtrace[0]
       if ex.kind_of?(NodeError)
         ex.node ||= node
         return ex
