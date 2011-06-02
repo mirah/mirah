@@ -96,7 +96,7 @@ module Mirah
         --explicit-packages\tRequire explicit 'package' lines in source
         -h, --help\t\tPrint this help message
         -I DIR\t\tAdd DIR to the Ruby load path before running
-        -j, --java\t\tOutput .java source (compile mode only)
+        -j, --java\t\tOutput .java source (compile mode [mirahc] only)
         --jvm VERSION\t\tEmit JVM bytecode targeting specified JVM
         \t\t\t  version (1.4, 1.5, 1.6, 1.7)
         -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running
