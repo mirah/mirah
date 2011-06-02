@@ -22,9 +22,7 @@ module Mirah
     # separating multiple paths in one string. If none is defined then a : (colon)
     # is returned
     def self.path_seperator
-      ps = RbConfig::CONFIG['PATH_SEPARATOR']
-      ps = ':' if ps.nil? || ps == ''
-      ps
+      File::PATH_SEPARATOR
     end
 
     # Takes an array of strings and joins them using the path_separator returning
