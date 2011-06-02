@@ -78,6 +78,7 @@ module Mirah::AST
             @inferred_type = typer.known_type(scope, name)
           elsif parameters.size == 0 && typer.get_scope(self).include?(name)
             @inlined = Local.new(parent, position, name)
+            @inlined.scope = @scope
             proxy.__inline__(@inlined)
             return proxy.infer(typer, expression)
           else
