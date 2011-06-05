@@ -19,13 +19,13 @@ require 'mirah'
 class TestEnv < Test::Unit::TestCase
   include Mirah
 
-  def test_use_file_path_seperator
-    assert_equal(File::PATH_SEPARATOR, Mirah::Env.path_seperator)
+  def test_use_file_path_separator
+    assert_equal(File::PATH_SEPARATOR, Mirah::Env.path_separator)
   end
 
   def test_encode_paths_joins_paths_with_path_separator
     abc = %w[a b c]
-    assert_equal(abc.join(Mirah::Env.path_seperator), Mirah::Env.encode_paths(abc))
+    assert_equal(abc.join(Mirah::Env.path_separator), Mirah::Env.encode_paths(abc))
   end
   
   def test_encode_paths_with_single_element
@@ -38,7 +38,7 @@ class TestEnv < Test::Unit::TestCase
 
   def test_decode_paths_appends_to_second_arg
     paths_to_append = %w[a b c d]
-    encoded_paths = paths_to_append.join Mirah::Env.path_seperator
+    encoded_paths = paths_to_append.join Mirah::Env.path_separator
     path_array = ['1','2']
     
     assert_equal(['1','2','a','b','c','d'], Mirah::Env.decode_paths(encoded_paths, path_array))
