@@ -19,39 +19,38 @@ require 'mirah'
 class TestEnv < Test::Unit::TestCase
   include Mirah
 
-  def test_path_seperator
-    # Check that env var PATH_SEPERATOR is used
-    RbConfig::CONFIG['PATH_SEPARATOR'] = '*'
-    assert_equal('*', Mirah::Env.path_seperator)
-
-    # Check that : (colon) is returned if no PATH_SEPERATOR env var set
-    RbConfig::CONFIG['PATH_SEPARATOR'] = ''
-    assert_equal(':', Mirah::Env.path_seperator)
+  def test_use_file_path_seperator
+    assert_equal(File::PATH_SEPARATOR, Mirah::Env.path_seperator)
   end
 
-  def test_encode_paths
-    RbConfig::CONFIG['PATH_SEPARATOR'] = ':'
-    
-    assert_equal('a:b:c', Mirah::Env.encode_paths(['a','b','c']))
+  def test_encode_paths_joins_paths_with_path_separator
+    abc = %w[a b c]
+    assert_equal(abc.join(Mirah::Env.path_seperator), Mirah::Env.encode_paths(abc))
+  end
+  
+  def test_encode_paths_with_single_element
     assert_equal('a', Mirah::Env.encode_paths(['a']))
+  end
+
+  def test_encode_paths_with_empty_list
     assert_equal('', Mirah::Env.encode_paths([]))
-
-    RbConfig::CONFIG['PATH_SEPARATOR'] = ';'
-
-    assert_equal('a;b;c', Mirah::Env.encode_paths(['a','b','c']))
   end
 
-  def test_decode_paths
-    RbConfig::CONFIG['PATH_SEPARATOR'] = ':'
-
+  def test_decode_paths_appends_to_second_arg
+    paths_to_append = %w[a b c d]
+    encoded_paths = paths_to_append.join Mirah::Env.path_seperator
     path_array = ['1','2']
-    assert_equal(['1','2','a','b','c','d'], Mirah::Env.decode_paths('a:b:c:d', path_array))
+    
+    assert_equal(['1','2','a','b','c','d'], Mirah::Env.decode_paths(encoded_paths, path_array))
     assert_equal(['1','2','a','b','c','d'], path_array)
-
-    assert_equal(['a','b','c','d'], Mirah::Env.decode_paths('a:b:c:d'))
-    assert_equal(['a'], Mirah::Env.decode_paths('a'))
-
-    RbConfig::CONFIG['PATH_SEPARATOR'] = ';'
-    assert_equal(['a','b','c','d'], Mirah::Env.decode_paths('a;b;c;d'))
   end
+  
+  def test_decode_paths_with_empty_list
+    assert_equal([], Mirah::Env.decode_paths(''))
+  end
+  
+  def test_decode_paths_with_single_element
+    assert_equal(['a'], Mirah::Env.decode_paths('a'))
+  end
+  
 end
