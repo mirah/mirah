@@ -67,9 +67,10 @@ module Mirah
           classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(@filename)
           @type = AST.type(script, classname)
           @file = file_builder(@filename)
-          body = script.body
-          body = body[0] if body.children.size == 1
-          if body.class != AST::ClassDefinition
+
+          # Define a main method unless all of the script's children are 'top level'
+          # nodes (e.g. Import, ClassDefinition, InterfaceDeclaration).
+          unless script.body.children.all? { |c| c.top_level? }
             @class = @type.define(@file)
             with :method => @class.main do
               log "Starting main method"
@@ -80,18 +81,18 @@ module Mirah
               begin_main
 
               prepare_binding(script) do
-                body.compile(self, false)
+                script.body.compile(self, false)
               end
 
               finish_main
               @method.stop
             end
             @class.stop
-          else
-            body.compile(self, false)
-          end
 
-          log "Main method complete!"
+            log "Main method complete!"
+          else
+            script.body.compile(self, false)
+          end
         end
 
         def begin_main; end

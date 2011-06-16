@@ -35,6 +35,10 @@ module Mirah::AST
         typer.no_type
       end
     end
+
+    def top_level?
+      true
+    end
   end
 
   defmacro('import') do |transformer, fcall, parent|
