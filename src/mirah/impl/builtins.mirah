@@ -16,6 +16,10 @@
 import duby.lang.compiler.Compiler
 import duby.lang.compiler.Node
 import duby.lang.compiler.Body
+import mirah.lang.ast.Call
+import mirah.lang.ast.TypeName
+
+import java.util.ArrayList
 
 class Map
   defmacro add(key, value) do
@@ -42,6 +46,11 @@ class Map
   end
 end
 
+# TODO restrict this to class scope
+class ObjectExtension
+
+end
+
 class Builtin
   defmacro new_hash(node) do
     items = node.child_nodes
@@ -61,5 +70,6 @@ class Builtin
 
   def self.initialize_builtins(mirah:Compiler)
     mirah.find_class("java.util.Map").load_extensions(Map.class)
+    mirah.find_class("java.lang.Object").load_extensions(ObjectExtension.class)
   end
 end

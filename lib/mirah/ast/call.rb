@@ -14,49 +14,7 @@
 # limitations under the License.
 
 module Mirah::AST
-  class FunctionalCall < Node
-    include Java::DubyLangCompiler.Call
-    include Named
-    attr_accessor :cast, :inlined, :proxy
-    alias cast? cast
-
-    child :parameters
-    child :block
-
-    def self.new(*args, &block)
-      real_node = super
-      real_node.proxy = NodeProxy.new(real_node)
-    end
-
-    def initialize(parent, line_number, name, &kids)
-      super(parent, line_number, &kids)
-      self.name = name
-      @cast = false
-    end
-
-    def arguments
-      args = java.util.ArrayList.new(parameters.size)
-      parameters.each do |param|
-        args.add(param)
-      end
-      args
-    end
-
-    def target
-      nil
-    end
-
-    def validate_parameters
-      parameters.each_with_index do |child, i|
-        if UnquotedValue === child
-          children = child.nodes
-          children.each {|c| c.parent = self}
-          parameters[i] = children
-        end
-      end
-      parameters.flatten!
-    end
-
+  class FunctionalCall
     def infer(typer, expression)
       unless @inferred_type
         @self_type ||= typer.get_scope(self).self_type
@@ -71,30 +29,28 @@ module Mirah::AST
 
         scope = typer.get_scope(self)
         unless should_defer
-          if parameters.size == 1 && typer.known_type(scope, name)
+          if parameters.size == 1 && typer.known_type(scope, typeref.name)
             # cast operation
             resolved!
-            self.cast = true
-            @inferred_type = typer.known_type(scope, name)
-          elsif parameters.size == 0 && typer.get_scope(self).include?(name)
-            @inlined = Local.new(parent, position, name)
-            @inlined.scope = @scope
-            proxy.__inline__(@inlined)
-            return proxy.infer(typer, expression)
+            @inferred_type = typer.known_type(scope, typeref.name)
+            cast = Cast.new(position, typeref, parameters.remove(0))
+            return inline(typer, cast)
+          elsif parameters.size == 0 && typer.get_scope(self).include?(name.identifier)
+            local = LocalAccess.new(position, name)
+            local.scope = @scope
+            return inline(typer, local)
           else
-            @inferred_type = typer.method_type(receiver_type, name,
+            @inferred_type = typer.method_type(receiver_type, name.identifier,
                                                parameter_types)
             if @inferred_type.kind_of? InlineCode
-              @inlined = @inferred_type.inline(typer.transformer, self)
-              proxy.__inline__(@inlined)
-              return proxy.infer(typer, expression)
+              return inline(typer, @inferred_type.inline(typer.transformer, self))
             end
           end
         end
 
         if @inferred_type
           if block
-            method = receiver_type.get_method(name, parameter_types)
+            method = receiver_type.get_method(name.identifier, parameter_types)
             block.prepare(typer, method)
           end
           @inferred_type = receiver_type if @inferred_type.void?
@@ -105,60 +61,19 @@ module Mirah::AST
           else
             parameter_names = parameter_types.map {|t| t.full_name}.join(', ')
             receiver = receiver_type.full_name
-            desc = "#{name}(#{parameter_names})"
+            desc = "#{name.identifier}(#{parameter_names})"
             kind = receiver_type.meta? ? "static" : "instance"
             message = "Cannot find #{kind} method #{desc} on #{receiver}"
           end
-          typer.defer(proxy, message)
+          typer.defer(self, message)
         end
       end
 
       @inferred_type
     end
-
-    def type_reference(typer)
-      typer.type_reference(typer.get_scope(self), name)
-    end
   end
 
-  class Call < Node
-    include Java::DubyLangCompiler.Call
-    include Named
-    attr_accessor :cast, :inlined, :proxy
-    alias cast? cast
-
-    child :target
-    child :parameters
-    child :block
-
-    def self.new(*args, &block)
-      real_node = super
-      real_node.proxy = NodeProxy.new(real_node)
-    end
-
-    def initialize(parent, line_number, name, &kids)
-      super(parent, line_number, &kids)
-      self.name = name
-    end
-
-    def validate_parameters
-      parameters.each_with_index do |child, i|
-        if UnquotedValue === child
-          child = child.node
-          child.parent = self
-          parameters[i] = child
-        end
-      end
-    end
-
-    def arguments
-      args = java.util.ArrayList.new(parameters.size)
-      parameters.each do |param|
-        args.add(param)
-      end
-      args
-    end
-
+  class Call
     def infer(typer, expression)
       unless @inferred_type
         receiver_type = typer.infer(target, true)
@@ -171,33 +86,30 @@ module Mirah::AST
 
         scope = typer.get_scope(self)
         unless should_defer
-          class_name, array = self.type_name(true)
-          if class_name && parameters.size == 1 && typer.known_type(scope, class_name)
+          typeref = self.typeref(true)
+          if parameters.size == 1 && typer.known_type(scope, typeref.name)
             # Support casts to fully-qualified names and inner classes.
             begin
-              type = inferred_type = typer.type_reference(scope, class_name, array)
+              type = inferred_type = typer.type_reference(scope, typeref.name, typeref.array)
               @inferred_type = type unless (type && type.error?)
               if @inferred_type
-                # cast operation
                 resolved!
-                self.cast = true
-                return @inferred_type
+                cast = Cast.new(position, typeref, parameters.remove(0))
+                return inline(typer, cast)
               end
             rescue
             end
           end
-          @inferred_type = typer.method_type(receiver_type, name,
+          @inferred_type = typer.method_type(receiver_type, name.identifier,
                                              parameter_types)
           if @inferred_type.kind_of? InlineCode
-            @inlined = @inferred_type.inline(typer.transformer, self)
-            proxy.__inline__(@inlined)
-            return proxy.infer(typer, expression)
+            return inline(typer, @inferred_type)
           end
         end
 
         if @inferred_type
           if block && !receiver_type.error?
-            method = receiver_type.get_method(name, parameter_types)
+            method = receiver_type.get_method(name.identifier, parameter_types)
             block.prepare(typer, method)
           end
           @inferred_type = receiver_type if @inferred_type.void?
@@ -208,90 +120,30 @@ module Mirah::AST
           else
             parameter_names = parameter_types.map {|t| t.full_name}.join(', ')
             receiver = receiver_type.full_name
-            desc = "#{name}(#{parameter_names})"
+            desc = "#{name.identifier}(#{parameter_names})"
             kind = receiver_type.meta? ? "static" : "instance"
             message = "Cannot find #{kind} method #{desc} on #{receiver}"
           end
-          typer.defer(proxy, message)
+          typer.defer(self, message)
         end
       end
 
       @inferred_type
     end
-
-    def type_reference(typer)
-      class_name, array = type_name
-      typer.type_reference(typer.get_scope(self), class_name, array)
-    end
-
-    def type_name(force=false)
-      if !force && parameters && !parameters.empty?
-        return nil
-      end
-      if name == "[]"
-        # array type, top should be a constant; find the rest
-        array = true
-        elements = []
-      else
-        array = false
-        elements = [name]
-      end
-      old_receiver = nil
-      receiver = self.target
-      while !receiver.eql?(old_receiver)
-        old_receiver = receiver
-        case receiver
-        when Constant, Local, Annotation
-          elements.unshift(receiver.name)
-        when FunctionalCall
-          if receiver.parameters.nil? || receiver.parameters.empty?
-            elements.unshift(receiver.name)
-          else
-            return nil, nil
-          end
-        when Call
-          if receiver.parameters.nil? || receiver.parameters.empty?
-            elements.unshift(receiver.name)
-            receiver = receiver.target
-          else
-            return nil, nil
-          end
-        when String
-          elements.unshift(receiver.literal)
-        end
-      end
-
-      return elements.join("."), array
-    end
   end
 
 
-  class Colon2 < Call
+  class Colon2
     def infer(typer, expression)
       resolve_if(typer) do
-        type_reference(typer).meta
+        typer.type_reference(scope, typeref.name, false, true)
       end
     end
   end
 
-  class Super < Node
-    include Named
-    attr_accessor :method, :cast
-    alias :cast? :cast
-
-    child :parameters
-
-    def initialize(parent, line_number)
-      super(parent, line_number)
-      @cast = false
-    end
-
+  class Super
     def call_parent
-      @call_parent ||= begin
-        node = parent
-        node = (node && node.parent) until MethodDefinition === node
-        node
-      end
+      find_parent(MethodDefinition.class)
     end
 
     def name
@@ -318,28 +170,40 @@ module Mirah::AST
 
       @inferred_type
     end
-
-    alias originial_parameters parameters
-
-    def parameters
-      if originial_parameters.nil?
-        self.parameters = default_parameters
-      end
-      originial_parameters
-    end
-
-    def default_parameters
-      node = self
-      node = node.parent until MethodDefinition === node || node.nil?
-      return [] if node.nil?
-      args = node.arguments.children.map {|x| x || []}
-      args.flatten.map do |arg|
-        Local.new(self, position, arg.name)
-      end
-    end
   end
 
-  class BlockPass < Node
-    child :value
+  class ZSuper
+    def call_parent
+      find_parent(MethodDefinition.class)
+    end
+
+    def name
+      call_parent.name
+    end
+
+    def parameters
+      @parameters ||= call_parent.parameters
+    end
+
+    def infer(typer, expression)
+      @self_type ||= typer.get_scope(self).self_type.superclass
+
+      unless @inferred_type
+        receiver_type = call_parent.defining_class.superclass
+        should_defer = receiver_type.nil?
+        parameter_types = parameters.map do |param|
+          typer.infer(param, true) || should_defer = true
+        end
+
+        unless should_defer
+          @inferred_type = typer.method_type(receiver_type, name,
+                                             parameter_types)
+        end
+
+        @inferred_type ? resolved! : typer.defer(self)
+      end
+
+      @inferred_type
+    end
   end
 end

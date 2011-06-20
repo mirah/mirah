@@ -30,15 +30,7 @@ module Mirah
 
     def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
       transformer ||= Transform::Transformer.new(Mirah::Util::CompilationState.new)
-      ast = parse_ruby(transformer, src, filename)
-      transformer.filename = filename
-      ast = transformer.transform(ast, nil)
-      if raise_errors
-        transformer.errors.each do |e|
-          raise e.cause || e
-        end
-      end
-      ast
+      parse_ruby(transformer, src, filename)
     end
     module_function :parse
 

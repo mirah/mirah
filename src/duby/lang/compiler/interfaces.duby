@@ -21,14 +21,14 @@ interface Node do
     returns List
   end
 
-  def parent
-    returns Node
-  end
-
-  # Returns the value of string-literalish nodes
-  def string_value
-    returns String
-  end
+  # def parent
+  #   returns Node
+  # end
+  # 
+  # # Returns the value of string-literalish nodes
+  # def string_value
+  #   returns String
+  # end
 end
 
 interface Block < Node do

@@ -15,40 +15,7 @@
 
 module Mirah
   module AST
-    class Condition < Node
-      child :predicate
-
-      def initialize(parent, line_number, &block)
-        super(parent, line_number, &block)
-      end
-
-      def infer(typer, expression)
-        unless resolved?
-          @inferred_type = typer.infer(predicate, true)
-          if @inferred_type && !@inferred_type.primitive?
-            call = Call.new(parent, position, '!=') do |call|
-              predicate.parent = call
-              [predicate, [Null.new(call, position)]]
-            end
-            self.predicate = call
-            @inferred_type = typer.infer(predicate, true)
-          end
-
-          @inferred_type ? resolved! : typer.defer(self)
-        end
-
-        @inferred_type
-      end
-    end
-
-    class If < Node
-      child :condition
-      child :body
-      child :else
-
-      def initialize(parent, line_number, &block)
-        super(parent, line_number, &block)
-      end
+    class If
 
       def infer(typer, expression)
         unless resolved?
@@ -59,11 +26,11 @@ module Mirah
 
           # condition type is unrelated to body types, so we proceed with bodies
           then_type = typer.infer(body, expression) if body
-          else_type = typer.infer(self.else, expression) if self.else
+          else_type = typer.infer(else_body, expression) if else_body
 
           if expression
             have_body_type = body.nil? || then_type
-            have_else_type = self.else.nil? || else_type
+            have_else_type = else_body.nil? || else_type
             if have_body_type && have_else_type
               if then_type && else_type
                 # both then and else inferred, ensure they're compatible

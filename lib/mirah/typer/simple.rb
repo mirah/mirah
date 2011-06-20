@@ -279,6 +279,7 @@ module Mirah
           ex.node ||= node
           error(node, ex)
         rescue Exception => ex
+          raise ex
           raise Mirah::InternalCompilerError.wrap(ex, node)
         end
       end

@@ -21,6 +21,9 @@ module Mirah
 
       def find_method(mapped_type, name, mapped_params, meta)
         raise ArgumentError if mapped_params.any? {|p| p.nil?}
+        if mapped_type.error?
+          raise "WTF?!?"
+        end
         if name == 'new'
           if meta
             name = "<init>"
@@ -62,9 +65,13 @@ module Mirah
           by_name = []
           cls = mapped_type
           while cls
-            by_name += cls.declared_instance_methods(name)
-            interfaces.concat(cls.interfaces)
-            cls = cls.superclass
+            if cls.error?
+              cls = nil
+            else
+              by_name += cls.declared_instance_methods(name)
+              interfaces.concat(cls.interfaces)
+              cls = cls.superclass
+            end
           end
           if mapped_type.interface?  # TODO or abstract
             seen = {}
