@@ -370,8 +370,8 @@ module Mirah
           unless method
             target = static ? @class.name : 'self'
             
-            raise NameError, "No method %s.%s(%s)" %
-            [target, fcall.name, params.join(', ')]
+            raise NameError, "No method %s.%s(%s) on %s" %
+            [target, fcall.name, params.join(', '), type]
           end
           method.call(self, fcall, expression)
         end
