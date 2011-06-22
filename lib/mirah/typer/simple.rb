@@ -232,10 +232,10 @@ module Mirah
         @cycling = true
         count.times do |i|
           begin
-            log "[Cycle #{i}]: Started... (#{@deferred_nodes.size} nodes to resolve)"
+            puts "[Cycle #{i}]: Started... (#{@deferred_nodes.size} nodes)"
             yield i
           ensure
-            log "[Cycle #{i}]: Complete!"
+            puts "[Cycle #{i}]: Complete!"
           end
         end
       ensure
@@ -335,7 +335,7 @@ module Mirah
             break
           elsif old_deferred == @deferred_nodes
             if @error_next || retried
-              log "[Cycle #{i}]: Made no progress, bailing out"
+              puts "[Cycle #{i}]: Made no progress, bailing out"
               break
             elsif @last_chance
               # Retry this iteration, and mark the first deferred
@@ -353,6 +353,9 @@ module Mirah
               @last_chance = true
               redo
             end
+          elsif @errors.size > 15
+            puts "Too many errors, giving up"
+            break
           end
           retried = false
         end
@@ -360,6 +363,7 @@ module Mirah
         # done with n sweeps, if any remain mark them as errors
         error_nodes = @errors.map {|e| e.node}
         (deferred_nodes.keys - error_nodes).each do |deferred_node|
+          break if @errors.size > 15
           error_nodes << deferred_node
           error(deferred_node)
         end
