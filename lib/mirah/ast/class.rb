@@ -126,11 +126,13 @@ module Mirah::AST
 
   class Implements < Node
     def infer(typer, expression)
-      klass = parent
-      klass = klass.parent until ClassDefinition === klass
-      interfaces = children.map {|i| i.type_reference(typer) }
-      klass.implements(*interfaces)
-      typer.no_type
+      resolve_if(typer) do
+        klass = parent
+        klass = klass.parent until ClassDefinition === klass
+        interfaces = children.map {|i| i.type_reference(typer) }
+        klass.implements(*interfaces)
+        typer.no_type
+      end
     end
     def compile(*args)
     end
