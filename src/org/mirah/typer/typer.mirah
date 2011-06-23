@@ -69,7 +69,7 @@ class Typer < NodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      cast = Cast.new(call.position, call.typeref, call.parameters.get(0).clone)
+      cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
       castType = resolve(call.typeref)
       @futures[cast] = castType
       MaybeInline.new(call, methodType, cast, castType)
@@ -96,7 +96,7 @@ class Typer < NodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      cast = Cast.new(call.position, call.typeref, call.parameters.get(0).clone)
+      cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
       castType = resolve(call.typeref)
       @futures[cast] = castType
       MaybeInline.new(call, methodType, cast, castType)
@@ -110,7 +110,7 @@ class Typer < NodeVisitor
   end
 
   def visitSuper(node, expression)
-    method = MethodDefinition(node.findParent(MethodDefinition.class))
+    method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     target = getScope(node).selfType.superclass
     parameters = inferAll(node.parameters)
     parameters.add(BlockType.new) if node.block
@@ -118,7 +118,7 @@ class Typer < NodeVisitor
   end
 
   def visitZSuper(node, expression)
-    method = MethodDefinition(node.findParent(MethodDefinition.class))
+    method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     target = getScope(node).selfType.superclass
     parameters = inferAll(method.arguments)
     getMethodType(target, method.name.identifier, parameters)
@@ -190,7 +190,7 @@ class Typer < NodeVisitor
     else
       getNoType()
     end
-    method = node.findParent(MethodDefinition.class)
+    method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     parameters = inferAll(method.arguments)
     target = getScope(method).selfType
     getMethodDefType(target, method.name.identifier, parameters).assign(type, node.position)
@@ -232,7 +232,7 @@ class Typer < NodeVisitor
       target = Node(old_args.get(0).clone)
       params = ArrayList.new
       1.upto(old_args.size - 1) {|i| params.add(old_args.get(i).clone)}
-      call = Call.new(target, SimpleString.new(node.position, 'new'), params)
+      call = Call.new(target, SimpleString.new(node.position, 'new'), params, nil)
       exceptions.add(infer(call))
       exceptions.add(call)
     end
@@ -241,7 +241,7 @@ class Typer < NodeVisitor
     target = getDefaultException().meta
     params = ArrayList.new
     old_args.each {|a| params.add(a.clone)}
-    call = Call.new(target, SimpleString.new(node.position, 'new'), params)
+    call = Call.new(target, SimpleString.new(node.position, 'new'), params, nil)
     exceptions.add(infer(call))
     exceptions.add(call)
 
@@ -333,7 +333,7 @@ class Typer < NodeVisitor
 
   def visitHash(hash, expression)
     target = TypeRefImpl.new('mirah.impl.Builtin', false, true, hash.position)
-    call = Call.new(target, SimpleString.new('new_hash'), nil)
+    call = Call.new(target, SimpleString.new('new_hash'), nil, nil)
     hash.parent.replaceChild(hash, call)
     call.parameters.add(hash)
     infer(call, expression != nil)
@@ -399,7 +399,7 @@ class Typer < NodeVisitor
       infer(body.get(i), false)
     end
     if body.size > 0
-      infer(body.get(body.size - 1, expression != null))
+      infer(body.get(body.size - 1), expression != null)
     else
       getNullType()
     end
@@ -408,7 +408,7 @@ class Typer < NodeVisitor
   def visitClassAppendSelf(node, expression)
     scope = addScope(node)
     scope.selfType = getScope(node).selfType.meta
-    node.body.each {|n| infer(n, false)}
+    infer(node.body, false)
     getNullType()
   end
 
