@@ -22,7 +22,12 @@ class Import < NodeImpl
   end
 end
 
-# Package ?
+class Package < NodeImpl
+  init_node do
+    child name: Identifier
+    child body: Node
+  end
+end
 
 class EmptyArray < NodeImpl
   init_node do

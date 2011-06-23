@@ -9,7 +9,7 @@ class FunctionalCall < NodeImpl
   end
 
   def typeref:TypeRef
-    TypeRefImpl.new(name.identifier, false, false, position)
+    TypeRefImpl.new(name.identifier, false, false, name.position)
   end
 end
 
@@ -29,15 +29,17 @@ class Call < NodeImpl
     child block: Node
   end
 
-  def typeref:TypeRef
-    return nil if parameters.size > 0
+  def typeref(maybeCast=false):TypeRef
+    return nil if parameters.size > 1
+    return nil if parameters.size == 1 && !maybeCast
     return nil unless target.kind_of?(TypeName)
     target_typeref = TypeName(target).typeref
     return nil if target_typeref.nil?
+    position = self.name.position + target_typeref.position
     if '[]'.equals(name)
       return TypeRefImpl.new(target_typeref.name, true, false, position)
     else
-      name = "#{target_typeref.name}.#{name}"
+      name = "#{target_typeref.name}.#{self.name}"
       return TypeRefImpl.new(name, false, false, position)
     end
   end
@@ -54,10 +56,11 @@ class Colon2 < NodeImpl
   def typeref:TypeRef
     if target.kind_of?(TypeName)
       outerType = TypeName(target).typeref.name
-      TypeRefImpl.new("#{outerType}::#{name.identifier}", false, false, position)
-    else
-      raise UnsupportedOperationException, "#{target} does not name a type"
+      if outerType
+        TypeRefImpl.new("#{outerType}::#{name.identifier}", false, false, position)
+      end
     end
+    raise UnsupportedOperationException, "#{target} does not name a type"
   end
 end
 

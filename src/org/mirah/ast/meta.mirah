@@ -166,7 +166,82 @@ class ListNodeState < BaseNodeState
     type_name = type.string_value
     visitor_method = "visit#{name}"
     @visitors.addList(name)
+    iterator_name = "#{name}Iterator"
+    iterator = Body(mirah.defineClass(iterator_name, 'java.lang.Object', ['java.util.ListIterator']).body)
+    iterator << mirah.quote do
+      def initialize(list:`name`, start:int)
+        raise IndexOutOfBoundsException if (start < 0 || start > list.size)
+        @nextIndex = start
+        @lastIndex = -1
+        @listNode = list
+      end
+
+      def add(o)
+        node = `mirah.cast(type_name, 'o')`
+        @listNode.insert(@nextIndex, node)
+        @nextIndex += 1
+        @lastIndex = -1
+      end
+
+      def hasPrevious
+        @nextIndex > 0
+      end
+
+      def hasNext
+        @nextIndex < @listNode.size
+      end
+
+      def next
+        if @nextIndex < @listNode.size
+          @lastIndex = @nextIndex
+          @nextIndex += 1
+        else
+          @lastIndex = -1
+          raise java::util::NoSuchElementException
+        end
+        @listNode.get(@nextIndex - 1)
+      end
+
+      def nextIndex
+        @nextIndex
+      end
+
+      def previous
+        if @nextIndex > 0
+          @nextIndex -= 1
+          @lastIndex = nextIndex
+        else
+          @lastIndex = -1
+          raise java::util::NoSuchElementException
+        end
+        @listNode.get(@nextIndex)
+      end
+
+      def previousIndex
+        @nextIndex - 1
+      end
+
+      def remove
+        if @lastIndex == -1 || @lastIndex == @listNode.size
+          raise IllegalStateException
+        end
+        @listNode.remove(@lastIndex)
+        @lastIndex = -1
+      end
+
+      def set(o)
+        if @lastIndex == -1 || @lastIndex == @listNode.size
+          raise IllegalStateException
+        end
+        node = `mirah.cast(type_name, 'o')`
+        @listNode.set(@lastIndex, node)
+      end
+    end
     mirah.quote do
+      implements Iterable
+      import java.util.Iterator
+      import java.util.ListIterator
+
       def initialize()
         @children = java::util::ArrayList.new
       end
@@ -241,6 +316,15 @@ class ListNodeState < BaseNodeState
       def accept(visitor, arg):Object
         visitor.`visitor_method`(self, arg)
       end
+
+      public
+      def iterator
+        listIterator(0)
+      end
+
+      def listIterator(start:int = 0):java::util::ListIterator
+        `iterator_name`.new(self, start)
+      end
     end
   end
 end
@@ -255,6 +339,7 @@ class NodeState < BaseNodeState
   end
 
   def init_node(block:Block)
+    name = self.name
     if block
       extra_setup = mirah.quote do
         `block.body`
@@ -465,9 +550,13 @@ class NodeMeta < MetaTool
   end
 
   def self.type_map_each(body:Body, hash:Node, mapper:TypeMapper):Body
-    statements = Node(Node(hash.child_nodes.get(0)).child_nodes.get(0)).child_nodes
+    body = body
+    children = hash.child_nodes
+    while children.size == 1
+      children = Node(children.get(0)).child_nodes
+    end
     # UGH. We get the expanded new_hash macro.
-    statements.each do |s|
+    children.each do |s|
       if s.kind_of?(Call)
         call = Call(s)
         if 'put'.equals(call.name)

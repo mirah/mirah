@@ -17,9 +17,8 @@ require 'ant'
 require 'rake/testtask'
 
 # load mirah rake task
-if File.exist?('../mirah/lib/mirah_task.rb')
-  $:.unshift '../mirah/lib'
-end
+$: << '../mirah/lib'
+#require '/Developer/mirah-complete.jar'
 require 'mirah_task'
 
 task :default => :build_parser

@@ -62,7 +62,7 @@ end
 
 # Should this go somewhere else?
 # Should this support multi-dimensional arrays?
-interface TypeRef do
+interface TypeRef < TypeName do
   def name:String; end
   def isArray:boolean; end
   def isStatic:boolean; end
@@ -235,16 +235,19 @@ class ErrorNode < NodeImpl
   init_node
 end
 
-class TypeRefImpl; implements TypeRef
-  macro def attr_accessor(hash); NodeMeta.attr_accessor(@mirah, hash); end
+class TypeRefImpl < NodeImpl; implements TypeRef, TypeName
+  init_node
   attr_accessor name: String, isArray: 'boolean', isStatic: 'boolean'
-  attr_accessor position: Position
 
   def initialize(name:String, isArray=false, isStatic=false, position:Position=nil)
+    super(position)
     @name = name
     @isArray = isArray
     @isStatic = isStatic
-    @position = position
+  end
+
+  def typeref:TypeRef
+    TypeRef(self)
   end
 end
 
@@ -263,11 +266,11 @@ class PositionImpl; implements Position
   def endColumn:int; @endColumn; end
   def add(other:Position):Position
     if @filename.equals(other.filename)
-      PositionImpl.new(
+      Position(PositionImpl.new(
           @filename, Math.min(@startLine, other.startLine), Math.min(@startColumn, other.startColumn),
-          Math.max(@endLine, other.endLine), Math.max(@endColumn, other.endColumn))
+          Math.max(@endLine, other.endLine), Math.max(@endColumn, other.endColumn)))
     else
-      self
+      Position(self)
     end
   end
 end
