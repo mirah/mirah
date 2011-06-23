@@ -102,30 +102,29 @@ parser MirahParser {
              )* {f};
 
   $Returns[Node]
-  statement2: ( (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $AndEq)=>
-                l=var_lhs $AndEq opt_nl r=command_call
-                b=assign(l, r)
-                -> ^(If gettable2(l) b gettable2(l))
-              | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OrEq)=>
-                l=var_lhs $OrEq opt_nl r=command_call
-                b=assign(l, r)
-                -> ^(If gettable2(l) gettable2(l) b)
-              | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OpAssign)=>
-                l=var_lhs op=op_assign r=command_call
-                b2= -> ^(Call gettable2(l) op [r] nil)
-                assign(l, b2)
-              | ( l=lhs $EQ opt_nl r=command_call assign(l, r)
-                | t=value(primary) (($LBrack)=> tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=op_assign v=command_call
-                                                f={makeIdentifier(makePosition(tok), "[]")}
-                                                op_attr_assign(t, f, a, op, v)
-                                   | ($Colons)=> colons f=identifier op=op_assign v=command_call
-                                                 op_attr_assign(t, f, [], op, v)
-                                   | dot f=(constant | identifier) op=op_assign v=command_call
-                                     op_attr_assign(t, f, [], op, v)
-                                   )
+  statement2: ( l=var_lhs ( $AndEq! opt_nl r=command_call
+                            b=assign(l, r)
+                            -> ^(If gettable2(l) b gettable2(l))
+                          | $OrEq! opt_nl r=command_call
+                            b=assign(l, r)
+                            -> ^(If gettable2(l) gettable2(l) b)
+                          | op=op_assign! r=command_call
+                            b2= -> ^(Call gettable2(l) op [r] nil)
+                            assign(l, b2)
+                          )
+              )
+            | ( l=lhs $EQ opt_nl r=command_call assign(l, r)
+              | t=value(primary) (($LBrack)=> tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=op_assign v=command_call
+                                              f={makeIdentifier(makePosition(tok), "[]")}
+                                              op_attr_assign(t, f, a, op, v)
+                                 | ($Colons)=> colons f=identifier op=op_assign v=command_call
+                                               op_attr_assign(t, f, [], op, v)
+                                 | dot f=(constant | identifier) op=op_assign v=command_call
+                                   op_attr_assign(t, f, [], op, v)
+                                 )
               )
             | expr
-            );
+            ;
 
   value(v:Object) : {checkExpression(v)};
 
@@ -189,7 +188,11 @@ parser MirahParser {
           | ($Until)=> primary2_until
           | ($For)=> primary2_for
           | ($Class)=> primary2_class
+          | ($Interface)=> primary2_interface
+          | ($Import)=> primary2_import
+          | ($Package)=> primary2_package
           | ($Def)=> primary2_def
+          | ($Dollar)=> (primary2_class | primary2_interface | primary2_def)
           | ($Break)=> primary2_break
           | ($Next)=> primary2_next
           | ($Redo)=> primary2_redo
@@ -280,14 +283,49 @@ parser MirahParser {
              term! b=compstmt! verify_end(sp)! $End
              !"no annotations" ?{annotations.isEmpty}
              -> ^(ClassAppendSelf orNil(b))
-           | n=cname! s=superclass!
+           | n=cname! s=superclass! ifaces=opt_implements
              b=compstmt!  # JRuby has bodystmt, but that doesn't make much
                           # sense for mirah. Maybe rescuing exceptions
                           # in the static initializer?
              verify_end(sp)! $End
-             # TODO interfaces?
-             -> ^(ClassDefinition n s orNil(b) [] annotations)
+             -> ^(ClassDefinition n s orNil(b) ifaces annotations)
            );
+  $Returns[Node]
+  primary2_interface
+         : annotations=annotation_list
+           t=$Interface!
+           sp=block_start(t)
+           n=cname! ifaces=($LT rlistOf(:cpath)
+                           | {[]}
+                           )
+           $Do?
+           b=compstmt
+           verify_end(sp) $END
+            -> ^(InterfaceDeclaration n nil orNil(b) ifaces annotations)
+           ;
+  $Returns[Node]
+  primary2_import
+         : $Import! ( fullname=dotted_name
+                      ( as=$IDENTIFIER !"as" ?{"as".equals(as.text)} short=identifier4
+                        -> ^(Import fullname short)
+                      | short=getSimpleName(fullname)
+                        -> ^(Import fullname short)
+                      )
+                    | s1=simplestring ( comma! s2=simplestring
+                                        -> ^(Import s1 s2)
+                                      | short=getSimpleName(s1)
+                                        -> ^(Import s1 short)
+                                      )
+                    | u1=unquote! comma ( s2=simplestring -> ^(Import u1 s2)
+                                        | u2=unquote -> ^(Import u1 u2)
+                                        )
+                    );
+  $Returns[Node]
+  primary2_package
+        : $Package! name=dotted_name ( block=brace_block body={block.body}
+                                       -> ^(Package name body)
+                                     | -> ^(Package name nil)
+                                     );
   $Scope[@BEG]
   $Returns[Node]
   primary2_def
@@ -320,6 +358,9 @@ parser MirahParser {
                | variable
                )
              | variable;
+
+  $Returns[Identifier]
+  dotted_name: h=identifier2 t=(nosp dot identifier3)+ n={join(concat([h],t), ".")} -> ^(SimpleString n);
 
   $Returns[FArglistReturn]
   f_arglist: $LParen! opt_nl a=f_args opt_nl $RParen ($Colon type=type)? BEG {FArglistReturn.new(a, type)}
@@ -429,18 +470,16 @@ parser MirahParser {
   arg: h=arg0 ($Question opt_nl t=arg opt_nl $Colon opt_nl e=arg
                h=-> ^(If h t e))* {h};
   $Returns[Node]
-  arg0: ( (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $AndEq)=>
-          l=var_lhs $AndEq opt_nl r=arg
-          b1=assign(l, r)
-          -> ^(If gettable2(l) b1 gettable2(l))
-        | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OrEq)=>
-          l=var_lhs $OrEq opt_nl r=arg
-          b1=assign(l, r)
-          -> ^(If gettable2(l) gettable2(l) b1)
-        | (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $OpAssign)=>
-          l=var_lhs op=assignment_op r=arg
-          b2= -> ^(Call gettable2(l) op [r] nil)
-          assign(l, b2)
+  arg0: ( l=var_lhs ( $AndEq! opt_nl r=arg
+                      b1=assign(l, r)
+                      -> ^(If gettable2(l) b1 gettable2(l))
+                    | $OrEq! opt_nl r=arg
+                      b1=assign(l, r)
+                      -> ^(If gettable2(l) gettable2(l) b1)
+                    | op=assignment_op! r=arg
+                      b2= -> ^(Call gettable2(l) op [r] nil)
+                      assign(l, b2)
+                    )
         | ( l=lhs $EQ opt_nl r=maybe_rescue assign(l, r)
           | t=value(primary) (tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=assignment_op v=arg
                               f={makeIdentifier(makePosition(tok), "[]")}
@@ -555,7 +594,7 @@ parser MirahParser {
 
   $Memo[Node]
   lhs: (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $EQ)=> var_lhs
-     | ($Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
+     | ($Dollar|$Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
   #   | ($Colons $CONSTANT)=> colon3 n=constant -> ^(ConstantAssign ^(Colon3 n))
      | lhs2;
   lhs2: t=value(primary) (($LBrack)=> tok=$LBrack opt_nl k=call_args? opt_nl $RBrack 
@@ -589,6 +628,7 @@ parser MirahParser {
   unquote: $Backtick e=expr $Backtick -> ^(Unquote e);
   identifier2: t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
   identifier3: nosp t=($InstVar|$ClassVar|$IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  identifier4: t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { makeIdentifier(t) };
   cvar: t=$ClassVar {makeIdentifier(t, 2)}
       | $ClassVarBacktick e=expr $Backtick -> ^(Unquote e);
   ivar: t=$InstVar {makeIdentifier(t, 1)}
@@ -661,9 +701,14 @@ parser MirahParser {
   $Returns[TypeName]
   type: TypeName(identifier) | cpath;
 
-  superclass: term {TypeName(nil)}
-            | $LT c=cpath term  # Should this be expr_value instead of cpath?
-              {c};
+  superclass: $LT cpath # Should this be expr_value instead of cpath?
+            | # empty
+            ;
+
+  opt_implements
+          : term? $Implements! l=rlistOf(:cpath) term {l}
+          | term
+          ;
 
   $Returns[Node]
   variable: ($Nil)=> $Nil                             -> ^(Null)
@@ -684,11 +729,14 @@ parser MirahParser {
   string: character
         | strings=string1+ {combineStrings(strings)};
   $Returns[Node]
-  string1: $SQuote! s=squote_contents* $SQuote -> ^(SimpleString join(s))
-         | $DQuote $DQuote -> ^(SimpleString "")
-         | $DQuote dc=dquote_contents $DQuote {dc}
+  string1: simplestring
          | $DQuote! c=(dquote_contents | str_ev2)* $DQuote -> ^(StringConcat c+)
          | heredoc_id n= -> ^(StringConcat nil) { @heredocs.addLast(n); n }
+         ;
+  simplestring
+         : $SQuote! s=squote_contents* $SQuote -> ^(SimpleString join(s))
+         | $DQuote $DQuote -> ^(SimpleString "")
+         | $DQuote dc=dquote_contents $DQuote {dc}
          ;
 
   regexp: $RegexBegin c=(regexp_contents | str_ev2)* e=$RegexEnd options={makeIdentifier(e, 1)}
@@ -980,6 +1028,15 @@ parser MirahParser {
       self._pos = start
       raise @error
     end
+  }
+
+  def getSimpleName(fullname:Identifier) {
+    returns Identifier
+    pieces = fullname.identifier.split('\.')
+    short = pieces[pieces.length - 1]
+    start = fullname.position.endColumn - short.length
+    position = PositionImpl.new(fullname.position.filename, fullname.position.startLine, start, fullname.position.endLine, fullname.position.endColumn)
+    SimpleString.new(position, short)
   }
 
   heredoc: $HereDocBegin!

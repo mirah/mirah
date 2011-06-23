@@ -476,6 +476,15 @@ public class MirahLexer {
           if (string.startsWith("f", i)) {
             type = Tokens.tIf;
             i += 1;
+          } else if (string.startsWith("mplements", i)) {
+            type = Tokens.tImplements;
+            i += 9;
+          } else if (string.startsWith("mport", i)) {
+            type = Tokens.tImport;
+            i += 5;
+          } else if (string.startsWith("nterface", i)) {
+            type = Tokens.tInterface;
+            i += 8;
           } else if (string.startsWith("n", i)) {
             type = Tokens.tIn;
             i += 1;
@@ -513,6 +522,13 @@ public class MirahLexer {
             type = Tokens.tIDENTIFIER;
           }
           break;
+        case 'p':
+          if (string.startsWith("ackage", i)) {
+            type = Tokens.tPackage;
+            i += 6;
+          } else {
+            type = Tokens.tIDENTIFIER;
+          }
         case 'r':
           if (string.startsWith("edo", i)) {
             type = Tokens.tRedo;
