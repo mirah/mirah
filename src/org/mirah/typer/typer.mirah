@@ -462,7 +462,18 @@ class Typer < NodeVisitor
   end
 
   def visitUnquoteAssign(node, expression)
-    infer(node.node, expression != nil)
+    replacement = Node(nil)
+    if node.name.object.kind_of?(FieldAccess)
+      fa = FieldAccess(node.name)
+      replacement = FieldAssign.new(fa.position, fa.name, node.value)
+    elsif node.name.kind_of?(Named)
+      name = Named(node.name).name
+      replacement = LocalAssign.new(node.position, name, node.value)
+    elsif node.name.kind_of?(Identifier)
+      replacement = LocalAssign.new(node.position, Identifier(node.name), node.value)
+    end
+    node.parent.replaceChild(node, replacement)
+    infer(replacement, expression != nil)
   end
 
   def visitArguments(args, expression)
