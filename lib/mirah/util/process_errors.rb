@@ -24,7 +24,12 @@ module Mirah
           else
             puts ex.message
           end
-          puts ex.backtrace if @verbose
+          if ex.kind_of?(Mirah::InternalCompilerError) && ex.cause
+            puts ex.cause
+            puts ex.cause.backtrace
+          elsif @verbose
+            puts ex.backtrace
+          end
         end
         throw :exit unless errors.empty?
       end

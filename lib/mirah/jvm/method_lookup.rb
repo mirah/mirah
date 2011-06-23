@@ -70,7 +70,7 @@ module Mirah
             seen = {}
             until interfaces.empty?
               interface = interfaces.pop
-              next if seen[interface]
+              next if seen[interface] || interface.error?
               seen[interface] = true
               interfaces.concat(interface.interfaces)
               by_name += interface.declared_instance_methods(name)

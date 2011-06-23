@@ -51,6 +51,22 @@ module Mirah
         puts nodes.inspect if verbose
         
         failed = !typer.errors.empty?
+        # extra_errors = []
+        # nodes.each do |ast|
+        #   ast.each_descendant do |node|
+        #     if node.respond_to?(:inferred_type) && node.inferred_type && node.inferred_type.error?
+        #       extra_errors << node
+        #     end
+        #   end
+        # end unless failed
+        # unless extra_errors.empty?
+        #   typer_errors = typer.errors.map {|e| e.node}
+        #   new_errors = extra_errors - typer_errors
+        #   new_errors.each do |n|
+        #     typer.error(n)
+        #   end
+        #   failed = true
+        # end
         if failed
           puts "Inference Error:"
           process_errors(typer.errors)

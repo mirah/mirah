@@ -402,15 +402,15 @@ module Mirah
           if castee.inferred_type.primitive?
             if fcall.inferred_type.primitive?
               if source_type_name == 'boolean' && target_type_name != "boolean"
-                raise TypeError.new "not a boolean type: #{castee.inferred_type}"
+                raise Mirah::NodeError.new "not a boolean type: #{castee.inferred_type}", fcall
               end
               # ok
               primitive = true
             else
-              raise TypeError.new "Cannot cast #{castee.inferred_type} to #{fcall.inferred_type}: not a reference type."
+              raise Mirah::NodeError.new "Cannot cast #{castee.inferred_type} to #{fcall.inferred_type}: not a reference type.", fcall
             end
           elsif fcall.inferred_type.primitive?
-            raise TypeError.new "not a primitive type: #{castee.inferred_type}"
+            raise Mirah::NodeError.new "Cannot cast #{castee.inferred_type} to #{fcall.inferred_type}:not a primitive type", fcall
           else
             # ok
             primitive = false

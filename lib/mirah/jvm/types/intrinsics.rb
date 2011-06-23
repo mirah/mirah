@@ -112,6 +112,7 @@ module Mirah::JVM::Types
         end
       end
       interfaces.each do |interface|
+        next if interface.error?
         methods.concat(interface.declared_intrinsics(name))
       end
       methods

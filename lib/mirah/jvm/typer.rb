@@ -157,6 +157,7 @@ module Mirah
           interfaces = self_type.interfaces.dup
           until method || interfaces.empty?
             interface = interfaces.pop
+            next if interface.error?
             method = interface.find_method(
                 interface, method_def.name, arg_types, false)
           end
