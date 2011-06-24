@@ -47,12 +47,41 @@ class Unquote < NodeImpl
       raise UnsupportedOperationException, "#{obj} does not name a type"
     end
   end
-end
 
-class UnquotedValue < NodeImpl
-  # implements TypeName
-  init_node do
-    child value: Node
+  def nodes:List
+    value = self.object
+    return Collections.emptyList if value.nil?
+    if value.kind_of?(List)
+      values = List(ArrayList.new)
+      List(value).each {|o| values.add(nodeValue(o))}
+      values
+    else
+      Collections.singletonList(nodeValue(value))
+    end
+  end
+
+  def node:Node
+    return nodeValue(object)
+  end
+
+  def nodeValue(value:Object)
+    return nil if value.nil?
+    return Node(value) if value.kind_of?(Node)
+    return Fixnum.new(position, Integer(value).intValue) if value.kind_of?(Integer)
+    unless value.kind_of?(String)
+      raise IllegalArgumentException, "Bad unquote value for node #{value}  (#{value.getClass})"
+    end
+    strvalue = String(value)
+    if '@'.equals(strvalue.substring(0, 1))
+      FieldAccess.new(position, SimpleString.new(position, strvalue.substring(1)))
+    else
+      strnode = SimpleString.new(position, strvalue)
+      if Character.isUpperCase(strvalue.charAt(0)) || strvalue.indexOf('.') >= 0
+        Constant.new(position, strnode)
+      else
+        LocalAccess.new(position, strnode)
+      end
+    end
   end
 end
 
@@ -60,13 +89,6 @@ class UnquoteAssign < NodeImpl
   implements Named, Assignment
   init_node do
     child name: Unquote
-    child value: Node
-  end
-end
-
-class UnquotedValueAssign < NodeImpl # UnquotedValue
-  init_node do
-    child name: Identifier
     child value: Node
   end
 end
