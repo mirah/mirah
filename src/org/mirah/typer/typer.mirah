@@ -468,9 +468,9 @@ class Typer < NodeVisitor
       replacement = FieldAssign.new(fa.position, fa.name, node.value)
     elsif node.name.kind_of?(Named)
       name = Named(node.name).name
-      replacement = LocalAssign.new(node.position, name, node.value)
+      replacement = LocalAssignment.new(node.position, name, node.value)
     elsif node.name.kind_of?(Identifier)
-      replacement = LocalAssign.new(node.position, Identifier(node.name), node.value)
+      replacement = LocalAssignment.new(node.position, Identifier(node.name), node.value)
     end
     node.parent.replaceChild(node, replacement)
     infer(replacement, expression != nil)
