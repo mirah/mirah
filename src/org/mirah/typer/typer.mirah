@@ -463,14 +463,12 @@ class Typer < NodeVisitor
 
   def visitUnquoteAssign(node, expression)
     replacement = Node(nil)
-    if node.name.object.kind_of?(FieldAccess)
+    object = node.unquote.object
+    if object.kind_of?(FieldAccess)
       fa = FieldAccess(node.name)
-      replacement = FieldAssign.new(fa.position, fa.name, node.value)
-    elsif node.name.kind_of?(Named)
-      name = Named(node.name).name
-      replacement = LocalAssignment.new(node.position, name, node.value)
-    elsif node.name.kind_of?(Identifier)
-      replacement = LocalAssignment.new(node.position, Identifier(node.name), node.value)
+      replacement = FieldAssign.new(fa.position, fa.name, node.value, nil)
+    else
+      replacement = LocalAssignment.new(node.position, node.name, node.value)
     end
     node.parent.replaceChild(node, replacement)
     infer(replacement, expression != nil)
@@ -490,16 +488,22 @@ class Typer < NodeVisitor
   end
 
   def mergeArgs(args:Arguments, it:ListIterator, req:ListIterator, opt:ListIterator, req2:ListIterator):void
-    it.each do |arg|
-      name = Named(arg).name
+    #it.each do |arg|
+    while it.hasNext
+      arg = Named(it.next)
+      name = arg.name
       next unless name.kind_of?(Unquote)
       unquote = Unquote(name)
       new_args = unquote.arguments
       next unless new_args
       it.remove
-      mergeIterators(new_args.required.listIterator, req)
-      mergeIterators(new_args.optional.listIterator, opt)
-      mergeIterators(new_args.required2.listIterator, req2)
+      if it == req2 && new_args.optional.isEmpty && new_args.rest.nil? && new_args.required2.isEmpty
+        mergeIterators(new_args.required.listIterator, req2)
+      else
+        mergeIterators(new_args.required.listIterator, req)
+        mergeIterators(new_args.optional.listIterator, opt)
+        mergeIterators(new_args.required2.listIterator, req2)
+      end
       if new_args.rest
         raise IllegalArgumentException, "Only one rest argument allowed." if args.rest
         rest = new_args.rest
