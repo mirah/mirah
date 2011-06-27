@@ -19,6 +19,13 @@ require 'mirah/typer/simple'
 
 module Mirah
   module Typer
+    begin
+      include Java::OrgMirahTyper::Typer
+    rescue NameError
+      $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
+      include Java::OrgMirahTyper::Typer
+    end
+
     class << self
       attr_accessor :verbose
 
