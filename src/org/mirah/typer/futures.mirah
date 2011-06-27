@@ -6,10 +6,26 @@ interface TypeListener do
   def updated(src:TypeFuture, value:ResolvedType):void; end
 end
 
+interface ResolvedType /* < TypeFuture */ do
+  def widen(other:ResolvedType):ResolvedType; end
+  def assignableFrom(other:ResolvedType):boolean; end
+  def name:String; end
+  def isMeta:boolean; end
+end
+
 interface TypeFuture do
   def isResolved:boolean; end
   def resolve:ResolvedType; end
   def onUpdate(listener:TypeListener):void; end
+end
+
+class SimpleFuture; implements TypeFuture
+  def initialize(type:ResolvedType)
+    @type = type
+  end
+  def isResolved() true end
+  def resolve() @type end
+  def onUpdate(listener) listener.updated(self, @type) end
 end
 
 class BaseTypeFuture; implements TypeFuture
@@ -70,14 +86,15 @@ class AssignableTypeFuture < BaseTypeFuture
       end
       self.position = position
       @declarations[type] = self
+      TypeFuture(self)
     else
-      @declarations[type] = ErrorType.new(['Type redeclared', position, 'First declared', self.position])
+      TypeFuture(@declarations[type] = ErrorType.new(['Type redeclared', position, 'First declared', self.position]))
     end
   end
 
   def assign(value:TypeFuture, position:Position):TypeFuture
-    if @assignments.containsKey(type)
-      TypeFuture(@assignments[type])
+    if @assignments.containsKey(value)
+      TypeFuture(@assignments[value])
     else
       variable = self
       value.onUpdate {variable.checkAssignments}
@@ -89,17 +106,35 @@ class AssignableTypeFuture < BaseTypeFuture
           assignment.resolved(type)
         end
       end
-      @assignments[value] = assignment
+      TypeFuture(@assignments[value] = assignment)
     end
   end
 
   def incompatibleWith(value:ResolvedType, position:Position)
     ErrorType.new(["Cannot assign #{value} to #{inferredType}", position])
   end
+
+  def checkAssignments:void
+    unless @declarations.isEmpty
+      return
+    end
+    type = ResolvedType(nil)
+    @assignments.keySet.each do |_value|
+      value = TypeFuture(_value)
+      if value.isResolved
+        if type
+          type = type.widen(value.resolve)
+        else
+          type = value.resolve
+        end
+      end
+    end
+    resolved(type)
+  end
 end
 
 class MaybeInline < BaseTypeFuture
-  def initialize(node:Node, type:TypeFuture, altType:TypeFuture, altNode:Node)
+  def initialize(node:Node, type:TypeFuture, altNode:Node, altType:TypeFuture)
     @inlined = false
     me = self
     altType.onUpdate do |x, value|
@@ -155,9 +190,10 @@ class PickFirst < BaseTypeFuture
   private
   def addItem(index:int, type:TypeFuture, value:Object):void
     me = self
+    i = index
     type.onUpdate do |x, resolved|
       if (me.picked == -1 && resolved.name != ':error') ||
-          me.picked >= index
+          me.picked >= i
         me.pick(index, type, value, resolved)
       end
     end

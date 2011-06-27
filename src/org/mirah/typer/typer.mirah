@@ -2,15 +2,17 @@ package org.mirah.typer
 import java.util.*
 import mirah.lang.ast.*
 
-class Typer < NodeVisitor
-  def initialize
+class Typer < SimpleNodeVisitor
+  def initialize(types:TypeSystem, scopes:Scoper)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
+    @types = types
+    @scopes = scopes
   end
 
   def infer(node:Node, expression:boolean=true)
     return nil if node.nil?
-    TypeFuture(@futures[node] ||= visit(node, expression ? @trueobj : nil))
+    TypeFuture(@futures[node] ||= node.accept(self, expression ? @trueobj : nil))
   end
 
   def infer(node:Object, expression:boolean=true)
@@ -23,7 +25,13 @@ class Typer < NodeVisitor
     types
   end
 
-  def inferAll(args:Arguments)
+  def inferAll(nodes:AnnotationList)
+    types = ArrayList.new
+    nodes.each {|n| types.add(infer(n))} if nodes
+    types
+  end
+
+  def inferAll(arguments:Arguments)
     types = ArrayList.new
     arguments.required.each {|a| types.add(infer(a))} if arguments.required
     arguments.optional.each {|a| types.add(infer(a))} if arguments.optional
@@ -35,20 +43,20 @@ class Typer < NodeVisitor
 
   def inferAll(typeNames:TypeNameList)
     types = ArrayList.new
-    typeNames.each {|n| types.add(resolve(TypeName(n).typeref))}
+    typeNames.each {|n| types.add(@types.get(TypeName(n).typeref))}
     types
   end
 
-  def visitDefault(node, expression)
+  def defaultNode(node, expression)
     ErrorType.new(["Inference error", node.position])
   end
 
   def visitFunctionalCall(call, expression)
-    selfType = getScope(call).selfType
+    selfType = @scopes.getScope(call).selfType
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(BlockType.new) if call.block
-    methodType = getMethodType(selfType, call.name.identifier, parameters)
+    methodType = @types.getMethodType(selfType, call.name.identifier, parameters)
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
@@ -62,17 +70,17 @@ class Typer < NodeVisitor
       # so try both. If the local works, we'll go with that. If not, we'll
       # leave the method call.
       local = LocalAccess.new(call.position, call.name)
-      localType = getLocalType(getScope(call), local.name.identifier)
+      localType = @types.getLocalType(@scopes.getScope(call), local.name.identifier)
       @futures[local] = localType
-      MaybeInline.new(call, methodType, local, localType)
+      TypeFuture(MaybeInline.new(call, methodType, local, localType))
     elsif parameters.size == 1
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = resolve(call.typeref)
+      castType = @types.get(call.typeref)
       @futures[cast] = castType
-      MaybeInline.new(call, methodType, cast, castType)
+      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
     else
       methodType
     end
@@ -83,7 +91,7 @@ class Typer < NodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(BlockType.new) if call.block
-    methodType = getMethodType(target, call.name.identifier, parameters)
+    methodType = @types.getMethodType(target, call.name.identifier, parameters)
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
@@ -97,39 +105,39 @@ class Typer < NodeVisitor
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = resolve(call.typeref)
+      castType = @types.get(call.typeref)
       @futures[cast] = castType
-      MaybeInline.new(call, methodType, cast, castType)
+      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
     else
       methodType
     end
   end
 
   def visitColon2(colon2, expression)
-    resolve(colon2.typeref)
+    @types.get(colon2.typeref)
   end
 
   def visitSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    target = getScope(node).selfType.superclass
+    target = @types.getSuperClass(@scopes.getScope(node).selfType)
     parameters = inferAll(node.parameters)
     parameters.add(BlockType.new) if node.block
-    getMethodType(target, method.name.identifier, parameters)
+    @types.getMethodType(target, method.name.identifier, parameters)
   end
 
   def visitZSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    target = getScope(node).selfType.superclass
+    target = @types.getSuperClass(@scopes.getScope(node).selfType)
     parameters = inferAll(method.arguments)
-    getMethodType(target, method.name.identifier, parameters)
+    @types.getMethodType(target, method.name.identifier, parameters)
   end
 
   def visitClassDefinition(classdef, expression)
     classdef.annotations.each {|a| infer(a)}
     interfaces = inferAll(classdef.interfaces)
-    superclass = resolve(classdef.superclass.typeref)
-    type = defineType(classdef, classdef.name.identifier, superclass, interfaces)
-    scope = addScope(classdef)
+    superclass = @types.get(classdef.superclass.typeref)
+    type = @types.defineType(@scopes.getScope(classdef), classdef, classdef.name.identifier, superclass, interfaces)
+    scope = @scopes.addScope(classdef)
     scope.selfType = type
     infer(classdef.body, false) if classdef.body
     type
@@ -137,28 +145,27 @@ class Typer < NodeVisitor
 
   def visitFieldDeclaration(decl, expression)
     decl.annotations.each {|a| infer(a)}
-    targetType = getScope(decl).selfType
-    targetType = targetType.meta if decl.isStatic
-    getField(targetType, decl.name.identifier).declare(resolve(type.typeref), decl.position)
+    targetType = @scopes.getScope(decl).selfType
+    targetType = @types.getMetaType(targetType) if decl.isStatic
+    @types.getFieldType(targetType, decl.name.identifier).declare(@types.get(decl.type.typeref), decl.position)
   end
-
 
   def visitFieldAssign(field, expression)
     field.annotations.each {|a| infer(a)}
-    targetType = getScope(field).selfType
-    targetType = targetType.meta if field.isStatic
+    targetType = @scopes.getScope(field).selfType
+    targetType = @types.getMetaType(targetType) if field.isStatic
     value = infer(field.value, true)
-    getField(targetType, field.name.identifier).assign(value, field.position)
+    @types.getFieldType(targetType, field.name.identifier).assign(value, field.position)
   end
 
   def visitFieldAccess(field, expression)
-    targetType = getScope(field).selfType
-    targetType = targetType.meta if field.isStatic
-    getField(targetType, field.name.identifier)
+    targetType = @scopes.getScope(field).selfType
+    targetType = @types.getMetaType(targetType) if field.isStatic
+    @types.getFieldType(targetType, field.name.identifier)
   end
 
   def visitConstant(constant, expression)
-    resolve(constant.typeref)
+    @types.get(constant.typeref)
   end
 
   def visitIf(stmt, expression)
@@ -169,7 +176,7 @@ class Typer < NodeVisitor
       type = AssignableTypeFuture.new(stmt.position)
       type.assign(a, stmt.body.position)
       type.assign(b, stmt.elseBody.position)
-      type
+      TypeFuture(type)
     else
       a || b
     end
@@ -181,111 +188,113 @@ class Typer < NodeVisitor
     infer(node.init, false)
     infer(node.pre, false)
     infer(node.post, false)
-    getNullType()
+    @types.getNullType()
   end
 
   def visitReturn(node, expression)
     type = if node.value
       infer(node.value)
     else
-      getNoType()
+      @types.getVoidType()
     end
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     parameters = inferAll(method.arguments)
-    target = getScope(method).selfType
-    getMethodDefType(target, method.name.identifier, parameters).assign(type, node.position)
+    target = @scopes.getScope(method).selfType
+    @types.getMethodDefType(target, method.name.identifier, parameters).assign(type, node.position)
   end
 
   def visitBreak(node, expression)
-    getNullType()
+    @types.getNullType()
   end
 
   def visitNext(node, expression)
-    getNullType()
+    @types.getNullType()
   end
 
   def visitRedo(node, expression)
-    getNullType()
+    @types.getNullType()
   end
 
-  def visitRaise(node, expression)
-    # Ok, this is complicated. There's three acceptable syntaxes
-    #  - raise exception_object
-    #  - raise ExceptionClass, *constructor_args
-    #  - raise *args_for_default_exception_class_constructor
-    # We need to figure out which one is being used, and replace the
-    # args with a single exception node.
-
-    # Start by saving the old args and creating a new, empty arg list
-    exceptions = ArrayList.new
-    old_args = node.args
-    node.args = NodeList.new(node.args.position)
-
-    # Create a node for syntax 1 if possible.
-    if parameters.size == 1
-      exceptions.add(infer(old_args.get(0)))
-      exceptions.add(old_args.get(0).clone)
-    end
-
-    # Create a node for syntax 2 if possible.
-    if parameters.size > 0
-      target = Node(old_args.get(0).clone)
-      params = ArrayList.new
-      1.upto(old_args.size - 1) {|i| params.add(old_args.get(i).clone)}
-      call = Call.new(target, SimpleString.new(node.position, 'new'), params, nil)
-      exceptions.add(infer(call))
-      exceptions.add(call)
-    end
-
-    # Create a node for syntax 3.
-    target = getDefaultException().meta
-    params = ArrayList.new
-    old_args.each {|a| params.add(a.clone)}
-    call = Call.new(target, SimpleString.new(node.position, 'new'), params, nil)
-    exceptions.add(infer(call))
-    exceptions.add(call)
-
-    # Now we'll try all of these, ignoring any that cause an inference error.
-    # Then we'll take the first that succeeds, in the order listed above.
-    exceptionPicker = PickFirst.new(exceptions) do |type, pickedNode|
-      if node.args.size == 0
-        node.args.add(Node(pickedNode))
-      else
-        node.args.set(0, Node(pickedNode))
-      end
-    end
-
-    # We need to ensure that the chosen node is an exception.
-    # So create a dummy type declared as an exception, and assign
-    # the picker to it.
-    exceptionType = AssignableTypeFuture.new(node.position)
-    exceptionType.declare(getBaseException(), node.position)
-    assignment = exceptionType.assign(exceptionPicker, node.position)
-
-    # Now we're ready to return our type. It should be UnreachableType.
-    # But if none of the nodes is an exception, we need to return
-    # an error.
-    myType = BaseTypeFuture.new(node.position)
-    unreachable = UnreachableType.new
-    assignment.onUpdate do |x, resolved|
-      if resolved.name == ':error'
-        myType.resolved(resolved)
-      else
-        myType.resolved(unreachable)
-      end
-    end
-    myType
-  end
+  # def visitRaise(node, expression)
+  #   # Ok, this is complicated. There's three acceptable syntaxes
+  #   #  - raise exception_object
+  #   #  - raise ExceptionClass, *constructor_args
+  #   #  - raise *args_for_default_exception_class_constructor
+  #   # We need to figure out which one is being used, and replace the
+  #   # args with a single exception node.
+  # 
+  #   # Start by saving the old args and creating a new, empty arg list
+  #   exceptions = ArrayList.new
+  #   old_args = node.args
+  #   node.args = NodeList.new(node.args.position)
+  # 
+  #   # Create a node for syntax 1 if possible.
+  #   if old_args.size == 1
+  #     exceptions.add(infer(old_args.get(0)))
+  #     exceptions.add(old_args.get(0).clone)
+  #   end
+  # 
+  #   # Create a node for syntax 2 if possible.
+  #   if old_args.size > 0
+  #     targetNode = Node(old_args.get(0).clone)
+  #     params = ArrayList.new
+  #     1.upto(old_args.size - 1) {|i| params.add(old_args.get(i).clone)}
+  #     call = Call.new(targetNode, SimpleString.new(node.position, 'new'), params, nil)
+  #     exceptions.add(infer(call))
+  #     exceptions.add(call)
+  #   end
+  # 
+  #   # Create a node for syntax 3.
+  #   class_name = @types.getDefaultExceptionType().resolve.name
+  #   targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
+  #   params = ArrayList.new
+  #   old_args.each {|a| params.add(a.clone)}
+  #   call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
+  #   exceptions.add(infer(call))
+  #   exceptions.add(call)
+  # 
+  #   # Now we'll try all of these, ignoring any that cause an inference error.
+  #   # Then we'll take the first that succeeds, in the order listed above.
+  #   exceptionPicker = PickFirst.new(exceptions) do |type, pickedNode|
+  #     if node.args.size == 0
+  #       node.args.add(Node(pickedNode))
+  #     else
+  #       node.args.set(0, Node(pickedNode))
+  #     end
+  #   end
+  # 
+  #   # We need to ensure that the chosen node is an exception.
+  #   # So create a dummy type declared as an exception, and assign
+  #   # the picker to it.
+  #   exceptionType = AssignableTypeFuture.new(node.position)
+  #   exceptionType.declare(@types.getBaseExceptionType(), node.position)
+  #   assignment = exceptionType.assign(exceptionPicker, node.position)
+  # 
+  #   # Now we're ready to return our type. It should be UnreachableType.
+  #   # But if none of the nodes is an exception, we need to return
+  #   # an error.
+  #   myType = BaseTypeFuture.new(node.position)
+  #   unreachable = UnreachableType.new
+  #   assignment.onUpdate do |x, resolved|
+  #     if resolved.name == ':error'
+  #       myType.resolved(resolved)
+  #     else
+  #       myType.resolved(unreachable)
+  #     end
+  #   end
+  #   myType
+  # end
 
   def visitRescueClause(clause, expression)
-    scope = addScope(clause)
-    scope.parent = getScope(clause)
-    if clause.name
+    scope = @scopes.addScope(clause)
+    scope.parent = @scopes.getScope(clause)
+    name = clause.name
+    if name
       scope.shadow(name.identifier)
-      exceptionType = getLocalType(scope, name.identifier)
+      exceptionType = @types.getLocalType(scope, name.identifier)
       clause.types.each do |_t|
-        t = TypeName(t)
-        exceptionType.assign(resolve(t.typeref), t.position)
+        t = TypeName(_t)
+        exceptionType.assign(@types.get(t.typeref), t.position)
       end
     else
       inferAll(clause.types)
@@ -309,26 +318,30 @@ class Typer < NodeVisitor
       clauseType = infer(clause, expression != nil)
       myType.assign(clauseType, Node(clause).position) if expression
     end
-    myType || getNullType
+    TypeFuture(myType) || @types.getNullType
   end
 
   def visitEnsure(node, expression)
     infer(node.ensureClause, false)
-    infer(node.body, expression)
+    infer(node.body, expression != nil)
   end
 
   def visitArray(array, expression)
     mergeUnquotes(array.values)
-    inferAll(array.values)
-    getArrayType()
+    component = AssignableTypeFuture.new(array.position)
+    array.values.each do |v|
+      node = Node(v)
+      component.assign(infer(node, true), node.position)
+    end
+    @types.getArrayType(component)
   end
 
   def visitFixnum(fixnum, expression)
-    getFixnumType(fixnum.value)
+    @types.getFixnumType(fixnum.value)
   end
 
   def visitFloat(number, expression)
-    getFloatType(number.value)
+    @types.getFloatType(number.value)
   end
 
   def visitHash(hash, expression)
@@ -341,57 +354,57 @@ class Typer < NodeVisitor
 
   def visitRegex(regex, expression)
     regex.strings.each {|r| infer(r)}
-    getRegexType()
+    @types.getRegexType()
   end
 
   def visitSimpleString(string, expression)
-    getStringType()
+    @types.getStringType()
   end
 
   def visitStringConcat(string, expression)
     string.strings.each {|s| infer(s)}
-    getStringType()
+    @types.getStringType()
   end
 
   def visitStringEval(string, expression)
     infer(string.value)
-    getStringType()
+    @types.getStringType()
   end
 
   def visitBoolean(bool, expression)
-    getBooleanType()
+    @types.getBooleanType()
   end
 
   def visitNull(node, expression)
-    getNullType()
+    @types.getNullType()
   end
 
   # What about ImplicitNil? Should it be void? null?
 
   def visitCharLiteral(node, expression)
-    getCharType(node.value)
+    @types.getCharType(node.value)
   end
 
   def visitSelf(node, expression)
-    getScope(node).selfType
+    @scopes.getScope(node).selfType
   end
 
   def visitTypeRefImpl(typeref, expression)
-    resolve(typeref)
+    @types.get(typeref)
   end
 
   def visitLocalDeclaration(decl, expression)
-    type = resolve(decl.type.typeref)
-    getLocalType(getScope(decl), decl.name.identifier).declare(type, decl.position)
+    type = @types.get(decl.type.typeref)
+    @types.getLocalType(@scopes.getScope(decl), decl.name.identifier).declare(type, decl.position)
   end
 
-  def visitLocalAssign(local, expression)
+  def visitLocalAssignment(local, expression)
     value = infer(local.value, true)
-    getLocalType(getScope(local), local.name.identifier).assign(value, local.position)
+    @types.getLocalType(@scopes.getScope(local), local.name.identifier).assign(value, local.position)
   end
 
   def visitLocalAccess(local, expression)
-    getLocalType(getScope(local), field.name.identifier)
+    @types.getLocalType(@scopes.getScope(local), local.name.identifier)
   end
 
   def visitBody(body, expression)
@@ -401,24 +414,24 @@ class Typer < NodeVisitor
     if body.size > 0
       infer(body.get(body.size - 1), expression != null)
     else
-      getNullType()
+      @types.getNullType()
     end
   end
 
   def visitClassAppendSelf(node, expression)
-    scope = addScope(node)
-    scope.selfType = getScope(node).selfType.meta
+    scope = @scopes.addScope(node)
+    scope.selfType = @types.getMetaType(@scopes.getScope(node).selfType)
     infer(node.body, false)
-    getNullType()
+    @types.getNullType()
   end
 
   def visitNoop(noop, expression)
-    getVoidType()
+    @types.getVoidType()
   end
 
   def visitScript(script, expression)
-    scope = getScope(script)
-    scope.selfType = getMainType(script)
+    scope = @scopes.getScope(script)
+    scope.selfType = @types.getMainType(scope, script)
     infer(script.body, false)
   end
 
@@ -426,35 +439,35 @@ class Typer < NodeVisitor
     anno.values.entries_size.times do |i|
       infer(anno.values.entries(i).value)
     end
-    resolve(anno.type.typeref)
+    @types.get(anno.type.typeref)
   end
 
   def visitImport(node, expression)
-    scope = getScope(node)
+    scope = @scopes.getScope(node)
     fullName = node.fullName.identifier
     simpleName = node.simpleName.identifier
     scope.import(fullName, simpleName)
     unless '*'.equals(simpleName)
-      resolve(TypeName(node.fullName))
+      @types.get(TypeName(node.fullName).typeref)
     end
-    getVoidType()
+    @types.getVoidType()
   end
 
   def visitPackage(node, expression)
     if node.body
-      scope = addScope(node)
-      scope.parent = getScope(node)
+      scope = @scopes.addScope(node)
+      scope.parent = @scopes.getScope(node)
       infer(node.body, false)
     else
-      scope = getScope(node)
+      scope = @scopes.getScope(node)
     end
     scope.package = node.name.identifier
-    getVoidType()
+    @types.getVoidType()
   end
 
   def visitEmptyArray(node, expression)
     infer(node.size)
-    resolve(node.type).array
+    @types.getArrayType(@types.get(node.type.typeref))
   end
 
   def visitUnquote(node, expression)
@@ -484,7 +497,7 @@ class Typer < NodeVisitor
     mergeArgs(args, it, args.required.listIterator(args.required_size), args.optional.listIterator(args.optional_size), it)
     # Then do normal type inference.
     inferAll(args)
-    getVoidType()
+    @types.getVoidType()
   end
 
   def mergeArgs(args:Arguments, it:ListIterator, req:ListIterator, opt:ListIterator, req2:ListIterator):void
@@ -497,7 +510,7 @@ class Typer < NodeVisitor
       new_args = unquote.arguments
       next unless new_args
       it.remove
-      if it == req2 && new_args.optional.isEmpty && new_args.rest.nil? && new_args.required2.isEmpty
+      if it == req2 && new_args.optional.size == 0 && new_args.rest.nil? && new_args.required2.size == 0
         mergeIterators(new_args.required.listIterator, req2)
       else
         mergeIterators(new_args.required.listIterator, req)
@@ -520,7 +533,9 @@ class Typer < NodeVisitor
   end
 
   def mergeIterators(source:ListIterator, dest:ListIterator):void
-    source.each do |a|
+    #source.each do |a|
+    while source.hasNext
+      a = source.next
       source.remove
       dest.add(a)
     end
@@ -528,7 +543,9 @@ class Typer < NodeVisitor
 
   def mergeUnquotes(list:NodeList):void
     it = list.listIterator
-    it.each do |item|
+    #it.each do |item|
+    while it.hasNext
+      item = it.next
       if item.kind_of?(Unquote)
         it.remove
         Unquote(item).nodes.each do |node|
@@ -539,37 +556,37 @@ class Typer < NodeVisitor
   end
 
   def visitRequiredArgument(arg, expression)
-    scope = getScope(arg)
-    type = getLocalType(scope, arg.name.identifier)
+    scope = @scopes.getScope(arg)
+    type = @types.getLocalType(scope, arg.name.identifier)
     if arg.type
-      type.declare(resolve(arg.type.typeref), arg.type.position)
+      type.declare(@types.get(arg.type.typeref), arg.type.position)
     else
       type
     end
   end
 
   def visitOptionalArgument(arg, expression)
-    scope = getScope(arg)
-    type = getLocalType(scope, arg.name.identifier)
-    type.declare(resolve(arg.type.typeref), arg.type.position) if arg.type
+    scope = @scopes.getScope(arg)
+    type = @types.getLocalType(scope, arg.name.identifier)
+    type.declare(@types.get(arg.type.typeref), arg.type.position) if arg.type
     type.assign(infer(arg.value), arg.value.position)
   end
 
   def visitRestArgument(arg, expression)
-    scope = getScope(arg)
-    type = getLocalType(scope, arg.name.identifier)
+    scope = @scopes.getScope(arg)
+    type = @types.getLocalType(scope, arg.name.identifier)
     if arg.type
-      type.declare(resolve(arg.type.typeref).array, arg.type.position)
+      type.declare(@types.getArrayType(@types.get(arg.type.typeref)), arg.type.position)
     else
       type
     end
   end
 
   def visitBlockArgument(arg, expression)
-    scope = getScope(arg)
-    type = getLocalType(scope, arg.name.identifier)
+    scope = @scopes.getScope(arg)
+    type = @types.getLocalType(scope, arg.name.identifier)
     if arg.type
-      type.declare(resolve(arg.type.typeref), arg.type.position)
+      type.declare(@types.get(arg.type.typeref), arg.type.position)
     else
       type
     end
@@ -577,26 +594,26 @@ class Typer < NodeVisitor
 
   def visitMethodDefinition(mdef, expression)
     # TODO optional arguments
-    scope = addScope(mdef)
-    selfType = getScope(mdef).selfType
+    scope = @scopes.addScope(mdef)
+    selfType = @scopes.getScope(mdef).selfType
     if mdef.kind_of?(StaticMethodDefinition)
-      selfType = selfType.meta
+      selfType = @types.getMetaType(selfType)
     end
     scope.selfType = selfType
     scope.resetDefaultSelfNode
     inferAll(mdef.annotations)
-    infer(arguments)
-    parameters = inferAll(arguments)
-    type = getMethodDefType(selfType, mdef.name.identifier, parameters)
+    infer(mdef.arguments)
+    parameters = inferAll(mdef.arguments)
+    type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters)
     if mdef.type
-      returnType = resolve(mdef.type.typeref)
+      returnType = @types.get(mdef.type.typeref)
       type.declare(returnType, mdef.type.position)
-      if getVoidType().equals(returnType)
+      if @types.getVoidType().equals(returnType)
         expression = nil
       end
     end
     # TODO throws
-    # mdef.exceptions.each {|e| type.throws(resolve(TypeName(e).typeref))}
+    # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
     if mdef.body
       if expression
         type.assign(infer(mdef.body), mdef.body.position)
@@ -620,6 +637,6 @@ class Typer < NodeVisitor
   # def visitMacroDefinition(defn, expression)
   #   buildAndLoadExtension(defn)
   #   defn.getParent.removeChild(defn)
-  #   getVoidType()
+  #   @types.getVoidType()
   # end
 end

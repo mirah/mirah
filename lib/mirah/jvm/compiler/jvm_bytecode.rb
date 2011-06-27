@@ -44,6 +44,21 @@ module Mirah
         
         def file_builder(filename)
           builder = BiteScript::FileBuilder.new(filename)
+          builder.to_widen do |a, b|
+            a = AST.type_factory.get_type(a)
+            b = AST.type_factory.get_type(b)
+            a_ancestors = []
+            while a
+              a_ancestors << a.name
+              a = a.superclass
+            end
+            b_ancestors = []
+            while b
+              b_ancestors << b.name
+              b = b.superclass
+            end
+            (a_ancestors & b_ancestors)[0]
+          end
           AST.type_factory.define_types(builder)
           builder
         end
