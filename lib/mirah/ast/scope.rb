@@ -15,18 +15,16 @@
 
 module Mirah
   module AST
-    module ClassScoped
-      def class_scope
-        @class_scope ||= begin
-          scope = parent
-          scope = scope.parent until scope.nil? || ClassDefinition === scope
-          scope
-        end
-      end
-    end
-
     class StaticScope
       java_import 'java.util.LinkedHashMap'
+      begin
+        java_import 'org.mirah.typer.Scope'
+      rescue NameError
+        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
+        java_import 'org.mirah.typer.Scope'
+      end
+      include Scope
+
       attr_reader :parent
       attr_writer :self_type, :self_node, :package
 
@@ -195,6 +193,21 @@ module Mirah
         else
           @imports[short_name] = full_name
         end
+      end
+      def selfType
+        self_type
+      end  # Should this be resolved?
+      def selfType_set(type)
+        self.self_type = type
+      end
+      def parent_set(scope)
+        self.parent = scope
+      end
+      def package_set(package)
+        self.package = package
+      end
+      def resetDefaultSelfNode
+        self.self_node = :self
       end
     end
   end

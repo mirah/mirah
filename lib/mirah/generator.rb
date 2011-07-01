@@ -41,20 +41,16 @@ module Mirah
       
       compiler_results
     end
-      
+
     def infer_asts(nodes)
-      typer = Mirah::JVM::Typer.new(parser.transformer)
-      nodes.each {|ast| typer.infer(ast, true) }
+      scoper = Mirah::Types::Scoper.new
+      type_system = Mirah::Types::SimpleTypes.new
+      typer = Mirah::Types::Typer::Typer.new(type_system, scoper)
       begin
-        typer.resolve(false)
+        nodes.each {|ast| typer.infer(ast, false) }
+        process_inference_errors(nodes)
       ensure
         puts nodes.inspect if verbose
-        
-        failed = !typer.errors.empty?
-        if failed
-          puts "Inference Error:"
-          process_errors(typer.errors)
-        end
       end
     end
   end

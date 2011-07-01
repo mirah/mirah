@@ -10,9 +10,18 @@ class Typer < SimpleNodeVisitor
     @scopes = scopes
   end
 
+  def getInferredType(node:Node)
+    @futures[node]
+  end
+
   def infer(node:Node, expression:boolean=true)
     return nil if node.nil?
-    TypeFuture(@futures[node] ||= node.accept(self, expression ? @trueobj : nil))
+    type = @futures[node]
+    if type.nil?
+      type = node.accept(self, expression ? @trueobj : nil)
+      @futures[node] = type
+    end
+    TypeFuture(type)
   end
 
   def infer(node:Object, expression:boolean=true)
@@ -56,7 +65,7 @@ class Typer < SimpleNodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(BlockType.new) if call.block
-    methodType = @types.getMethodType(selfType, call.name.identifier, parameters)
+    methodType = CallFuture.new(call.position, @types, selfType, call.name.identifier, parameters)
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
@@ -91,7 +100,7 @@ class Typer < SimpleNodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(BlockType.new) if call.block
-    methodType = @types.getMethodType(target, call.name.identifier, parameters)
+    methodType = CallFuture.new(call.position, @types, target, call.name.identifier, parameters)
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
@@ -122,14 +131,14 @@ class Typer < SimpleNodeVisitor
     target = @types.getSuperClass(@scopes.getScope(node).selfType)
     parameters = inferAll(node.parameters)
     parameters.add(BlockType.new) if node.block
-    @types.getMethodType(target, method.name.identifier, parameters)
+    CallFuture.new(node.position, @types, target, method.name.identifier, parameters)
   end
 
   def visitZSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     target = @types.getSuperClass(@scopes.getScope(node).selfType)
     parameters = inferAll(method.arguments)
-    @types.getMethodType(target, method.name.identifier, parameters)
+    CallFuture.new(node.position, @types, target, method.name.identifier, parameters)
   end
 
   def visitClassDefinition(classdef, expression)
@@ -430,7 +439,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitScript(script, expression)
-    scope = @scopes.getScope(script)
+    scope = @scopes.addScope(script)
     scope.selfType = @types.getMainType(scope, script)
     infer(script.body, false)
   end
@@ -626,6 +635,10 @@ class Typer < SimpleNodeVisitor
 
   def visitStaticMethodDefinition(mdef, expression)
     visitMethodDefinition(mdef, expression)
+  end
+
+  def visitImplicitNil(node, expression)
+    @types.getNullType  # Should this be void?
   end
 
   # TODO is a constructor special?

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah/jvm/types'
+#require 'mirah/jvm/types'
 require 'mirah/util/compilation_state'
 require 'mirah/util/argument_processor'
 require 'mirah/errors'
@@ -22,7 +22,7 @@ module Mirah
   module Commands
     class Base
       def initialize(args)
-        Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+        #Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
         @state = Mirah::Util::CompilationState.new
         @state.command = command_name
         @args = args

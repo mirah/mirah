@@ -1,11 +1,6 @@
-require 'mirah/util/process_errors'
-require 'mirah/scoper'
 module Mirah
   module Transform
     class Transformer
-      include Mirah::Scoper
-      include Mirah::Util::ProcessErrors
-
       begin
         include Java::DubyLangCompiler.Compiler
       rescue NameError
@@ -21,7 +16,6 @@ module Mirah
         @annotations = []
         @extra_body = nil
         @state = state
-        @helper = Mirah::Transform::Helper.new(self)
         @files = {""=>{:filename => "", :line => 0, :code => ""}}
       end
 

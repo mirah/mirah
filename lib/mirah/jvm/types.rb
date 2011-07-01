@@ -18,6 +18,10 @@ require 'mirah/ast'
 require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/compiler'
 require 'set'
+module Mirah::JVM
+  module Types
+  end
+end
 require 'mirah/jvm/types/type'
 require 'mirah/jvm/types/primitive_type'
 require 'mirah/jvm/types/meta_type'

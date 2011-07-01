@@ -28,9 +28,9 @@ rescue LoadError
   $: << File.dirname(__FILE__) + '/../../bitescript/lib'
   require 'bitescript'
 end
-require 'mirah/jvm/compiler'
-require 'mirah/jvm/typer'
-Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
+#require 'mirah/jvm/compiler'
+#require 'mirah/jvm/typer'
+#Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 
 require 'mirah/commands'

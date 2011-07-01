@@ -6,7 +6,7 @@ module Mirah
       $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-parser.jar'
       java_import 'mirah.impl.MirahParser'
     end
-    java_import 'jmeta.ErrorHandler'
+    java_import 'org.mirah.mmeta.ErrorHandler'
 
     class MirahErrorHandler
       include ErrorHandler

@@ -20,10 +20,10 @@ require 'mirah/typer/simple'
 module Mirah
   module Typer
     begin
-      include Java::OrgMirahTyper::Typer
+      java_import 'org.mirah.typer.Typer'
     rescue NameError
       $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
-      include Java::OrgMirahTyper::Typer
+      java_import 'org.mirah.typer.Typer'
     end
 
     class << self
@@ -36,8 +36,7 @@ module Mirah
 
     InferenceError = Mirah::InferenceError
   end
-
-  def self.typer_plugins
-    @typer_plugins ||= []
-  end
 end
+
+require 'mirah/type_system/simple'
+require 'mirah/type_system/scoper'

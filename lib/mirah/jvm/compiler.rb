@@ -18,7 +18,6 @@ require 'mirah/jvm/compiler/base'
 require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/types'
 require 'mirah/typer'
-require 'mirah/plugin/java'
 require 'bitescript'
 require 'mirah/jvm/compiler/jvm_bytecode'
 
@@ -32,20 +31,4 @@ module Mirah
       attr_accessor :target
     end
   end
-end
-
-if __FILE__ == $0
-  Mirah::Typer.verbose = true
-  Mirah::AST.verbose = true
-  Mirah::JVM::Compiler::JVMBytecode.verbose = true
-  ast = Mirah::AST.parse(File.read(ARGV[0]))
-  
-  typer = Mirah::Typer::Simple.new(:script)
-  ast.infer(typer)
-  typer.resolve(true)
-  
-  compiler = Mirah::JVM::Compiler::JVMBytecode.new(ARGV[0])
-  compiler.compile(ast)
-  
-  compiler.generate
 end

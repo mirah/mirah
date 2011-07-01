@@ -16,17 +16,63 @@
 module Mirah
   module Util
     module ProcessErrors
+      begin
+        java_import 'org.mirah.types.ErrorType'
+      rescue NameError
+        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
+        java_import 'org.mirah.typer.ErrorType'
+      end
+
       def process_errors(errors)
         errors.each do |ex|
-          puts ex
-          if ex.respond_to?(:node) && ex.node
-            Mirah.print_error(ex.message, ex.position)
+          if ex.kind_of?(ErrorType)
+            ex.message.each do |message, position|
+              if position
+                Mirah.print_error(message, position)
+              else
+                puts message
+              end
+            end if ex.message
           else
-            puts ex.message
+            puts ex
+            if ex.respond_to?(:node) && ex.node
+              Mirah.print_error(ex.message, ex.position)
+            else
+              puts ex.message
+            end
+            puts ex.backtrace if @verbose
           end
-          puts ex.backtrace if @verbose
         end
         throw :exit unless errors.empty?
+      end
+
+      java_import 'mirah.lang.ast.NodeScanner'
+      class ErrorCollector < NodeScanner
+        def initialize
+          @errors = {}
+        end
+        def enterDefault(node, arg)
+          type = node.resolve
+          @errors[type] ||= type if type.name == ':error'
+          true
+        end
+        def errors
+          @errors.values
+        end
+      end
+
+      def process_inference_errors(nodes)
+        errors = []
+        nodes.each do |ast|
+          collector = ErrorCollector.new
+          ast.accept(collector, nil)
+          errors.concat(collector.errors)
+        end
+        failed = !errors.empty?
+        if failed
+          puts "Inference Error:"
+          process_errors(errors)
+        end
       end
     end
   end

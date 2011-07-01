@@ -23,7 +23,7 @@ module Mirah
     
     def initialize(state, logging)
       @transformer = Mirah::Transform::Transformer.new(state)
-      Java::MirahImpl::Builtin.initialize_builtins(@transformer)
+      #Java::MirahImpl::Builtin.initialize_builtins(@transformer)
       @logging = logging
       @verbose = state.verbose
     end
@@ -59,13 +59,7 @@ module Mirah
     end
     
     def parse_and_transform(filename, src)
-      parser_ast = Mirah::AST.parse_ruby(transformer, src, filename)
-      
-      transformer.filename = filename
-      mirah_ast = transformer.transform(parser_ast, nil)
-      process_errors(transformer.errors)
-      
-      mirah_ast
+      Mirah::AST.parse_ruby(transformer, src, filename)
     end
       
     def expand_files(files_or_scripts)

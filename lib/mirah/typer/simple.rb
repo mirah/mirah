@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'mirah'
 require 'mirah/ast'
 require 'mirah/transform'
 require 'mirah/scoper'

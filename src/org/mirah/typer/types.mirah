@@ -27,6 +27,14 @@ class SpecialType; implements ResolvedType, TypeFuture
   def equals(other:Object)
     other.kind_of?(ResolvedType) && ResolvedType(other).name == @name
   end
+  def hashCode
+    name.hashCode
+  end
+  def toString
+    "<#{getClass.getSimpleName}: #{name}>"
+  end
+  def isMeta; false; end
+  def isError; ":error".equals(name); end
 end
 
 class UnreachableType < SpecialType
@@ -83,11 +91,10 @@ interface TypeSystem do
   def getArrayType(componentType:TypeFuture):TypeFuture; end
 
   def get(type:TypeRef):TypeFuture; end
-  def getMethodType(target:TypeFuture, name:String, argTypes:List):TypeFuture; end
+  def getMethodType(target:ResolvedType, name:String, argTypes:List):TypeFuture; end
   def getMethodDefType(target:TypeFuture, name:String, argTypes:List):AssignableTypeFuture; end
   def getFieldType(target:TypeFuture, name:String):AssignableTypeFuture; end
   def getLocalType(scope:Scope, name:String):AssignableTypeFuture; end
-  def getArrayType(componentType:TypeFuture):TypeFuture; end
   def getMainType(scope:Scope, script:Script):TypeFuture; end
   def getSuperClass(type:TypeFuture):TypeFuture; end
 

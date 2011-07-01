@@ -6,17 +6,19 @@ interface TypeListener do
   def updated(src:TypeFuture, value:ResolvedType):void; end
 end
 
-interface ResolvedType /* < TypeFuture */ do
+interface ResolvedType do
   def widen(other:ResolvedType):ResolvedType; end
   def assignableFrom(other:ResolvedType):boolean; end
   def name:String; end
   def isMeta:boolean; end
+  def isError:boolean; end
 end
 
 interface TypeFuture do
   def isResolved:boolean; end
   def resolve:ResolvedType; end
   def onUpdate(listener:TypeListener):void; end
+  def removeListener(listener:TypeListener):void; end
 end
 
 class SimpleFuture; implements TypeFuture
@@ -26,6 +28,7 @@ class SimpleFuture; implements TypeFuture
   def isResolved() true end
   def resolve() @type end
   def onUpdate(listener) listener.updated(self, @type) end
+    def removeListener(listener); end
 end
 
 class BaseTypeFuture; implements TypeFuture
@@ -59,7 +62,18 @@ class BaseTypeFuture; implements TypeFuture
     listener.updated(self, inferredType) if isResolved
   end
 
+  def removeListener(listener:TypeListener):void
+    @listeners.remove(listener)
+  end
+
   def resolved(type:ResolvedType):void
+    if type.nil?
+      if type == @resolved
+        return
+      else
+        type = ErrorType.new(Collections.emptyList)
+      end
+    end
     if !type.equals(@resolved)
       @resolved = type
       @listeners.each do |l|
@@ -97,16 +111,17 @@ class AssignableTypeFuture < BaseTypeFuture
       TypeFuture(@assignments[value])
     else
       variable = self
-      value.onUpdate {variable.checkAssignments}
       assignment = BaseTypeFuture.new(position)
-      onUpdate do |variable, type|
+      @assignments[value] = assignment
+      value.onUpdate {|a, b| variable.checkAssignments}
+      onUpdate do |x, type|
         if value.isResolved && !type.assignableFrom(value.resolve)
           assignment.resolved(variable.incompatibleWith(value.resolve, position))
         else
           assignment.resolved(type)
         end
       end
-      TypeFuture(@assignments[value] = assignment)
+      TypeFuture(assignment)
     end
   end
 
@@ -197,5 +212,59 @@ class PickFirst < BaseTypeFuture
         me.pick(index, type, value, resolved)
       end
     end
+  end
+end
+
+class CallFuture < BaseTypeFuture
+  def initialize(position:Position, types:TypeSystem, target:TypeFuture, name:String, args:List/*, block:Block*/)
+    super(position)
+    @types = types
+    @target = target
+    @name = name
+    @args = args
+    @resolved_target = ResolvedType(nil)
+    @resolved_args = ArrayList.new(args.size)
+    #@block = block
+    setupListeners
+  end
+
+  def setupListeners
+    call = self
+    @target.onUpdate do |t, type|
+      @resolved_target = type
+      call.maybeUpdate
+    end
+    @args.each do |_arg|
+      arg = TypeFuture(_arg)
+      arg.onUpdate do |a, type|
+        call.resolveArg(a, type)
+      end
+    end
+  end
+
+  def resolveArg(arg:TypeFuture, type:ResolvedType)
+    i = @args.indexOf(arg)
+    @resolved_args.set(i, type)
+    maybeUpdate
+  end
+
+  def maybeUpdate
+    if @resolved_target && @resolved_args.all?
+      call = self
+      new_method = @types.getMethodType(@resolved_target, @name, @resolved_args)
+      if new_method != @method
+        #@method.removeListener(self) if @method
+        @method = new_method
+        @method.onUpdate do |m, type|
+          if m == call.currentMethodType
+            call.resolved(type)
+          end
+        end
+      end
+    end
+  end
+
+  def currentMethodType
+    @method
   end
 end
