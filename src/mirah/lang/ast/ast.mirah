@@ -16,13 +16,14 @@ interface Position do
   macro def +(other) quote { add(`other`) } end
 end
 
-interface Node do
+interface Node < Cloneable do
   def position:Position; end
   def parent:Node; end
   def setParent(parent:Node):void; end  # This should only be called by NodeImpl!
   def originalNode:Node; end
   def setOriginalNode(node:Node):void; end  # Probably don't want to call this either.
   def replaceChild(child:Node, newChild:Node):void; end
+  def removeChild(child:Node):void; end
   def accept(visitor:NodeVisitor, arg:Object):Object; end
 
   def findAncestor(type:java::lang::Class):Node; end
@@ -33,9 +34,11 @@ interface Node do
   def findDescendant(filter:NodeFilter):Node; end
   def findDescendants(filter:NodeFilter):List; end
   def findDescendants(filter:NodeFilter, list:List):List; end
+  def clone:Object; end
 end
 
 interface Assignment < Node do
+  def value:Node; end
   def value=(value:Node); end
 end
 
@@ -146,6 +149,10 @@ class NodeImpl
     "<#{getClass.getName}#{name}>"
   end
 
+  def clone:Object
+    Node(super).setParent(nil)
+  end
+
   def setParent(parent:Node)
     @parent = parent
   end
@@ -181,10 +188,9 @@ class NodeImpl
   end
 
   def childAdded(child:Node):Node
-    return nil if child.nil?
+    return child if (child.nil? || child.parent == self)
     if child.parent
-      # Should we remove it from the parent? Duplicate it?
-      raise IllegalArgumentException, "Node already has a parent"
+      child.parent.removeChild(child)
     end
     child.setParent(self)
     child

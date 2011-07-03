@@ -297,6 +297,27 @@ class ListNodeState < BaseNodeState
         node
       end
 
+      def replaceChild(oldChild:Node, newChild:Node):void
+        i = @children.indexOf(oldChild)
+        set(i, `mirah.cast(type_name, 'newChild')`)
+        newChild.setOriginalNode(oldChild)
+      end
+
+      def removeChild(child:Node):void
+        @children.remove(child)
+      end
+
+      def clone:Object
+        _clone = super
+        node = `mirah.cast(name, '_clone')`
+        it = node.listIterator
+        while it.hasNext
+          child = it.next
+          it.set(Node(Node(child).clone)) if child
+        end
+        node
+      end
+
       def add(node:`type_name`):void
         childAdded(node)
         @children.add(node)
@@ -336,6 +357,9 @@ class NodeState < BaseNodeState
     @visitors = visitors
     @children = ArrayList.new
     @constructor = mirah.body
+    @replaceBody = mirah.body
+    @removeBody = mirah.body
+    @cloneBody = mirah.body
   end
 
   def init_node(block:Block)
@@ -364,6 +388,21 @@ class NodeState < BaseNodeState
       end
 
       `extra_setup`
+      def replaceChild(oldChild:Node, newChild:Node)
+        if oldChild == newChild
+          return
+        end
+        `@replaceBody`
+      end
+      def removeChild(child:Node)
+        `@removeBody`
+      end
+      def clone
+        _clone = super
+        node = `mirah.cast(name, '_clone')`
+        `@cloneBody`
+        node
+      end
     end
   end
 
@@ -380,15 +419,19 @@ class NodeState < BaseNodeState
   end
 
   def init_literal(type:Node)
+    name = mirah.string(self.name)
     mirah.quote do
       `init_node(nil)`
-      `child('value', type.string_value)`
+      `child('value', type.string_value, false)`
       def initialize(value:`type`)
         @value = value
       end
       def initialize(position:Position, value:`type`)
         self.position = position
         @value = value
+      end
+      def toString
+        "<#{`name`}:#{value}>"
       end
     end
   end
@@ -406,24 +449,52 @@ class NodeState < BaseNodeState
     end
   end
 
-  def addGetters(name:String, type:String)
+  def addGetters(name:String, type:String, node:boolean)
+    if node
+      pre_set = mirah.quote do
+        unless value == @`name`
+          childRemoved(@`name`)
+          childAdded(value)
+        end
+      end
+    else
+      pre_set = mirah.body
+    end
     mirah.quote do
       def `"#{name}"`: `type`
         @`name`
       end
       def `"#{name}_set"`(value: `type`)
+        `pre_set`
         @`name` = value
       end
     end
   end
 
-  def child(name:String, type:String)
+  def child(name:String, type:String, node:boolean)
     setter = "#{name}_set"
     @constructor << mirah.quote do
       self.`setter`(`name`)
     end
     @children.add([name, type])
-    addGetters(name, type)
+    @replaceBody << mirah.quote do
+      if @`name` == oldChild
+        self.`setter`(`mirah.cast(type, 'newChild')`)
+        newChild.setOriginalNode(oldChild)
+        return
+      end
+    end
+    @removeBody << mirah.quote do
+      if @`name` == child
+        self.`setter`(nil)
+        return
+      end
+    end
+    clone_call = mirah.quote {@`name`.clone}
+    @cloneBody << mirah.quote do
+      node.`setter`(`mirah.cast(type, clone_call)`) if @`name`
+    end
+    addGetters(name, type, node)
   end
 
   def child_list(name:String, type:String)
@@ -435,7 +506,7 @@ class NodeState < BaseNodeState
     size_name = "#{name}_size"
     @children.add([name, 'java.util.List'])
     mirah.quote do
-      `addGetters(name, list_type)`
+      `addGetters(name, list_type, true)`
 
       def `name`(i:int): `type`
         node = @`name`.get(i)
@@ -493,7 +564,7 @@ class NodeMeta < MetaTool
   def child(hash:Node)
     state = NodeState(@nodes[enclosing_class(hash).name])
     NodeMeta.type_map_each(mirah.body, hash) do |name, type|
-      state.child(name, type)
+      state.child(name, type, true)
     end
   end
 

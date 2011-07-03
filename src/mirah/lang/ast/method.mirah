@@ -15,7 +15,7 @@
 
 package mirahparser.lang.ast
 
-interface FormalArgument do
+interface FormalArgument < Named do
   def name:Identifier; end
   def type:TypeName; end
 end
