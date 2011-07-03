@@ -13,13 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-$:.unshift File.join(File.dirname(__FILE__),'../..','lib')
+require File.join(File.dirname(__FILE__), 'test_helper')
 
-require 'test/unit'
-require 'mirah'
 require 'mirah/jvm/compiler/java_source'
-require 'jruby'
-require 'stringio'
+
 require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
 
 # make sure . is in CLASSPATH
