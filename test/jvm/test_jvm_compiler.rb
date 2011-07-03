@@ -41,7 +41,8 @@ end
 
 class TestJVMCompiler < Test::Unit::TestCase
   include JVMCompiler
-
+  include CommonAssertions
+  
   def setup
     @tmp_classes = []
   end
@@ -50,14 +51,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     AST.type_factory = nil
     File.unlink(*@tmp_classes)
   end
-
-  def assert_include(value, array, message=nil)
-    message = build_message message, '<?> does not include <?>', array, value
-    assert_block message do
-      array.include? value
-    end
-  end
-
 
   def test_local
     cls, = compile("def foo; a = 1; a; end")

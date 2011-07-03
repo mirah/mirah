@@ -97,6 +97,7 @@ module JavacCompiler
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
+    
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     state = Mirah::Util::CompilationState.new
     state.save_extensions = false
@@ -119,5 +120,14 @@ module JavacCompiler
       java_files << name
     end
     classes = javac(java_files)
+  end
+end
+
+module CommonAssertions
+  def assert_include(value, array, message=nil)
+    message = build_message message, '<?> does not include <?>', array, value
+    assert_block message do
+      array.include? value
+    end
   end
 end
