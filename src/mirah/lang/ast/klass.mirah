@@ -97,3 +97,21 @@ class ConstantAssign < NodeImpl
     child_list annotations: Annotation
   end
 end
+
+class AttrAssign < NodeImpl
+  implements Named, Assignment
+  init_node do
+    child target: Node
+    child name: Identifier
+    child value: Node
+  end
+end
+
+class ElemAssign < NodeImpl
+  implements Assignment
+  init_node do
+    child target: Node
+    child_list args: Node
+    child value: Node
+  end
+end
