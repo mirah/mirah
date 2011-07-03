@@ -14,6 +14,10 @@
 # limitations under the License.
 package mirahparser.lang.ast
 
+import java.util.ArrayList
+import java.util.Collections
+import java.util.List
+
 class Unquote < NodeImpl
   implements TypeName, Identifier
   init_node do
@@ -25,6 +29,8 @@ class Unquote < NodeImpl
     obj = @object || @value
     if obj.kind_of?(Identifier)
       Identifier(obj).identifier
+    elsif obj.kind_of?(Named)
+      Named(obj).name.identifier
     elsif obj.kind_of?(String)
       String(obj)
     else
@@ -32,8 +38,8 @@ class Unquote < NodeImpl
     end
   end
 
-  def typeref:TypeRef
-    obj = @object || @value
+  def typeref(obj=nil):TypeRef
+    obj ||= @object || @value
     if obj.kind_of?(TypeRef)
       TypeRef(obj)
     elsif obj.kind_of?(TypeName)
@@ -73,14 +79,70 @@ class Unquote < NodeImpl
     end
     strvalue = String(value)
     if '@'.equals(strvalue.substring(0, 1))
-      FieldAccess.new(position, SimpleString.new(position, strvalue.substring(1)))
+      Node(FieldAccess.new(position, SimpleString.new(position, strvalue.substring(1))))
     else
       strnode = SimpleString.new(position, strvalue)
       if Character.isUpperCase(strvalue.charAt(0)) || strvalue.indexOf('.') >= 0
-        Constant.new(position, strnode)
+        Node(Constant.new(position, strnode))
       else
         LocalAccess.new(position, strnode)
       end
+    end
+  end
+
+  def arguments:Arguments
+    if object.kind_of?(Arguments) || object.nil?
+      Arguments(object)
+    elsif object.kind_of?(List)
+      args = Arguments.new(position)
+      List(object).each do |o|
+        add_arg(args, arg_item(o))
+      end
+      args
+    else
+      args = Arguments.new(position)
+      add_arg(args, arg_item(object))
+      args
+    end
+  end
+
+  private
+  def add_arg(args:Arguments, node:Node)
+    if node.kind_of?(OptionalArgument)
+      args.optional.add(OptionalArgument(node))
+    elsif node.kind_of?(RestArgument)
+      # TODO check for multiples?
+      args.rest = RestArgument(node)
+    elsif node.kind_of?(BlockArgument)
+      args.block = BlockArgument(node)
+    else
+      arg = RequiredArgument(node)
+      if args.required2.size == 0 && args.rest.nil? && args.optional.size == 0
+        args.required.add(arg)
+      else
+        args.required2.add(arg)
+      end
+    end
+    args
+  end
+
+  def arg_item(object:Object):Node
+    if object.kind_of?(RequiredArgument) || object.kind_of?(OptionalArgument) ||
+        object.kind_of?(RestArgument) || object.kind_of?(BlockArgument)
+      Node(object)
+    elsif object.kind_of?(Identifier)
+      id = Identifier(object)
+      RequiredArgument.new(id.position, id, nil)
+    elsif object.kind_of?(String)
+      RequiredArgument.new(position, SimpleString.new(position, String(object)), nil)
+    elsif object.kind_of?(List)
+      l = List(object)
+      nameobj = l.get(0)
+      type = l.size > 1 ? typeref(l.get(1)) : nil
+      name = Identifier(nodeValue(nameobj))
+      RequiredArgument.new(name.position, name, type)
+    else
+      raise IllegalArgumentException, "Bad unquote value for arg #{value} (#{value.getClass})"
     end
   end
 end
@@ -88,8 +150,11 @@ end
 class UnquoteAssign < NodeImpl
   implements Named, Assignment
   init_node do
-    child name: Unquote
+    child unquote: Unquote
     child value: Node
+  end
+  def name:Identifier
+    unquote
   end
 end
 
