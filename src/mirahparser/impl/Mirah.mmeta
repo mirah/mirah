@@ -102,13 +102,13 @@ parser MirahParser {
              )* {f};
 
   $Returns[Node]
-  statement2: ( l=var_lhs ( $AndEq! opt_nl r=command_call
+  statement2: ( l=var_lhs ( $AndEq opt_nl r=command_call
                             b=assign(l, r)
                             -> ^(If gettable2(l) b gettable2(l))
-                          | $OrEq! opt_nl r=command_call
+                          | $OrEq opt_nl r=command_call
                             b=assign(l, r)
                             -> ^(If gettable2(l) gettable2(l) b)
-                          | op=op_assign! r=command_call
+                          | op=op_assign r=command_call
                             b2= -> ^(Call gettable2(l) op [r] nil)
                             assign(l, b2)
                           )
@@ -154,7 +154,7 @@ parser MirahParser {
   $Returns[Node]
   command_call: block_command
               | command
-              | $Return BEG a=expr -> ^(Return a);
+              | $Return ~($If|$Unless) BEG a=expr -> ^(Return a);
               # | $Break a=call_args -> ^(Break a+)
               # | $Next a=call_args -> ^(Next a+)
 
@@ -382,7 +382,7 @@ parser MirahParser {
            | &ivar !"formal argument not an instance variable" ?{false}
            | &cvar !"formal argument not a class variable" ?{false};
 
-  $Memo[FNormArgReturn]
+  $Returns[FNormArgReturn]
   f_norm_arg: f_bad_arg
             | l=label BEG t=type { FNormArgReturn.new(l, t) }
             | u=unquote ($Colon BEG t=type)? { FNormArgReturn.new(u, t) }
@@ -395,8 +395,9 @@ parser MirahParser {
   $Returns[List]
   f_arg: rlistOf(:f_arg_item);
 
-  $Returns[OptionalArgument]
+  $Memo[OptionalArgument]
   f_opt: n=f_norm_arg $EQ! opt_nl v=arg_value {name=n.name; type=n.type } -> ^(OptionalArgument name type v);
+
   $Returns[List]
   f_optarg: rlistOf(:f_opt);
 
@@ -452,15 +453,9 @@ parser MirahParser {
                 -> ^(Rescue a [^(RescueClause [] nil b)] nil)
               | arg;
 
-  $Returns[Node]
-  assign(lhs:Node, rhs:Node) : {
-    if lhs.kind_of?(Assignment)
-      Assignment(lhs).value = rhs
-    elsif lhs.kind_of?(Call)
-      Call(lhs).parameters.add(rhs)
-    else
-      raise IllegalArgumentException, "Unsupported lhs #{lhs.getClass}"
-    end
+  $Returns[Assignment]
+  assign(lhs:Assignment, rhs:Node) : {
+    lhs.value = rhs
     lhs
   }
   ;
@@ -476,17 +471,17 @@ parser MirahParser {
                     | $OrEq! opt_nl r=arg
                       b1=assign(l, r)
                       -> ^(If gettable2(l) gettable2(l) b1)
-                    | op=assignment_op! r=arg
+                    | op=op_assign! r=arg
                       b2= -> ^(Call gettable2(l) op [r] nil)
                       assign(l, b2)
                     )
         | ( l=lhs $EQ opt_nl r=maybe_rescue assign(l, r)
-          | t=value(primary) (tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=assignment_op v=arg
+          | t=value(primary) (tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=op_assign v=arg
                               f={makeIdentifier(makePosition(tok), "[]")}
                               op_attr_assign(t, f, a, op, v)
                              |colons constant assignment_op arg
                                !"constant re-assignment prohibited" ?{false}
-                             |dot_or_colon f=(constant | identifier) op=assignment_op v=arg
+                             |dot_or_colon f=(constant | identifier) op=op_assign v=arg
                               op_attr_assign(t, f, [], op, v)
                              )
           | colon3 constant assignment_op arg
@@ -523,7 +518,7 @@ parser MirahParser {
   $Returns[Node]
   arg11: a=arg12 tok=$Stars opt_nl BEG b=arg11 -> ^(Call a makeIdentifier(tok) [b] nil)
        | arg12;
-  $Memo[Node]
+  $Returns[Node]
   arg12: tok=$Tilde opt_nl BEG v=arg12 -> ^(Call v makeIdentifier(tok) [] nil)
        | $Bang opt_nl BEG v=arg12 -> ^(Not v)
        | tok=uplus BEG v=arg12 -> ^(Call v makeIdentifier(makePosition(tok), "+@") [] nil)
@@ -592,20 +587,21 @@ parser MirahParser {
   op_assign: t=$AndEq..$OpAssign opt_nl {makeIdentifier(t, 0, -1)};
   assignment_op: op_assign | $EQ opt_nl {makeIdentifier(makePosition(_start, _pos), "=")};
 
-  $Memo[Node]
+  $Memo[Assignment]
   lhs: (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $EQ)=> var_lhs
      | ($Dollar|$Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
   #   | ($Colons $CONSTANT)=> colon3 n=constant -> ^(ConstantAssign ^(Colon3 n))
      | lhs2;
-  lhs2: t=value(primary) (($LBrack)=> tok=$LBrack opt_nl k=call_args? opt_nl $RBrack 
-                                      -> ^(Call t makeIdentifier(makePosition(tok), "[]=") k nil)
-                         | dot_or_colon (n=identifier l={ArrayList.new} op={makeIdentifier(n.position, "#{n.identifier}=")}
-                                         -> ^(Call t op l nil)
+  $Returns[Assignment]
+  lhs2: t=value(primary) (($LBrack)=> tok=$LBrack opt_nl k=call_args? opt_nl $RBrack
+                                      -> ^(ElemAssign t k nil)
+                         | dot_or_colon (n=identifier
+                                         -> ^(AttrAssign t n nil)
   #                                      |($CONSTANT)=> n=constant -> ^(ConstantAssign ^(Colon2 t n))
                                         )
                          );
 
-  $Returns[Node]
+  $Returns[Assignment]
   var_lhs: ( annotations=annotation_list
              ( ($ClassVar|$ClassVarBacktick)=> n=cvar -> ^(FieldAssign n annotations true)
              | ($InstVar|$InstVarBacktick)=> n=ivar -> ^(FieldAssign n annotations false)
@@ -653,7 +649,7 @@ parser MirahParser {
                   | {nil} )
               -> ^(Annotation n arg);
 
-  $Memo[List]
+  $Returns[List]
   annotation_list: (a=annotation opt_nl {a})*;
 
   op: text=($LT {"<"}
@@ -705,9 +701,10 @@ parser MirahParser {
             | # empty
             ;
 
+  $Returns[List]
   opt_implements
           : term? $Implements! l=rlistOf(:cpath) term {l}
-          | term
+          | term {nil}
           ;
 
   $Returns[Node]
@@ -820,31 +817,38 @@ parser MirahParser {
 
   lastdot: ?{_rpeek.indexOf(".") == 0};
 
+  $Returns[Node]
+  clone(node:Node): {node.clone};
+  $Returns[Identifier]
+  clone(node:Identifier): {node.clone};
+
   op_attr_assign(target:Node, attr:Identifier, args:List, op:Identifier, value:Node)
                : temp={makeIdentifier(target.position, self.temp)}
                  target2=-> ^(LocalAssignment temp target)
                  args2=save_temps(args)
-                 assignment=op_attr_assign_body(op, target2, attr, args2, value)
-                 l={[target2] + args2 + [assignment]}
+                 fetch=-> ^(Call ^(LocalAccess clone(temp)) attr get_temps(args2) nil)
+                 assign=op_attr_assignment(temp, attr, args2, value)
+                 body=op_attr_assign_body(op, fetch, assign)
+                 l={[target2] + args2 + [body]}
                  -> ^(Body l+);
+  $Returns[Assignment]
+  op_attr_assignment(target:Identifier, attr:Identifier, args:List, value:Node)
+        : ?{'[]'.equals(attr.identifier)}
+          -> ^(ElemAssign ^(LocalAccess clone(target)) get_temps(args) value)
+        | -> ^(AttrAssign ^(LocalAccess clone(target)) clone(attr) value)
+        ;
   $Returns[Node]
-  op_attr_assign_body(op:Identifier, target:Node, attr:Identifier, args:List, value:Node)
+  op_attr_assign_body(op:Identifier, fetch:Node, assignment:Assignment)
       : ?{'&&'.equals(op.identifier)}
-           -> ^(If ^(Call gettable2(target) attr get_temps(args) nil)
-                   ^(Call gettable2(target)
-                          makeIdentifier(attr.position, "#{attr.identifier}=")
-                          get_temps(args, value) nil)
+           -> ^(If fetch
+                   assignment
                    nil
                )
       | ?{'||'.equals(op.identifier)}
-           a=->^(Call gettable2(target) attr get_temps(args) nil)
-           b=->^(Call gettable2(target)
-                      makeIdentifier(attr.position, "#{attr.identifier}=")
-                      get_temps(args, value) nil)
-           make_or(a, b)
-      | new_val=-> ^(Call ^(Call gettable2(target) attr get_temps(args) nil) op [value] nil)
-        -> ^(Call gettable2(target) makeIdentifier(attr.position, "#{attr.identifier}=")
-                  get_temps(args, new_val) nil)
+        make_or(fetch, assignment)
+      | old_val={assignment.value}
+        new_val=-> ^(Call fetch op [old_val] nil)
+        {assignment.value = new_val; assignment}
       ;
 
   assign_temp(value:Node): temp={makeIdentifier(value.position, self.temp)}
@@ -1158,13 +1162,13 @@ parser MirahParser {
   }
 
   def gettable2(e:Node) {
-    n = Named(e)
-    if n.kind_of?(ConstantAssign)
-      Node(Constant.new(n.position, n.name))
-    elsif n.kind_of?(FieldAssign)
-      Node(FieldAccess.new(n.position, n.name))
-    elsif n.kind_of?(LocalAssignment)
-      Node(LocalAccess.new(n.position, n.name))
+    name = Identifier(Named(e).name.clone)
+    if e.kind_of?(ConstantAssign)
+      Node(Constant.new(e.position, name))
+    elsif e.kind_of?(FieldAssign)
+      Node(FieldAccess.new(e.position, name))
+    elsif e.kind_of?(LocalAssignment)
+      Node(LocalAccess.new(e.position, name))
     else
       raise IllegalArgumentException, "Unsupported node #{e.getClass}"
     end
