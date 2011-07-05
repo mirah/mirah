@@ -8,7 +8,7 @@ class ClassDefinition < NodeImpl
   init_node do
     child name: Identifier
     child superclass: TypeName
-    child body: Node # NodeList?
+    child_list body: Node
     child_list interfaces: TypeName
     child_list annotations: Annotation
   end

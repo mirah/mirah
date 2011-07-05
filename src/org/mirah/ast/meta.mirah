@@ -253,10 +253,19 @@ class ListNodeState < BaseNodeState
 
       def initialize(children:java::util::List)
         if children
-          children.each {|node:Node| childAdded(Node(node))}
+          startPosition = nil
+          endPosition = nil
+          children.each do |_node:Node|
+            node = Node(_node)
+            if node
+              childAdded(node)
+              startPosition ||= node.position
+              endPosition = node.position
+            end
+          end
           @children = java::util::ArrayList.new(children)
           unless @children.isEmpty
-            self.position = get(0).position + get(size - 1).position
+            self.position = startPosition + endPosition
           end
         else
           @children = java::util::ArrayList.new
@@ -269,9 +278,6 @@ class ListNodeState < BaseNodeState
         if children
           children.each {|node:Node| childAdded(Node(node))}
           @children = java::util::ArrayList.new(children)
-          unless @children.isEmpty
-            self.position = get(0).position + get(size - 1).position
-          end
         else
           @children = java::util::ArrayList.new
         end

@@ -15,20 +15,16 @@
 
 package mirahparser.lang.ast
 
-class Body < NodeImpl
-  init_list Node
-end
-
 class ClassAppendSelf < NodeImpl  # Better name? StaticScope or ClassScope maybe?
   init_node do
-    child body: Node
+    child_list body: Node
   end
 end
 
 class Block < NodeImpl
   init_node do
     child arguments: Arguments
-    child body: Node
+    child_list body: Node
   end
 end
 
@@ -40,15 +36,16 @@ class Noop < NodeImpl
   init_node
 end
 
+# Is there any reason for this node?
 class Script < NodeImpl
   init_node do
-    child body: Node
+    child_list body: Node
   end
 end
 
 class Annotation < NodeImpl
   init_node do
     child type: TypeName
-    child values: Hash
+    child_list values: HashEntry
   end
 end

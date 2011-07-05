@@ -63,23 +63,25 @@ parser MirahParser {
   start: ! prog=compstmt $EOF -> ^(Script prog);
 
   $Scope[@cond]
+  $Returns[List]
   compstmt: UNCOND
             terms? a=(s=statement terms {s})*
             b=statement?
             {addToBlock(a, b)};
 
+  $Returns[List]
   bodystmt: b=compstmt r=Rescue? e=Else? f=Ensure? {
-    node = Node(b)
+    list = b
     if r != nil
-      node = Rescue.new(makePosition(_start, _pos), b, r, e)
+      list = [Rescue.new(makePosition(_start, _pos), b, r, e)]
     elsif e != nil
       # Warning?
-      node = addToBlock(b, e)
+      list = addToBlock(b, e)
     end
     unless f.nil?
-      node = Ensure.new(makePosition(_start, _pos), orNil(node), f)
+      list = [Ensure.new(makePosition(_start, _pos), list, f)]
     end
-    orNil(node)
+    list
   };
 
   term: ($NL|$HereDocBegin)=>nl
@@ -94,20 +96,20 @@ parser MirahParser {
 
   $Memo[Node]
   statement: f=statement2
-             ( ($If)=> $If c=value(expr) f=-> ^(If c f nil)
-             | ($Unless)=> $Unless c=value(expr) f=-> ^(If c nil f)
-             | ($While)=> $While c=value(expr) f=-> ^(Loop c f false false)
-             | ($Until)=> $Until c=value(expr) f=-> ^(Loop c f true false)
-             | ($Rescue)=> $Rescue r=statement f=-> ^(Rescue f [^(RescueClause [] nil r)] nil)
+             ( ($If)=> $If c=value(expr) f=-> ^(If c [f] nil)
+             | ($Unless)=> $Unless c=value(expr) f=-> ^(If c nil [f])
+             | ($While)=> $While c=value(expr) f=-> ^(Loop c [f] false false)
+             | ($Until)=> $Until c=value(expr) f=-> ^(Loop c [f] true false)
+             | ($Rescue)=> $Rescue r=statement f=-> ^(Rescue [f] [^(RescueClause [] nil [r])] nil)
              )* {f};
 
   $Returns[Node]
   statement2: ( l=var_lhs ( $AndEq opt_nl r=command_call
                             b=assign(l, r)
-                            -> ^(If gettable2(l) b gettable2(l))
+                            -> ^(If gettable2(l) [b] [gettable2(l)])
                           | $OrEq opt_nl r=command_call
                             b=assign(l, r)
-                            -> ^(If gettable2(l) gettable2(l) b)
+                            -> ^(If gettable2(l) [gettable2(l)] [b])
                           | op=op_assign r=command_call
                             b2= -> ^(Call gettable2(l) op [r] nil)
                             assign(l, b2)
@@ -131,15 +133,16 @@ parser MirahParser {
   $Memo[Node]
   expr: a=( ($Not)=> $Not opt_nl e=expr node=-> ^(Not e) {Node(node)}
           | ($Bang)=> ($Bang e=command_call -> ^(Not e) | arg12)
-          | ( c=variable $Question opt_nl t=arg opt_nl $Colon opt_nl e=arg -> ^(If c t e)
+          | ( c=variable $Question opt_nl t=arg opt_nl $Colon opt_nl e=arg -> ^(If c [t] [e])
             | command_call
             | arg
             )
           )
-        ( ($And)=> $And opt_nl b=expr a=-> ^(If a b nil)
+        ( ($And)=> $And opt_nl b=expr a=-> ^(If a [b] nil)
         | ($Or)=> $Or opt_nl b=expr a=make_or(a, b))* {a};
 
-  make_or(a:Node, b:Node): t={makeIdentifier(a.position, temp(:or))} ->^(Body [^(LocalAssignment t a), ^(If t t b)]);
+  make_or(a:Node, b:Node): t={makeIdentifier(a.position, temp(:or))}
+    ->^(NodeList [^(LocalAssignment t a), ^(If ^(LocalAccess clone(t)) [^(LocalAccess clone(t))] [b])]);
 
   # Node:command - fcall/call/yield/super [!null]
   $Memo[Node]
@@ -211,19 +214,14 @@ parser MirahParser {
                   );
   $Returns[Node]
   primary2_lparen
-         : $LParen opt_nl e=compstmt opt_nl $RParen {
-           unless e.nil?
-             ae = Node(e)
-             NodeImpl(ae).position = makePosition(_start, _pos)
-           end
-           e
-         };
+         : $LParen opt_nl e=compstmt opt_nl $RParen -> ^(NodeList e);
   $Returns[Node]
   primary2_begin
          : t=$Begin s=block_start(t)! b=bodystmt verify_end(s)! $End
            ( type=($While|$Until) c=value(expr)
              {neg=type.type == Tokens.tUntil} -> ^(Loop c b neg true)
-           | {b}
+           | ?{b.size == 1} {b.get(0)}
+           | -> ^(NodeList b)
            );
   $Returns[Node]
   primary2_lbrack
@@ -261,13 +259,13 @@ parser MirahParser {
   primary2_while
          : isBEG2 t=$While s=block_start(t)! opt_nl COND cond=value(expr)!
            Do! body=compstmt! verify_end(s)! $End
-           -> ^(Loop cond orNil(body) false false);
+           -> ^(Loop cond body false false);
   $Scope[@cond]
   $Returns[Node]
   primary2_until
          : isBEG2 t=$Until s=block_start(t)! opt_nl COND cond=value(expr)!
            Do! body=compstmt! verify_end(s)! $End
-           l= -> ^(Loop cond orNil(body) true false);
+           l= -> ^(Loop cond body true false);
   $Scope[@cond]
   $Returns[Node]
   primary2_for
@@ -282,13 +280,13 @@ parser MirahParser {
            ( $LShift! BEG e=$Self
              term! b=compstmt! verify_end(sp)! $End
              !"no annotations" ?{annotations.isEmpty}
-             -> ^(ClassAppendSelf orNil(b))
+             -> ^(ClassAppendSelf b)
            | n=cname! s=superclass! ifaces=opt_implements
              b=compstmt!  # JRuby has bodystmt, but that doesn't make much
                           # sense for mirah. Maybe rescuing exceptions
                           # in the static initializer?
              verify_end(sp)! $End
-             -> ^(ClassDefinition n s orNil(b) ifaces annotations)
+             -> ^(ClassDefinition n s b ifaces annotations)
            );
   $Returns[Node]
   primary2_interface
@@ -301,7 +299,7 @@ parser MirahParser {
            $Do?
            b=compstmt
            verify_end(sp) $END
-            -> ^(InterfaceDeclaration n nil orNil(b) ifaces annotations)
+            -> ^(InterfaceDeclaration n nil b ifaces annotations)
            ;
   $Returns[Node]
   primary2_import
@@ -450,7 +448,7 @@ parser MirahParser {
 
   $Returns[Node]
   maybe_rescue: a=arg $Rescue b=value(arg)
-                -> ^(Rescue a [^(RescueClause [] nil b)] nil)
+                -> ^(Rescue [a] [^(RescueClause [] nil [b])] nil)
               | arg;
 
   $Returns[Assignment]
@@ -463,14 +461,14 @@ parser MirahParser {
   $Memo[Node]
   $Scope[@BEG]
   arg: h=arg0 ($Question opt_nl t=arg opt_nl $Colon opt_nl e=arg
-               h=-> ^(If h t e))* {h};
+               h=-> ^(If h [t] [e]))* {h};
   $Returns[Node]
   arg0: ( l=var_lhs ( $AndEq! opt_nl r=arg
                       b1=assign(l, r)
-                      -> ^(If gettable2(l) b1 gettable2(l))
+                      -> ^(If gettable2(l) [b1] [gettable2(l)])
                     | $OrEq! opt_nl r=arg
                       b1=assign(l, r)
-                      -> ^(If gettable2(l) gettable2(l) b1)
+                      -> ^(If gettable2(l) [gettable2(l)] [b1])
                     | op=op_assign! r=arg
                       b2= -> ^(Call gettable2(l) op [r] nil)
                       assign(l, b2)
@@ -494,7 +492,7 @@ parser MirahParser {
   arg2: &($Bang..$Tilde|primary)
         a=arg3 t=($Pipes opt_nl BEG b=arg3 a=make_or(a, b) )* {a};
   $Returns[Node]
-  arg3: a=arg4 t=($Ampers opt_nl BEG b=arg4 a=-> ^(If a b nil))* {a};
+  arg3: a=arg4 t=($Ampers opt_nl BEG b=arg4 a=-> ^(If a [b] nil))* {a};
   $Returns[Node]
   arg4: a=arg5 t=(tok=($Match..$EEEQ) op={makeIdentifier(tok)} opt_nl BEG b=arg5
                    a=-> ^(Call a op [b] nil)
@@ -642,8 +640,8 @@ parser MirahParser {
 
   $Scope[@BEG]
   annotation: $Dollar nosp n=cpath
-              arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl $RBrack -> ^(Hash [^(HashEntry ^(SimpleString "value") e)])
-                                              | a=listOf(:assoc) trailer opt_nl $RBrack -> ^(Hash a+)
+              arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl $RBrack -> [^(HashEntry ^(SimpleString "value") e)]
+                                              | a=listOf(:assoc) trailer opt_nl $RBrack {a}
                                               | $RBrack {nil}
                                               )
                   | {nil} )
@@ -741,9 +739,9 @@ parser MirahParser {
 
   str_ev: "\#@@"! nosp n=identifier2 -> ^(StringEval ^(FieldAccess makeIdentifier(makePosition(_start, _pos), n) true))
         | "\#@"!  nosp n=identifier2 -> ^(StringEval ^(FieldAccess makeIdentifier(makePosition(_start, _pos), n)))
-        | "\#{"! c=compstmt "}" -> ^(StringEval c);
+        | "\#{"! c=compstmt "}" -> ^(StringEval ^(NodeList c));
 
-  str_ev2: $StrEvBegin c=compstmt $RBrace -> ^(StringEval c)
+  str_ev2: $StrEvBegin c=compstmt $RBrace -> ^(StringEval ^(NodeList c))
          | $StrEvBegin cv=cvar -> ^(StringEval ^(FieldAccess cv true))
          | $StrEvBegin iv=ivar -> ^(StringEval ^(FieldAccess iv))
          ;
@@ -803,9 +801,10 @@ parser MirahParser {
   Else: $Else! compstmt;
   Do: ($Do | term) UNCOND;
 
+  $Returns[List]
   if_tail: Else
          | $Elsif! opt_nl cond=value(expr) Then body=compstmt tail=if_tail
-           -> ^(If cond body tail)
+           -> [^(If cond body tail)]
          | {nil};
 
   Rescue: ($Rescue! c=listOf(:cpath) ($Rocket opt_nl n=identifier)?
@@ -830,7 +829,7 @@ parser MirahParser {
                  assign=op_attr_assignment(temp, attr, args2, value)
                  body=op_attr_assign_body(op, fetch, assign)
                  l={[target2] + args2 + [body]}
-                 -> ^(Body l+);
+                 -> ^(NodeList l+);
   $Returns[Assignment]
   op_attr_assignment(target:Identifier, attr:Identifier, args:List, value:Node)
         : ?{'[]'.equals(attr.identifier)}
@@ -841,7 +840,7 @@ parser MirahParser {
   op_attr_assign_body(op:Identifier, fetch:Node, assignment:Assignment)
       : ?{'&&'.equals(op.identifier)}
            -> ^(If fetch
-                   assignment
+                   [assignment]
                    nil
                )
       | ?{'||'.equals(op.identifier)}
@@ -1056,10 +1055,6 @@ parser MirahParser {
           | /* empty */ -> [^(SimpleString "")]
           ;
 
-  orNil(node:Node): ?{node != nil} {node}
-                  | ->^(ImplicitNil)
-                  ;
-
   def parseInt(string:String) {
     radix = 10
     if string.length > 1 && string.charAt(0) == 48 # '0'
@@ -1120,45 +1115,19 @@ parser MirahParser {
     c.codePointAt(0)
   }
 
-  def obj2ast(x:Object) {
-    returns Node
-    if x.kind_of?(Node)
-      Node(x)
-    elsif x.kind_of?(List)
-      l = List(x)
-      if l.size == 0
-        Node(nil)
-      elsif l.size == 1
-        Node(obj2ast(l.get(0)))
-      else
-        first = obj2ast(l.get(0))
-        last = obj2ast(l.get(l.size - 1))
-        Body.new(first.position + last.position, l)
-      end
-    elsif x.nil?
-      Node(nil)
-    else
-      raise "Expected Node, got #{x} (#{x.getClass})"
+  def addToBlock(a:List, b:Object) {
+    returns List
+    if b.kind_of?(List)
+      a.addAll(List(b))
+    elsif b
+      a.add(b)
     end
-  }
-
-  def addToBlock(a:Object, b:Object) {
-    returns Node
-    x = obj2ast(a)
-    y = obj2ast(b)
-    if x.nil?
-      return y
-    elsif y.nil?
-      return x
-    end
-    position = x.position + y.position
-    # TODO merge bodies?
-    body = Body.new(position, [x, y])
+    a
   }
 
   def checkExpression(e:Object) {
     # TODO actually check
-    orNil(Node(e))
+    Node(e)
   }
 
   def gettable2(e:Node) {

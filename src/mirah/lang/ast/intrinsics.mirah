@@ -162,7 +162,7 @@ class MacroDefinition < NodeImpl
   implements Named
   init_node do
     child name: Identifier
-    child arguments: NodeList
-    child body: Node
+    child_list arguments: Node
+    child_list body: Node
   end
 end

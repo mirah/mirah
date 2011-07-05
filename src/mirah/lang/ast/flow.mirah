@@ -14,6 +14,8 @@
 # limitations under the License.
 package mirahparser.lang.ast
 
+import java.util.List
+
 # class Condition < NodeImpl
 #   child predicate: Node
 # end
@@ -21,30 +23,28 @@ package mirahparser.lang.ast
 class If < NodeImpl
   init_node do
     child condition: Node
-    child body: Node
-    child elseBody: Node
+    child_list body: Node
+    child_list elseBody: Node
   end
 end
 
 # Should this be split into multiple nodes?
 class Loop < NodeImpl
   init_node do
-    child init: Body
+    child_list init: Node
     child condition: Node
-    child pre: Body
-    child body: Body
-    child post: Body
+    child_list pre: Node
+    child_list body: Node
+    child_list post: Node
     attr_accessor skipFirstCheck: 'boolean', negative: 'boolean'
   end
 
-  def initialize(position:Position, condition:Node, body:Node, negative:boolean, skipFirstCheck:boolean)
-    super(position)
-    self.init = Body.new
+  def initialize(position:Position, condition:Node, body:List, negative:boolean, skipFirstCheck:boolean)
+    self.init = NodeList.new
     self.condition = condition
-    self.pre = Body.new
-    self.body = Body.new
-    self.body.add(body)
-    self.post = Body.new
+    self.pre = NodeList.new
+    self.body = NodeList.new(body)
+    self.post = NodeList.new
     self.negative = negative
     self.skipFirstCheck = skipFirstCheck
   end
@@ -84,21 +84,21 @@ class RescueClause < NodeImpl
   init_node do
     child_list types: TypeName
     child name: Identifier
-    child body: Node
+    child_list body: Node
   end
 end
 
 class Rescue < NodeImpl
   init_node do
-    child body: Node
+    child_list body: Node
     child_list clauses: RescueClause
-    child elseClause: Node
+    child_list elseClause: Node
   end
 end
 
 class Ensure < NodeImpl
   init_node do
-    child body: Node
-    child ensureClause: Node
+    child_list body: Node
+    child_list ensureClause: Node
   end
 end

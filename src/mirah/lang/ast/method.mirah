@@ -71,7 +71,7 @@ class MethodDefinition < NodeImpl
     child name: Identifier
     child arguments: Arguments
     child type: TypeName
-    child body: Node
+    child_list body: Node
     child_list annotations: Annotation
     # exceptions
   end

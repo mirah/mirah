@@ -35,9 +35,7 @@ class CharLiteral < NodeImpl
 end
 
 class Hash < NodeImpl
-  init_node do
-    child_list entries: HashEntry
-  end
+  init_list HashEntry
 end
 
 class HashEntry < NodeImpl
