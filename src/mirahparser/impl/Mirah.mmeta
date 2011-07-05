@@ -713,10 +713,10 @@ parser MirahParser {
           | ($ClassVar|$ClassVarBacktick)=> v=cvar    -> ^(FieldAccess v true)
           | ($InstVar|$InstVarBacktick)=> v=ivar      -> ^(FieldAccess v)
           | ($Dollar)=> annotation
-          | ($FID)=> n=fid                            -> ^(FunctionalCall n [] nil)
+          | ($FID)=> n=fid                            -> ^(VCall n)
           | ($CONSTANT)=> c=constant                  -> ^(Constant c)
-          | ($IDENTIFIER)=> n=identifier              -> ^(FunctionalCall n [] nil)
-          | (lastdot)=> n=identifier                  -> ^(FunctionalCall n [] nil);
+          | ($IDENTIFIER)=> n=identifier              -> ^(VCall n)
+          | (lastdot)=> n=identifier                  -> ^(VCall n);
 
   symbol: $Colon n=identifier3 -> ^(SimpleString n);
 

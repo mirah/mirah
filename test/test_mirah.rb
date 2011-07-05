@@ -149,13 +149,13 @@ EOF
     assert_parse("[Script, [[FieldAccess, [SimpleString, bar]]]]", '@bar')
     assert_parse("[Script, [[FieldAccess, [SimpleString, cfoo], static]]]", '@@cfoo')
     assert_parse("[Script, [[FieldAccess, [SimpleString, cbar], static]]]", '@@cbar')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [], null]]]", 'a')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, b], [], null]]]", 'b')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, end_pos], [], null]]]", 'end_pos')
+    assert_parse("[Script, [[VCall, [SimpleString, a]]]]", 'a')
+    assert_parse("[Script, [[VCall, [SimpleString, b]]]]", 'b')
+    assert_parse("[Script, [[VCall, [SimpleString, end_pos]]]]", 'end_pos')
     assert_parse("[Script, [[Constant, [SimpleString, A]]]]", 'A')
     assert_parse("[Script, [[Constant, [SimpleString, B]]]]", 'B')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, B!], [], null]]]", 'B!')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, def?], [], null]]]", 'def?')
+    assert_parse("[Script, [[VCall, [SimpleString, B!]]]]", 'B!')
+    assert_parse("[Script, [[VCall, [SimpleString, def?]]]]", 'def?')
     assert_fails("BEGIN")
     assert_fails("until")
     assert_fails("def!=")
@@ -210,7 +210,7 @@ EOF
       "[Script, [[StringConcat, [StringPieceList, [SimpleString, a ], [StringEval, [FieldAccess, [SimpleString, b], static]], [SimpleString,  c]]]]]",
       '"a #@@b c"')
     assert_parse(
-      "[Script, [[StringConcat, [StringPieceList, [SimpleString, a], [StringEval, [[FunctionalCall, [SimpleString, b], [], null]]], [SimpleString, c]]]]]",
+      "[Script, [[StringConcat, [StringPieceList, [SimpleString, a], [StringEval, [[VCall, [SimpleString, b]]]], [SimpleString, c]]]]]",
       '"a#{b}c"')
     assert_parse(
       "[Script, [[StringConcat, [StringPieceList, [SimpleString, a], [StringEval, [[SimpleString, b]]], [SimpleString, c]]]]]",
@@ -242,7 +242,7 @@ EOF
                  "<<A;<<B\n\#{<<A\nB\nA\n}\nA\nb\nB\nA\n")
     assert_fails("<<FOO")
     assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [[StringConcat, [StringPieceList, [SimpleString, c\n]]]], null]]]", "a <<b\nc\nb\n")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, <<], [[FunctionalCall, [SimpleString, b], [], null]], null], [FunctionalCall, [SimpleString, c], [], null], [FunctionalCall, [SimpleString, b], [], null]]]", "a << b\nc\n b\n")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, <<], [[VCall, [SimpleString, b]]], null], [VCall, [SimpleString, c]], [VCall, [SimpleString, b]]]]", "a << b\nc\n b\n")
   end
 
   def test_regexp
@@ -250,7 +250,7 @@ EOF
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, \\/]], [SimpleString, ]]]]", '/\\//')
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a]], [SimpleString, i]]]]", '/a/i')
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a]], [SimpleString, iz]]]]", '/a/iz')
-    assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a], [StringEval, [[FunctionalCall, [SimpleString, b], [], null]]], [SimpleString, c]], [SimpleString, iz]]]]", '/a#{b}c/iz')
+    assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a], [StringEval, [[VCall, [SimpleString, b]]]], [SimpleString, c]], [SimpleString, iz]]]]", '/a#{b}c/iz')
     assert_parse("[Script, [[Regex, [StringPieceList], [SimpleString, ]]]]", '//')
   end
 
@@ -310,22 +310,22 @@ EOF
     assert_parse("[Script, [[ClassDefinition, [Constant, [SimpleString, A]], null, [[Fixnum, 1]], [TypeNameList], [AnnotationList]]]]", 'class A;1;end')
     # assert_parse("[Script, [[ClassDefinition, [Colon2, [Constant, [SimpleString, A]], [Constant, [SimpleString, B]]], [Fixnum, 1], [TypeNameList], [AnnotationList]]]]", 'class A::B;1;end')
     assert_parse("[Script, [[ClassDefinition, [Constant, [SimpleString, A]], [Constant, [SimpleString, B]], [[Fixnum, 1]], [TypeNameList], [AnnotationList]]]]", 'class A < B;1;end')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, null, [[FunctionalCall, [SimpleString, x], [], null]]]]]]", "foo do;x;end")
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, null, [[FunctionalCall, [SimpleString, y], [], null]]]]]]", "foo {y}")
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo?], [], [Block, null, [[FunctionalCall, [SimpleString, z], [], null]]]]]]", "foo? {z}")
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, null, [[VCall, [SimpleString, x]]]]]]]", "foo do;x;end")
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, null, [[VCall, [SimpleString, y]]]]]]]", "foo {y}")
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo?], [], [Block, null, [[VCall, [SimpleString, z]]]]]]]", "foo? {z}")
     assert_fails('class a;1;end')
   end
 
   def test_if
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[Fixnum, 1]], []]]]", 'if a then 1 end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[Fixnum, 1]], []]]]", 'if a;1;end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [], []]]]", 'if a;else;end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[Fixnum, 1]], [[Fixnum, 2]]]]]", 'if a then 1 else 2 end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[Fixnum, 1]], [[If, [FunctionalCall, [SimpleString, b], [], null], [[Fixnum, 2]], [[Fixnum, 3]]]]]]]",
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[Fixnum, 1]], []]]]", 'if a then 1 end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[Fixnum, 1]], []]]]", 'if a;1;end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [], []]]]", 'if a;else;end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[Fixnum, 1]], [[Fixnum, 2]]]]]", 'if a then 1 else 2 end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[Fixnum, 1]], [[If, [VCall, [SimpleString, b]], [[Fixnum, 2]], [[Fixnum, 3]]]]]]]",
                  'if a; 1; elsif b; 2; else; 3; end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [], [[Fixnum, 1]]]]]", 'unless a then 1 end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [], [[Fixnum, 1]]]]]", 'unless a;1;end')
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[Fixnum, 2]], [[Fixnum, 1]]]]]", 'unless a then 1 else 2 end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [], [[Fixnum, 1]]]]]", 'unless a then 1 end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [], [[Fixnum, 1]]]]]", 'unless a;1;end')
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[Fixnum, 2]], [[Fixnum, 1]]]]]", 'unless a then 1 else 2 end')
     assert_fails("if;end")
     assert_fails("if a then 1 else 2 elsif b then 3 end")
     assert_fails("if a;elsif end")
@@ -333,11 +333,11 @@ EOF
 
   def test_loop
     assert_parse("[Script, [[Loop, [], [Boolean, true], [], [], []]]]", 'while true do end')
-    assert_parse("[Script, [[Loop, [], [FunctionalCall, [SimpleString, a], [], null], [], [[FunctionalCall, [SimpleString, b], [], null]], []]]]", 'while a do b end')
-    assert_parse("[Script, [[Loop, [], [FunctionalCall, [SimpleString, a], [], null], [], [[FunctionalCall, [SimpleString, b], [], null]], []]]]", 'while a; b; end')
+    assert_parse("[Script, [[Loop, [], [VCall, [SimpleString, a]], [], [[VCall, [SimpleString, b]]], []]]]", 'while a do b end')
+    assert_parse("[Script, [[Loop, [], [VCall, [SimpleString, a]], [], [[VCall, [SimpleString, b]]], []]]]", 'while a; b; end')
     assert_parse("[Script, [[Loop, negative, [], [Boolean, true], [], [], []]]]", 'until true do end')
-    assert_parse("[Script, [[Loop, negative, [], [FunctionalCall, [SimpleString, a], [], null], [], [[FunctionalCall, [SimpleString, b], [], null]], []]]]", 'until a do b end')
-    assert_parse("[Script, [[Loop, negative, [], [FunctionalCall, [SimpleString, a], [], null], [], [[FunctionalCall, [SimpleString, b], [], null]], []]]]", 'until a; b; end')
+    assert_parse("[Script, [[Loop, negative, [], [VCall, [SimpleString, a]], [], [[VCall, [SimpleString, b]]], []]]]", 'until a do b end')
+    assert_parse("[Script, [[Loop, negative, [], [VCall, [SimpleString, a]], [], [[VCall, [SimpleString, b]]], []]]]", 'until a; b; end')
     assert_parse("[Script, [[Call, [Array, [[Fixnum, 1]]], [SimpleString, each], [], [Block, [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [[Fixnum, 2]]]]]]", 'for a in [1];2;end')
   end
 
@@ -403,93 +403,93 @@ EOF
 
   def test_method_call
     assert_parse("[Script, [[FunctionalCall, [SimpleString, B], [], null]]]", 'B()')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, a], [], null]], null]]]", 'foo(a)')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, a], [], null], [FunctionalCall, [SimpleString, b], [], null]], null]]]", 'foo(a, b)')
-    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, a], [], null], [Splat, [FunctionalCall, [SimpleString, b], [], null]]], null]]]", 'foo(a, *b)')
-    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, a], [], null], [Splat, [FunctionalCall, [SimpleString, b], [], null]], [Hash, [HashEntry, [SimpleString, c], [FunctionalCall, [SimpleString, d], [], null]]]], null]]]", 'foo(a, *b, c:d)')
-    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, a], [], null], [Splat, [FunctionalCall, [SimpleString, b], [], null]], [Hash, [HashEntry, [SimpleString, c], [FunctionalCall, [SimpleString, d], [], null]]]], null]]]", 'foo(a, *b, :c => d)')
-    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, a], [], null], [Splat, [FunctionalCall, [SimpleString, b], [], null]], [Hash, [HashEntry, [SimpleString, c], [FunctionalCall, [SimpleString, d], [], null]]], [BlockPass, [FunctionalCall, [SimpleString, e], [], null]]], null]]]", 'foo(a, *b, c:d, &e)')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[Hash, [HashEntry, [SimpleString, c], [FunctionalCall, [SimpleString, d], [], null]]]], null]]]", 'foo(c:d)')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[Hash, [HashEntry, [SimpleString, c], [FunctionalCall, [SimpleString, d], [], null]]], [BlockPass, [FunctionalCall, [SimpleString, e], [], null]]], null]]]", 'foo(c:d, &e)')
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[BlockPass, [FunctionalCall, [SimpleString, e], [], null]]], null]]]", 'foo(&e)')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, foo], [], null]]]", 'a.foo')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, foo], [], null]]]", 'a.foo()')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, Foo], [], null]]]", 'a.Foo()')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, <=>], [], null]]]", 'a.<=>')
-    assert_parse("[Script, [[Call, [Constant, [SimpleString, Foo]], [SimpleString, Bar], [[FunctionalCall, [SimpleString, x], [], null]], null]]]", 'Foo::Bar(x)')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, call], [], null]]]", 'a.()')
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, a]]], null]]]", 'foo(a)')
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, a]], [VCall, [SimpleString, b]]], null]]]", 'foo(a, b)')
+    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, a]], [Splat, [VCall, [SimpleString, b]]]], null]]]", 'foo(a, *b)')
+    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, a]], [Splat, [VCall, [SimpleString, b]]], [Hash, [HashEntry, [SimpleString, c], [VCall, [SimpleString, d]]]]], null]]]", 'foo(a, *b, c:d)')
+    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, a]], [Splat, [VCall, [SimpleString, b]]], [Hash, [HashEntry, [SimpleString, c], [VCall, [SimpleString, d]]]]], null]]]", 'foo(a, *b, :c => d)')
+    # assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, a]], [Splat, [VCall, [SimpleString, b]]], [Hash, [HashEntry, [SimpleString, c], [VCall, [SimpleString, d]]]], [BlockPass, [VCall, [SimpleString, e]]]], null]]]", 'foo(a, *b, c:d, &e)')
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[Hash, [HashEntry, [SimpleString, c], [VCall, [SimpleString, d]]]]], null]]]", 'foo(c:d)')
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[Hash, [HashEntry, [SimpleString, c], [VCall, [SimpleString, d]]]], [BlockPass, [VCall, [SimpleString, e]]]], null]]]", 'foo(c:d, &e)')
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [[BlockPass, [VCall, [SimpleString, e]]]], null]]]", 'foo(&e)')
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, foo], [], null]]]", 'a.foo')
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, foo], [], null]]]", 'a.foo()')
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, Foo], [], null]]]", 'a.Foo()')
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, <=>], [], null]]]", 'a.<=>')
+    assert_parse("[Script, [[Call, [Constant, [SimpleString, Foo]], [SimpleString, Bar], [[VCall, [SimpleString, x]]], null]]]", 'Foo::Bar(x)')
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, call], [], null]]]", 'a.()')
     assert_parse("[Script, [[Call, [Constant, [SimpleString, System]], [SimpleString, in], [], null]]]", "System.in")
-    assert_parse("[Script, [[Call, [Array, [[FunctionalCall, [SimpleString, la], [], null], [FunctionalCall, [SimpleString, lb], [], null]]], [SimpleString, each], [], null]]]", "[la, lb].each")
-    assert_parse("[Script, [[Call, [Constant, [SimpleString, TreeNode]], [SimpleString, bottomUpTree], [[Call, [Fixnum, 2], [SimpleString, *], [[FunctionalCall, [SimpleString, item], [], null]], null], [Call, [FunctionalCall, [SimpleString, depth], [], null], [SimpleString, -], [[Fixnum, 1]], null]], null]]]", "TreeNode.bottomUpTree(2*item, depth-1)")
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, iterate], [[Call, [FunctionalCall, [SimpleString, x], [], null], [SimpleString, /], [[Float, 40.0]], null], [Call, [FunctionalCall, [SimpleString, y], [], null], [SimpleString, /], [[Float, 40.0]], null]], null]]]", "iterate(x/40.0,y/40.0)")
+    assert_parse("[Script, [[Call, [Array, [[VCall, [SimpleString, la]], [VCall, [SimpleString, lb]]]], [SimpleString, each], [], null]]]", "[la, lb].each")
+    assert_parse("[Script, [[Call, [Constant, [SimpleString, TreeNode]], [SimpleString, bottomUpTree], [[Call, [Fixnum, 2], [SimpleString, *], [[VCall, [SimpleString, item]]], null], [Call, [VCall, [SimpleString, depth]], [SimpleString, -], [[Fixnum, 1]], null]], null]]]", "TreeNode.bottomUpTree(2*item, depth-1)")
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, iterate], [[Call, [VCall, [SimpleString, x]], [SimpleString, /], [[Float, 40.0]], null], [Call, [VCall, [SimpleString, y]], [SimpleString, /], [[Float, 40.0]], null]], null]]]", "iterate(x/40.0,y/40.0)")
     assert_parse("[Script, [[Super, [], null]]]", 'super()')
     assert_parse("[Script, [[ZSuper]]]", 'super')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, foo], [], null]]]", "a\n.\nfoo")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, foo], [], null]]]", "a\n.\nfoo")
   end
 
   def test_command
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, A], [[FunctionalCall, [SimpleString, b], [], null]], null]]]", 'A b')
-    assert_parse("[Script, [[Call, [Constant, [SimpleString, Foo]], [SimpleString, Bar], [[FunctionalCall, [SimpleString, x], [], null]], null]]]", 'Foo::Bar x')
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, foo], [], null], [SimpleString, bar], [[FunctionalCall, [SimpleString, x], [], null]], null]]]", 'foo.bar x')
-    assert_parse("[Script, [[Super, [[FunctionalCall, [SimpleString, x], [], null]]]]]", 'super x')
-    assert_parse("[Script, [[Yield, [[FunctionalCall, [SimpleString, x], [], null]]]]]", 'yield x')
-    assert_parse("[Script, [[Return, [FunctionalCall, [SimpleString, x], [], null]]]]", 'return x')
+    assert_parse("[Script, [[FunctionalCall, [SimpleString, A], [[VCall, [SimpleString, b]]], null]]]", 'A b')
+    assert_parse("[Script, [[Call, [Constant, [SimpleString, Foo]], [SimpleString, Bar], [[VCall, [SimpleString, x]]], null]]]", 'Foo::Bar x')
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, foo]], [SimpleString, bar], [[VCall, [SimpleString, x]]], null]]]", 'foo.bar x')
+    assert_parse("[Script, [[Super, [[VCall, [SimpleString, x]]]]]]", 'super x')
+    assert_parse("[Script, [[Yield, [[VCall, [SimpleString, x]]]]]]", 'yield x')
+    assert_parse("[Script, [[Return, [VCall, [SimpleString, x]]]]]", 'return x')
     assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [[CharLiteral, 97]], null]]]", 'a ?a')
-    # assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [[Splat, [FunctionalCall, [SimpleString, b], [], null]]], null]]]", 'a *b')
+    # assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [[Splat, [VCall, [SimpleString, b]]]], null]]]", 'a *b')
   end
 
   def test_lhs
-    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, b], [], null]]]]", "a = b")
-    assert_parse("[Script, [[ConstantAssign, [SimpleString, A], [FunctionalCall, [SimpleString, b], [], null], [AnnotationList]]]]", "A = b")
-    assert_parse("[Script, [[FieldAssign, [SimpleString, a], [FunctionalCall, [SimpleString, b], [], null], [AnnotationList]]]]", "@a = b")
-    assert_parse("[Script, [[FieldAssign, [SimpleString, a], [FunctionalCall, [SimpleString, b], [], null], [AnnotationList], static]]]", "@@a = b")
-    assert_parse("[Script, [[ElemAssign, [FunctionalCall, [SimpleString, a], [], null], [[Fixnum, 0]], [FunctionalCall, [SimpleString, b], [], null]]]]", "a[0] = b")
-    assert_parse("[Script, [[AttrAssign, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, foo], [FunctionalCall, [SimpleString, b], [], null]]]]", "a.foo = b")
-    assert_parse("[Script, [[AttrAssign, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, foo], [FunctionalCall, [SimpleString, b], [], null]]]]", "a::foo = b")
+    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [VCall, [SimpleString, b]]]]]", "a = b")
+    assert_parse("[Script, [[ConstantAssign, [SimpleString, A], [VCall, [SimpleString, b]], [AnnotationList]]]]", "A = b")
+    assert_parse("[Script, [[FieldAssign, [SimpleString, a], [VCall, [SimpleString, b]], [AnnotationList]]]]", "@a = b")
+    assert_parse("[Script, [[FieldAssign, [SimpleString, a], [VCall, [SimpleString, b]], [AnnotationList], static]]]", "@@a = b")
+    assert_parse("[Script, [[ElemAssign, [VCall, [SimpleString, a]], [[Fixnum, 0]], [VCall, [SimpleString, b]]]]]", "a[0] = b")
+    assert_parse("[Script, [[AttrAssign, [VCall, [SimpleString, a]], [SimpleString, foo], [VCall, [SimpleString, b]]]]]", "a.foo = b")
+    assert_parse("[Script, [[AttrAssign, [VCall, [SimpleString, a]], [SimpleString, foo], [VCall, [SimpleString, b]]]]]", "a::foo = b")
     assert_fails("a::Foo = b")
     assert_fails("::Foo = b")
   end
 
   def test_arg
-    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [Rescue, [[FunctionalCall, [SimpleString, b], [], null]], [RescueClauseList, [RescueClause, [TypeNameList], null, [[FunctionalCall, [SimpleString, c], [], null]]]], []]]]]",
+    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [Rescue, [[VCall, [SimpleString, b]]], [RescueClauseList, [RescueClause, [TypeNameList], null, [[VCall, [SimpleString, c]]]]], []]]]]",
                  "a = b rescue c")
-    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, b], [], null]]], [[LocalAccess, [SimpleString, a]]]]]]",
+    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAssignment, [SimpleString, a], [VCall, [SimpleString, b]]]], [[LocalAccess, [SimpleString, a]]]]]]",
                  "a &&= b")
-    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAccess, [SimpleString, a]]], [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, b], [], null]]]]]]",
+    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAccess, [SimpleString, a]]], [[LocalAssignment, [SimpleString, a], [VCall, [SimpleString, b]]]]]]]",
                  "a ||= b")
     assert_parse("[Script, [[FieldAssign, [SimpleString, a], [Call, [FieldAccess, [SimpleString, a]], [SimpleString, +], [[Fixnum, 1]], null], [AnnotationList]]]]",
                  "@a += 1")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [LocalAssignment, [SimpleString, $ptemp$2], [Fixnum, 1]]," +
                                 " [ElemAssign, [LocalAccess, [SimpleString, $ptemp$1]], [[LocalAccess, [SimpleString, $ptemp$2]]], [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, []], [[LocalAccess, [SimpleString, $ptemp$2]]], null], [SimpleString, -], [[Fixnum, 2]], null]]]]]",
                  "a[1] -= 2")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [If, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [], null]," +
-                                     " [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [FunctionalCall, [SimpleString, b], [], null]]], []]]]]",
+                                     " [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [VCall, [SimpleString, b]]]], []]]]]",
                  "a.foo &&= b")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [[LocalAssignment, [SimpleString, $or$2], [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [], null]]," +
-                                       " [If, [LocalAccess, [SimpleString, $or$2]], [[LocalAccess, [SimpleString, $or$2]]], [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [FunctionalCall, [SimpleString, b], [], null]]]]]]]]",
+                                       " [If, [LocalAccess, [SimpleString, $or$2]], [[LocalAccess, [SimpleString, $or$2]]], [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [VCall, [SimpleString, b]]]]]]]]]",
                  "a::foo ||= b")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, Foo]," +
-                                             " [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, Foo], [], null], [SimpleString, &], [[FunctionalCall, [SimpleString, b], [], null]], null]]" +
+                                             " [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, Foo], [], null], [SimpleString, &], [[VCall, [SimpleString, b]]], null]]" +
                                 "]]]",
                  "a.Foo &= b")
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[FunctionalCall, [SimpleString, b], [], null]], [[FunctionalCall, [SimpleString, c], [], null]]]]]",
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[VCall, [SimpleString, b]]], [[VCall, [SimpleString, c]]]]]]",
                  "a ? b : c")
     # TODO operators need a ton more testing
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, +], [[FunctionalCall, [SimpleString, b], [], null]], null]]]", "a + b")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, -], [[FunctionalCall, [SimpleString, b], [], null]], null]]]", "a - b")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, *], [[FunctionalCall, [SimpleString, b], [], null]], null]]]", "a * b")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, *], [[FunctionalCall, [SimpleString, b], [], null]], null]]]", "a*b")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, <], [[Fixnum, -1]], null]]]", "a < -1")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, +], [[VCall, [SimpleString, b]]], null]]]", "a + b")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, -], [[VCall, [SimpleString, b]]], null]]]", "a - b")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, *], [[VCall, [SimpleString, b]]], null]]]", "a * b")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, *], [[VCall, [SimpleString, b]]], null]]]", "a*b")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, <], [[Fixnum, -1]], null]]]", "a < -1")
     assert_parse("[Script, [[Fixnum, -1]]]", "-1")
     assert_parse("[Script, [[Float, -1.0]]]", "-1.0")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, -@], [], null]]]", "-a")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, +@], [], null]]]", "+a")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, -@], [], null]]]", "-a")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [SimpleString, +@], [], null]]]", "+a")
 
-    assert_parse("[Script, [[Call, [Call, [FunctionalCall, [SimpleString, a], [], null], [SimpleString, -], [[FunctionalCall, [SimpleString, b], [], null]], null], [SimpleString, +], [[FunctionalCall, [SimpleString, c], [], null]], null]]]",
+    assert_parse("[Script, [[Call, [Call, [VCall, [SimpleString, a]], [SimpleString, -], [[VCall, [SimpleString, b]]], null], [SimpleString, +], [[VCall, [SimpleString, c]]], null]]]",
                  "a - b + c")
 
     assert_fails("::A ||= 1")
@@ -503,66 +503,66 @@ EOF
                  "a = 1 or b = 2")
     assert_parse("[Script, [[Not, [LocalAssignment, [SimpleString, a], [Fixnum, 1]]]]]",
                  "not a = 1")
-    assert_parse("[Script, [[Not, [FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]]]]",
+    assert_parse("[Script, [[Not, [FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]]]]",
                  "! foo bar")
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, a], [], null], [[Call, [FunctionalCall, [SimpleString, x], [], null], [SimpleString, children], [], null]], [[Array, [[FunctionalCall, [SimpleString, x], [], null]]]]]]]", "a ? x.children : [x]")
+    assert_parse("[Script, [[If, [VCall, [SimpleString, a]], [[Call, [VCall, [SimpleString, x]], [SimpleString, children], [], null]], [[Array, [[VCall, [SimpleString, x]]]]]]]]", "a ? x.children : [x]")
    end
 
    def test_stmt
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, b], [], null], [[FunctionalCall, [SimpleString, a], [], null]], []]]]", "a if b")
-    assert_parse("[Script, [[If, [FunctionalCall, [SimpleString, b], [], null], [], [[FunctionalCall, [SimpleString, a], [], null]]]]]", "a unless b")
-    assert_parse("[Script, [[Loop, [], [FunctionalCall, [SimpleString, b], [], null], [], [[FunctionalCall, [SimpleString, a], [], null]], []]]]", "a while b")
-    assert_parse("[Script, [[Loop, negative, [], [FunctionalCall, [SimpleString, b], [], null], [], [[FunctionalCall, [SimpleString, a], [], null]], []]]]", "a until b")
-    assert_parse("[Script, [[Loop, skipFirstCheck, [], [FunctionalCall, [SimpleString, b], [], null], [], [[FunctionalCall, [SimpleString, a], [], null]], []]]]", "begin;a;end while b")
-    assert_parse("[Script, [[Loop, skipFirstCheck, negative, [], [FunctionalCall, [SimpleString, b], [], null], [], [[FunctionalCall, [SimpleString, a], [], null]], []]]]", "begin;a;end until b")
-    assert_parse("[Script, [[Rescue, [[FunctionalCall, [SimpleString, a], [], null]], [RescueClauseList, [RescueClause, [TypeNameList], null, [[FunctionalCall, [SimpleString, b], [], null]]]], []]]]",
+    assert_parse("[Script, [[If, [VCall, [SimpleString, b]], [[VCall, [SimpleString, a]]], []]]]", "a if b")
+    assert_parse("[Script, [[If, [VCall, [SimpleString, b]], [], [[VCall, [SimpleString, a]]]]]]", "a unless b")
+    assert_parse("[Script, [[Loop, [], [VCall, [SimpleString, b]], [], [[VCall, [SimpleString, a]]], []]]]", "a while b")
+    assert_parse("[Script, [[Loop, negative, [], [VCall, [SimpleString, b]], [], [[VCall, [SimpleString, a]]], []]]]", "a until b")
+    assert_parse("[Script, [[Loop, skipFirstCheck, [], [VCall, [SimpleString, b]], [], [[VCall, [SimpleString, a]]], []]]]", "begin;a;end while b")
+    assert_parse("[Script, [[Loop, skipFirstCheck, negative, [], [VCall, [SimpleString, b]], [], [[VCall, [SimpleString, a]]], []]]]", "begin;a;end until b")
+    assert_parse("[Script, [[Rescue, [[VCall, [SimpleString, a]]], [RescueClauseList, [RescueClause, [TypeNameList], null, [[VCall, [SimpleString, b]]]]], []]]]",
                  "a rescue b")
-    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]]]]", "a = foo bar")
-    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [Call, [LocalAccess, [SimpleString, a]], [SimpleString, +], [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]], null]]]]", "a += foo bar")
-    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]]], [[LocalAccess, [SimpleString, a]]]]]]",
+    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]]]]", "a = foo bar")
+    assert_parse("[Script, [[LocalAssignment, [SimpleString, a], [Call, [LocalAccess, [SimpleString, a]], [SimpleString, +], [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]], null]]]]", "a += foo bar")
+    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]]], [[LocalAccess, [SimpleString, a]]]]]]",
                  "a &&= foo bar")
-    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAccess, [SimpleString, a]]], [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]]]]]]",
+    assert_parse("[Script, [[If, [LocalAccess, [SimpleString, a]], [[LocalAccess, [SimpleString, a]]], [[LocalAssignment, [SimpleString, a], [FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]]]]]]",
                  "a ||= foo bar")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [LocalAssignment, [SimpleString, $ptemp$2], [Fixnum, 1]]," +
-                                " [ElemAssign, [LocalAccess, [SimpleString, $ptemp$1]], [[LocalAccess, [SimpleString, $ptemp$2]]], [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, []], [[LocalAccess, [SimpleString, $ptemp$2]]], null], [SimpleString, -], [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]], null]]]]]",
+                                " [ElemAssign, [LocalAccess, [SimpleString, $ptemp$1]], [[LocalAccess, [SimpleString, $ptemp$2]]], [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, []], [[LocalAccess, [SimpleString, $ptemp$2]]], null], [SimpleString, -], [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]], null]]]]]",
                  "a[1] -= foo bar")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [If, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [], null]," +
-                                     " [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]]], []]]" +
+                                     " [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]]], []]]" +
                                 "]]",
                  "a.foo &&= foo bar")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
-                                " [[LocalAssignment, [SimpleString, $or$2], [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [], null]], [If, [LocalAccess, [SimpleString, $or$2]], [[LocalAccess, [SimpleString, $or$2]]], [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]]]]]]]]",
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
+                                " [[LocalAssignment, [SimpleString, $or$2], [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [], null]], [If, [LocalAccess, [SimpleString, $or$2]], [[LocalAccess, [SimpleString, $or$2]]], [[AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, foo], [FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]]]]]]]]",
                  "a::foo ||= foo bar")
-    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [FunctionalCall, [SimpleString, a], [], null]]," +
+    assert_parse("[Script, [[[LocalAssignment, [SimpleString, $ptemp$1], [VCall, [SimpleString, a]]]," +
                                 " [AttrAssign, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, Foo]," +
-                                             " [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, Foo], [], null], [SimpleString, &], [[FunctionalCall, [SimpleString, foo], [[FunctionalCall, [SimpleString, bar], [], null]], null]], null]]" +
+                                             " [Call, [Call, [LocalAccess, [SimpleString, $ptemp$1]], [SimpleString, Foo], [], null], [SimpleString, &], [[FunctionalCall, [SimpleString, foo], [[VCall, [SimpleString, bar]]], null]], null]]" +
                                 "]]]",
                  "a.Foo &= foo bar")
     assert_parse("[Script, [[If, [Boolean, true], [[Return, [ImplicitNil]]], []]]]", "return if true")
    end
 
    def test_block_args
-     assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [], [Block, [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, x], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [[FunctionalCall, [SimpleString, x], [], null]]]]]]", "a {|x| x}")
-     assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [], [Block, [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], [[FunctionalCall, [SimpleString, x], [], null]]]]]]", "a {|| x}")
+     assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [], [Block, [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, x], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [[VCall, [SimpleString, x]]]]]]]", "a {|x| x}")
+     assert_parse("[Script, [[FunctionalCall, [SimpleString, a], [], [Block, [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], [[VCall, [SimpleString, x]]]]]]]", "a {|| x}")
    end
 
    def test_block_call
-     assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[FunctionalCall, [SimpleString, b], [], null]]]], [SimpleString, c], [], null]]]", "a do;b;end.c")
-     assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[FunctionalCall, [SimpleString, b], [], null]]]], [SimpleString, c], [], null]]]", "a {b}.c")
-     assert_parse("[Script, [[Super, [[FunctionalCall, [SimpleString, a], [], null]], [Block, null, [[FunctionalCall, [SimpleString, b], [], null]]]]]]", "super a do;b;end")
-     assert_parse("[Script, [[Super, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[FunctionalCall, [SimpleString, b], [], null]]]], [SimpleString, c], [], null]], null]]]", "super a {b}.c")
-     assert_parse("[Script, [[Call, [Super, [[FunctionalCall, [SimpleString, a], [], null]], [Block, null, [[FunctionalCall, [SimpleString, b], [], null]]]], [SimpleString, c], [], null]]]", "super a do;b;end.c")
+     assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[VCall, [SimpleString, b]]]]], [SimpleString, c], [], null]]]", "a do;b;end.c")
+     assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[VCall, [SimpleString, b]]]]], [SimpleString, c], [], null]]]", "a {b}.c")
+     assert_parse("[Script, [[Super, [[VCall, [SimpleString, a]]], [Block, null, [[VCall, [SimpleString, b]]]]]]]", "super a do;b;end")
+     assert_parse("[Script, [[Super, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[VCall, [SimpleString, b]]]]], [SimpleString, c], [], null]], null]]]", "super a {b}.c")
+     assert_parse("[Script, [[Call, [Super, [[VCall, [SimpleString, a]]], [Block, null, [[VCall, [SimpleString, b]]]]], [SimpleString, c], [], null]]]", "super a do;b;end.c")
    end
 
    def test_opt_nl
-     assert_parse("[Script, [[Hash, [HashEntry, [SimpleString, a], [SimpleString, b]], [HashEntry, [SimpleString, c], [FunctionalCall, [SimpleString, d], [], null]]]]]",
+     assert_parse("[Script, [[Hash, [HashEntry, [SimpleString, a], [SimpleString, b]], [HashEntry, [SimpleString, c], [VCall, [SimpleString, d]]]]]]",
                   "{\n'a' => 'b', c:\nd\n}")
    end
 
    def test_ne
-     assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, foo], [], null], [SimpleString, !=], [[FunctionalCall, [SimpleString, bar], [], null]], null]]]", "foo!=bar")
+     assert_parse("[Script, [[Call, [VCall, [SimpleString, foo]], [SimpleString, !=], [[VCall, [SimpleString, bar]]], null]]]", "foo!=bar")
    end
 
    def test_command
@@ -570,26 +570,26 @@ EOF
    end
 
    def test_macros
-     assert_parse("[Script, [[Unquote, [FunctionalCall, [SimpleString, x], [], null]]]]", '`x`')
+     assert_parse("[Script, [[Unquote, [VCall, [SimpleString, x]]]]]", '`x`')
      assert_parse("[Script, [[ClassDefinition, [Unquote, [Constant, [SimpleString, A]]], null, [[Fixnum, 1]], [TypeNameList], [AnnotationList]]]]", 'class `A`;1;end')
-     assert_parse("[Script, [[MethodDefinition, [Unquote, [FunctionalCall, [SimpleString, foo], [], null]], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
+     assert_parse("[Script, [[MethodDefinition, [Unquote, [VCall, [SimpleString, foo]]], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                   "def `foo`(a); 1; end")
-    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [Unquote, [FunctionalCall, [SimpleString, a], [], null]], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
+    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [Unquote, [VCall, [SimpleString, a]]], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(`a`); 1; end")
-    assert_parse("[Script, [[Call, [FunctionalCall, [SimpleString, a], [], null], [Unquote, [FunctionalCall, [SimpleString, foo], [], null]], [], null]]]", 'a.`foo`')
-    assert_parse("[Script, [[Call, [Self], [Unquote, [FunctionalCall, [SimpleString, foo], [], null]], [], null]]]", 'self.`foo`')
-    assert_parse("[Script, [[FieldAccess, [Unquote, [FunctionalCall, [SimpleString, a], [], null]]]]]", "@`a`")
-    assert_parse("[Script, [[FieldAssign, [Unquote, [FunctionalCall, [SimpleString, a], [], null]], [Fixnum, 1], [AnnotationList]]]]", "@`a` = 1")
-    assert_parse("[Script, [[UnquoteAssign, [Unquote, [FunctionalCall, [SimpleString, a], [], null]], [FunctionalCall, [SimpleString, b], [], null]]]]", "`a` = b")
+    assert_parse("[Script, [[Call, [VCall, [SimpleString, a]], [Unquote, [VCall, [SimpleString, foo]]], [], null]]]", 'a.`foo`')
+    assert_parse("[Script, [[Call, [Self], [Unquote, [VCall, [SimpleString, foo]]], [], null]]]", 'self.`foo`')
+    assert_parse("[Script, [[FieldAccess, [Unquote, [VCall, [SimpleString, a]]]]]]", "@`a`")
+    assert_parse("[Script, [[FieldAssign, [Unquote, [VCall, [SimpleString, a]]], [Fixnum, 1], [AnnotationList]]]]", "@`a` = 1")
+    assert_parse("[Script, [[UnquoteAssign, [Unquote, [VCall, [SimpleString, a]]], [VCall, [SimpleString, b]]]]]", "`a` = b")
     assert_parse("[Script, [[FunctionalCall, [SimpleString, macro], [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null," +
-                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[FunctionalCall, [SimpleString, bar], [], null]]]]], [AnnotationList]]], null]]]",
+                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, bar]]]]]], [AnnotationList]]], null]]]",
                  "macro def foo; quote {bar}; end")
     assert_parse("[Script, [[FunctionalCall, [SimpleString, macro], [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null," +
-                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[FunctionalCall, [SimpleString, bar], [], null]]]]], [AnnotationList]]], null]]]",
+                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, bar]]]]]], [AnnotationList]]], null]]]",
                  "macro def foo; quote do bar end; end")
     assert_parse("[Script, [[FunctionalCall, [SimpleString, macro], [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null," +
-                                               " [[FunctionalCall, [SimpleString, bar], [], null]," +
-                                                      " [FunctionalCall, [SimpleString, quote], [], [Block, null, [[FunctionalCall, [SimpleString, baz], [], null]]]]], [AnnotationList]]], null]]]",
+                                               " [[VCall, [SimpleString, bar]]," +
+                                                      " [FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, baz]]]]]], [AnnotationList]]], null]]]",
                  "macro def foo; bar; quote do baz end; end")
    end
 
