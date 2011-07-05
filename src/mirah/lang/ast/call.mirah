@@ -13,6 +13,17 @@ class FunctionalCall < NodeImpl
   end
 end
 
+# An identifier with no parens or arguments - may be a variable local access or a call.
+class VCall < NodeImpl
+  implements Named, TypeName
+  init_node do
+    child name: Identifier
+  end
+  def typeref:TypeRef
+    TypeRefImpl.new(name.identifier, false, false, name.position)
+  end
+end
+
 class Cast < NodeImpl
   init_node do
     child type: TypeName
