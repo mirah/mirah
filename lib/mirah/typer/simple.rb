@@ -338,6 +338,7 @@ module Mirah
               puts "[Cycle #{i}]: Made no progress, bailing out"
               break
             elsif @last_chance
+              break unless @errors.empty?
               # Retry this iteration, and mark the first deferred
               # type as an error.
               retried = true
@@ -362,10 +363,12 @@ module Mirah
 
         # done with n sweeps, if any remain mark them as errors
         error_nodes = @errors.map {|e| e.node}
-        (deferred_nodes.keys - error_nodes).each do |deferred_node|
-          break if @errors.size > 15
-          error_nodes << deferred_node
-          error(deferred_node)
+        if error_nodes.empty?
+          (deferred_nodes.keys - error_nodes).each do |deferred_node|
+            break if @errors.size > 15
+            error_nodes << deferred_node
+            error(deferred_node)
+          end
         end
         if raise && !error_nodes.empty?
           msg = "Could not infer typing for nodes:"
