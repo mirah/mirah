@@ -149,7 +149,9 @@ class AssignableTypeFuture < BaseTypeFuture
 end
 
 class MaybeInline < BaseTypeFuture
-  def initialize(node:Node, type:TypeFuture, altNode:Node, altType:TypeFuture)
+  def initialize(n:Node, type:TypeFuture, altNode:Node, altType:TypeFuture)
+    super(n.position)
+    node = n
     @inlined = false
     me = self
     altType.onUpdate do |x, value|
@@ -224,14 +226,19 @@ class CallFuture < BaseTypeFuture
     @args = args
     @resolved_target = ResolvedType(nil)
     @resolved_args = ArrayList.new(args.size)
+    args.size.times {@resolved_args.add(nil)}
     #@block = block
     setupListeners
+  end
+
+  def resolved_target=(type:ResolvedType):void
+    @resolved_target = type
   end
 
   def setupListeners
     call = self
     @target.onUpdate do |t, type|
-      @resolved_target = type
+      call.resolved_target = type
       call.maybeUpdate
     end
     @args.each do |_arg|

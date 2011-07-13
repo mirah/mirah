@@ -22,10 +22,19 @@ require 'mirah'
 class TestTyper < Test::Unit::TestCase
   include Mirah
   include Mirah::Util::ProcessErrors
+  java_import 'org.mirah.typer.TypeFuture'
+  java_import 'org.mirah.typer.simple.SimpleScoper'
+  java_import 'org.mirah.typer.simple.SimpleTypes'
+
+  module TypeFuture
+    def inspect
+      toString
+    end
+  end
 
   def setup
-    @scopes = Mirah::Types::Scoper.new
-    @types = Mirah::Types::SimpleTypes.new
+    @scopes = SimpleScoper.new
+    @types = SimpleTypes.new('bar')
   end
 
   def parse(text)
@@ -33,6 +42,7 @@ class TestTyper < Test::Unit::TestCase
   end
 
   def new_typer(n)
+    @types = SimpleTypes.new(n.to_s)
     @typer = Mirah::Typer::Typer.new(@types, @scopes)
   end
 
@@ -44,6 +54,12 @@ class TestTyper < Test::Unit::TestCase
       end
     end
     type
+  end
+
+  def assert_no_errors(typer, ast)
+    process_inference_errors(typer, [ast]) do |errors|
+      errors.each {|e| add_failure(e.message)}
+    end
   end
 
   def infer(ast, expression=true)
@@ -88,113 +104,95 @@ class TestTyper < Test::Unit::TestCase
     ast1 = parse("a = 1; a")
     infer(ast1)
 
-    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast1.get(0)), 'a'))
+    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast1), 'a').resolve)
     assert_equal(@types.getFixnumType(1), inferred_type(ast1.body.get(0)))
     assert_equal(@types.getFixnumType(1), inferred_type(ast1.body.get(1)))
 
     ast2 = parse("b = a = 1")
     infer(ast2)
 
-    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast2.get(0)), 'a'))
+    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast2), 'a').resolve)
     assert_equal(@types.getFixnumType(1), inferred_type(ast2.body.get(0)))
   end
 
   def test_signature
-    ["def foo", "def self.foo"].each do |def_foo|
-      ast1 = parse("#{def_foo}(a:string); end")
-      infer(ast1)
+    signature_test(false)
+  end
 
-      assert_nothing_raised {typer.resolve(true)}
-      assert_nothing_raised {typer.resolve}
+  def test_static_signature
+    signature_test(true)
+  end
 
-
-      if def_foo =~ /self/
-        type = typer.self_type.meta
-      else
-        type = typer.self_type
-      end
-
-      mdef = ast1.body
-      mdef = mdef[0] if AST::Body === mdef
-
-      assert_equal(@types.getNullType, typer.method_type(type, 'foo', [typer.getStringType]))
-      assert_equal(@types.geStringType, typer.local_type(@mirah.introduced_scope(mdef), 'a'))
-      assert_equal(@types.getNullType, mdef.inferred_type)
-      assert_equal(@types.getStringType, mdef.arguments.args[0].inferred_type)
-
-      ast1 = parse("#{def_foo}(a:string); a; end")
-      typer = new_typer :bar
-
-      ast1.infer(typer, true)
-      assert_equal(@types.getStringType, typer.method_type(type, 'foo', [typer.getStringType]))
-      assert_equal(@types.getStringType, typer.local_type(@mirah.introduced_scope(ast1.body), 'a'))
-      assert_equal(@types.getStringType, ast1.body.inferred_type)
-      assert_equal(@types.getStringType, ast1.body.arguments.args[0].inferred_type)
-
-      ast1 = parse("#{def_foo}(a) returns :string; end")
-      typer = new_typer :bar
-
-      assert_raise(Typer::InferenceError) do
-        ast1.infer(typer, true)
-        typer.resolve(true)
-      end
+  def signature_test(is_static)
+    if is_static
+      def_foo = "def self.foo"
+    else
+      def_foo = "def foo"
     end
+    ast1 = parse("#{def_foo}(a:String); end")
+    typer = new_typer(:bar)
+    typer.infer(ast1, true)
+
+    assert_no_errors(typer, ast1)
+
+
+    type = @types.getMainType(@scopes.getScope(ast1), ast1)
+    type = @types.getMetaType(type) if is_static
+
+    mdef = ast1.body.get(0)
+    inner_scope = @scopes.getScope(mdef.body)
+
+#    assert_equal(@types.getNullType, @types.getMethodType(type, 'foo', [@types.getStringType.resolve]).resolve)
+    assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a').resolve)
+    assert_equal(@types.getNullType, inferred_type(mdef))
+    assert_equal(@types.getStringType, inferred_type(mdef.arguments.required.get(0)))
+
+    ast1 = parse("#{def_foo}(a:String); a; end")
+    typer = new_typer :bar
+    typer.infer(ast1, true)
+    mdef = ast1.body.get(0)
+    inner_scope = @scopes.getScope(mdef.body)
+
+    # assert_equal(@types.getStringType, @types.getMethodType(type, 'foo', [@types.getStringType.resolve]).resolve)
+    assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a').resolve)
+    assert_equal(@types.getStringType, inferred_type(mdef))
+    assert_equal(@types.getStringType, inferred_type(mdef.arguments.required.get(0)))
   end
 
   def test_call
-    ast = parse("1.foo(2)").body
-
-    @types.getMethodDefType(@types.getFixnumType(1), 'foo', [@types.getFixnumType(1)]).assign(@types.getStringType, nil)
+    ast = parse("class Int;def foo(a:Int):String; end; end; 1.foo(2)")
 
     assert_equal(@types.getStringType, infer(ast))
 
-    ast = parse("def bar(a:fixnum, b:string); 1.0; end; def baz; bar(1, 'x'); end")
+    ast = parse("def bar(a:Int, b:String); 1.0; end; def baz; bar(1, 'x'); end")
 
     infer(ast)
     ast = ast.body
     self_type = @scopes.getScope(ast.get(0)).selfType
-    assert_equal(@types.getFloatType(1.0), @types.getMethodType(self_type, 'bar', [typer.getFixnumType(1), typer.getStringType]).resolve)
-    assert_equal(@types.getFloatType, @types.getMethodType(self_type, 'baz', []))
-    assert_equal(@types.getFloatType, inferred_type(ast.get(0)))
-    assert_equal(@types.getFloatType, inferred_type(ast.get(1)))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(0)))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)))
 
     # Reverse the order, ensure deferred inference succeeds
-    ast = parse("def baz; bar(1, 'x'); end; def bar(a:fixnum, b:string); 1.0; end")
+    ast = parse("def baz; bar(1, 'x'); end; def bar(a:Int, b:String); 1.0; end")
     typer = new_typer("bar")
 
-    ast.infer(typer, true)
+    typer.infer(ast, true)
     ast = ast.body
 
-    assert_equal(@types.default_type, typer.method_type(typer.self_type, "baz", []))
-    assert_equal(@types.getFloatType, typer.method_type(typer.self_type, "bar", [typer.getFixnumType, typer.getStringType]))
-    assert_equal(@types.default_type, ast.children[0].inferred_type)
-    assert_equal(@types.getFloatType, ast.children[1].inferred_type)
+    assert_no_errors(typer, ast)
 
-    # allow resolution to run
-    assert_nothing_raised {typer.resolve}
-
-    assert_equal(@types.getFloatType, typer.method_type(typer.self_type, "baz", []))
-    assert_equal(@types.getFloatType, typer.method_type(typer.self_type, "bar", [typer.getFixnumType, typer.getStringType]))
-    assert_equal(@types.getFloatType, ast.children[0].inferred_type)
-    assert_equal(@types.getFloatType, ast.children[1].inferred_type)
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(0)))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)))
 
     # modify bar call to have bogus types, ensure resolution fails
-    ast = parse("def baz; bar(1, 1); end; def bar(a:fixnum, b:string); 1.0; end")
+    ast = parse("def baz; bar(1, 1); end; def bar(a:Int, b:String); 1.0; end")
     typer = new_typer("bar")
 
-    ast.infer(typer, true)
+    typer.infer(ast, true)
     ast = ast.body
 
-    assert_equal(@types.default_type, typer.method_type(typer.self_type, "baz", []))
-    assert_equal(@types.getFloatType, typer.method_type(typer.self_type, "bar", [typer.getFixnumType, typer.getStringType]))
-    assert_equal(@types.default_type, ast.children[0].inferred_type)
-    assert_equal(@types.getFloatType, ast.children[1].inferred_type)
-
-    # allow resolution to run and produce error
-    assert_raise(Typer::InferenceError) {typer.resolve(true)}
-    error_nodes = typer.errors.map {|e| e.node}
-    inspected = "[FunctionalCall(bar)\n Fixnum(1)\n Fixnum(1)]"
-    assert_equal(inspected, error_nodes.inspect)
+    assert_equal(":error", inferred_type(ast.get(0)).name)
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)))
   end
 
   def test_if
@@ -203,7 +201,7 @@ class TestTyper < Test::Unit::TestCase
     # incompatible body types
     assert_equal(':error', infer(ast).name)
 
-    ast = parse("if true; 1.0; else; 2.0; end").body
+    ast = parse("if true; 1.0; else; 2.0; end").body.get(0)
 
     assert_not_equal(':error', infer(ast).name)
 
@@ -213,8 +211,8 @@ class TestTyper < Test::Unit::TestCase
 
     typer = new_typer(:bar)
 
-    ast = parse("if foo; bar; else; baz; end").body
-    typer.infer(ast, true)
+    ast = parse("if foo; bar; else; baz; end").body.get(0)
+    typer.infer(ast.parent.parent, true)
     assert_equal(':error', inferred_type(ast).name)
 
     ast2 = parse("def foo; 1; end; def bar; 1.0; end")
@@ -222,29 +220,29 @@ class TestTyper < Test::Unit::TestCase
     typer.infer(ast2, true)
 
     # unresolved types for the baz call
-    assert_equal(':error', inferred_type(ast).name)
-
-    assert_equal(AST.getFixnumType(1), inferred_type(ast.condition))
-    assert_equal(AST.getFloatType(1.0), inferred_type(ast.body))
     assert_equal(':error', inferred_type(ast.elseBody).name)
+
+    assert_equal(@types.getFixnumType(1), inferred_type(ast.condition))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.body))
 
     ast2 = parse("def baz; 2.0; end")
     typer.infer(ast2, true)
 
-    assert_not_equal(':error', infer(ast).name)
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast2.body))
 
-    assert_equal(@types.getFloatType(1.0), ast2.body.inferred_type)
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.elseBody))
   end
 
   def test_class
     ast = parse("class Foo; def foo; 1; end; def baz; foo; end; end")
-    cls = ast.body[0]
-    foo = cls.body[0]
-    baz = cls.body[1]
+    cls = ast.body.get(0)
+    foo = cls.body.get(0)
+    baz = cls.body.get(1)
 
     typer = new_typer("script")
     typer.infer(ast, true)
 
-    assert_nothing_raised {typer.resolve(true)}
+    assert_no_errors(typer, ast)
   end
 end

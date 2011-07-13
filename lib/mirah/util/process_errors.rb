@@ -48,30 +48,37 @@ module Mirah
 
       java_import 'mirah.lang.ast.NodeScanner'
       class ErrorCollector < NodeScanner
-        def initialize
+        def initialize(typer)
+          super()
           @errors = {}
+          @typer = typer
         end
-        def enterDefault(node, arg)
-          type = node.resolve
-          @errors[type] ||= type if type.name == ':error'
-          true
+        def exitDefault(node, arg)
+          type = @typer.getInferredType(node)
+          type = type.resolve if type
+          @errors[type] ||= type if (type && type.isError)
+          nil
         end
         def errors
           @errors.values
         end
       end
 
-      def process_inference_errors(nodes)
+      def process_inference_errors(typer, nodes)
         errors = []
         nodes.each do |ast|
-          collector = ErrorCollector.new
+          collector = ErrorCollector.new(typer)
           ast.accept(collector, nil)
           errors.concat(collector.errors)
         end
         failed = !errors.empty?
         if failed
-          puts "Inference Error:"
-          process_errors(errors)
+          if block_given?
+            yield(errors)
+          else
+            puts "Inference Error:"
+            process_errors(errors)
+          end
         end
       end
     end

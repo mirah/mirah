@@ -46,8 +46,8 @@ end
 class SimpleTypes; implements TypeSystem
   def initialize(main_type:String)
     @types = {}
-    [ :null, :void, :exception, :regex,
-      :string, :bool, :int, :char, :float].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
+    [ :Null, :Void, :Exception, :Regex,
+      :String, :Bool, :Int, :Char, :Float].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
     @meta_types = {}
     @array_types = {}
     @methods = {}
@@ -59,34 +59,34 @@ class SimpleTypes; implements TypeSystem
     TypeFuture(@types[name])
   end
   def getNullType
-    lookup :null
+    lookup :Null
   end
   def getVoidType
-    lookup :void
+    lookup :Void
   end
   def getBaseExceptionType
-    lookup :exception
+    lookup :Exception
   end
   def getDefaultExceptionType
-    lookup :exception
+    lookup :Exception
   end
   def getRegexType
-    lookup :regex
+    lookup :Regex
   end
   def getStringType
-    lookup :string
+    lookup :String
   end
   def getBooleanType
-    lookup :bool
+    lookup :Bool
   end
   def getFixnumType(value)
-    lookup :int
+    lookup :Int
   end
   def getCharType(value)
-    lookup :char
+    lookup :Char
   end
   def getFloatType(value)
-    lookup :float
+    lookup :Float
   end
 
   def getMetaType(type:ResolvedType)
@@ -114,6 +114,7 @@ class SimpleTypes; implements TypeSystem
     TypeFuture(getArrayType(ResolvedType(componentType)))
   end
   def get(typeref)
+    raise IllegalArgumentException if typeref.nil?
     basic_type = lookup(typeref.name) || SimpleType.new(typeref.name, false, false)
     return getMetaType(basic_type) if typeref.isStatic
     return getArrayType(basic_type) if typeref.isArray
@@ -132,7 +133,7 @@ class SimpleTypes; implements TypeSystem
     args = ArrayList.new(argTypes.size)
     argTypes.size.times do |i|
       resolved = TypeFuture(argTypes.get(i)).resolve
-      args.set(i, resolved)
+      args.add(i, resolved)
     end
     AssignableTypeFuture(getMethodType(target.resolve, name, args))
   end
@@ -173,14 +174,23 @@ class SimpleTypes; implements TypeSystem
     parser = MirahParser.new
     code = StringBuilder.new
     reader = BufferedReader.new(InputStreamReader.new(FileInputStream.new(args[0])))
-    while line = reader.readLine
-      code.append(line)
+    buffer = char[8192]
+    while (read = reader.read(buffer, 0, buffer.length)) > 0
+      code.append(buffer, 0, read);
     end
+
     ast = Node(parser.parse(code.toString))
     types = SimpleTypes.new('foo')
     scopes = SimpleScoper.new
     typer = Typer.new(types, scopes)
+
+    puts "Original AST:"
+    TypePrinter.new(typer).scan(ast, nil)
+    puts
+    puts "Inferring types..."
+
     typer.infer(ast, false)
+
     TypePrinter.new(typer).scan(ast, nil)
   end
 end
@@ -215,10 +225,10 @@ class SimpleScoper; implements Scoper
     @scopes = {}
   end
   def getScope(node)
+    orig = node
     until node.parent.nil?
       node = node.parent
       scope = Scope(@scopes[node])
-      puts "Found scope #{scope} for #{node}"
       return scope if scope
     end
     Scope(@scopes[node]) || addScope(node)
@@ -226,7 +236,6 @@ class SimpleScoper; implements Scoper
   def addScope(node)
     scope = SimpleScope.new
     @scopes[node] = scope
-    puts "Added scope #{scope} for #{node}"
     scope
   end
 end
@@ -239,21 +248,21 @@ class TypePrinter < NodeScanner
     @args[0] = ""
   end
   def printIndent:void
-    System.out.printf("%#{@indent}s", @args)
+    System.out.printf("%#{@indent}s", @args) if @indent > 0
   end
   def enterDefault(node, arg)
     printIndent
     print node
     type = @typer.getInferredType(node)
     if type
-      print ": #{type}"
+      print ": #{type.resolve}"
     end
     puts
     @indent += 2
     true
   end
   def exitDefault(node, arg)
-    @indent -= 1
+    @indent -= 2
     nil
   end
 end

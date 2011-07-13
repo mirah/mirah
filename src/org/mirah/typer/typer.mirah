@@ -2,6 +2,32 @@ package org.mirah.typer
 import java.util.*
 import mirah.lang.ast.*
 
+# Type inference engine.
+# Makes a single pass over the AST nodes building a graph of the type
+# dependencies. Whenever a new type is learned or a type changes any dependent
+# types get updated.
+#
+# An important feature is that types will change over time. 
+# The first time an assignment to a variable resolves, the typer will pick that
+# type for the variable. When a new assignment resolves, two things can happen:
+#  - if the assigned type is compatible with the old, just continue.
+#  - otherwise, widen the inferred type to include both and update any dependencies.
+# This also allows the typer to handle recursive calls. Consider fib for example:
+#   def fib(i:int); if i < 2 then 1 else fib(i - 1) + fib(i - 2) end; end
+# The type of fib() depends on the if statement, which also depends on the type
+# of fib(). The first branch infers first though, marking the if statement
+# as type 'int'. This updates fib() to also be type 'int'. This in turn causes
+# the if statement to check that both its branches are compatible, and they are
+# so the method is resolved.
+#
+# Some nodes can have multiple meanings. For example, a VCall could mean a
+# LocalAccess or a FunctionalCall. The typer will try each possibility,
+# and update the AST tree with the one that doesn't infer as an error. There
+# is always a priority implied when multiple options succeed. For example,
+# a LocalAccess always wins over a FunctionalCall.
+#
+# This typer is type system independent. It relies on a TypeSystem and a Scoper
+# to provide the types for methods, literals, variables, etc.
 class Typer < SimpleNodeVisitor
   def initialize(types:TypeSystem, scopes:Scoper)
     @trueobj = java::lang::Boolean.valueOf(true)
@@ -11,7 +37,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def getInferredType(node:Node)
-    @futures[node]
+    TypeFuture(@futures[node])
   end
 
   def infer(node:Node, expression:boolean=true)
@@ -60,6 +86,29 @@ class Typer < SimpleNodeVisitor
     ErrorType.new(["Inference error", node.position])
   end
 
+  def visitVCall(call, expression)
+    selfType = @scopes.getScope(call).selfType
+    methodType = CallFuture.new(call.position, @types, selfType, call.name.identifier, Collections.emptyList)
+    typer = self
+    methodType.onUpdate do |x, resolvedType|
+      if resolvedType.kind_of?(InlineCode)
+        node = InlineCode(resolvedType).node
+        call.parent.replaceChild(call, node)
+        typer.infer(node, expression != nil)
+      end
+    end
+
+    # This might actually be a local access instead of a method call,
+    # so try both. If the local works, we'll go with that. If not, we'll
+    # leave the method call.
+    # TODO should probably replace this with a FunctionalCall node if that's the
+    # right one so the compiler doesn't have to deal with an extra node.
+    local = LocalAccess.new(call.position, call.name)
+    localType = @types.getLocalType(@scopes.getScope(call), local.name.identifier)
+    @futures[local] = localType
+    TypeFuture(MaybeInline.new(call, methodType, local, localType))
+  end
+
   def visitFunctionalCall(call, expression)
     selfType = @scopes.getScope(call).selfType
     mergeUnquotes(call.parameters)
@@ -74,15 +123,7 @@ class Typer < SimpleNodeVisitor
         typer.infer(node, expression != nil)
       end
     end
-    if parameters.size == 0
-      # This might actually be a local access instead of a method call,
-      # so try both. If the local works, we'll go with that. If not, we'll
-      # leave the method call.
-      local = LocalAccess.new(call.position, call.name)
-      localType = @types.getLocalType(@scopes.getScope(call), local.name.identifier)
-      @futures[local] = localType
-      TypeFuture(MaybeInline.new(call, methodType, local, localType))
-    elsif parameters.size == 1
+    if parameters.size == 1
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
@@ -113,10 +154,15 @@ class Typer < SimpleNodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = @types.get(call.typeref)
-      @futures[cast] = castType
-      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
+      typeref = call.typeref(true)
+      if typeref
+        cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters.get(0).clone))
+        castType = @types.get(typeref)
+        @futures[cast] = castType
+        TypeFuture(MaybeInline.new(call, methodType, cast, castType))
+      else
+        methodType
+      end
     else
       methodType
     end
@@ -144,7 +190,7 @@ class Typer < SimpleNodeVisitor
   def visitClassDefinition(classdef, expression)
     classdef.annotations.each {|a| infer(a)}
     interfaces = inferAll(classdef.interfaces)
-    superclass = @types.get(classdef.superclass.typeref)
+    superclass = @types.get(classdef.superclass.typeref) if classdef.superclass
     type = @types.defineType(@scopes.getScope(classdef), classdef, classdef.name.identifier, superclass, interfaces)
     scope = @scopes.addScope(classdef)
     scope.selfType = type
@@ -224,75 +270,75 @@ class Typer < SimpleNodeVisitor
     @types.getNullType()
   end
 
-  # def visitRaise(node, expression)
-  #   # Ok, this is complicated. There's three acceptable syntaxes
-  #   #  - raise exception_object
-  #   #  - raise ExceptionClass, *constructor_args
-  #   #  - raise *args_for_default_exception_class_constructor
-  #   # We need to figure out which one is being used, and replace the
-  #   # args with a single exception node.
-  # 
-  #   # Start by saving the old args and creating a new, empty arg list
-  #   exceptions = ArrayList.new
-  #   old_args = node.args
-  #   node.args = NodeList.new(node.args.position)
-  # 
-  #   # Create a node for syntax 1 if possible.
-  #   if old_args.size == 1
-  #     exceptions.add(infer(old_args.get(0)))
-  #     exceptions.add(old_args.get(0).clone)
-  #   end
-  # 
-  #   # Create a node for syntax 2 if possible.
-  #   if old_args.size > 0
-  #     targetNode = Node(old_args.get(0).clone)
-  #     params = ArrayList.new
-  #     1.upto(old_args.size - 1) {|i| params.add(old_args.get(i).clone)}
-  #     call = Call.new(targetNode, SimpleString.new(node.position, 'new'), params, nil)
-  #     exceptions.add(infer(call))
-  #     exceptions.add(call)
-  #   end
-  # 
-  #   # Create a node for syntax 3.
-  #   class_name = @types.getDefaultExceptionType().resolve.name
-  #   targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
-  #   params = ArrayList.new
-  #   old_args.each {|a| params.add(a.clone)}
-  #   call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
-  #   exceptions.add(infer(call))
-  #   exceptions.add(call)
-  # 
-  #   # Now we'll try all of these, ignoring any that cause an inference error.
-  #   # Then we'll take the first that succeeds, in the order listed above.
-  #   exceptionPicker = PickFirst.new(exceptions) do |type, pickedNode|
-  #     if node.args.size == 0
-  #       node.args.add(Node(pickedNode))
-  #     else
-  #       node.args.set(0, Node(pickedNode))
-  #     end
-  #   end
-  # 
-  #   # We need to ensure that the chosen node is an exception.
-  #   # So create a dummy type declared as an exception, and assign
-  #   # the picker to it.
-  #   exceptionType = AssignableTypeFuture.new(node.position)
-  #   exceptionType.declare(@types.getBaseExceptionType(), node.position)
-  #   assignment = exceptionType.assign(exceptionPicker, node.position)
-  # 
-  #   # Now we're ready to return our type. It should be UnreachableType.
-  #   # But if none of the nodes is an exception, we need to return
-  #   # an error.
-  #   myType = BaseTypeFuture.new(node.position)
-  #   unreachable = UnreachableType.new
-  #   assignment.onUpdate do |x, resolved|
-  #     if resolved.name == ':error'
-  #       myType.resolved(resolved)
-  #     else
-  #       myType.resolved(unreachable)
-  #     end
-  #   end
-  #   myType
-  # end
+  def visitRaise(node, expression)
+    # Ok, this is complicated. There's three acceptable syntaxes
+    #  - raise exception_object
+    #  - raise ExceptionClass, *constructor_args
+    #  - raise *args_for_default_exception_class_constructor
+    # We need to figure out which one is being used, and replace the
+    # args with a single exception node.
+
+    # Start by saving the old args and creating a new, empty arg list
+    exceptions = ArrayList.new
+    old_args = node.args
+    node.args = NodeList.new(node.args.position)
+
+    # Create a node for syntax 1 if possible.
+    if old_args.size == 1
+      exceptions.add(infer(old_args.get(0)))
+      exceptions.add(Node(old_args.get(0)).clone)
+    end
+
+    # Create a node for syntax 2 if possible.
+    if old_args.size > 0
+      targetNode = Node(Node(old_args.get(0)).clone)
+      params = ArrayList.new
+      1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
+      call = Call.new(targetNode, SimpleString.new(node.position, 'new'), params, nil)
+      exceptions.add(infer(call))
+      exceptions.add(call)
+    end
+
+    # Create a node for syntax 3.
+    class_name = @types.getDefaultExceptionType().resolve.name
+    targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
+    params = ArrayList.new
+    old_args.each {|a| params.add(Node(a).clone)}
+    call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
+    exceptions.add(infer(call))
+    exceptions.add(call)
+
+    # Now we'll try all of these, ignoring any that cause an inference error.
+    # Then we'll take the first that succeeds, in the order listed above.
+    exceptionPicker = PickFirst.new(exceptions) do |type, pickedNode|
+      if node.args.size == 0
+        node.args.add(Node(pickedNode))
+      else
+        node.args.set(0, Node(pickedNode))
+      end
+    end
+
+    # We need to ensure that the chosen node is an exception.
+    # So create a dummy type declared as an exception, and assign
+    # the picker to it.
+    exceptionType = AssignableTypeFuture.new(node.position)
+    exceptionType.declare(@types.getBaseExceptionType(), node.position)
+    assignment = exceptionType.assign(exceptionPicker, node.position)
+
+    # Now we're ready to return our type. It should be UnreachableType.
+    # But if none of the nodes is an exception, we need to return
+    # an error.
+    myType = BaseTypeFuture.new(node.position)
+    unreachable = UnreachableType.new
+    assignment.onUpdate do |x, resolved|
+      if resolved.name == ':error'
+        myType.resolved(resolved)
+      else
+        myType.resolved(unreachable)
+      end
+    end
+    myType
+  end
 
   def visitRescueClause(clause, expression)
     scope = @scopes.addScope(clause)
@@ -416,13 +462,14 @@ class Typer < SimpleNodeVisitor
     @types.getLocalType(@scopes.getScope(local), local.name.identifier)
   end
 
-  def visitBody(body, expression)
+  def visitNodeList(body, expression)
     (body.size - 1).times do |i|
       infer(body.get(i), false)
     end
     if body.size > 0
       infer(body.get(body.size - 1), expression != null)
     else
+      # TODO getImplicitNilType()? getVoidType()?
       @types.getNullType()
     end
   end
@@ -445,8 +492,8 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitAnnotation(anno, expression)
-    anno.values.entries_size.times do |i|
-      infer(anno.values.entries(i).value)
+    anno.values_size.times do |i|
+      infer(anno.values(i).value)
     end
     @types.get(anno.type.typeref)
   end
@@ -614,21 +661,22 @@ class Typer < SimpleNodeVisitor
     infer(mdef.arguments)
     parameters = inferAll(mdef.arguments)
     type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters)
+    is_void = false
     if mdef.type
       returnType = @types.get(mdef.type.typeref)
       type.declare(returnType, mdef.type.position)
       if @types.getVoidType().equals(returnType)
-        expression = nil
+        is_void = true
       end
     end
+    # TODO deal with overridden methods?
     # TODO throws
     # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
-    if mdef.body
-      if expression
-        type.assign(infer(mdef.body), mdef.body.position)
-      else
-        infer(mdef.body, false)
-      end
+    if is_void
+      infer(mdef.body, false)
+      type.assign(@types.getVoidType, mdef.position)
+    else
+      type.assign(infer(mdef.body), mdef.body.position)
     end
     type
   end

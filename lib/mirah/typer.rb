@@ -37,6 +37,3 @@ module Mirah
     InferenceError = Mirah::InferenceError
   end
 end
-
-require 'mirah/type_system/simple'
-require 'mirah/type_system/scoper'
