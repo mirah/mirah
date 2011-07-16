@@ -18,7 +18,6 @@ require 'rbconfig'
 require 'mirah/version'
 require 'mirah/transform'
 require 'mirah/ast'
-require 'mirah/typer'
 require 'mirah/compiler'
 require 'mirah/env'
 require 'mirah/errors'
@@ -28,8 +27,9 @@ rescue LoadError
   $: << File.dirname(__FILE__) + '/../../bitescript/lib'
   require 'bitescript'
 end
-#require 'mirah/jvm/compiler'
-#require 'mirah/jvm/typer'
+require 'mirah/typer'
+require 'mirah/jvm/types'
+require 'mirah/jvm/compiler'
 #Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
 require 'jruby'
 

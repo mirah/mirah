@@ -14,36 +14,27 @@
 # limitations under the License.
 
 module Mirah::JVM::Types
-  Boolean = BooleanType.new('boolean', java.lang.Boolean)
-  Byte = IntegerType.new('byte', java.lang.Byte)
-  Char = IntegerType.new('char', java.lang.Character)
-  Short = IntegerType.new('short', java.lang.Short)
-  Int = IntegerType.new('int', java.lang.Integer)
-  Long = LongType.new('long', java.lang.Long)
-  Float = FloatType.new('float', java.lang.Float)
-  Double = DoubleType.new('double', java.lang.Double)
-
-  # TODO these shouldn't be constants. They should be loaded from
-  # the compilation class path.
-  Object = Type.new(BiteScript::ASM::ClassMirror.load('java.lang.Object'))
-  ClassType = Type.new(BiteScript::ASM::ClassMirror.load('java.lang.Class'))
-  String = StringType.new(
-      BiteScript::ASM::ClassMirror.load('java.lang.String'))
-  Iterable = IterableType.new(
-          BiteScript::ASM::ClassMirror.load('java.lang.Iterable'))
-
-  Void = VoidType.new
-  Unreachable = UnreachableType.new
-  Null = NullType.new
-
-  WIDENING_CONVERSIONS = {
-    Byte => [Byte, Short, Int, Long, Float, Double],
-    Short => [Short, Int, Long, Float, Double],
-    Char => [Char, Int, Long, Float, Double],
-    Int => [Int, Long, Float, Double],
-    Long => [Long, Float, Double],
-    Float => [Float, Double],
-    Double => [Double]
-  }
-  TYPE_ORDERING = [Byte, Short, Int, Long, Float, Double]
+  class TypeFactory
+    def create_basic_types
+      @known_types.update(
+        'boolean' => BooleanType.new(self, 'boolean', java.lang.Boolean),
+        'byte' => IntegerType.new(self, 'byte', java.lang.Byte),
+        'char' => IntegerType.new(self, 'char', java.lang.Character),
+        'short' => IntegerType.new(self, 'short', java.lang.Short),
+        'int' => IntegerType.new(self, 'int', java.lang.Integer),
+        'long' => LongType.new(self, 'long', java.lang.Long),
+        'float' => FloatType.new(self, 'float', java.lang.Float),
+        'double' => DoubleType.new(self, 'double', java.lang.Double)
+      )
+      @known_types['fixnum'] = @known_types['int']
+      @known_types['Object'] = type(nil, 'java.lang.Object')
+      @known_types['string'] = @known_types['String'] = type(nil, 'java.lang.String')
+      type(nil, 'java.lang.Class')
+      @known_types['Iterable'] = @known_types['java.lang.Iterable'] =
+          IterableType.new(self, get_mirror('java.lang.Iterable'))
+      @known_types['void'] = VoidType.new(self)
+      @known_types['null'] = NullType.new(self)
+      @known_types['dynamic'] = DynamicType.new(self)
+    end
+  end
 end

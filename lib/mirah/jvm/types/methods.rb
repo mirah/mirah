@@ -84,10 +84,12 @@ module Mirah::JVM::Types
 
   class JavaCallable
     include ArgumentConversion
+    java_import 'org.mirah.typer.ResolvedType'
 
     attr_accessor :member
 
-    def initialize(member)
+    def initialize(types, member)
+      @types = types
       @member = member
     end
 
@@ -110,7 +112,7 @@ module Mirah::JVM::Types
         if arg.kind_of?(AST::TypeReference) || arg.nil?
           arg
         else
-          AST.type(nil, arg)
+          @types.type(nil, arg)
         end
       end
     end
@@ -121,16 +123,16 @@ module Mirah::JVM::Types
 
     def exceptions
       @member.exception_types.map do |exception|
-        if exception.kind_of?(Mirah::JVM::Types::Type)
+        if exception.kind_of?(ResolvedType)
           exception
         else
-          Mirah::AST.type(nil, exception.class_name)
+          @types.type(nil, exception.class_name)
         end
       end
     end
 
     def declaring_class
-      AST.type(nil, @member.declaring_class)
+      @types.type(nil, @member.declaring_class)
     end
 
     def call(compiler, ast, expression)
@@ -155,7 +157,7 @@ module Mirah::JVM::Types
         if void?
           Void
         else
-          AST.type(nil, @member.return_type)
+          @types.type(nil, @member.return_type)
         end
       end
     end
@@ -256,13 +258,14 @@ module Mirah::JVM::Types
   end
 
   class JavaDynamicMethod < JavaMethod
-    def initialize(name, *types)
+    def initialize(type_system, name, *argument_types)
+      super(type_system, nil)
       @name = name
-      @types = types
+      @argument_types = argument_types
     end
 
     def return_type
-      AST.type(nil, 'dynamic')
+      @types.type(nil, 'dynamic')
     end
 
     def declaring_class
@@ -270,7 +273,7 @@ module Mirah::JVM::Types
     end
 
     def argument_types
-      @types
+      @argument_types
     end
 
     def call(compiler, ast, expression)
@@ -289,7 +292,7 @@ module Mirah::JVM::Types
         java.lang.invoke.MethodType)
       compiler.method.invokedynamic(
         "dyn:callPropWithThis:#{name}",
-        [return_type, target, *@types],
+        [return_type, target, *@argument_types],
         handle)
 
       unless expression
@@ -304,7 +307,7 @@ module Mirah::JVM::Types
     end
 
     def return_type
-      AST.type(nil, @member.type)
+      @types.type(nil, @member.type)
     end
 
     def public?
@@ -339,11 +342,11 @@ module Mirah::JVM::Types
 
   class JavaFieldSetter < JavaFieldAccessor
     def return_type
-      AST.type(nil, @member.type)
+      @types.type(nil, @member.type)
     end
 
     def argument_types
-      [AST.type(nil, @member.type)]
+      [@types.type(nil, @member.type)]
     end
 
     def call(compiler, ast, expression)
@@ -407,7 +410,7 @@ module Mirah::JVM::Types
       begin
         descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
         constructor = jvm_type.getConstructor(*descriptors)
-        return JavaConstructor.new(constructor) if constructor
+        return JavaConstructor.new(@type_system, constructor) if constructor
       rescue => ex
         log(ex.message)
       end
@@ -419,7 +422,7 @@ module Mirah::JVM::Types
       return intrinsic if intrinsic
       jvm_types = types.map {|type| type.jvm_type}
 
-      return JavaDynamicMethod.new(name, *jvm_types) if dynamic?
+      return JavaDynamicMethod.new(@type_system, name, *jvm_types) if dynamic?
 
       begin
         descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
@@ -438,8 +441,8 @@ module Mirah::JVM::Types
 
         return method if method.kind_of?(JavaCallable)
         if method && method.static? == meta?
-          return JavaStaticMethod.new(method) if method.static?
-          return JavaMethod.new(method)
+          return JavaStaticMethod.new(@type_system, method) if method.static?
+          return JavaMethod.new(@type_system, method)
         end
       rescue   => ex
         log(ex.message)
@@ -451,7 +454,7 @@ module Mirah::JVM::Types
       methods = []
       if jvm_type && !array?
         jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaMethod.new(method) unless method.static?
+          methods << JavaMethod.new(@type_system, method) unless method.static?
         end
       end
       methods.concat((meta? ? unmeta : self).declared_intrinsics(name))
@@ -461,7 +464,7 @@ module Mirah::JVM::Types
       methods = []
       if jvm_type && !unmeta.array?
         jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaStaticMethod.new(method) if method.static?
+          methods << JavaStaticMethod.new(@type_system, method) if method.static?
         end
       end
       methods.concat(meta.declared_intrinsics(name))
@@ -469,14 +472,14 @@ module Mirah::JVM::Types
 
     def declared_constructors
       jvm_type.getConstructors.map do |method|
-        JavaConstructor.new(method)
+        JavaConstructor.new(@type_system, method)
       end
     end
 
     def field_getter(name)
       if jvm_type
         field = jvm_type.getField(name)
-        JavaFieldGetter.new(field) if field
+        JavaFieldGetter.new(@type_system, field) if field
       else
         nil
       end
@@ -485,7 +488,7 @@ module Mirah::JVM::Types
     def field_setter(name)
       if jvm_type
         field = jvm_type.getField(name)
-        JavaFieldSetter.new(field) if field
+        JavaFieldSetter.new(@type_system, field) if field
       else
         nil
       end
@@ -493,7 +496,7 @@ module Mirah::JVM::Types
 
     def inner_class_getter(name)
       full_name = "#{self.name}$#{name}"
-      inner_class = Mirah::AST.type(nil, full_name) rescue nil
+      inner_class = nil  # @type_system.type(nil, full_name) rescue nil
       return unless inner_class
       inner_class.inner_class = true
       add_macro(name) do |transformer, call|

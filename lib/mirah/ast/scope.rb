@@ -23,6 +23,7 @@ module Mirah
         $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
         java_import 'org.mirah.typer.Scope'
       end
+      java_import 'org.mirah.typer.AssignableTypeFuture'
       include Scope
 
       attr_reader :parent
@@ -57,21 +58,10 @@ module Mirah
       end
 
       def local_type(name)
-        @var_types[name]
-      end
-
-      def learn_local_type(name, type)
-        return unless type
-        existing_type = local_type(name)
-        if existing_type
-          unless existing_type.compatible?(type)
-            raise Mirah::Typer::InferenceError.new(
-                "Can't assign #{type.full_name} to " \
-                "variable of type #{existing_type.full_name}")
-          end
-          existing_type
-        elsif type
-          @var_types[name] = type
+        @var_types[name] ||= begin
+          type = AssignableTypeFuture.new(nil)
+          type.onUpdate {|_, resolved| self << name unless resolved.isError}
+          type
         end
       end
 
@@ -110,12 +100,8 @@ module Mirah
 
       def outer_scope
         node = @scope_node
-        return nil if node.nil?
-        if @scoper.introduced_scope(node)
-          @scoper.get_scope(node.parent)
-        else
-          @scoper.get_scope(node)
-        end
+        return nil if node.nil? || node.parent.nil?
+        @scoper.getScope(node)
       end
 
       def self_type
@@ -161,7 +147,7 @@ module Mirah
       end
 
       def package
-        @package || outer_scope.package
+        @package || (outer_scope && outer_scope.package)
       end
 
       def fetch_imports(map)

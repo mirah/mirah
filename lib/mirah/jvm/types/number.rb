@@ -38,6 +38,8 @@ module Mirah::JVM::Types
   end
 
   class Number < PrimitiveType
+    TYPE_ORDERING = ['byte', 'short', 'int', 'long', 'float', 'double']
+
     # The type returned by arithmetic operations with this type.
     def math_type
       self
@@ -64,9 +66,10 @@ module Mirah::JVM::Types
     end
     
     def add_delegates(name, return_type = nil)
-      index = TYPE_ORDERING.index(math_type)
+      index = TYPE_ORDERING.index(math_type.name)
       larger_types = TYPE_ORDERING[index + 1, TYPE_ORDERING.size]
       larger_types.each do |type|
+        type = @type_system.type(nil, type)
         delegate_intrinsic(name, type, return_type || type)
       end
     end

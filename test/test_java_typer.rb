@@ -20,18 +20,26 @@ require 'mirah'
 
 class TestJavaTyper < Test::Unit::TestCase
   include Mirah
+  include Mirah::Util::ProcessErrors
+
+  java_import 'org.mirah.typer.simple.SimpleScoper'
+  java_import 'org.mirah.typer.TypeFuture'
 
   def setup
-    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+    @types = Mirah::JVM::Types::TypeFactory.new
     @mirah = Mirah::Transform::Transformer.new(Mirah::Util::CompilationState.new)
-    @typer = Mirah::JVM::Typer.new(@mirah)
-    compiler = Mirah::JVM::Compiler::JVMBytecode.new(@mirah)
-
-    @java_typer = Typer::JavaTyper.new
+    @scopes = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
+    @typer = Mirah::Typer::Typer.new(@types, @scopes)
   end
 
-  def teardown
-    AST.type_factory = nil
+  def inferred_type(node)
+    type = @typer.infer(node, false).resolve
+    if type.name == ':error'
+      catch(:exit) do
+        process_errors([type])
+      end
+    end
+    type
   end
 
   def parse(text)
@@ -39,82 +47,82 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_simple_overtyped_meta_method
-    string_meta = AST.type(nil, 'java.lang.String', false, true)
-    string = AST.type(nil, 'java.lang.String')
+    string_meta = @types.type(nil, 'java.lang.String', false, true)
+    string = @types.type(nil, 'java.lang.String')
 
     # integral types
     ['boolean', 'char', 'double', 'float', 'int', 'long'].each do |type_name|
-      type = AST.type(nil, type_name)
-      return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [type])
-      assert_equal(string, return_type, "valueOf(#{type}) should return #{string}")
+      type = @types.type(nil, type_name)
+      return_type = @types.getMethodType(string_meta, 'valueOf', [type])
+      assert_equal(string, return_type.resolve, "valueOf(#{type}) should return #{string}")
     end
 
     # char[]
-    type = AST.type(nil, 'char', true)
-    return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [type])
-    assert_equal(string, return_type)
+    type = @types.type(nil, 'char', true)
+    return_type = @types.getMethodType(string_meta, 'valueOf', [type])
+    assert_equal(string, return_type.resolve)
 
     # Object
-    type = AST.type(nil, 'java.lang.Object')
-    return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [type])
-    assert_equal(string, return_type)
+    type = @types.type(nil, 'java.lang.Object')
+    return_type = @types.getMethodType(string_meta, 'valueOf', [type])
+    assert_equal(string, return_type.resolve)
   end
 
   def test_non_overtyped_method
-    string = AST.type(nil, 'java.lang.String')
+    string = @types.type(nil, 'java.lang.String')
 
-    int = AST.type(nil, 'int')
-    return_type = @java_typer.method_type(@typer, string, 'length', [])
-    assert_equal(int, return_type)
+    int = @types.type(nil, 'int')
+    return_type = @types.getMethodType(string, 'length', [])
+    assert_equal(int, return_type.resolve)
 
-    byte_array = AST.type(nil, 'byte', true)
-    return_type = @java_typer.method_type(@typer, string, 'getBytes', [])
-    assert_equal(byte_array, return_type)
+    byte_array = @types.type(nil, 'byte', true)
+    return_type = @types.getMethodType(string, 'getBytes', [])
+    assert_equal(byte_array, return_type.resolve)
   end
 
   def test_simple_overtyped_method
-    string_meta = AST.type(nil, 'java.lang.String', false, true)
-    string = AST.type(nil, 'java.lang.String')
+    string_meta = @types.type(nil, 'java.lang.String', false, true)
+    string = @types.type(nil, 'java.lang.String')
 
-    return_type = @java_typer.method_type(@typer, string_meta, 'valueOf', [string])
-    assert_equal(string, return_type)
+    return_type = @types.getMethodType(string_meta, 'valueOf', [string])
+    assert_equal(string, return_type.resolve)
   end
 
   def test_primitive_conversion_method
-    string = AST.type(nil, 'java.lang.String')
-    byte = AST.type(nil, 'byte')
-    char = AST.type(nil, 'char')
-    long = AST.type(nil, 'long')
+    string = @types.type(nil, 'java.lang.String')
+    byte = @types.type(nil, 'byte')
+    char = @types.type(nil, 'char')
+    long = @types.type(nil, 'long')
 
-    return_type = @java_typer.method_type(@typer, string, 'charAt', [byte])
-    assert_equal(char, return_type)
+    return_type = @types.getMethodType(string, 'charAt', [byte])
+    assert_kind_of(TypeFuture, return_type)
+    assert_equal(char, return_type.resolve)
 
-    assert_raise NoMethodError do
-      @java_typer.method_type(@typer, string, 'charAt', [long])
-    end
+    return_type = @types.getMethodType(string, 'charAt', [long]).resolve
+    assert(return_type.isError)
   end
 
   include Mirah::JVM::MethodLookup
 
   def test_is_more_specific
-    object = java.lang.Object.java_class
-    charseq = java.lang.CharSequence.java_class
-    string = java.lang.String.java_class
+    object = @types.type(nil, 'java.lang.Object')
+    charseq = @types.type(nil, 'java.lang.CharSequence')
+    string = @types.type(nil, 'java.lang.String')
 
-    assert @java_typer.is_more_specific?([string], [object])
-    assert @java_typer.is_more_specific?([charseq], [object])
-    assert @java_typer.is_more_specific?([string], [charseq])
+    assert object.is_more_specific?([string], [object])
+    assert object.is_more_specific?([charseq], [object])
+    assert object.is_more_specific?([string], [charseq])
   end
 
   def test_primitive_convertible
-    boolean = Mirah::JVM::Types::Boolean
-    byte = Mirah::JVM::Types::Byte
-    short = Mirah::JVM::Types::Short
-    char = Mirah::JVM::Types::Char
-    int = Mirah::JVM::Types::Int
-    long = Mirah::JVM::Types::Long
-    float = Mirah::JVM::Types::Float
-    double = Mirah::JVM::Types::Double
+    boolean = @types.type(nil, 'boolean')
+    byte = @types.type(nil, 'byte')
+    short = @types.type(nil, 'short')
+    char = @types.type(nil, 'char')
+    int = @types.type(nil, 'int')
+    long = @types.type(nil, 'long')
+    float = @types.type(nil, 'float')
+    double = @types.type(nil, 'double')
 
     assert !primitive_convertible?(boolean, byte)
     assert !primitive_convertible?(boolean, short)
@@ -190,29 +198,28 @@ class TestJavaTyper < Test::Unit::TestCase
   end
 
   def test_primitive_array
-    ary = AST.type(nil, 'byte', true)
-    int = AST.type(nil, 'int')
+    ary = @types.type(nil, 'byte', true)
+    int = @types.type(nil, 'int')
 
-    java_typer = Typer::JavaTyper.new
-
-    assert_equal(AST.type(nil, 'byte'), java_typer.method_type(nil, ary, "[]", [int]))
+    # TODO fix intrinsics
+    assert_equal(@types.type(nil, 'byte'), @types.getMethodType(ary, "[]", [int]).resolve)
   end
 
   def test_int
     ast = parse("#{1 << 16}")
-    assert_equal(AST.type(nil, 'int'), ast.infer(@typer, true))
+    assert_equal(@types.type(nil, 'int'), inferred_type(ast))
   end
 
   def test_long
     ast = parse("#{1 << 33}")
-    assert_equal(AST.type(nil, 'long'), ast.infer(@typer, true))
+    assert_equal(@types.type(nil, 'long'), inferred_type(ast))
   end
   
   def test_dynamic_assignability
     ast = parse("a = 1; a = dynamic('foo')")
-    assert_equal :error, ast.infer(@typer, true).name
-    
+    assert_equal true, inferred_type(ast).isError
+
     ast = parse("a = Object.new; a = dynamic('foo')")
-    assert_equal 'java.lang.Object', ast.infer(@typer, true).name
+    assert_equal 'java.lang.Object', inferred_type(ast).name
   end
 end

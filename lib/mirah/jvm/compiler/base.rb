@@ -17,7 +17,6 @@ module Mirah
   module JVM
     module Compiler
       class Base
-        include Mirah::Scoper
         attr_accessor :filename, :method, :static, :class
 
         class CompilationError < Mirah::NodeError

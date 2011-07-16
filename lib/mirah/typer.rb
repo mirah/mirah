@@ -14,8 +14,6 @@
 # limitations under the License.
 
 require 'mirah/errors'
-require 'mirah/typer/base'
-require 'mirah/typer/simple'
 
 module Mirah
   module Typer

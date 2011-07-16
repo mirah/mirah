@@ -2,11 +2,10 @@ module Mirah
   module JVM
     module Types
       class DynamicType < Type
-        ObjectType = Type.new(BiteScript::ASM::ClassMirror.for_name('java.lang.Object'))
-
-        def initialize
+        def initialize(types)
           # For naming, bytecode purposes, we are an Object
-          @name = "java.lang.Object"
+          super(types, "java.lang.Object")
+          @object_type ||= types.type(nil, 'java.lang.Object')
         end
 
         def basic_type
@@ -14,17 +13,17 @@ module Mirah
         end
 
         def is_parent(other)
-          ObjectType.assignable_from?(other)
+          @object_type.assignable_from?(other)
         end
 
         def assignable_from?(other)
-          ObjectType.assignable_from?(other)
+          @object_type.assignable_from?(other)
         end
 
         def jvm_type
           java.lang.Object
         end
-        
+
         def full_name
           "dynamic"
         end
@@ -32,13 +31,13 @@ module Mirah
         def dynamic?
           true
         end
-        
+
         def superclass
-          ObjectType.superclass
+          @object_type.superclass
         end
-        
-        def interfaces
-          ObjectType.interfaces
+
+        def interfaces(include_parent=true)
+          @object_type.interfaces
         end
       end
     end

@@ -16,30 +16,12 @@
 require 'jruby'
 require 'mirah/jvm/types/source_mirror'
 module Mirah::JVM::Types
-  class TypeFactory
-    BASIC_TYPES = {
-      "boolean" => Boolean,
-      "byte" => Byte,
-      "char" => Char,
-      "short" => Short,
-      "int" => Int,
-      "long" => Long,
-      "float" => Float,
-      "double" => Double,
-      "fixnum" => Int,
-      "string" => String,
-      "java.lang.String" => String,
-      "String" => String,
-      "java.lang.Object" => Object,
-      "Object" => Object,
-      "java.lang.Class" => ClassType,
-      "java.lang.Iterable" => Iterable,
-      "Iterable" => Iterable,
-      "void" => Void,
-      "notype" => Void,
-      "null" => Null,
-      "dynamic" => DynamicType.new
-    }.freeze
+  java_import 'org.mirah.typer.simple.SimpleTypes'
+  class TypeFactory < SimpleTypes
+    java_import 'org.mirah.typer.BaseTypeFuture'
+    java_import 'org.mirah.typer.ErrorType'
+    java_import 'org.mirah.typer.TypeSystem'
+    include TypeSystem
 
     attr_accessor :package
     attr_reader :known_types
@@ -52,10 +34,12 @@ module Mirah::JVM::Types
     end
 
     def initialize
+      super(":unused")
       @known_types = ParanoidHash.new
-      @known_types.update(BASIC_TYPES)
       @declarations = []
       @mirrors = {}
+      @futures = {}
+      create_basic_types
     end
 
     def initialize_copy(other)
@@ -64,6 +48,99 @@ module Mirah::JVM::Types
         value.basic_type.kind_of?(Mirah::JVM::Types::TypeDefinition)
       end
       @declarations = []
+      @futures = {}
+    end
+
+    def wrap(resolved_type)
+      future = BaseTypeFuture.new(nil)
+      future.resolved(resolved_type) if resolved_type
+      future
+    end
+
+    def cache_and_wrap(resolved_type)
+      @futures[resolved_type.name] ||= wrap(resolved_type)
+    end
+    def cache_and_wrap_type(name)
+      @futures[name] ||= wrap(type(nil, name))
+    end
+
+    # TypeSystem methods
+    def getNullType; cache_and_wrap_type('null') end
+    def getVoidType; cache_and_wrap_type('void') end
+    def getBaseExceptionType; cache_and_wrap_type('java.lang.Throwable') end
+    def getDefaultExceptionType; cache_and_wrap_type('java.lang.Exception') end
+    def getRegexType; cache_and_wrap_type('java.util.regex.Pattern') end
+    def getStringType; cache_and_wrap_type('java.lang.String') end
+    def getBooleanType; cache_and_wrap_type('boolean') end
+    # TODO narrowing
+    def getFixnumType(value); cache_and_wrap_type('int') end
+    def getCharType(value) cache_and_wrap_type('char') end
+    def getFloatType(value); cache_and_wrap_type('float') end
+    def getMetaType(type)
+      if type.kind_of?(Type)
+        type.meta
+      else
+        future = BaseTypeFuture.new
+        type.on_update {|_, resolved| future.resolved(resolved.meta)}
+        future
+      end
+    end
+    def getSuperClass(future)
+      superclass = BaseTypeFuture.new(nil)
+      future.on_update {|_, type| superclass.resolved(type.superclass)}
+      superclass
+    end
+    def getArrayType(type)
+      if type.kind_of?(Type)
+        type.array
+      else
+        future = BaseTypeFuture.new
+        type.on_update {|_, resolved| future.resolved(resolved.array)}
+        future
+      end
+    end
+    def get(typeref)
+      basic_type = @futures[typeref.name] || cache_and_wrap(type(nil, typeref.name))
+      if typeref.isArray
+        getArrayType(basic_type)
+      elsif typeref.isStatic
+        getMetaType(basic_type)
+      else
+        basic_type
+      end
+    end
+    def getLocalType(scope, name)
+      scope.local_type(name)
+    end
+    def getMethodType(target, name, argTypes)
+      unless target.kind_of?(TypeDefinition)
+        method = target.get_method(name, argTypes)
+        if method.nil?
+          return ErrorType.new([["Cannot find %s method %s(%s) on %s" %
+               [ target.meta? ? "static" : "instance",
+                 name,
+                 argTypes.map{|t| t.full_name}.join(', '),
+                 target.full_name]]])
+        else
+          return cache_and_wrap(method.return_type)
+        end
+      end
+      super
+    end
+    def getMainType(scope, script)
+      filename = File.basename(script.position.filename || 'DashE')
+      classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
+      cache_and_wrap(declare_type(scope, classname))
+    end
+    def defineType(scope, node, name, superclass, interfaces)
+      # TODO what if superclass or interfaces change later?
+      type = define_type(scope, node)
+      future = @futures[type.name]
+      if future
+        future.resolved(type)
+      else
+        cache_and_wrap(type)
+      end
     end
 
     def define_types(builder)
@@ -81,8 +158,8 @@ module Mirah::JVM::Types
         end
       end
       type = basic_type(scope, name)
-      type = type.array_type if array
-      type = type.meta if meta
+      type = type.array_type if type && array
+      type = type.meta if type && meta
       return type
     end
 
@@ -107,18 +184,15 @@ module Mirah::JVM::Types
     end
 
     def find_type(scope, name)
-      saved_ex = nil
-      begin
-        return get_type(name)
-      rescue NameError => ex
-        saved_ex = ex
-      end
+      type = get_type(name)
+      return type if type
 
       if scope
         imports = scope.imports
         if imports.include?(name)
           name = imports[name] while imports.include?(name)
-          return get_type(name)
+          type = get_type(name)
+          return type if type
         end
 
         # TODO support inner class names
@@ -126,44 +200,39 @@ module Mirah::JVM::Types
           return package_search(name, scope)
         end
       end
-      raise saved_ex
+      return nil
     end
 
     def package_search(name, scope)
       packages = []
-      packages << scope.package unless scope.package.empty?
+      current_package = scope.package
+      packages << current_package unless current_package.nil? || current_package.empty?
       packages.concat(scope.search_packages)
       packages << 'java.lang'
       packages.each do |package|
-        begin
-          return get_type("#{package}.#{name}")
-        rescue NameError
-        end
+        type =  get_type("#{package}.#{name}")
+        return type if type
       end
-      raise NameError, "Cannot find class #{name}"
+      return nil
     end
 
     def get_type(full_name)
       type = @known_types[full_name]
       return type.basic_type if type
-      begin
-        mirror = get_mirror(full_name)
-      rescue NameError => ex
+      mirror = get_mirror(full_name)
+      unless mirror
         if full_name =~ /^(.+)\.([^.]+)/
           outer_name = $1
           inner_name = $2
-          begin
-            outer_type = get_type(outer_name)
-            full_name = "#{outer_type.name}$#{inner_name}"
-          rescue NameError
-            raise ex
-          end
+          outer_type = get_type(outer_name)
+          return nil if outer_type.nil?
+          full_name = "#{outer_type.name}$#{inner_name}"
           mirror = get_mirror(full_name)
         else
-          raise ex
+          return nil
         end
       end
-      type = Type.new(mirror).load_extensions
+      type = Type.new(self, mirror).load_extensions
       if full_name.include? '$'
         @known_types[full_name.gsub('$', '.')] = type
       end
@@ -171,13 +240,13 @@ module Mirah::JVM::Types
     end
 
     def known_type(scope, name)
-      basic_type(scope, name) rescue nil
+      basic_type(scope, name)
     end
 
     def declare_type(scope, name)
       full_name = name
       package = scope.package
-      if !name.include?('.') && !package.empty?
+      if !name.include?('.') && package && !package.empty?
         full_name = "#{package}.#{name}"
       end
       if @known_types.include? full_name
@@ -223,7 +292,7 @@ module Mirah::JVM::Types
         classname = name.tr('.', '/')
         stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname + ".class")
         if stream
-          BiteScript::ASM::ClassMirror.load(stream) if stream
+          BiteScript::ASM::ClassMirror.load(stream)
         else
           url = JRuby.runtime.jruby_class_loader.getResource(classname + ".java")
           if url
@@ -233,11 +302,10 @@ module Mirah::JVM::Types
               @mirrors[mirror.type.class_name] = mirror
             end if mirrors
             @mirrors[name]
-          else
-            raise NameError, "Class '#{name}' not found."
           end
         end
       end
     end
   end
 end
+require 'mirah/jvm/types/basic_types'

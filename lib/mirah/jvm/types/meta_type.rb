@@ -5,7 +5,7 @@ module Mirah
         attr_reader :unmeta
 
         def initialize(unmeta)
-          @name = unmeta.name
+          super(unmeta.type_system, unmeta.name)
           @unmeta = unmeta
         end
 
@@ -25,7 +25,7 @@ module Mirah
           @unmeta.superclass.meta if @unmeta.superclass
         end
 
-        def interfaces
+        def interfaces(include_parent=true)
           []
         end
 

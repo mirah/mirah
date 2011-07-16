@@ -52,7 +52,7 @@ module Mirah::JVM::Types
     def intrinsics
       @intrinsics ||= begin
         @intrinsics = Hash.new {|h, k| h[k] = {}}
-        add_intrinsics
+        #add_intrinsics
         @intrinsics
       end
     end
@@ -118,8 +118,7 @@ module Mirah::JVM::Types
     def load_extensions(klass=nil)
       mirror = nil
       if klass
-        factory = Mirah::AST.type_factory
-        mirror = factory.get_mirror(klass.getName)
+        mirror = @type_system.get_mirror(klass.getName)
       elsif jvm_type
         mirror = jvm_type
       end
@@ -134,9 +133,9 @@ module Mirah::JVM::Types
           types = BiteScript::ASM::Type.get_argument_types(macro['signature'])
           args = types.map do |type|
             if type.class_name == 'duby.lang.compiler.Block'
-              Mirah::AST::TypeReference::BlockType
+              @type_system.block_type
             else
-              Mirah::AST.type(nil, type)
+              @type_system.type(type)
             end
           end
           klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)
@@ -147,7 +146,11 @@ module Mirah::JVM::Types
     end
 
     def add_intrinsics
-      add_method('nil?', [], Boolean) do |compiler, call, expression|
+      boolean = @type_system.type(nil, 'boolean')
+      object_type = @type_system.type(nil, 'java.lang.Object')
+      class_type = @type_system.type(nil, 'java.lang.Class')
+      
+      add_method('nil?', [], boolean) do |compiler, call, expression|
         if expression
           call.target.compile(compiler, true)
           compiler.method.op_to_bool do |target|
@@ -156,7 +159,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('==', [Object], Boolean) do |compiler, call, expression|
+      add_method('==', [object_type], boolean) do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
           call.target.compile(compiler, true)
@@ -167,7 +170,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('!=', [Object], Boolean) do |compiler, call, expression|
+      add_method('!=', [object_type], boolean) do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
           call.target.compile(compiler, true)
@@ -178,7 +181,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_macro('kind_of?', ClassType) do |transformer, call|
+      add_macro('kind_of?', class_type) do |transformer, call|
         klass, object = call.parameters[0], call.target
         Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
           klass.parent = object.parent = call2
@@ -189,7 +192,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('kind_of?', [Object.meta], Boolean) do |compiler, call, expression|
+      add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
         call.target.compile(compiler, expression)
         if expression
           klass = call.parameters[0].inferred_type!
@@ -202,10 +205,10 @@ module Mirah::JVM::Types
   class ArrayType
     def add_intrinsics
       super
-      add_enumerable_macros
-
+      # add_enumerable_macros
+      int_type = @type_system.type(nil, 'int')
       add_method(
-          '[]', [Int], component_type) do |compiler, call, expression|
+          '[]', [int_type], component_type) do |compiler, call, expression|
         if expression
           call.target.compile(compiler, true)
           call.parameters[0].compile(compiler, true)
@@ -214,7 +217,7 @@ module Mirah::JVM::Types
       end
 
       add_method('[]=',
-                 [Int, component_type],
+                 [int_type, component_type],
                  component_type) do |compiler, call, expression|
         call.target.compile(compiler, true)
         convert_args(compiler, call.parameters, [Int, component_type])
@@ -224,23 +227,23 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('length', [], Int) do |compiler, call, expression|
+      add_method('length', [], int_type) do |compiler, call, expression|
         call.target.compile(compiler, true)
         compiler.method.arraylength
       end
-
+      
       add_macro('each', Mirah::AST.block_type) do |transformer, call|
         Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           index = transformer.tmp
           array = transformer.tmp
-
+      
           init = transformer.eval("#{index} = 0;#{array} = nil")
           array_assignment = init.children[-1]
           array_assignment.value = call.target
           call.target.parent = array_assignment
           forloop.init << init
-
+      
           var = call.block.args.args[0]
           if var
             forloop.pre << transformer.eval(
@@ -262,7 +265,7 @@ module Mirah::JVM::Types
 
   class MetaType
     def add_intrinsics
-      add_method('class', [], ClassType) do |compiler, call, expression|
+      add_method('class', [], @type_system.type(nil, 'java.lang.Class')) do |compiler, call, expression|
         if expression
           compiler.method.ldc_class(unmeta)
         end
@@ -273,7 +276,7 @@ module Mirah::JVM::Types
   class ArrayMetaType
     def add_intrinsics
       super
-      add_macro('cast', Object) do |transformer, call|
+      add_macro('cast', @type_system.type(nil, 'java.lang.Object')) do |transformer, call|
         call.cast = true
         call.resolve_if(nil) { unmeta }
         call
@@ -365,12 +368,12 @@ module Mirah::JVM::Types
         Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           it = transformer.tmp
-
+    
           assignment = transformer.eval("#{it} = foo.iterator")
           assignment.value.target = call.target
           call.target.parent = assignment.value
           forloop.init << assignment
-
+    
           var = call.block.args.args[0]
           if var
             forloop.pre << transformer.eval(

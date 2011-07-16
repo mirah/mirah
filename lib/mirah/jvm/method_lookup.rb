@@ -71,6 +71,9 @@ module Mirah
               by_name += cls.declared_instance_methods(name)
               interfaces.concat(cls.interfaces)
               cls = cls.superclass
+              unless cls.nil? || cls.kind_of?(Mirah::JVM::Types::Type)
+                raise ArgumentError, "Expected Type, got #{cls.class} #{cls}"
+              end
             end
           end
           if mapped_type.interface?  # TODO or abstract

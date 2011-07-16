@@ -13,6 +13,7 @@ module Mirah
             #@type = @component_type
           end
           @name = component_type.name
+          @type_system = component_type.type_system
         end
 
         def array?
@@ -32,22 +33,23 @@ module Mirah
         end
 
         def superclass
+          object_type = @type_system.type(nil, 'java.lang.Object')
           if component_type.primitive?
-            Object
+            object_type
           elsif component_type.array?
             # fix covariance here for arrays of arrays
             # see #55
-            Object
+            object_type
           else
-            if component_type == Object
-              Object
+            if component_type == object_type
+              object_type
             else
               component_type.superclass.array_type
             end
           end
         end
 
-        def interfaces
+        def interfaces(include_parent=true)
           []
         end
 

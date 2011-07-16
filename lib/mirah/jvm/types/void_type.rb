@@ -2,8 +2,8 @@ module Mirah
   module JVM
     module Types
       class VoidType < PrimitiveType
-        def initialize
-          super('void', Java::JavaLang::Void)
+        def initialize(types)
+          super(types, 'void', Java::JavaLang::Void)
         end
 
         def void?

@@ -220,8 +220,16 @@ class SimpleScope; implements Scope
   def resetDefaultSelfNode:void; end
 end
 
+interface ScopeFactory do
+  def newScope(scoper:Scoper, node:Node):Scope; end
+end
+
 class SimpleScoper; implements Scoper
   def initialize
+    @scopes = {}
+  end
+  def initialize(factory:ScopeFactory)
+    @factory = factory
     @scopes = {}
   end
   def getScope(node)
@@ -234,7 +242,11 @@ class SimpleScoper; implements Scoper
     Scope(@scopes[node]) || addScope(node)
   end
   def addScope(node)
-    scope = SimpleScope.new
+    scope = if @factory
+      @factory.newScope(self, node)
+    else
+      SimpleScope.new
+    end
     @scopes[node] = scope
     scope
   end

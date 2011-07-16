@@ -16,7 +16,7 @@
 require 'bitescript'
 require 'mirah/ast'
 require 'mirah/jvm/method_lookup'
-require 'mirah/jvm/compiler'
+#require 'mirah/jvm/compiler'
 require 'set'
 module Mirah::JVM
   module Types
@@ -38,6 +38,5 @@ require 'mirah/jvm/types/number'
 require 'mirah/jvm/types/integers'
 require 'mirah/jvm/types/boolean'
 require 'mirah/jvm/types/floats'
-require 'mirah/jvm/types/basic_types'
 require 'mirah/jvm/types/literals'
-require 'mirah/jvm/types/extensions'
+require 'mirah/jvm/types/factory'

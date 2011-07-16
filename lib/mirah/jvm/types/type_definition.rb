@@ -24,7 +24,7 @@ module Mirah
           (node && node.superclass) || Object
         end
 
-        def interfaces
+        def interfaces(include_parent=true)
           if node
             node.interfaces
           else
