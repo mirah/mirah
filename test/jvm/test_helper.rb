@@ -13,27 +13,59 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-$:.unshift File.join(File.dirname(__FILE__),'..','lib')
-
 require 'test/unit'
 require 'mirah'
-require 'mirah/jvm/compiler/java_source'
 require 'jruby'
 require 'stringio'
-require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
+require 'fileutils'
 
-# make sure . is in CLASSPATH
-$CLASSPATH << '.'
 
-class TestJavacCompiler < TestJVMCompiler
+module JVMCompiler
+  import java.lang.System
+  import java.io.PrintStream
+  include Mirah
+  
+  def compile(code)
+    File.unlink(*@tmp_classes)
+    @tmp_classes.clear
+    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+    name = "script" + System.nano_time.to_s
+    state = Mirah::Util::CompilationState.new
+    state.save_extensions = false
+    transformer = Mirah::Transform::Transformer.new(state)
+    Java::MirahImpl::Builtin.initialize_builtins(transformer)
+    ast  = AST.parse(code, name, true, transformer)
+    typer = JVM::Typer.new(transformer)
+    ast.infer(typer, true)
+    typer.resolve(true)
+    compiler = JVM::Compiler::JVMBytecode.new
+    compiler.compile(ast)
+    classes = {}
+    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
+    compiler.generate do |name, builder|
+      bytes = builder.generate
+      FileUtils.mkdir_p(File.dirname(name))
+      open("#{name}", "wb") do |f|
+        f << bytes
+      end
+      classes[name[0..-7]] = bytes
+    end
+
+    classes.keys.map do |name|
+      cls = loader.load_class(name.tr('/', '.'))
+      proxy = JavaUtilities.get_proxy_class(cls.name)
+      @tmp_classes << "#{name}.class"
+      proxy
+    end
+  end
+end
+
+module JavacCompiler
   import javax.tools.ToolProvider
   import java.util.Arrays
-
-  def teardown
-    super
-    # wipe out Script*_xform_* classes, since we're messy
-    File.unlink(*Dir['Script*_xform_*.class'])
-  end
+  import java.lang.System
+  import java.io.PrintStream
+  include Mirah
   
   def javac(files)
     compiler = ToolProvider.system_java_compiler
@@ -63,6 +95,7 @@ class TestJavacCompiler < TestJVMCompiler
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
+    
     AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     state = Mirah::Util::CompilationState.new
     state.save_extensions = false
@@ -85,5 +118,14 @@ class TestJavacCompiler < TestJVMCompiler
       java_files << name
     end
     classes = javac(java_files)
+  end
+end
+
+module CommonAssertions
+  def assert_include(value, array, message=nil)
+    message = build_message message, '<?> does not include <?>', array, value
+    assert_block message do
+      array.include? value
+    end
   end
 end
