@@ -39,16 +39,11 @@ $ gem install mirah
 
 To build and install from source,
 
-$ git clone http://github.com/headius/bitescript.git
 $ git clone http://github.com/mirah/mirah.git
-$ cd bitescript
-$ gem build bitescript.gemspec
-$ gem install bitescript-*
-$ cd -
 $ cd mirah
+$ bundle install
 $ rake gem
-$ gem install pkg/mirah-*
-$ cd -
+$ gem install pkg/mirah-*.gem
 
 == For Java tools:
 

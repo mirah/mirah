@@ -22,12 +22,8 @@ require 'mirah/typer'
 require 'mirah/compiler'
 require 'mirah/env'
 require 'mirah/errors'
-begin
-  require 'bitescript'
-rescue LoadError
-  $: << File.dirname(__FILE__) + '/../../bitescript/lib'
-  require 'bitescript'
-end
+require 'bitescript'
+
 require 'mirah/jvm/compiler'
 require 'mirah/jvm/typer'
 Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
