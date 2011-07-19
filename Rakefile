@@ -105,7 +105,7 @@ namespace :jar do
       zipfileset :src => 'dist/mirah.jar'
       zipfileset :src => 'javalib/jruby-complete.jar'
       zipfileset :src => 'javalib/mirah-parser.jar'
-      zipfileset :src => 'javalib/dynalink-0.1.jar'
+      zipfileset :src => 'javalib/dynalink-0.2.jar'
       manifest do
         attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
       end
