@@ -371,4 +371,10 @@ class TestAst < Test::Unit::TestCase
     assert(AST::Fixnum === new_ast)
     assert_equal(1, new_ast.literal)
   end
+  
+  def test_incorrect_syntax_raises_syntax_error
+    assert_raises SyntaxError do
+      AST.parse("puts( 'aoue'")
+    end
+  end
 end
