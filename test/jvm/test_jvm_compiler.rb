@@ -589,6 +589,32 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(
         'def foo; a = 0; while a < 2; a+=1; end; end')
     assert_equal(nil, cls.foo)
+
+    # TODO: loop doesn't work unless you're explicitly in a class
+    # cls, = compile(<<-EOF)
+    #   def bar(a:fixnum)
+    #     loop do
+    #       a += 1
+    #       break if a > 2
+    #     end
+    #     a
+    #   end
+    # EOF
+    # assert_equal(3, cls.bar(0))
+
+    loopy, = compile(<<-EOF)
+    class Loopy
+      def bar(a:fixnum)
+        loop do
+          a += 1
+          break if a > 2
+        end
+        a
+      end
+    end
+    EOF
+
+    assert_equal(3, loopy.new.bar(0))
   end
 
   def test_break
