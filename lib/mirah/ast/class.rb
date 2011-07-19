@@ -122,6 +122,10 @@ module Mirah::AST
         end
       end
     end
+
+    def top_level?
+      true
+    end
   end
 
   defmacro('implements') do |transformer, fcall, parent|
@@ -158,6 +162,10 @@ module Mirah::AST
 
     def superclass_node
       nil
+    end
+
+    def top_level?
+      true
     end
   end
 
