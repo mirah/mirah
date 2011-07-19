@@ -271,6 +271,10 @@ module Mirah
         end
         inferred_type
       end
+
+      def top_level?
+        false
+      end
     end
 
 
