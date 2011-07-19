@@ -45,6 +45,7 @@ module Mirah
           nodes << parse_file(script)
         end
       end
+      raise 'nothing to parse? ' + files_or_scripts.inspect unless nodes.length > 0
       nodes
     end
     
