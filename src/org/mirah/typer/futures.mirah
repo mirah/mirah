@@ -46,7 +46,7 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def resolve
-    @resolved ||= ErrorType.new(['InferenceError', @position])
+    @resolved ||= ErrorType.new([['InferenceError', @position]])
   end
 
   def position
@@ -102,7 +102,7 @@ class AssignableTypeFuture < BaseTypeFuture
       @declarations[type] = self
       TypeFuture(self)
     else
-      TypeFuture(@declarations[type] = ErrorType.new(['Type redeclared', position, 'First declared', self.position]))
+      TypeFuture(@declarations[type] = ErrorType.new([['Type redeclared', position], ['First declared', self.position]]))
     end
   end
 
@@ -126,7 +126,7 @@ class AssignableTypeFuture < BaseTypeFuture
   end
 
   def incompatibleWith(value:ResolvedType, position:Position)
-    ErrorType.new(["Cannot assign #{value} to #{inferredType}", position])
+    ErrorType.new([["Cannot assign #{value} to #{inferredType}", position]])
   end
 
   def checkAssignments:void

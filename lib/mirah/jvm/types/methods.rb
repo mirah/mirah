@@ -155,7 +155,7 @@ module Mirah::JVM::Types
     def return_type
       @return_type ||= begin
         if void?
-          Void
+          @types.type(nil, 'void')
         else
           @types.type(nil, @member.return_type)
         end

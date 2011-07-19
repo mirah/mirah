@@ -61,7 +61,7 @@ module Mirah
       puts message
       return
     end
-    puts "#{position.file}:#{position.start_line}: #{message}"
-    puts position.underline
+    puts "#{position.filename}:#{position.start_line}: #{message}"
+    #puts position.underline
   end
 end

@@ -124,7 +124,9 @@ class SimpleTypes; implements TypeSystem
     key = [target, name, argTypes]
     t = TypeFuture(@methods[key])
     unless t
-      t = AssignableTypeFuture.new(nil)
+      # Start with an error message in case it isn't found.
+      t = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
+          ["Cannot find method #{target}.#{name}#{argTypes}"]]))
       @methods[key] = t
     end
     t

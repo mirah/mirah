@@ -17,6 +17,9 @@ require 'mirah/util/process_errors'
 module Mirah
   class Generator
     include Mirah::Util::ProcessErrors
+    java_import 'org.mirah.typer.simple.SimpleScoper'
+    java_import 'org.mirah.typer.simple.TypePrinter'
+
     def initialize(state, compiler_class, logging, verbose)
       @parser = Mirah::Parser.new(state, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
@@ -32,10 +35,10 @@ module Mirah
       
       # enter all ASTs into inference engine
       puts "Inferring types..." if logging
-      infer_asts(top_nodes)
+      scoper = infer_asts(top_nodes)
       
       # compile each AST in turn
-      compiler_results = compiler.compile_asts(top_nodes, parser.transformer)
+      compiler_results = compiler.compile_asts(top_nodes, scoper)
       
       puts "Done!" if logging
       
@@ -43,15 +46,19 @@ module Mirah
     end
 
     def infer_asts(nodes)
-      scoper = Mirah::Types::Scoper.new
-      type_system = Mirah::Types::SimpleTypes.new
-      typer = Mirah::Types::Typer::Typer.new(type_system, scoper)
+      scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
+      type_system = Mirah::JVM::Types::TypeFactory.new
+      typer = Mirah::Typer::Typer.new(type_system, scoper)
       begin
         nodes.each {|ast| typer.infer(ast, false) }
-        process_inference_errors(nodes)
+        process_inference_errors(typer, nodes)
       ensure
-        puts nodes.inspect if verbose
+        if verbose
+          printer = TypePrinter.new(typer)
+          nodes.each {|ast| printer.scan(ast, nil)}
+        end
       end
+      scoper
     end
   end
 end

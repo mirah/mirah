@@ -54,6 +54,9 @@ class ErrorType < SpecialType
   def message:List
     @message
   end
+  def toString:String
+    "<Error: #{message}>"
+  end
 end
 
 class BlockType < SpecialType

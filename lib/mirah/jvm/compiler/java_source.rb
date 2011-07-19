@@ -68,7 +68,7 @@ module Mirah
                 unless @method.type.nil? || @method.type.void?
                   self.return(ImplicitReturn.new(node.body))
                 else
-                  node.body.compile(self, false) if node.body
+                  visit(node.body, false) if node.body
                 end
               end
 
@@ -90,7 +90,7 @@ module Mirah
           @method.print "#{name}("
           @method.print args_for_opt.map(&:name).join(', ')
           @method.print ', 'if args_for_opt.size > 0
-          arg.value.compile(self, true)
+          visit(arg.value, true)
 
           # invoke the next one in the chain
           @method.print ");\n"
@@ -110,14 +110,14 @@ module Mirah
                 node.delegate_args.each_with_index do |arg, index|
                   method.print ', ' unless index == 0
                   raise "Invalid constructor argument #{arg}" unless arg.expr?(self)
-                  arg.compile(self, true)
+                  visit(arg, true)
                 end
                 method.puts ");"
               end
 
               prepare_binding(node) do
                 declare_locals(get_scope(node))
-                node.body.compile(self, false) if node.body
+                visit(node.body, false) if node.body
               end
               method.stop
             end
@@ -133,7 +133,7 @@ module Mirah
             if node.respond_to? :arguments
               node.arguments.args.each do |param|
                 if scope.captured?(param.name)
-                  captured_local_declare(scope, param.name, param.inferred_type)
+                  captured_local_declare(scope, param.name, inferred_type(param))
                   @method.puts "$binding.#{param.name} = #{param.name};"
                 end
               end
@@ -149,19 +149,19 @@ module Mirah
           end
         end
 
-        def define_closure(class_def, expression)
+        def visitClosureDefinition(class_def, expression)
           compiler = ClosureCompiler.new(@file, @type, self)
-          compiler.define_class(class_def, expression)
+          compiler.visitClassDefinition(class_def, expression)
         end
 
-        def return(node)
+        def visitReturn(node, expression)
           if @method.type.nil? || @method.type.void?
             @method.puts 'return;'
             return
           end
           if node.value.expr?(self)
             @method.print 'return '
-            node.value.compile(self, true)
+            visit(node.value, true)
             @method.puts ';'
           else
             store_value('return ', node.value)
@@ -171,7 +171,7 @@ module Mirah
         def _raise(node)
           if node.expr?(self)
             @method.print 'throw '
-            node.compile(self, true)
+            visit(node, true)
             @method.puts ';'
           else
             store_value('throw ', node)
@@ -183,7 +183,7 @@ module Mirah
             if node.else_node.nil?
               maybe_store(node.body, expression) if node.body
             else
-              node.body.compile(self, false) if node.body
+              visit(node.body, false) if node.body
             end
           end
           node.clauses.each do |clause|
@@ -206,7 +206,7 @@ module Mirah
             maybe_store(node.body, expression)
           end
           @method.block 'finally' do
-            node.clause.compile(self, false)
+            visit(node.clause, false)
           end
         end
 
@@ -226,9 +226,10 @@ module Mirah
           @method.print name
         end
 
-        def field(name, type, annotations, static_field)
-          name = name[1..-1] if name =~ /^@/
-          declare_field(name, type, annotations, static_field)
+        def visitFieldAccess(field, expression)
+          return unless expression
+          name = field.name
+          declare_field(name, inferred_type(field), field.annotations, field.isStatic)
           @method.print "#{this}.#{name}"
         end
 
@@ -268,7 +269,7 @@ module Mirah
               end
             end
             @method.print "#{name} = "
-            value.compile(self, true)
+            visit(value, true)
             if simple && expression
               @method.print ')'
             else
@@ -276,7 +277,7 @@ module Mirah
             end
           else
             @method.declare_local(type, name) do
-              value.compile(self, true)
+              visit(value, true)
             end
             if expression
               @method.puts "#{@lvalue}#{name};"
@@ -284,9 +285,8 @@ module Mirah
           end
         end
 
-        def field_declare(name, type, annotations)
-          name = name[1..-1] if name =~ /^@/
-          declare_field(name, type, annotations)
+        def visitFieldDeclaration(decl, expression)
+          declare_field(decl.name, inferred_type(decl), decl.annotations, decl.isStatic)
         end
 
         def local_declare(scope, name, type)
@@ -294,11 +294,11 @@ module Mirah
           declare_local(name, type)
         end
 
-        def field_assign(name, type, expression, value, annotations, static_field)
-          name = name[1..-1] if name =~ /^@/
-          declare_field(name, type, annotations, static_field)
+        def visitFieldAssign(field, expression)
+          name = field.name
+          declare_field(field.name, inferred_type(field), field.annotations, field.isStatic)
           lvalue = "#{@lvalue if expression}#{this}.#{name} = "
-          store_value(lvalue, value)
+          store_value(lvalue, field.value)
         end
 
         def captured_local_declare(scope, name, type)
@@ -314,7 +314,7 @@ module Mirah
         end
 
         def captured_local_assign(node, expression)
-          scope, name, type = containing_scope(node), node.name, node.inferred_type
+          scope, name, type = containing_scope(node), node.name, inferred_type(node)
           captured_local_declare(scope, name, type)
           lvalue = "#{@lvalue if expression}$binding.#{name} = "
           store_value(lvalue, node.value)
@@ -325,11 +325,11 @@ module Mirah
             @method.puts "#{lvalue}#{value};"
           elsif value.expr?(self)
             @method.print lvalue
-            value.compile(self, true)
+            visit(value, true)
             @method.puts ';'
           else
             with :lvalue => lvalue do
-              value.compile(self, true)
+              visit(value, true)
             end
           end
         end
@@ -343,7 +343,7 @@ module Mirah
           if expression
             store_value(@lvalue, value)
           else
-            value.compile(self, false)
+            visit(value, false)
           end
         end
 
@@ -360,48 +360,48 @@ module Mirah
         end
 
         def branch_expression(node)
-          node.condition.compile(self, true)
+          visit(node.condition, true)
           @method.print ' ? ('
           if node.body
-            node.body.compile(self, true)
+            visit(node.body, true)
           else
-            @method.print @method.init_value(node.inferred_type)
+            @method.print @method.init_value(inferred_type(node))
           end
           @method.print ') : ('
-          if node.else
-            node.else.compile(self, true)
+          if node.elseBody
+            visit(node.elseBody, true)
           else
-            @method.print @method.init_value(node.inferred_type)
+            @method.print @method.init_value(inferred_type(node))
           end
           @method.print ')'
         end
 
-        def branch(node, expression)
+        def visitIf(node, expression)
           if expression && node.expr?(self)
             return branch_expression(node)
           end
-          predicate = node.condition.predicate.precompile(self)
+          predicate = node.condition.precompile(self)
           @method.print 'if ('
-          predicate.compile(self, true)
+          visit(predicate, true)
           @method.block ")" do
             if node.body
               maybe_store(node.body, expression)
             elsif expression
-              store_value(@lvalue, @method.init_value(node.inferred_type))
+              store_value(@lvalue, @method.init_value(inferred_type(node)))
             end
           end
-          if node.else || expression
+          if node.elseBody || expression
             @method.block 'else' do
-              if node.else
-                maybe_store(node.else, expression)
+              if node.elseBody
+                maybe_store(node.elseBody, expression)
               else
-                store_value(@lvalue, @method.init_value(node.inferred_type))
+                store_value(@lvalue, @method.init_value(inferred_type(node)))
               end
             end
           end
         end
 
-        def loop(loop, expression)
+        def visitLoop(loop, expression)
           if loop.redo? || loop.post || !loop.condition.predicate.expr?(self)
             loop = ComplexWhileLoop.new(loop, self)
           else
@@ -425,13 +425,13 @@ module Mirah
             # unary operator
             op = op[0,1]
             @method.print op
-            target.compile(self, true)
+            visit(target, true)
           else
             @method.print '('
             other = params[0]
-            target.compile(self, true)
+            visit(target, true)
             @method.print " #{op} "
-            other.compile(self, true)
+            visit(other, true)
             @method.print ')'
           end
           unless expression && simple
@@ -467,34 +467,30 @@ module Mirah
           super_method_call(this(get_scope(call)), call, compile_args(call), expression)
         end
 
-        def cast(call, expression)
+        def visitCast(call, expression)
           args = compile_args(call)
           simple = call.expr?(self)
           @method.print @lvalue if expression && !simple
-          @method.print "((#{call.inferred_type.to_source})("
-          args.each{|arg| arg.compile(self, true)}
+          @method.print "((#{inferred_type(call).to_source})("
+          args.each{|arg| visit(arg, true)}
           @method.print "))"
           @method.puts ';' unless simple && expression
         end
 
-        def self_call(call, expression)
-          if call.cast?
-            cast(call, expression)
-          else
-            type = get_scope(call).self_type
-            type = type.meta if (@static && type == @type)
-            params = call.parameters.map do |param|
-              param.inferred_type
-            end
-            method = type.get_method(call.name, params)
-            method_call(this(get_scope(call), method), call, compile_args(call), expression)
+        def visitFunctionalCall(call, expression)
+          type = get_scope(call).self_type
+          type = type.meta if (@static && type == @type)
+          params = call.parameters.map do |param|
+            inferred_type(param)
           end
+          method = type.get_method(call.name, params)
+          method_call(this(get_scope(call), method), call, compile_args(call), expression)
         end
 
-        def call(call, expression)
+        def visitCall(call, expression)
           return cast(call, expression) if call.cast?
           if Mirah::AST::Constant === call.target || Mirah::AST::Colon2 === call.target
-            target = call.target.inferred_type.to_source
+            target = call.inferred_type(target).to_source
           else
             target = call.precompile_target(self)
           end
@@ -502,7 +498,7 @@ module Mirah
 
           if Operators.include? call.name
             operator(target, call.name, params, expression)
-          elsif call.target.inferred_type.array? && ArrayOps.include?(call.name)
+          elsif call.inferred_type(target).array? && ArrayOps.include?(call.name)
             array_op(target, call.name, params, expression)
           elsif call.name == 'nil?'
             operator(target, '==', ['null'], expression)
@@ -517,16 +513,16 @@ module Mirah
           if expression && !simple
             @method.print @lvalue
           end
-          target.compile(self, true)
+          visit(target, true)
           if name == 'length'
             @method.print '.length'
           else
             @method.print '['
-            index.compile(self, true)
+            visit(index, true)
             @method.print ']'
             if name == '[]='
               @method.print " = "
-              value.compile(self, true)
+              visit(value, true)
             end
           end
           unless simple && expression
@@ -563,7 +559,7 @@ module Mirah
           end
           params.each_with_index do |param, index|
             @method.print ', ' unless index == 0
-            param.compile(self, true)
+            visit(param, true)
           end
           if simple && expression
             @method.print ')'
@@ -575,7 +571,7 @@ module Mirah
             if method.static?
               @method.puts 'null;'
             else
-              target.compile(self, true)
+              visit(target, true)
               @method.puts ';'
             end
           end
@@ -592,10 +588,10 @@ module Mirah
           # preamble
           if method.constructor?
             @method.print "new "
-            target.compile(self, true)
+            visit(target, true)
             @method.print '('
           elsif method.field?
-            target.compile(self, true)
+            visit(target, true)
             @method.print ".#{method.name}"
             if method.argument_types.size == 1
               @method.print " = ("
@@ -604,14 +600,14 @@ module Mirah
             method.call(self, call, expression)
             return
           else
-            target.compile(self, true)
+            visit(target, true)
             @method.print ".#{method.name}("
           end
 
           # args
           params.each_with_index do |param, index|
             @method.print ', ' unless index == 0
-            param.compile(self, true)
+            visit(param, true)
           end
 
           # postamble
@@ -629,7 +625,7 @@ module Mirah
             if method.static?
               @method.puts 'null;'
             else
-              target.compile(self, true)
+              visit(target, true)
               @method.puts ';'
             end
           end
@@ -637,10 +633,10 @@ module Mirah
 
         def temp(expression, value=nil)
           value ||= expression
-          type = value.inferred_type
+          type = inferred_type(value)
           if value.expr?(self)
             @method.tmp(type) do
-              value.compile(self, true)
+              visit(value, true)
             end
           else
             assign(@method.tmp(type), value)
@@ -650,7 +646,7 @@ module Mirah
         def empty_array(type, size)
           sizevar = size.precompile(self)
           @method.print "#{@lvalue unless size.expr?(self)}new #{type.name}["
-          sizevar.compile(self, true)
+          visit(sizevar, true)
           @method.print ']'
         end
 
@@ -677,7 +673,7 @@ module Mirah
             comma = false
             node.children.each do |n|
               @method.print ", " if comma
-              n.compile(self, true)
+              visit(n, true)
               comma = true
             end
 
@@ -686,7 +682,7 @@ module Mirah
             # elements, as non-expressions
             # TODO: ensure they're all reference types!
             node.children.each do |n|
-              n.compile(self, false)
+              visit(n, false)
             end
           end
         end
@@ -706,16 +702,16 @@ module Mirah
             nodes.each do |node|
               @method.print ' + ' unless first
               first = false
-              node.compile(self, true)
+              visit(node, true)
             end
             @method.puts ';' unless simple
           else
-            orig_nodes.each {|n| n.compile(self, false)}
+            orig_nodes.each {|n| visit(n, false)}
           end
         end
 
         def to_string(body, expression)
-          body.compile(self, expression)
+          visit(body, expression)
         end
 
         def null
@@ -738,7 +734,7 @@ module Mirah
           else
             @method.print "System.out.print("
           end
-          value.compile(self, true) if value
+          visit(value, true) if value
           @method.puts ');'
         end
 

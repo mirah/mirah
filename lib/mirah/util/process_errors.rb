@@ -26,7 +26,8 @@ module Mirah
       def process_errors(errors)
         errors.each do |ex|
           if ex.kind_of?(ErrorType)
-            ex.message.each do |message, position|
+            ex.message.each do |pair|
+              message, position = pair.to_a
               if position
                 Mirah.print_error(message, position)
               else
@@ -56,7 +57,15 @@ module Mirah
         def exitDefault(node, arg)
           type = @typer.getInferredType(node)
           type = type.resolve if type
-          @errors[type] ||= type if (type && type.isError)
+          if (type && type.isError)
+            @errors[type] ||= begin
+              if type.message.size == 1 && type.message[0].size == 1
+                m = type.message[0]
+                m << node rescue nil
+              end
+              type
+            end
+          end
           nil
         end
         def errors

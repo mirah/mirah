@@ -16,7 +16,10 @@
 module Mirah
   module JVM
     module Compiler
-      class Base
+      java_import 'mirah.lang.ast.ClassDefinition'
+      java_import 'mirah.lang.ast.StaticMethodDefinition'
+      java_import 'mirah.lang.ast.SimpleNodeVisitor'
+      class Base < SimpleNodeVisitor
         attr_accessor :filename, :method, :static, :class
 
         class CompilationError < Mirah::NodeError
@@ -27,20 +30,23 @@ module Mirah
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
-          self.scopes = scoper.scopes
+          @scoper = scoper
+        end
+
+        def defaultNode(node, expression)
+          raise ArgumentError, "Can't compile node #{node}"
+        end
+
+        def visit(node, expression)
+          begin
+            super(node, expression)
+          rescue Exception => ex
+            raise Mirah::InternalCompilerError.wrap(ex, node)
+          end
         end
 
         def error(message, node)
           raise CompilationError.new(message, node)
-        end
-
-        def compile(ast, expression = false)
-          begin
-            ast.compile(self, expression)
-          rescue => ex
-            raise Mirah::InternalCompilerError.wrap(ex, ast)
-          end
-          log "Compilation successful!"
         end
 
         def log(message); Mirah::JVM::Compiler::JVMBytecode.log(message); end
@@ -62,15 +68,15 @@ module Mirah
           log "...done!"
         end
 
-        def define_main(script)
+        def visitScript(script, expression)
           @static = true
-          @filename = File.basename(script.filename)
+          @filename = File.basename(script.position.filename)
           classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(@filename)
           @type = AST.type(get_scope(script), classname)
           @file = file_builder(@filename)
           body = script.body
-          body = body[0] if body.children.size == 1
-          if body.class != AST::ClassDefinition
+          body = body[0] if body.size == 1
+          if body.class != ClassDefinition
             @class = @type.define(@file)
             with :method => @class.main do
               log "Starting main method"
@@ -81,7 +87,7 @@ module Mirah
               begin_main
 
               prepare_binding(script) do
-                body.compile(self, false)
+                visit(body, false)
               end
 
               finish_main
@@ -89,10 +95,13 @@ module Mirah
             end
             @class.stop
           else
-            body.compile(self, false)
+            visit(body, false)
           end
 
           log "Main method complete!"
+        end
+
+        def visitNoop(node, expression)
         end
 
         def begin_main; end
@@ -104,23 +113,20 @@ module Mirah
           exceptions, return_type, *arg_types)
         end
 
-        def base_define_method(node, args_are_types)
-          name, signature, args = node.name, node.signature, node.arguments.args
-          if name == "initialize" && node.static?
+        def base_define_method(node)
+          name = node.name.identifier
+          args = visit(node.arguments, true)
+          is_static = self.static || node.kind_of?(StaticMethodDefinition)
+          if name == "initialize" && is_static
             name = "<clinit>"
           end
-          if args_are_types
-            arg_types = args.map { |arg| arg.inferred_type } if args
-          else
-            arg_types = args
-          end
-          arg_types ||= []
-          return_type = signature[:return]
-          exceptions = signature[:throws]
+          arg_types = args.map { |arg| inferred_type(arg) }
+          return_type = inferred_type(node)
+          # TODO exceptions
 
-          with :static => @static || node.static?, :current_scope => introduced_scope(node) do
+          with :static => is_static, :current_scope => introduced_scope(node) do
             method = create_method_builder(name, node, @static, exceptions,
-            return_type, arg_types)
+                                           return_type, arg_types)
             annotate(method, node.annotations)
             yield method, arg_types
           end
@@ -151,42 +157,49 @@ module Mirah
                   @method.stop
                 end
               end
-              arg_types_for_opt << arg.inferred_type
+              arg_types_for_opt << inferred_type(arg)
               args_for_opt << arg
             end
           end
         end
 
-        def constructor(node, args_are_types)
-          args = node.arguments.args || []
-          arg_types = if args_are_types
-            args.map { |arg| arg.inferred_type }
-          else
-            args
-          end
-          exceptions = node.signature[:throws]
-          method = @class.build_constructor(node.visibility, exceptions, *arg_types)
+        def visitConstructorDefinition(node, expression)
+          args = visit(node.arguments, true)
+          arg_types = args.map { |arg| inferred_type(arg) }
+          exceptions = []  # node.signature[:throws]
+          visibility = :public  # node.visibility
+          method = @class.build_constructor(visibility, exceptions, *arg_types)
           annotate(method, node.annotations)
           with :current_scope => introduced_scope(node) do
             yield(method, args)
           end
         end
 
-        def define_class(class_def, expression)
-          with(:type => class_def.inferred_type,
-          :class => class_def.inferred_type.define(@file),
-          :static => false) do
+        def visitClassDefinition(class_def, expression)
+          with(:type => inferred_type(class_def),
+               :class => inferred_type(class_def).define(@file),
+               :static => false) do
             annotate(@class, class_def.annotations)
-            class_def.body.compile(self, false) if class_def.body
+            visit(class_def.body, false) if class_def.body
             @class.stop
           end
         end
 
-        def declare_argument(name, type)
-          # declare local vars for arguments here
+        def visitArguments(args, expression)
+          result = []
+          args.required.each {|arg| result << arg}
+          args.optional.each {|arg| result << arg}
+          result << args.rest if args.rest
+          args.required2.each {|arg| result << arg}
+          result << args.block if args.block
+          result
         end
 
-        def body(body, expression)
+        def visitStaticMethodDefinition(mdef, expression)
+          visitMethodDefinition(mdef, expression)
+        end
+
+        def visitNodeList(body, expression)
           saved_self = @self_scope
           new_scope = introduced_scope(body)
           if new_scope
@@ -204,12 +217,12 @@ module Mirah
             end
           end
           # all except the last element in a body of code is treated as a statement
-          i, last = 0, body.children.size - 1
+          i, last = 0, body.size - 1
           while i < last
-            body.children[i].compile(self, false)
+            visit(body.get(i), false)
             i += 1
           end
-          yield body.children[last] if last >= 0
+          yield body.children[last]
           @self_scope = saved_self
         end
 
@@ -225,19 +238,25 @@ module Mirah
           end
         end
 
-        def import(short, long)
+        def visitImport(node, expression)
         end
 
-        def fixnum(type, value)
-          type.literal(method, value)
+        def visitFixnum(node, expression)
+          if expression
+            inferred_type(node).literal(method, node.value)
+          end
         end
-        alias float fixnum
+        alias visitFloat visitFixnum
 
-        def compile_self(scope)
-          if scope.self_node && scope.self_node != :self
-            local(scope, 'self', scope.self_type)
-          else
-            real_self
+        def visitSelf(node, expression)
+          if expression
+            set_position(node.position)
+            scope = get_scope(node)
+            if scope.self_node && scope.self_node != :self
+              local(scope, 'self', scope.self_type)
+            else
+              real_self
+            end
           end
         end
 

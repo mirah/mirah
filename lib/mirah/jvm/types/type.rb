@@ -2,10 +2,18 @@ module Mirah
   module JVM
     module Types
       class Type
+        java_import 'org.mirah.typer.ErrorType'
+        java_import 'org.mirah.typer.SpecialType'
+        java_import 'org.mirah.typer.ResolvedType'
+
+        class SpecialType
+          def full_name
+            name
+          end
+        end
+
         include Java::DubyLangCompiler::Class
         include Mirah::JVM::MethodLookup
-        java_import 'org.mirah.typer.ErrorType'
-        java_import 'org.mirah.typer.ResolvedType'
         include ResolvedType
 
         attr_reader :name, :type_system
@@ -146,7 +154,11 @@ module Mirah
         end
 
         def inspect(indent=0)
-          "#{' ' * indent}#<#{self.class.name} #{name}>"
+          "#{' ' * indent}#<#{self.class.name.split(/::/)[-1]} #{name}>"
+        end
+
+        def to_s
+          inspect
         end
 
         def newarray(method)

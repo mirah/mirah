@@ -18,9 +18,11 @@ require 'mirah/jvm/types/source_mirror'
 module Mirah::JVM::Types
   java_import 'org.mirah.typer.simple.SimpleTypes'
   class TypeFactory < SimpleTypes
+    java_import 'org.mirah.typer.AssignableTypeFuture'
     java_import 'org.mirah.typer.BaseTypeFuture'
     java_import 'org.mirah.typer.ErrorType'
     java_import 'org.mirah.typer.TypeSystem'
+    java_import 'mirah.lang.ast.InterfaceDeclaration'
     include TypeSystem
 
     attr_accessor :package
@@ -80,7 +82,7 @@ module Mirah::JVM::Types
       if type.kind_of?(Type)
         type.meta
       else
-        future = BaseTypeFuture.new
+        future = BaseTypeFuture.new(nil)
         type.on_update {|_, resolved| future.resolved(resolved.meta)}
         future
       end
@@ -100,7 +102,7 @@ module Mirah::JVM::Types
       end
     end
     def get(typeref)
-      basic_type = @futures[typeref.name] || cache_and_wrap(type(nil, typeref.name))
+      basic_type = @futures[typeref.name] || cache_and_wrap_type(typeref.name)
       if typeref.isArray
         getArrayType(basic_type)
       elsif typeref.isStatic
@@ -113,19 +115,34 @@ module Mirah::JVM::Types
       scope.local_type(name)
     end
     def getMethodType(target, name, argTypes)
-      unless target.kind_of?(TypeDefinition)
+      unless target.unmeta.kind_of?(TypeDefinition)
         method = target.get_method(name, argTypes)
         if method.nil?
-          return ErrorType.new([["Cannot find %s method %s(%s) on %s" %
-               [ target.meta? ? "static" : "instance",
-                 name,
-                 argTypes.map{|t| t.full_name}.join(', '),
-                 target.full_name]]])
+          print target
+          print "Cannot find %s method %s(%s) on %s" %
+              [ target.meta? ? "static" : "instance",
+                name,
+                argTypes.map{|t| t.full_name}.join(', '),
+                target.full_name]
+          return ErrorType.new([
+              ["Cannot find %s method %s(%s) on %s" %
+                  [ target.meta? ? "static" : "instance",
+                    name,
+                    argTypes.map{|t| t.full_name}.join(', '),
+                    target.full_name]]])
         else
           return cache_and_wrap(method.return_type)
         end
       end
       super
+    end
+    def getMethodDefType(target, name, argTypes)
+      args = argTypes.map {|a| a.resolve}
+      type = getMethodType(target.resolve, name, args)
+      if type.kind_of?(ErrorType)
+        puts "Got error type for method #{name} on #{target.resolve} (#{target.resolve.class})"
+      end
+      type
     end
     def getMainType(scope, script)
       filename = File.basename(script.position.filename || 'DashE')
@@ -228,6 +245,7 @@ module Mirah::JVM::Types
           return nil if outer_type.nil?
           full_name = "#{outer_type.name}$#{inner_name}"
           mirror = get_mirror(full_name)
+          return nil if mirror.nil?
         else
           return nil
         end
@@ -258,10 +276,10 @@ module Mirah::JVM::Types
     end
 
     def define_type(scope, node)
-      name = node.name
+      name = node.name.identifier
       full_name = name
       package = scope.package
-      if !name.include?('.') && !package.empty?
+      if !name.include?('.') && package && !package.empty?
         full_name = "#{package}.#{name}"
       end
       if @known_types.include? full_name
@@ -269,7 +287,7 @@ module Mirah::JVM::Types
         existing.node ||= node
         existing
       else
-        if Mirah::AST::InterfaceDeclaration === node
+        if InterfaceDeclaration === node
           klass = InterfaceDefinition
         else
           klass = TypeDefinition

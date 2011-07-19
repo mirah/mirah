@@ -13,6 +13,45 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+module Mirah
+  module Compiler
+    class ASTCompiler
+      def initialize(compiler_class, logging)
+        @compiler_class = compiler_class
+        @logging = logging
+      end
+
+      attr_accessor :compiler_class, :compiler, :logging
+
+      def compile_asts(nodes, scoper)
+        results = []
+        puts "Compiling..." if logging
+        nodes.each do |ast|
+          puts "  #{ast.position.filename}" if logging
+          compile_ast(ast, scoper) do |filename, builder|
+            results << CompilerResult.new(filename, builder.class_name, builder.generate)
+          end
+        end
+        results
+      end
+
+      def compile_ast(ast, scoper, &block)
+        @compiler = compiler_class.new(scoper)
+        compiler.visit(ast, nil)
+        compiler.generate(&block)
+      end
+    end
+
+    class CompilerResult
+      def initialize(filename, classname, bytes)
+        @filename, @classname, @bytes = filename, classname, bytes
+      end
+
+      attr_accessor :filename, :classname, :bytes
+    end
+  end
+end
+
 require 'mirah/compiler/call'
 require 'mirah/compiler/class'
 require 'mirah/compiler/flow'
@@ -21,42 +60,3 @@ require 'mirah/compiler/local'
 require 'mirah/compiler/method'
 require 'mirah/compiler/structure'
 require 'mirah/compiler/type'
-
-module Mirah
-  module Compiler
-    class ASTCompiler
-      def initialize(compiler_class, logging)
-        @compiler_class = compiler_class
-        @logging = logging
-      end
-      
-      attr_accessor :compiler_class, :logging
-      
-      def compile_asts(nodes, scoper)
-        results = []
-        puts "Compiling..." if logging
-        nodes.each do |ast|
-          puts "  #{ast.position.file}" if logging
-          compile_ast(ast, scoper) do |filename, builder|
-            results << CompilerResult.new(filename, builder.class_name, builder.generate)
-          end
-        end
-        results
-      end
-      
-      def compile_ast(ast, scoper, &block)
-        compiler = compiler_class.new(scoper)
-        ast.compile(compiler, false)
-        compiler.generate(&block)
-      end
-    end
-    
-    class CompilerResult
-      def initialize(filename, classname, bytes)
-        @filename, @classname, @bytes = filename, classname, bytes
-      end
-      
-      attr_accessor :filename, :classname, :bytes
-    end
-  end
-end

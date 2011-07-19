@@ -245,4 +245,16 @@ class TestTyper < Test::Unit::TestCase
 
     assert_no_errors(typer, ast)
   end
+
+  def test_colon2
+    ast = parse("java::lang::System.out")
+    infer(ast)
+    target_type = inferred_type(ast.body(0).target)
+    assert_equal('java.lang.System', target_type.name)
+  end
+
+  def test_static_method
+    ast = parse("class Foo; def self.bar;1; end; end; Foo.bar")
+    assert_equal(@types.getFixnumType(1), infer(ast))
+  end
 end
