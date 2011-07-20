@@ -118,12 +118,6 @@ module Mirah::JVM::Types
       unless target.unmeta.kind_of?(TypeDefinition)
         method = target.get_method(name, argTypes)
         if method.nil?
-          print target
-          print "Cannot find %s method %s(%s) on %s" %
-              [ target.meta? ? "static" : "instance",
-                name,
-                argTypes.map{|t| t.full_name}.join(', '),
-                target.full_name]
           return ErrorType.new([
               ["Cannot find %s method %s(%s) on %s" %
                   [ target.meta? ? "static" : "instance",
@@ -134,7 +128,18 @@ module Mirah::JVM::Types
           return cache_and_wrap(method.return_type)
         end
       end
-      super
+      method = super
+      if Mirah::Typer.verbose
+        method.onUpdate do |m, type|
+          Mirah::Typer.log "Learned %s method %s.%s%s = %s" % 
+              [target.meta? ? "static" : "instance",
+                target,
+                name,
+                argTypes,
+                type.full_name]
+        end
+      end
+      method
     end
     def getMethodDefType(target, name, argTypes)
       args = argTypes.map {|a| a.resolve}

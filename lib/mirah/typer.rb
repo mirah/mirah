@@ -28,7 +28,7 @@ module Mirah
       attr_accessor :verbose
 
       def log(message)
-        puts "* [#{name}] #{message}" if Typer.verbose
+        puts "* [#{name}] #{message}" if Mirah::Typer.verbose
       end
     end
 
