@@ -9,6 +9,18 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.FileInputStream
 
+class ListWrapper < AbstractList
+  def initialize(list:List)
+    @list = list
+  end
+  def size
+    @list.size
+  end
+  def get(i)
+    @list.get(i)
+  end
+end
+
 class SimpleType < SpecialType
   def initialize(name:String, meta=false, array=false)
     super(name)
@@ -121,6 +133,11 @@ class SimpleTypes; implements TypeSystem
     return basic_type
   end
   def getMethodType(target, name, argTypes)
+    if argTypes.kind_of?(org::jruby::RubyArray)
+      # RubyArray claims to implement List, but it doesn't have the right
+      # implementation of equals or hashCode.
+      argTypes = ListWrapper.new(argTypes)
+    end
     key = [target, name, argTypes]
     t = TypeFuture(@methods[key])
     unless t
