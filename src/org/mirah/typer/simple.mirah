@@ -243,6 +243,9 @@ class SimpleScoper; implements Scoper
     end
     Scope(@scopes[node]) || addScope(node)
   end
+  def getIntroducedScope(node:Node)
+    Scope(@scopes[node])
+  end
   def addScope(node)
     scope = if @factory
       @factory.newScope(self, node)

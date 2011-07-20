@@ -25,12 +25,14 @@ module Mirah
         class CompilationError < Mirah::NodeError
         end
 
-        def initialize(scoper)
+        def initialize(scoper, typer)
+          super()
           @jump_scope = []
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
           @scoper = scoper
+          @typer = typer
         end
 
         def defaultNode(node, expression)
@@ -39,10 +41,22 @@ module Mirah
 
         def visit(node, expression)
           begin
-            super(node, expression)
+            node.accept(self, expression)
           rescue Exception => ex
             raise Mirah::InternalCompilerError.wrap(ex, node)
           end
+        end
+
+        def get_scope(node)
+          @scoper.get_scope(node)
+        end
+
+        def introduced_scope(node)
+          @scoper.get_introduced_scope(node)
+        end
+
+        def inferred_type(node)
+          @typer.get_inferred_type(node).resolve
         end
 
         def error(message, node)
@@ -72,10 +86,10 @@ module Mirah
           @static = true
           @filename = File.basename(script.position.filename)
           classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(@filename)
-          @type = AST.type(get_scope(script), classname)
+          @type = @typer.type_system.type(get_scope(script), classname)
           @file = file_builder(@filename)
           body = script.body
-          body = body[0] if body.size == 1
+          body = body.get(0) if body.size == 1
           if body.class != ClassDefinition
             @class = @type.define(@file)
             with :method => @class.main do

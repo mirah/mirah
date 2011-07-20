@@ -35,10 +35,10 @@ module Mirah
       
       # enter all ASTs into inference engine
       puts "Inferring types..." if logging
-      scoper = infer_asts(top_nodes)
+      scoper, typer = infer_asts(top_nodes)
       
       # compile each AST in turn
-      compiler_results = compiler.compile_asts(top_nodes, scoper)
+      compiler_results = compiler.compile_asts(top_nodes, scoper, typer)
       
       puts "Done!" if logging
       
@@ -58,7 +58,7 @@ module Mirah
           nodes.each {|ast| printer.scan(ast, nil)}
         end
       end
-      scoper
+      [scoper, typer]
     end
   end
 end

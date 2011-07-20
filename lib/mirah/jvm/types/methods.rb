@@ -34,9 +34,9 @@ module Mirah::JVM::Types
       # TODO varargs
       types ||= argument_types
       values.zip(types).each do |value, type|
-        compiler.compile(value, true)
-        if type.primitive? && type != value.inferred_type
-            value.inferred_type.widen(compiler.method, type)
+        compiler.visit(value, true)
+        if type.primitive? && type != compiler.inferred_type(value)
+            compiler.inferred_type(value).widen(compiler.method, type)
         end
       end
     end
@@ -136,7 +136,7 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
+      target = compiler.inferred_type(ast.target)
       compiler.method.new target
       compiler.method.dup if expression
       convert_args(compiler, ast.parameters)
@@ -184,8 +184,8 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
-      ast.target.compile(compiler, true)
+      target = compiler.inferred_type(ast.target)
+      compiler.visit(ast.target, true)
 
       # if expression, void methods return the called object,
       # for consistency and chaining
@@ -214,8 +214,8 @@ module Mirah::JVM::Types
     end
 
     def call_special(compiler, ast, expression)
-      target = ast.target.inferred_type
-      ast.target.compile(compiler, true)
+      target = compiler.inferred_type(ast.target)
+      compiler.visit(ast.target, true)
 
       # if expression, void methods return the called object,
       # for consistency and chaining
@@ -277,11 +277,11 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
-      ast.target.compile(compiler, true)
+      target = compiler.inferred_type(ast.target)
+      compiler.visit(ast.target, true)
 
       ast.parameters.each do |param|
-        param.compile(compiler, true)
+        compiler.visit(param, true)
       end
       handle = compiler.method.mh_invokestatic(
         org.mirah.DynalangBootstrap,
@@ -325,7 +325,7 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
+      target = compiler.inferred_type(ast.target)
 
       # TODO: assert that no args are being passed, though that should have failed lookup
 
@@ -333,7 +333,7 @@ module Mirah::JVM::Types
         if @member.static?
           compiler.method.getstatic(target, name, @member.type)
         else
-          ast.target.compile(compiler, true)
+          compiler.visit(ast.target, true)
           compiler.method.getfield(target, name, @member.type)
         end
       end
@@ -350,7 +350,7 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
+      target = compiler.inferred_type(ast.target)
 
       # TODO: assert that no args are being passed, though that should have failed lookup
 
@@ -359,7 +359,7 @@ module Mirah::JVM::Types
         compiler.method.dup if expression
         compiler.method.putstatic(target, name, @member.type)
       else
-        ast.target.compile(compiler, true)
+        compiler.visit(ast.target, true)
         convert_args(compiler, ast.parameters)
         compiler.method.dup_x2 if expression
         compiler.method.putfield(target, name, @member.type)

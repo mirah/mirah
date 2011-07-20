@@ -37,7 +37,7 @@ module Mirah
           end
         end
 
-        def initialize(scoper)
+        def initialize(scoper, typer)
           super
           @jump_scope = []
         end
@@ -45,8 +45,8 @@ module Mirah
         def file_builder(filename)
           builder = BiteScript::FileBuilder.new(filename)
           builder.to_widen do |a, b|
-            a = AST.type_factory.get_type(a)
-            b = AST.type_factory.get_type(b)
+            a = @typer.type_system.get_type(a)
+            b = @typer.type_system.get_type(b)
             a_ancestors = []
             while a
               a_ancestors << a.name
@@ -59,7 +59,7 @@ module Mirah
             end
             (a_ancestors & b_ancestors)[0]
           end
-          AST.type_factory.define_types(builder)
+          @typer.type_system.define_types(builder)
           builder
         end
 
@@ -90,7 +90,7 @@ module Mirah
 
         def begin_main
           # declare argv variable
-          @method.local('argv', AST.type(nil, 'string', true))
+          @method.local('argv', @typer.type_system.type(nil, 'string', true))
         end
 
         def finish_main
@@ -361,9 +361,9 @@ module Mirah
         end
 
         def extract_method(call)
-          target = inferred_type(call)(target)!
+          target = inferred_type(call.target)
           params = call.parameters.map do |param|
-            inferred_type(param)!
+            inferred_type(param)
           end
           target.get_method(call.name.identifier, params)
         end
@@ -679,7 +679,7 @@ module Mirah
           set_position(strcat.position)
           if expression
             # could probably be more efficient with non-default constructor
-            builder_class = Mirah::AST.type(nil, 'java.lang.StringBuilder')
+            builder_class = @typer.type_system.type(nil, 'java.lang.StringBuilder')
             @method.new builder_class
             @method.dup
             @method.invokespecial builder_class, "<init>", [@method.void]
@@ -693,6 +693,7 @@ module Mirah
                 log "Could not find a match for #{java::lang::StringBuilder}.append(#{inferred_type(node)})"
                 fail "Could not compile"
               end
+            end
 
             # convert to string
             set_position(strcat.position)
@@ -794,8 +795,9 @@ module Mirah
           method.aload(0)
         end
 
-        def line(num)
-          @method.line(num - 1) if @method
+        def set_position(position)
+          # TODO support positions from multiple files
+          @method.line(position.start_line - 1) if @method && position
         end
 
         def print(print_node)

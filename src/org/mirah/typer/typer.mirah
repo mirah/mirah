@@ -36,6 +36,10 @@ class Typer < SimpleNodeVisitor
     @scopes = scopes
   end
 
+  def type_system
+    @types
+  end
+
   def getInferredType(node:Node)
     TypeFuture(@futures[node])
   end

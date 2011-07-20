@@ -271,7 +271,7 @@ module Mirah::JVM::Types
         @known_types[full_name]
       else
         scope.import(full_name, name)
-        @known_types[full_name] = TypeDefinition.new(full_name, nil)
+        @known_types[full_name] = TypeDefinition.new(self, full_name, nil)
       end
     end
 
@@ -293,7 +293,7 @@ module Mirah::JVM::Types
           klass = TypeDefinition
         end
         scope.import(full_name, name)
-        @known_types[full_name] = klass.new(full_name, node)
+        @known_types[full_name] = klass.new(self, full_name, node)
       end
     end
 

@@ -4,9 +4,10 @@ module Mirah
       class TypeDefinition < Type
         attr_accessor :node
 
-        def initialize(name, node)
+        def initialize(types, name, node)
           raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
           raise ArgumentError, "Bad name #{name}" if name.include? ?/
+          @types = types
           @name = name
           @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
@@ -21,7 +22,7 @@ module Mirah
         end
 
         def superclass
-          (node && node.superclass) || Object
+          (node && node.superclass) || @types.type(nil, 'java.lang.Object')
         end
 
         def interfaces(include_parent=true)

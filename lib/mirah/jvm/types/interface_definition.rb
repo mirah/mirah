@@ -2,8 +2,8 @@ module Mirah
   module JVM
     module Types
       class InterfaceDefinition < TypeDefinition
-        def initialize(name, node)
-          super(name, node)
+        def initialize(types, name, node)
+          super(types, name, node)
         end
 
         def define(builder)
