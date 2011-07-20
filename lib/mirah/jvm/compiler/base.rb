@@ -123,7 +123,8 @@ module Mirah
 
         # arg_types must be an Array
         def create_method_builder(name, node, static, exceptions, return_type, arg_types)
-          @class.build_method(name.to_s, node.visibility, static,
+          visibility = :public  # TODO
+          @class.build_method(name.to_s, visibility, static,
           exceptions, return_type, *arg_types)
         end
 
@@ -136,7 +137,7 @@ module Mirah
           end
           arg_types = args.map { |arg| inferred_type(arg) }
           return_type = inferred_type(node)
-          # TODO exceptions
+          exceptions = []  # TODO
 
           with :static => is_static, :current_scope => introduced_scope(node) do
             method = create_method_builder(name, node, @static, exceptions,
@@ -236,7 +237,11 @@ module Mirah
             visit(body.get(i), false)
             i += 1
           end
-          yield body.children[last]
+          if last >= 0
+            yield body.get(last)
+          else
+            yield nil
+          end
           @self_scope = saved_self
         end
 

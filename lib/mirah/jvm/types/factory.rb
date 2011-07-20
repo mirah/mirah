@@ -129,14 +129,19 @@ module Mirah::JVM::Types
         end
       end
       method = super
-      if Mirah::Typer.verbose
-        method.onUpdate do |m, type|
+      method.onUpdate do |m, type|
+        if Mirah::Typer.verbose
           Mirah::Typer.log "Learned %s method %s.%s%s = %s" % 
               [target.meta? ? "static" : "instance",
                 target,
                 name,
                 argTypes,
                 type.full_name]
+        end
+        if target.meta?
+          target.unmeta.declare_static_method(name, argTypes, type, [])
+        else
+          target.declare_method(name, argTypes, type, [])
         end
       end
       method

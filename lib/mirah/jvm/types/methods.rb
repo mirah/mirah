@@ -85,10 +85,12 @@ module Mirah::JVM::Types
   class JavaCallable
     include ArgumentConversion
     java_import 'org.mirah.typer.ResolvedType'
+    java_import 'org.mirah.typer.TypeSystem'
 
     attr_accessor :member
 
     def initialize(types, member)
+      raise ArgumentError unless types.kind_of?(TypeSystem)
       @types = types
       @member = member
     end
@@ -372,7 +374,7 @@ module Mirah::JVM::Types
     attr_reader :exception_types
 
     def initialize(klass, name, args, return_type, static, exceptions)
-      if return_type == Void
+      if return_type.name == 'void'
         return_type = nil
       end
       @declaring_class = klass
@@ -573,6 +575,10 @@ module Mirah::JVM::Types
 
     def declare_method(name, arguments, type, exceptions)
       raise "Bad args" unless arguments.all?
+      if type.isError
+        instance_methods.delete(name)
+        return
+      end
       member = MirahMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
         if @default_constructor_added
@@ -585,13 +591,17 @@ module Mirah::JVM::Types
           constructors << JavaConstructor.new(member)
         end
       else
-        instance_methods[name] << JavaMethod.new(member)
+        instance_methods[name] << JavaMethod.new(@types, member)
       end
     end
 
     def declare_static_method(name, arguments, type, exceptions)
-      member = MirahMember.new(self, name, arguments, type, true, exceptions)
-      static_methods[name] << JavaStaticMethod.new(member)
+      if type.isError
+        static_methods.delete(name)
+      else
+        member = MirahMember.new(self, name, arguments, type, true, exceptions)
+        static_methods[name] << JavaStaticMethod.new(@types, member)
+      end
     end
 
     def interface?

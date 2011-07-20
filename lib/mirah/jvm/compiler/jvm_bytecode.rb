@@ -6,6 +6,12 @@ module Mirah
         java_import java.io.PrintStream
         include Mirah::JVM::MethodLookup
         Types = Mirah::JVM::Types
+        java_import 'mirah.lang.ast.Node'
+        java_import 'mirah.lang.ast.Annotation'
+        java_import 'mirah.lang.ast.MethodDefinition'
+        java_import 'mirah.lang.ast.Ensure'
+        java_import 'mirah.lang.ast.Call'
+        java_import 'mirah.lang.ast.Loop'
 
         class << self
           attr_accessor :verbose
@@ -68,7 +74,7 @@ module Mirah
         end
 
         def push_jump_scope(node)
-          raise "Not a node" unless Mirah::AST::Node === node
+          raise "Not a node" unless Node === node
           begin
             @jump_scope << node
             yield
@@ -80,7 +86,7 @@ module Mirah
         def find_ensures(before)
           found = []
           @jump_scope.reverse_each do |scope|
-            if Mirah::AST::Ensure === scope
+            if Ensure === scope
               found << scope
             end
             break if before === scope
@@ -130,12 +136,12 @@ module Mirah
 
         def visitMethodDefinition(node, expression)
           push_jump_scope(node) do
-            base_define_method(node, true) do |method, arg_types|
+            base_define_method(node) do |method, arg_types|
               return if @class.interface?
               is_static = self.static || node.kind_of?(StaticMethodDefinition)
 
               log "Starting new #{is_static ? 'static ' : ''}method #{node.name.identifier}(#{arg_types})"
-              args = node.arguments.args
+              args = visit(node.arguments, true)
               method_body(method, args, node, inferred_type(node))
               log "Method #{node.name.identifier}(#{arg_types}) complete!"
             end
@@ -208,7 +214,7 @@ module Mirah
             yield if block_given?
 
             prepare_binding(node) do
-              expression = return_type != Types::Void
+              expression = return_type.name != 'void'
               visit(body, expression) if body
             end
 
@@ -311,21 +317,21 @@ module Mirah
 
         def visitBreak(node, expression)
           error("break outside of loop", node) unless @break_label
-          handle_ensures(find_ensures(Mirah::AST::Loop))
+          handle_ensures(find_ensures(Loop))
           set_position node.position
           @method.goto(@break_label)
         end
 
         def visitNext(node, expression)
           error("next outside of loop", node) unless @next_label
-          handle_ensures(find_ensures(Mirah::AST::Loop))
+          handle_ensures(find_ensures(Loop))
           set_position node.position
           @method.goto(@next_label)
         end
 
         def visitRedo(node, expression)
           error("redo outside of loop", node) unless @redo_label
-          handle_ensures(find_ensures(Mirah::AST::Loop))
+          handle_ensures(find_ensures(Loop))
           set_position node.position
           @method.goto(@redo_label)
         end
@@ -334,7 +340,7 @@ module Mirah
           unless inferred_type(predicate) == Types::Boolean
             raise "Expected boolean, found #{inferred_type(predicate)}"
           end
-          if Mirah::AST::Call === predicate
+          if Call === predicate
             method = extract_method(predicate)
             if method.respond_to? :jump_if
               method.jump_if(self, predicate, target)
@@ -349,7 +355,7 @@ module Mirah
           unless inferred_type(predicate) == Types::Boolean
             raise "Expected boolean, found #{inferred_type(predicate)}"
           end
-          if Mirah::AST::Call === predicate
+          if Call === predicate
             method = extract_method(predicate)
             if method.respond_to? :jump_if_not
               method.jump_if_not(self, predicate, target)
@@ -373,6 +379,10 @@ module Mirah
           if method
             method.call(self, call, expression)
           else
+            params = call.parameters.map do |param|
+              inferred_type(param)
+            end
+            target = inferred_type(call.target)
             raise "Missing method #{target}.#{call.name.identifier}(#{params.join ', '})"
           end
         end
@@ -487,7 +497,7 @@ module Mirah
 
         def annotation_value(builder, name, value)
           case value
-          when Mirah::AST::Annotation
+          when Annotation
             type = value.type
             type = type.jvm_type if type.respond_to?(:jvm_type)
             builder.annotation(name, type) do |child|
@@ -819,7 +829,7 @@ module Mirah
 
         def visitReturn(return_node, expression)
           visit(return_node.value, true) if return_node.value
-          handle_ensures(find_ensures(Mirah::AST::MethodDefinition))
+          handle_ensures(find_ensures(MethodDefinition))
           set_position return_node.position
           inferred_type(return_node).return(@method)
         end

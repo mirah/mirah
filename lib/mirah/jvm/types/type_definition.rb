@@ -2,6 +2,7 @@ module Mirah
   module JVM
     module Types
       class TypeDefinition < Type
+        java_import 'mirah.lang.ast.InterfaceDeclaration'
         attr_accessor :node
 
         def initialize(types, name, node)
@@ -35,7 +36,7 @@ module Mirah
 
         def define(builder)
           class_name = @name.tr('.', '/')
-          abstract = node && node.abstract
+          abstract = node && node.kind_of?(InterfaceDeclaration)  #node.abstract
           @type ||= builder.define_class(
               class_name,
               :visibility => :public,
