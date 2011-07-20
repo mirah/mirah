@@ -96,7 +96,7 @@ module Mirah::JVM::Types
       if type.kind_of?(Type)
         type.array
       else
-        future = BaseTypeFuture.new
+        future = BaseTypeFuture.new(nil)
         type.on_update {|_, resolved| future.resolved(resolved.array)}
         future
       end
@@ -115,6 +115,9 @@ module Mirah::JVM::Types
       scope.local_type(name)
     end
     def getMethodType(target, name, argTypes)
+      if target.respond_to?(:isError) && target.isError
+        return target
+      end
       unless target.unmeta.kind_of?(TypeDefinition)
         method = target.get_method(name, argTypes)
         if method.nil?

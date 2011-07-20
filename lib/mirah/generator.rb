@@ -45,13 +45,19 @@ module Mirah
       compiler_results
     end
 
-    def infer_asts(nodes)
+    def infer_asts(nodes, should_raise=false)
       scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
       type_system = Mirah::JVM::Types::TypeFactory.new
       typer = Mirah::Typer::Typer.new(type_system, scoper)
       begin
         nodes.each {|ast| typer.infer(ast, false) }
-        process_inference_errors(typer, nodes)
+        if should_raise
+          error_handler = lambda do |errors|
+            message, position = errors[0].message[0].to_a
+            raise Mirah::MirahError.new(message, position)
+          end
+        end
+        process_inference_errors(typer, nodes, &error_handler)
       ensure
         if verbose
           printer = TypePrinter.new(typer)

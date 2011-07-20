@@ -21,29 +21,29 @@ require 'jruby'
 require 'stringio'
 require 'fileutils'
 
-unless Mirah::AST.macro "__gloop__"
-  Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|
-    Mirah::AST::Loop.new(parent, parent.position, true, false) do |loop|
-      init, condition, check_first, pre, post = fcall.parameters
-      loop.check_first = check_first.literal
-
-      nil_t = Mirah::AST::Null
-      loop.init = init
-      loop.pre = pre
-      loop.post = post
-
-      body = fcall.block.body
-      body.parent = loop
-      [
-        Mirah::AST::Condition.new(loop, parent.position) do |c|
-          condition.parent = c
-          [condition]
-        end,
-        body
-      ]
-    end
-  end
-end
+# unless Mirah::AST.macro "__gloop__"
+#   Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|
+#     Mirah::AST::Loop.new(parent, parent.position, true, false) do |loop|
+#       init, condition, check_first, pre, post = fcall.parameters
+#       loop.check_first = check_first.literal
+# 
+#       nil_t = Mirah::AST::Null
+#       loop.init = init
+#       loop.pre = pre
+#       loop.post = post
+# 
+#       body = fcall.block.body
+#       body.parent = loop
+#       [
+#         Mirah::AST::Condition.new(loop, parent.position) do |c|
+#           condition.parent = c
+#           [condition]
+#         end,
+#         body
+#       ]
+#     end
+#   end
+# end
 
 class TestJVMCompiler < Test::Unit::TestCase
   include Mirah
@@ -55,7 +55,6 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def teardown
-    AST.type_factory = nil
     File.unlink(*@tmp_classes)
   end
 
@@ -69,28 +68,22 @@ class TestJVMCompiler < Test::Unit::TestCase
   def compile(code)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
-    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
     name = "script" + System.nano_time.to_s
     state = Mirah::Util::CompilationState.new
     state.save_extensions = false
     transformer = Mirah::Transform::Transformer.new(state)
-    Java::MirahImpl::Builtin.initialize_builtins(transformer)
-    ast  = AST.parse(code, name, true, transformer)
-    typer = JVM::Typer.new(transformer)
-    ast.infer(typer, true)
-    typer.resolve(true)
-    compiler = JVM::Compiler::JVMBytecode.new(typer)
-    compiler.compile(ast)
+    #Java::MirahImpl::Builtin.initialize_builtins(transformer)
+    ast  = [AST.parse(code, name, true, transformer)]
+    generator = Mirah::Generator.new(state, JVM::Compiler::JVMBytecode, false, false)
+    scoper, typer = generator.infer_asts(ast, true)
+    compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
     classes = {}
-    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
-    compiler.generate do |name, builder|
-      bytes = builder.generate
-      FileUtils.mkdir_p(File.dirname(name))
-      open("#{name}", "wb") do |f|
-        f << bytes
-      end
-      classes[name[0..-7]] = bytes
+    compiler_results.each do |result|
+      FileUtils.mkdir_p(File.dirname(result.filename))
+      File.open(result.filename, 'wb') {|f| f.write(result.bytes)}
+      classes[result.filename[0..-7]] = bytes
     end
+    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
 
     classes.keys.map do |name|
       cls = loader.load_class(name.tr('/', '.'))
