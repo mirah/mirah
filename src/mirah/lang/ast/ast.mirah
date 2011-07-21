@@ -181,6 +181,10 @@ class NodeImpl
   #   finder.results
   # end
 
+  def setOriginalNode(node:Node):void
+    @originalNode = node
+  end
+
  protected
   def initialize; end
   def initialize(position: Position)
@@ -201,10 +205,6 @@ class NodeImpl
     child.setParent(nil)
     child
   end
-
-  private
-  attr_writer originalNode: Node
-  # TODO clone
 end
 
 # class DescendentFinder < NodeScanner

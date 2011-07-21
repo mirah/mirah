@@ -626,4 +626,10 @@ EOF
      assert_equal(if_node, if_node.body.parent)
      assert_equal(if_node, if_node.elseBody.parent)
    end
+
+   def test_enddef
+     assert_parse("[Script, [[If, [Fixnum, 1], [[Fixnum, 2]], []], [MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
+                  "if 1 then 2; end
+                  def foo; 1; end")
+   end
 end

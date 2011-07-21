@@ -894,6 +894,20 @@ parser MirahParser {
     token
   }
 
+  def parse(stream:InputStream) {
+    parse(MirahParser.readToString(stream))
+  }
+
+  def self.readToString(stream:InputStream) {
+    reader = BufferedReader.new(InputStreamReader.new(stream))
+    buffer = char[8192]
+    builder = StringBuilder.new
+    while (read = reader.read(buffer, 0, buffer.length)) > 0
+      builder.append(buffer, 0, read);
+    end
+    return builder.toString
+  }
+
   def self.parse_args(args:String[]) {
     argc = args.length
     if args[0].equals "-v"
@@ -909,13 +923,7 @@ parser MirahParser {
     else
       stream = System.in
     end
-    reader = BufferedReader.new(InputStreamReader.new(stream))
-    buffer = char[8192]
-    builder = StringBuilder.new
-    while (read = reader.read(buffer, 0, buffer.length)) > 0
-      builder.append(buffer, 0, read);
-    end
-    return builder.toString
+    readToString(stream)
   }
 
   def self.main(args:String[]) {

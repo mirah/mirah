@@ -50,7 +50,7 @@ class Call < NodeImpl
     if '[]'.equals(name)
       return TypeRefImpl.new(target_typeref.name, true, false, position)
     else
-      name = "#{target_typeref.name}.#{self.name}"
+      name = "#{target_typeref.name}.#{self.name.identifier}"
       return TypeRefImpl.new(name, false, false, position)
     end
   end
@@ -68,7 +68,7 @@ class Colon2 < NodeImpl
     if target.kind_of?(TypeName)
       outerType = TypeName(target).typeref.name
       if outerType
-        TypeRefImpl.new("#{outerType}::#{name.identifier}", false, false, position)
+        return TypeRefImpl.new("#{outerType}.#{name.identifier}", false, false, position)
       end
     end
     raise UnsupportedOperationException, "#{target} does not name a type"

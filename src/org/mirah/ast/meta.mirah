@@ -394,25 +394,12 @@ class NodeState < BaseNodeState
       end
 
       `extra_setup`
-      def replaceChild(oldChild:Node, newChild:Node)
-        if oldChild == newChild
-          return
-        end
-        `@replaceBody`
-      end
-      def removeChild(child:Node)
-        `@removeBody`
-      end
-      def clone
-        _clone = super
-        node = `mirah.cast(name, '_clone')`
-        `@cloneBody`
-        node
-      end
     end
   end
 
   def init_subclass(parent:NodeState)
+    visitor_method = "visit#{name}"
+
     mirah.quote do
       def initialize()
       end
@@ -421,6 +408,10 @@ class NodeState < BaseNodeState
         self.position = position
       end
       `parent.addConstructor(name)`
+
+      def accept(visitor, arg):Object
+        visitor.`visitor_method`(self, arg)
+      end
     end
   end
 
@@ -451,6 +442,23 @@ class NodeState < BaseNodeState
       end
       def initialize(`@children`)
         `@constructor`
+      end
+      def replaceChild(oldChild:Node, newChild:Node)
+        if oldChild == newChild
+          return
+        end
+        `@replaceBody`
+        raise IllegalArgumentException, "No child #{oldChild}"
+      end
+      def removeChild(child:Node)
+        `@removeBody`
+        raise IllegalArgumentException, "No child #{child}"
+      end
+      def clone
+        _clone = super
+        node = `mirah.cast(name, '_clone')`
+        `@cloneBody`
+        node
       end
     end
   end
@@ -484,21 +492,21 @@ class NodeState < BaseNodeState
     end
     @children.add([name, type])
     @replaceBody << mirah.quote do
-      if @`name` == oldChild
+      if self.`name` == oldChild
         self.`setter`(`mirah.cast(type, 'newChild')`)
         newChild.setOriginalNode(oldChild)
         return
       end
     end
     @removeBody << mirah.quote do
-      if @`name` == child
+      if self.`name` == child
         self.`setter`(nil)
         return
       end
     end
-    clone_call = mirah.quote {@`name`.clone}
+    clone_call = mirah.quote {self.`name`.clone}
     @cloneBody << mirah.quote do
-      node.`setter`(`mirah.cast(type, clone_call)`) if @`name`
+      node.`setter`(`mirah.cast(type, clone_call)`) if self.`name`
     end
     addGetters(name, type, node)
   end
