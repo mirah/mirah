@@ -90,7 +90,9 @@ module Mirah::JVM::Types
     end
     def getSuperClass(future)
       superclass = BaseTypeFuture.new(nil)
-      future.on_update {|_, type| superclass.resolved(type.superclass)}
+      future.on_update do |_, type|
+        superclass.resolved(type.superclass)
+      end
       superclass
     end
     def getArrayType(type)

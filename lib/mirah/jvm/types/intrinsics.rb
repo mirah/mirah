@@ -136,7 +136,7 @@ module Mirah::JVM::Types
             if type.class_name == 'duby.lang.compiler.Block'
               @type_system.block_type
             else
-              @type_system.type(type)
+              @type_system.type(nil, type)
             end
           end
           klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)

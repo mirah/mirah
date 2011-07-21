@@ -23,7 +23,11 @@ module Mirah
         end
 
         def superclass
-          (node && node.superclass) || @type_system.type(nil, 'java.lang.Object')
+          if node && node.superclass
+            @type_system.get(node.superclass.typeref).resolve
+          else
+            @type_system.type(nil, 'java.lang.Object')
+          end
         end
 
         def interfaces(include_parent=true)

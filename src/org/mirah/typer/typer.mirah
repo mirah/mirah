@@ -133,7 +133,7 @@ class Typer < SimpleNodeVisitor
         typer.infer(node, expression != nil)
       end
     end
-    if parameters.size == 1
+    if call.parameters.size == 1
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.

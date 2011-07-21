@@ -123,7 +123,7 @@ class SimpleTypes; implements TypeSystem
     t
   end
   def getArrayType(componentType:TypeFuture)
-    TypeFuture(getArrayType(ResolvedType(componentType)))
+    TypeFuture(getArrayType(componentType.resolve))
   end
   def get(typeref)
     raise IllegalArgumentException if typeref.nil?
