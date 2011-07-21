@@ -895,9 +895,12 @@ module Mirah
           done.set!
         end
 
-        def empty_array(type, size)
-          visit(size, true)
-          type.newarray(@method)
+        def visitEmptyArray(node, expression)
+          if expression
+            visit(node.size, true)
+            type = @typer.type_system.get(node.type).resolve
+            type.newarray(@method)
+          end
         end
 
         class ClosureCompiler < JVMBytecode

@@ -211,8 +211,8 @@ module Mirah::JVM::Types
       add_method(
           '[]', [int_type], component_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
           component_type.aload(compiler.method)
         end
       end
@@ -220,20 +220,20 @@ module Mirah::JVM::Types
       add_method('[]=',
                  [int_type, component_type],
                  component_type) do |compiler, call, expression|
-        call.target.compile(compiler, true)
-        convert_args(compiler, call.parameters, [Int, component_type])
+        compiler.visit(call.target, true)
+        convert_args(compiler, call.parameters, [@type_system.type(nil, 'int'), component_type])
         component_type.astore(compiler.method)
         if expression
-          call.parameters[1].compile(compiler, true)
+          compiler.visit(call.parameters(1), true)
         end
       end
 
       add_method('length', [], int_type) do |compiler, call, expression|
-        call.target.compile(compiler, true)
+        compiler.visit(call.target, true)
         compiler.method.arraylength
       end
 
-      add_macro('each', Mirah::AST.block_type) do |transformer, call|
+      add_macro('each', @type_system.block_type) do |transformer, call|
         Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           index = transformer.tmp
@@ -365,7 +365,7 @@ module Mirah::JVM::Types
     def add_intrinsics
       super
       add_enumerable_macros
-      add_macro('each', Mirah::AST.block_type) do |transformer, call|
+      add_macro('each', @type_system.block_type) do |transformer, call|
         Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           it = transformer.tmp

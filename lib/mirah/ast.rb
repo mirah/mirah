@@ -29,6 +29,7 @@ module Mirah
     # whether this node represents a new line.
     java_import 'mirah.lang.ast.Node'
     java_import 'mirah.lang.ast.Fixnum'
+    java_import 'mirah.lang.ast.EmptyArray'
     java_import 'mirah.lang.ast.OptionalArgument'
 
     class TypeReference

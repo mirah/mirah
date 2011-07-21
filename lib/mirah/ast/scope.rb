@@ -39,6 +39,7 @@ module Mirah
         @search_packages = []
         @shadowed = {}
         @scoper = scoper
+        @temps = Hash.new {|h,k| h[k] = -1}
       end
 
       def <<(name)
@@ -55,6 +56,10 @@ module Mirah
 
       def locals
         @vars.keys
+      end
+
+      def temp(name="tmp")
+        "$#{name}$#{@temps[name] += 1}"
       end
 
       def local_type(name)

@@ -11,6 +11,7 @@ interface Scope do
   def package:String; end
   def package=(package:String):void; end
   def resetDefaultSelfNode:void; end
+  def temp(name:String):String; end
 end
 
 interface Scoper do

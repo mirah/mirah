@@ -81,7 +81,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     compiler_results.each do |result|
       FileUtils.mkdir_p(File.dirname(result.filename))
       File.open(result.filename, 'wb') {|f| f.write(result.bytes)}
-      classes[result.filename[0..-7]] = bytes
+      classes[result.filename[0..-7]] = result.bytes
     end
     loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
 

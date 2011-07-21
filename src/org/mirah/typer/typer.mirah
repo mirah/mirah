@@ -87,7 +87,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def defaultNode(node, expression)
-    ErrorType.new([["Inference error", node.position]])
+    ErrorType.new([["Inference error: unsupported node #{node}", node.position]])
   end
 
   def visitVCall(call, expression)
@@ -146,6 +146,25 @@ class Typer < SimpleNodeVisitor
     end
   end
 
+  def visitElemAssign(assignment, expression)
+    call = Call.new(assignment.position, assignment.target, SimpleString.new('[]='), nil, nil)
+    call.parameters = assignment.args
+    if expression
+      temp = @scopes.getScope(assignment).temp('val')
+      call.parameters.add(LocalAccess.new(SimpleString.new(temp)))
+      newNode = Node(NodeList.new([
+        LocalAssignment.new(SimpleString.new(temp), assignment.value),
+        call,
+        LocalAccess.new(SimpleString.new(temp))
+      ]))
+    else
+      call.parameters.add(assignment.value)
+      newNode = Node(call)
+    end
+    assignment.parent.replaceChild(assignment, newNode)
+    infer(newNode)
+  end
+
   def visitCall(call, expression)
     target = infer(call.target)
     mergeUnquotes(call.parameters)
@@ -161,15 +180,25 @@ class Typer < SimpleNodeVisitor
       end
     end
     if  call.parameters.size == 1
-      # This might actually be a cast instead of a method call, so try
+      # This might actually be a cast or array instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      typeref = call.typeref(true)
+      is_array = '[]'.equals(call.name.identifier)
+      if is_array
+        typeref = TypeName(call.target).typeref if call.target.kind_of?(TypeName)
+      else
+        typeref = call.typeref(true)
+      end
       if typeref
-        cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters.get(0).clone))
-        castType = @types.get(typeref)
-        @futures[cast] = castType
-        TypeFuture(MaybeInline.new(call, methodType, cast, castType))
+        if is_array
+          newNode = Node(EmptyArray.new(call.position, typeref, call.parameters.get(0)))
+          newType = @types.getArrayType(@types.get(typeref))
+        else
+          newNode = Node(Cast.new(call.position, TypeName(typeref), Node(call.parameters.get(0))))
+          newType = @types.get(typeref)
+        end
+        infer(newNode)
+        TypeFuture(MaybeInline.new(call, methodType, newNode, newType))
       else
         methodType
       end

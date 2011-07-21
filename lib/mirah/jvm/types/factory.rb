@@ -95,10 +95,10 @@ module Mirah::JVM::Types
     end
     def getArrayType(type)
       if type.kind_of?(Type)
-        type.array
+        type.array_type
       else
         future = BaseTypeFuture.new(nil)
-        type.on_update {|_, resolved| future.resolved(resolved.array)}
+        type.on_update {|_, resolved| future.resolved(resolved.array_type)}
         future
       end
     end
