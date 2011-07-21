@@ -32,6 +32,7 @@ end
 
 module Mirah::JVM::Types
   class Type
+    java_import 'org.mirah.typer.InlineCode'
 
     def load(builder, index)
       builder.send "#{prefix}load", index
@@ -52,7 +53,7 @@ module Mirah::JVM::Types
     def intrinsics
       @intrinsics ||= begin
         @intrinsics = Hash.new {|h, k| h[k] = {}}
-        #add_intrinsics
+        add_intrinsics
         @intrinsics
       end
     end
@@ -66,7 +67,7 @@ module Mirah::JVM::Types
     end
 
     def add_macro(name, *args, &block)
-      type = Mirah::AST::InlineCode.new(&block)
+      type = InlineCode.new(&block)
       intrinsics[name][args] = Intrinsic.new(self, name, args, type) do
         raise "Macro should be expanded, no called!"
       end
@@ -149,7 +150,7 @@ module Mirah::JVM::Types
       boolean = @type_system.type(nil, 'boolean')
       object_type = @type_system.type(nil, 'java.lang.Object')
       class_type = @type_system.type(nil, 'java.lang.Class')
-      
+
       add_method('nil?', [], boolean) do |compiler, call, expression|
         if expression
           call.target.compile(compiler, true)
@@ -231,19 +232,19 @@ module Mirah::JVM::Types
         call.target.compile(compiler, true)
         compiler.method.arraylength
       end
-      
+
       add_macro('each', Mirah::AST.block_type) do |transformer, call|
         Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           index = transformer.tmp
           array = transformer.tmp
-      
+
           init = transformer.eval("#{index} = 0;#{array} = nil")
           array_assignment = init.children[-1]
           array_assignment.value = call.target
           call.target.parent = array_assignment
           forloop.init << init
-      
+
           var = call.block.args.args[0]
           if var
             forloop.pre << transformer.eval(
@@ -368,12 +369,12 @@ module Mirah::JVM::Types
         Mirah::AST::Loop.new(call.parent,
                             call.position, true, false) do |forloop|
           it = transformer.tmp
-    
+
           assignment = transformer.eval("#{it} = foo.iterator")
           assignment.value.target = call.target
           call.target.parent = assignment.value
           forloop.init << assignment
-    
+
           var = call.block.args.args[0]
           if var
             forloop.pre << transformer.eval(

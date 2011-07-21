@@ -8,7 +8,7 @@ module Mirah
         def initialize(types, name, node)
           raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
           raise ArgumentError, "Bad name #{name}" if name.include? ?/
-          @types = types
+          @type_system = types
           @name = name
           @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
@@ -23,7 +23,7 @@ module Mirah
         end
 
         def superclass
-          (node && node.superclass) || @types.type(nil, 'java.lang.Object')
+          (node && node.superclass) || @type_system.type(nil, 'java.lang.Object')
         end
 
         def interfaces(include_parent=true)

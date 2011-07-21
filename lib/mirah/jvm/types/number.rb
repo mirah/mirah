@@ -17,7 +17,7 @@ module Mirah::JVM::Types
   class ComparisonIntrinsic < Intrinsic
     attr_reader :name, :op
     def initialize(type, name, op, args)
-      super(type, name, args, Boolean) do; end
+      super(type, name, args, type.type_system.type(nil, 'boolean')) do; end
       @type = type
       @op = op
     end
@@ -83,7 +83,7 @@ module Mirah::JVM::Types
     def boolean_operator(name, op)
       args = [math_type]
       add_method(name, args, ComparisonIntrinsic.new(self, name, op, args))
-      add_delegates(name, Boolean)
+      add_delegates(name, @type_system.type(nil, 'boolean'))
     end
 
     def invert_op(op)

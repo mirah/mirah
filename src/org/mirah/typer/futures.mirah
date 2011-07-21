@@ -36,6 +36,9 @@ class BaseTypeFuture; implements TypeFuture
     @position = position
     @listeners = ArrayList.new
   end
+  def initialize
+    @listeners = ArrayList.new
+  end
 
   def isResolved
     @resolved != nil
@@ -211,7 +214,7 @@ class PickFirst < BaseTypeFuture
     type.onUpdate do |x, resolved|
       if (me.picked == -1 && resolved.name != ':error') ||
           me.picked >= i
-        me.pick(index, type, value, resolved)
+        me.pick(i, type, value, resolved)
       end
     end
   end

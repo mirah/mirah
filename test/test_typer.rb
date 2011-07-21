@@ -25,6 +25,9 @@ class TestTyper < Test::Unit::TestCase
   java_import 'org.mirah.typer.TypeFuture'
   java_import 'org.mirah.typer.simple.SimpleScoper'
   java_import 'org.mirah.typer.simple.SimpleTypes'
+  java_import 'mirah.lang.ast.VCall'
+  java_import 'mirah.lang.ast.FunctionalCall'
+  java_import 'mirah.lang.ast.LocalAccess'
 
   module TypeFuture
     def inspect
@@ -256,5 +259,16 @@ class TestTyper < Test::Unit::TestCase
   def test_static_method
     ast = parse("class Foo; def self.bar;1; end; end; Foo.bar")
     assert_equal(@types.getFixnumType(1), infer(ast))
+  end
+
+  def test_vcall
+    ast = parse("foo = 1; def bar; end; foo; bar")
+    assert_kind_of(VCall, ast.body(2))
+    assert_kind_of(VCall, ast.body(3))
+    infer(ast)
+    assert_equal(@types.getFixnumType(1), inferred_type(ast.body(2)))
+    assert_equal(@types.getNullType, inferred_type(ast.body(3)))
+    assert_kind_of(LocalAccess, ast.body(2))
+    assert_kind_of(FunctionalCall, ast.body(3))
   end
 end

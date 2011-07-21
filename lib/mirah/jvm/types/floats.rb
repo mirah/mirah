@@ -20,7 +20,7 @@ module Mirah::JVM::Types
     end
 
     def math_type
-      Float
+      @type_system.type(nil, 'float')
     end
 
     def box_type
@@ -49,10 +49,10 @@ module Mirah::JVM::Types
     end
     
     def widen(builder, type)
-      case type
-      when Float
+      case type.name
+      when 'float'
         # Do nothing
-      when Double
+      when 'double'
         builder.f2d
       else
         raise ArgumentError, "Invalid widening conversion from float to #{type}"
@@ -66,7 +66,7 @@ module Mirah::JVM::Types
     end
 
     def math_type
-      Double
+      @type_system.type(nil, 'double')
     end
 
     def box_type
@@ -91,9 +91,9 @@ module Mirah::JVM::Types
         builder.ldc_double(value)
       end
     end
-    
+
     def widen(builder, type)
-      if type != Double
+      if type.name != 'double'
         raise ArgumentError, "Invalid widening conversion from double to #{type}"
       end
     end

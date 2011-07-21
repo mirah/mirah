@@ -12,6 +12,7 @@ module Mirah
         java_import 'mirah.lang.ast.Ensure'
         java_import 'mirah.lang.ast.Call'
         java_import 'mirah.lang.ast.Loop'
+        java_import 'org.mirah.typer.TypeFuture'
 
         class << self
           attr_accessor :verbose
@@ -170,7 +171,7 @@ module Mirah
         def visitConstructorDefinition(node, expression)
           push_jump_scope(node) do
             super(node, true) do |method, args|
-              method_body(method, args, node, Types::Void) do
+              method_body(method, args, node, @typer.type_system.type(nil, 'void')) do
                 method.aload 0
                 if node.delegate_args
                   if node.calls_super
@@ -337,7 +338,7 @@ module Mirah
         end
 
         def jump_if(predicate, target)
-          unless inferred_type(predicate) == Types::Boolean
+          unless inferred_type(predicate).name == 'boolean'
             raise "Expected boolean, found #{inferred_type(predicate)}"
           end
           if Call === predicate
@@ -352,7 +353,7 @@ module Mirah
         end
 
         def jump_if_not(predicate, target)
-          unless inferred_type(predicate) == Types::Boolean
+          unless inferred_type(predicate).name == 'boolean'
             raise "Expected boolean, found #{inferred_type(predicate)}"
           end
           if Call === predicate
@@ -388,9 +389,11 @@ module Mirah
         end
 
         def visitFunctionalCall(fcall, expression)
-          type = get_scope(fcall).self_type
+          type = get_scope(fcall).self_type.resolve
           type = type.meta if (@static && type == @type)
-          fcall.target = ImplicitSelf.new(type, get_scope(fcall))
+          def fcall.target
+            ImplicitSelf.new(type, get_scope(fcall))
+          end
 
           params = fcall.parameters.map do |param|
             inferred_type(param)
@@ -533,6 +536,7 @@ module Mirah
           scope.locals.each do |name|
             unless scope.captured?(name) || declared?(scope, name)
               type = scope.local_type(name)
+              type = type.resolve if type.kind_of?(TypeFuture)
               declare_local(scope, name, type)
               type.init_value(@method)
               type.store(@method, @method.local(scoped_local_name(name, scope), type))
@@ -597,9 +601,10 @@ module Mirah
         def local_assign(local, expression)
           name = local.name.identifier
           type = inferred_type(local)
+          scope = get_scope(local)
           declare_local(scope, name, type)
 
-          visit(value, true)
+          visit(local.value, true)
 
           # if expression, dup the value we're assigning
           @method.dup if expression

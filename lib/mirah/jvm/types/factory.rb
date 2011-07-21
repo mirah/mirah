@@ -20,6 +20,7 @@ module Mirah::JVM::Types
   class TypeFactory < SimpleTypes
     java_import 'org.mirah.typer.AssignableTypeFuture'
     java_import 'org.mirah.typer.BaseTypeFuture'
+    java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
     java_import 'org.mirah.typer.TypeSystem'
     java_import 'mirah.lang.ast.InterfaceDeclaration'
@@ -246,6 +247,10 @@ module Mirah::JVM::Types
       return nil
     end
 
+    def block_type
+      @block_type ||= BlockType.new
+    end
+
     def get_type(full_name)
       type = @known_types[full_name]
       return type.basic_type if type
@@ -308,14 +313,6 @@ module Mirah::JVM::Types
         scope.import(full_name, name)
         @known_types[full_name] = klass.new(self, full_name, node)
       end
-    end
-
-    def no_type
-      Void
-    end
-
-    def unreachable_type
-      Unreachable
     end
 
     def get_mirror(name)

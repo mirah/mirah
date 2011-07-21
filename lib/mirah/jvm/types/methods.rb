@@ -591,7 +591,7 @@ module Mirah::JVM::Types
           constructors << JavaConstructor.new(member)
         end
       else
-        instance_methods[name] << JavaMethod.new(@types, member)
+        instance_methods[name] << JavaMethod.new(@type_system, member)
       end
     end
 
@@ -600,7 +600,7 @@ module Mirah::JVM::Types
         static_methods.delete(name)
       else
         member = MirahMember.new(self, name, arguments, type, true, exceptions)
-        static_methods[name] << JavaStaticMethod.new(@types, member)
+        static_methods[name] << JavaStaticMethod.new(@type_system, member)
       end
     end
 

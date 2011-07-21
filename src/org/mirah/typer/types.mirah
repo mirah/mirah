@@ -49,13 +49,27 @@ end
 class ErrorType < SpecialType
   def initialize(message:List)
     super(":error")
-    @message = message
+    @message = checkMessage(message)
   end
   def message:List
     @message
   end
   def toString:String
     "<Error: #{message}>"
+  end
+  private
+  def checkMessage(message:List)
+    new_message = ArrayList.new(message.size)
+    message.each do |_pair|
+      pair = List(_pair)
+      text = String(pair.get(0))
+      position = pair.size > 1 ? Position(pair.get(1)) : nil
+      new_pair = ArrayList.new(2)
+      new_pair.add(text)
+      new_pair.add(position)
+      new_message.add(new_pair)
+    end
+    new_message
   end
 end
 
@@ -65,13 +79,25 @@ class BlockType < SpecialType
   end
 end
 
+interface NodeBuilder do
+  def buildNode(node:Node, typer:Typer):Node; end
+end
+
 class InlineCode < SpecialType
   def initialize(node:Node)
-    super(:inline)
+    super(':inline')
     @node = node
   end
-  def node
-    @node
+  def initialize(block:NodeBuilder)
+    super(':inline')
+    @block = block
+  end
+  def expand(node:Node, typer:Typer)
+    if @block
+      @block.buildNode(node, typer)
+    else
+      @node
+    end
   end
 end
 

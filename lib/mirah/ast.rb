@@ -27,17 +27,13 @@ module Mirah
     # It provides accessors for _children_, an array of all child nodes,
     # _parent_, a reference to this node's parent (nil if none), and _newline_,
     # whether this node represents a new line.
-    class Node
+    java_import 'mirah.lang.ast.Node'
+    java_import 'mirah.lang.ast.Fixnum'
+    java_import 'mirah.lang.ast.OptionalArgument'
 
+    class TypeReference
     end
-
-    class TypeReference < Node
-
-    end
-
     class TypeDefinition < TypeReference
-
     end
-
   end
 end

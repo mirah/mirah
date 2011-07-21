@@ -25,6 +25,7 @@ module Mirah
 
         def initialize(type_system, mirror_or_name)
           @type_system = type_system
+          raise ArgumentError if type_system.nil?
           if mirror_or_name.kind_of?(BiteScript::ASM::ClassMirror)
             @type = mirror_or_name
             @name = mirror_or_name.type.class_name

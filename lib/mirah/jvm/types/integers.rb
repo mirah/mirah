@@ -18,7 +18,7 @@ class BiteScript::MethodBuilder
     iconst_m1
     ixor
   end
-  
+
   def lnot
     # TODO would any of these be faster?
     #   iconst_m1; i2l
@@ -33,36 +33,36 @@ module Mirah::JVM::Types
     def literal(builder, value)
       builder.push_int(value)
     end
-    
+
     def init_value(builder)
       builder.iconst_0
     end
-    
+
     def load(builder, index)
       builder.iload(index)
     end
-    
+
     def widen(builder, type)
-      case type
-      when Byte, Short, Int
+      case type.name
+      when 'byte', 'short', 'int'
         # do nothing
-      when Long
+      when 'long'
         builder.i2l
-      when Float
+      when 'float'
         builder.i2f
-      when Double
+      when 'double'
         builder.i2d
       else
         raise ArgumentError, "Invalid widening conversion from #{name} to #{type}"
       end
     end
-    
+
     def prefix
       'i'
     end
-    
+
     def math_type
-      Int
+      @type_system.type(nil, 'int')
     end
 
     def box_type
@@ -118,17 +118,20 @@ module Mirah::JVM::Types
       math_operator('^', 'xor')
       unary_operator('~', 'not')
 
-      add_macro('downto', Int, Mirah::AST.block_type) do |transformer, call|
+      int_type = @type_system.type(nil, 'int')
+      block_type = @type_system.block_type
+
+      add_macro('downto', int_type, block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], false, true)
       end
-      add_macro('upto', Int, Mirah::AST.block_type) do |transformer, call|
+      add_macro('upto', int_type, block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], true, true)
       end
-      add_macro('times', Mirah::AST.block_type) do |transformer, call|
+      add_macro('times', block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
-                   call.block, Mirah::AST::fixnum(nil, call.position, 0),
+                   call.block, Mirah::AST::Fixnum.new(nilcall.position, 0),
                    call.target, true, false)
       end
     end
@@ -140,7 +143,7 @@ module Mirah::JVM::Types
     end
 
     def math_type
-      Long
+      @type_system.type(nil, 'long')
     end
 
     def box_type
@@ -154,24 +157,24 @@ module Mirah::JVM::Types
     def init_value(builder)
       builder.lconst_0
     end
-    
+
     def wide?
       true
     end
 
     def widen(builder, type)
-      case type
-      when Long
+      case type.name
+      when 'long'
         # do nothing
-      when Float
+      when 'float'
         builder.l2f
-      when Double
+      when 'double'
         builder.l2d
       else
         raise ArgumentError, "Invalid widening conversion from Int to #{type}"
       end
     end
-    
+
     def add_intrinsics
       super
       math_operator('<<', 'shl')

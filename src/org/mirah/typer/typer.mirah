@@ -93,14 +93,9 @@ class Typer < SimpleNodeVisitor
   def visitVCall(call, expression)
     selfType = @scopes.getScope(call).selfType
     methodType = CallFuture.new(call.position, @types, selfType, call.name.identifier, Collections.emptyList)
-    typer = self
-    methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        node = InlineCode(resolvedType).node
-        call.parent.replaceChild(call, node)
-        typer.infer(node, expression != nil)
-      end
-    end
+    fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
+    @futures[fcall] = methodType
+
 
     # This might actually be a local access instead of a method call,
     # so try both. If the local works, we'll go with that. If not, we'll
@@ -110,7 +105,18 @@ class Typer < SimpleNodeVisitor
     local = LocalAccess.new(call.position, call.name)
     localType = @types.getLocalType(@scopes.getScope(call), local.name.identifier)
     @futures[local] = localType
-    TypeFuture(MaybeInline.new(call, methodType, local, localType))
+    options = [localType, local, methodType, fcall]
+    current_node = Node(call)
+    typer = self
+    PickFirst.new(options) do |picked_type, _node|
+      node = Node(_node)
+      if picked_type.kind_of?(InlineCode)
+        node = InlineCode(picked_type).expand(fcall, typer)
+        typer.infer(node, expression != nil)
+      end
+      current_node.parent.replaceChild(current_node, node)
+      current_node = node
+    end
   end
 
   def visitFunctionalCall(call, expression)
@@ -122,7 +128,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
-        node = InlineCode(resolvedType).node
+        node = InlineCode(resolvedType).expand(call, typer)
         call.parent.replaceChild(call, node)
         typer.infer(node, expression != nil)
       end
@@ -149,7 +155,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
-        node = InlineCode(resolvedType).node
+        node = InlineCode(resolvedType).expand(call, typer)
         call.parent.replaceChild(call, node)
         typer.infer(node, expression != nil)
       end
