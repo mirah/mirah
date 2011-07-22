@@ -2,6 +2,7 @@ package mirahparser.lang.ast
 
 import java.io.Serializable
 import java.util.ArrayList
+import java.util.LinkedList
 import java.util.List
 import java.util.Iterator
 import org.mirahparser.ast.NodeMeta
@@ -16,6 +17,10 @@ interface Position do
   macro def +(other) quote { add(`other`) } end
 end
 
+interface CloneListener do
+  def wasCloned(original:Node, clone:Node):void; end
+end
+
 interface Node < Cloneable do
   def position:Position; end
   def parent:Node; end
@@ -25,6 +30,7 @@ interface Node < Cloneable do
   def replaceChild(child:Node, newChild:Node):void; end
   def removeChild(child:Node):void; end
   def accept(visitor:NodeVisitor, arg:Object):Object; end
+  def whenCloned(listener:CloneListener):void; end
 
   def findAncestor(type:java::lang::Class):Node; end
   def findAncestor(filter:NodeFilter):Node; end
@@ -39,7 +45,7 @@ end
 
 interface Assignment < Node do
   def value:Node; end
-  def value=(value:Node); end
+  def value=(value:Node):void; end
 end
 
 interface Identifier < Node do
@@ -185,16 +191,23 @@ class NodeImpl
     @originalNode = node
   end
 
+  def whenCloned(listener:CloneListener)
+    @clone_listeners.add(listener)
+  end
+
  protected
-  def initialize; end
+  def initialize
+    @clone_listeners = LinkedList.new
+  end
   def initialize(position: Position)
+    @clone_listeners = LinkedList.new
     self.position = position
   end
 
   def childAdded(child:Node):Node
-    return child if (child.nil? || child.parent == self)
+    return child if child.nil?
     if child.parent
-      child.parent.removeChild(child)
+      child = Node(child.clone)
     end
     child.setParent(self)
     child
@@ -204,6 +217,12 @@ class NodeImpl
     return nil if child.nil?
     child.setParent(nil)
     child
+  end
+
+  def fireWasCloned(clone:Node):void
+    @clone_listeners.each do |listener|
+      CloneListener(listener).wasCloned(self, clone)
+    end
   end
 end
 
@@ -271,12 +290,22 @@ class PositionImpl; implements Position
   def endLine:int; @endLine; end
   def endColumn:int; @endColumn; end
   def add(other:Position):Position
+    return self unless other
     if @filename.equals(other.filename)
       Position(PositionImpl.new(
           @filename, Math.min(@startLine, other.startLine), Math.min(@startColumn, other.startColumn),
           Math.max(@endLine, other.endLine), Math.max(@endColumn, other.endColumn)))
     else
       Position(self)
+    end
+  end
+  def self.add(a:Position, b:Position):Position
+    if a && b
+      a.add(b)
+    elsif a
+      a
+    else
+      b
     end
   end
 end

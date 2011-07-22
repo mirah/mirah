@@ -46,7 +46,7 @@ class Call < NodeImpl
     return nil unless target.kind_of?(TypeName)
     target_typeref = TypeName(target).typeref
     return nil if target_typeref.nil?
-    position = self.name.position + target_typeref.position
+    position = PositionImpl.add(self.name.position, target_typeref.position)
     if '[]'.equals(name)
       return TypeRefImpl.new(target_typeref.name, true, false, position)
     else

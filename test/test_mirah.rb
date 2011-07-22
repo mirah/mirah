@@ -37,6 +37,13 @@ class TestParsing < Test::Unit::TestCase
         end
       EOF
     end
+    def enterTypeRefImpl(node, arg)
+      enterDefault(node, arg)
+      @out << ", #{node.name}"
+      @out << ", array" if node.isArray
+      @out << ", static" if node.isStatic
+      true
+    end
     def enterNodeList(node, arg)
       @out << ", " unless @first
       @out << "["
@@ -354,8 +361,8 @@ EOF
                  "def foo(a); 2; end")
     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo a; 1; end")
-    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], [Constant, [SimpleString, SimpleString]]]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
-                 "def foo(a:SimpleString); 1; end")
+    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], [Constant, [SimpleString, String]]]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
+                 "def foo(a:String); 1; end")
     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null], [RequiredArgument, [SimpleString, b], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(a, b); 1; end")
     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList, [OptionalArgument, [SimpleString, a], null, [Fixnum, 1]]], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
@@ -631,5 +638,29 @@ EOF
      assert_parse("[Script, [[If, [Fixnum, 1], [[Fixnum, 2]], []], [MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                   "if 1 then 2; end
                   def foo; 1; end")
+   end
+
+   def test_array_type
+     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], [TypeRefImpl, String, array]]], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
+                  "def foo(a:String[]); 1; end")
+   end
+
+   def test_interface
+     assert_parse("[Script, [[InterfaceDeclaration, " +
+                             "[Constant, [SimpleString, A]], null, " +
+                             "[[Fixnum, 1]], " +
+                             "[TypeNameList], [AnnotationList]]]]",
+                  "interface A;1;end")
+     assert_parse("[Script, [[InterfaceDeclaration, " +
+                             "[Constant, [SimpleString, A]], null, " +
+                             "[[Fixnum, 1]], " +
+                             "[TypeNameList, [Constant, [SimpleString, B]], [Constant, [SimpleString, C]]], " +
+                             "[AnnotationList]]]]",
+                  "interface A < B, C do 1;end")
+     assert_parse("[Script, [[InterfaceDeclaration, " +
+                             "[Constant, [SimpleString, A]], null, [], " +
+                             "[TypeNameList], " +
+                             "[AnnotationList, [Annotation, [Constant, [SimpleString, Foo]], [HashEntryList]]]]]]",
+                  "$Foo interface A; end")
    end
 end

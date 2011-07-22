@@ -255,15 +255,15 @@ class ListNodeState < BaseNodeState
         if children
           startPosition = nil
           endPosition = nil
+          @children = java::util::ArrayList.new(children.size)
           children.each do |_node:Node|
             node = Node(_node)
             if node
-              childAdded(node)
+              @children.add(childAdded(node))
               startPosition ||= node.position
               endPosition = node.position
             end
           end
-          @children = java::util::ArrayList.new(children)
           unless @children.isEmpty
             self.position = startPosition + endPosition
           end
@@ -276,8 +276,8 @@ class ListNodeState < BaseNodeState
       def initialize(position:Position, children:java::util::List)
         self.position = position
         if children
-          children.each {|node:Node| childAdded(Node(node))}
-          @children = java::util::ArrayList.new(children)
+          @children = java::util::ArrayList.new(children.size)
+          children.each {|node:Node| @children.add(childAdded(Node(node)))}
         else
           @children = java::util::ArrayList.new
         end
@@ -297,8 +297,7 @@ class ListNodeState < BaseNodeState
         current = get(i)
         if current != node
           childRemoved(current)
-          childAdded(node)
-          @children.set(i, node)
+          @children.set(i, childAdded(node))
         end
         node
       end
@@ -325,13 +324,11 @@ class ListNodeState < BaseNodeState
       end
 
       def add(node:`type_name`):void
-        childAdded(node)
-        @children.add(node)
+        @children.add(childAdded(node))
       end
 
       def insert(i:int, node:`type_name`):void
-        @children.add(i, node)
-        childAdded(node)
+        @children.add(i, childAdded(node))
       end
 
       def remove(i:int): `type_name`
@@ -458,6 +455,7 @@ class NodeState < BaseNodeState
         _clone = super
         node = `mirah.cast(name, '_clone')`
         `@cloneBody`
+        fireWasCloned(node)
         node
       end
     end
@@ -466,10 +464,12 @@ class NodeState < BaseNodeState
   def addGetters(name:String, type:String, node:boolean)
     if node
       pre_set = mirah.quote do
-        unless value == @`name`
-          childRemoved(@`name`)
-          childAdded(value)
+        if value == @`name`
+          return
         end
+        childRemoved(@`name`)
+        clone = childAdded(value)
+        value = `mirah.cast(type, 'clone')`
       end
     else
       pre_set = mirah.body
@@ -478,7 +478,7 @@ class NodeState < BaseNodeState
       def `"#{name}"`: `type`
         @`name`
       end
-      def `"#{name}_set"`(value: `type`)
+      def `"#{name}_set"`(value: `type`):void
         `pre_set`
         @`name` = value
       end

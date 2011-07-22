@@ -288,17 +288,18 @@ parser MirahParser {
              verify_end(sp)! $End
              -> ^(ClassDefinition n s b ifaces annotations)
            );
+  $Scope[@cond]
   $Returns[Node]
   primary2_interface
          : annotations=annotation_list
            t=$Interface!
            sp=block_start(t)
-           n=cname! ifaces=($LT rlistOf(:cpath)
+           n=cname! ifaces=($LT! rlistOf(:cpath)
                            | {[]}
                            )
-           $Do?
-           b=compstmt
-           verify_end(sp) $END
+           Do!
+           b=compstmt!
+           verify_end(sp) $End
             -> ^(InterfaceDeclaration n nil b ifaces annotations)
            ;
   $Returns[Node]
@@ -681,7 +682,7 @@ parser MirahParser {
            ) {makeIdentifier(makePosition(_start, _pos), text)}
     ;
 
-  $Memo[Identifier]
+  $Returns[Identifier]
   cname: c=constant -> ^(Constant c)
        | unquote
        | &identifier !"class/module name must be CONSTANT" ?{false};
@@ -693,7 +694,10 @@ parser MirahParser {
        ;
 
   $Returns[TypeName]
-  type: TypeName(identifier) | cpath;
+  type: n=(TypeName(identifier) | cpath)
+        ( $LBrack $RBrack {TypeRefImpl.new(n.typeref.name, true, false, n.position)}
+        | {n}
+        );
 
   superclass: $LT cpath # Should this be expr_value instead of cpath?
             | # empty
@@ -889,6 +893,7 @@ parser MirahParser {
     token = _lex
     unless token.type == type
       self._pos = token.pos
+      @error.last = type.name
       raise @error
     end
     token
