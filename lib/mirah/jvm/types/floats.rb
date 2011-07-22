@@ -48,7 +48,7 @@ module Mirah::JVM::Types
       end
     end
     
-    def widen(builder, type)
+    def compile_widen(builder, type)
       case type.name
       when 'float'
         # Do nothing
@@ -92,7 +92,7 @@ module Mirah::JVM::Types
       end
     end
 
-    def widen(builder, type)
+    def compile_widen(builder, type)
       if type.name != 'double'
         raise ArgumentError, "Invalid widening conversion from double to #{type}"
       end

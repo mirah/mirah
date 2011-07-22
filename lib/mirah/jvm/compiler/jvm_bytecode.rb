@@ -627,7 +627,7 @@ module Mirah
           name = field.name.identifier
 
           real_type = declared_fields[name] || inferred_type(field)
-          declare_field(name, real_type, field.annotations, field.isStatic)
+          declare_field(name, real_type, [], field.isStatic)
 
           set_position(field.position)
           # load self object unless static
@@ -673,8 +673,8 @@ module Mirah
           visit(field.value, true)
           if expression
             instruction = 'dup'
-            instruction << '2' if type.wide?
-            instruction << '_x1' unless static || static_field
+            instruction << '2' if real_type.wide?
+            instruction << '_x1' unless static || field.isStatic
             method.send instruction
           end
           set_position(field.position)

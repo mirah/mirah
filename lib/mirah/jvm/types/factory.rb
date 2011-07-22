@@ -72,6 +72,7 @@ module Mirah::JVM::Types
     def getVoidType; cache_and_wrap_type('void') end
     def getBaseExceptionType; cache_and_wrap_type('java.lang.Throwable') end
     def getDefaultExceptionType; cache_and_wrap_type('java.lang.Exception') end
+    def getHashType; cache_and_wrap_type('java.util.HashMap') end
     def getRegexType; cache_and_wrap_type('java.util.regex.Pattern') end
     def getStringType; cache_and_wrap_type('java.lang.String') end
     def getBooleanType; cache_and_wrap_type('boolean') end

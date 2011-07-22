@@ -108,6 +108,7 @@ interface TypeSystem do
   def getDefaultExceptionType:TypeFuture; end
   def getRegexType:TypeFuture; end
   def getStringType:TypeFuture; end
+  def getHashType:TypeFuture; end
   def getBooleanType:TypeFuture; end
   def getFixnumType(value:long):TypeFuture; end
   def getCharType(value:int):TypeFuture; end

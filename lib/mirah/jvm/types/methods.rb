@@ -36,7 +36,7 @@ module Mirah::JVM::Types
       values.zip(types).each do |value, type|
         compiler.visit(value, true)
         if type.primitive? && type != compiler.inferred_type(value)
-            compiler.inferred_type(value).widen(compiler.method, type)
+            compiler.inferred_type(value).compile_widen(compiler.method, type)
         end
       end
     end
@@ -588,7 +588,7 @@ module Mirah::JVM::Types
             raise "Can't add constructor #{member} after using the default."
           end
         else
-          constructors << JavaConstructor.new(member)
+          constructors << JavaConstructor.new(@type_system, member)
         end
       else
         instance_methods[name] << JavaMethod.new(@type_system, member)

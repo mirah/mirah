@@ -439,11 +439,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitHash(hash, expression)
+    hashType = @types.getHashType
+    @futures[hash] = hashType
     target = TypeRefImpl.new('mirah.impl.Builtin', false, true, hash.position)
     call = Call.new(target, SimpleString.new('new_hash'), nil, nil)
     hash.parent.replaceChild(hash, call)
     call.parameters.add(hash)
     infer(call, expression != nil)
+    hashType
   end
 
   def visitRegex(regex, expression)

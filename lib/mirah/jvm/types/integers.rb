@@ -42,7 +42,7 @@ module Mirah::JVM::Types
       builder.iload(index)
     end
 
-    def widen(builder, type)
+    def compile_widen(builder, type)
       case type.name
       when 'byte', 'short', 'int'
         # do nothing
@@ -162,7 +162,7 @@ module Mirah::JVM::Types
       true
     end
 
-    def widen(builder, type)
+    def compile_widen(builder, type)
       case type.name
       when 'long'
         # do nothing

@@ -59,7 +59,9 @@ class SimpleTypes; implements TypeSystem
   def initialize(main_type:String)
     @types = {}
     [ :Null, :Void, :Exception, :Regex,
-      :String, :Bool, :Int, :Char, :Float].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
+      :String, :Bool, :Int, :Char, :Float,
+      :Hash, 'mirah.impl.Builtin'
+      ].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
     @meta_types = {}
     @array_types = {}
     @methods = {}
@@ -99,6 +101,9 @@ class SimpleTypes; implements TypeSystem
   end
   def getFloatType(value)
     lookup :Float
+  end
+  def getHashType
+    lookup :Hash
   end
 
   def getMetaType(type:ResolvedType)
