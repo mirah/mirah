@@ -279,6 +279,10 @@ module Mirah
           end
         end
 
+        def visitImplicitSelf(node, expression)
+          visitSelf(node, expression)
+        end
+
         def get_binding(type)
           @bindings[type]
         end

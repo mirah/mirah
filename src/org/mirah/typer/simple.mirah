@@ -220,6 +220,9 @@ class SimpleTypes; implements TypeSystem
 end
 
 class SimpleScope; implements Scope
+  def initialize
+    @nextTemp = -1
+  end
   def selfType:TypeFuture
     @selfType || (@parent && @parent.selfType)
   end
@@ -239,6 +242,9 @@ class SimpleScope; implements Scope
   end
   def package=(p:String)
     @package = p
+  end
+  def temp(name)
+    "#{name}#{@nextTemp += 1}"
   end
   def shadow(name:String):void; end
   def resetDefaultSelfNode:void; end

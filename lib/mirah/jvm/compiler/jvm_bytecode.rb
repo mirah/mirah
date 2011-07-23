@@ -12,7 +12,17 @@ module Mirah
         java_import 'mirah.lang.ast.Ensure'
         java_import 'mirah.lang.ast.Call'
         java_import 'mirah.lang.ast.Loop'
+        java_import 'mirah.lang.ast.FunctionalCall'
+        java_import 'mirah.lang.ast.Super'
+        java_import 'mirah.lang.ast.ImplicitSelf'
         java_import 'org.mirah.typer.TypeFuture'
+
+        class FunctionalCall
+          attr_accessor :target
+        end
+        class Super
+          attr_accessor :target, :name
+        end
 
         class << self
           attr_accessor :verbose
@@ -29,19 +39,6 @@ module Mirah
 
         module JVMLogger
           def log(message); JVMBytecode.log(message); end
-        end
-
-        class ImplicitSelf
-          attr_reader :inferred_type
-
-          def initialize(type, scope)
-            @inferred_type = type
-            @scope = scope
-          end
-
-          def compile(compiler, expression)
-            compiler.compile_self(@scope) if expression
-          end
         end
 
         def initialize(scoper, typer)
@@ -391,9 +388,9 @@ module Mirah
         def visitFunctionalCall(fcall, expression)
           type = get_scope(fcall).self_type.resolve
           type = type.meta if (@static && type == @type)
-          def fcall.target
-            ImplicitSelf.new(type, get_scope(fcall))
-          end
+          fcall.target = ImplicitSelf.new
+          fcall.target.parent = fcall
+          infer(fcall.target)
 
           params = fcall.parameters.map do |param|
             inferred_type(param)
@@ -410,8 +407,16 @@ module Mirah
 
         def visitSuper(sup, expression)
           type = @type.superclass
-          sup.target = ImplicitSelf.new(type, get_scope(sup))
+          sup.target = ImplicitSelf.new
+          sup.target.parent = sup
+          super_type = @typer.type_system.getSuperClass(get_scope(sup).self_type)
+          scope = @typer.scoper.addScope(sup)
+          scope.selfType_set(super_type)
+          @typer.infer(sup.target)
 
+          sup.name = sup.findAncestor(MethodDefinition.java_class).name.identifier
+
+          # TODO ZSuper
           params = sup.parameters.map do |param|
             inferred_type(param)
           end
@@ -425,7 +430,7 @@ module Mirah
 
         def visitCast(fcall, expression)
           # casting operation, not a call
-          castee = fcall.parameters(0)
+          castee = fcall.value
 
           # TODO move errors to inference phase
           source_type_name = inferred_type(castee)

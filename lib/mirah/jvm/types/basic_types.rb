@@ -28,7 +28,8 @@ module Mirah::JVM::Types
       )
       @known_types['fixnum'] = @known_types['int']
       @known_types['Object'] = type(nil, 'java.lang.Object')
-      @known_types['string'] = @known_types['String'] = type(nil, 'java.lang.String')
+      @known_types['string'] = @known_types['String'] = @known_types['java.lang.String'] =
+          StringType.new(self, get_mirror('java.lang.String'))
       type(nil, 'java.lang.Class')
       @known_types['Iterable'] = @known_types['java.lang.Iterable'] =
           IterableType.new(self, get_mirror('java.lang.Iterable'))

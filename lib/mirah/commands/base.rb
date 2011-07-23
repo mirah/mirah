@@ -41,8 +41,7 @@ module Mirah
             yield
           rescue Mirah::InternalCompilerError => ice
             Mirah.print_error(ice.message, ice.position) if ice.node
-            raise ice.cause if (ice.cause && state.verbose)
-            raise ice
+            raise ice.cause || ice
           rescue Mirah::MirahError => ex
             Mirah.print_error(ex.message, ex.position)
             puts ex.backtrace if state.verbose

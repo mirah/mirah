@@ -153,7 +153,7 @@ module Mirah::JVM::Types
 
       add_method('nil?', [], boolean) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
+          compiler.visit(call.target, true)
           compiler.method.op_to_bool do |target|
             compiler.method.ifnull(target)
           end
@@ -163,8 +163,8 @@ module Mirah::JVM::Types
       add_method('==', [object_type], boolean) do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
           compiler.method.op_to_bool do |target|
             compiler.method.if_acmpeq(target)
           end
@@ -174,8 +174,8 @@ module Mirah::JVM::Types
       add_method('!=', [object_type], boolean) do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
           compiler.method.op_to_bool do |target|
             compiler.method.if_acmpne(target)
           end
@@ -183,7 +183,7 @@ module Mirah::JVM::Types
       end
 
       add_macro('kind_of?', class_type) do |transformer, call|
-        klass, object = call.parameters[0], call.target
+        klass, object = call.parameters(0), call.target
         Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
           klass.parent = object.parent = call2
           [
@@ -194,9 +194,9 @@ module Mirah::JVM::Types
       end
 
       add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
-        call.target.compile(compiler, expression)
+        compiler.visit(call.target, expression)
         if expression
-          klass = call.parameters[0].inferred_type!
+          klass = call.parameters(0).inferred_type!
           compiler.method.instanceof(klass.unmeta)
         end
       end
@@ -288,74 +288,81 @@ module Mirah::JVM::Types
   class StringType < Type
     def add_intrinsics
       super
-      add_method('+', [String], String) do |compiler, call, expression|
+      string_type = @type_system.type(nil, 'java.lang.String')
+      bool_type = @type_system.type(nil, 'boolean')
+      int_type = @type_system.type(nil, 'int')
+      long_type = @type_system.type(nil, 'long')
+      char_type = @type_system.type(nil, 'char')
+      float_type = @type_system.type(nil, 'float')
+      double_type = @type_system.type(nil, 'double')
+      add_method('+', [string_type], string_type) do |compiler, call, expression|
         if expression
-          java_method('concat', String).call(compiler, call, expression)
+          java_method('concat', string_type).call(compiler, call, expression)
         end
       end
-      add_method('+', [Boolean], String) do |compiler, call, expression|
+      add_method('+', [bool_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokestatic String, "valueOf", [String, Boolean]
-          compiler.method.invokevirtual String, "concat", [String, String]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokestatic string_type, "valueOf", [string_type, bool_type]
+          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end
-      add_method('+', [Char], String) do |compiler, call, expression|
+      add_method('+', [char_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokestatic String, "valueOf", [String, Char]
-          compiler.method.invokevirtual String, "concat", [String, String]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokestatic string_type, "valueOf", [string_type, char_type]
+          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end
-      add_method('+', [Int], String) do |compiler, call, expression|
+      add_method('+', [int_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokestatic String, "valueOf", [String, Int]
-          compiler.method.invokevirtual String, "concat", [String, String]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokestatic string_type, "valueOf", [string_type, int]
+          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end
-      add_method('+', [Long], String) do |compiler, call, expression|
+      add_method('+', [long_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokestatic String, "valueOf", [String, Long]
-          compiler.method.invokevirtual String, "concat", [String, String]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokestatic string_type, "valueOf", [string_type, long_type]
+          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end
-      add_method('+', [Float], String) do |compiler, call, expression|
+      add_method('+', [float_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokestatic String, "valueOf", [String, Float]
-          compiler.method.invokevirtual String, "concat", [String, String]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokestatic string_type, "valueOf", [string_type, float_type]
+          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end
-      add_method('+', [Double], String) do |compiler, call, expression|
+      add_method('+', [double_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokestatic String, "valueOf", [String, Double]
-          compiler.method.invokevirtual String, "concat", [String, String]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokestatic string_type, "valueOf", [string_type, double_type]
+          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end
-      add_method('[]', [Int], Char) do |compiler, call, expression|
+      add_method('[]', [int_type], char_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
-          compiler.method.invokevirtual String, "charAt", [Char, Int]
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
+          compiler.method.invokevirtual string_type, "charAt", [char_type, int_type]
         end
       end
-      add_method('[]', [Int, Int], String) do |compiler, call, expression|
+      add_method('[]', [int_type, int_type], string_type) do |compiler, call, expression|
         if expression
-          call.target.compile(compiler, true)
-          call.parameters[0].compile(compiler, true)
+          compiler.visit(call.target, true)
+          compiler.visit(call.parameters(0), true)
           compiler.method.dup
-          call.parameters[1].compile(compiler, true)
+          compiler.visit(call.parameters[1], true)
           compiler.method.iadd
-          compiler.method.invokevirtual String, "substring", [String, Int, Int]
+          compiler.method.invokevirtual string_type, "substring", [string_type, int_type, int_type]
         end
       end
     end

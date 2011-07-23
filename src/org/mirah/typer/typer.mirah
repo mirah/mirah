@@ -40,6 +40,10 @@ class Typer < SimpleNodeVisitor
     @types
   end
 
+  def scoper
+    @scopes
+  end
+
   def getInferredType(node:Node)
     TypeFuture(@futures[node])
   end
@@ -138,9 +142,7 @@ class Typer < SimpleNodeVisitor
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = @types.get(call.typeref)
-      @futures[cast] = castType
-      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
+      TypeFuture(MaybeInline.new(call, methodType, cast, infer(cast, true)))
     else
       methodType
     end
@@ -191,10 +193,14 @@ class Typer < SimpleNodeVisitor
       end
       if typeref
         if is_array
-          newNode = Node(EmptyArray.new(call.position, typeref, call.parameters.get(0)))
+          array = EmptyArray.new(call.position, typeref, call.parameters(0))
+          @futures[array.size] = infer(call.parameters(0))
+          newNode = Node(array)
           newType = @types.getArrayType(@types.get(typeref))
         else
-          newNode = Node(Cast.new(call.position, TypeName(typeref), Node(call.parameters.get(0))))
+          cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0)))
+          @futures[cast.value] = infer(call.parameters(0))
+          newNode = Node(cast)
           newType = @types.get(typeref)
         end
         infer(newNode)
@@ -205,6 +211,12 @@ class Typer < SimpleNodeVisitor
     else
       methodType
     end
+  end
+
+  def visitCast(cast, expression)
+    # TODO check for compatibility
+    infer(cast.value)
+    @types.get(cast.type.typeref)
   end
 
   def visitColon2(colon2, expression)
@@ -729,6 +741,10 @@ class Typer < SimpleNodeVisitor
 
   def visitImplicitNil(node, expression)
     @types.getNullType  # Should this be void?
+  end
+
+  def visitImplicitSelf(node, expression)
+    @scopes.getScope(node).selfType
   end
 
   # TODO is a constructor special?
