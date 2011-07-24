@@ -70,7 +70,7 @@ module Mirah
 
           # Define a main method unless all of the script's children are 'top level'
           # nodes (e.g. Import, ClassDefinition, InterfaceDeclaration).
-          unless script.body.children.all? { |c| c.top_level? }
+          unless script.body.children.all? { |c| c && c.top_level? }
             @class = @type.define(@file)
             with :method => @class.main do
               log "Starting main method"
