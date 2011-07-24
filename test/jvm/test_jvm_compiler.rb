@@ -276,7 +276,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_output("Hello there\n") { cls.foo }
 
-    script, a, b = compile(<<-EOF)
+    a, b = compile(<<-EOF)
       class VoidBase
         def foo
           returns void
@@ -294,7 +294,6 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
-
     assert_output("foo\nbar\n") { b.foobar }
 
   end
@@ -830,7 +829,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_implements
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       import java.lang.Iterable
       class Foo; implements Iterable
         def iterator
@@ -878,16 +877,16 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_interface_declaration
-    script, interface = compile('interface A do; end')
+    interface = compile('interface A do; end').first
     assert(interface.java_class.interface?)
     assert_equal('A', interface.java_class.name)
 
-    script, a, b = compile('interface A do; end; interface B < A do; end')
+    a, b = compile('interface A do; end; interface B < A do; end')
     assert_include(a, b.ancestors)
     assert_equal('A', a.java_class.name)
     assert_equal('B', b.java_class.name)
 
-    script, a, b, c = compile(<<-EOF)
+    a, b, c = compile(<<-EOF)
       interface A do
       end
 
@@ -1794,7 +1793,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_super_constructor
-    cls, a, b = compile(<<-EOF)
+    sc_a, sc_b = compile(<<-EOF)
       class SC_A
         def initialize(a:int)
           puts "A"
@@ -1810,7 +1809,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("A\nB\n") do
-      b.new
+      sc_b.new
     end
   end
 
@@ -2184,7 +2183,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_duby_iterable
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       import java.util.Iterator
       class MyIterator; implements Iterable, Iterator
         def initialize(x:Object)
@@ -2214,6 +2213,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
+    
     assert_output("Hi\n") do
       cls.test("Hi")
     end
@@ -2470,7 +2470,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_kind_of(Java::JavaUtil::List, list)
     assert_equal(["1", "2", "3"], list.to_a)
 
-    scripe, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       import java.util.Arrays
       class StaticImports
         include Arrays
@@ -2587,7 +2587,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_abstract
-    script, cls1, cls2 = compile(<<-EOF)
+    abstract_class, concrete_class = compile(<<-EOF)
       abstract class Abstract
         abstract def foo:void; end
         def bar; puts "bar"; end
@@ -2598,12 +2598,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("foo\nbar\n") do
-      a = cls2.new
+      a = concrete_class.new
       a.foo
       a.bar
     end
     begin
-      cls1.new
+      abstract_class.new
       fail "Expected InstantiationException"
     rescue java.lang.InstantiationException
       # expected
