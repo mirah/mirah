@@ -360,7 +360,8 @@ class TestAst < Test::Unit::TestCase
     assert_not_nil(new_ast)
     assert(AST::EmptyArray === new_ast)
     assert_equal(5, new_ast.size.literal)
-    assert_equal(AST.type(:int), new_ast.inferred_type)
+
+    assert_equal("int", new_ast.type_node.name)
   end
 
   def test_block_comment
