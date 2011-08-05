@@ -356,11 +356,13 @@ class TestAst < Test::Unit::TestCase
 
   def test_empty_array
     new_ast = AST.parse("int[5]").body[0]
+    typer = Mirah::Typer::Simple.new(new_ast)
+    typer.infer(new_ast, true)
 
     assert_not_nil(new_ast)
     assert(AST::EmptyArray === new_ast)
     assert_equal(5, new_ast.size.literal)
-    assert_equal(AST.type(:int), new_ast.inferred_type)
+    assert_equal(AST::TypeReference.new(:int), new_ast.component_type)
   end
 
   def test_block_comment
