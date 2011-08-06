@@ -159,6 +159,10 @@ module Mirah::AST
       args
     end
 
+    def primitive_wrapper(scope, typer, type)
+      typer.type_reference(scope, type.wrapper.java_class.name)
+    end
+
     def infer(typer, expression)
       unless @inferred_type
         receiver_type = typer.infer(target, true)
@@ -185,8 +189,17 @@ module Mirah::AST
             rescue
             end
           end
-          @inferred_type = typer.method_type(receiver_type, name,
-                                             parameter_types)
+          begin
+            @inferred_type = typer.method_type(receiver_type, name,
+                                               parameter_types)
+          rescue NoMethodError
+            if receiver_type.primitive?
+              receiver_type = primitive_wrapper(scope, typer, receiver_type)
+              @inferred_type = typer.method_type(receiver_type, name,
+                                                 parameter_types)
+              target.box_type = receiver_type
+            end
+          end
           if @inferred_type.kind_of? InlineCode
             @inlined = @inferred_type.inline(typer.transformer, self)
             proxy.__inline__(@inlined)

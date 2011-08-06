@@ -2883,4 +2883,18 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_int_boxing
+    cls, = compile("puts 1.toString")
+    assert_output("1\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_boolean_boxing
+    cls, = compile("puts true.booleanValue")
+    assert_output("true\n") do
+      cls.main(nil)
+    end
+  end
 end

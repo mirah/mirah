@@ -2,6 +2,8 @@ module Mirah
   module JVM
     module Types
       class PrimitiveType < Type
+        attr_reader :wrapper
+
         def initialize(type, wrapper)
           @wrapper = wrapper
           super(type)

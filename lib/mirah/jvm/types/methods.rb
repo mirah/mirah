@@ -182,8 +182,16 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression)
-      target = ast.target.inferred_type
-      ast.target.compile(compiler, true)
+      if ast.target.respond_to?(:box_type) && ast.target.box_type
+        target = ast.target.box_type
+        compiler.method.new ast.target.box_type
+        compiler.method.dup
+        ast.target.compile(compiler, true)
+        compiler.method.invokespecial ast.target.box_type, "<init>", [Void, ast.target.inferred_type]
+      else
+        target = ast.target.inferred_type
+        ast.target.compile(compiler, true)
+      end
 
       # if expression, void methods return the called object,
       # for consistency and chaining

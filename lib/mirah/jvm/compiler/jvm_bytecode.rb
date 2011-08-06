@@ -340,7 +340,7 @@ module Mirah
         end
         
         def extract_method(call)
-          target = call.target.inferred_type!
+          target = call.target.box_type || call.target.inferred_type!
           params = call.parameters.map do |param|
             param.inferred_type!
           end
@@ -353,7 +353,7 @@ module Mirah
           if method
             method.call(self, call, expression)
           else
-            raise "Missing method #{target}.#{call.name}(#{params.join ', '})"
+            raise "Missing method #{call.target}.#{call.name}(#{call.parameters.join ', '})"
           end
         end
         
