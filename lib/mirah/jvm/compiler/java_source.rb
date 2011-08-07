@@ -489,7 +489,11 @@ module Mirah
         def call(call, expression)
           return cast(call, expression) if call.cast?
           if Mirah::AST::Constant === call.target || Mirah::AST::Colon2 === call.target
-            target = call.target.inferred_type.to_source
+            if call.target.box_type
+              target = call.target.box_type.to_source
+            else
+              target = call.target.inferred_type.to_source
+            end
           else
             target = call.precompile_target(self)
           end
@@ -599,6 +603,9 @@ module Mirah
             method.call(self, call, expression)
             return
           else
+            if target.respond_to?(:box_type) && target.box_type
+              target = Mirah::AST::BoxedValue.new(target)
+            end
             target.compile(self, true)
             @method.print ".#{method.name}("
           end

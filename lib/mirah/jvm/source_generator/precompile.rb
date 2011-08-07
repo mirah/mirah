@@ -37,6 +37,22 @@ module Mirah::AST
     end
   end
 
+  class BoxedValue
+    def initialize(node)
+      @node = node
+    end
+
+    def compile(compiler, expression)
+      if expression
+        compiler.method.print "(new "
+        compiler.method.print @node.box_type.full_name
+        compiler.method.print "("
+        @node.compile(compiler, expression)
+        compiler.method.print "))"
+      end
+    end
+  end
+
   class Node
     def expr?(compiler)
       true
@@ -85,7 +101,8 @@ module Mirah::AST
     def method(compiler=nil)
       @method ||= begin
         arg_types = parameters.map {|p| p.inferred_type}
-        target.inferred_type.get_method(name, arg_types)
+        target_type = target.box_type || target.inferred_type
+        target_type.get_method(name, arg_types)
       end
     end
 
