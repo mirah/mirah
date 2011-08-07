@@ -201,7 +201,6 @@ module Mirah::AST
 
     def infer(typer, expression)
       scope.static_scope << name
-      super
     end
   end
 
