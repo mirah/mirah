@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'test_helper'
+#require 'bytecode_test_helper'
 
 unless Mirah::AST.macro "__gloop__"
   Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|
@@ -40,17 +40,6 @@ unless Mirah::AST.macro "__gloop__"
 end
 
 class TestJVMCompiler < Test::Unit::TestCase
-  include JVMCompiler
-  include CommonAssertions
-  
-  def setup
-    @tmp_classes = []
-  end
-
-  def teardown
-    AST.type_factory = nil
-    File.unlink(*@tmp_classes)
-  end
 
   def test_local
     cls, = compile("def foo; a = 1; a; end")

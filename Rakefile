@@ -38,22 +38,34 @@ task :test => [ 'test:core', 'test:plugins', 'test:jvm' ]
 namespace :test do
 
   Rake::TestTask.new :core do |t|
-    t.test_files = FileList["test/core/**/*.rb"]
+    t.test_files = FileList["test/core/**/test*.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
   
   Rake::TestTask.new :plugins do |t|
     t.libs << 'test'
-    t.test_files = FileList["test/plugins/**/*.rb"]
+    t.test_files = FileList["test/plugins/**/test*.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
-  Rake::TestTask.new :jvm do |t|
-    t.libs << 'test/jvm'
-    t.test_files = FileList["test/jvm/**/*.rb"]
-    java.lang.System.set_property("jruby.duby.enabled", "true")
+  task :jvm => ["jvm:bytecode", "jvm:javac"]
+  namespace :jvm do
+    
+    Rake::TestTask.new :bytecode do |t|
+      t.libs << 'test/jvm'
+      t.ruby_opts.concat ["-r", "bytecode_test_helper"]
+      t.test_files = FileList["test/jvm/**/test*.rb"]
+      java.lang.System.set_property("jruby.duby.enabled", "true")
+    end
+    
+    Rake::TestTask.new :javac do |t|
+      t.libs << 'test/jvm'
+      t.ruby_opts.concat ["-r", "javac_test_helper"]
+      t.test_files = FileList["test/jvm/**/test*.rb"]
+      java.lang.System.set_property("jruby.duby.enabled", "true")
+    end
+    
   end
-
 end
 
 task :init do
