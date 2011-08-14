@@ -25,38 +25,85 @@ module JVMCompiler
   import java.io.PrintStream
   include Mirah
   
-  def compile(code)
-    File.unlink(*@tmp_classes)
-    @tmp_classes.clear
-    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-    name = "script" + System.nano_time.to_s
+  def create_transformer
     state = Mirah::Util::CompilationState.new
     state.save_extensions = false
+    
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
-    ast  = AST.parse(code, name, true, transformer)
+    transformer
+  end
+  
+  def reset_type_factory
+    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
+  end
+  
+  def clear_tmp_files
+    File.unlink(*@tmp_classes)
+    @tmp_classes.clear
+  end
+  
+  def create_compiler
+    JVM::Compiler::JVMBytecode.new
+  end
+  
+  def parse name, code, transformer
+    AST.parse(code, name, true, transformer)
+  end
+  
+  def infer_and_resolve_types ast, transformer
     typer = JVM::Typer.new(transformer)
+    
     ast.infer(typer, true)
+    
     typer.resolve(true)
-    compiler = JVM::Compiler::JVMBytecode.new
-    compiler.compile(ast)
+  end
+  
+  def parse_and_resolve_types name, code    
+    transformer = create_transformer
+    
+    ast  = parse name, code, transformer
+    
+    infer_and_resolve_types ast, transformer
+    
+    ast
+  end
+    
+  
+  def generate_classes compiler
     classes = {}
-    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
-    compiler.generate do |name, builder|
+
+    compiler.generate do |filename, builder|
       bytes = builder.generate
-      FileUtils.mkdir_p(File.dirname(name))
-      open("#{name}", "wb") do |f|
+      FileUtils.mkdir_p(File.dirname(filename))
+      open("#{filename}", "wb") do |f|
         f << bytes
       end
-      classes[name[0..-7]] = bytes
+      classes[filename[0..-7]] = bytes
     end
 
+    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
     classes.keys.map do |name|
       cls = loader.load_class(name.tr('/', '.'))
       proxy = JavaUtilities.get_proxy_class(cls.name)
       @tmp_classes << "#{name}.class"
       proxy
     end
+
+  end
+  
+  def compile(code, name = nil)
+    clear_tmp_files
+    reset_type_factory
+    
+    name ||= "script" + System.nano_time.to_s
+    
+    ast = parse_and_resolve_types name, code
+    
+    compiler = create_compiler
+    compiler.compile(ast)
+    
+    generate_classes compiler
   end
 end
 
