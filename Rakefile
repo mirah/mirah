@@ -33,12 +33,27 @@ task :gem => 'jar:bootstrap'
 
 task :default => :test
 
-Rake::TestTask.new :test do |t|
-  t.libs << "lib"
-  # This is hacky, I know
-  t.libs.concat Dir[bitescript_lib_dir]
-  t.test_files = FileList["test/**/*.rb"]
-  java.lang.System.set_property("jruby.duby.enabled", "true")
+task :test => [ 'test:core', 'test:plugins', 'test:jvm' ]
+
+namespace :test do
+
+  Rake::TestTask.new :core do |t|
+    t.test_files = FileList["test/core/**/*.rb"]
+    java.lang.System.set_property("jruby.duby.enabled", "true")
+  end
+  
+  Rake::TestTask.new :plugins do |t|
+    t.libs << 'test'
+    t.test_files = FileList["test/plugins/**/*.rb"]
+    java.lang.System.set_property("jruby.duby.enabled", "true")
+  end
+
+  Rake::TestTask.new :jvm do |t|
+    t.libs << 'test/jvm'
+    t.test_files = FileList["test/jvm/**/*.rb"]
+    java.lang.System.set_property("jruby.duby.enabled", "true")
+  end
+
 end
 
 task :init do

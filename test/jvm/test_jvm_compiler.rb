@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require File.join(File.dirname(__FILE__), 'test_helper')
+require 'test_helper'
 
 unless Mirah::AST.macro "__gloop__"
   Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|

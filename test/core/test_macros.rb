@@ -1,7 +1,5 @@
 # TODO refactor this and test_jvm_compiler to use mirah.rb
 
-$:.unshift File.join(File.dirname(__FILE__),'..','lib')
-
 require 'test/unit'
 require 'mirah'
 

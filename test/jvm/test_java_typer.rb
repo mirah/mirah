@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-$:.unshift File.join(File.dirname(__FILE__),'../..','lib')
-
 require 'test/unit'
 require 'mirah'
 

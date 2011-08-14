@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require File.join(File.dirname(__FILE__), 'test_helper')
+require 'test_helper'
 
 require 'mirah/jvm/compiler/java_source'
 
-require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
+require 'test_jvm_compiler'
 
 # make sure . is in CLASSPATH
 $CLASSPATH << '.'
