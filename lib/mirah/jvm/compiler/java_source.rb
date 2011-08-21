@@ -56,7 +56,17 @@ module Mirah
         def output_type
           "source files"
         end
-
+        
+        def define_class(class_def, expression)
+          with(:type => class_def.inferred_type,
+          :class => class_def.inferred_type.define(@file),
+          :static => false) do
+            annotate(@class, class_def.annotations)
+            class_def.body.compile(self, false) if class_def.body
+            @class.stop unless @method && @method.name == 'main' && @class == @method.klass
+          end
+        end
+        
         def define_method(node)
           base_define_method(node, false) do |method, _|
             with :method => method do

@@ -341,10 +341,11 @@ module Mirah
     class MethodBuilder
       include Helper
 
-      attr_accessor :name, :type, :out
+      attr_accessor :name, :type, :out, :klass
 
       def initialize(cls, options)
         @class = cls
+        @klass = cls
         @compiler = cls.compiler
         @out = Output.new
         @visibility = options[:visibility]
