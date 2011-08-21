@@ -45,6 +45,7 @@ def run_tests tests
       puts "Errors in #{name}"
     end
   end
+  fail if results.any?{|passed|!passed}
 end
   
 desc "run full test suite"
