@@ -47,27 +47,32 @@ def run_tests tests
   end
 end
   
+desc "run full test suite"
 task :test do
   run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
 end
 namespace :test do
 
+  desc "run the core tests"
   Rake::TestTask.new :core do |t|
     t.test_files = FileList["test/core/**/test*.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
   
+  desc "run tests for plugins"
   Rake::TestTask.new :plugins do |t|
     t.libs << 'test'
     t.test_files = FileList["test/plugins/**/test*.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
+  desc "run jvm tests, both bytecode and java source"
   task :jvm do
     run_tests ["test:jvm:bytecode", "test:jvm:javac"]
   end
+  
   namespace :jvm do
-    
+    desc "run jvm tests compiling to bytecode"
     Rake::TestTask.new :bytecode do |t|
       t.libs << 'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
@@ -75,6 +80,7 @@ namespace :test do
       java.lang.System.set_property("jruby.duby.enabled", "true")
     end
     
+    desc "run jvm tests compiling to java source, then bytecode"
     Rake::TestTask.new :javac do |t|
       t.libs << 'test/jvm'
       t.ruby_opts.concat ["-r", "javac_test_helper"]
