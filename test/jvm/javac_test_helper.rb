@@ -86,16 +86,16 @@ module JavacCompiler
     end
     classes = javac(java_files)
   end
+
+  def clear_tmp_files
+    super
+    # wipe out Script*_xform_* classes, since we're messy
+    File.unlink(*Dir['Script*_xform_*.class'])
+  end
 end
 
 
 class Test::Unit::TestCase
   include JavacCompiler
   
-  def teardown
-    super
-    # wipe out Script*_xform_* classes, since we're messy
-    File.unlink(*Dir['Script*_xform_*.class'])
-  end
-    
 end

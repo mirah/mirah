@@ -126,7 +126,7 @@ class Test::Unit::TestCase
   end
 
   def teardown
-    AST.type_factory = nil
-    File.unlink(*@tmp_classes)
+    reset_type_factory
+    clear_tmp_files
   end
 end
