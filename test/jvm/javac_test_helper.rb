@@ -58,6 +58,10 @@ module JavacCompiler
     end
     classes
   end
+  
+  def create_compiler
+    JVM::Compiler::JavaSource.new
+  end
 
   def compile(code, name = "script" + System.nano_time.to_s)
     clear_tmp_files
@@ -65,9 +69,13 @@ module JavacCompiler
     
     ast = parse_and_resolve_types name, code
     
-    compiler = JVM::Compiler::JavaSource.new
+    compiler = create_compiler
     ast.compile(compiler, false)
     
+    generate_classes compiler
+  end
+  
+  def generate_classes compiler
     java_files = []
     compiler.generate do |name, builder|
       bytes = builder.generate
