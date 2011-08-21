@@ -337,24 +337,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
   end
-
-  def capture_output
-    saved_output = System.out
-    output = StringIO.new
-    System.setOut(PrintStream.new(output.to_outputstream))
-    begin
-      yield
-      output.rewind
-      output.read
-    ensure
-      System.setOut(saved_output)
-    end
-  end
-
-  def assert_output(expected, &block)
-    assert_equal(expected, capture_output(&block))
-  end
-
+  
   def test_puts
     cls, = compile("def foo;puts 'Hello World!';end")
     output = capture_output do
