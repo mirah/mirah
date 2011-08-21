@@ -92,11 +92,9 @@ module JVMCompiler
 
   end
   
-  def compile(code, name = nil)
+  def compile(code, name = "script" + System.nano_time.to_s)
     clear_tmp_files
     reset_type_factory
-    
-    name ||= "script" + System.nano_time.to_s
     
     ast = parse_and_resolve_types name, code
     

@@ -59,11 +59,9 @@ module JavacCompiler
     classes
   end
 
-  def compile(code, name = nil)
+  def compile(code, name = "script" + System.nano_time.to_s)
     clear_tmp_files
     reset_type_factory
-    
-    name ||= "script" + System.nano_time.to_s
     
     transformer = create_transformer
     
