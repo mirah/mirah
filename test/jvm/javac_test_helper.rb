@@ -63,16 +63,11 @@ module JavacCompiler
     clear_tmp_files
     reset_type_factory
     
-    transformer = create_transformer
+    ast = parse_and_resolve_types name, code
     
-    
-    
-    ast  = AST.parse(code, name, true, transformer)
-    typer = Mirah::JVM::Typer.new(transformer)
-    ast.infer(typer, true)
-    typer.resolve(true)
     compiler = JVM::Compiler::JavaSource.new
     ast.compile(compiler, false)
+    
     java_files = []
     compiler.generate do |name, builder|
       bytes = builder.generate
