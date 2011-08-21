@@ -60,15 +60,15 @@ module JavacCompiler
   end
 
   def compile(code, name = nil)
-    File.unlink(*@tmp_classes)
-    @tmp_classes.clear
+    clear_tmp_files
+    reset_type_factory
     
-    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-    state = Mirah::Util::CompilationState.new
-    state.save_extensions = false
-    transformer = Mirah::Transform::Transformer.new(state)
-    Java::MirahImpl::Builtin.initialize_builtins(transformer)
     name ||= "script" + System.nano_time.to_s
+    
+    transformer = create_transformer
+    
+    
+    
     ast  = AST.parse(code, name, true, transformer)
     typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
