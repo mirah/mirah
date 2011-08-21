@@ -62,17 +62,11 @@ module JavacCompiler
   def create_compiler
     JVM::Compiler::JavaSource.new
   end
-
-  def compile(code, name = "script" + System.nano_time.to_s)
-    clear_tmp_files
-    reset_type_factory
-    
-    ast = parse_and_resolve_types name, code
-    
+  
+  def compile_ast ast
     compiler = create_compiler
     ast.compile(compiler, false)
-    
-    generate_classes compiler
+    compiler
   end
   
   def generate_classes compiler

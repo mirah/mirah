@@ -92,14 +92,19 @@ module JVMCompiler
 
   end
   
+  def compile_ast  ast
+    compiler = create_compiler
+    compiler.compile(ast)
+    compiler
+  end
+  
   def compile(code, name = "script" + System.nano_time.to_s)
     clear_tmp_files
     reset_type_factory
     
     ast = parse_and_resolve_types name, code
     
-    compiler = create_compiler
-    compiler.compile(ast)
+    compiler = compile_ast ast
     
     generate_classes compiler
   end
