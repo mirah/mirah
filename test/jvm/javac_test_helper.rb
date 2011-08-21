@@ -59,7 +59,7 @@ module JavacCompiler
     classes
   end
 
-  def compile(code)
+  def compile(code, name = nil)
     File.unlink(*@tmp_classes)
     @tmp_classes.clear
     
@@ -68,7 +68,7 @@ module JavacCompiler
     state.save_extensions = false
     transformer = Mirah::Transform::Transformer.new(state)
     Java::MirahImpl::Builtin.initialize_builtins(transformer)
-    name = "script" + System.nano_time.to_s
+    name ||= "script" + System.nano_time.to_s
     ast  = AST.parse(code, name, true, transformer)
     typer = Mirah::JVM::Typer.new(transformer)
     ast.infer(typer, true)
