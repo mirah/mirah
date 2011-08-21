@@ -32,9 +32,24 @@ bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 task :gem => 'jar:bootstrap'
 
 task :default => :test
-
-task :test => [ 'test:core', 'test:plugins', 'test:jvm' ]
-
+def run_tests tests
+  results = tests.map do |name|
+    begin
+      Rake.application[name].invoke
+    rescue Exception
+    end
+  end
+  
+  tests.zip(results).each do |name, passed|
+    unless passed
+      puts "Errors in #{name}"
+    end
+  end
+end
+  
+task :test do
+  run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
+end
 namespace :test do
 
   Rake::TestTask.new :core do |t|
@@ -48,7 +63,9 @@ namespace :test do
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
-  task :jvm => ["jvm:bytecode", "jvm:javac"]
+  task :jvm do
+    run_tests ["test:jvm:bytecode", "test:jvm:javac"]
+  end
   namespace :jvm do
     
     Rake::TestTask.new :bytecode do |t|
