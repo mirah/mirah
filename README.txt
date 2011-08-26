@@ -1,7 +1,7 @@
 = mirah
 
 * http://groups.google.com/group/mirah
-* http://code.google.com/p/mirah/issues/list
+* http://github.com/mirah/mirah/issues
 
 == DESCRIPTION:
 
