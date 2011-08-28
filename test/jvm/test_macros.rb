@@ -127,5 +127,21 @@ class TestMacros < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+  
+  def test_block_parameter_uses_outer_scope
+    cls, = compile(<<-EOF)
+      macro def foo(&block)
+        quote { z = `block.body`; puts z }
+      end
+      apple = 1
+      foo do
+        apple + 2
+      end
+    EOF
+
+    assert_output("3\n") do
+      cls.main(nil)
+    end
+  end
 
 end

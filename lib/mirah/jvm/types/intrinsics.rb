@@ -78,11 +78,15 @@ module Mirah::JVM::Types
         # However the only way to do that is to wrap them in a ScopedBody.
         # It'd be better if we didn't have to expose this wrapper node to
         # the user code.
-        call.parameters = call.parameters.map do |arg|
-          wrapper = Mirah::AST::ScopedBody.new(call.parent, call.position)
-          wrapper.static_scope = call.scope.static_scope
-          wrapper << arg
+        #
+        if call.block && call.name != 'quote'
+          call.block.body = wrap_with_scoped_body call, call.block.body
         end
+        
+        call.parameters = call.parameters.map do |arg|
+          wrap_with_scoped_body call, arg
+        end
+        
         expander = klass.constructors[0].newInstance(duby, call)
         ast = expander.expand
         if ast
@@ -97,6 +101,12 @@ module Mirah::JVM::Types
           Mirah::AST::Noop.new(call.parent, call.position)
         end
       end
+    end
+    
+    def wrap_with_scoped_body call, node
+      wrapper = Mirah::AST::ScopedBody.new(call.parent, call.position)
+      wrapper.static_scope = call.scope.static_scope
+      wrapper << node
     end
 
     def declared_intrinsics(name=nil)
