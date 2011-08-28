@@ -2309,21 +2309,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
   end
 
-  def test_defmacro
-    cls, = compile(<<-EOF)
-      defmacro bar(x) do
-        x
-      end
-      
-      def foo
-        bar("bar")
-      end
-    EOF
-
-    assert_equal("bar", cls.foo)
-    assert(!cls.respond_to?(:bar))
-  end
-
   def test_default_constructor
     script, cls = compile(<<-EOF)
       class DefaultConstructable
@@ -2366,66 +2351,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(true, cls.dynamic(java.lang.String, "foo"))
     assert_equal(true, cls.dynamic(java.lang.Object, "foo"))
     assert_equal(false, cls.dynamic(java.lang.Object, nil))
-  end
-
-  def test_instance_macro
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
-    return if self.class.name == 'TestJavacCompiler'
-    script, cls = compile(<<-EOF)
-      class InstanceMacros
-        def foobar
-          "foobar"
-        end
-
-        macro def macro_foobar
-          quote {foobar}
-        end
-      
-        def call_foobar
-          macro_foobar
-        end
-      end
-
-      def macro
-        InstanceMacros.new.macro_foobar
-      end
-
-      def function
-        InstanceMacros.new.call_foobar
-      end
-    EOF
-
-    assert_equal("foobar", script.function)
-    assert_equal("foobar", script.macro)
-  end
-
-  def test_unquote
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
-    return if self.class.name == 'TestJavacCompiler'
-
-    script, cls = compile(<<-'EOF')
-      class UnquoteMacros
-        macro def make_attr(name_node, type)
-          name = name_node.string_value
-          quote do
-            def `name`
-              @`name`
-            end
-            def `"#{name}_set"`(`name`:`type`)
-              @`name` = `name`
-            end
-          end
-        end
-
-        make_attr :foo, :int
-      end
-
-      x = UnquoteMacros.new
-      puts x.foo
-      x.foo = 3
-      puts x.foo
-    EOF
-    assert_output("0\n3\n") {script.main(nil)}
   end
 
   def test_static_import
@@ -2688,26 +2613,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("value", map["key"])
   end
 
-  def test_macro_hygene
-    cls, = compile(<<-EOF)
-      macro def doubleIt(arg)
-        quote do
-          x = `arg`
-          x = x + x
-          x
-        end
-      end
-
-      def foo
-        x = "1"
-        puts doubleIt(x)
-        puts x
-      end
-    EOF
-
-    assert_output("11\n1\n") {cls.foo}
-  end
-
   def test_wide_nonexpressions
     script, cls1, cls2 = compile(<<-EOF)
       class WideA
@@ -2835,24 +2740,5 @@ class TestJVMCompiler < Test::Unit::TestCase
       end
       nil
     EOF
-  end
-
-  def test_add_args_in_macro
-    cls, = compile(<<-EOF)
-      macro def foo(a)
-        import duby.lang.compiler.Node
-        quote { bar "1", `Node(a.child_nodes.get(0)).child_nodes`, "2"}
-      end
-
-      def bar(a:String, b:String, c:String, d:String)
-        puts "\#{a} \#{b} \#{c} \#{d}"
-      end
-
-      foo(["a", "b"])
-    EOF
-
-    assert_output("1 a b 2\n") do
-      cls.main(nil)
-    end
   end
 end
