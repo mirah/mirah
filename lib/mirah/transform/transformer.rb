@@ -113,9 +113,9 @@ module Mirah
 
       def eval(src, filename='-', parent=nil, *vars)
         node = Mirah::AST.parse_ruby(src, filename)
-        duby_node = transform(node, nil).body
-        duby_node.parent = parent
-        duby_node
+        mirah_node = transform(node, nil).body
+        mirah_node.parent = parent
+        mirah_node
       end
 
       def dump_ast(node, call=nil)
