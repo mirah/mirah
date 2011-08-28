@@ -252,7 +252,7 @@ class TestEnumerable < Test::Unit::TestCase
     end
   end
 
-  def test_duby_iterable
+  def test_mirah_iterable
     cls, = compile(<<-EOF)
       import java.util.Iterator
       class MyIterator; implements Iterable, Iterator
