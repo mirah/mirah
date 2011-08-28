@@ -387,6 +387,8 @@ module Mirah::JVM::Types
           if var
             forloop.pre << transformer.eval(
                 "#{var.name} = #{it}.next", '', forloop, it)
+          else
+            forloop.pre << transformer.eval("#{it}.next", '', forloop, it)
           end
           call.block.body.parent = forloop if call.block.body
           [

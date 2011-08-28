@@ -225,6 +225,18 @@ class TestEnumerable < Test::Unit::TestCase
       cls.foo
     end
   end
+  
+  def test_each_without_block_arguments
+    cls, = compile(<<-EOF)
+      def foo
+        [1,2,3].each { puts :thrice }
+      end
+    EOF
+    assert_output("thrice\nthrice\nthrice\n") do
+      cls.foo
+    end
+
+  end
 
   def test_any
     cls, = compile(<<-EOF)
