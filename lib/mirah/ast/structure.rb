@@ -95,8 +95,8 @@ module Mirah::AST
       super
     end
 
-    def binding_type(duby=nil)
-      static_scope.binding_type(defining_class, duby)
+    def binding_type(mirah=nil)
+      static_scope.binding_type(defining_class, mirah)
     end
 
     def binding_type=(type)
@@ -142,16 +142,19 @@ module Mirah::AST
     end
 
     def prepare(typer, method)
-      duby = typer.transformer
+      mirah = typer.transformer
       interface = method.argument_types[-1]
       outer_class = scope.defining_class
-      binding = scope.binding_type(duby)
-      name = "#{outer_class.name}$#{duby.tmp}"
-      klass = duby.define_closure(position, name, outer_class)
+      
+      binding = scope.binding_type(mirah)
+      
+      name = "#{outer_class.name}$#{mirah.tmp}"
+
+      klass = mirah.define_closure(position, name, outer_class)
       klass.interfaces = [interface]
       klass.define_constructor(position,
                                ['binding', binding]) do |c|
-          duby.eval("@binding = binding", '-', c, 'binding')
+          mirah.eval("@binding = binding", '-', c, 'binding')
       end
 
       # TODO We need a special scope here that allows access to the
