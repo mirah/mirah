@@ -37,6 +37,10 @@ module Mirah
       attr_accessor :newline
       attr_accessor :inferred_type
 
+      # defines children of a node by name,
+      # respecting call order.
+      #
+      # @param [Symbol] name the name of the child node
       def self.child(name)
         @children ||= []
         index = @children.size
@@ -60,6 +64,13 @@ module Mirah
         java.util.ArrayList.new(@children)
       end
 
+      #
+      # @param [Mirah::AST::Node] parent the parent node
+      # @param [JMetaPosition] position the location in the source code of the node
+      # @param [Array] children the list of child nodes
+      # @yield [self] yields the node being initialized, expects the list of children as the result.
+      #               takes priority over the `children` argument.
+      # 
       def initialize(parent, position, children = [])
         JRuby.reference(self.class).setRubyClassAllocator(JRuby.reference(self.class).reified_class)
         unless parent.nil? || Mirah::AST::Node === parent
