@@ -45,7 +45,7 @@ class MirahCommand
 
   java_signature 'void compile(List args)'
   def self.compile(args)
-    if Mirah.compile(*args).nil?
+    unless Mirah.compile *args
       raise "Compilation failed."
     end
   end
