@@ -17,6 +17,7 @@ require 'java'
 require 'mirah'
 
 java_import 'java.util.List'
+java_import 'java.lang.Exception'
 java_import 'java.lang.System'
 
 java_package "org.mirah"
@@ -44,7 +45,9 @@ class MirahCommand
 
   java_signature 'void compile(List args)'
   def self.compile(args)
-    Mirah.compile(*args)
+    unless Mirah.compile *args
+      raise "Compilation failed."
+    end
   end
 
   java_signature 'void run(List args)'
