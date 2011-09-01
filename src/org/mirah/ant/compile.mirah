@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import org.apache.tools.ant.BuildException
 import org.apache.tools.ant.Task
 import org.apache.tools.ant.types.Path
 import org.apache.tools.ant.types.Reference
@@ -53,15 +54,20 @@ class Compile < Task
       args.add(0, '--java') unless bytecode
       args.add(0, '-V') if verbose
 
+      # scoping hack
+      inner_exception = Exception(nil)
       begin
         MirahCommand.compile(args)
       rescue => ex
-        exception = ex
-      end
+        inner_exception = ex
+      end      
+      # scoping hack
+      exception = inner_exception
     end
     t.start
     t.join
-    raise exception if exception
+    
+    raise BuildException.new(exception) if exception
   end
 
   def setSrc(a:File):void
