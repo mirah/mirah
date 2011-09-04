@@ -312,6 +312,16 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('ClassDeclTest', foo.java_class.name)
   end
   
+  def test_class_name_from_file_with_underscore
+    foo, = compile("puts 'blah'", 'class_name_test.mirah')
+    assert_equal('ClassNameTest', foo.java_class.name)
+  end
+  
+  def test_class_name_from_file_with_dash
+    foo, = compile("puts 'blah'", 'class-dash-test.mirah')
+    assert_equal('ClassDashTest', foo.java_class.name)
+  end
+  
   def test_puts
     cls, = compile("def foo;puts 'Hello World!';end")
     output = capture_output do
