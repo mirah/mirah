@@ -2471,6 +2471,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
+  def test_long_generation
+    cls, = compile(<<-EOF)
+      c = 2_000_000_000_000
+      puts c
+    EOF
+  end
+
   def test_empty_rescues
     cls, = compile(<<-EOF)
       begin

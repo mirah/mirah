@@ -436,6 +436,10 @@ module Mirah
       def ldc_double(value)
         print value
       end
+      
+      def ldc_long(value)
+        print "#{value}L"
+      end
 
       def ldc_class(type)
         print "#{type.to_source}.class"
