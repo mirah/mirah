@@ -159,6 +159,10 @@ module Mirah
         end
       end
 
+      def transform_zarray(node, parent)
+        Mirah::AST::Array.new(parent, position(node))
+      end
+
       def transform_array(node, parent)
         Mirah::AST::Array.new(parent, position(node)) do |array|
           node.children.map {|child| transformer.transform(child, array)}

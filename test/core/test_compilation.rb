@@ -124,4 +124,11 @@ class TestAst < Test::Unit::TestCase
     assert_equal([[:empty_array, nil]], @compiler.calls)
     assert_equal(5, size.literal)
   end
+  
+  def test_empty_literal_array
+    new_ast = AST.parse("[]").body[0]
+    new_ast.compile(@compiler, true)
+
+    assert_equal([:array, a(Mirah::AST::Array), true], @compiler.calls.first)
+  end
 end
