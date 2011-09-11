@@ -91,7 +91,7 @@ module Mirah::AST
           end
         end
 
-        if @inferred_type
+        if @inferred_type && !@inferred_type.error?
           if block
             method = receiver_type.get_method(name, parameter_types)
             block.prepare(typer, method)

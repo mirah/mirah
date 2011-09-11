@@ -2495,4 +2495,12 @@ class TestJVMCompiler < Test::Unit::TestCase
       nil
     EOF
   end
+  
+  def test_missing_class_with_block_raises_inference_error
+    assert_raises Typer::InferenceError do
+      compile("Interface Implements_Go do; end")
+    end
+  end
+
+
 end
