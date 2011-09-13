@@ -1,3 +1,31 @@
+=== 0.0.9 / 2011-09-12
+
+a5963ef use self hosted classloader fixes #144
+a858a2f fix for #114
+989fd1b fix #119, add transform for empty array literal
+a474b84 fix #120, java source now prints out longs as <n>L
+0e25733 bump version to 0.0.9{dev, -SNAPSHOT}
+fb34f03 fix #138, underscores and dashes both act the same
+cffd819 Merge pull request #143 from hackergarten/master
+0f3af83 sorting lists and arrays examples
+59662e2 string 'character' length example
+9e541df string case example
+f8174ac sleep example
+04399d3 secure temporary file example
+d77902c host instrospection example
+c0433a5 hostname example
+ab134aa hamming numbers example
+d468081 arrays examples
+e8425f3 random number example
+e974827 Merge pull request #142 from consiliens/master
+084aa65 Update NOTICE.
+735983f Merge pull request #140 from abscondment/140-ant-compile
+d2a4010 Allow for false case too. #140
+a7925ed Fixes #140 by  * Raising an Exception in MirahCommand.compile if Mirah.compile fails (i.e. it returns nil)  * Allowing that exception to pass through the two layers of scope in the ant task so Ant will actually see it and fail accordingly.
+7244e11 Merge pull request #139 from hackergarten/master
+f0ef0d5 added apache license to all samples files.
+a4f8cf0 added multiline comments example
+
 === 0.0.8 / 2011-08-31
 
 af43b77 Merge pull request #132 from hackergarten/master
