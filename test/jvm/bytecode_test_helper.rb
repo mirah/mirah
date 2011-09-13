@@ -104,7 +104,7 @@ module JVMCompiler
       open("#{filename}", "wb") do |f|
         f << bytes
       end
-      classes[filename[0..-7]] = bytes
+      classes[filename[0..-7]] = Mirah::Util::ClassLoader.binary_string bytes
     end
 
     loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)

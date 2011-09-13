@@ -368,7 +368,7 @@ module Mirah::AST
       compiler.generate do |outfile, builder|
         bytes = builder.generate
         name = builder.class_name.gsub(/\//, '.')
-        class_map[name] = bytes
+        class_map[name] = Mirah::Util::ClassLoader.binary_string bytes
         if transformer.state.save_extensions
           outfile = "#{transformer.destination}#{outfile}"
           FileUtils.mkdir_p(File.dirname(outfile))
