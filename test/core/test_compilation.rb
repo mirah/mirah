@@ -18,7 +18,7 @@ require 'mirah/compiler'
 require 'test/unit'
 require 'jruby'
 
-class TestAst < Test::Unit::TestCase
+class TestCompilation < Test::Unit::TestCase
   include Mirah
 
   class MockCompiler
