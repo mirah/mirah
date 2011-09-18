@@ -26,14 +26,15 @@ module Mirah::AST
       unless @inferred_type
         @typer ||= typer
         @self_type ||= typer.self_type
-        if children.size == 0
+        
+        if children.empty?
           @inferred_type = typer.no_type
         else
-          last = children.size - 1
-          children.each_with_index do |child, i|
-            child_is_expression = (i == last && expression)
-            @inferred_type = typer.infer(child, child_is_expression)
+          children[0..-2].each do |child|
+            typer.infer(child, false)
           end
+          
+          @inferred_type = typer.infer(children.last, expression)
         end
 
         if @inferred_type
