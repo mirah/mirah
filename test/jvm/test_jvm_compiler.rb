@@ -2159,6 +2159,33 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("foo", cls.set("foo"))
   end
 
+  def test_hash_with_value_from_static_method
+    cls, = compile(<<-EOF)
+      def foo1
+        {a: a, b:"B"}
+      end
+      def a
+        return "A"
+      end
+    EOF
+    assert_equal("A", cls.foo1["a"])
+  end
+
+  def test_hash_with_value_from_instance_method
+    cls, = compile(<<-EOF)
+      class HashTesty
+        def foo1
+          {a: a, b:"B"}
+        end
+        def a
+          return "A"
+        end
+      end
+    EOF
+    assert_equal("A", cls.new.foo1["a"])
+  end
+
+
   def test_loop_in_ensure
     cls, = compile(<<-EOF)
     begin

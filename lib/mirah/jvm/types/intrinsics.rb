@@ -92,10 +92,15 @@ module Mirah::JVM::Types
         if ast
           body = Mirah::AST::ScopedBody.new(call.parent, call.position)
           body << ast
-          if call.target
+          
+          # if the macro was called on something, and that something
+          # was not a class only containing macros, reassign self for
+          # the body.
+          if call.target && !call.target.is_a?(Mirah::AST::Builtin)
             body.static_scope.self_type = call.target.inferred_type!
             body.static_scope.self_node = call.target
           end
+          
           body
         else
           Mirah::AST::Noop.new(call.parent, call.position)
