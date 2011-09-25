@@ -212,27 +212,30 @@ module Mirah::AST
       else
         name_node = self.name_node
       end
+      
       klass = LocalAssignment
-      if Field === name_node
-        name = name_node.name
-        klass = FieldAssignment
-      # TODO support AttrAssign
-      elsif Named === name_node
-        name = name_node.name
-      elsif String === name_node
-        name = name_node.literal
-      elsif ::String === name_node
-        name = name_node
-      else
-        raise "Bad unquote value"
-      end
+      name = case name_node
+        when Field
+        # TODO support AttrAssign
+          klass = FieldAssignment
+          name_node.name
+        when Named
+          name_node.name
+        when String
+          name_node.literal
+        else
+          raise "Bad unquote value"
+        end
+        
       if name[0] == ?@
         name = name[1, name.length]
         klass = FieldAssignment
       end
+      
       n = klass.new(nil, position, name)
       n << value
       n.validate_children
+      
       if scope
         scope.children.clear
         scope << n
