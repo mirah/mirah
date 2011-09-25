@@ -157,6 +157,8 @@ module Mirah
 
       def annotation_value(value)
         case value
+        when Java::JavaLang::Integer
+          value.to_s
         when Java::JavaLang::String, String
           value.to_s.inspect
         when Array

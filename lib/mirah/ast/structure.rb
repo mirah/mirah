@@ -339,13 +339,13 @@ module Mirah::AST
       case node
       when String
         java.lang.String.new(node.literal)
+      when Fixnum
+        java.lang.Integer.new(node.literal)
       when Array
         node.children.map {|node| annotation_value(node, typer)}
       else
         # TODO Support other types
-        ref = value.type_refence(typer)
-        desc = BiteScript::Signature.class_id(ref)
-        BiteScript::ASM::Type.getType(desc)
+        raise "Unsupported Annotation Value Type"
       end
     end
   end
