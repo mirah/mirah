@@ -160,23 +160,33 @@ module Mirah
           extra_indent = 0
           if child
             name = self.class.child_name(i)
+            
+            wrong_parent = lambda do |child|
+              if Node === ary_child && ary_child.parent != self 
+                "\n#{indent_str} (wrong parent)"
+              else
+                ""
+              end
+            end
+            
             if Mirah::AST.verbose && name
               str << "\n#{indent_str} #{name}:"
               extra_indent = 1
             end
-            if ::Array === child
-              child.each {|ary_child|
-                if Mirah::AST.verbose && Node === ary_child && ary_child.parent != self
-                   str << "\n#{indent_str} (wrong parent)"
-                 end
+            
+            case child
+            when ::Array
+              child.each do |ary_child|
+                
+                str << wrong_parent[ary_child] if Mirah::AST.verbose
+                
                 str << "\n#{ary_child.inspect(indent + extra_indent + 1)}"
-              }
-            elsif ::Hash === child || ::String === child
+              end
+            when ::Hash, ::String
               str << "\n#{indent_str} #{child.inspect}"
             else
-              if Mirah::AST.verbose && Node === child && child.parent != self
-                str << "\n#{indent_str} (wrong parent)"
-              end
+              str << wrong_parent[ary_child] if Mirah::AST.verbose
+              
               begin
                 str << "\n#{child.inspect(indent + extra_indent + 1)}"
               rescue ArgumentError => ex
