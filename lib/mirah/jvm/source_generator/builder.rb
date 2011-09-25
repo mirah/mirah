@@ -396,6 +396,10 @@ module Mirah
         dedent
         puts "}"
       end
+      
+      def returns_void?
+        type.nil? || type.void?
+      end
 
       def declare_local(type, name, initialize=true)
         unless @locals[name]

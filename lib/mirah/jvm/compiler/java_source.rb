@@ -75,7 +75,7 @@ module Mirah
 
               prepare_binding(node) do
                 declare_locals(node.static_scope)
-                unless @method.type.nil? || @method.type.void?
+                unless method.returns_void?
                   self.return(ImplicitReturn.new(node.body))
                 else
                   node.body.compile(self, false) if node.body
@@ -87,7 +87,7 @@ module Mirah
             end
           end
         end
-
+        
         def annotate(node, annotations)
           node.annotate(annotations)
         end
@@ -95,7 +95,7 @@ module Mirah
         def define_optarg_chain(name, arg, return_type,
           args_for_opt, arg_types_for_opt)
           # declare all args so they get their values
-          @method.print "return " unless @method.type.nil? || @method.type.void?
+          @method.print "return " unless method.returns_void?
           @method.print "this." unless @static
           @method.print "#{name}("
           @method.print args_for_opt.map(&:name).join(', ')
@@ -164,7 +164,7 @@ module Mirah
         end
 
         def return(node)
-          if @method.type.nil? || @method.type.void?
+          if method.returns_void?
             @method.puts 'return;'
             return
           end
