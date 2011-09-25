@@ -51,19 +51,19 @@ module Mirah::AST
     end
 
     def self.__extracted
-      Thread.current[:'Mirah::AST::Unqote.extracted']
+      Thread.current[:'Mirah::AST::Unquote.extracted']
     end
 
     def self.__extracted=(value)
-      Thread.current[:'Mirah::AST::Unqote.extracted'] = value
+      Thread.current[:'Mirah::AST::Unquote.extracted'] = value
     end
 
     def self.__injected
-      Thread.current[:'Mirah::AST::Unqote.injected']
+      Thread.current[:'Mirah::AST::Unquote.injected']
     end
 
     def self.__injected=(value)
-      Thread.current[:'Mirah::AST::Unqote.injected'] = value
+      Thread.current[:'Mirah::AST::Unquote.injected'] = value
     end
 
     def self.extract_values
