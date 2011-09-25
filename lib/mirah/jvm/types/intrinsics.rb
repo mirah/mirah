@@ -73,7 +73,7 @@ module Mirah::JVM::Types
     end
 
     def add_compiled_macro(klass, name, arg_types)
-      add_macro(name, *arg_types) do |duby, call|
+      add_macro(name, *arg_types) do |mirah, call|
         # Ick. We need to preserve the scope of the arguments to the macro.
         # However the only way to do that is to wrap them in a ScopedBody.
         # It'd be better if we didn't have to expose this wrapper node to
@@ -87,7 +87,7 @@ module Mirah::JVM::Types
           wrap_with_scoped_body call, arg
         end
         
-        expander = klass.constructors[0].newInstance(duby, call)
+        expander = klass.constructors[0].newInstance(mirah, call)
         ast = expander.expand
         if ast
           body = Mirah::AST::ScopedBody.new(call.parent, call.position)
