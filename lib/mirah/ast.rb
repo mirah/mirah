@@ -162,7 +162,7 @@ module Mirah
             name = self.class.child_name(i)
             
             wrong_parent = lambda do |child|
-              if Node === ary_child && ary_child.parent != self 
+              if Node === child && child.parent != self 
                 "\n#{indent_str} (wrong parent)"
               else
                 ""
@@ -185,7 +185,7 @@ module Mirah
             when ::Hash, ::String
               str << "\n#{indent_str} #{child.inspect}"
             else
-              str << wrong_parent[ary_child] if Mirah::AST.verbose
+              str << wrong_parent[child] if Mirah::AST.verbose
               
               begin
                 str << "\n#{child.inspect(indent + extra_indent + 1)}"
