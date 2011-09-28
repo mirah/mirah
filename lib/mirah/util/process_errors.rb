@@ -16,6 +16,7 @@
 module Mirah
   module Util
     module ProcessErrors
+      # errors - array of NodeErrors
       def process_errors(errors)
         errors.each do |ex|
           puts ex
@@ -26,7 +27,7 @@ module Mirah
           end
           puts ex.backtrace if @verbose
         end
-        throw :exit unless errors.empty?
+        throw :exit, 1 unless errors.empty?
       end
     end
   end

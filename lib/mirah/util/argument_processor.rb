@@ -52,7 +52,7 @@ module Mirah
             else
               puts "-j/--java flag only applies to \"compile\" mode."
               print_help
-              throw :exit
+              throw :exit, 1
             end
           when '--jvm'
             args.shift
@@ -79,7 +79,7 @@ module Mirah
           else
             puts "unrecognized flag: " + args[0]
             print_help
-            throw :exit
+            throw :exit, 1
           end
         end
         state.destination ||= File.join(File.expand_path('.'), '')
