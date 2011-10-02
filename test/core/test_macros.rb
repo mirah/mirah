@@ -1,7 +1,5 @@
 # TODO refactor this and test_jvm_compiler to use mirah.rb
-
-require 'test/unit'
-require 'mirah'
+require 'test_helper'
 
 class TestMacros < Test::Unit::TestCase
   java_import 'java.lang.System'
