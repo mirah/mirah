@@ -46,9 +46,13 @@ class Map
   end
 end
 
-# TODO restrict this to class scope
 class ObjectExtension
-
+  macro def puts(node)
+    quote {java::lang::System.out.println(`node`)}
+  end
+  macro def print(node)
+    quote {java::lang::System.out.print(`node`)}
+  end
 end
 
 class Builtin

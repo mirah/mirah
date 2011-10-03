@@ -22,6 +22,7 @@ module Mirah::JVM::Types
     java_import 'org.mirah.typer.BaseTypeFuture'
     java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
+    java_import 'org.mirah.typer.TypeFuture'
     java_import 'org.mirah.typer.TypeSystem'
     java_import 'mirah.lang.ast.InterfaceDeclaration'
     include TypeSystem
@@ -118,44 +119,59 @@ module Mirah::JVM::Types
     def getLocalType(scope, name)
       scope.local_type(name)
     end
-    def getMethodType(target, name, argTypes)
+
+    def getMethodType(target, name, argTypes, position=nil)
       if target.respond_to?(:isError) && target.isError
         return target
       end
-      unless target.unmeta.kind_of?(TypeDefinition)
-        method = target.get_method(name, argTypes)
+      type = BaseTypeFuture.new(nil)
+      target.find_method(target, name, argTypes, target.meta?) do |method|
         if method.nil?
-          return ErrorType.new([
+          type.resolved(ErrorType.new([
               ["Cannot find %s method %s(%s) on %s" %
                   [ target.meta? ? "static" : "instance",
                     name,
                     argTypes.map{|t| t.full_name}.join(', '),
-                    target.full_name]]])
+                    target.full_name]]]))
+        elsif method.kind_of?(Exception)
+          type.resolved(ErrorType.new([method.message]))
         else
-          return cache_and_wrap(method.return_type)
+          result = method.return_type
+          if result.kind_of?(TypeFuture)
+            if result.isResolved
+              type.resolved(result.resolve)
+            else
+              result.onUpdate {|x, resolved| type.resolved(resolved) }
+            end
+          else
+            cached = cache_and_wrap_type(result.name).resolve
+            type.resolved(cached)
+          end
         end
       end
-      method = super
-      method.onUpdate do |m, type|
+      result = super(target, name, argTypes, position)
+      result.assign(type, position)
+      result
+    end
+    def getMethodDefType(target, name, argTypes)
+      args = argTypes.map {|a| a.resolve}
+      target = target.resolve
+      type = getMethodType(target, name, args)
+      type.onUpdate do |m, resolved|
         if Mirah::Typer.verbose
           Mirah::Typer.log "Learned %s method %s.%s%s = %s" % 
               [target.meta? ? "static" : "instance",
                 target,
                 name,
                 argTypes,
-                type.full_name]
+                resolved.full_name]
         end
         if target.meta?
-          target.unmeta.declare_static_method(name, argTypes, type, [])
+          target.unmeta.declare_static_method(name, argTypes, resolved, [])
         else
-          target.declare_method(name, argTypes, type, [])
+          target.declare_method(name, argTypes, resolved, [])
         end
       end
-      method
-    end
-    def getMethodDefType(target, name, argTypes)
-      args = argTypes.map {|a| a.resolve}
-      type = getMethodType(target.resolve, name, args)
       if type.kind_of?(ErrorType)
         puts "Got error type for method #{name} on #{target.resolve} (#{target.resolve.class})"
       end
@@ -164,7 +180,7 @@ module Mirah::JVM::Types
     def getMainType(scope, script)
       filename = File.basename(script.position.filename || 'DashE')
       classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
-      cache_and_wrap(declare_type(scope, classname))
+      getMetaType(cache_and_wrap(declare_type(scope, classname)))
     end
     def defineType(scope, node, name, superclass, interfaces)
       # TODO what if superclass or interfaces change later?

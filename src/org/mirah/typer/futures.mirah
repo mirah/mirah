@@ -137,17 +137,23 @@ class AssignableTypeFuture < BaseTypeFuture
       return
     end
     type = ResolvedType(nil)
+    error = ResolvedType(nil)
     @assignments.keySet.each do |_value|
       value = TypeFuture(_value)
       if value.isResolved
-        if type
-          type = type.widen(value.resolve)
+        resolved = value.resolve
+        if resolved.isError
+          error ||= resolved
         else
-          type = value.resolve
+          if type
+            type = type.widen(value.resolve)
+          else
+            type = resolved
+          end
         end
       end
     end
-    resolved(type)
+    resolved(type || error)
   end
 end
 
@@ -261,7 +267,7 @@ class CallFuture < BaseTypeFuture
   def maybeUpdate
     if @resolved_target && @resolved_args.all?
       call = self
-      new_method = @types.getMethodType(@resolved_target, @name, @resolved_args)
+      new_method = @types.getMethodType(@resolved_target, @name, @resolved_args, self.position)
       if new_method != @method
         #@method.removeListener(self) if @method
         @method = new_method

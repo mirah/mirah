@@ -137,7 +137,7 @@ class SimpleTypes; implements TypeSystem
     return getArrayType(basic_type) if typeref.isArray
     return basic_type
   end
-  def getMethodType(target, name, argTypes)
+  def getMethodType(target, name, argTypes, position)
     if argTypes.kind_of?(org::jruby::RubyArray)
       # RubyArray claims to implement List, but it doesn't have the right
       # implementation of equals or hashCode.
@@ -148,7 +148,7 @@ class SimpleTypes; implements TypeSystem
     unless t
       # Start with an error message in case it isn't found.
       t = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
-          ["Cannot find method #{target}.#{name}#{argTypes}"]]))
+          ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
       @methods[key] = t
     end
     t
@@ -159,7 +159,7 @@ class SimpleTypes; implements TypeSystem
       resolved = TypeFuture(argTypes.get(i)).resolve
       args.add(i, resolved)
     end
-    AssignableTypeFuture(getMethodType(target.resolve, name, args))
+    AssignableTypeFuture(getMethodType(target.resolve, name, args, nil))
   end
   def getFieldType(target, name)
     key = [target.resolve, name]

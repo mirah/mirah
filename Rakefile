@@ -69,16 +69,15 @@ task :compile => :init do
         'build',
         '/usr/share/ant/lib/ant.jar'
       ])
-    Mirah.compile(
-      '-c', classpath,
-      '-d', '../build',
-      '--jvm', '1.5',
-      'org/mirah',
-      'duby/lang',
-      'mirah'
-      )
+    ant.taskdef :name=>"mirahc", :classname=>"org.mirah.ant.Compile",
+       :classpath=>"/Developer/mirah-complete.jar"
+    %w(org/mirah duby/lang mirah).each do |dir|
+      ant.mirahc :classpath => classpath,
+          :destdir => File.expand_path('../build'),
+          :src => File.expand_path(dir)
+    end
   end
-  
+
   # compile invokedynamic stuff
   ant.javac :destdir => 'build', :srcdir => 'src',
     :includes => 'org/mirah/DynalangBootstrap.java',

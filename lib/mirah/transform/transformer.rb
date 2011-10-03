@@ -10,12 +10,14 @@ module Mirah
 
       attr_reader :errors, :state
       attr_accessor :filename
-      def initialize(state)
+      def initialize(state, typer)
         @errors = []
         @tmp_count = 0
         @annotations = []
         @extra_body = nil
         @state = state
+        @typer = typer
+        @types = typer.type_system
         @files = {""=>{:filename => "", :line => 0, :code => ""}}
       end
 
@@ -158,10 +160,7 @@ module Mirah
       end
 
       def eval(src, filename='-', parent=nil, *vars)
-        node = Mirah::AST.parse_ruby(self, src, filename)
-        duby_node = transform(node, nil).body
-        duby_node.parent = parent
-        duby_node
+        Mirah::AST.parse_ruby(self, src, filename)
       end
 
       def dump_ast(node, call=nil)
@@ -238,43 +237,35 @@ module Mirah
       end
 
       def fixnum(value)
-        node = eval("1")
-        node.literal = value
-        node
+        AST::Fixnum.new(value)
       end
 
       def constant(name, array=false)
-        node = eval("Foo")
-        node.name = name
-        node.array = array
+        node = AST::Constant.new(AST::SimpleString.new(name))
+        node.array_set(true) if array
         node
       end
 
       def cast(type, value)
-        if value.kind_of?(String)
-          value = Mirah::AST::Local.new(@extra_body, @extra_body.position, value)
+        unless type.kind_of?(AST::TypeName)
+          type = AST::SimpleString.new(type)
         end
-        fcall = eval("Foo()")
-        fcall.name = type
-        fcall.parameters = [value]
-        fcall
+        if value.kind_of?(String)
+          value = AST::LocalAccess.new(AST::SimpleString.new(value))
+        end
+        AST::Cast.new(type, value)
       end
 
       def string(value)
-        node = eval('"Foo"')
-        node.literal = value
-        node
+        AST::SimpleString.new(value)
       end
 
       def empty_array(type_node, size_node)
-        node = eval('int[0]')
-        node.type_node = type_node
-        node.size = size_node
-        node
+        AST::EmptyArray.new(type_node, size_node)
       end
 
       def find_class(name)
-        AST.type(nil, name, false, false)
+        @types.type(nil, name, false, false)
       end
 
       def expand(fvcall, parent)

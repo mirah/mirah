@@ -111,7 +111,7 @@ module Mirah::JVM::Types
   class JavaConstructor < JavaCallable
     def argument_types
       @argument_types ||= @member.argument_types.map do |arg|
-        if arg.kind_of?(AST::TypeReference) || arg.nil?
+        if arg.kind_of?(Type) || arg.nil?
           arg
         else
           @types.type(nil, arg)
@@ -395,6 +395,70 @@ module Mirah::JVM::Types
   end
 
   class Type
+    def method_listeners
+      @method_listeners ||= {}
+    end
+
+    def method_updated(name)
+      listeners = method_listeners[name]
+      listeners.each do |l|
+        if l.kind_of?(Proc)
+          l.call(name)
+        else
+          l.method_updated(name)
+        end
+      end if listeners
+    end
+
+    def add_method_listener(name, listener=nil, &block)
+      listeners = method_listeners[name] ||= {}
+      if listener
+        listeners[listener] = listener
+      else
+        listeners[block] = block
+      end
+      if !self.meta? && jvm_type && superclass
+        superclass.add_method_listener(name, self)
+      end
+      interfaces.each {|i| i.add_method_listener(name, self)}
+    end
+
+    # TODO take a scope and check visibility
+    def find_callable_methods(name, &proc)
+      if block_given?
+        add_method_listener(name) {proc.call(find_callable_methods(name))}
+        proc.call(find_callable_methods(name))
+        return
+      end
+      interfaces = if self.interface?  # TODO || self.abstract?
+        {}
+      else
+        nil
+      end
+      methods = find_callable_methods2(name, interfaces)
+      if interfaces
+        seen = {}
+        until interfaces.empty?
+          interface = interfaces.pop
+          next if seen[interface]
+          seen[interface] = true
+          interfaces.concat(interface.interfaces)
+          methods.concat(interface.declared_instance_methods(name))
+        end
+      end
+      methods
+    end
+
+    def find_callable_methods2(name, interfaces)
+      methods = []
+      interfaces.concat(self.interfaces) if interfaces
+      methods.concat(declared_instance_methods(name))
+      if superclass && !superclass.error?
+        methods.concat(superclass.find_callable_methods2(name, interfaces))
+      end
+      methods
+    end
+
     def get_method(name, args)
       method = find_method(self, name, args, meta?)
       unless method

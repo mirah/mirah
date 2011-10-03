@@ -19,7 +19,13 @@ module Mirah
       # dummy log; it's expected the inclusion target will have it
       def log(msg); end
 
-      def find_method(mapped_type, name, mapped_params, meta)
+      def find_method2(mapped_type, name, mapped_params, meta)
+        find_method(mapped_type, name, mapped_params, meta)
+      rescue => ex
+        ex
+      end
+
+      def find_method(mapped_type, name, mapped_params, meta, &block)
         raise ArgumentError if mapped_params.any? {|p| p.nil?}
         if mapped_type.error?
           raise "WTF?!?"
@@ -31,6 +37,16 @@ module Mirah
           else
             constructor = false
           end
+        end
+
+        if block_given?
+          if constructor
+            mapped_type.unmeta.add_method_listener('initialize') {block.call(find_method2(mapped_type, 'new', mapped_params, meta))}
+          else
+            mapped_type.add_method_listener(name) {block.call(find_method2(mapped_type, name, mapped_params, meta))}
+          end
+          block.call(find_method(mapped_type, name, mapped_params, meta))
+          return
         end
 
         begin
@@ -64,31 +80,12 @@ module Mirah
         elsif meta
           by_name = mapped_type.declared_class_methods(name)
         else
-          by_name = []
-          cls = mapped_type
-          while cls
-            if cls.error?
-              cls = nil
-            else
-              by_name += cls.declared_instance_methods(name)
-              interfaces.concat(cls.interfaces)
-              cls = cls.superclass
-              unless cls.nil? || cls.kind_of?(Mirah::JVM::Types::Type)
-                raise ArgumentError, "Expected Type, got #{cls.class} #{cls}"
-              end
-            end
-          end
-          if mapped_type.interface?  # TODO or abstract
-            seen = {}
-            until interfaces.empty?
-              interface = interfaces.pop
-              next if seen[interface]
-              seen[interface] = true
-              interfaces.concat(interface.interfaces)
-              by_name += interface.declared_instance_methods(name)
-            end
-          end
+          by_name = mapped_type.find_callable_methods(name)
         end
+        find_jls2(mapped_type, name, mapped_params, meta, by_name)
+      end
+
+      def find_jls2(mapped_type, name, mapped_params, meta, by_name)
         # filter by arity
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
 
@@ -96,7 +93,6 @@ module Mirah
 
         if phase1_methods.size > 1
           method_list = phase1_methods.map do |m|
-            
             "#{m.name}(#{m.parameter_types.map(&:name).join(', ')})"
           end.join("\n")
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{method_list}"

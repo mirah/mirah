@@ -20,16 +20,16 @@ require 'java'
 module Mirah
   class Parser
     include Mirah::Util::ProcessErrors
-    
-    def initialize(state, logging)
-      @transformer = Mirah::Transform::Transformer.new(state)
-      #Java::MirahImpl::Builtin.initialize_builtins(@transformer)
+
+    def initialize(state, typer, logging)
+      @transformer = Mirah::Transform::Transformer.new(state, typer)
+      Java::MirahImpl::Builtin.initialize_builtins(@transformer)
       @logging = logging
       @verbose = state.verbose
     end
-    
+
     attr_accessor :transformer, :logging
-    
+
     def parse_from_args(files_or_scripts)
       nodes = []
       inline = false
@@ -47,21 +47,21 @@ module Mirah
       end
       nodes
     end
-    
+
     def parse_inline(source)
       puts "  <inline script>" if logging
       parse_and_transform('DashE', source)
     end
-    
+
     def parse_file(filename)
       puts "  #{filename}" if logging
       parse_and_transform(filename, File.read(filename))
     end
-    
+
     def parse_and_transform(filename, src)
       Mirah::AST.parse_ruby(transformer, src, filename)
     end
-      
+
     def expand_files(files_or_scripts)
       expanded = []
       files_or_scripts.each do |filename|

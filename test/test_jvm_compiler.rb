@@ -71,10 +71,10 @@ class TestJVMCompiler < Test::Unit::TestCase
     name = "script" + System.nano_time.to_s
     state = Mirah::Util::CompilationState.new
     state.save_extensions = false
-    transformer = Mirah::Transform::Transformer.new(state)
+    generator = Mirah::Generator.new(state, JVM::Compiler::JVMBytecode, false, false)
+    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
     #Java::MirahImpl::Builtin.initialize_builtins(transformer)
     ast  = [AST.parse(code, name, true, transformer)]
-    generator = Mirah::Generator.new(state, JVM::Compiler::JVMBytecode, false, false)
     scoper, typer = generator.infer_asts(ast, true)
     compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
     classes = {}

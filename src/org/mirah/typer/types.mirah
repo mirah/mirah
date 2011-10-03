@@ -121,7 +121,7 @@ interface TypeSystem do
   def getArrayType(componentType:TypeFuture):TypeFuture; end
 
   def get(type:TypeRef):TypeFuture; end
-  def getMethodType(target:ResolvedType, name:String, argTypes:List):TypeFuture; end
+  def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end
   def getMethodDefType(target:TypeFuture, name:String, argTypes:List):AssignableTypeFuture; end
   def getFieldType(target:TypeFuture, name:String):AssignableTypeFuture; end
   def getLocalType(scope:Scope, name:String):AssignableTypeFuture; end

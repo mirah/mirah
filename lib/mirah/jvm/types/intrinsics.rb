@@ -74,17 +74,23 @@ module Mirah::JVM::Types
     end
 
     def add_compiled_macro(klass, name, arg_types)
-      add_macro(name, *arg_types) do |duby, call|
-        scope = duby.get_scope(call)
-        call.parameters.each do |arg|
-          arg.scope = scope
+      add_macro(name, *arg_types) do |call, typer|
+        #TODO scope
+        # scope = typer.scoper.get_scope(call)
+        # call.parameters.each do |arg|
+        #   arg.scope = scope
+        # end
+        begin
+          expander = klass.constructors[0].newInstance(nil, call)
+          ast = expander.expand
+        rescue
+          puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
         end
-        expander = klass.constructors[0].newInstance(duby, call)
-        ast = expander.expand
         if ast
-          body = Mirah::AST::Body.new(call.parent, call.position)
-          static_scope = duby.add_scope(body)
-          body << ast
+          body = Mirah::AST::NodeList.new
+          static_scope = typer.scoper.add_scope(body)
+          static_scope.parent = typer.scoper.get_scope(call)
+          body.add(ast)
           if call.target
             static_scope.self_type = call.target.inferred_type!
             static_scope.self_node = call.target
@@ -93,7 +99,7 @@ module Mirah::JVM::Types
           end
           body
         else
-          Mirah::AST::Noop.new(call.parent, call.position)
+          Mirah::AST::Noop.new
         end
       end
     end

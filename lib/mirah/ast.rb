@@ -23,18 +23,17 @@ module Mirah
       attr_accessor :verbose
     end
 
-    # The top of the AST class hierarchy, this represents an abstract AST node.
-    # It provides accessors for _children_, an array of all child nodes,
-    # _parent_, a reference to this node's parent (nil if none), and _newline_,
-    # whether this node represents a new line.
-    java_import 'mirah.lang.ast.Node'
-    java_import 'mirah.lang.ast.Fixnum'
+    java_import 'mirah.lang.ast.Constant'
     java_import 'mirah.lang.ast.EmptyArray'
+    java_import 'mirah.lang.ast.EmptyArray'
+    java_import 'mirah.lang.ast.Fixnum'
+    java_import 'mirah.lang.ast.LocalAccess'
+    java_import 'mirah.lang.ast.Node'
+    java_import 'mirah.lang.ast.NodeList'
+    java_import 'mirah.lang.ast.Noop'
     java_import 'mirah.lang.ast.OptionalArgument'
-
-    class TypeReference
-    end
-    class TypeDefinition < TypeReference
-    end
+    java_import 'mirah.lang.ast.SimpleString'
+    java_import 'mirah.lang.ast.TypeName'
+    java_import 'mirah.lang.ast.TypeRef'
   end
 end

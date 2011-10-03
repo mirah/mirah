@@ -21,13 +21,16 @@ module Mirah
     java_import 'org.mirah.typer.simple.TypePrinter'
 
     def initialize(state, compiler_class, logging, verbose)
-      @parser = Mirah::Parser.new(state, logging)
+      @scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
+      type_system = Mirah::JVM::Types::TypeFactory.new
+      @typer = Mirah::Typer::Typer.new(type_system, @scoper)
+      @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
       @logging = logging
       @verbose = verbose
     end
     
-    attr_accessor :parser, :compiler, :logging, :verbose
+    attr_accessor :parser, :compiler, :typer, :logging, :verbose
       
     def generate(arguments)
       # collect all ASTs from all files
@@ -46,25 +49,22 @@ module Mirah
     end
 
     def infer_asts(nodes, should_raise=false)
-      scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
-      type_system = Mirah::JVM::Types::TypeFactory.new
-      typer = Mirah::Typer::Typer.new(type_system, scoper)
       begin
-        nodes.each {|ast| typer.infer(ast, false) }
+        nodes.each {|ast| @typer.infer(ast, false) }
         if should_raise
           error_handler = lambda do |errors|
             message, position = errors[0].message[0].to_a
             raise Mirah::MirahError.new(message, position)
           end
         end
-        process_inference_errors(typer, nodes, &error_handler)
+        process_inference_errors(@typer, nodes, &error_handler)
       ensure
         if verbose
-          printer = TypePrinter.new(typer)
+          printer = TypePrinter.new(@typer)
           nodes.each {|ast| printer.scan(ast, nil)}
         end
       end
-      [scoper, typer]
+      [@scoper, @typer]
     end
   end
 end
