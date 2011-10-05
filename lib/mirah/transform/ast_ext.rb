@@ -36,7 +36,7 @@ module Mirah
 
     def parse_ruby(transformer, src, filename='-')
       raise ArgumentError if src.nil?
-      filename = transformer.tag_filename(src, filename)
+      #filename = transformer.tag_filename(src, filename)
       parser = MirahParser.new
       parser.filename = filename
       parser.errorHandler = MirahErrorHandler.new(transformer)
