@@ -129,7 +129,7 @@ module Mirah
         end
 
         def base_define_method(node)
-          name = node.name.identifier
+          name = node.name.identifier.sub(/=$/, '_set')
           args = visit(node.arguments, true)
           is_static = self.static || node.kind_of?(StaticMethodDefinition)
           if name == "initialize" && is_static

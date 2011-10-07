@@ -188,10 +188,11 @@ module Mirah::JVM::Types
                 args,
                 resolved.full_name]
         end
+        rewritten_name = name.sub(/=$/, '_set')
         if target.meta?
-          target.unmeta.declare_static_method(name, args, resolved, [])
+          target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
         else
-          target.declare_method(name, args, resolved, [])
+          target.declare_method(rewritten_name, args, resolved, [])
         end
       end
       if type.kind_of?(ErrorType)
