@@ -57,8 +57,8 @@ module Mirah::JVM::Types
       @block = block
     end
 
-    def call(builder, ast, expression)
-      @block.call(builder, ast, expression)
+    def call(builder, ast, expression, *args)
+      @block.call(builder, ast, expression, *args)
     end
 
     def declaring_class
@@ -137,11 +137,12 @@ module Mirah::JVM::Types
       @types.type(nil, @member.declaring_class)
     end
 
-    def call(compiler, ast, expression)
+    def call(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
       compiler.method.new target
       compiler.method.dup if expression
-      convert_args(compiler, ast.parameters)
+      parameters ||= ast.parameters
+      convert_args(compiler, parameters)
       compiler.method.invokespecial(
         target,
         "<init>",
@@ -185,7 +186,7 @@ module Mirah::JVM::Types
       false
     end
 
-    def call(compiler, ast, expression)
+    def call(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
       compiler.visit(ast.target, true)
 
@@ -197,7 +198,8 @@ module Mirah::JVM::Types
         compiler.method.dup
       end
 
-      convert_args(compiler, ast.parameters)
+      parameters ||= ast.parameters
+      convert_args(compiler, parameters)
       if target.interface?
         compiler.method.invokeinterface(
           target,
@@ -215,7 +217,7 @@ module Mirah::JVM::Types
       end
     end
 
-    def call_special(compiler, ast, expression)
+    def call_special(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
       compiler.visit(ast.target, true)
 
@@ -227,7 +229,8 @@ module Mirah::JVM::Types
         compiler.method.dup
       end
 
-      convert_args(compiler, ast.parameters)
+      parameters ||= ast.parameters
+      convert_args(compiler, parameters)
       if target.interface?
         raise "interfaces should not receive call_special"
       else
@@ -244,9 +247,10 @@ module Mirah::JVM::Types
   end
 
   class JavaStaticMethod < JavaMethod
-    def call(compiler, ast, expression)
+    def call(compiler, ast, expression, parameters=nil)
       target = declaring_class
-      convert_args(compiler, ast.parameters)
+      parameters ||= ast.parameters
+      convert_args(compiler, parameters)
       compiler.method.invokestatic(
         target,
         name,
@@ -278,11 +282,12 @@ module Mirah::JVM::Types
       @argument_types
     end
 
-    def call(compiler, ast, expression)
+    def call(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
       compiler.visit(ast.target, true)
 
-      ast.parameters.each do |param|
+      parameters ||= ast.parameters
+      parameters.each do |param|
         compiler.visit(param, true)
       end
       handle = compiler.method.mh_invokestatic(
@@ -326,7 +331,7 @@ module Mirah::JVM::Types
       []
     end
 
-    def call(compiler, ast, expression)
+    def call(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
 
       # TODO: assert that no args are being passed, though that should have failed lookup
@@ -351,18 +356,19 @@ module Mirah::JVM::Types
       [@types.type(nil, @member.type)]
     end
 
-    def call(compiler, ast, expression)
+    def call(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
 
       # TODO: assert that no args are being passed, though that should have failed lookup
 
+      parameters ||= ast.parameters
       if @member.static?
-        convert_args(compiler, ast.parameters)
+        convert_args(compiler, parameters)
         compiler.method.dup if expression
         compiler.method.putstatic(target, name, @member.type)
       else
         compiler.visit(ast.target, true)
-        convert_args(compiler, ast.parameters)
+        convert_args(compiler, parameters)
         compiler.method.dup_x2 if expression
         compiler.method.putfield(target, name, @member.type)
       end

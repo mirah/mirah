@@ -391,6 +391,19 @@ module Mirah
           target.get_method(call.name.identifier, params)
         end
 
+        def visitAttrAssign(call, expression)
+          target = inferred_type(call.target)
+          value_type = inferred_type(call.value)
+          setter = "#{call.name.identifier}_set"
+          method = target.get_method(setter, [value_type])
+          if method
+            method.call(self, call, expression, [call.value])
+          else
+            target = inferred_type(call.target)
+            raise "Missing method #{target.full_name}.#{setter}(#{value_type.full_name})"
+          end
+        end
+
         def visitCall(call, expression)
           method = extract_method(call)
           if method

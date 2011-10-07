@@ -215,6 +215,14 @@ class Typer < SimpleNodeVisitor
     end
   end
 
+  def visitAttrAssign(call, expression)
+    target = infer(call.target)
+    value = infer(call.value)
+    name = call.name.identifier
+    setter = "#{name}_set"
+    CallFuture.new(call.position, @types, target, setter, [value])
+  end
+
   def visitCast(cast, expression)
     # TODO check for compatibility
     infer(cast.value)
