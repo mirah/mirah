@@ -15,14 +15,14 @@ module Mirah
         end
 
         def compatible?(other)
-          !other.primitive?
+          assignable_from(other)
         end
 
         def assignable_from?(other)
-          if other.respond_to?(:primitive)
+          if other.respond_to?(:primitive?)
             !other.primitive?
           else
-            other.isError
+            other.matchesAnything
           end
         end
       end

@@ -12,6 +12,7 @@ interface ResolvedType do
   def name:String; end
   def isMeta:boolean; end
   def isError:boolean; end
+  def matchesAnything:boolean; end
 end
 
 interface TypeFuture do

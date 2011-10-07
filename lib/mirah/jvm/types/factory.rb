@@ -185,13 +185,13 @@ module Mirah::JVM::Types
               [target.meta? ? "static" : "instance",
                 target,
                 name,
-                argTypes,
+                args,
                 resolved.full_name]
         end
         if target.meta?
-          target.unmeta.declare_static_method(name, argTypes, resolved, [])
+          target.unmeta.declare_static_method(name, args, resolved, [])
         else
-          target.declare_method(name, argTypes, resolved, [])
+          target.declare_method(name, args, resolved, [])
         end
       end
       if type.kind_of?(ErrorType)

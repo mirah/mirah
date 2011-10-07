@@ -99,7 +99,7 @@ module Mirah
           return false if other.nil?
           return true if !primitive? && other.name == 'null'
           return true if other == self
-          return true if other.error? || other.name == ':unreachable'
+          return true if other.matchesAnything
 
           # TODO should we allow more here?
           return interface? if other.name == ':block'
@@ -114,11 +114,12 @@ module Mirah
         end
 
         def widen(other)
-          return other if other.isError
           return self if assignable_from?(other)
           common_parent = (ancestors_and_interfaces & other.ancestors_and_interfaces)[0]
           common_parent || ErrorType.new([["Incompatible types #{self} and #{other}."]])
         end
+
+        def matchesAnything; false; end
 
         def iterable?
           ['java.lang.Iterable',

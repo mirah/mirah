@@ -29,13 +29,12 @@ class SimpleType < SpecialType
   end
 
   def widen(other)
-    return other if other.isError
-    return self if ":unreachable".equals(other.name)
+    return self if other.matchesAnything
     return ErrorType.new([["Incompatible types"]]) unless equals(other)
     self
   end
   def assignableFrom(other)
-    other.isError || ":unreachable".equals(other.name) || equals(other)
+    matchesAnything || other.matchesAnything || equals(other)
   end
   def isMeta
     @meta

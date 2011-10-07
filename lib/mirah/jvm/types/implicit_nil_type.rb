@@ -21,6 +21,8 @@ module Mirah
         def assignable_from?(other)
           true
         end
+
+        def matchesAnything; true; end
       end
     end
   end

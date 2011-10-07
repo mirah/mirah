@@ -35,6 +35,7 @@ class SpecialType; implements ResolvedType, TypeFuture
   end
   def isMeta; false; end
   def isError; ":error".equals(name); end
+  def matchesAnything; false; end
 end
 
 class UnreachableType < SpecialType
@@ -44,6 +45,7 @@ class UnreachableType < SpecialType
   def widen(other)
     other
   end
+  def matchesAnything; true; end
 end
 
 class ErrorType < SpecialType
@@ -54,6 +56,7 @@ class ErrorType < SpecialType
   def message:List
     @message
   end
+  def matchesAnything; true; end
   def toString:String
     "<Error: #{message}>"
   end

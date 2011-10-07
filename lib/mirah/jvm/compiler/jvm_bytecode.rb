@@ -15,6 +15,7 @@ module Mirah
         java_import 'mirah.lang.ast.FunctionalCall'
         java_import 'mirah.lang.ast.Super'
         java_import 'mirah.lang.ast.ImplicitSelf'
+        java_import 'mirah.lang.ast.NodeList'
         java_import 'org.mirah.typer.TypeFuture'
 
         class FunctionalCall
@@ -234,11 +235,19 @@ module Mirah
           # this is ugly...need a better way to abstract the idea of compiling a
           # conditional branch while still fitting into JVM opcodes
           predicate = iff.condition
-          if iff.body || expression
+          body = iff.body
+          elseBody = iff.elseBody
+          if body.is_a?(NodeList) && body.size == 0
+            body = nil
+          end
+          if elseBody.is_a?(NodeList) && elseBody.size == 0
+            elseBody = nil
+          end
+          if body || expression
             jump_if_not(predicate, elselabel)
 
-            if iff.body
-              visit(iff.body, expression)
+            if body
+              visit(body, expression)
             elsif expression
               inferred_type(iff).init_value(@method)
             end
@@ -250,8 +259,8 @@ module Mirah
 
           elselabel.set!
 
-          if iff.elseBody
-            visit(iff.elseBody, expression)
+          if elseBody
+            visit(elseBody, expression)
           elsif expression
             inferred_type(iff).init_value(@method)
           end
@@ -335,8 +344,9 @@ module Mirah
         end
 
         def jump_if(predicate, target)
-          unless inferred_type(predicate).name == 'boolean'
-            raise "Expected boolean, found #{inferred_type(predicate)}"
+          type = inferred_type(predicate)
+          if type.primitive?
+            raise "Expected boolean, found #{type}" unless type.name == 'boolean'
           end
           if Call === predicate
             method = extract_method(predicate)
@@ -346,12 +356,17 @@ module Mirah
             end
           end
           visit(predicate, true)
-          @method.ifne(target)
+          if type.primitive?
+            @method.ifne(target)
+          else
+            @method.ifnonnull(target)
+          end
         end
 
         def jump_if_not(predicate, target)
-          unless inferred_type(predicate).name == 'boolean'
-            raise "Expected boolean, found #{inferred_type(predicate)}"
+          type = inferred_type(predicate)
+          if type.primitive?
+            raise "Expected boolean, found #{type}" unless type.name == 'boolean'
           end
           if Call === predicate
             method = extract_method(predicate)
@@ -361,7 +376,11 @@ module Mirah
             end
           end
           visit(predicate, true)
-          @method.ifeq(target)
+          if type.primitive?
+            @method.ifeq(target)
+          else
+            @method.ifnull(target)
+          end
         end
 
         def extract_method(call)
