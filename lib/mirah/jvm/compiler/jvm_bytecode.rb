@@ -729,7 +729,7 @@ module Mirah
           if expression
             visit(node.value, true)
             set_position(node.position)
-            inferred_type(body).box(@method) if inferred_type(body).primitive?
+            inferred_type(node.value).box(@method) if inferred_type(node.value).primitive?
             null = method.label
             done = method.label
             method.dup
@@ -903,7 +903,7 @@ module Mirah
         def visitEmptyArray(node, expression)
           if expression
             visit(node.size, true)
-            type = @typer.type_system.get(node.type).resolve
+            type = @typer.type_system.get(@scoper.getScope(node), node.type).resolve
             type.newarray(@method)
           end
         end

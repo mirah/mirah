@@ -3,12 +3,13 @@ module Mirah
     module Types
       class TypeDefinition < Type
         java_import 'mirah.lang.ast.InterfaceDeclaration'
-        attr_accessor :node
+        attr_accessor :node, :scope
 
-        def initialize(types, name, node)
+        def initialize(types, scope, name, node)
           raise ArgumentError, "Bad name #{name}" if name[0,1] == '.'
           raise ArgumentError, "Bad name #{name}" if name.include? ?/
           @type_system = types
+          @scope = scope
           @name = name
           @node = node
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
@@ -24,7 +25,7 @@ module Mirah
 
         def superclass
           if node && node.superclass
-            @type_system.get(node.superclass.typeref).resolve
+            @type_system.get(scope, node.superclass.typeref).resolve
           else
             @type_system.type(nil, 'java.lang.Object')
           end

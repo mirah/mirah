@@ -330,7 +330,7 @@ module Mirah::JVM::Types
         @known_types[full_name]
       else
         scope.import(full_name, name)
-        @known_types[full_name] = TypeDefinition.new(self, full_name, nil)
+        @known_types[full_name] = TypeDefinition.new(self, scope, full_name, nil)
       end
     end
 
@@ -343,7 +343,10 @@ module Mirah::JVM::Types
       end
       if @known_types.include? full_name
         existing = @known_types[full_name]
-        existing.node ||= node
+        unless existing.node
+          existing.node = node
+          existing.scope = scope
+        end
         existing
       else
         if InterfaceDeclaration === node
@@ -352,7 +355,7 @@ module Mirah::JVM::Types
           klass = TypeDefinition
         end
         scope.import(full_name, name)
-        @known_types[full_name] = klass.new(self, full_name, node)
+        @known_types[full_name] = klass.new(self, scope, full_name, node)
       end
     end
 
