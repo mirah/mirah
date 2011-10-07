@@ -104,6 +104,7 @@ end
 interface TypeSystem do
   def getNullType:TypeFuture; end
   def getVoidType:TypeFuture; end
+  def getImplicitNilType:TypeFuture; end
   def getBaseExceptionType:TypeFuture; end
   def getDefaultExceptionType:TypeFuture; end
   def getRegexType:TypeFuture; end
@@ -120,7 +121,7 @@ interface TypeSystem do
   def getMetaType(type:TypeFuture):TypeFuture; end
   def getArrayType(componentType:TypeFuture):TypeFuture; end
 
-  def get(type:TypeRef):TypeFuture; end
+  def get(scope:Scope, type:TypeRef):TypeFuture; end
   def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end
   def getMethodDefType(target:TypeFuture, name:String, argTypes:List):AssignableTypeFuture; end
   def getFieldType(target:TypeFuture, name:String):AssignableTypeFuture; end
@@ -129,4 +130,5 @@ interface TypeSystem do
   def getSuperClass(type:TypeFuture):TypeFuture; end
 
   def defineType(scope:Scope, node:ClassDefinition, name:String, superclass:TypeFuture, interfaces:List):TypeFuture; end
+  def addDefaultImports(scope:Scope):void; end
 end

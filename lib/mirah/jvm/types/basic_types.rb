@@ -35,6 +35,7 @@ module Mirah::JVM::Types
           IterableType.new(self, get_mirror('java.lang.Iterable'))
       @known_types['void'] = VoidType.new(self)
       @known_types['null'] = NullType.new(self)
+      @known_types['implicit_nil'] = ImplicitNilType.new(self)
       @known_types['dynamic'] = DynamicType.new(self)
     end
   end

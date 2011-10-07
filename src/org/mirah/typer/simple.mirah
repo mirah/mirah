@@ -75,6 +75,9 @@ class SimpleTypes; implements TypeSystem
   def getNullType
     lookup :Null
   end
+  def getImplicitNilType
+    getNullType
+  end
   def getVoidType
     lookup :Void
   end
@@ -130,7 +133,7 @@ class SimpleTypes; implements TypeSystem
   def getArrayType(componentType:TypeFuture)
     TypeFuture(getArrayType(componentType.resolve))
   end
-  def get(typeref)
+  def get(scope, typeref)
     raise IllegalArgumentException if typeref.nil?
     basic_type = lookup(typeref.name) || SimpleType.new(typeref.name, false, false)
     return getMetaType(basic_type) if typeref.isStatic
@@ -192,6 +195,8 @@ class SimpleTypes; implements TypeSystem
       @types[name] = type
     end
     type
+  end
+  def addDefaultImports(scope)
   end
 
   def self.main(args:String[]):void

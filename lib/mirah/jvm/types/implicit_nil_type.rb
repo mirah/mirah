@@ -1,29 +1,25 @@
 module Mirah
   module JVM
     module Types
-      class NullType < Type
+      class ImplicitNilType < Type
         def initialize(types)
           super(types, types.get_mirror('java.lang.Object'))
         end
 
         def to_s
-          "Type(null)"
+          "Type(implicit_nil)"
         end
 
-        def null?
-          true
+        def widen(other)
+          other
         end
 
         def compatible?(other)
-          !other.primitive?
+          true
         end
 
         def assignable_from?(other)
-          if other.respond_to?(:primitive)
-            !other.primitive?
-          else
-            other.isError
-          end
+          true
         end
       end
     end

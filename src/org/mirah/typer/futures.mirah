@@ -208,7 +208,7 @@ class PickFirst < BaseTypeFuture
   def pick(index:int, type:TypeFuture, value:Object, resolvedType:ResolvedType)
     if @picked != index
       @picked = index
-      @listener.picked(type, value)
+      @listener.picked(type, value) if @listener
     end
     self.resolved(resolvedType)
   end

@@ -84,9 +84,9 @@ class Typer < SimpleNodeVisitor
     types
   end
 
-  def inferAll(typeNames:TypeNameList)
+  def inferAll(scope:Scope, typeNames:TypeNameList)
     types = ArrayList.new
-    typeNames.each {|n| types.add(@types.get(TypeName(n).typeref))}
+    typeNames.each {|n| types.add(@types.get(scope, TypeName(n).typeref))}
     types
   end
 
@@ -124,7 +124,8 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFunctionalCall(call, expression)
-    selfType = @scopes.getScope(call).selfType
+    scope = @scopes.getScope(call)
+    selfType = scope.selfType
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(BlockType.new) if call.block
@@ -191,17 +192,18 @@ class Typer < SimpleNodeVisitor
       else
         typeref = call.typeref(true)
       end
+      scope = @scopes.getScope(call)
       if typeref
         if is_array
           array = EmptyArray.new(call.position, typeref, call.parameters(0))
           @futures[array.size] = infer(call.parameters(0))
           newNode = Node(array)
-          newType = @types.getArrayType(@types.get(typeref))
+          newType = @types.getArrayType(@types.get(scope, typeref))
         else
           cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0)))
           @futures[cast.value] = infer(call.parameters(0))
           newNode = Node(cast)
-          newType = @types.get(typeref)
+          newType = @types.get(scope, typeref)
         end
         infer(newNode)
         TypeFuture(MaybeInline.new(call, methodType, newNode, newType))
@@ -216,16 +218,17 @@ class Typer < SimpleNodeVisitor
   def visitCast(cast, expression)
     # TODO check for compatibility
     infer(cast.value)
-    @types.get(cast.type.typeref)
+    @types.get(@scopes.getScope(cast), cast.type.typeref)
   end
 
   def visitColon2(colon2, expression)
-    @types.get(colon2.typeref)
+    @types.get(@scopes.getScope(colon2), colon2.typeref)
   end
 
   def visitSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    target = @types.getSuperClass(@scopes.getScope(node).selfType)
+    scope = @scopes.getScope(node)
+    target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(node.parameters)
     parameters.add(BlockType.new) if node.block
     CallFuture.new(node.position, @types, target, method.name.identifier, parameters)
@@ -233,27 +236,31 @@ class Typer < SimpleNodeVisitor
 
   def visitZSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    target = @types.getSuperClass(@scopes.getScope(node).selfType)
+    scope = @scopes.getScope(node)
+    target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(method.arguments)
     CallFuture.new(node.position, @types, target, method.name.identifier, parameters)
   end
 
   def visitClassDefinition(classdef, expression)
     classdef.annotations.each {|a| infer(a)}
-    interfaces = inferAll(classdef.interfaces)
-    superclass = @types.get(classdef.superclass.typeref) if classdef.superclass
-    type = @types.defineType(@scopes.getScope(classdef), classdef, classdef.name.identifier, superclass, interfaces)
-    scope = @scopes.addScope(classdef)
-    scope.selfType = type
+    scope = @scopes.getScope(classdef)
+    interfaces = inferAll(scope, classdef.interfaces)
+    superclass = @types.get(scope, classdef.superclass.typeref) if classdef.superclass
+    type = @types.defineType(scope, classdef, classdef.name.identifier, superclass, interfaces)
+    new_scope = @scopes.addScope(classdef)
+    new_scope.selfType = type
     infer(classdef.body, false) if classdef.body
     type
   end
 
   def visitFieldDeclaration(decl, expression)
     decl.annotations.each {|a| infer(a)}
-    targetType = @scopes.getScope(decl).selfType
+    scope = @scopes.getScope(decl)
+    targetType = scope.selfType
     targetType = @types.getMetaType(targetType) if decl.isStatic
-    @types.getFieldType(targetType, decl.name.identifier).declare(@types.get(decl.type.typeref), decl.position)
+    @types.getFieldType(targetType, decl.name.identifier).declare(
+        @types.get(scope, decl.type.typeref), decl.position)
   end
 
   def visitFieldAssign(field, expression)
@@ -271,7 +278,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitConstant(constant, expression)
-    @types.getMetaType(@types.get(constant.typeref))
+    @types.getMetaType(@types.get(@scopes.getScope(constant), constant.typeref))
   end
 
   def visitIf(stmt, expression)
@@ -400,10 +407,10 @@ class Typer < SimpleNodeVisitor
       exceptionType = @types.getLocalType(scope, name.identifier)
       clause.types.each do |_t|
         t = TypeName(_t)
-        exceptionType.assign(@types.get(t.typeref), t.position)
+        exceptionType.assign(@types.get(scope.parent, t.typeref), t.position)
       end
     else
-      inferAll(clause.types)
+      inferAll(scope.parent, clause.types)
     end
     # What if body is nil?
     infer(clause.body, expression != nil)
@@ -488,8 +495,6 @@ class Typer < SimpleNodeVisitor
     @types.getNullType()
   end
 
-  # What about ImplicitNil? Should it be void? null?
-
   def visitCharLiteral(node, expression)
     @types.getCharType(node.value)
   end
@@ -499,12 +504,13 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitTypeRefImpl(typeref, expression)
-    @types.get(typeref)
+    @types.get(@scopes.getScope(typeref), typeref)
   end
 
   def visitLocalDeclaration(decl, expression)
-    type = @types.get(decl.type.typeref)
-    @types.getLocalType(@scopes.getScope(decl), decl.name.identifier).declare(type, decl.position)
+    scope = @scopes.getScope(decl)
+    type = @types.get(scope, decl.type.typeref)
+    @types.getLocalType(scope, decl.name.identifier).declare(type, decl.position)
   end
 
   def visitLocalAssignment(local, expression)
@@ -523,8 +529,7 @@ class Typer < SimpleNodeVisitor
     if body.size > 0
       infer(body.get(body.size - 1), expression != null)
     else
-      # TODO getImplicitNilType()? getVoidType()?
-      @types.getNullType()
+      @types.getImplicitNilType()
     end
   end
 
@@ -541,6 +546,7 @@ class Typer < SimpleNodeVisitor
 
   def visitScript(script, expression)
     scope = @scopes.addScope(script)
+    @types.addDefaultImports(scope)
     scope.selfType = @types.getMainType(scope, script)
     infer(script.body, false)
   end
@@ -549,7 +555,7 @@ class Typer < SimpleNodeVisitor
     anno.values_size.times do |i|
       infer(anno.values(i).value)
     end
-    @types.get(anno.type.typeref)
+    @types.get(@scopes.getScope(anno), anno.type.typeref)
   end
 
   def visitImport(node, expression)
@@ -558,7 +564,7 @@ class Typer < SimpleNodeVisitor
     simpleName = node.simpleName.identifier
     scope.import(fullName, simpleName)
     unless '*'.equals(simpleName)
-      @types.get(TypeName(node.fullName).typeref)
+      @types.get(scope, TypeName(node.fullName).typeref)
     end
     @types.getVoidType()
   end
@@ -577,7 +583,7 @@ class Typer < SimpleNodeVisitor
 
   def visitEmptyArray(node, expression)
     infer(node.size)
-    @types.getArrayType(@types.get(node.type.typeref))
+    @types.getArrayType(@types.get(@scopes.getScope(node), node.type.typeref))
   end
 
   def visitUnquote(node, expression)
@@ -669,7 +675,7 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, arg.name.identifier)
     if arg.type
-      type.declare(@types.get(arg.type.typeref), arg.type.position)
+      type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
     else
       type
     end
@@ -678,7 +684,7 @@ class Typer < SimpleNodeVisitor
   def visitOptionalArgument(arg, expression)
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, arg.name.identifier)
-    type.declare(@types.get(arg.type.typeref), arg.type.position) if arg.type
+    type.declare(@types.get(scope, arg.type.typeref), arg.type.position) if arg.type
     type.assign(infer(arg.value), arg.value.position)
   end
 
@@ -686,7 +692,7 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, arg.name.identifier)
     if arg.type
-      type.declare(@types.getArrayType(@types.get(arg.type.typeref)), arg.type.position)
+      type.declare(@types.getArrayType(@types.get(scope, arg.type.typeref)), arg.type.position)
     else
       type
     end
@@ -696,7 +702,7 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, arg.name.identifier)
     if arg.type
-      type.declare(@types.get(arg.type.typeref), arg.type.position)
+      type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
     else
       type
     end
@@ -705,7 +711,8 @@ class Typer < SimpleNodeVisitor
   def visitMethodDefinition(mdef, expression)
     # TODO optional arguments
     scope = @scopes.addScope(mdef)
-    selfType = @scopes.getScope(mdef).selfType
+    outer_scope = @scopes.getScope(mdef)
+    selfType = outer_scope.selfType
     if mdef.kind_of?(StaticMethodDefinition)
       selfType = @types.getMetaType(selfType)
     end
@@ -717,7 +724,7 @@ class Typer < SimpleNodeVisitor
     type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters)
     is_void = false
     if mdef.type
-      returnType = @types.get(mdef.type.typeref)
+      returnType = @types.get(outer_scope, mdef.type.typeref)
       type.declare(returnType, mdef.type.position)
       if @types.getVoidType().equals(returnType)
         is_void = true
@@ -740,7 +747,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitImplicitNil(node, expression)
-    @types.getNullType  # Should this be void?
+    @types.getImplicitNilType()
   end
 
   def visitImplicitSelf(node, expression)

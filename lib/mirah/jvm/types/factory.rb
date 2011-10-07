@@ -19,6 +19,7 @@ module Mirah::JVM::Types
   java_import 'org.mirah.typer.simple.SimpleTypes'
   class TypeFactory < SimpleTypes
     java_import 'org.mirah.typer.AssignableTypeFuture'
+    java_import 'org.mirah.typer.PickFirst'
     java_import 'org.mirah.typer.BaseTypeFuture'
     java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
@@ -65,11 +66,20 @@ module Mirah::JVM::Types
       @futures[resolved_type.name] ||= wrap(resolved_type)
     end
     def cache_and_wrap_type(name)
-      @futures[name] ||= wrap(type(nil, name))
+      @futures[name] ||= begin
+        type = type(nil, name)
+        wrapper = wrap(type)
+        wrapper.resolved(ErrorType.new([["Cannot find class #{name}"]])) if type.nil?
+        wrapper
+      end
     end
 
     # TypeSystem methods
+    def addDefaultImports(scope)
+      scope.import('java.lang.*', '*')
+    end
     def getNullType; cache_and_wrap_type('null') end
+    def getImplicitNilType; cache_and_wrap_type('implicit_nil') end
     def getVoidType; cache_and_wrap_type('void') end
     def getBaseExceptionType; cache_and_wrap_type('java.lang.Throwable') end
     def getDefaultExceptionType; cache_and_wrap_type('java.lang.Exception') end
@@ -106,8 +116,20 @@ module Mirah::JVM::Types
         future
       end
     end
-    def get(typeref)
-      basic_type = @futures[typeref.name] || cache_and_wrap_type(typeref.name)
+    def get(scope, typeref)
+      basic_type = if scope.nil?
+        cache_and_wrap_type(typeref.name)
+      else
+        types = [ cache_and_wrap_type(typeref.name), nil ]
+        packages = []
+        packages << scope.package if scope.package && scope.package != ''
+        (packages + scope.search_packages).each do |package|
+          types << cache_and_wrap_type("#{package}.#{typeref.name}")
+          types << nil
+        end
+
+        PickFirst.new(types, nil)
+      end
       if typeref.isArray
         getArrayType(basic_type)
       elsif typeref.isStatic
