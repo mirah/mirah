@@ -336,7 +336,10 @@ parser MirahParser {
              -> ^(StaticMethodDefinition name args type body annotations)
            | name=fname! arglist=f_arglist! body=bodystmt! verify_end(s)! $End
              {args = arglist.args; type=arglist.returnType}
-             -> ^(MethodDefinition name args type body annotations)
+             ( ?{"initialize".equals(name.identifier)}
+               -> ^(ConstructorDefinition name args type body annotations)
+             | -> ^(MethodDefinition name args type body annotations)
+             )
            );
   primary2_break: $Break -> ^(Break);
   primary2_next: $Next -> ^(Next);
