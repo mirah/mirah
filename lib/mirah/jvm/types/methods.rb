@@ -217,9 +217,9 @@ module Mirah::JVM::Types
       end
     end
 
-    def call_special(compiler, ast, expression, parameters=nil)
-      target = compiler.inferred_type(ast.target)
-      compiler.visit(ast.target, true)
+    def call_special(compiler, target, target_type, parameters, expression)
+      target_type ||= compiler.inferred_type(target)
+      compiler.visit(target, true)
 
       # if expression, void methods return the called object,
       # for consistency and chaining
@@ -229,13 +229,12 @@ module Mirah::JVM::Types
         compiler.method.dup
       end
 
-      parameters ||= ast.parameters
       convert_args(compiler, parameters)
-      if target.interface?
+      if target_type.interface?
         raise "interfaces should not receive call_special"
       else
         compiler.method.invokespecial(
-          target,
+          target_type,
           name,
           [@member.return_type, *@member.argument_types])
       end

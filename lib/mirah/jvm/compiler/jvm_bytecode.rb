@@ -453,11 +453,7 @@ module Mirah
 
         def visitSuper(sup, expression)
           type = @type.superclass
-          sup.target = ImplicitSelf.new
-          sup.target.parent = sup
           super_type = @typer.type_system.getSuperClass(get_scope(sup).self_type)
-          scope = @typer.scoper.addScope(sup)
-          scope.selfType_set(super_type)
           @typer.infer(sup.target)
 
           sup.name = sup.findAncestor(MethodDefinition.java_class).name.identifier
@@ -471,7 +467,7 @@ module Mirah
             raise NameError, "No method %s.%s(%s)" %
             [type, sup.name, params.join(', ')]
           end
-          method.call_special(self, sup, expression)
+          method.call_special(self, ImplicitSelf.new, type, sup.parameters, expression)
         end
 
         def visitCast(fcall, expression)
