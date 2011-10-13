@@ -287,6 +287,9 @@ class SimpleScoper; implements Scoper
     @scopes[node] = scope
     scope
   end
+  def copyScopeFrom(from, to)
+    @scopes[to] = getScope(from)
+  end
 end
 
 class TypePrinter < NodeScanner

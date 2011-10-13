@@ -24,6 +24,7 @@ module Mirah
         java_import 'org.mirah.typer.Scope'
       end
       java_import 'org.mirah.typer.AssignableTypeFuture'
+      java_import 'org.mirah.typer.ErrorType'
       include Scope
 
       attr_reader :parent
@@ -65,6 +66,7 @@ module Mirah
       def local_type(name)
         @var_types[name] ||= begin
           type = AssignableTypeFuture.new(nil)
+          type.resolved(ErrorType.new([["Cannot find local #{name}"]]))
           type.onUpdate {|_, resolved| self << name unless resolved.isError}
           type
         end

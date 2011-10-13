@@ -465,7 +465,7 @@ module Mirah
           castee = fcall.value
 
           # TODO move errors to inference phase
-          source_type_name = inferred_type(castee)
+          source_type_name = inferred_type(castee).name
           target_type_name = inferred_type(fcall).name
           if inferred_type(castee).primitive?
             if inferred_type(fcall).primitive?

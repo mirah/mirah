@@ -143,7 +143,9 @@ class Typer < SimpleNodeVisitor
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      TypeFuture(MaybeInline.new(call, methodType, cast, infer(cast, true)))
+      @scopes.copyScopeFrom(call, cast)
+      castType = infer(cast, true)
+      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
     else
       methodType
     end
@@ -201,9 +203,10 @@ class Typer < SimpleNodeVisitor
           newType = @types.getArrayType(@types.get(scope, typeref))
         else
           cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0)))
+          @scopes.copyScopeFrom(call, cast)
           @futures[cast.value] = infer(call.parameters(0))
           newNode = Node(cast)
-          newType = @types.get(scope, typeref)
+          newType = infer(cast, expression != nil)
         end
         infer(newNode)
         TypeFuture(MaybeInline.new(call, methodType, newNode, newType))
