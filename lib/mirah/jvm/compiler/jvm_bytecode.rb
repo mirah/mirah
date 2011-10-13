@@ -14,6 +14,7 @@ module Mirah
         java_import 'mirah.lang.ast.Loop'
         java_import 'mirah.lang.ast.FunctionalCall'
         java_import 'mirah.lang.ast.Super'
+        java_import 'mirah.lang.ast.ZSuper'
         java_import 'mirah.lang.ast.ImplicitSelf'
         java_import 'mirah.lang.ast.NodeList'
         java_import 'org.mirah.typer.TypeFuture'
@@ -171,19 +172,32 @@ module Mirah
             super(node, true) do |method, args|
               method_body(method, args, node, @typer.type_system.type(nil, 'void')) do
                 method.aload 0
-                if node.delegate_args
-                  if node.calls_super
-                    delegate_class = @type.superclass
+                # TODO handle calling another constructor in this class
+                scope = introduced_scope(node)
+                if node.body.size > 0 &&
+                    (node.body(0).kind_of?(Super) || node.body(0).kind_of?(ZSuper))
+                  super_node = node.body(0)
+                  delegate_class = @type.superclass
+                  if super_node.kind_of?(ZSuper)
+                    delegate_types = []
+                    [node.arguments.required,
+                     node.arguments.optional,
+                     node.arguments.required2
+                    ].each do |args|
+                      args.each do |arg|
+                        arg_type = inferred_type(arg)
+                        delegate_types << arg_type
+                        local(scope, arg.name.identifier, arg_type)
+                      end
+                    end
                   else
-                    delegate_class = @type
-                  end
-                  delegate_types = node.delegate_args.map do |arg|
-                    inferred_type(arg)
+                    super_node.parameters.each do |param|
+                      param_type = inferred_type(param)
+                      delegate_types << param_type
+                      visit(param, true)
+                    end
                   end
                   constructor = delegate_class.constructor(*delegate_types)
-                  node.delegate_args.each do |arg|
-                    visit(arg, true)
-                  end
                   method.invokespecial(
                   delegate_class, "<init>",
                   [@method.void, *constructor.argument_types])

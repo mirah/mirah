@@ -756,6 +756,10 @@ class Typer < SimpleNodeVisitor
     visitMethodDefinition(mdef, expression)
   end
 
+  def visitConstructorDefinition(mdef, expression)
+    visitMethodDefinition(mdef, expression)
+  end
+
   def visitImplicitNil(node, expression)
     @types.getImplicitNilType()
   end
