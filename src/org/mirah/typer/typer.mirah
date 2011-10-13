@@ -232,7 +232,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitColon2(colon2, expression)
-    @types.get(@scopes.getScope(colon2), colon2.typeref)
+    @types.getMetaType(@types.get(@scopes.getScope(colon2), colon2.typeref))
   end
 
   def visitSuper(node, expression)

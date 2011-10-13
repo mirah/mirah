@@ -34,14 +34,18 @@ module Mirah
           if meta
             name = "<init>"
             constructor = true
+            mapped_type = mapped_type.unmeta
+            meta = false
           else
             constructor = false
           end
+        elsif name == '<init>' && !meta
+          constructor = true
         end
 
         if block_given?
           if constructor
-            mapped_type.unmeta.add_method_listener('initialize') {block.call(find_method2(mapped_type, 'new', mapped_params, meta))}
+            mapped_type.add_method_listener('initialize') {block.call(find_method2(mapped_type.meta, 'new', mapped_params, true))}
           else
             mapped_type.add_method_listener(name) {block.call(find_method2(mapped_type, name, mapped_params, meta))}
           end
