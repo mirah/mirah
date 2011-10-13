@@ -9,6 +9,7 @@ module Mirah
         java_import 'mirah.lang.ast.Node'
         java_import 'mirah.lang.ast.Annotation'
         java_import 'mirah.lang.ast.MethodDefinition'
+        java_import 'mirah.lang.ast.ConstructorDefinition'
         java_import 'mirah.lang.ast.Ensure'
         java_import 'mirah.lang.ast.Call'
         java_import 'mirah.lang.ast.Loop'
@@ -178,8 +179,8 @@ module Mirah
                     (node.body(0).kind_of?(Super) || node.body(0).kind_of?(ZSuper))
                   super_node = node.body(0)
                   delegate_class = @type.superclass
+                  delegate_types = []
                   if super_node.kind_of?(ZSuper)
-                    delegate_types = []
                     [node.arguments.required,
                      node.arguments.optional,
                      node.arguments.required2
@@ -452,11 +453,14 @@ module Mirah
         end
 
         def visitSuper(sup, expression)
+          mdef = sup.findAncestor(MethodDefinition.java_class)
+          # FIXME Horrible hack
+          return if mdef.kind_of?(ConstructorDefinition)
           type = @type.superclass
           super_type = @typer.type_system.getSuperClass(get_scope(sup).self_type)
           @typer.infer(sup.target)
 
-          sup.name = sup.findAncestor(MethodDefinition.java_class).name.identifier
+          sup.name = mdef.name.identifier
 
           # TODO ZSuper
           params = sup.parameters.map do |param|
