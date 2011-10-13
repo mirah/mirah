@@ -519,6 +519,10 @@ class NodeState < BaseNodeState
     end
     size_name = "#{name}_size"
     @children.add([name, 'java.util.List'])
+    clone_call = mirah.quote {self.`name`.clone}
+    @cloneBody << mirah.quote do
+      node.`setter`(`mirah.cast(list_type, clone_call)`) if self.`name`
+    end
     mirah.quote do
       `addGetters(name, list_type, true)`
 
