@@ -326,7 +326,7 @@ module Mirah::JVM::Types
         if expression
           compiler.visit(call.target, true)
           compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, int]
+          compiler.method.invokestatic string_type, "valueOf", [string_type, int_type]
           compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
         end
       end

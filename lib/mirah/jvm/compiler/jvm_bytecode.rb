@@ -765,7 +765,7 @@ module Mirah
             set_position(strcat.position)
             @method.invokevirtual java::lang::StringBuilder.java_class, "toString", [@method.string]
           else
-            nodes.each do |node|
+            strcat.strings.each do |node|
               visit(node, false)
             end
           end
