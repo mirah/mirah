@@ -750,7 +750,6 @@ class Typer < SimpleNodeVisitor
     else
       type.assign(infer(mdef.body), mdef.body.position)
     end
-    type
   end
 
   def visitStaticMethodDefinition(mdef, expression)
