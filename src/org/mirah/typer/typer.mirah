@@ -272,6 +272,10 @@ class Typer < SimpleNodeVisitor
     type
   end
 
+  def visitInterfaceDeclaration(idef, expression)
+    visitClassDefinition(idef, expression)
+  end
+
   def visitFieldDeclaration(decl, expression)
     decl.annotations.each {|a| infer(a)}
     scope = @scopes.getScope(decl)

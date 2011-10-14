@@ -918,13 +918,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('A', a.java_class.name)
     assert_equal('B', b.java_class.name)
     assert_equal('C', c.java_class.name)
+  end
 
+  def test_interface_override_return_type
     assert_raise Mirah::Typer::InferenceError do
       compile(<<-EOF)
         interface A do
-          def a
-            returns :int
-          end
+          def a:int; end
         end
 
         class Impl; implements A

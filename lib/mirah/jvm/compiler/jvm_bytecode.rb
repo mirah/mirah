@@ -245,6 +245,10 @@ module Mirah
           compiler.visitClassDefinition(class_def, expression)
         end
 
+        def visitInterfaceDeclaration(class_def, expression)
+          visitClassDefinition(class_def, expression)
+        end
+
         def visitIf(iff, expression)
           elselabel = @method.label
           donelabel = @method.label
