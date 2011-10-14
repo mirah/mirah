@@ -198,9 +198,9 @@ class Typer < SimpleNodeVisitor
       if typeref
         if is_array
           array = EmptyArray.new(call.position, typeref, call.parameters(0))
-          @futures[array.size] = infer(call.parameters(0))
           newNode = Node(array)
           newType = @types.getArrayType(@types.get(scope, typeref))
+          @scopes.copyScopeFrom(call, newNode)
         else
           cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
           @scopes.copyScopeFrom(call, cast)
