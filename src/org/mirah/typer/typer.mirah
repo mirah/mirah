@@ -48,6 +48,10 @@ class Typer < SimpleNodeVisitor
     TypeFuture(@futures[node])
   end
 
+  def inferTypeName(node:TypeName)
+    TypeFuture(@futures[node] ||= @types.get(@scopes.getScope(node), node.typeref))
+  end
+
   def infer(node:Node, expression:boolean=true)
     return nil if node.nil?
     type = @futures[node]
@@ -86,7 +90,7 @@ class Typer < SimpleNodeVisitor
 
   def inferAll(scope:Scope, typeNames:TypeNameList)
     types = ArrayList.new
-    typeNames.each {|n| types.add(@types.get(scope, TypeName(n).typeref))}
+    typeNames.each {|n| types.add(inferTypeName(TypeName(n)))}
     types
   end
 
@@ -353,8 +357,19 @@ class Typer < SimpleNodeVisitor
 
     # Create a node for syntax 1 if possible.
     if old_args.size == 1
-      exceptions.add(infer(old_args.get(0)))
-      exceptions.add(Node(old_args.get(0)).clone)
+      new_node = Node(Node(old_args.get(0)).clone)
+      @scopes.copyScopeFrom(node, new_node)
+      new_type = BaseTypeFuture.new(new_node.position)
+      error = ErrorType.new([["Not an expression", new_node.position]])
+      infer(new_node).onUpdate do |x, resolvedType|
+        if resolvedType.isMeta
+          new_type.resolved(error)
+        else
+          new_type.resolved(resolvedType)
+        end
+      end
+      exceptions.add(new_type)
+      exceptions.add(new_node)
     end
 
     # Create a node for syntax 2 if possible.
@@ -363,6 +378,7 @@ class Typer < SimpleNodeVisitor
       params = ArrayList.new
       1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
       call = Call.new(targetNode, SimpleString.new(node.position, 'new'), params, nil)
+      @scopes.copyScopeFrom(node, call)
       exceptions.add(infer(call))
       exceptions.add(call)
     end
@@ -373,6 +389,7 @@ class Typer < SimpleNodeVisitor
     params = ArrayList.new
     old_args.each {|a| params.add(Node(a).clone)}
     call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
+    @scopes.copyScopeFrom(node, call)
     exceptions.add(infer(call))
     exceptions.add(call)
 
@@ -412,6 +429,10 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.addScope(clause)
     scope.parent = @scopes.getScope(clause)
     name = clause.name
+    if clause.types_size == 0
+      clause.types.add(TypeRefImpl.new(@types.getDefaultExceptionType().resolve.name,
+                                       false, false, clause.position))
+    end
     if name
       scope.shadow(name.identifier)
       exceptionType = @types.getLocalType(scope, name.identifier)

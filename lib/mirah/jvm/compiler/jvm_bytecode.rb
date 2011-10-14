@@ -52,9 +52,9 @@ module Mirah
 
         def file_builder(filename)
           builder = BiteScript::FileBuilder.new(filename)
-          builder.to_widen do |a, b|
-            a = @typer.type_system.get_type(a)
-            b = @typer.type_system.get_type(b)
+          builder.to_widen do |_a, _b|
+            a = @typer.type_system.get_type(_a)
+            b = @typer.type_system.get_type(_b)
             a_ancestors = []
             while a
               a_ancestors << a.name
@@ -65,7 +65,8 @@ module Mirah
               b_ancestors << b.name
               b = b.superclass
             end
-            (a_ancestors & b_ancestors)[0]
+            intersection = (a_ancestors & b_ancestors)
+            intersection[0].gsub('.', '/')
           end
           @typer.type_system.define_types(builder)
           builder
@@ -905,7 +906,7 @@ module Mirah
         end
 
         def visitRaise(node, expression)
-          visit(node.args, true)
+          visit(node.args(0), true)
           set_position(node.position)
           @method.athrow
         end
@@ -930,6 +931,7 @@ module Mirah
             visit(clause.body, expression)
             @method.goto(done)
             clause.types.each do |type|
+              type = inferred_type(type)
               @method.trycatch(start, body_end, target, type)
             end
           end

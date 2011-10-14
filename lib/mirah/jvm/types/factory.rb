@@ -147,7 +147,7 @@ module Mirah::JVM::Types
         return target
       end
       type = BaseTypeFuture.new(nil)
-      target.find_method(target, name, argTypes, target.meta?) do |method|
+      target.find_method2(target, name, argTypes, target.meta?) do |method|
         if method.nil?
           type.resolved(ErrorType.new([
               ["Cannot find %s method %s(%s) on %s" %

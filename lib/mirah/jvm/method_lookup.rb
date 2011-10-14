@@ -19,8 +19,8 @@ module Mirah
       # dummy log; it's expected the inclusion target will have it
       def log(msg); end
 
-      def find_method2(mapped_type, name, mapped_params, meta)
-        find_method(mapped_type, name, mapped_params, meta)
+      def find_method2(mapped_type, name, mapped_params, meta, &block)
+        find_method(mapped_type, name, mapped_params, meta, &block)
       rescue => ex
         ex
       end

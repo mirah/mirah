@@ -1059,7 +1059,7 @@ class TestJVMCompiler < Test::Unit::TestCase
           else
             raise
           end
-        rescue IllegalArgumentException, RuntimeException
+        rescue IllegalArgumentException, Exception
           System.out.println "multi"
         rescue Throwable
           System.out.println "other"
@@ -1075,7 +1075,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
 
     cls, = compile(<<-EOF)
-      def foo
+      def foo:void
         begin
           raise "foo"
         rescue => ex
