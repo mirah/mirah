@@ -539,9 +539,16 @@ module Mirah
 
         def annotate(builder, annotations)
           annotations.each do |annotation|
-            type = annotation.type
+            type = inferred_type(annotation)
             type = type.jvm_type if type.respond_to?(:jvm_type)
-            builder.annotate(type, annotation.runtime?) do |visitor|
+            if type.respond_to?(:getDeclaredAnnotation)
+              retention = type.getDeclaredAnnotation('java.lang.annotation.Retention')
+            else
+              raise "Unsupported annotation #{type} (#{type.class})"
+            end
+            next if retention && retention.value.name == 'SOURCE'
+            runtime_retention = (retention && retention.value.name == 'RUNTIME')
+            builder.annotate(type, runtime_retention) do |visitor|
               annotation.values.each do |name, value|
                 annotation_value(visitor, name, value)
               end

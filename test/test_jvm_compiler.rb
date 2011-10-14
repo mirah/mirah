@@ -1928,7 +1928,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_not_nil cls.java_class.java_method('foo').annotation(deprecated)
     assert_nil cls.java_class.annotation(deprecated)
 
-    script, cls = compile(<<-EOF)
+    cls,  = compile(<<-EOF)
       $Deprecated
       class Annotated
       end
