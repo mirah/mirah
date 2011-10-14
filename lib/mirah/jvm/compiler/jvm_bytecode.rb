@@ -942,12 +942,13 @@ module Mirah
 
         def handle_ensures(nodes)
           nodes.each do |ensure_node|
-            visit(ensure_node.clause, false)
+            visit(ensure_node.ensureClause, false)
           end
         end
 
         def visitEnsure(node, expression)
-          node.state = @method.label  # Save the ensure target for JumpNodes
+          # TODO this doesn't appear to be used
+          #node.state = @method.label  # Save the ensure target for JumpNodes
           start = @method.label.set!
           body_end = @method.label
           done = @method.label
