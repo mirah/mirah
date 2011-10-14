@@ -366,7 +366,7 @@ parser MirahParser {
              | variable;
 
   $Returns[Identifier]
-  dotted_name: h=identifier2 t=(nosp dot identifier3)+ n={join(concat([h],t), ".")} -> ^(SimpleString n);
+  dotted_name: h=identifier2 t=(nosp dot identifier3)* n={join(concat([h],t), ".")} -> ^(SimpleString n);
 
   $Returns[FArglistReturn]
   f_arglist: $LParen! opt_nl a=f_args opt_nl $RParen ($Colon type=type)? BEG {FArglistReturn.new(a, type)}

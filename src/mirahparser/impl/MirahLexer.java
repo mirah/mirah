@@ -529,6 +529,7 @@ public class MirahLexer {
           } else {
             type = Tokens.tIDENTIFIER;
           }
+          break;
         case 'r':
           if (string.startsWith("aise", i)) {
             type = Tokens.tRaise;

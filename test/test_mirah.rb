@@ -677,4 +677,9 @@ EOF
      assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, ArrayList]]]]", "import 'java.util.ArrayList'")
      assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, AL]]]]", 'import "AL", "java.util.ArrayList"')
    end
+
+   def test_package
+     assert_parse("[Script, [[Package, [SimpleString, foo], null]]]", 'package foo')
+     assert_parse("[Script, [[Package, [SimpleString, bar], [[Fixnum, 1]]]]]", 'package bar { 1 }')
+   end
 end
