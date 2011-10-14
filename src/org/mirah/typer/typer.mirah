@@ -502,6 +502,21 @@ class Typer < SimpleNodeVisitor
     @types.getFloatType(number.value)
   end
 
+  def visitNot(node, expression)
+    type = BaseTypeFuture.new(node.position)
+    null_type = @types.getNullType.resolve
+    boolean_type = @types.getBooleanType.resolve
+    infer(node.value).onUpdate do |x, resolved|
+      if (null_type.assignableFrom(resolved) ||
+          boolean_type.assignableFrom(resolved))
+        type.resolved(boolean_type)
+      else
+        type.resolved(ErrorType.new([["#{resolved} not compatible with boolean", node.position]]))
+      end
+    end
+    type
+  end
+
   def visitHash(hash, expression)
     hashType = @types.getHashType
     @futures[hash] = hashType

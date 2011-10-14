@@ -861,6 +861,26 @@ module Mirah
           end
         end
 
+        def visitNot(node, expression)
+          visit(node.value, expression)
+          if expression
+            set_position(node.position)
+            type = inferred_type(node.value)
+            done = @method.label
+            else_label = @method.label
+            if type.primitive?
+              @method.ifeq else_label
+            else
+              @method.ifnull else_label
+            end
+            @method.iconst_0
+            @method.goto done
+            else_label.set!
+            @method.iconst_1
+            done.set!
+          end
+        end
+
         def visitNull(node, expression)
           if expression
             set_position(node.position)
