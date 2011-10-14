@@ -314,12 +314,12 @@ parser MirahParser {
                         -> ^(Import fullname short)
                       )
                     | s1=simplestring ( comma! s2=simplestring
-                                        -> ^(Import s1 s2)
+                                        -> ^(Import s2 s1)
                                       | short=getSimpleName(s1)
                                         -> ^(Import s1 short)
                                       )
-                    | u1=unquote! comma ( s2=simplestring -> ^(Import u1 s2)
-                                        | u2=unquote -> ^(Import u1 u2)
+                    | u1=unquote! comma ( s2=simplestring -> ^(Import s2 u1)
+                                        | u2=unquote -> ^(Import u2 u1)
                                         )
                     );
   $Returns[Node]
