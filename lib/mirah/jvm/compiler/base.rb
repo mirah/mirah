@@ -245,6 +245,12 @@ module Mirah
           @self_scope = saved_self
         end
 
+        def visitClassAppendSelf(node, expression)
+          with :static => true, :current_scope => introduced_scope(node) do
+            visit(node.body, expression)
+          end
+        end
+
         def scoped_body(scope, expression)
           body(scope, expression)
         end
