@@ -847,7 +847,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_implements
     script, cls = compile(<<-EOF)
       import java.lang.Iterable
-      class Foo; implements Iterable
+      class Foo implements Iterable
         def iterator
           nil
         end

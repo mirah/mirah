@@ -33,7 +33,7 @@ module Mirah
 
         def interfaces(include_parent=true)
           if node
-            node.interfaces
+            node.interfaces.map {|n| @type_system.get(scope, n.typeref).resolve}
           else
             []
           end
