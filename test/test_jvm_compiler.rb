@@ -1092,7 +1092,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo(x:boolean)
-        throws Exception
+        # throws Exception
         if x
           raise Exception, "x"
         end

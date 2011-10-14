@@ -923,7 +923,9 @@ module Mirah
           rescue_node.clauses.each do |clause|
             target = @method.label.set!
             if clause.name
-              @method.astore(declare_local(introduced_scope(clause), clause.name.identifier, inferred_type(clause.types)))
+              types = clause.types.map {|t| inferred_type(t)}
+              widened_type = types.inject {|a, b| a.widen(b)}
+              @method.astore(declare_local(introduced_scope(clause), clause.name.identifier, widened_type))
             else
               @method.pop
             end

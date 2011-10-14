@@ -49,7 +49,8 @@ class Typer < SimpleNodeVisitor
   end
 
   def inferTypeName(node:TypeName)
-    TypeFuture(@futures[node] ||= @types.get(@scopes.getScope(node), node.typeref))
+    @futures[node] ||= @types.get(@scopes.getScope(node), node.typeref)
+    TypeFuture(@futures[node])
   end
 
   def infer(node:Node, expression:boolean=true)
@@ -111,9 +112,8 @@ class Typer < SimpleNodeVisitor
     # TODO should probably replace this with a FunctionalCall node if that's the
     # right one so the compiler doesn't have to deal with an extra node.
     local = LocalAccess.new(call.position, call.name)
-    localType = @types.getLocalType(@scopes.getScope(call), local.name.identifier)
-    @futures[local] = localType
-    options = [localType, local, methodType, fcall]
+    @scopes.copyScopeFrom(call, local)
+    options = [infer(local, true), local, methodType, fcall]
     current_node = Node(call)
     typer = self
     PickFirst.new(options) do |picked_type, _node|
@@ -362,13 +362,19 @@ class Typer < SimpleNodeVisitor
       new_type = BaseTypeFuture.new(new_node.position)
       error = ErrorType.new([["Not an expression", new_node.position]])
       infer(new_node).onUpdate do |x, resolvedType|
+        # We need to make sure they passed an object, not just a class name
         if resolvedType.isMeta
           new_type.resolved(error)
         else
           new_type.resolved(resolvedType)
         end
       end
-      exceptions.add(new_type)
+      # Now we need to make sure the object is an exception, otherwise we
+      # need to use a different syntax.
+      exceptionType = AssignableTypeFuture.new(new_node.position)
+      exceptionType.declare(@types.getBaseExceptionType(), node.position)
+      assignment = exceptionType.assign(new_type, node.position)
+      exceptions.add(assignment)
       exceptions.add(new_node)
     end
 
@@ -438,7 +444,7 @@ class Typer < SimpleNodeVisitor
       exceptionType = @types.getLocalType(scope, name.identifier)
       clause.types.each do |_t|
         t = TypeName(_t)
-        exceptionType.assign(@types.get(scope.parent, t.typeref), t.position)
+        exceptionType.assign(inferTypeName(t), t.position)
       end
     else
       inferAll(scope.parent, clause.types)

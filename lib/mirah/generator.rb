@@ -58,6 +58,9 @@ module Mirah
           end
         end
         process_inference_errors(@typer, nodes, &error_handler)
+      rescue NativeException => ex
+        ex.cause.printStackTrace if verbose
+        raise ex
       ensure
         if verbose
           printer = TypePrinter.new(@typer)
