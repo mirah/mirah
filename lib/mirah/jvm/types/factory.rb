@@ -120,11 +120,14 @@ module Mirah::JVM::Types
       basic_type = if scope.nil?
         cache_and_wrap_type(typeref.name)
       else
-        types = [ cache_and_wrap_type(typeref.name), nil ]
+        imports = scope.imports
+        name = typeref.name
+        name = imports[name] while imports.include?(name)
+        types = [ cache_and_wrap_type(name), nil ]
         packages = []
         packages << scope.package if scope.package && scope.package != ''
         (packages + scope.search_packages).each do |package|
-          types << cache_and_wrap_type("#{package}.#{typeref.name}")
+          types << cache_and_wrap_type("#{package}.#{name}")
           types << nil
         end
 

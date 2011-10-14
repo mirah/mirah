@@ -341,10 +341,10 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_import
-    cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
+    cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
 
-    cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
+    cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
   end
 

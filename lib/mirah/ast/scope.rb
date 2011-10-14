@@ -212,8 +212,10 @@ module Mirah
         return if full_name == short_name
         if short_name == '*'
           @search_packages << full_name.sub(/\.\*$/, '')
+          @cached_packages = nil
         else
           @imports[short_name] = full_name
+          @cached_imports = nil
         end
       end
       def selfType
