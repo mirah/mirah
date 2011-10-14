@@ -49,6 +49,7 @@ public enum Tokens {
   tNot,
   tOr,
   tPackage,
+  tRaise,
   tRedo,
   tRescue,
   tRetry,

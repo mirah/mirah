@@ -663,4 +663,10 @@ EOF
                              "[AnnotationList, [Annotation, [Constant, [SimpleString, Foo]], [HashEntryList]]]]]]",
                   "$Foo interface A; end")
    end
+
+   def test_raise
+     assert_parse("[Script, [[Raise, []]]]", 'raise')
+     assert_parse("[Script, [[Raise, [[Fixnum, 1]]]]]", 'raise 1')
+     assert_parse("[Script, [[Raise, [[Fixnum, 1], [Fixnum, 2]]]]]", 'raise(1, 2)')
+   end
 end

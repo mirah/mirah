@@ -149,6 +149,7 @@ parser MirahParser {
   command: ($Super)=> $Super a=command_args -> ^(Super a nil)
   #       | ($Yield)=> $Yield a=command_args -> ^(Yield a)
          | (op=operation a=command_args b=cmd_brace_block?-> ^(FunctionalCall op a b)
+           | $Raise a=command_args -> ^(Raise a)
            | t=value(primary) dot_or_colon op=operation2 a=command_args b=cmd_brace_block?-> ^(Call t op a b)
            );
 
@@ -351,6 +352,7 @@ parser MirahParser {
              | ($Integer)=> fixnum
              | ($Float)=> floatLiteral
              | ($Colon)=> symbol
+             | ($Raise $LParen)=> $Raise a=paren_args -> ^(Raise a)
              | (($FID|$CONSTANT|$IDENTIFIER) ($LParen|$LBrace|$Do))=>
                ( op=operation ( ($LParen)=>
                                 a=paren_args iter=brace_block? -> ^(FunctionalCall op a iter)
@@ -720,6 +722,7 @@ parser MirahParser {
           | ($ClassVar|$ClassVarBacktick)=> v=cvar    -> ^(FieldAccess v true)
           | ($InstVar|$InstVarBacktick)=> v=ivar      -> ^(FieldAccess v)
           | ($Dollar)=> annotation
+          | ($Raise)=> $Raise                         -> ^(Raise nil)
           | ($FID)=> n=fid                            -> ^(VCall n)
           | ($CONSTANT)=> c=constant                  -> ^(Constant c)
           | ($IDENTIFIER)=> n=identifier              -> ^(VCall n)

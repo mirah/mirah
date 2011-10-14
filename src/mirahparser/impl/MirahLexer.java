@@ -530,7 +530,10 @@ public class MirahLexer {
             type = Tokens.tIDENTIFIER;
           }
         case 'r':
-          if (string.startsWith("edo", i)) {
+          if (string.startsWith("aise", i)) {
+            type = Tokens.tRaise;
+            i += 4;
+          } else if (string.startsWith("edo", i)) {
             type = Tokens.tRedo;
             i += 3;
           } else if (string.startsWith("escue", i)) {
