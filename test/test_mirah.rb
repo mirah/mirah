@@ -669,4 +669,12 @@ EOF
      assert_parse("[Script, [[Raise, [[Fixnum, 1]]]]]", 'raise 1')
      assert_parse("[Script, [[Raise, [[Fixnum, 1], [Fixnum, 2]]]]]", 'raise(1, 2)')
    end
+
+   def test_import
+     assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, ArrayList]]]]", 'import java.util.ArrayList')
+     assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, AL]]]]", 'import java.util.ArrayList as AL')
+     assert_parse("[Script, [[Import, [SimpleString, java.util], [SimpleString, *]]]]", 'import java.util.*')
+     assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, ArrayList]]]]", "import 'java.util.ArrayList'")
+     assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, AL]]]]", 'import "java.util.ArrayList", "AL"')
+   end
 end

@@ -306,8 +306,10 @@ parser MirahParser {
   $Returns[Node]
   primary2_import
          : $Import! ( fullname=dotted_name
-                      ( as=$IDENTIFIER !"as" ?{"as".equals(as.text)} short=identifier4
+                      ( as=$IDENTIFIER ?{"as".equals(as.text)} short=identifier4
                         -> ^(Import fullname short)
+                      | $Dot $Star
+                        -> ^(Import fullname ^(SimpleString "*"))
                       | short=getSimpleName(fullname)
                         -> ^(Import fullname short)
                       )
