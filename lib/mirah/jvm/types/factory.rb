@@ -116,6 +116,9 @@ module Mirah::JVM::Types
         future
       end
     end
+    def getArrayLiteralType(type)
+      return cache_and_wrap_type('java.util.List')
+    end
     def get(scope, typeref)
       basic_type = if scope.nil?
         cache_and_wrap_type(typeref.name)

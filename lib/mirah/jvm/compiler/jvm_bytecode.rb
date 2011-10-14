@@ -830,7 +830,7 @@ module Mirah
             # create basic arraylist
             @method.new java::util::ArrayList
             @method.dup
-            @method.ldc_int node.children ? node.children.size : 0
+            @method.ldc_int node.values_size
             @method.invokespecial java::util::ArrayList, "<init>", [@method.void, @method.int]
 
             # elements, as expressions
@@ -851,7 +851,7 @@ module Mirah
           else
             # elements, as non-expressions
             # TODO: ensure they're all reference types!
-            node.children.each do |n|
+            node.values.each do |n|
               visit(n, true)
               # TODO this feels like it should be in the node.compile itself
               if inferred_type(n).primitive?

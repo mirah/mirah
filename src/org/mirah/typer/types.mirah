@@ -123,6 +123,7 @@ interface TypeSystem do
 
   def getMetaType(type:TypeFuture):TypeFuture; end
   def getArrayType(componentType:TypeFuture):TypeFuture; end
+  def getArrayLiteralType(componentType:TypeFuture):TypeFuture; end
 
   def get(scope:Scope, type:TypeRef):TypeFuture; end
   def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end

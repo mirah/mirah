@@ -491,7 +491,7 @@ class Typer < SimpleNodeVisitor
       node = Node(v)
       component.assign(infer(node, true), node.position)
     end
-    @types.getArrayType(component)
+    @types.getArrayLiteralType(component)
   end
 
   def visitFixnum(fixnum, expression)
