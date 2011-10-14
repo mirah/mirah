@@ -25,6 +25,14 @@ module Mirah
             other.matchesAnything
           end
         end
+
+        def widen(other)
+          if other.matchesAnything
+            self
+          else
+            other
+          end
+        end
       end
     end
   end
