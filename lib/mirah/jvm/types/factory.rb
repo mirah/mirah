@@ -166,8 +166,7 @@ module Mirah::JVM::Types
               result.onUpdate {|x, resolved| type.resolved(resolved) }
             end
           else
-            cached = cache_and_wrap_type(result.name).resolve
-            type.resolved(cached)
+            type.resolved(result)
           end
         end
       end
