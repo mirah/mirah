@@ -921,7 +921,7 @@ module Mirah
           @method.goto(done)
           rescue_node.clauses.each do |clause|
             target = @method.label.set!
-            if clause.name.identifier
+            if clause.name
               @method.astore(declare_local(introduced_scope(clause), clause.name.identifier, inferred_type(clause.types)))
             else
               @method.pop
