@@ -18,6 +18,7 @@ module Mirah
         java_import 'mirah.lang.ast.ZSuper'
         java_import 'mirah.lang.ast.ImplicitSelf'
         java_import 'mirah.lang.ast.NodeList'
+        java_import 'mirah.lang.ast.SimpleString'
         java_import 'org.mirah.typer.TypeFuture'
 
         class FunctionalCall
@@ -807,9 +808,15 @@ module Mirah
 
         def visitRegex(node, expression)
           # TODO: translate flags to Java-appropriate values
-          @method.ldc(node.value)
-          setPosition(node.position)
-          @method.invokestatic java::util::regex::Pattern, "compile", [java::util::regex::Pattern, @method.string]
+          if node.strings_size == 1
+            visit(node.strings(0), expression)
+          else
+            visitStringConcat(node, expression)
+          end
+          if expression
+            set_position(node.position)
+            @method.invokestatic java::util::regex::Pattern, "compile", [java::util::regex::Pattern, @method.string]
+          end
         end
 
         def visitArray(node, expression)
