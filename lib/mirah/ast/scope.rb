@@ -24,6 +24,7 @@ module Mirah
         java_import 'org.mirah.typer.Scope'
       end
       java_import 'org.mirah.typer.AssignableTypeFuture'
+      java_import 'org.mirah.typer.LocalFuture'
       java_import 'org.mirah.typer.ErrorType'
       include Scope
 
@@ -42,6 +43,32 @@ module Mirah
         @scoper = scoper
         @temps = Hash.new {|h,k| h[k] = -1}
       end
+
+      def to_s
+        "#<StaticScope node=#{@scope_node.inspect}>"
+      end
+
+      def inspect
+        result = "#<StaticScope\n  node=#{@scope_node.inspect}\n  "
+        result << "parent=#{@parent}\n  " if @parent
+        result << "vars=#{locals.inspect}\n  " if @vars.size > 0
+        result << "shadowed=#{@shadowed.keys.inspect}\n  " if @shadowed.size > 0
+        result << "temps=#{@temps.keys.inspect}\n  " if @temps.size > 0
+        result << "package=#{@package}\n  " if @package
+        result << "imports=#{@imports.inspect}\n  " if @imports.size > 0
+        result << "search=#{@search_packages.inspect}\n  " if @search_packages.size > 0
+        result << "self=#{@self_node.inspect}\n  " if @self_node
+        if @self_type
+          result << "self_type=#{@self_type}"
+          if @self_type.isResolved
+            result << " (#{@self_type.resolve.full_name})"
+          end
+          result << "\n  "
+        end
+        result << ">"
+      end
+
+      def toString; inspect; end
 
       def <<(name)
         @vars[name] = true
@@ -63,11 +90,13 @@ module Mirah
         "$#{name}$#{@temps[name] += 1}"
       end
 
-      def local_type(name)
+      def local_type(name, position=nil)
         @var_types[name] ||= begin
-          type = AssignableTypeFuture.new(nil)
-          type.resolved(ErrorType.new([["Cannot find local #{name}"]]))
+          type = LocalFuture.new(name, position)
           type.onUpdate {|_, resolved| self << name unless resolved.isError}
+          if parent && !shadowed?(name)
+            type.parent_set(parent.local_type(name, position))
+          end
           type
         end
       end

@@ -163,20 +163,20 @@ class SimpleTypes; implements TypeSystem
     end
     AssignableTypeFuture(getMethodType(target.resolve, name, args, nil))
   end
-  def getFieldType(target, name)
+  def getFieldType(target, name, position)
     key = [target.resolve, name]
     t = AssignableTypeFuture(@fields[key])
     unless t
-      t = AssignableTypeFuture.new(nil)
+      t = AssignableTypeFuture.new(position)
       @fields[key] = t
     end
     t
   end
-  def getLocalType(scope, name)
+  def getLocalType(scope, name, position)
     key = [scope, name]
     t = AssignableTypeFuture(@locals[key])
     unless t
-      t = AssignableTypeFuture.new(nil)
+      t = AssignableTypeFuture.new(position)
       @locals[key] = t
     end
     t

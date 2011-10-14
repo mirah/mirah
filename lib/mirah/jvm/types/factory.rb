@@ -138,8 +138,8 @@ module Mirah::JVM::Types
         basic_type
       end
     end
-    def getLocalType(scope, name)
-      scope.local_type(name)
+    def getLocalType(scope, name, position)
+      scope.local_type(name, position)
     end
 
     def getMethodType(target, name, argTypes, position=nil)

@@ -50,7 +50,15 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def resolve
-    @resolved ||= ErrorType.new([['InferenceError', @position]])
+    @resolved ||= ErrorType.new([[error_message, @position]])
+  end
+
+  def error_message
+    @error_message || 'InferenceError'
+  end
+
+  def error_message=(message:String)
+    @error_message = message
   end
 
   def position
@@ -137,13 +145,21 @@ class AssignableTypeFuture < BaseTypeFuture
     ErrorType.new([["Cannot assign #{value} to #{inferredType}", position]])
   end
 
+  def hasDeclaration:boolean
+    !@declarations.isEmpty
+  end
+
+  def assignedValues(includeParent:boolean, includeChildren:boolean):Collection
+    Collection(@assignments.keySet)
+  end
+
   def checkAssignments:void
-    unless @declarations.isEmpty
+    if hasDeclaration
       return
     end
     type = ResolvedType(nil)
     error = ResolvedType(nil)
-    @assignments.keySet.each do |_value|
+    assignedValues(true, true).each do |_value|
       value = TypeFuture(_value)
       if value.isResolved
         resolved = value.resolve
@@ -287,5 +303,49 @@ class CallFuture < BaseTypeFuture
 
   def currentMethodType
     @method
+  end
+end
+
+class LocalFuture < AssignableTypeFuture
+  def initialize(name:String, position:Position)
+    super(position)
+    self.error_message = "Undefined variable #{name}"
+    @children = ArrayList.new
+  end
+
+  def checkAssignments
+    super
+    @parent.checkAssignments if @parent
+  end
+
+  def parent=(parent:LocalFuture)
+    @parent = parent
+    parent.addChild(self)
+    checkAssignments
+  end
+
+  def addChild(child:LocalFuture)
+    @children.add(child)
+  end
+
+  def hasDeclaration
+    (@parent && @parent.hasDeclaration) || super
+  end
+
+  def assignedValues(includeParent, includeChildren)
+    if includeParent || includeChildren
+      assignments = HashSet.new(super)
+      if @parent && includeParent
+        assignments.addAll(@parent.assignedValues(true, false))
+      end
+      if assignments.size > 0 && includeChildren
+        @children.each do |child|
+          assignments.addAll(LocalFuture(child).assignedValues(false, true))
+        end
+      end
+      Collection(assignments)
+    else
+      super
+    end
   end
 end

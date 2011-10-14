@@ -55,6 +55,15 @@ module Mirah
           @scoper.get_introduced_scope(node)
         end
 
+        def containing_scope(node)
+          scope = get_scope(node)
+          name = node.name.identifier
+          while (!scope.shadowed?(name) && scope.parent && scope.parent.include?(name))
+            scope = scope.parent
+          end
+          scope
+        end
+
         def inferred_type(node)
           @typer.get_inferred_type(node).resolve
         end

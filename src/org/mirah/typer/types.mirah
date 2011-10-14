@@ -127,8 +127,8 @@ interface TypeSystem do
   def get(scope:Scope, type:TypeRef):TypeFuture; end
   def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end
   def getMethodDefType(target:TypeFuture, name:String, argTypes:List):AssignableTypeFuture; end
-  def getFieldType(target:TypeFuture, name:String):AssignableTypeFuture; end
-  def getLocalType(scope:Scope, name:String):AssignableTypeFuture; end
+  def getFieldType(target:TypeFuture, name:String, position:Position):AssignableTypeFuture; end
+  def getLocalType(scope:Scope, name:String, position:Position):AssignableTypeFuture; end
   def getMainType(scope:Scope, script:Script):TypeFuture; end
   def getSuperClass(type:TypeFuture):TypeFuture; end
 

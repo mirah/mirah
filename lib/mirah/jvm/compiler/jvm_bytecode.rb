@@ -614,7 +614,7 @@ module Mirah
 
         def visitLocalDeclaration(local, expression)
           scope = get_scope(local)
-          if scope.captured?(local.name.identifier)
+          if scope.has_binding? && scope.captured?(local.name.identifier)
             captured_local_declare(scope, local.name.identifier, inferred_type(local))
           end
         end
@@ -631,10 +631,10 @@ module Mirah
           if expression
             set_position(local.position)
             scope = get_scope(local)
-            if scope.captured?(local.name.identifier)
+            if scope.has_binding? && scope.captured?(local.name.identifier)
               captured_local(scope, local.name.identifier, inferred_type(local))
             else
-              local(scope, local.name.identifier, inferred_type(local))
+              local(containing_scope(local), local.name.identifier, inferred_type(local))
             end
           end
         end
@@ -651,7 +651,7 @@ module Mirah
 
         def visitLocalAssignment(local, expression)
           scope = get_scope(local)
-          if scope.captured?(local.name.identifier)
+          if scope.has_binding? && scope.captured?(local.name.identifier)
             captured_local_assign(local, expression)
           else
             local_assign(local, expression)
@@ -661,7 +661,7 @@ module Mirah
         def local_assign(local, expression)
           name = local.name.identifier
           type = inferred_type(local)
-          scope = get_scope(local)
+          scope = containing_scope(local)
           declare_local(scope, name, type)
 
           visit(local.value, true)
