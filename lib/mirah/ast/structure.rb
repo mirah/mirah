@@ -176,16 +176,19 @@ module Mirah::AST
     end
 
     def add_methods(klass, binding, typer)
-      found_def = false
-      body.each do |node|
-        if node.kind_of?(MethodDefinition)
-          found_def = true
+      method_definitions = body.select{ |node| node.kind_of? MethodDefinition }
+      
+      if method_definitions.empty?
+        build_method(klass, binding, typer)
+      else
+        # TODO warn if there are non method definition nodes
+        # they won't be used at all currently--so it'd be nice to note that.
+        method_definitions.each do |node|
           node.static_scope = static_scope
           node.binding_type = binding
           klass.append_node(node)
         end
       end
-      build_method(klass, binding, typer) unless found_def
     end
 
     def build_method(klass, binding, typer)
