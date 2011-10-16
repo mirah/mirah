@@ -144,4 +144,17 @@ class TestMacros < Test::Unit::TestCase
     end
   end
 
+  def test_method_def_after_macro_def_with_same_name_raises_error
+    assert_raises Mirah::InferenceError do
+      compile(<<-EOF)
+        macro def foo
+          quote { puts :z }
+        end
+        def foo
+          :bar
+        end
+      EOF
+    end
+
+  end
 end

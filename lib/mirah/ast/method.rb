@@ -264,11 +264,16 @@ module Mirah::AST
         inferred_type = body ? typer.infer(body, body_is_expression) : typer.no_type
 
         if inferred_type && arguments.inferred_type.all?
-          actual_type = if forced_type.nil?
-            inferred_type
-          else
+          actual_type = if forced_type
             forced_type
+          else
+            inferred_type
           end
+          
+          if actual_type.kind_of? Mirah::AST::InlineCode
+            raise Mirah::Typer::InferenceError.new("Method %s has the same signature as macro of the same name." % name,self) 
+          end
+
           if actual_type.unreachable?
             actual_type = typer.no_type
           end
