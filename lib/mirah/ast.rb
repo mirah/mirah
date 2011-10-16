@@ -368,8 +368,8 @@ module Mirah
     end
 
     module Binding
-      def binding_type(duby=nil)
-        static_scope.binding_type(defining_class, duby)
+      def binding_type(mirah=nil)
+        static_scope.binding_type(defining_class, mirah)
       end
 
       def binding_type=(type)
