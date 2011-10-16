@@ -406,7 +406,7 @@ module Mirah
         Mirah::AST::Block.new(parent, position(node)) do |block|
           [
             args ? transformer.transform(args, block) : Mirah::AST::Arguments.new(block, position(node)),
-            body ? transformer.transform(body, block) : nil,
+            body ? transformer.transform(body, block) : Mirah::AST::Body.new(block, position(node)),
           ]
         end
       end

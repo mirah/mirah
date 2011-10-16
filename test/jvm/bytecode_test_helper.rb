@@ -120,7 +120,7 @@ module JVMCompiler
     compiler
   end
   
-  def compile(code, name = "script" + System.nano_time.to_s)
+  def compile(code, name = tmp_script_name)
     clear_tmp_files
     reset_type_factory
     
@@ -129,6 +129,10 @@ module JVMCompiler
     compiler = compile_ast ast
     
     generate_classes compiler
+  end
+  
+  def tmp_script_name
+    "script" + System.nano_time.to_s
   end
 end
 
