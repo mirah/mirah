@@ -156,12 +156,12 @@ module Mirah
         @self_node
       end
 
-      def binding_type(defining_class=nil, duby=nil)
+      def binding_type(defining_class=nil, mirah=nil)
         @binding_type ||= begin
           if parent
-            parent.binding_type(defining_class, duby)
+            parent.binding_type(defining_class, mirah)
           else
-            name = "#{defining_class.name}$#{duby.tmp}"
+            name = "#{defining_class.name}$#{mirah.tmp}"
             factory = Mirah::AST.type_factory
             if factory
               factory.declare_type(@scope_node, name)
