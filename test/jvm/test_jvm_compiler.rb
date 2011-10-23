@@ -2122,11 +2122,8 @@ class TestJVMCompiler < Test::Unit::TestCase
       a.foo
       a.bar
     end
-    begin
+    assert_raises java.lang.InstantiationException do
       abstract_class.new
-      fail "Expected InstantiationException"
-    rescue java.lang.InstantiationException
-      # expected
     end
   end
 

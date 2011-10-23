@@ -126,12 +126,10 @@ class TestRescue < Test::Unit::TestCase
     EOF
 
     assert_equal "x", cls.foo(true)
-    begin
+    ex = assert_raise NativeException do
       cls.foo(false)
-      fail
-    rescue java.lang.Exception => ex
-      assert_equal "java.lang.Exception: !x", ex.message
     end
+    assert_equal "java.lang.Exception: !x", ex.message
   end
 
   def test_empty_rescues
