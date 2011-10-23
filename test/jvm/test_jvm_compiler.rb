@@ -933,125 +933,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def test_rescue
-    cls, = compile(<<-EOF)
-      def foo
-        begin
-          puts "body"
-        rescue
-          puts "rescue"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal("body\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo
-        begin
-          puts "body"
-          raise
-        rescue
-          puts "rescue"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal("body\nrescue\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo(a:int)
-        begin
-          puts "body"
-          if a == 0
-            raise IllegalArgumentException
-          else
-            raise
-          end
-        rescue IllegalArgumentException
-          puts "IllegalArgumentException"
-        rescue
-          puts "rescue"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo(1)
-      cls.foo(0)
-    end
-    assert_equal("body\nrescue\nbody\nIllegalArgumentException\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo(a:int)
-        begin
-          puts "body"
-          if a == 0
-            raise IllegalArgumentException
-          elsif a == 1
-            raise Throwable
-          else
-            raise
-          end
-        rescue IllegalArgumentException, RuntimeException
-          puts "multi"
-        rescue Throwable
-          puts "other"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo(0)
-      cls.foo(1)
-      cls.foo(2)
-    end
-    assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo
-        begin
-          raise "foo"
-        rescue => ex
-          puts ex.getMessage
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal("foo\n", output)
-
-
-    cls, = compile(<<-EOF)
-      def foo(x:boolean)
-        throws Exception
-        if x
-          raise Exception, "x"
-        end
-      rescue Exception
-        "x"
-      else
-        raise Exception, "!x"
-      end
-    EOF
-
-    assert_equal "x", cls.foo(true)
-    begin
-      cls.foo(false)
-      fail
-    rescue java.lang.Exception => ex
-      assert_equal "java.lang.Exception: !x", ex.message
-    end
-  end
-
   def test_ensure
     cls, = compile(<<-EOF)
       def foo
@@ -2473,29 +2354,9 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
   end
 
-  def test_empty_rescues
-    cls, = compile(<<-EOF)
-      begin
-      rescue
-        nil
-      end
-    EOF
-
-    cls, = compile(<<-EOF)
-      begin
-        ""
-      rescue
-        nil
-      end
-      nil
-    EOF
-  end
-  
   def test_missing_class_with_block_raises_inference_error
     assert_raises Typer::InferenceError do
       compile("Interface Implements_Go do; end")
     end
   end
-
-
 end
