@@ -14,6 +14,13 @@
 # limitations under the License.
 
 class TestJVMCompiler < Test::Unit::TestCase
+  def assert_raise_java(type, message="")
+    ex = assert_raise(NativeException) do
+      yield
+    end
+    assert_equal type, ex.cause.class
+    assert_equal message, ex.cause.message.to_s
+  end
 
   def test_local
     cls, = compile("def foo; a = 1; a; end")
@@ -876,21 +883,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def assert_throw(type, message="")
-    ex = assert_raise(NativeException) do
-      yield
-    end
-    assert_equal type, ex.cause.class
-    assert_equal message, ex.cause.message.to_s
-  end
-
   def test_raise
     cls, = compile(<<-EOF)
       def foo
         raise
       end
     EOF
-    assert_throw(java.lang.RuntimeException) do
+    assert_raise_java(java.lang.RuntimeException) do
       cls.foo
     end
 
@@ -899,7 +898,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise "Oh no!"
       end
     EOF
-    ex = assert_throw(java.lang.RuntimeException, 'Oh no!') do
+    ex = assert_raise_java(java.lang.RuntimeException, 'Oh no!') do
       cls.foo
     end
 
@@ -908,7 +907,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise IllegalArgumentException
       end
     EOF
-    ex = assert_throw(java.lang.IllegalArgumentException) do
+    ex = assert_raise_java(java.lang.IllegalArgumentException) do
       cls.foo
     end
 
@@ -918,7 +917,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise Exception, "oops"
       end
     EOF
-    ex = assert_throw(java.lang.Exception, "oops") do
+    ex = assert_raise_java(java.lang.Exception, "oops") do
       cls.foo
     end
 
@@ -928,7 +927,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise Throwable.new("darn")
       end
     EOF
-    ex = assert_throw(java.lang.Throwable, "darn") do
+    ex = assert_raise_java(java.lang.Throwable, "darn") do
       cls.foo
     end
   end
@@ -2122,7 +2121,7 @@ class TestJVMCompiler < Test::Unit::TestCase
       a.foo
       a.bar
     end
-    assert_raises java.lang.InstantiationException do
+    assert_raise_java java.lang.InstantiationException do
       abstract_class.new
     end
   end
