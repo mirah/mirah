@@ -255,6 +255,7 @@ module Mirah::AST
           end
           signature[:return] = @return_type.type_reference(typer)
         end
+        
         if @exceptions
           signature[:throws] = @exceptions.map {|e| e.type_reference(typer)}
         end

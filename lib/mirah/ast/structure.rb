@@ -33,7 +33,6 @@ module Mirah::AST
           children[0..-2].each do |child|
             typer.infer(child, false)
           end
-          
           @inferred_type = typer.infer(children.last, expression)
         end
 

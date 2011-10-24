@@ -330,7 +330,7 @@ module Mirah
             end
           end
 
-          if @deferred_nodes.size == 0
+          if @deferred_nodes.empty?
             log "[Cycle #{i}]:  Resolved all types, exiting"
             break
           elsif old_deferred == @deferred_nodes
