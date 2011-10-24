@@ -220,6 +220,17 @@ class TestTyper < Test::Unit::TestCase
 
     assert_equal(typer.float_type, ast2.body[0].inferred_type)
   end
+  
+  def test_rescue_returning_different_type_raises_inference_error
+    ast = AST.parse("begin true; 1.0; rescue; ''; end").body[0]
+    typer = Typer::Simple.new("bar")
+
+    # raise when it is an expression
+    assert_raise(Typer::InferenceError) {ast.infer(typer, true)}
+    # don't raise when it was not an expression
+    assert_nothing_raised {ast.infer(typer, false)}
+  end
+
 
   def test_class
     ast = AST.parse("class Foo; def foo; 1; end; def baz; foo; end; end")

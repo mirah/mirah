@@ -149,5 +149,4 @@ class TestRescue < Test::Unit::TestCase
       nil
     EOF
   end
-  
 end
