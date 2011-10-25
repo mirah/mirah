@@ -221,13 +221,17 @@ class TestTyper < Test::Unit::TestCase
     assert_equal(typer.float_type, ast2.body[0].inferred_type)
   end
   
-  def test_rescue_returning_different_type_raises_inference_error
+  def test_rescue_w_different_type_raises_inference_error_when_expression
     ast = AST.parse("begin true; 1.0; rescue; ''; end").body[0]
     typer = Typer::Simple.new("bar")
 
-    # raise when it is an expression
-    assert_raise(Typer::InferenceError) {ast.infer(typer, true)}
-    # don't raise when it was not an expression
+    assert_raise(Mirah::InferenceError) {ast.infer(typer, true)}
+  end
+
+  def test_rescue_w_different_type_doesnt_raise_inference_error_when_statement
+    ast = AST.parse("begin true; 1.0; rescue; ''; end").body[0]
+    typer = Typer::Simple.new("bar")
+
     assert_nothing_raised {ast.infer(typer, false)}
   end
 
