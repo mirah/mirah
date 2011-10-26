@@ -2640,13 +2640,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     script, cls = compile(<<-EOF)
       package foo
       
-      # package foo.bar {
-      #   class PackagedBar
-      #     def self.dosomething
-      #       "bar"
-      #     end
-      #   end
-      # }
+      package foo.bar {
+        class PackagedBar
+          def self.dosomething
+            "bar"
+          end
+        end
+      }
       
       def dosomething
         "foo"
@@ -2658,8 +2658,8 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('foo', script.dosomething)
 
     # TODO move package to the parser so we can support blocks
-    # assert_equal('bar', cls.dosomething)
-    # assert_equal("foo.bar.PackagedBar", cls.java_class.name)
+    assert_equal('bar', cls.dosomething)
+    assert_equal("foo.bar.PackagedBar", cls.java_class.name)
   end
 
   def test_not

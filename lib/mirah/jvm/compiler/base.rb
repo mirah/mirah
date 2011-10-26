@@ -260,6 +260,10 @@ module Mirah
           end
         end
 
+        def visitPackage(node, expression)
+          visit(node.body, expression) if node.body
+        end
+
         def scoped_body(scope, expression)
           body(scope, expression)
         end

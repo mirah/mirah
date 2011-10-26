@@ -37,7 +37,7 @@ module Mirah::AST
     end
   end
 
-  class Node
+  module Node
     def expr?(compiler)
       true
     end

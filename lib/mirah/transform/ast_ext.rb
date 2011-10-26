@@ -29,7 +29,7 @@ module Mirah
     end
 
     def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
-      transformer ||= Transform::Transformer.new(Mirah::Util::CompilationState.new)
+      raise ArgumentError unless transformer
       parse_ruby(transformer, src, filename)
     end
     module_function :parse

@@ -29,7 +29,7 @@ module Mirah
       include Scope
 
       attr_reader :parent
-      attr_writer :self_type, :self_node, :package
+      attr_writer :self_type, :self_node
 
       def initialize(node, scoper, parent=nil)
         @scope_node = node
@@ -42,6 +42,7 @@ module Mirah
         @shadowed = {}
         @scoper = scoper
         @temps = Hash.new {|h,k| h[k] = -1}
+        @package_block = nil
       end
 
       def to_s
@@ -184,6 +185,18 @@ module Mirah
 
       def package
         @package || (outer_scope && outer_scope.package)
+      end
+
+      def package=(package)
+        raise ArgumentError, "Package already set to #{@package.inspect}" if @package
+        @package = package
+        if @package_block
+          @package_block.call
+        end
+      end
+
+      def on_package_change(&block)
+        @package_block = block
       end
 
       def fetch_imports(map)

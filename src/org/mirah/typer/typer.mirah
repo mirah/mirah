@@ -517,16 +517,16 @@ class Typer < SimpleNodeVisitor
     type
   end
 
-  def visitHash(hash, expression)
-    hashType = @types.getHashType
-    @futures[hash] = hashType
-    target = TypeRefImpl.new('mirah.impl.Builtin', false, true, hash.position)
-    call = Call.new(target, SimpleString.new('new_hash'), nil, nil)
-    hash.parent.replaceChild(hash, call)
-    call.parameters.add(hash)
-    infer(call, expression != nil)
-    hashType
-  end
+  # def visitHash(hash, expression)
+  #   hashType = @types.getHashType
+  #   @futures[hash] = hashType
+  #   target = TypeRefImpl.new('mirah.impl.Builtin', false, true, hash.position)
+  #   call = Call.new(target, SimpleString.new('new_hash'), nil, nil)
+  #   hash.parent.replaceChild(hash, call)
+  #   call.parameters.add(hash)
+  #   infer(call, expression != nil)
+  #   hashType
+  # end
 
   def visitRegex(regex, expression)
     regex.strings.each {|r| infer(r)}
@@ -632,12 +632,12 @@ class Typer < SimpleNodeVisitor
   def visitPackage(node, expression)
     if node.body
       scope = @scopes.addScope(node)
-      scope.parent = @scopes.getScope(node)
+      scope.package = node.name.identifier
       infer(node.body, false)
     else
       scope = @scopes.getScope(node)
+      scope.package = node.name.identifier
     end
-    scope.package = node.name.identifier
     @types.getVoidType()
   end
 

@@ -329,8 +329,16 @@ module Mirah::JVM::Types
     def declare_type(scope, name)
       full_name = name
       package = scope.package
-      if !name.include?('.') && package && !package.empty?
-        full_name = "#{package}.#{name}"
+      if !name.include?('.')
+        if package && !package.empty?
+          full_name = "#{package}.#{name}"
+        else
+          scope.on_package_change do
+            full_name = "#{scope.package}.#{name}"
+            scope.import(full_name, name)
+            @known_types[full_name] = @known_types[name]
+          end
+        end
       end
       if @known_types.include? full_name
         @known_types[full_name]

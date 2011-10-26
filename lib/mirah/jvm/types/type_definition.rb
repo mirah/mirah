@@ -19,7 +19,11 @@ module Mirah
           if @type
             @type.name.tr('/', '.')
           else
-            @name
+            if !@name.include?(?.) && scope.package
+              "#{scope.package}.#{@name}"
+            else
+              @name
+            end
           end
         end
 

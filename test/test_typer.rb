@@ -38,6 +38,7 @@ class TestTyper < Test::Unit::TestCase
   def setup
     @scopes = SimpleScoper.new
     @types = SimpleTypes.new('bar')
+    new_typer('bar')
   end
 
   def parse(text)
@@ -47,6 +48,8 @@ class TestTyper < Test::Unit::TestCase
   def new_typer(n)
     @types = SimpleTypes.new(n.to_s)
     @typer = Mirah::Typer::Typer.new(@types, @scopes)
+    @mirah = Transform::Transformer.new(Mirah::Util::CompilationState.new, @typer)
+    @typer
   end
 
   def inferred_type(node)
@@ -107,14 +110,14 @@ class TestTyper < Test::Unit::TestCase
     ast1 = parse("a = 1; a")
     infer(ast1)
 
-    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast1), 'a').resolve)
+    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast1), 'a', nil).resolve)
     assert_equal(@types.getFixnumType(1), inferred_type(ast1.body.get(0)))
     assert_equal(@types.getFixnumType(1), inferred_type(ast1.body.get(1)))
 
     ast2 = parse("b = a = 1")
     infer(ast2)
 
-    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast2), 'a').resolve)
+    assert_equal(@types.getFixnumType(1), @types.getLocalType(@scopes.getScope(ast2), 'a', nil).resolve)
     assert_equal(@types.getFixnumType(1), inferred_type(ast2.body.get(0)))
   end
 
@@ -146,7 +149,7 @@ class TestTyper < Test::Unit::TestCase
     inner_scope = @scopes.getScope(mdef.body)
 
 #    assert_equal(@types.getNullType, @types.getMethodType(type, 'foo', [@types.getStringType.resolve]).resolve)
-    assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a').resolve)
+    assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a', nil).resolve)
     assert_equal(@types.getNullType, inferred_type(mdef))
     assert_equal(@types.getStringType, inferred_type(mdef.arguments.required.get(0)))
 
@@ -157,7 +160,7 @@ class TestTyper < Test::Unit::TestCase
     inner_scope = @scopes.getScope(mdef.body)
 
     # assert_equal(@types.getStringType, @types.getMethodType(type, 'foo', [@types.getStringType.resolve]).resolve)
-    assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a').resolve)
+    assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a', nil).resolve)
     assert_equal(@types.getStringType, inferred_type(mdef))
     assert_equal(@types.getStringType, inferred_type(mdef.arguments.required.get(0)))
   end
