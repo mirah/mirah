@@ -159,10 +159,12 @@ class UnquoteAssign < NodeImpl
 end
 
 class MacroDefinition < NodeImpl
-  implements Named
+  implements Named, Annotated
   init_node do
     child name: Identifier
-    child_list arguments: Node
+    child arguments: Arguments
     child_list body: Node
+    child_list annotations: Annotation
+    attr_accessor isStatic: 'boolean'
   end
 end

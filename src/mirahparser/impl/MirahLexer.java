@@ -434,6 +434,9 @@ public class MirahLexer {
           if (string.startsWith("efined", i)) {
             type = Tokens.tDefined;
             i += 6;
+          } else if (string.startsWith("efmacro", i)) {
+            type = Tokens.tDefmacro;
+            i += 7;
           } else if (string.startsWith("ef", i)) {
             type = Tokens.tDef;
             i += 2;
@@ -493,7 +496,10 @@ public class MirahLexer {
           }
           break;
         case 'm':
-          if (string.startsWith("odule", i)) {
+          if (string.startsWith("acro", i)) {
+            type = Tokens.tMacro;
+            i += 4;
+          } else if (string.startsWith("odule", i)) {
             type = Tokens.tModule;
             i += 5;
           } else {

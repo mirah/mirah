@@ -196,7 +196,8 @@ parser MirahParser {
           | ($Import)=> primary2_import
           | ($Package)=> primary2_package
           | ($Def)=> primary2_def
-          | ($Dollar)=> (primary2_class | primary2_interface | primary2_def)
+          | ($Macro|$Defmacro)=> primary2_macro
+          | ($Dollar)=> (primary2_class | primary2_interface | primary2_def | primary2_macro)
           | ($Break)=> primary2_break
           | ($Next)=> primary2_next
           | ($Redo)=> primary2_redo
@@ -344,6 +345,19 @@ parser MirahParser {
              | -> ^(MethodDefinition name args type body annotations)
              )
            );
+  $Scope[@BEG]
+  $Returns[Node]
+  primary2_macro
+         : annotations=annotation_list
+           (t=$Defmacro! | t=$Macro! $Def) s=block_start(t)
+           isStatic=($Self dot_or_colon)?
+           name=fname!
+           ($LParen! opt_nl args=f_args opt_nl $RParen)?
+           (?{t == Tokens.tDefmacro} $Do)?
+           body=bodystmt! verify_end(s)! $End
+           node=-> ^(MacroDefinition name args body annotations)
+           {node.isStatic = (isStatic != null); node}
+         ;
   primary2_break: $Break -> ^(Break);
   primary2_next: $Next -> ^(Next);
   primary2_redo: $Redo -> ^(Redo);

@@ -588,15 +588,15 @@ EOF
     assert_parse("[Script, [[FieldAccess, [Unquote, [VCall, [SimpleString, a]]]]]]", "@`a`")
     assert_parse("[Script, [[FieldAssign, [Unquote, [VCall, [SimpleString, a]]], [Fixnum, 1], [AnnotationList]]]]", "@`a` = 1")
     assert_parse("[Script, [[UnquoteAssign, [Unquote, [VCall, [SimpleString, a]]], [VCall, [SimpleString, b]]]]]", "`a` = b")
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, macro], [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null," +
-                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, bar]]]]]], [AnnotationList]]], null]]]",
+    assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], null," +
+                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, bar]]]]]], [AnnotationList]]]]",
                  "macro def foo; quote {bar}; end")
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, macro], [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null," +
-                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, bar]]]]]], [AnnotationList]]], null]]]",
+    assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], null," +
+                                               " [[FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, bar]]]]]], [AnnotationList]]]]",
                  "macro def foo; quote do bar end; end")
-    assert_parse("[Script, [[FunctionalCall, [SimpleString, macro], [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null," +
+    assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], null," +
                                                " [[VCall, [SimpleString, bar]]," +
-                                                      " [FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, baz]]]]]], [AnnotationList]]], null]]]",
+                                                      " [FunctionalCall, [SimpleString, quote], [], [Block, null, [[VCall, [SimpleString, baz]]]]]], [AnnotationList]]]]",
                  "macro def foo; bar; quote do baz end; end")
    end
 
@@ -681,5 +681,16 @@ EOF
    def test_package
      assert_parse("[Script, [[Package, [SimpleString, foo], null]]]", 'package foo')
      assert_parse("[Script, [[Package, [SimpleString, bar], [[Fixnum, 1]]]]]", 'package bar { 1 }')
+   end
+
+   def test_macro
+     assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], null, [[Fixnum, 1]], [AnnotationList]]]]",
+                  "defmacro foo; 1; end")
+     # assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], null, [[Fixnum, 1]], [AnnotationList]]]]",
+     #              "defmacro foo do; 1; end")
+     assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], null, [[Fixnum, 1]], [AnnotationList]]]]",
+                  "macro def foo; 1; end")
+     assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [[Fixnum, 2]], [AnnotationList]]]]",
+                  "macro def foo(a); 2; end")
    end
 end
