@@ -892,20 +892,31 @@ parser MirahParser {
   def makeIdentifier(token:Token, offset=0, endOffset=0) {
     startPos = pos(token.startpos + offset)
     endPos = pos(token.endpos + endOffset)
-    position = PositionImpl.new(startPos.filename, startPos.line, startPos.col, endPos.line, endPos.col)
+    position = makePosition(startPos, endPos)
     makeIdentifier(position, token.text.substring(offset, token.text.length + endOffset))
   }
 
   def makePosition(token:Token) {
     startPos = pos(token.startpos)
     endPos = pos(token.endpos)
-    PositionImpl.new(startPos.filename, startPos.line, startPos.col, endPos.line, endPos.col)
+    makePosition(startPos, endPos)
   }
 
   def makePosition(startpos:int, endpos:int) {
     startPosition = tokenpos(startpos)
     endPosition = pos(endpos)
-    astPosition = PositionImpl.new(startPosition.filename, startPosition.line, startPosition.col, endPosition.line, endPosition.col)
+    makePosition(startPosition, endPosition)
+  }
+
+  def makePosition(startPos:Position, endPos:Position) {
+    startLine = startPos.line + @source.initialLine - 1
+    startCol = startPos.col
+    startCol += @source.initialColumn - 1 if startPos.line == 1
+    endLine = endPos.line + @source.initialLine - 1
+    endCol = endPos.col
+    endCol += @source.initialColumn - 1 if endPos.line == 1
+
+    PositionImpl.new(@source, startPos.pos, startLine, startCol, endPos.pos, endLine, endCol)
   }
 
   $Memo[Token]
@@ -921,8 +932,9 @@ parser MirahParser {
     token
   }
 
-  def parse(stream:InputStream) {
-    parse(MirahParser.readToString(stream))
+  def parse(codesource, rule) {
+    @source = CodeSource(codesource)
+    super(@source.contents, rule)
   }
 
   def self.readToString(stream:InputStream) {
@@ -937,20 +949,23 @@ parser MirahParser {
 
   def self.parse_args(args:String[]) {
     argc = args.length
+    source = CodeSource(null)
     if args[0].equals "-v"
       BaseParser.tracing = true
       argc -= 1
     elsif args[0].equals "--tree"
       BaseParser.debug_parse_tree = true
       argc -= 1
+    elsif args[0].equals "-e"
+      source = StringCodeSource.new("-e", args[1])
     end
-    if argc > 0
+    source ||= if argc > 0
       filename = args[args.length - 1]
-      stream = InputStream(FileInputStream.new(filename))
+      StreamCodeSource.new(filename)
     else
-      stream = System.in
+      StreamCodeSource.new('-', System.in)
     end
-    readToString(stream)
+    source
   }
 
   def self.main(args:String[]) {
@@ -1073,7 +1088,9 @@ parser MirahParser {
     pieces = fullname.identifier.split('\.')
     short = pieces[pieces.length - 1]
     start = fullname.position.endColumn - short.length
-    position = PositionImpl.new(fullname.position.filename, fullname.position.startLine, start, fullname.position.endLine, fullname.position.endColumn)
+    position = PositionImpl.new(fullname.position.source, fullname.position.startChar,
+                                fullname.position.startLine, start, fullname.position.endChar,
+                                fullname.position.endLine, fullname.position.endColumn)
     SimpleString.new(position, short)
   }
 

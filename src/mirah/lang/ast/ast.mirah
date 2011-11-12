@@ -7,10 +7,20 @@ import java.util.List
 import java.util.Iterator
 import org.mirahparser.ast.NodeMeta
 
+interface CodeSource do
+  def name:string; end
+  def initialLine:int; end
+  def initialColumn:int; end
+  def contents:String; end
+  def substring(start:int, end:int):String; end
+end
+
 interface Position do
-  def filename:string; end
+  def source:CodeSource; end
+  def startChar:int; end
   def startLine:int; end
   def startColumn:int; end
+  def endChar:int; end
   def endLine:int; end
   def endColumn:int; end
   def add(other:Position):Position; end
@@ -276,25 +286,64 @@ class TypeRefImpl < NodeImpl; implements TypeRef, TypeName
   end
 end
 
+class StringCodeSource; implements CodeSource
+  def initialize(name:String, code:String)
+    @name = name
+    @code = code
+    @startLine = 1
+    @startCol = 1
+  end
+  def initialize(name:String, code:String, startLine:int, startCol:int)
+    @name = name
+    @code = code
+    @startLine = startLine
+    @startCol = startCol
+  end
+  def name:String; @name; end
+  def contents; @code; end
+  def substring(startPos, endPos); @code.substring(startPos, endPos); end
+  def initialLine; @startLine; end
+  def initialColumn; @startCol; end
+end
+
+class StreamCodeSource < StringCodeSource
+  def initialize(filename:String)
+    super(filename, mirahparser::impl::MirahParser.readToString(
+        java::io::FileInputStream.new(filename)))
+  end
+  def initialize(name:String, stream:java::io::InputStream)
+    super(name, mirahparser::impl::MirahParser.readToString(stream))
+  end
+end
+
 class PositionImpl; implements Position
-  def initialize(filename:String, startLine:int, startColumn:int, endLine:int, endColumn: int)
-    @filename = filename
+  def initialize(source:CodeSource, startChar:int, startLine:int, startColumn:int,
+                 endChar:int, endLine:int, endColumn: int)
+    @source = source
+    @startChar = startChar
     @startLine = startLine
     @startColumn = startColumn
+    @endChar = endChar
     @endLine = endLine
     @endColumn = endColumn
   end
-  def filename:string; @filename; end
+  def source:CodeSource; @source; end
+  def startChar:int; @startChar; end
   def startLine:int; @startLine; end
   def startColumn:int; @startColumn; end
+  def endChar:int; @endChar; end
   def endLine:int; @endLine; end
   def endColumn:int; @endColumn; end
   def add(other:Position):Position
     return self unless other
-    if @filename.equals(other.filename)
+    if @source.equals(other.source)
       Position(PositionImpl.new(
-          @filename, Math.min(@startLine, other.startLine), Math.min(@startColumn, other.startColumn),
-          Math.max(@endLine, other.endLine), Math.max(@endColumn, other.endColumn)))
+          @source, Math.min(@startChar, other.startChar),
+          Math.min(@startLine, other.startLine),
+          Math.min(@startColumn, other.startColumn),
+          Math.max(@endChar, other.endChar),
+          Math.max(@endLine, other.endLine),
+          Math.max(@endColumn, other.endColumn)))
     else
       Position(self)
     end

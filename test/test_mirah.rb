@@ -8,6 +8,7 @@ class TestParsing < Test::Unit::TestCase
   java_import 'org.mirahparser.mmeta.BaseParser'
   java_import 'mirahparser.impl.MirahParser'
   java_import 'mirahparser.lang.ast.NodeScanner'
+  java_import 'mirahparser.lang.ast.StringCodeSource'
 
   class AstPrinter < NodeScanner
     def initialize
@@ -69,7 +70,9 @@ class TestParsing < Test::Unit::TestCase
   end
 
   def parse(text)
-    Java::MirahparserImpl::MirahParser.new.parse(text)
+    @count ||= 0
+    filename = "#{name}-#{@count += 1}"
+    MirahParser.new.parse(StringCodeSource.new(filename, text))
   end
 
   def assert_parse(expected, text)
@@ -137,6 +140,17 @@ EOF
     assert_equal(3, ast.position.start_column)
     assert_equal(2, ast.position.end_line)
     assert_equal(6, ast.position.end_column)
+    assert_equal("test_position(TestParsing)-1", ast.position.source.name)
+  end
+
+  def test_modified_position
+    ast = MirahParser.new.parse(
+        StringCodeSource.new("test_modified_position", "foo", 3, 5)).body.get(0)
+    assert_equal("foo", ast.name.identifier)
+    assert_equal(3, ast.position.start_line)
+    assert_equal(5, ast.position.start_column)
+    assert_equal(3, ast.position.end_line)
+    assert_equal(8, ast.position.end_column)
   end
 
   def test_symbol
