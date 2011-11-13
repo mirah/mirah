@@ -38,8 +38,6 @@ class Compile < Task
     
     handleOutput("compiling Mirah source in #{expand(@src)} to #{@target}")
     log("classpath: #{@classpath}", 3)
-    # JRuby wants to use the context classloader, but that's ant's
-    # classloader, not the one that contains JRuby.
     target = @target
     dir = @dir
     classpath = @classpath.toString
@@ -50,6 +48,8 @@ class Compile < Task
     exception = Exception(nil)
     
     t = Thread.new do
+      # JRuby wants to use the context classloader, but that's ant's
+      # classloader, not the one that contains JRuby.
       Thread.currentThread.setContextClassLoader(Compile.class.getClassLoader())
       args = ArrayList.new(
           ['--jvm', jvm_version,
