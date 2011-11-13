@@ -31,6 +31,7 @@ class Compile < Task
     @dir = '.'
     @bytecode = true
     @verbose = false
+    @jvm_version = '1.6'
   end
 
   def execute:void
@@ -44,13 +45,18 @@ class Compile < Task
     classpath = @classpath.toString
     src = @src
     bytecode = @bytecode
+    jvm_version = @jvm_version
     verbose = @verbose
     exception = Exception(nil)
-
+    
     t = Thread.new do
       Thread.currentThread.setContextClassLoader(Compile.class.getClassLoader())
       args = ArrayList.new(
-          ['-d', target, '--cd', dir, '-c', classpath, src])
+          ['--jvm', jvm_version,
+           '-d', target,
+           '--cd', dir,
+           '-c', classpath,
+           src])
       args.add(0, '--java') unless bytecode
       args.add(0, '-V') if verbose
 
@@ -96,6 +102,10 @@ class Compile < Task
 
   def setVerbose(verbose:boolean):void
     @verbose = verbose
+  end
+  
+  def setJvmVersion(version:String):void
+    @jvm_version = version
   end
 
   def createClasspath
