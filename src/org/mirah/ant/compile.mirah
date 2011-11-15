@@ -104,7 +104,7 @@ class Compile < Task
     @verbose = verbose
   end
   
-  def setJvmVersion(version:String):void
+  def setJvmversion(version:String):void
     @jvm_version = version
   end
 
