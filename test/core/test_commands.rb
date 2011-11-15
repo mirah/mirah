@@ -60,10 +60,8 @@ class TestCommands < Test::Unit::TestCase
     end
   end
   
-  def test_success_returns_zero_exit_code
-    assert_zero_exit do
-      SuccessfulCommand.new([]).execute
-    end
+  def test_success_doesnt_raise_system_exit
+    SuccessfulCommand.new([]).execute
   end
   
   def test_process_errors_causes_a_non_zero_exit
@@ -77,13 +75,6 @@ class TestCommands < Test::Unit::TestCase
       yield
     end
     assert_not_equal 0, ex.status
-  end
-
-  def assert_zero_exit
-    ex = assert_raise SystemExit do
-      yield
-    end
-    assert_equal 0, ex.status
   end
 
 end

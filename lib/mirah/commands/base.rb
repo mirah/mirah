@@ -50,7 +50,7 @@ module Mirah
           end
           0
         end
-        exit (status || 0)
+        exit status if status > 0
       end
     end
   end
