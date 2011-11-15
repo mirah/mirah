@@ -60,8 +60,8 @@ class TestCommands < Test::Unit::TestCase
     end
   end
   
-  def test_success_doesnt_raise_system_exit
-    SuccessfulCommand.new([]).execute
+  def test_success_is_truthy
+    assert SuccessfulCommand.new([]).execute, "expected it to be truthy"
   end
   
   def test_process_errors_causes_a_non_zero_exit

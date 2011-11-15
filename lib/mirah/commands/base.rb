@@ -51,6 +51,7 @@ module Mirah
           0
         end
         exit status if status > 0
+        true
       end
     end
   end
