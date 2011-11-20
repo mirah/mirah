@@ -1,3 +1,43 @@
+=== 0.0.10 / 2011-11-20
+
+f6035d0 set version to 0.0.10
+3b06353 use test_helper in gwt test
+4d29eeb turns out a number of things rely on MirahCommands being truthy on success
+46e6719 fixes 156 for real, also do the ant lowercase thing
+9e40121 don't exit on successful compile
+1155765 move comment about class loader to line it refers to
+985c70f add jvm_version option to Compile ant task w/ 1.6 default
+e5a60b2 replace duby with mirah in lib/mirah/ast/flow.rb
+5690e6f split rescue error tests to deal w/ caching expression value
+1f77ed8 add some white space, use #empty? instead of size==0
+677e4aa fixes #52 by raising an inference error when types arent compat
+81be877 add assert_raise_java to get around the NativeException thing
+d744f44 use assert_raise instead of begin;fail/rescue
+05afc6e pull out rescue tests for jvm into separate file
+7a933f3 raise an inference error when method has same name as macro. fixes #123
+6517a90 clean up the Block#add_methods method a bit
+0a826dd ensure that a block body is created even when the block is empty
+d8b0641 change duby to mirah in Binding#binding_type
+47883e9 change duby to mirah in StaticScope#binding_type
+8f3fddf Fix whitespace.
+74b6195 use turn for prettying up test output
+23d0693 add license header to test_macros
+143ac6c add a test_helper to put global test config in
+6fe3241 fix #149 exit 1 when there are errors
+31074c6 fix #146 by not reassigning self to Builtin
+8fb471e s/duby/mirah/ in jvm types intrinsics
+ff06791 s/qote/quote/
+972a9f9 refactor void checking on method return into method
+605c377 fix #148 in the simplest way possible
+f1b5c19 fix inspect_children typo
+4140fa7 use case statements instead of === & if elses in UnquotedValueAssign#node
+b82bbeb in Node#inspect_children, replace if elses w/ a case statement
+049a4cf clean up body inference a little
+d9e92b4 Merge remote branch 'thomaslee/master' into thomaslee
+0c72195 fix name of compilation test
+cfbf4c5 bump versions to 0.0.10{.dev,-SNAPSHOT}
+8c0ecec Fix test_empty_array.
+
 === 0.0.9 / 2011-09-12
 
 a5963ef use self hosted classloader fixes #144
