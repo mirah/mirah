@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'test/unit'
-require 'mirah'
-require 'jruby'
+require 'test_helper'
 
 class TestGWT < Test::Unit::TestCase
   include Mirah::AST
