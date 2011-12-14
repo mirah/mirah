@@ -344,7 +344,7 @@ module Mirah
           if types.any? {|t| t.nil?}
             typer.defer(self)
           else
-            if !expression || clause_types.all?{ |t| primary_type.compatible? t}
+            if !expression || primary_type.nil? || clause_types.all?{ |t| primary_type.compatible? t}
               resolved!
               types.each do |type|
                 @inferred_type ||= type unless type.unreachable?
