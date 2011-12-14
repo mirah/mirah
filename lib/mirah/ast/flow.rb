@@ -373,7 +373,7 @@ module Mirah
       def infer(typer, expression)
         resolve_if(typer) do
           typer.infer(clause, false)
-          typer.infer(body, true)
+          typer.infer(body, false)
         end
       end
     end
