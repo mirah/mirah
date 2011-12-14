@@ -130,6 +130,22 @@ class TestRescue < Test::Unit::TestCase
       cls.foo(false)
     end
     assert_equal "java.lang.Exception: !x", ex.message
+
+    cls, = compile(<<-EOF)
+      def foo:long
+        begin
+          return bar
+        rescue Exception => e
+          return long(0)
+        end
+      end
+
+      def bar
+        long(1)
+      end
+    EOF
+
+    assert_equal 1, cls.foo
   end
 
   def test_empty_rescues
@@ -147,6 +163,21 @@ class TestRescue < Test::Unit::TestCase
         nil
       end
       nil
+    EOF
+
+    cls, = compile(<<-EOF)
+      def empty_with_ensure
+        begin
+          i = 0
+          while i < 10
+            i += 1
+          end
+        rescue
+        ensure
+          puts 'ensuring'
+        end
+        ""
+      end
     EOF
   end
 end
