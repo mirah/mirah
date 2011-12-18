@@ -60,12 +60,8 @@ module Mirah
     end
     
     def parse_and_transform(filename, src)
-      parser_ast = Mirah::AST.parse_ruby(src, filename)
-      
-      transformer.filename = filename
-      mirah_ast = transformer.transform(parser_ast, nil)
+      mirah_ast = AST.parse src, filename, false, transformer
       process_errors(transformer.errors)
-      
       mirah_ast
     end
       
