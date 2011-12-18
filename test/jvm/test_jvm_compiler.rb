@@ -345,14 +345,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("Hello World!", output)
   end
 
-  def test_constructor
-    cls, = compile(
-        "class InitializeTest;def initialize;puts 'Constructed';end;end")
-    assert_output("Constructed\n") do
-      cls.new
-    end
-  end
-
   def test_method
     # TODO auto generate a constructor
     cls, = compile(
@@ -1396,57 +1388,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal([nil, "x", nil], f.a.to_a)
   end
 
-  def test_constructor_chaining
-    foo, = compile(<<-EOF)
-      class Foo5
-        def initialize(s:String)
-          initialize(s, "foo")
-        end
-
-        def initialize(s:String, f:String)
-          @s = s
-          @f = f
-        end
-
-        def f
-          @f
-        end
-
-        def s
-          @s
-        end
-      end
-    EOF
-
-    instance = foo.new("S")
-    assert_equal("S", instance.s)
-    assert_equal("foo", instance.f)
-
-    instance = foo.new("foo", "bar")
-    assert_equal("foo", instance.s)
-    assert_equal("bar", instance.f)
-  end
-
-  def test_super_constructor
-    sc_a, sc_b = compile(<<-EOF)
-      class SC_A
-        def initialize(a:int)
-          puts "A"
-        end
-      end
-
-      class SC_B < SC_A
-        def initialize
-          super(0)
-          puts "B"
-        end
-      end
-    EOF
-
-    assert_output("A\nB\n") do
-      sc_b.new
-    end
-  end
 
   def test_literal_array
     cls, = compile(<<-EOF)
@@ -1503,15 +1444,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal java.lang.String.java_class.array_class, cls.split.class.java_class
   end
 
-  def test_empty_constructor
-    foo, = compile(<<-EOF)
-      class Foo6
-        def initialize; end
-      end
-    EOF
-    foo.new
-  end
-
   def test_same_field_name
     cls, = compile(<<-EOF)
       class A1
@@ -1544,15 +1476,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     obj = cls.new
     assert obj.equals(obj)
     assert !obj.equals(cls.new)
-  end
-
-  def test_inexact_constructor
-    # FIXME: this is a stupid test
-    cls, = compile(
-        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; puts 'ok'; end; end")
-    assert_output("ok\n") do
-      cls.empty_empty
-    end
   end
 
   def test_method_lookup_with_overrides
@@ -1902,22 +1825,6 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     subset = cls.foo
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
-  end
-
-  def test_default_constructor
-    script, cls = compile(<<-EOF)
-      class DefaultConstructable
-        def foo
-          "foo"
-        end
-      end
-
-      print DefaultConstructable.new.foo
-    EOF
-
-    assert_output("foo") do
-      script.main(nil)
-    end
   end
 
   def test_class_literal
