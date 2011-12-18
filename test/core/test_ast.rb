@@ -375,4 +375,8 @@ class TestAst < Test::Unit::TestCase
       AST.parse("puts( 'aoue'")
     end
   end
+  
+  def test_parsing_empty_string_raises_no_error
+    AST.parse("")
+  end
 end
