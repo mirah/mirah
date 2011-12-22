@@ -17,11 +17,11 @@ require 'java'
 require 'mirah'
 
 java_import 'java.util.List'
-java_import 'java.lang.Exception'
-java_import 'java.lang.System'
 
 java_package "org.mirah"
 class MirahCommand
+  java_import java.lang.System
+  
   java_signature "void main(String[])"
   def self.main(args)
     rb_args = args.to_a
