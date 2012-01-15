@@ -15,20 +15,7 @@
 
 require 'bitescript'
 require 'mirah/jvm/types/enumerable'
-
-class BiteScript::MethodBuilder
-  def op_to_bool
-    done_label = label
-    true_label = label
-
-    yield(true_label)
-    iconst_0
-    goto(done_label)
-    true_label.set!
-    iconst_1
-    done_label.set!
-  end
-end
+require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
   class Type

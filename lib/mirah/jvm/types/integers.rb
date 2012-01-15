@@ -13,20 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class BiteScript::MethodBuilder
-  def inot
-    iconst_m1
-    ixor
-  end
-  
-  def lnot
-    # TODO would any of these be faster?
-    #   iconst_m1; i2l
-    #   lconst_1; lneg
-    ldc_long(-1)
-    ixor
-  end
-end
+require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
   class IntegerType < Number
