@@ -2262,4 +2262,18 @@ class TestJVMCompiler < Test::Unit::TestCase
       compile("Interface Implements_Go do; end")
     end
   end
+  
+  def test_bool_equality
+    cls, = compile("puts true == false")
+    assert_output("false\n") do
+      cls.main(nil)
+    end
+  end
+  
+  def test_bool_inequality
+    cls, = compile("puts true != false")
+    assert_output("true\n") do
+      cls.main(nil)
+    end
+  end
 end

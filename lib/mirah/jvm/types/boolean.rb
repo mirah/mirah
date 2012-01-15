@@ -28,5 +28,38 @@ module Mirah::JVM::Types
       builder.invokestatic box_type, "valueOf", [box_type, self]
     end
 
+    def add_intrinsics
+      args = [math_type]
+      add_method('==', args, ComparisonIntrinsic.new(self, '==', :eq, args))
+      add_method('!=', args, ComparisonIntrinsic.new(self, '!=', :ne, args))
+    end
+    
+    def math_type
+      Boolean
+    end
+    
+    # same as NumberType's
+    def compile_boolean_operator(compiler, op, negated, call, label)
+      # Promote the target or the argument if necessary
+      convert_args(compiler,
+                   [call.target, *call.parameters],
+                   [math_type, math_type])
+      if negated
+        op = invert_op(op)
+      end
+      if label
+        jump_if(compiler.method, op, label)
+      else
+        compiler.method.op_to_bool do |label|
+          jump_if(compiler.method, op, label)
+        end
+      end
+    end
+
+    # Same as IntegerType's
+    # bools are ints for comparison purposes
+    def jump_if(builder, op, label)
+      builder.send "if_icmp#{op}", label
+    end
   end
 end
