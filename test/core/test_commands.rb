@@ -54,6 +54,11 @@ class TestCommands < Test::Unit::TestCase
     end
   end
   
+  def test_on_v_with_no_args_exits_without_running_command
+    assert RaisesMirahErrorCommand.new(['-v']).execute
+  end
+    
+  
   def test_on_j_option_when_command_is_not_compile_has_non_zero_exit_code
     assert_non_zero_exit do
       RaisesMirahErrorCommand.new(['-j']).execute

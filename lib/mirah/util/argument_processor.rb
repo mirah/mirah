@@ -43,7 +43,7 @@ module Mirah
             Mirah::AST::Script.explicit_packages = true
           when '--help', '-h'
             print_help
-            throw :exit
+            throw :exit, 0
           when '--java', '-j'
             if state.command == :compile
               require 'mirah/jvm/compiler/java_source'
@@ -73,6 +73,7 @@ module Mirah
           when '--version', '-v'
             args.shift
             print_version
+            throw :exit, 0 if args.empty?
           when '--no-save-extensions'
             args.shift
             state.save_extensions = false
