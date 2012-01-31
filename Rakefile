@@ -39,7 +39,7 @@ def run_tests tests
     rescue Exception
     end
   end
-  
+
   tests.zip(results).each do |name, passed|
     unless passed
       puts "Errors in #{name}"
@@ -47,7 +47,7 @@ def run_tests tests
   end
   fail if results.any?{|passed|!passed}
 end
-  
+
 desc "run full test suite"
 task :test do
   run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
@@ -60,7 +60,7 @@ namespace :test do
     t.test_files = FileList["test/core/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
-  
+
   desc "run tests for plugins"
   Rake::TestTask.new :plugins do |t|
     t.libs << 'test'
@@ -72,7 +72,7 @@ namespace :test do
   task :jvm do
     run_tests ["test:jvm:bytecode", "test:jvm:javac"]
   end
-  
+
   namespace :jvm do
     desc "run jvm tests compiling to bytecode"
     Rake::TestTask.new :bytecode do |t|
@@ -81,7 +81,7 @@ namespace :test do
       t.test_files = FileList["test/jvm/**/*test.rb"]
       java.lang.System.set_property("jruby.duby.enabled", "true")
     end
-    
+
     desc "run jvm tests compiling to java source, then bytecode"
     Rake::TestTask.new :javac do |t|
       t.libs << 'test' <<'test/jvm'
@@ -89,7 +89,7 @@ namespace :test do
       t.test_files = FileList["test/jvm/**/*test.rb"]
       java.lang.System.set_property("jruby.duby.enabled", "true")
     end
-    
+
   end
 end
 
@@ -132,11 +132,12 @@ task :compile => :init do
       'mirah'
       )
   end
-  
+
   # compile invokedynamic stuff
   ant.javac :destdir => 'build', :srcdir => 'src',
     :includes => 'org/mirah/DynalangBootstrap.java',
-    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar'
+    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar',
+    :includeantruntime => false
 end
 
 desc "build basic jar for distribution"
