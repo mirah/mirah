@@ -47,8 +47,4 @@ $ gem install pkg/mirah-*.gem
 
 == For Java tools:
 
-To build the Mirah jars from source you should have a checkout of both jruby and
-bitescript in Mirah's parent directory. Run "ant jar-complete" in jruby, then in
-the mirah directory "../jruby/bin/jruby -S rake jar" to build the Mirah jar. Use
-"jar:complete" instead to produce a free-standing jar file with JRuby and the
-JRubyParser libraries included.
+To build the Mirah jar from source run "rake jar" in the mirah directory.
