@@ -13,6 +13,7 @@ module Mirah
       def initialize(transformer)
         @transformer = transformer
       end
+
       def warning(messages, positions)
         print "Warning: "
         messages.each_with_index do |message, i|
@@ -43,6 +44,10 @@ module Mirah
       begin
         parser.parse(src)
       rescue => ex
+        if ex.cause.kind_of? Java::Jmeta::SyntaxError
+          ex = SyntaxError.wrap ex.cause, nil
+        end
+
         if ex.cause.respond_to? :position
           position = ex.cause.position
           Mirah.print_error(ex.cause.message, position)

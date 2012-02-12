@@ -46,19 +46,19 @@ module Mirah::AST
     end
 
     def self.__extracted
-      Thread.current[:'Mirah::AST::Unqote.extracted']
+      Thread.current[:'Mirah::AST::Unquote.extracted']
     end
 
     def self.__extracted=(value)
-      Thread.current[:'Mirah::AST::Unqote.extracted'] = value
+      Thread.current[:'Mirah::AST::Unquote.extracted'] = value
     end
 
     def self.__injected
-      Thread.current[:'Mirah::AST::Unqote.injected']
+      Thread.current[:'Mirah::AST::Unquote.injected']
     end
 
     def self.__injected=(value)
-      Thread.current[:'Mirah::AST::Unqote.injected'] = value
+      Thread.current[:'Mirah::AST::Unquote.injected'] = value
     end
 
     def self.extract_values
@@ -201,28 +201,43 @@ module Mirah::AST
     end
 
     def node
-      klass = LocalAssignment
-      if Field === name_node
-        name = name_node.name
-        klass = FieldAssignment
-      # TODO support AttrAssign
-      elsif Named === name_node
-        name = name_node.name
-      elsif String === name_node
-        name = name_node.literal
-      elsif ::String === name_node
-        name = name_node
+      name_node = case self.name_node
+      when ScopedBody
+        scope = name_node
+        scope.children[0]
       else
-        raise "Bad unquote value"
+        self.name_node
       end
+      
+      klass = LocalAssignment
+      name = case name_node
+        when Field
+        # TODO support AttrAssign
+          klass = FieldAssignment
+          name_node.name
+        when Named
+          name_node.name
+        when String
+          name_node.literal
+        else
+          raise "Bad unquote value"
+        end
+        
       if name[0] == ?@
         name = name[1, name.length]
         klass = FieldAssignment
       end
+      
       n = klass.new(nil, position, name)
       n << value
       n.validate_children
-      return n
+      
+      if scope
+        scope.children.clear
+        scope << n
+      else
+        n
+      end
     end
 
     def f_arg
@@ -352,7 +367,7 @@ module Mirah::AST
       compiler.generate do |outfile, builder|
         bytes = builder.generate
         name = builder.class_name.gsub(/\//, '.')
-        class_map[name] = bytes
+        class_map[name] = Mirah::Util::ClassLoader.binary_string bytes
         if transformer.state.save_extensions
           outfile = "#{transformer.destination}#{outfile}"
           FileUtils.mkdir_p(File.dirname(outfile))

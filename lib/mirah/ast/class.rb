@@ -54,6 +54,10 @@ module Mirah::AST
         interfaces.add(type)
       end
     end
+
+    def top_level?
+      true
+    end
   end
 
   class InterfaceDeclaration

@@ -12,12 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-require 'test/unit'
-
-$:.unshift File.join(File.dirname(__FILE__),'..','lib')
-
-require 'mirah'
+require 'test_helper'
 
 class TestTyper < Test::Unit::TestCase
   include Mirah
@@ -251,6 +246,19 @@ class TestTyper < Test::Unit::TestCase
 
     assert_no_errors(typer, ast)
   end
+  
+  def test_rescue_w_different_type_raises_inference_error_when_expression
+    ast = parse("begin true; 1.0; rescue; ''; end")
+
+    assert_raise(Mirah::InferenceError) {infer(ast)}
+  end
+
+  def test_rescue_w_different_type_doesnt_raise_inference_error_when_statement
+    ast = parse("begin true; 1.0; rescue; ''; end")
+
+    assert_nothing_raised {infer(ast)}
+  end
+
 
   def test_colon2
     ast = parse("java::lang::System.out")

@@ -67,11 +67,11 @@ end
 
 module Mirah::JVM::Compiler
   class Base
+    alias :original_create_method_builder :create_method_builder
     # arg_types must be an Array
     def create_method_builder(name, node, static, exceptions, return_type, arg_types)
       unless node.class == Mirah::AST::JsniMethodDefinition
-        @class.build_method(name.to_s, node.visibility, static,
-          exceptions, return_type, *arg_types)
+        original_create_method_builder(name, node, static, exceptions, return_type, arg_types)
       else
         @class.build_jsni_method(name.to_s, node.visibility, static,
           exceptions, return_type, *arg_types)

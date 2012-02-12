@@ -13,11 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import org.apache.tools.ant.BuildException
 import org.apache.tools.ant.Task
 import org.apache.tools.ant.types.Path
 import org.apache.tools.ant.types.Reference
-import java.io.File
+
 import org.mirah.MirahCommand
+
+import java.io.File
 import java.util.ArrayList
 
 class Compile < Task
@@ -28,36 +31,49 @@ class Compile < Task
     @dir = '.'
     @bytecode = true
     @verbose = false
+    @jvm_version = '1.6'
   end
 
   def execute:void
     
-    handleOutput("compiling Duby source in #{expand(@src)} to #{@target}")
+    handleOutput("compiling Mirah source in #{expand(@src)} to #{@target}")
     log("classpath: #{@classpath}", 3)
-    # JRuby wants to use the context classloader, but that's ant's
-    # classloader, not the one that contains JRuby.
     target = @target
     dir = @dir
     classpath = @classpath.toString
     src = @src
     bytecode = @bytecode
+    jvm_version = @jvm_version
     verbose = @verbose
     exception = Exception(nil)
+    
     t = Thread.new do
+      # JRuby wants to use the context classloader, but that's ant's
+      # classloader, not the one that contains JRuby.
       Thread.currentThread.setContextClassLoader(Compile.class.getClassLoader())
       args = ArrayList.new(
-          ['-d', target, '--cd', dir, '-c', classpath, src])
+          ['--jvm', jvm_version,
+           '-d', target,
+           '--cd', dir,
+           '-c', classpath,
+           src])
       args.add(0, '--java') unless bytecode
       args.add(0, '-V') if verbose
+
+      # scoping hack
+      inner_exception = Exception(nil)
       begin
         MirahCommand.compile(args)
       rescue => ex
-        exception = ex
-      end
+        inner_exception = ex
+      end      
+      # scoping hack
+      exception = inner_exception
     end
     t.start
     t.join
-    raise exception if exception
+    
+    raise BuildException.new(exception) if exception
   end
 
   def setSrc(a:File):void
@@ -86,6 +102,10 @@ class Compile < Task
 
   def setVerbose(verbose:boolean):void
     @verbose = verbose
+  end
+  
+  def setJvmversion(version:String):void
+    @jvm_version = version
   end
 
   def createClasspath

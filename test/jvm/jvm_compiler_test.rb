@@ -13,84 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-$:.unshift File.join(File.dirname(__FILE__),'..','lib')
-
-require 'test/unit'
-require 'mirah'
-require 'jruby'
-require 'stringio'
-require 'fileutils'
-
-# unless Mirah::AST.macro "__gloop__"
-#   Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|
-#     Mirah::AST::Loop.new(parent, parent.position, true, false) do |loop|
-#       init, condition, check_first, pre, post = fcall.parameters
-#       loop.check_first = check_first.literal
-# 
-#       nil_t = Mirah::AST::Null
-#       loop.init = init
-#       loop.pre = pre
-#       loop.post = post
-# 
-#       body = fcall.block.body
-#       body.parent = loop
-#       [
-#         Mirah::AST::Condition.new(loop, parent.position) do |c|
-#           condition.parent = c
-#           [condition]
-#         end,
-#         body
-#       ]
-#     end
-#   end
-# end
-
 class TestJVMCompiler < Test::Unit::TestCase
-  include Mirah
-  import java.lang.System
-  import java.io.PrintStream
-
-  def setup
-    @tmp_classes = []
-  end
-
-  def teardown
-    File.unlink(*@tmp_classes)
-  end
-
-  def assert_include(value, array, message=nil)
-    message = build_message message, '<?> does not include <?>', array, value
-    assert_block message do
-      array.include? value
+  def assert_raise_java(type, message="")
+    ex = assert_raise(NativeException) do
+      yield
     end
-  end
-
-  def compile(code)
-    File.unlink(*@tmp_classes)
-    @tmp_classes.clear
-    name = "script" + System.nano_time.to_s
-    state = Mirah::Util::CompilationState.new
-    state.save_extensions = false
-    generator = Mirah::Generator.new(state, JVM::Compiler::JVMBytecode, false, false)
-    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
-    #Java::MirahImpl::Builtin.initialize_builtins(transformer)
-    ast  = [AST.parse(code, name, true, transformer)]
-    scoper, typer = generator.infer_asts(ast, true)
-    compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
-    classes = {}
-    compiler_results.each do |result|
-      FileUtils.mkdir_p(File.dirname(result.filename))
-      File.open(result.filename, 'wb') {|f| f.write(result.bytes)}
-      classes[result.filename[0..-7]] = result.bytes
-    end
-    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
-
-    classes.keys.map do |name|
-      cls = loader.load_class(name.tr('/', '.'))
-      proxy = JavaUtilities.get_proxy_class(cls.name)
-      @tmp_classes << "#{name}.class"
-      proxy
-    end
+    assert_equal type, ex.cause.class
+    assert_equal message, ex.cause.message.to_s
   end
 
   def test_local
@@ -317,7 +246,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     assert_output("Hello there\n") { cls.foo }
 
-    script, a, b = compile(<<-EOF)
+    a, b = compile(<<-EOF)
       class VoidBase
         def foo
           returns void
@@ -335,7 +264,6 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
-
     assert_output("foo\nbar\n") { b.foobar }
 
   end
@@ -390,24 +318,17 @@ class TestJVMCompiler < Test::Unit::TestCase
     foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
   end
-
-  def capture_output
-    saved_output = System.out
-    output = StringIO.new
-    System.setOut(PrintStream.new(output.to_outputstream))
-    begin
-      yield
-      output.rewind
-      output.read
-    ensure
-      System.setOut(saved_output)
-    end
+  
+  def test_class_name_from_file_with_underscore
+    foo, = compile("puts 'blah'", 'class_name_test.mirah')
+    assert_equal('ClassNameTest', foo.java_class.name)
   end
-
-  def assert_output(expected, &block)
-    assert_equal(expected, capture_output(&block))
+  
+  def test_class_name_from_file_with_dash
+    foo, = compile("puts 'blah'", 'class-dash-test.mirah')
+    assert_equal('ClassDashTest', foo.java_class.name)
   end
-
+  
   def test_puts
     cls, = compile("def foo;puts 'Hello World!';end")
     output = capture_output do
@@ -422,14 +343,6 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("Hello World!", output)
-  end
-
-  def test_constructor
-    cls, = compile(
-        "class InitializeTest;def initialize;System.out.println 'Constructed';end;end")
-    assert_output("Constructed\n") do
-      cls.new
-    end
   end
 
   def test_method
@@ -630,6 +543,32 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(
         'def foo; a = 0; while a < 2; a+=1; end; end')
     assert_equal(nil, cls.foo)
+
+    # TODO: loop doesn't work unless you're explicitly in a class
+    # cls, = compile(<<-EOF)
+    #   def bar(a:fixnum)
+    #     loop do
+    #       a += 1
+    #       break if a > 2
+    #     end
+    #     a
+    #   end
+    # EOF
+    # assert_equal(3, cls.bar(0))
+
+    loopy, = compile(<<-EOF)
+    class Loopy
+      def bar(a:fixnum)
+        loop do
+          a += 1
+          break if a > 2
+        end
+        a
+      end
+    end
+    EOF
+
+    assert_equal(3, loopy.new.bar(0))
   end
 
   def test_break
@@ -845,7 +784,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_implements
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       import java.lang.Iterable
       class Foo implements Iterable
         def iterator
@@ -893,16 +832,16 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_interface_declaration
-    script, interface = compile('interface A do; end')
+    interface = compile('interface A do; end').first
     assert(interface.java_class.interface?)
     assert_equal('A', interface.java_class.name)
 
-    script, a, b = compile('interface A do; end; interface B < A do; end')
+    a, b = compile('interface A do; end; interface B < A do; end')
     assert_include(a, b.ancestors)
     assert_equal('A', a.java_class.name)
     assert_equal('B', b.java_class.name)
 
-    script, a, b, c = compile(<<-EOF)
+    a, b, c = compile(<<-EOF)
       interface A do
       end
 
@@ -936,21 +875,13 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def assert_throw(type, message="")
-    ex = assert_raise(NativeException) do
-      yield
-    end
-    assert_equal type, ex.cause.class
-    assert_equal message, ex.cause.message.to_s
-  end
-
   def test_raise
     cls, = compile(<<-EOF)
       def foo
         raise
       end
     EOF
-    assert_throw(java.lang.RuntimeException) do
+    assert_raise_java(java.lang.RuntimeException) do
       cls.foo
     end
 
@@ -959,7 +890,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise "Oh no!"
       end
     EOF
-    ex = assert_throw(java.lang.RuntimeException, 'Oh no!') do
+    ex = assert_raise_java(java.lang.RuntimeException, 'Oh no!') do
       cls.foo
     end
 
@@ -968,7 +899,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise IllegalArgumentException
       end
     EOF
-    ex = assert_throw(java.lang.IllegalArgumentException) do
+    ex = assert_raise_java(java.lang.IllegalArgumentException) do
       cls.foo
     end
 
@@ -978,7 +909,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise Exception, "oops"
       end
     EOF
-    ex = assert_throw(java.lang.Exception, "oops") do
+    ex = assert_raise_java(java.lang.Exception, "oops") do
       cls.foo
     end
 
@@ -988,127 +919,9 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise Throwable.new("darn")
       end
     EOF
-    ex = assert_throw(java.lang.Throwable, "darn") do
+
+    assert_raise_java(java.lang.Throwable, "darn") do
       cls.foo
-    end
-  end
-
-  def test_rescue
-    cls, = compile(<<-EOF)
-      def foo
-        begin
-          System.out.println "body"
-        rescue
-          System.out.println "rescue"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal("body\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo
-        begin
-          System.out.println "body"
-          raise
-        rescue
-          System.out.println "rescue"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal("body\nrescue\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo(a:int)
-        begin
-          System.out.println "body"
-          if a == 0
-            raise IllegalArgumentException
-          else
-            raise
-          end
-        rescue IllegalArgumentException
-          System.out.println "IllegalArgumentException"
-        rescue
-          System.out.println "rescue"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo(1)
-      cls.foo(0)
-    end
-    assert_equal("body\nrescue\nbody\nIllegalArgumentException\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo(a:int)
-        begin
-          System.out.println "body"
-          if a == 0
-            raise IllegalArgumentException
-          elsif a == 1
-            raise Throwable
-          else
-            raise
-          end
-        rescue IllegalArgumentException, Exception
-          System.out.println "multi"
-        rescue Throwable
-          System.out.println "other"
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo(0)
-      cls.foo(1)
-      cls.foo(2)
-    end
-    assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
-
-    cls, = compile(<<-EOF)
-      def foo:void
-        begin
-          raise "foo"
-        rescue => ex
-          System.out.println ex.getMessage
-        end
-      end
-    EOF
-
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal("foo\n", output)
-
-
-    cls, = compile(<<-EOF)
-      def foo(x:boolean)
-        # throws Exception
-        if x
-          raise Exception, "x"
-        end
-      rescue Exception
-        "x"
-      else
-        raise Exception, "!x"
-      end
-    EOF
-
-    assert_equal "x", cls.foo(true)
-    begin
-      cls.foo(false)
-      fail
-    rescue java.lang.Exception => ex
-      assert_equal "java.lang.Exception: !x", ex.message
     end
   end
 
@@ -1279,206 +1092,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile("def foo(a:String);if a;true;else;false;end;end")
     assert_equal(true, cls.foo("a"))
     assert_equal(false, cls.foo(nil))
-  end
-
-  def test_for
-    cls, = compile(<<-EOF)
-      def foo
-        a = int[3]
-        count = 0
-        for x in a
-          count += 1
-        end
-        count
-      end
-    EOF
-
-    cls, = compile(<<-EOF)
-      def foo(a:int[])
-        count = 0
-        for x in a
-          count += x
-        end
-        count
-      end
-    EOF
-
-    assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
-
-    cls, = compile(<<-EOF)
-      def foo(a:Iterable)
-        a.each do |x|
-          System.out.println x
-        end
-      end
-    EOF
-
-    assert_output("1\n2\n3\n") do
-      list = java.util.ArrayList.new
-      list << "1"
-      list << "2"
-      list << "3"
-      cls.foo(list)
-    end
-
-    cls, = compile(<<-EOF)
-      import java.util.ArrayList
-      def foo(a:ArrayList)
-        a.each do |x|
-          System.out.println x
-        end
-      end
-    EOF
-
-    assert_output("1\n2\n3\n") do
-      list = java.util.ArrayList.new
-      list << "1"
-      list << "2"
-      list << "3"
-      cls.foo(list)
-    end
-
-    cls, = compile(<<-EOF)
-      def foo(a:int[])
-        a.each {|x| x += 1;System.out.println x; redo if x == 2}
-      end
-    EOF
-
-    assert_output("2\n3\n3\n4\n") do
-      cls.foo([1,2,3].to_java(:int))
-    end
-  end
-
-  def test_all
-    cls, = compile(<<-EOF)
-      def foo(a:int[])
-        a.all? {|x| x % 2 == 0}
-      end
-    EOF
-
-    assert_equal(false, cls.foo([2, 3, 4].to_java(:int)))
-    assert_equal(true, cls.foo([2, 0, 4].to_java(:int)))
-
-    cls, = compile(<<-EOF)
-      def foo(a:String[])
-        a.all?
-      end
-    EOF
-
-    assert_equal(true, cls.foo(["a", "", "b"].to_java(:string)))
-    assert_equal(false, cls.foo(["a", nil, "b"].to_java(:string)))
-  end
-
-  def test_downto
-    cls, = compile(<<-EOF)
-      def foo(i:int)
-        i.downto(1) {|x| System.out.println x }
-      end
-    EOF
-
-    assert_output("3\n2\n1\n") do
-      cls.foo(3)
-    end
-  end
-
-  def test_upto
-    cls, = compile(<<-EOF)
-      def foo(i:int)
-        i.upto(3) {|x| System.out.println x }
-      end
-    EOF
-
-    assert_output("1\n2\n3\n") do
-      cls.foo(1)
-    end
-  end
-
-  def test_times
-    cls, = compile(<<-EOF)
-      def foo(i:int)
-        i.times {|x| System.out.println x }
-      end
-    EOF
-
-    assert_output("0\n1\n2\n") do
-      cls.foo(3)
-    end
-
-    cls, = compile(<<-EOF)
-      def foo(i:int)
-        i.times { System.out.println "Hi" }
-      end
-    EOF
-
-    assert_output("Hi\nHi\nHi\n") do
-      cls.foo(3)
-    end
-  end
-
-  def test_general_loop
-    cls, = compile(<<-EOF)
-      def foo(x:boolean)
-        a = ""
-        __gloop__(nil, x, true, nil, nil) {a += "<body>"}
-        a
-      end
-    EOF
-    assert_equal("", cls.foo(false))
-
-    cls, = compile(<<-EOF)
-      def foo
-        a = ""
-        __gloop__(nil, false, false, nil, nil) {a += "<body>"}
-        a
-      end
-    EOF
-    assert_equal("<body>", cls.foo)
-
-    cls, = compile(<<-EOF)
-      def foo(x:boolean)
-        a = ""
-        __gloop__(a += "<init>", x, true, a += "<pre>", a += "<post>") do
-          a += "<body>"
-        end
-        a
-      end
-    EOF
-    assert_equal("<init>", cls.foo(false))
-
-    cls, = compile(<<-EOF)
-      def foo
-        a = ""
-        __gloop__(a += "<init>", false, false, a += "<pre>", a += "<post>") do
-          a += "<body>"
-        end
-        a
-      end
-    EOF
-    assert_equal("<init><pre><body><post>", cls.foo)
-
-    cls, = compile(<<-EOF)
-      def foo
-        a = ""
-        __gloop__(a += "<init>", false, false, a += "<pre>", a += "<post>") do
-          a += "<body>"
-          redo if a.length < 20
-        end
-        a
-      end
-    EOF
-    assert_equal( "<init><pre><body><body><post>", cls.foo)
-
-    cls, = compile(<<-EOF)
-      def foo
-        a = ""
-        __gloop__(a += "<init>", a.length < 20, true, a += "<pre>", a += "<post>") do
-          next if a.length < 17
-          a += "<body>"
-        end
-        a
-      end
-    EOF
-    assert_equal("<init><pre><post><pre><body><post>", cls.foo)
   end
 
   def test_if_expr
@@ -1777,58 +1390,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal([nil, "x", nil], f.a.to_a)
   end
 
-  def test_constructor_chaining
-    foo, = compile(<<-EOF)
-      class Foo5
-        def initialize(s:String)
-          initialize(s, "foo")
-        end
-
-        def initialize(s:String, f:String)
-          @s = s
-          @f = f
-        end
-
-        def f
-          @f
-        end
-
-        def s
-          @s
-        end
-      end
-    EOF
-
-    instance = foo.new("S")
-    assert_equal("S", instance.s)
-    assert_equal("foo", instance.f)
-
-    instance = foo.new("foo", "bar")
-    assert_equal("foo", instance.s)
-    assert_equal("bar", instance.f)
-  end
-
-  def test_super_constructor
-    cls, a, b = compile(<<-EOF)
-      class SC_A
-        def initialize(a:int)
-          System.out.println "A"
-        end
-      end
-
-      class SC_B < SC_A
-        def initialize
-          super(0)
-          System.out.println "B"
-        end
-      end
-    EOF
-
-    assert_output("A\nB\n") do
-      b.new
-    end
-  end
-
   def test_literal_array
     cls, = compile(<<-EOF)
       def foo; System.out.println "hello"; nil; end
@@ -1884,15 +1445,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal java.lang.String.java_class.array_class, cls.split.class.java_class
   end
 
-  def test_empty_constructor
-    foo, = compile(<<-EOF)
-      class Foo6
-        def initialize; end
-      end
-    EOF
-    foo.new
-  end
-
   def test_same_field_name
     cls, = compile(<<-EOF)
       class A1
@@ -1916,37 +1468,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def test_annotations
-    deprecated = java.lang.Deprecated.java_class
-    cls, = compile(<<-EOF)
-      $Deprecated
-      def foo
-        'foo'
-      end
-    EOF
-
-    assert_not_nil cls.java_class.java_method('foo').annotation(deprecated)
-    assert_nil cls.java_class.annotation(deprecated)
-
-    cls,  = compile(<<-EOF)
-      $Deprecated
-      class Annotated
-      end
-    EOF
-    assert_not_nil cls.java_class.annotation(deprecated)
-
-    cls, = compile(<<-EOF)
-      class AnnotatedField
-        def initialize
-          $Deprecated
-          @foo = 1
-        end
-      end
-    EOF
-
-    assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)
-  end
-
   def test_super
     cls, = compile(<<-EOF)
       class Foo
@@ -1957,15 +1478,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     obj = cls.new
     assert obj.equals(obj)
     assert !obj.equals(cls.new)
-  end
-
-  def test_inexact_constructor
-    # FIXME: this is a stupid test
-    cls, = compile(
-        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; System.out.println 'ok'; end; end")
-    assert_output("ok\n") do
-      cls.empty_empty
-    end
   end
 
   def test_method_lookup_with_overrides
@@ -2108,43 +1620,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def test_each
-    cls, = compile(<<-EOF)
-      def foo
-        [1,2,3].each {|x| System.out.println x}
-      end
-    EOF
-    assert_output("1\n2\n3\n") do
-      cls.foo
-    end
-  end
-
-  def test_any
-    cls, = compile(<<-EOF)
-      import java.lang.Integer
-      def foo
-        System.out.println [1,2,3].any?
-        System.out.println [1,2,3].any? {|x| Integer(x).intValue > 3}
-      end
-    EOF
-    assert_output("true\nfalse\n") do
-      cls.foo
-    end
-  end
-
-  def test_all
-    cls, = compile(<<-EOF)
-      import java.lang.Integer
-      def foo
-        System.out.println [1,2,3].all?
-        System.out.println [1,2,3].all? {|x| Integer(x).intValue > 3}
-      end
-    EOF
-    assert_output("true\nfalse\n") do
-      cls.foo
-    end
-  end
-
   def test_optional_args
     cls, = compile(<<-EOF)
       def foo(a:int, b:int = 1, c:int = 2)
@@ -2199,7 +1674,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_duby_iterable
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       import java.util.Iterator
       class MyIterator; implements Iterable, Iterator
         def initialize(x:Object)
@@ -2229,6 +1704,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         end
       end
     EOF
+    
     assert_output("Hi\n") do
       cls.test("Hi")
     end
@@ -2352,37 +1828,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
   end
 
-  def test_defmacro
-    cls, = compile(<<-EOF)
-      defmacro bar(x) do
-        x
-      end
-      
-      def foo
-        bar("bar")
-      end
-    EOF
-
-    assert_equal("bar", cls.foo)
-    assert(!cls.respond_to?(:bar))
-  end
-
-  def test_default_constructor
-    script, cls = compile(<<-EOF)
-      class DefaultConstructable
-        def foo
-          "foo"
-        end
-      end
-
-      print DefaultConstructable.new.foo
-    EOF
-
-    assert_output("foo") do
-      script.main(nil)
-    end
-  end
-
   def test_class_literal
     cls, = compile(<<-EOF)
       def foo
@@ -2411,66 +1856,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(false, cls.dynamic(java.lang.Object, nil))
   end
 
-  def test_instance_macro
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
-    return if self.class.name == 'TestJavacCompiler'
-    script, cls = compile(<<-EOF)
-      class InstanceMacros
-        def foobar
-          "foobar"
-        end
-
-        macro def macro_foobar
-          quote {foobar}
-        end
-      
-        def call_foobar
-          macro_foobar
-        end
-      end
-
-      def macro
-        InstanceMacros.new.macro_foobar
-      end
-
-      def function
-        InstanceMacros.new.call_foobar
-      end
-    EOF
-
-    assert_equal("foobar", script.function)
-    assert_equal("foobar", script.macro)
-  end
-
-  def test_unquote
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
-    return if self.class.name == 'TestJavacCompiler'
-
-    script, cls = compile(<<-'EOF')
-      class UnquoteMacros
-        macro def make_attr(name_node, type)
-          name = name_node.string_value
-          quote do
-            def `name`
-              @`name`
-            end
-            def `"#{name}_set"`(`name`:`type`)
-              @`name` = `name`
-            end
-          end
-        end
-
-        make_attr :foo, :int
-      end
-
-      x = UnquoteMacros.new
-      System.out.println x.foo
-      x.foo = 3
-      System.out.println x.foo
-    EOF
-    assert_output("0\n3\n") {script.main(nil)}
-  end
-
   def test_static_import
     cls, = compile(<<-EOF)
       import java.util.Arrays
@@ -2485,7 +1870,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_kind_of(Java::JavaUtil::List, list)
     assert_equal(["1", "2", "3"], list.to_a)
 
-    scripe, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       import java.util.Arrays
       class StaticImports
         include Arrays
@@ -2562,6 +1947,33 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal("foo", cls.set("foo"))
   end
 
+  def test_hash_with_value_from_static_method
+    cls, = compile(<<-EOF)
+      def foo1
+        {a: a, b:"B"}
+      end
+      def a
+        return "A"
+      end
+    EOF
+    assert_equal("A", cls.foo1["a"])
+  end
+
+  def test_hash_with_value_from_instance_method
+    cls, = compile(<<-EOF)
+      class HashTesty
+        def foo1
+          {a: a, b:"B"}
+        end
+        def a
+          return "A"
+        end
+      end
+    EOF
+    assert_equal("A", cls.new.foo1["a"])
+  end
+
+
   def test_loop_in_ensure
     cls, = compile(<<-EOF)
     begin
@@ -2602,7 +2014,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_abstract
-    script, cls1, cls2 = compile(<<-EOF)
+    abstract_class, concrete_class = compile(<<-EOF)
       abstract class Abstract
         abstract def foo:void; end
         def bar; System.out.println "bar"; end
@@ -2613,15 +2025,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("foo\nbar\n") do
-      a = cls2.new
+      a = concrete_class.new
       a.foo
       a.bar
     end
-    begin
-      cls1.new
-      fail "Expected InstantiationException"
-    rescue java.lang.InstantiationException
-      # expected
+    assert_raise_java java.lang.InstantiationException do
+      abstract_class.new
     end
   end
 
@@ -2729,26 +2138,6 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     map = cls.new.foo
     assert_equal("value", map["key"])
-  end
-
-  def test_macro_hygene
-    cls, = compile(<<-EOF)
-      macro def doubleIt(arg)
-        quote do
-          x = `arg`
-          x = x + x
-          x
-        end
-      end
-
-      def foo
-        x = "1"
-        System.out.println doubleIt(x)
-        System.out.println x
-      end
-    EOF
-
-    assert_output("11\n1\n") {cls.foo}
   end
 
   def test_wide_nonexpressions
@@ -2862,38 +2251,29 @@ class TestJVMCompiler < Test::Unit::TestCase
     end
   end
 
-  def test_empty_rescues
+  def test_long_generation
     cls, = compile(<<-EOF)
-      begin
-      rescue
-        nil
-      end
-    EOF
-
-    cls, = compile(<<-EOF)
-      begin
-        ""
-      rescue
-        nil
-      end
-      nil
+      c = 2_000_000_000_000
+      puts c
     EOF
   end
 
-  def test_add_args_in_macro
-    cls, = compile(<<-EOF)
-      macro def foo(a)
-        quote { bar "1", `a.child_nodes`, "2"}
-      end
-
-      def bar(a:String, b:String, c:String, d:String)
-        System.out.println "\#{a} \#{b} \#{c} \#{d}"
-      end
-
-      foo(["a", "b"])
-    EOF
-
-    assert_output("1 a b 2\n") do
+  def test_missing_class_with_block_raises_inference_error
+    assert_raises Typer::InferenceError do
+      compile("Interface Implements_Go do; end")
+    end
+  end
+  
+  def test_bool_equality
+    cls, = compile("puts true == false")
+    assert_output("false\n") do
+      cls.main(nil)
+    end
+  end
+  
+  def test_bool_inequality
+    cls, = compile("puts true != false")
+    assert_output("true\n") do
       cls.main(nil)
     end
   end

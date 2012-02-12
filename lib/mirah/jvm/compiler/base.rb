@@ -100,6 +100,7 @@ module Mirah
           body = script.body
           body = body.get(0) if body.size == 1
           if body.class != ClassDefinition
+
             @class = @type.define(@file)
             with :method => @class.main do
               log "Starting main method"
@@ -117,11 +118,11 @@ module Mirah
               @method.stop
             end
             @class.stop
+
+            log "Main method complete!"
           else
             visit(body, false)
           end
-
-          log "Main method complete!"
         end
 
         def visitNoop(node, expression)
