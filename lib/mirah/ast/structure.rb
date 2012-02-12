@@ -26,14 +26,14 @@ module Mirah::AST
       unless @inferred_type
         @typer ||= typer
         @self_type ||= typer.self_type
-        if children.size == 0
+        
+        if children.empty?
           @inferred_type = typer.no_type
         else
-          last = children.size - 1
-          children.each_with_index do |child, i|
-            child_is_expression = (i == last && expression)
-            @inferred_type = typer.infer(child, child_is_expression)
+          children[0..-2].each do |child|
+            typer.infer(child, false)
           end
+          @inferred_type = typer.infer(children.last, expression)
         end
 
         if @inferred_type
@@ -85,6 +85,47 @@ module Mirah::AST
     end
   end
 
+  class ScopedBody < Body
+    include Scope
+    include Scoped
+
+    def infer(typer, expression)
+      static_scope.self_type ||= typer.self_type
+      super
+    end
+
+    def binding_type(mirah=nil)
+      static_scope.binding_type(defining_class, mirah)
+    end
+
+    def binding_type=(type)
+      static_scope.binding_type = type
+    end
+
+    def has_binding?
+      static_scope.has_binding?
+    end
+
+    def type_reference(typer)
+      raise Mirah::SyntaxError.new("Invalid type", self) unless children.size == 1
+      children[0].type_reference(typer)
+    end
+
+    def inspect_children(indent=0)
+      indent_str = ' ' * indent
+      str = ''
+      if static_scope.self_node
+        str << "\n#{indent_str}self: "
+        if Node === static_scope.self_node
+          str << "\n" << static_scope.self_node.inspect(indent + 1)
+        else
+          str << static_scope.self_node.inspect
+        end
+      end
+      str << "\n#{indent_str}body:" << super(indent + 1)
+    end
+  end
+
   class Block < Node
     include Java::DubyLangCompiler::Block
     child :args
@@ -97,18 +138,18 @@ module Mirah::AST
     end
 
     def prepare(typer, method)
-      duby = typer.transformer
+      mirah = typer.transformer
       interface = method.argument_types[-1]
       outer_class = find_parent(MethodDefinition, Script).defining_class
       name = "#{outer_class.name}$#{duby.tmp}"
-      klass = duby.define_closure(position, name, outer_class)
+      klass = mirah.define_closure(position, name, outer_class)
       klass.interfaces = [interface]
 
       binding = typer.get_scope(self).binding_type(outer_class, duby)
 
       klass.define_constructor(position,
                                ['binding', binding]) do |c|
-          duby.eval("@binding = binding", '-', c, 'binding')
+          mirah.eval("@binding = binding", '-', c, 'binding')
       end
 
       add_methods(klass, binding, typer, typer.get_scope(self))
@@ -125,15 +166,20 @@ module Mirah::AST
     end
 
     def add_methods(klass, binding, typer, parent_scope)
-      found_def = false
-      body.each do |node|
-        if node.kind_of?(MethodDefinition)
-          found_def = true
+      method_definitions = body.select{ |node| node.kind_of? MethodDefinition }
+
+      if method_definitions.empty?
+        build_method(klass, binding, typer, parent_scope)
+      else
+        # TODO warn if there are non method definition nodes
+        # they won't be used at all currently--so it'd be nice to note that.
+        method_definitions.each do |node|
+          #node.static_scope = static_scope
+          #node.binding_type = binding
           typer.add_scope(node).parent = parent_scope
           klass.append_node(node)
         end
       end
-      build_method(klass, binding, typer, parent_scope) unless found_def
     end
 
     def build_method(klass, binding, typer, parent_scope)
@@ -152,7 +198,7 @@ module Mirah::AST
         next false
       end
 
-      raise "Multiple abstract methods found; cannot use block" if impl_methods.size > 1
+      raise "Multiple abstract methods found within given interface [#{impl_methods.map(&:name).join(', ')}]; cannot use block" if impl_methods.size > 1
       impl_methods.each do |method|
         mdef = klass.define_method(position,
                                    method.name,
@@ -283,13 +329,13 @@ module Mirah::AST
       case node
       when String
         java.lang.String.new(node.literal)
+      when Fixnum
+        java.lang.Integer.new(node.literal)
       when Array
         node.children.map {|node| annotation_value(node, typer)}
       else
         # TODO Support other types
-        ref = value.type_refence(typer)
-        desc = BiteScript::Signature.class_id(ref)
-        BiteScript::ASM::Type.getType(desc)
+        raise "Unsupported Annotation Value Type"
       end
     end
   end

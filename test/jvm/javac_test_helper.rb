@@ -12,28 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-$:.unshift File.join(File.dirname(__FILE__),'..','lib')
-
-require 'test/unit'
-require 'mirah'
+require 'bytecode_test_helper'
 require 'mirah/jvm/compiler/java_source'
-require 'jruby'
-require 'stringio'
-require File.join(File.dirname(__FILE__), 'test_jvm_compiler')
 
-# make sure . is in CLASSPATH
-$CLASSPATH << '.'
-
-class TestJavacCompiler < TestJVMCompiler
+module JavacCompiler
   import javax.tools.ToolProvider
   import java.util.Arrays
-
-  def teardown
-    super
-    # wipe out Script*_xform_* classes, since we're messy
-    File.unlink(*Dir['Script*_xform_*.class'])
-  end
+  import java.lang.System
+  import java.io.PrintStream
+  include Mirah
   
   def javac(files)
     compiler = ToolProvider.system_java_compiler
@@ -60,24 +47,20 @@ class TestJavacCompiler < TestJVMCompiler
     classes
   end
 
-  def compile(code)
-    File.unlink(*@tmp_classes)
-    @tmp_classes.clear
-    AST.type_factory = Mirah::JVM::Types::TypeFactory.new
-    state = Mirah::Util::CompilationState.new
-    state.save_extensions = false
-    transformer = Mirah::Transform::Transformer.new(state)
-    Java::MirahImpl::Builtin.initialize_builtins(transformer)
-    name = "script" + System.nano_time.to_s
-    ast  = AST.parse(code, name, true, transformer)
-    typer = Mirah::JVM::Typer.new(transformer)
-    ast.infer(typer, true)
-    typer.resolve(true)
-    compiler = JVM::Compiler::JavaSource.new(typer)
-    ast.compile(compiler, false)
+  def compiler_type
+    JVM::Compiler::JavaSource
+  end
+  
+#  def compile_ast ast
+#    compiler = create_compiler
+#    ast.compile(compiler, false)
+#    compiler
+#  end
+  
+  def generate_classes compiler_results
     java_files = []
-    compiler.generate do |name, builder|
-      bytes = builder.generate
+    compiler_results.each do |result|
+      bytes = result.bytes
       FileUtils.mkdir_p(File.dirname(name))
       open("#{name}", "w") do |f|
         f << bytes
@@ -86,4 +69,16 @@ class TestJavacCompiler < TestJVMCompiler
     end
     classes = javac(java_files)
   end
+
+  def clear_tmp_files
+    super
+    # wipe out Script*_xform_* classes, since we're messy
+    File.unlink(*Dir['Script*_xform_*.class'])
+  end
+end
+
+
+class Test::Unit::TestCase
+  include JavacCompiler
+  
 end

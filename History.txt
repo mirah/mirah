@@ -1,3 +1,244 @@
+=== 0.0.10 / 2011-11-20
+
+f6035d0 set version to 0.0.10
+3b06353 use test_helper in gwt test
+4d29eeb turns out a number of things rely on MirahCommands being truthy on success
+46e6719 fixes 156 for real, also do the ant lowercase thing
+9e40121 don't exit on successful compile
+1155765 move comment about class loader to line it refers to
+985c70f add jvm_version option to Compile ant task w/ 1.6 default
+e5a60b2 replace duby with mirah in lib/mirah/ast/flow.rb
+5690e6f split rescue error tests to deal w/ caching expression value
+1f77ed8 add some white space, use #empty? instead of size==0
+677e4aa fixes #52 by raising an inference error when types arent compat
+81be877 add assert_raise_java to get around the NativeException thing
+d744f44 use assert_raise instead of begin;fail/rescue
+05afc6e pull out rescue tests for jvm into separate file
+7a933f3 raise an inference error when method has same name as macro. fixes #123
+6517a90 clean up the Block#add_methods method a bit
+0a826dd ensure that a block body is created even when the block is empty
+d8b0641 change duby to mirah in Binding#binding_type
+47883e9 change duby to mirah in StaticScope#binding_type
+8f3fddf Fix whitespace.
+74b6195 use turn for prettying up test output
+23d0693 add license header to test_macros
+143ac6c add a test_helper to put global test config in
+6fe3241 fix #149 exit 1 when there are errors
+31074c6 fix #146 by not reassigning self to Builtin
+8fb471e s/duby/mirah/ in jvm types intrinsics
+ff06791 s/qote/quote/
+972a9f9 refactor void checking on method return into method
+605c377 fix #148 in the simplest way possible
+f1b5c19 fix inspect_children typo
+4140fa7 use case statements instead of === & if elses in UnquotedValueAssign#node
+b82bbeb in Node#inspect_children, replace if elses w/ a case statement
+049a4cf clean up body inference a little
+d9e92b4 Merge remote branch 'thomaslee/master' into thomaslee
+0c72195 fix name of compilation test
+cfbf4c5 bump versions to 0.0.10{.dev,-SNAPSHOT}
+8c0ecec Fix test_empty_array.
+
+=== 0.0.9 / 2011-09-12
+
+a5963ef use self hosted classloader fixes #144
+a858a2f fix for #114
+989fd1b fix #119, add transform for empty array literal
+a474b84 fix #120, java source now prints out longs as <n>L
+0e25733 bump version to 0.0.9{dev, -SNAPSHOT}
+fb34f03 fix #138, underscores and dashes both act the same
+cffd819 Merge pull request #143 from hackergarten/master
+0f3af83 sorting lists and arrays examples
+59662e2 string 'character' length example
+9e541df string case example
+f8174ac sleep example
+04399d3 secure temporary file example
+d77902c host instrospection example
+c0433a5 hostname example
+ab134aa hamming numbers example
+d468081 arrays examples
+e8425f3 random number example
+e974827 Merge pull request #142 from consiliens/master
+084aa65 Update NOTICE.
+735983f Merge pull request #140 from abscondment/140-ant-compile
+d2a4010 Allow for false case too. #140
+a7925ed Fixes #140 by  * Raising an Exception in MirahCommand.compile if Mirah.compile fails (i.e. it returns nil)  * Allowing that exception to pass through the two layers of scope in the ant task so Ant will actually see it and fail accordingly.
+7244e11 Merge pull request #139 from hackergarten/master
+f0ef0d5 added apache license to all samples files.
+a4f8cf0 added multiline comments example
+
+=== 0.0.8 / 2011-08-31
+
+af43b77 Merge pull request #132 from hackergarten/master
+416e130 readme file
+fbf6ddc fix #129 call next anyway if there is no block arg
+18cef56 s/duby/mirah/ in a test
+945558b pull enumerable/loop tests into separate file
+585856e s/duby/mirah/ in transformer
+f0cc410  adding a couple method docs
+11dac9a push some code around and do a few s/duby/mirah/ s
+17b0031 wrap the bodies of blocks passed to macros as well
+02e5cbe clean up tests some
+794d61d pull macro tests into separate file
+ae1b942 flatten a list example
+98ccad9 create a file example
+9dc8981 file size example
+fddd3e2 count occurrences of a substring examples
+2297cd7 is string numeric example
+6ccaf02 empty string
+4c58e5a fizz buzz example
+e1e107a empty string example
+643e80a added copy a string sample
+b3c35a5 fibonacci example
+abdf45c factorial example
+cd3eb03 how to do  comments
+9af53ee boolean value examples
+973ef14 some macro examples
+121b654 square with strings
+095773d hahahah guess what
+c8c4465 reading user input
+ddf8eda Palindrome
+df01492 reverse a string
+186c333 rot 13 example
+13f4a10 initial version of the 100 doors
+da29d35 removed unneeded parameter
+09ded03 99 bottles of beer
+f1b490c added repeating a string sample
+ba99754 update issues link on readme
+785c6c7 further tets helper factorization
+051854b make javac helper's compile almost the same as bytecode's
+1d9648b refactor javac tests parsing and infering steps
+ba44c0d default args are evaled on call
+3ebe9f3 use some of the helper methods defined in bytecode's helper in javac's
+5c2b47c fix main in files w/ classes of same name contained in them
+3b69287 file name should also be configurable for javac compilation
+e3d2dc7 pulling out a couple assertion definitions into a helper file
+c0112a4 overall task should fail if any tests failed
+2da4ca2 annotate new rake tasks
+5ae27b7 making all tests run even if some fail
+ae6d8e6 fixing up helpers for jvm tests a bit
+66e87d9 tease apart test #compile method for bytecode
+dbbcf8e split bytecode and javac tests
+aa21dc9 split tests into multiple dirs and tasks
+feb8028 Remove unnecessary, broken 'super' call in BlockArgument.
+02101c3 Update the bootstrap JAR to incorporate the new loop macro in builtins.mirah
+de68299 test fallout from top level changes, loop test still fails
+2786cfd sometimes children can be nil
+1b9b018 Merge in loop macro from techomancy.
+fa13c03 Merge pull request #53 from ashee/master
+be84d53 Merge pull request #82 from baroquebobcat/use_bundler
+2ba1932 Merge pull request #85 from rdp/mergeable2
+b4e3106 Merge pull request #88 from baroquebobcat/fix_up_env_tests_and_a_typo
+7212065 Merge pull request #89 from jabr/master
+71c7c3f Merge pull request #90 from baroquebobcat/test_reorg
+50d37d5 Merge pull request #91 from baroquebobcat/fix_syntax_error_not_providing_messages
+e206d90 Merge pull request #92 from baroquebobcat/update_compile_ant_class_from_duby
+4a9d8e2 Merge pull request #93 from szegedi/dynalang-0.2
+688fe7d Update to use dynalink-0.2.
+9f96ab0 mirah-ify ant compile task
+b6b92d6 wrap jmeta syntax errors w/ mirah ones
+2d48ca2 unshift of lib unnecessary as it is put on the path by the test task
+fbae14b modularize assert_include
+b0c05c8 move compile methods out of respective classes and into helper
+a563f4a added test helper for jvm tests
+d4070fe moved jvm tests into subdirectory
+688c18d Call original create_method_builder in default case when patching the JVM compiler in the GWT plugin.
+f3c7a7d Only generate a main function when we really need it (i.e. not when the source only has imports, class definitions, and interface declarations).
+c001130 Add require 'rubygems' to scripts so bitescript gem can be found.
+34c19d3 typo s/seperator/separator/
+0886a72 fix the env tests I broke in ac92625bf76dc00d
+922d5eb Merge pull request #84 from baroquebobcat/use_1_6_bytecode
+57dc505 Merge pull request #78 from sd/master
+10709cd Merge pull request #86 from baroquebobcat/use_file_path_separator_instead_of_rbconfig
+ac92625 use File::PATH_SEPARATOR instead of RbConfig
+23d77ef use java 1.6 bytecode. the recompiled jar didn't work for me with 1.5
+10b2b18 warn users instead of outputting "...done" when nothing actually occurs
+4033268 partial fix for issue #23 don't ICE when parsing after a node verify error
+6ea2da8 remove rescue around dev bitescript require
+d105b97 use bundler to manage dev dependencies
+7a3127e use right date formatting
+7cb39eb try to help them know what is happening better
+0f5287a make it more explicit what compile mode means
+8cb8e41 Fix bootstrapping
+14559d3 Fix method lookup for java.lang.Class objects
+bde76f8 Merge branch 'newast'
+16db63e Fix bugs with interfaces and error types
+778ec51 Fix strange transform error
+7c76776 Merge pull request #80 from baroquebobcat/closure_fix_2
+7f83fb0 fix closure scope issue, javac issue
+0c4ea99 Macro enhancement
+705a907 Macro enhancement
+e395169 Add a class mirror to the NullType
+4cff3f8 nodes
+00d223d Fix block return values
+2fed449 Merge commit '6b3ce537'
+6b3ce53 test for creating anonymous class method that uses no args and returns a value
+489d4aa Updates to current invokedynamic logic.
+af717c6 Add an Unreachable JVM type
+46a1bea Merge branch 'master' of github.com:mirah/mirah
+c4c8afb Fix begin...rescue with no body
+73172c8 Try to ignore assignments to nil during type inference
+e2e5c56 Fix rescue block inference
+a073480 Fix link to issue tracker.
+681c274 Add support for rescue - else. Fix bug with rescue when the body always raises an exception but the rescue clauses return a result.
+d486090 More efficient new_hash macro
+b78e3a8 Macro bugfixes.
+fa40e47 Add missing .java parser
+237f16c Fix line numbers in debug info
+9b163c0 Add support for circular references between java and mirah files
+726ad63 Merge branch 'master' of github.com:mirah/mirah
+d974e04 Fix typo
+8c2bffa Fix #31: mirahc -h regression
+fac6bd5 Fix #44: Failure on 'rake gem'
+ac79807 corrected reference for "jar:bootstrap" in Rakefile
+1d07018 Present an error when using -j/--java with non-compile commands. Fixes #62.
+9dc3345 Ensure the JVM type has been initialized before calling methods on it in JVM::Types::Type. Fixes #65.
+551deac Use catch/throw to terminate the compiler early, since SystemExit bubbles out MirahCommand and makes noise. Fixes #66.
+fb401fa Fix bad call to compile_asts (does not need transformer now).
+961551d Add missing cast to Integer.
+d43cfc7 Fix -V and error processing
+4b67a11 Merge
+cf4f2de Small changes to README feature list.
+1d003c5 clean the pom file
+521bbd9 Add a trivial example Maven project that uses the Maven plugin.
+88838bc add maven release process readme
+8f37529 update pom descriptors to pass maven release requirements
+5c7a690 Fix a couple vars I missed in mirah.bat and mirahc.bat.
+59409a1 Add missing .bat files to dist.
+bb39a69 Put .zip contents into a mirah-VERSION directory (d'oh!).
+e12fbe8 Fix references to duby scripts in gemspec and trim out wiki from examples (for size).
+a395dbf Make zip task depend on jar:complete again.
+4e89a03 Add examples dir to zip distribution.
+7c06633 Oops. Add missing distbin dir with bin scripts for the zip distribution.
+690f82b Add zip, gem, and dist targets to Rakefile, to build a zip'ed distribution, gem file, and everything.
+53d8e16 Restore lost destination when writing compiled output.
+3b181f5 Back off on overzealous trimming of @state; it's still used a few places I can't eliminate.
+b0c6ce8 Remove out-of-date duby and jrubyp-related commands.
+963140c Remove duby.gemspec. We're done with this, yes?
+5b923e5 Move mirah/jvm/base to mirah/jvm/compiler/base
+c89ed22 Move JVMCompilerBase to Base.
+cd1ae11 Move JVM bytecode compiler to appropriate file structure.
+b27a57a Move JVMBytecode and JVMCompilerBase to Mirah::JVM::Compiler namespace.
+ffc2d18 Move Mirah::Compiler::JVM to Mirah::Compiler::JVMBytecode
+3d510fb Move jvm/source_compiler.rb into jvm/compiler/java_source.rb
+a28852a Move Mirah::Compiler::JavaSource to Mirah::JVM::Compiler::JavaSource
+8ff25a5 Move Mirah::Typer::JVM to Mirah::JVM::Typer
+0809140 Refactor jvm/types.rb into jvm/types subdir files.
+898cb63 Refactor transform and transform2 into transform/{ast_ext,error,helper,transformer}.
+e68eb22 Refactor typer.rb into typer/base and typer/simple.
+a05e503 Forcibly nuke randomly-named xform classes generated during test_javac_compiler.
+0da5b73 Missed a few ClassLoader and CompilationState references.
+e357957 Move a few more classes under util and clean up some requires.
+fd2f0bf More OO decomposition of Mirah command-line logic and compiler/generator/parser workflow.
+5762c5d Restructure commands into their own classes and files.
+3075d8e Reorg main three entry points into Mirah command a bit.
+c129e57 Add .DS_Store to .gitignore
+db7aa1e Restructure compiler.rb into mirah/compiler subdir, mirroring mirah/ast subdir.
+330a1c2 Add a simple example of declaring an interface.
+723416f Add covariance for one-dimensional arrays (see #55). Multi-dimensional arrays still need work.
+356d896 Roll versions to 0.0.8{.dev,-SNAPSHOT).
+3b6bb81 Fixed an issue with mirah_task
+ebd0ab2 Add casting support to the Call node.
+
 === 0.0.7 / 2011-03-20
 
 248368c Fix assignability of dynamic type; only target of Object should be allowed.

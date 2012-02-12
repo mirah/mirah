@@ -31,6 +31,7 @@ module Mirah
           if expression
             have_body_type = body.nil? || then_type
             have_else_type = else_body.nil? || else_type
+
             if have_body_type && have_else_type
               if then_type && else_type
                 # both then and else inferred, ensure they're compatible
@@ -264,6 +265,18 @@ module Mirah
 
         @inferred_type
       end
+
+      def binding_type(mirah=nil)
+        static_scope.parent.binding_type(defining_class, mirah)
+      end
+
+      def binding_type=(type)
+        static_scope.parent.binding_type = type
+      end
+
+      def has_binding?
+        static_scope.parent.has_binding?
+      end
     end
 
     class Rescue < Node
@@ -277,24 +290,37 @@ module Mirah
 
       def infer(typer, expression)
         unless resolved?
-          types = []
-          body_type = typer.infer(body, else_node.nil?) if body
-          else_type = typer.infer(else_node, true) if else_node
-          if else_node
-            types << else_type
+          # TODO: generalize this s.t.
+          # the problem with deferred inference
+          # assuming expression == true is dealt with
+          @expression = expression if @expression == nil
+          expression = @expression
+          
+          primary_type = if else_node
+            typer.infer(body, false) if body
+            typer.infer(else_node, expression)
           elsif body
-            types << body_type
+            typer.infer(body, expression)
           end
-          types += clauses.map {|c| typer.infer(c, true)}
+          
+          clause_types = clauses.map {|c| typer.infer(c, expression)}
+          types = []
+          types << primary_type if primary_type
+          types += clause_types
           if types.any? {|t| t.nil?}
             typer.defer(self)
           else
-            # TODO check types for compatibility (maybe only if an expression)
-            resolved!
-            types.each do |type|
-              @inferred_type ||= type unless type.unreachable?
+            if !expression || primary_type.nil? || clause_types.all?{ |t| primary_type.compatible? t}
+              resolved!
+              types.each do |type|
+                @inferred_type ||= type unless type.unreachable?
+              end
+              @inferred_type ||= primary_type
+            else
+              clause, clause_type = clauses.zip(clause_types).find{ |clause, t| !primary_type.compatible? t }
+              
+              raise Mirah::Typer::InferenceError.new("rescue statement with incompatible result types #{primary_type} and #{clause_type}", clause)
             end
-            @inferred_type ||= types[0]
           end
         end
         @inferred_type
@@ -313,7 +339,7 @@ module Mirah
       def infer(typer, expression)
         resolve_if(typer) do
           typer.infer(clause, false)
-          typer.infer(body, true)
+          typer.infer(body, false)
         end
       end
     end

@@ -290,7 +290,7 @@ module Mirah::JVM::Types
         compiler.visit(param, true)
       end
       handle = compiler.method.mh_invokestatic(
-        org.mirah.DynalangBootstrap,
+        org.dynalang.dynalink.DefaultBootstrapper,
         "bootstrap",
         java.lang.invoke.CallSite,
         java.lang.invoke.MethodHandles::Lookup,

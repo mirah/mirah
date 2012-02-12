@@ -23,6 +23,7 @@ module Mirah
         java_import 'org.mirah.typer.ErrorType'
       end
 
+      # errors - array of NodeErrors
       def process_errors(errors)
         errors.each do |ex|
           if ex.kind_of?(ErrorType)
@@ -44,7 +45,7 @@ module Mirah
             puts ex.backtrace if @verbose
           end
         end
-        throw :exit unless errors.empty?
+        throw :exit, 1 unless errors.empty?
       end
 
       java_import 'mirah.lang.ast.NodeScanner'

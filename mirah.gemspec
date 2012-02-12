@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.name = 'mirah'
   s.version = Mirah::VERSION
   s.authors = ["Charles Oliver Nutter", "Ryan Brown"]
-  s.date = Time.now.strftime("YYYY-MM-DD")
+  s.date =  Time.now.strftime("%Y-%m-%d")
   s.description = %q{Mirah is a customizable programming language featuring static types,
 local type inference and a heavily Ruby-inspired syntax. Mirah
 currently includes a typer/compiler backend for the JVM which can
