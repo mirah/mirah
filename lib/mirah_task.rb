@@ -99,7 +99,7 @@ def mirahc(*files)
   end
   source_dir = options.fetch(:dir, Mirah.source_path)
   dest = File.expand_path(options.fetch(:dest, Mirah.dest_path))
-  files = files.map {|f| f.sub(/^#{source_dir}\//, '')}
+  files = files.map {|f| File.expand_path(f).sub(/^#{source_dir}\//, '')}
   flags = options.fetch(:options, Mirah.compiler_options)
   args = ['-d', dest, *flags] + files
   chdir(source_dir) do

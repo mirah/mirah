@@ -79,12 +79,12 @@ module Mirah
 
       def find_jls(mapped_type, name, mapped_params, meta, constructor)
         interfaces = []
-        if constructor
-          by_name = mapped_type.unmeta.declared_constructors
+        by_name = if constructor
+          mapped_type.unmeta.declared_constructors
         elsif meta
-          by_name = mapped_type.declared_class_methods(name)
+          mapped_type.declared_class_methods(name)
         else
-          by_name = mapped_type.find_callable_methods(name)
+          mapped_type.find_callable_methods(name)
         end
         find_jls2(mapped_type, name, mapped_params, meta, by_name)
       end

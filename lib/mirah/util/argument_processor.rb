@@ -43,7 +43,7 @@ module Mirah
             Mirah::AST::Script.explicit_packages = true
           when '--help', '-h'
             print_help
-            throw :exit
+            throw :exit, 0
           when '--java', '-j'
             if state.command == :compile
               require 'mirah/jvm/compiler/java_source'
@@ -52,7 +52,7 @@ module Mirah
             else
               puts "-j/--java flag only applies to \"compile\" mode."
               print_help
-              throw :exit
+              throw :exit, 1
             end
           when '--jvm'
             args.shift
@@ -73,13 +73,14 @@ module Mirah
           when '--version', '-v'
             args.shift
             print_version
+            throw :exit, 0 if args.empty?
           when '--no-save-extensions'
             args.shift
             state.save_extensions = false
           else
             puts "unrecognized flag: " + args[0]
             print_help
-            throw :exit
+            throw :exit, 1
           end
         end
         state.destination ||= File.join(File.expand_path('.'), '')
@@ -96,7 +97,7 @@ module Mirah
         --explicit-packages\tRequire explicit 'package' lines in source
         -h, --help\t\tPrint this help message
         -I DIR\t\tAdd DIR to the Ruby load path before running
-        -j, --java\t\tOutput .java source (compile mode only)
+        -j, --java\t\tOutput .java source (compile mode [mirahc] only)
         --jvm VERSION\t\tEmit JVM bytecode targeting specified JVM
         \t\t\t  version (1.4, 1.5, 1.6, 1.7)
         -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running

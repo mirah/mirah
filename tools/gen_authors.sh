@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# mirah/tools$ ./gen_authors.sh
 # Add organization names manually.
 
 cat <<EOF > ../NOTICE

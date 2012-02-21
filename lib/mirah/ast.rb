@@ -35,5 +35,6 @@ module Mirah
     java_import 'mirah.lang.ast.SimpleString'
     java_import 'mirah.lang.ast.TypeName'
     java_import 'mirah.lang.ast.TypeRef'
+
   end
 end

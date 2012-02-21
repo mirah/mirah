@@ -157,6 +157,8 @@ module Mirah
 
       def annotation_value(value)
         case value
+        when Java::JavaLang::Integer
+          value.to_s
         when Java::JavaLang::String, String
           value.to_s.inspect
         when Array
@@ -341,10 +343,11 @@ module Mirah
     class MethodBuilder
       include Helper
 
-      attr_accessor :name, :type, :out
+      attr_accessor :name, :type, :out, :klass
 
       def initialize(cls, options)
         @class = cls
+        @klass = cls
         @compiler = cls.compiler
         @out = Output.new
         @visibility = options[:visibility]
@@ -393,6 +396,10 @@ module Mirah
         dedent
         puts "}"
       end
+      
+      def returns_void?
+        type.nil? || type.void?
+      end
 
       def declare_local(type, name, initialize=true)
         unless @locals[name]
@@ -434,6 +441,10 @@ module Mirah
 
       def ldc_double(value)
         print value
+      end
+      
+      def ldc_long(value)
+        print "#{value}L"
       end
 
       def ldc_class(type)

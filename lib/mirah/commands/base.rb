@@ -34,8 +34,8 @@ module Mirah
       def execute_base
         # because MirahCommand is a JRuby Java class, SystemExit bubbles through and makes noise
         # so we use a catch/throw to early exit instead
-        # see process_errors.rb
-        catch(:exit) do
+        # see util/process_errors.rb
+        status = catch(:exit) do
           begin
             argument_processor.process
             yield
@@ -45,8 +45,12 @@ module Mirah
           rescue Mirah::MirahError => ex
             Mirah.print_error(ex.message, ex.position)
             puts ex.backtrace if state.verbose
+            throw :exit, 1
           end
+          0
         end
+        exit status if status > 0
+        true
       end
     end
   end

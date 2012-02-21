@@ -15,20 +15,7 @@
 
 require 'bitescript'
 require 'mirah/jvm/types/enumerable'
-
-class BiteScript::MethodBuilder
-  def op_to_bool
-    done_label = label
-    true_label = label
-
-    yield(true_label)
-    iconst_0
-    goto(done_label)
-    true_label.set!
-    iconst_1
-    done_label.set!
-  end
-end
+require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
   class Type
@@ -97,11 +84,18 @@ module Mirah::JVM::Types
           else
             static_scope.self_type = scope.self_type
           end
+          
           body
         else
           Mirah::AST::Noop.new
         end
       end
+    end
+    
+    def wrap_with_scoped_body call, node
+      wrapper = Mirah::AST::ScopedBody.new(call.parent, call.position)
+      wrapper.static_scope = call.scope.static_scope
+      wrapper << node
     end
 
     def declared_intrinsics(name=nil)
@@ -392,6 +386,8 @@ module Mirah::JVM::Types
           if var
             forloop.pre << transformer.eval(
                 "#{var.name} = #{it}.next", '', forloop, it)
+          else
+            forloop.pre << transformer.eval("#{it}.next", '', forloop, it)
           end
           call.block.body.parent = forloop if call.block.body
           [

@@ -56,7 +56,17 @@ module Mirah
         def output_type
           "source files"
         end
-
+        
+        def define_class(class_def, expression)
+          with(:type => class_def.inferred_type,
+          :class => class_def.inferred_type.define(@file),
+          :static => false) do
+            annotate(@class, class_def.annotations)
+            class_def.body.compile(self, false) if class_def.body
+            @class.stop unless @method && @method.name == 'main' && @class == @method.klass
+          end
+        end
+        
         def define_method(node)
           base_define_method(node, false) do |method, _|
             with :method => method do
@@ -65,7 +75,7 @@ module Mirah
 
               prepare_binding(node) do
                 declare_locals(get_scope(node))
-                unless @method.type.nil? || @method.type.void?
+                unless @method.returns_void?
                   self.return(ImplicitReturn.new(node.body))
                 else
                   visit(node.body, false) if node.body
@@ -77,7 +87,7 @@ module Mirah
             end
           end
         end
-
+        
         def annotate(node, annotations)
           node.annotate(annotations)
         end
@@ -85,7 +95,7 @@ module Mirah
         def define_optarg_chain(name, arg, return_type,
           args_for_opt, arg_types_for_opt)
           # declare all args so they get their values
-          @method.print "return " unless @method.type.nil? || @method.type.void?
+          @method.print "return " unless method.returns_void?
           @method.print "this." unless @static
           @method.print "#{name}("
           @method.print args_for_opt.map(&:name).join(', ')
@@ -155,10 +165,11 @@ module Mirah
         end
 
         def visitReturn(node, expression)
-          if @method.type.nil? || @method.type.void?
+          if method.returns_void?
             @method.puts 'return;'
             return
           end
+
           if node.value.expr?(self)
             @method.print 'return '
             visit(node.value, true)

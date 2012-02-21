@@ -8,3 +8,4 @@ examples/appengine/war/
 target
 .redcar
 .DS_Store
+Gemfile.lock

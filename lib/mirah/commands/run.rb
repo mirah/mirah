@@ -28,7 +28,7 @@ module Mirah
           generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
           
           generator.generate(args).each do |result|
-            class_map[result.classname.gsub(/\//, '.')] = result.bytes
+            class_map[result.classname.gsub(/\//, '.')] = Mirah::Util::ClassLoader.binary_string result.bytes
           end
           
           # load all classes

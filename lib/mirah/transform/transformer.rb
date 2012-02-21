@@ -115,6 +115,8 @@ module Mirah
         begin
           top = @extra_body.nil?
           if top
+            return nil if !node.children.empty? && node.children.all?(&:nil?)
+            
             @extra_body = Mirah::AST::Body.new(nil, position(node))
           end
           method = "transform_#{camelize(node[0])}"

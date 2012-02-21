@@ -53,6 +53,14 @@ class ObjectExtension
   macro def print(node)
     quote {java::lang::System.out.print(`node`)}
   end
+
+  macro def loop(&block)
+    quote do
+      while true do
+        `block.body`
+      end
+    end
+  end
 end
 
 class Builtin
