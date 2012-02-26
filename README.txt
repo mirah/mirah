@@ -33,9 +33,18 @@ mirahc -java -e "inline script" # produces DashE.java
 
 == INSTALL:
 
+=== RUBY:
 If your gem and rake are not from from JRuby, prefix the commands with jruby -S
 
 $ gem install mirah
+
+=== ZIP:
+
+You can also install Mirah from a zip file. Download the latest stable
+release from https://github.com/mirah/mirah/downloads. 
+Extract it, and add `bin` to your `$PATH` to be able to use `mirah`, `mirahc`, etc.
+
+=== SOURCE:
 
 To build and install from source,
 
