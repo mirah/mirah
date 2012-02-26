@@ -118,4 +118,129 @@ class TestBlocks < Test::Unit::TestCase
       end
   end
 
+  def test_block
+    cls, = compile(<<-EOF)
+      thread = Thread.new do
+        puts "Hello"
+      end
+      begin
+        thread.run
+        thread.join
+      rescue
+        puts "Uh Oh!"
+      end
+    EOF
+    assert_output("Hello\n") do
+      cls.main([].to_java :string)
+    end
+
+    script, cls = compile(<<-EOF)
+      import java.util.Observable
+      class MyObservable < Observable
+        def initialize
+          super
+          setChanged
+        end
+      end
+
+      o = MyObservable.new
+      o.addObserver {|x, a| puts a}
+      o.notifyObservers("Hello Observer")
+    EOF
+    assert_output("Hello Observer\n") do
+      script.main([].to_java :string)
+    end
+
+    cls, = compile(<<-EOF)
+      def foo
+        a = "Hello"
+        thread = Thread.new do
+          puts a
+        end
+        begin
+          a = a + " Closures"
+          thread.run
+          thread.join
+        rescue
+          puts "Uh Oh!"
+        end
+        return
+      end
+    EOF
+    assert_output("Hello Closures\n") do
+      cls.foo
+    end
+
+    cls, = compile(<<-EOF)
+      def run(x:Runnable)
+        x.run
+      end
+      def foo
+        a = 1
+        run {a += 1}
+        a
+      end
+    EOF
+    assert_equal(2, cls.foo)
+  end
+
+  def test_block_with_method_def
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      import java.util.Collections
+      list = ArrayList.new(["a", "ABC", "Cats", "b"])
+      Collections.sort(list) do
+        def equals(a:Object, b:Object)
+          String(a).equalsIgnoreCase(String(b))
+        end
+        def compare(a:Object, b:Object)
+          String(a).compareToIgnoreCase(String(b))
+        end
+      end
+      list.each {|x| puts x}
+    EOF
+
+    assert_output("a\nABC\nb\nCats\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_block_with_abstract_from_object
+    # Comparator interface also defines equals(Object) as abstract,
+    # but it can be inherited from Object. We test that here.
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      import java.util.Collections
+      list = ArrayList.new(["a", "ABC", "Cats", "b"])
+      Collections.sort(list) do |a, b|
+        String(a).compareToIgnoreCase(String(b))
+      end
+      list.each {|x| puts x}
+    EOF
+
+    assert_output("a\nABC\nb\nCats\n") do
+      cls.main(nil)
+    end
+  end
+  
+  def test_block_with_no_arguments_and_return_value
+    cls, = compile(<<-EOF)
+      import java.util.concurrent.Callable
+      def foo c:Callable
+        throws Exception
+         puts c.call
+      end
+      begin
+      foo do
+        "an object"
+      end
+      rescue
+        puts "never get here"
+      end
+    EOF
+    assert_output("an object\n") do
+      cls.main(nil)
+    end
+  end
+
 end
