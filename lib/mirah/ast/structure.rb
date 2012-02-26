@@ -213,8 +213,8 @@ module Mirah::AST
       end
 
       impl_methods.each do |method|
-        if args.children.length != method.argument_types.length
-          raise Mirah::NodeError.new("Block can't implement #{method.name}: wrong number of arguments. Expected #{method.argument_types.length}, but was #{args.children.length}", self)
+        if args.args.length != method.argument_types.length
+          raise Mirah::NodeError.new("Block can't implement #{method.name}: wrong number of arguments. Expected #{method.argument_types.length}, but was #{args.args.length}", self)
         end
         mdef = klass.define_method(position,
                             method.name,
