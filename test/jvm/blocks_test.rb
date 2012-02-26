@@ -228,4 +228,62 @@ class TestBlocks < Test::Unit::TestCase
       cls.bar
     end
   end
+
+  def test_block_impling_interface_w_multiple_methods
+    assert_raises Mirah::NodeError do
+      parse_and_type(<<-CODE)
+        interface Bar do
+          def run:void;end
+          def run2:void;end;
+        end
+        
+        class Foo
+          def foo(a:Bar)
+            1
+          end
+        end
+        Foo.new.foo do
+          1
+        end
+        CODE
+    end
+  end
+
+  def test_block_with_no_params_on_interface_with
+    assert_raises Mirah::NodeError do
+      parse_and_type(<<-CODE)
+        interface Bar do
+          def run(a:string):void;end
+        end
+        
+        class Foo
+          def foo(a:Bar)
+            1
+          end
+        end
+        Foo.new.foo do
+          1
+        end
+        CODE
+      end
+  end
+
+  def test_block_with_too_many_params
+    assert_raises Mirah::NodeError do
+      parse_and_type(<<-CODE)
+        interface Bar do
+          def run(a:string):void;end
+        end
+        
+        class Foo
+          def foo(a:Bar)
+            1
+          end
+        end
+        Foo.new.foo do |a, b|
+          1
+        end
+        CODE
+      end
+  end
 end

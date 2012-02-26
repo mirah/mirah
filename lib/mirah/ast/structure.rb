@@ -198,8 +198,16 @@ module Mirah::AST
         next false
       end
 
-      raise "Multiple abstract methods found within given interface [#{impl_methods.map(&:name).join(', ')}]; cannot use block" if impl_methods.size > 1
+      # It could also just define all the methods w/ the block as the implementation, assuming the args check out
+      # instead of it being an error.
+      if impl_methods.size > 1
+        raise Mirah::NodeError.new("Multiple abstract methods found within interface #{klass.interfaces.map(&:name).inspect} [#{impl_methods.map(&:name).join(', ')}]; cannot use block", self)
+      end
+
       impl_methods.each do |method|
+        if args.children.length != method.argument_types.length
+          raise Mirah::NodeError.new("Block can't implement #{method.name}: wrong number of arguments. Expected #{method.argument_types.length}, but was #{args.children.length}", self)
+        end
         mdef = klass.define_method(position,
                                    method.name,
                                    method.return_type,
