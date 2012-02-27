@@ -46,7 +46,7 @@ class TestAnnotations < Test::Unit::TestCase
       import org.jruby.runtime.*
       import org.jruby.runtime.builtin.*
 
-      $JRubyMethod["name" => "bar", "optional" => 1]
+      $JRubyMethod["name" => ["bar"], "optional" => 1]
       def bar(baz:int)
       end
     EOF

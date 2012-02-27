@@ -7,6 +7,7 @@ module Mirah
         include Mirah::JVM::MethodLookup
         Types = Mirah::JVM::Types
         java_import 'mirah.lang.ast.Node'
+        java_import 'mirah.lang.ast.Array'
         java_import 'mirah.lang.ast.Annotation'
         java_import 'mirah.lang.ast.MethodDefinition'
         java_import 'mirah.lang.ast.ConstructorDefinition'
@@ -19,6 +20,7 @@ module Mirah
         java_import 'mirah.lang.ast.ImplicitSelf'
         java_import 'mirah.lang.ast.NodeList'
         java_import 'mirah.lang.ast.SimpleString'
+        java_import 'mirah.lang.ast.StringConcat'
         java_import 'org.mirah.typer.TypeFuture'
 
         class FunctionalCall
@@ -546,40 +548,84 @@ module Mirah
         def annotate(builder, annotations)
           annotations.each do |annotation|
             type = inferred_type(annotation)
-            type = type.jvm_type if type.respond_to?(:jvm_type)
-            if type.respond_to?(:getDeclaredAnnotation)
-              retention = type.getDeclaredAnnotation('java.lang.annotation.Retention')
+            mirror = type.jvm_type
+            if mirror.respond_to?(:getDeclaredAnnotation)
+              retention = mirror.getDeclaredAnnotation('java.lang.annotation.Retention')
             else
-              raise "Unsupported annotation #{type} (#{type.class})"
+              raise "Unsupported annotation #{mirror} (#{mirror.class})"
             end
             next if retention && retention.value.name == 'SOURCE'
             runtime_retention = (retention && retention.value.name == 'RUNTIME')
-            builder.annotate(type, runtime_retention) do |visitor|
-              annotation.values.each do |name, value|
-                annotation_value(visitor, name, value)
+            builder.annotate(mirror, runtime_retention) do |visitor|
+              annotation.values.each do |entry|
+                annotation_value(get_scope(annotation), type, visitor,
+                                 entry.key.identifier, entry.value)
               end
             end
           end
         end
 
-        def annotation_value(builder, name, value)
-          case value
-          when Annotation
-            type = value.type
-            type = type.jvm_type if type.respond_to?(:jvm_type)
-            builder.annotation(name, type) do |child|
-              value.values.each do |name, value|
-                annotation_value(child, name, value)
+        def annotation_value(scope, type, builder, name, value)
+          if name
+            value_type = type.java_method(name).return_type
+            if value_type.array?
+              unless value.kind_of?(Array)
+                raise "#{type.name}.#{name} should be an Array, got #{value.class}"
               end
-            end
-          when ::Array
-            builder.array(name) do |array|
-              value.each do |item|
-                annotation_value(array, nil, item)
+              builder.array(name) do |child|
+                value.values.each do |item|
+                  annotation_value(scope, value_type.component_type, child, nil, item)
+                end
               end
+              return
             end
           else
-            builder.value(name, value)
+            value_type = type
+          end
+          primitive_classes = {
+            'Z' => java.lang.Boolean,
+            'B' => java.lang.Byte,
+            'C' => java.lang.Character,
+            'S' => java.lang.Short,
+            'I' => java.lang.Integer,
+            'J' => java.lang.Long,
+            'F' => java.lang.Float,
+            'D' => java.lang.Double,
+          }
+          descriptor = BiteScript::Signature::class_id(value_type)
+          case descriptor
+          when 'Ljava/lang/String;'
+            string_value = if value.kind_of?(StringConcat)
+              value.strings.map {|x| x.identifier}.join
+            else
+              value.identifier
+            end
+            builder.visit(name, string_value)
+          when 'Ljava/lang/Class;'
+            mirror = @typer.type_system.type(scope, value.typeref.name)
+            klass = if value.typeref.isArray
+              BiteScript::ASM::Type.get("[#{mirror.type.descriptor}")
+            else
+              mirror
+            end
+            builder.visit(name, klass)
+          when *primitive_classes.keys
+            klass = primitive_classes[descriptor]
+            builder.visit(name, klass.new(value.value))
+          else
+            if value_type.jvm_type.enum?
+              builder.enum(name, value_type, value.identifier)
+            elsif value_type.jvm_type.annotation?
+              subtype = inferred_type(value.type)
+              mirror = subtype.jvm_type
+              builder.annotation(name, mirror) do |child|
+                value.values.each do |entry|
+                  annotation_value(scope, subtype, child, entry.key.identifier, entry.value)
+                end
+              end
+            else
+              raise "Unsupported annotation #{descriptor} #{name} = #{value.class}"
+            end
           end
         end
 
