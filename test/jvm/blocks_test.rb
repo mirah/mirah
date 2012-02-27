@@ -243,4 +243,20 @@ class TestBlocks < Test::Unit::TestCase
     end
   end
 
+  def test_closure_in_closure_doesnt_raise_error
+    parse_and_type(<<-CODE)
+        interface Bar do;def run:void;end;end
+      
+        class Foo
+          def foo(a:Bar)
+            1
+          end
+        end
+        Foo.new.foo do
+          Foo.new.foo do
+            1
+          end
+        end
+      CODE
+  end
 end

@@ -145,7 +145,7 @@ module Mirah::AST
       mirah = typer.transformer
       interface = method.argument_types[-1]
       outer_class = scope.defining_class
-      
+
       binding = scope.binding_type(mirah)
       
       name = "#{outer_class.name}$#{mirah.tmp}"
@@ -156,6 +156,8 @@ module Mirah::AST
                                ['binding', binding]) do |c|
           mirah.eval("@binding = binding", '-', c, 'binding')
       end
+
+      @defining_class = klass.static_scope.self_type
 
       # TODO We need a special scope here that allows access to the
       # outer class.
@@ -174,6 +176,15 @@ module Mirah::AST
       typer.infer(instance, true)
     end
 
+    def defining_class
+      @defining_class
+    end
+
+    # TODO extract this & matching methods into a module
+    def binding_type(mirah=nil)
+      static_scope.binding_type(defining_class, mirah)
+    end
+
     def add_methods(klass, binding, typer)
       method_definitions = body.select{ |node| node.kind_of? MethodDefinition }
       
@@ -183,8 +194,10 @@ module Mirah::AST
         # TODO warn if there are non method definition nodes
         # they won't be used at all currently--so it'd be nice to note that.
         method_definitions.each do |node|
+          
           node.static_scope = static_scope
           node.binding_type = binding
+#          node.children.each {|child| child.instance_variable_set '@scope', nil }
           klass.append_node(node)
         end
       end
