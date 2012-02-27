@@ -18,7 +18,6 @@ class TestBlocks < Test::Unit::TestCase
   def setup
     super
     clear_tmp_files
-    reset_type_factory
   end
   
   def parse_and_type code, name=tmp_script_name
@@ -32,6 +31,7 @@ class TestBlocks < Test::Unit::TestCase
         interface Bar do;def run:void;end;end
       
         class Foo
+          def initialize; end
           def foo(a:Bar)
             1
           end
@@ -48,6 +48,7 @@ class TestBlocks < Test::Unit::TestCase
         interface Bar do;def run:void;end;end
       
         class Foo
+          def initialize; end
           def foo(a:Bar)
             1
           end

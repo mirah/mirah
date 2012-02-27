@@ -80,24 +80,27 @@ module JVMCompiler
     AST.parse(code, name, true, transformer)
   end
 
-#  def infer_and_resolve_types ast, transformer
-#    #typer = JVM::Typer.new(transformer)
-#    typer = Typer::Simple.new :bar
-#    #ast.infer(typer, true)
-#    typer.infer ast, true
-#
-#    typer.resolve(true)
-#  end
+ def infer_and_resolve_types ast, generator
+   scoper, typer = generator.infer_asts(ast, true)
+   ast
+ end
 
-#  def parse_and_resolve_types name, code
-#    transformer = create_transformer
-#
-#    ast = parse name, code, transformer
-#
-#    infer_and_resolve_types ast, transformer
-#
-#    ast
-#  end
+ def parse_and_resolve_types name, code
+   clear_tmp_files
+
+   state = new_state
+
+   generator = Mirah::Generator.new(state, compiler_type, false, false)
+   transformer = Mirah::Transform::Transformer.new(state, generator.typer)
+
+   #Java::MirahImpl::Builtin.initialize_builtins(transformer)
+
+   ast = [AST.parse(code, name, true, transformer)]
+
+   infer_and_resolve_types ast, generator
+
+   ast
+ end
 
 
   def generate_classes compiler_results
