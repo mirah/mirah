@@ -16,7 +16,7 @@
 class TestConstructor < Test::Unit::TestCase
   def test_constructor
     cls, = compile(
-        "class InitializeTest;def initialize;puts 'Constructed';end;end")
+        "class InitializeTest;def initialize;System.out.println 'Constructed';end;end")
     assert_output("Constructed\n") do
       cls.new
     end
@@ -57,14 +57,14 @@ class TestConstructor < Test::Unit::TestCase
     sc_a, sc_b = compile(<<-EOF)
       class SC_A
         def initialize(a:int)
-          puts "A"
+          System.out.println "A"
         end
       end
 
       class SC_B < SC_A
         def initialize
           super(0)
-          puts "B"
+          System.out.println "B"
         end
       end
     EOF
@@ -86,7 +86,7 @@ class TestConstructor < Test::Unit::TestCase
   def test_inexact_constructor
     # FIXME: this is a stupid test
     cls, = compile(
-        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; puts 'ok'; end; end")
+        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; System.out.println 'ok'; end; end")
     assert_output("ok\n") do
       cls.empty_empty
     end
@@ -100,7 +100,7 @@ class TestConstructor < Test::Unit::TestCase
         end
       end
 
-      print DefaultConstructable.new.foo
+      System.out.print DefaultConstructable.new.foo
     EOF
 
     assert_output("foo") do

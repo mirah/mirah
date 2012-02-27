@@ -41,7 +41,7 @@ class TestEnumerable < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(a:Iterable)
         a.each do |x|
-          puts x
+          System.out.println x
         end
       end
     EOF
@@ -58,7 +58,7 @@ class TestEnumerable < Test::Unit::TestCase
       import java.util.ArrayList
       def foo(a:ArrayList)
         a.each do |x|
-          puts x
+          System.out.println x
         end
       end
     EOF
@@ -73,7 +73,7 @@ class TestEnumerable < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo(a:int[])
-        a.each {|x| x += 1;puts x; redo if x == 2}
+        a.each {|x| x += 1;System.out.println x; redo if x == 2}
       end
     EOF
 
@@ -105,7 +105,7 @@ class TestEnumerable < Test::Unit::TestCase
   def test_downto
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.downto(1) {|x| puts x }
+        i.downto(1) {|x| System.out.println x }
       end
     EOF
 
@@ -117,7 +117,7 @@ class TestEnumerable < Test::Unit::TestCase
   def test_upto
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.upto(3) {|x| puts x }
+        i.upto(3) {|x| System.out.println x }
       end
     EOF
 
@@ -129,7 +129,7 @@ class TestEnumerable < Test::Unit::TestCase
   def test_times
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.times {|x| puts x }
+        i.times {|x| System.out.println x }
       end
     EOF
 
@@ -139,7 +139,7 @@ class TestEnumerable < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.times { puts "Hi" }
+        i.times { System.out.println "Hi" }
       end
     EOF
 
@@ -218,7 +218,7 @@ class TestEnumerable < Test::Unit::TestCase
     def test_each
     cls, = compile(<<-EOF)
       def foo
-        [1,2,3].each {|x| puts x}
+        [1,2,3].each {|x| System.out.println x}
       end
     EOF
     assert_output("1\n2\n3\n") do
@@ -229,7 +229,7 @@ class TestEnumerable < Test::Unit::TestCase
   def test_each_without_block_arguments
     cls, = compile(<<-EOF)
       def foo
-        [1,2,3].each { puts :thrice }
+        [1,2,3].each { System.out.println :thrice }
       end
     EOF
     assert_output("thrice\nthrice\nthrice\n") do
@@ -242,8 +242,8 @@ class TestEnumerable < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.lang.Integer
       def foo
-        puts [1,2,3].any?
-        puts [1,2,3].any? {|x| Integer(x).intValue > 3}
+        System.out.println [1,2,3].any?
+        System.out.println [1,2,3].any? {|x| Integer(x).intValue > 3}
       end
     EOF
     assert_output("true\nfalse\n") do
@@ -255,8 +255,8 @@ class TestEnumerable < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.lang.Integer
       def foo
-        puts [1,2,3].all?
-        puts [1,2,3].all? {|x| Integer(x).intValue > 3}
+        System.out.println [1,2,3].all?
+        System.out.println [1,2,3].all? {|x| Integer(x).intValue > 3}
       end
     EOF
     assert_output("true\nfalse\n") do
@@ -291,7 +291,7 @@ class TestEnumerable < Test::Unit::TestCase
         end
 
         def self.test(x:String)
-          MyIterator.new(x).each {|y| puts y}
+          MyIterator.new(x).each {|y| System.out.println y}
         end
       end
     EOF

@@ -3,7 +3,7 @@ class TestMainMethod < Test::Unit::TestCase
     code = <<-EOC
       class WithMain
       end
-      puts 'bar'
+      System.out.println 'bar'
     EOC
     
     main_class, = compile code, 'with_main'

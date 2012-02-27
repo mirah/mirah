@@ -19,9 +19,9 @@ class TestRescue < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo
         begin
-          puts "body"
+          System.out.println "body"
         rescue
-          puts "rescue"
+          System.out.println "rescue"
         end
       end
     EOF
@@ -34,10 +34,10 @@ class TestRescue < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo
         begin
-          puts "body"
+          System.out.println "body"
           raise
         rescue
-          puts "rescue"
+          System.out.println "rescue"
         end
       end
     EOF
@@ -50,16 +50,16 @@ class TestRescue < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
-          puts "body"
+          System.out.println "body"
           if a == 0
             raise IllegalArgumentException
           else
             raise
           end
         rescue IllegalArgumentException
-          puts "IllegalArgumentException"
+          System.out.println "IllegalArgumentException"
         rescue
-          puts "rescue"
+          System.out.println "rescue"
         end
       end
     EOF
@@ -73,7 +73,7 @@ class TestRescue < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
-          puts "body"
+          System.out.println "body"
           if a == 0
             raise IllegalArgumentException
           elsif a == 1
@@ -82,9 +82,9 @@ class TestRescue < Test::Unit::TestCase
             raise
           end
         rescue IllegalArgumentException, RuntimeException
-          puts "multi"
+          System.out.println "multi"
         rescue Throwable
-          puts "other"
+          System.out.println "other"
         end
       end
     EOF
@@ -101,7 +101,7 @@ class TestRescue < Test::Unit::TestCase
         begin
           raise "foo"
         rescue => ex
-          puts ex.getMessage
+          System.out.println ex.getMessage
         end
       end
     EOF
@@ -114,7 +114,7 @@ class TestRescue < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo(x:boolean)
-        throws Exception
+        # throws Exception
         if x
           raise Exception, "x"
         end
@@ -174,7 +174,7 @@ class TestRescue < Test::Unit::TestCase
           end
         rescue
         ensure
-          puts 'ensuring'
+          System.out.println 'ensuring'
         end
         ""
       end

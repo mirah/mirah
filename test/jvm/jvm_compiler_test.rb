@@ -320,12 +320,12 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
   
   def test_class_name_from_file_with_underscore
-    foo, = compile("puts 'blah'", 'class_name_test.mirah')
+    foo, = compile("System.out.println 'blah'", 'class_name_test.mirah')
     assert_equal('ClassNameTest', foo.java_class.name)
   end
   
   def test_class_name_from_file_with_dash
-    foo, = compile("puts 'blah'", 'class-dash-test.mirah')
+    foo, = compile("System.out.println 'blah'", 'class-dash-test.mirah')
     assert_equal('ClassDashTest', foo.java_class.name)
   end
   
@@ -2254,7 +2254,7 @@ class TestJVMCompiler < Test::Unit::TestCase
   def test_long_generation
     cls, = compile(<<-EOF)
       c = 2_000_000_000_000
-      puts c
+      System.out.println c
     EOF
   end
 
@@ -2265,14 +2265,14 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
   
   def test_bool_equality
-    cls, = compile("puts true == false")
+    cls, = compile("System.out.println true == false")
     assert_output("false\n") do
       cls.main(nil)
     end
   end
   
   def test_bool_inequality
-    cls, = compile("puts true != false")
+    cls, = compile("System.out.println true != false")
     assert_output("true\n") do
       cls.main(nil)
     end

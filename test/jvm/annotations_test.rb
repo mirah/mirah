@@ -16,7 +16,7 @@ class TestAnnotations < Test::Unit::TestCase
   end
   
   def test_annotation_on_a_class
-    script, cls = compile(<<-EOF)
+    cls, = compile(<<-EOF)
       $Deprecated
       class Annotated
       end

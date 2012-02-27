@@ -81,9 +81,9 @@ class TestMacros < Test::Unit::TestCase
       end
 
       x = UnquoteMacros.new
-      puts x.foo
+      System.out.println x.foo
       x.foo = 3
-      puts x.foo
+      System.out.println x.foo
     EOF
     assert_output("0\n3\n") {script.main(nil)}
   end
@@ -100,8 +100,8 @@ class TestMacros < Test::Unit::TestCase
 
       def foo
         x = "1"
-        puts doubleIt(x)
-        puts x
+        System.out.println doubleIt(x)
+        System.out.println x
       end
     EOF
 
@@ -117,7 +117,7 @@ class TestMacros < Test::Unit::TestCase
       end
 
       def bar(a:String, b:String, c:String, d:String)
-        puts "\#{a} \#{b} \#{c} \#{d}"
+        System.out.println "\#{a} \#{b} \#{c} \#{d}"
       end
 
       foo(["a", "b"])
@@ -131,7 +131,7 @@ class TestMacros < Test::Unit::TestCase
   def test_block_parameter_uses_outer_scope
     cls, = compile(<<-EOF)
       macro def foo(&block)
-        quote { z = `block.body`; puts z }
+        quote { z = `block.body`; System.out.println z }
       end
       apple = 1
       foo do
@@ -148,7 +148,7 @@ class TestMacros < Test::Unit::TestCase
     assert_raises Mirah::InferenceError do
       compile(<<-EOF)
         macro def foo
-          quote { puts :z }
+          quote { System.out.println :z }
         end
         def foo
           :bar
