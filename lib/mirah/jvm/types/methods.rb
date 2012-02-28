@@ -137,10 +137,12 @@ module Mirah::JVM::Types
       @types.type(nil, @member.declaring_class)
     end
 
-    def call(compiler, ast, expression, parameters=nil)
+    def call(compiler, ast, expression, parameters=nil, delegate=false)
       target = compiler.inferred_type(ast.target)
-      compiler.method.new target
-      compiler.method.dup if expression
+      unless delegate
+        compiler.method.new target
+        compiler.method.dup if expression
+      end
       parameters ||= ast.parameters
       convert_args(compiler, parameters)
       compiler.method.invokespecial(

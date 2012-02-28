@@ -227,6 +227,12 @@ class SimpleScope; implements Scope
   def initialize
     @nextTemp = -1
   end
+  def context:Node
+    @node
+  end
+  def context=(node:Node):void
+    @node = node
+  end
   def selfType:TypeFuture
     @selfType || (@parent && @parent.selfType)
   end

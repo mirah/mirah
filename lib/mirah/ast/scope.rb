@@ -45,6 +45,10 @@ module Mirah
         @package_block = nil
       end
 
+      def context
+        @scope_node
+      end
+      
       def to_s
         "#<StaticScope node=#{@scope_node.inspect}>"
       end

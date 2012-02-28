@@ -4,6 +4,7 @@ import mirah.lang.ast.Node
 interface Scope do
   def selfType:TypeFuture; end  # Should this be resolved?
   def selfType=(type:TypeFuture):void; end
+  def context:Node; end
   def parent:Scope; end
   def parent=(scope:Scope):void; end
   def shadow(name:String):void; end

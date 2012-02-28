@@ -177,7 +177,6 @@ module Mirah
             super(node, true) do |method, args|
               method_body(method, args, node, @typer.type_system.type(nil, 'void')) do
                 method.aload 0
-                # TODO handle calling another constructor in this class
                 scope = introduced_scope(node)
                 if node.body.size > 0 &&
                     (node.body(0).kind_of?(Super) || node.body(0).kind_of?(ZSuper))
@@ -207,7 +206,11 @@ module Mirah
                   delegate_class, "<init>",
                   [@method.void, *constructor.argument_types])
                 else
-                  method.invokespecial @class.superclass, "<init>", [@method.void]
+                  unless (node.body.size > 0 &&
+                          node.body(0).kind_of?(FunctionalCall) &&
+                          node.body(0).name.identifier == 'initialize')
+                    method.invokespecial @class.superclass, "<init>", [@method.void]
+                  end
                 end
               end
             end
@@ -441,6 +444,7 @@ module Mirah
         end
 
         def visitFunctionalCall(fcall, expression)
+          scope = get_scope(fcall)
           type = get_scope(fcall).self_type.resolve
           type = type.meta if (@static && type == @type)
           fcall.target = ImplicitSelf.new
@@ -450,14 +454,28 @@ module Mirah
           params = fcall.parameters.map do |param|
             inferred_type(param)
           end
-          method = type.get_method(fcall.name.identifier, params)
+          name = fcall.name.identifier
+          chained_constructor = false
+          if name == 'initialize'
+            if scope.context.kind_of?(ConstructorDefinition) &&
+                scope.context.body(0) == fcall
+              name = '<init>'
+              chained_constructor = true
+            end
+          end
+              
+          method = type.get_method(name, params)
           unless method
             target = static ? @class.name : 'self'
 
             raise NameError, "No method %s.%s(%s)" %
             [target, fcall.name.identifier, params.join(', ')]
           end
-          method.call(self, fcall, expression)
+          if chained_constructor
+            method.call(self, fcall, expression, nil, true)
+          else
+            method.call(self, fcall, expression)
+          end
         end
 
         def visitSuper(sup, expression)
