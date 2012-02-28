@@ -85,8 +85,19 @@ class TestConstructor < Test::Unit::TestCase
 
   def test_inexact_constructor
     # FIXME: this is a stupid test
-    cls, = compile(
-        "class EmptyEmpty; def self.empty_empty; t = Thread.new(Thread.new); t.start; begin; t.join; rescue InterruptedException; end; System.out.println 'ok'; end; end")
+    cls, = compile(<<-EOF)
+      class EmptyEmpty
+        def self.empty_empty
+          t = Thread.new(Thread.new)
+          t.start
+          begin
+            t.join
+          rescue InterruptedException
+          end
+          System.out.println 'ok'
+        end
+      end
+    EOF
     assert_output("ok\n") do
       cls.empty_empty
     end

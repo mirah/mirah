@@ -61,7 +61,7 @@ module Mirah
           end
         rescue NameError => ex
           # TODO return nil instead of raising an exception if the method doesn't exist.
-          raise ex unless ex.message =~ /#{mapped_type.name}\.#{name.sub('[]', '\[\]')}/
+          raise ex unless ex.message =~ /#{mapped_type.name}\.#{name.sub('[]', '\[\]')}|No constructor #{mapped_type.name}/
           # exact args failed, do a deeper search
           log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
 
