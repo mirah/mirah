@@ -162,7 +162,7 @@ module Mirah::JVM::Types
                     argTypes.map{|t| t.full_name}.join(', '),
                     target.full_name]]]))
         elsif method.kind_of?(Exception)
-          type.resolved(ErrorType.new([method.message]))
+          type.resolved(ErrorType.new([[method.message]]))
         else
           result = method.return_type
           if result.kind_of?(TypeFuture)

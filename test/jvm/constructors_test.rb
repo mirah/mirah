@@ -54,7 +54,7 @@ class TestConstructor < Test::Unit::TestCase
   end
 
   def test_super_constructor
-    sc_a, sc_b = compile(<<-EOF)
+    script, sc_a, sc_b = compile(<<-EOF)
       class SC_A
         def initialize(a:int)
           System.out.println "A"
@@ -68,7 +68,6 @@ class TestConstructor < Test::Unit::TestCase
         end
       end
     EOF
-
     assert_output("A\nB\n") do
       sc_b.new
     end

@@ -408,7 +408,7 @@ module Mirah::JVM::Types
 
     def method_updated(name)
       listeners = method_listeners[name]
-      listeners.each do |l|
+      listeners.values.each do |l|
         if l.kind_of?(Proc)
           l.call(name)
         else
@@ -420,6 +420,9 @@ module Mirah::JVM::Types
     def add_method_listener(name, listener=nil, &block)
       listeners = method_listeners[name] ||= {}
       if listener
+        unless listener.respond_to?(:method_updated) || listener.kind_of?(Proc)
+          raise "Invalid listener"
+        end
         listeners[listener] = listener
       else
         listeners[block] = block
@@ -623,17 +626,12 @@ module Mirah::JVM::Types
     end
 
     def constructors
-      @constructors ||= []
-    end
-
-    def default_constructor
-      if constructors.empty?
+      if @constructors.nil?
+        @constructors = []
         declare_method('initialize', [], self, [])
-        @default_constructor_added = true
-        constructors[0]
-      else
-        constructor
+        @have_default_constructor = true
       end
+      @constructors
     end
 
     def instance_methods
@@ -648,22 +646,24 @@ module Mirah::JVM::Types
       raise "Bad args" unless arguments.all?
       if type.isError
         instance_methods.delete(name)
+        method_updated(name)
         return
       end
       member = MirahMember.new(self, name, arguments, type, false, exceptions)
       if name == 'initialize'
-        if @default_constructor_added
-          if arguments.empty?
-            @default_constructor_added = false
-          else
-            raise "Can't add constructor #{member} after using the default."
-          end
-        else
-          constructors << JavaConstructor.new(@type_system, member)
+        # The ordering is important here:
+        # The first call to constructors initializes @have_default_constructor.
+        if constructors.size == 1 && @have_default_constructor
+          constructors.clear
+          @have_default_constructor = false
+        elsif constructors.size > 1 && @have_default_constructor
+          raise "Invalid state: default constructor but #{constructors.size} constructors"
         end
+        constructors << JavaConstructor.new(@type_system, member)
       else
         instance_methods[name] << JavaMethod.new(@type_system, member)
       end
+      method_updated(name)
     end
 
     def declare_static_method(name, arguments, type, exceptions)
