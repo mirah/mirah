@@ -14,6 +14,11 @@
 # limitations under the License.
 
 class TestEnumerable < Test::Unit::TestCase
+if true
+  def test_fix_enumerables
+    raise "Enumerables not implemented"
+  end
+else
   def test_for
     cls, = compile(<<-EOF)
       def foo
@@ -300,5 +305,5 @@ class TestEnumerable < Test::Unit::TestCase
       cls.test("Hi")
     end
   end
-
+end
 end
