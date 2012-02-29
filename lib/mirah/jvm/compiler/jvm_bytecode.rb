@@ -327,8 +327,6 @@ module Mirah
               visit(loop.body, false) if loop.body
 
               if loop.skipFirstCheck || loop.post_size > 0
-                @method.goto(@next_label)
-              else
                 @next_label.set!
                 visit(loop.post, false)
                 if loop.negative
@@ -338,6 +336,8 @@ module Mirah
                   # if condition, continue
                   jump_if(predicate, pre_label)
                 end
+              else
+                @method.goto(@next_label)
               end
 
               @break_label.set!
