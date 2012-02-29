@@ -14,6 +14,11 @@
 # limitations under the License.
 
 class TestMacros < Test::Unit::TestCase
+if true
+  def test_macros
+    raise "Macros not implemented"
+  end
+else
   def test_defmacro
     cls, = compile(<<-EOF)
       defmacro bar(x) do
@@ -157,4 +162,5 @@ class TestMacros < Test::Unit::TestCase
     end
 
   end
+end
 end
