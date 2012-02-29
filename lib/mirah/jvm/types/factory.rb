@@ -88,9 +88,16 @@ module Mirah::JVM::Types
     def getStringType; cache_and_wrap_type('java.lang.String') end
     def getBooleanType; cache_and_wrap_type('boolean') end
     # TODO narrowing
-    def getFixnumType(value); cache_and_wrap_type('int') end
+    def getFixnumType(value)
+      long = java.lang.Long.new(value)
+      if long.int_value != value
+        cache_and_wrap_type('long')
+      else
+        cache_and_wrap_type('int')
+      end
+    end
     def getCharType(value) cache_and_wrap_type('char') end
-    def getFloatType(value); cache_and_wrap_type('float') end
+    def getFloatType(value); cache_and_wrap_type('double') end
     def getMetaType(type)
       if type.kind_of?(Type)
         type.meta
