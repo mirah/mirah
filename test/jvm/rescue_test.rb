@@ -81,7 +81,7 @@ class TestRescue < Test::Unit::TestCase
           else
             raise
           end
-        rescue IllegalArgumentException, RuntimeException
+        rescue IllegalArgumentException, Exception
           System.out.println "multi"
         rescue Throwable
           System.out.println "other"
