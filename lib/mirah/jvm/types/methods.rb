@@ -403,7 +403,11 @@ module Mirah::JVM::Types
 
   class Type
     def method_listeners
-      @method_listeners ||= {}
+      if meta?
+        unmeta.method_listeners
+      else
+        @method_listeners ||= {}
+      end
     end
 
     def method_updated(name)
@@ -673,6 +677,7 @@ module Mirah::JVM::Types
         member = MirahMember.new(self, name, arguments, type, true, exceptions)
         static_methods[name] << JavaStaticMethod.new(@type_system, member)
       end
+      method_updated(name)
     end
 
     def interface?

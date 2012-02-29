@@ -181,6 +181,9 @@ module Mirah::JVM::Types
       result
     end
     def getMethodDefType(target, name, argTypes)
+      if target.nil?
+        return ErrorType.new([["No target"]])
+      end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
       type = getMethodType(target, name, args)
