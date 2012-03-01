@@ -8,3 +8,4 @@ gem "bitescript", :git => 'https://github.com/headius/bitescript.git'
 # replace ":git => ''" with ":path => '<path to your local copy>'"
 gem 'turn'
 gem 'minitest'
+gem 'ruby-debug'

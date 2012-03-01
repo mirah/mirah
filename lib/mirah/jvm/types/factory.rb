@@ -226,6 +226,7 @@ module Mirah::JVM::Types
       future = @futures[type.name]
       if future
         future.resolved(type)
+        future
       else
         cache_and_wrap(type)
       end
@@ -244,6 +245,8 @@ module Mirah::JVM::Types
         else
           name = name.getClassName
         end
+      elsif name.kind_of?(Type) && name.array?
+        array = true
       end
       type = basic_type(scope, name)
       type = type.array_type if type && array
