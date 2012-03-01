@@ -1919,61 +1919,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('Static Hello', output)
   end
 
-  def test_hashes
-    cls, = compile(<<-EOF)
-      def foo1
-        {a:"A", b:"B"}
-      end
-      def foo2
-        return {a:"A", b:"B"}
-      end
-    EOF
-
-    map = cls.foo1
-    assert_equal("A", map["a"])
-    assert_equal("B", map["b"])
-    map = cls.foo2
-    assert_equal("A", map["a"])
-    assert_equal("B", map["b"])
-
-    cls, = compile(<<-'EOF')
-      def set(b:Object)
-        map = { }
-        map["key"] = b
-        map["key"]
-      end
-    EOF
-
-    assert_equal("foo", cls.set("foo"))
-  end
-
-  def test_hash_with_value_from_static_method
-    cls, = compile(<<-EOF)
-      def foo1
-        {a: a, b:"B"}
-      end
-      def a
-        return "A"
-      end
-    EOF
-    assert_equal("A", cls.foo1["a"])
-  end
-
-  def test_hash_with_value_from_instance_method
-    cls, = compile(<<-EOF)
-      class HashTesty
-        def foo1
-          {a: a, b:"B"}
-        end
-        def a
-          return "A"
-        end
-      end
-    EOF
-    assert_equal("A", cls.new.foo1["a"])
-  end
-
-
   def test_loop_in_ensure
     cls, = compile(<<-EOF)
     begin
@@ -2066,7 +2011,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal('foo', package)
     assert_equal('foo', script.dosomething)
 
-    # TODO move package to the parser so we can support blocks
     assert_equal('bar', cls.dosomething)
     assert_equal("foo.bar.PackagedBar", cls.java_class.name)
   end
@@ -2102,42 +2046,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     EOF
 
     assert_output("1\nFoo\n2\n") { cls.foo }
-  end
-
-  def test_scoped_self_through_method_call
-    cls, = compile(<<-EOF)
-      class ScopedSelfThroughMethodCall
-        def emptyMap
-          {}
-        end
-
-        def foo
-          emptyMap["a"] = "A"
-        end
-      end
-    EOF
-
-    # just make sure it can execute
-    m = cls.new.foo
-  end
-
-  def test_self_call_preserves_scope
-    cls, = compile(<<-EOF)
-      class SelfCallPreservesScope
-        def key
-          "key"
-        end
-        
-        def foo
-          map = {}
-          map[key] = "value"
-          map
-        end
-      end
-    EOF
-
-    map = cls.new.foo
-    assert_equal("value", map["key"])
   end
 
   def test_wide_nonexpressions
@@ -2259,9 +2167,11 @@ class TestJVMCompiler < Test::Unit::TestCase
   end
 
   def test_missing_class_with_block_raises_inference_error
-    assert_raises Typer::InferenceError do
+    # TODO(ribrdb): What is this test for?
+    ex = assert_raise Mirah::MirahError  do
       compile("Interface Implements_Go do; end")
     end
+    assert_equal("InferenceError", ex.message)
   end
   
   def test_bool_equality
