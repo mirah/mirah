@@ -952,6 +952,10 @@ module Mirah
           end
         end
 
+        def visitImplicitNil(node, expression)
+          visitNull(node, expression)
+        end
+
         def visitBindingReference(node, expression)
           binding_reference
         end
