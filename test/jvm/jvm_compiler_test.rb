@@ -238,7 +238,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.io.*
       def foo
-        throws IOException
+        # throws IOException
         OutputStreamWriter.new(
             System.out).write("Hello ").write("there\n").flush
       end
@@ -303,7 +303,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import 'java.util.concurrent.Callable'
       def foo(a:Callable)
-        throws Exception
+        # throws Exception
         a.call
       end
     EOF
@@ -881,7 +881,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise
       end
     EOF
-    assert_raise_java(java.lang.RuntimeException) do
+    assert_raise_java(java.lang.Exception) do
       cls.foo
     end
 
@@ -890,7 +890,7 @@ class TestJVMCompiler < Test::Unit::TestCase
         raise "Oh no!"
       end
     EOF
-    ex = assert_raise_java(java.lang.RuntimeException, 'Oh no!') do
+    ex = assert_raise_java(java.lang.Exception, 'Oh no!') do
       cls.foo
     end
 
@@ -905,7 +905,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo
-        throws Exception
+        # throws Exception
         raise Exception, "oops"
       end
     EOF
@@ -915,7 +915,7 @@ class TestJVMCompiler < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       def foo
-        throws Throwable
+        # throws Throwable
         raise Throwable.new("darn")
       end
     EOF
@@ -1604,7 +1604,7 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.util.concurrent.Callable
       def foo c:Callable
-        throws Exception
+        # throws Exception
          System.out.println c.call
       end
       begin

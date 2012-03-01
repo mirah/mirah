@@ -381,7 +381,7 @@ module Mirah::JVM::Types
     attr_reader :exception_types
 
     def initialize(klass, name, args, return_type, static, exceptions)
-      if return_type.name == 'void'
+      if return_type.name == 'void' || return_type.name == ':unreachable'
         return_type = nil
       end
       @declaring_class = klass
