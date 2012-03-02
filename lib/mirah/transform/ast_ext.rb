@@ -44,7 +44,7 @@ module Mirah
       begin
         parser.parse(src)
       rescue => ex
-        if ex.cause.kind_of? Java::Jmeta::SyntaxError
+        if ex.cause.kind_of? Java::Mmeta::SyntaxError
           ex = SyntaxError.wrap ex.cause, nil
         end
 
