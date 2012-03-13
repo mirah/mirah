@@ -23,8 +23,8 @@ mirah <script.mirah>
 mirah -e "inline script"
 mirahc <script.mirah>
 mirahc -e "inline script" # produces DashE.class
-mirahc -java <script.mirah>
-mirahc -java -e "inline script" # produces DashE.java
+mirahc --java <script.mirah>
+mirahc --java -e "inline script" # produces DashE.java
 
 == REQUIREMENTS:
 
