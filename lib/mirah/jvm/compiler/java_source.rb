@@ -609,7 +609,9 @@ module Mirah
             method.call(self, call, expression)
             return
           else
+            @method.print "("             if Mirah::AST::StringConcat === target
             target.compile(self, true)
+            @method.print ")"             if Mirah::AST::StringConcat === target
             @method.print ".#{method.name}("
           end
 
