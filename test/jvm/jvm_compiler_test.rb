@@ -1596,6 +1596,15 @@ class TestJVMCompiler < Test::Unit::TestCase
     assert_equal(2, cls.foo(1))
   end
 
+  def test_string_interpolation_method_calls
+    cls, = compile <<-CODE
+      print "apples \#{'oranges'}".replace('apples', 'oranges')
+    CODE
+    assert_output "oranges oranges" do
+      cls.main nil
+    end
+  end
+
   def test_self_dot_static_methods
     cls, = compile(<<-EOF)
       class ClassWithStatics

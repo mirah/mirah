@@ -615,7 +615,9 @@ module Mirah
             method.call(self, call, expression)
             return
           else
-            visit(target, true)
+            @method.print "("             if Mirah::AST::StringConcat === target
+            visit target, true
+            @method.print ")"             if Mirah::AST::StringConcat === target
             @method.print ".#{method.name}("
           end
 
