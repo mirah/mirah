@@ -308,11 +308,20 @@ end
 
 class StreamCodeSource < StringCodeSource
   def initialize(filename:String)
-    super(filename, mirahparser::impl::MirahParser.readToString(
+    super(filename, StreamCodeSource.readToString(
         java::io::FileInputStream.new(filename)))
   end
   def initialize(name:String, stream:java::io::InputStream)
-    super(name, mirahparser::impl::MirahParser.readToString(stream))
+    super(name, StreamCodeSource.readToString(stream))
+  end
+  def self.readToString(stream:java::io::InputStream):String
+    reader = java::io::BufferedReader.new(java::io::InputStreamReader.new(stream))
+    buffer = char[8192]
+    builder = StringBuilder.new
+    while (read = reader.read(buffer, 0, buffer.length)) > 0
+      builder.append(buffer, 0, read);
+    end
+    return builder.toString
   end
 end
 

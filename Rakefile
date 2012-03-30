@@ -60,7 +60,7 @@ file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
   end
 end
 
-file 'build/mirahparser/impl/MirahParser.class' => ['build/mirahparser/impl/Mirah.mirah'] do
+file 'build/mirahparser/impl/MirahParser.class' => ['build/mirahparser/impl/Mirah.mirah', 'build/mirahparser/impl/MirahLexer.class'] do
   mirahc('build/mirahparser/impl/Mirah.mirah',
          :dir => 'build',
          :dest => 'build',
