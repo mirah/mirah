@@ -40,6 +40,7 @@ module Mirah::JVM::Types
       "null" => Null,
       "dynamic" => DynamicType.new
     }.freeze
+    java_import 'java.net.URLClassLoader'
 
     attr_accessor :package
     attr_reader :known_types
@@ -218,14 +219,55 @@ module Mirah::JVM::Types
       Unreachable
     end
 
+    def make_urls(classpath)
+      Mirah::Env.decode_paths(classpath).map do |filename|
+        java.io.File.new(filename).to_uri.to_url
+      end.to_java(java.net.URL)
+    end
+
+    def classpath
+      @classpath ||= '.'
+    end
+
+    def classpath=(classpath)
+      @classpath = classpath
+      @resource_loader = nil
+    end
+    
+    def resource_loader
+      @resource_loader ||= URLClassLoader.new(make_urls(classpath), bootstrap_loader)
+    end
+    
+    def bootstrap_loader
+      @bootstrap_loader ||= begin
+        parent = if @bootclasspath
+          Mirah::Util::IsolatedResourceLoader.new(make_urls(classpath))
+        else
+          nil
+        end
+        bootstrap_jar = File.expand_path("#{__FILE__}/../../../../../javalib/mirah-bootstrap.jar")
+        bootstrap_urls = [java.io.File.new(bootstrap_jar).to_uri.to_url].to_java(java.net.URL)
+        URLClassLoader.new(bootstrap_urls, parent)
+      end
+    end
+
+    def bootclasspath=(classpath)
+      @bootclasspath = classpath
+      @bootstrap_loader = nil
+      @resource_loader = nil
+    end
+    
+    attr_reader :bootclasspath
+    
     def get_mirror(name)
       @mirrors[name] ||= begin
         classname = name.tr('.', '/')
-        stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname + ".class")
+        stream = resource_loader.getResourceAsStream(classname + ".class")
         if stream
           BiteScript::ASM::ClassMirror.load(stream) if stream
         else
-          url = JRuby.runtime.jruby_class_loader.getResource(classname + ".java")
+          # TODO(ribrdb) Should this use a separate sourcepath?
+          url = resource_loader.getResource(classname + ".java")
           if url
             file = java.io.File.new(url.toURI)
             mirrors = JavaSourceMirror.load(file, self)
