@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class TestEnumerable < Test::Unit::TestCase
+class EnumerableTest < Test::Unit::TestCase
   def test_for
     cls, = compile(<<-EOF)
       def foo

@@ -14,7 +14,7 @@
 # limitations under the License.
 require 'test_helper'
 
-class TestAst < Test::Unit::TestCase
+class AstTest < Test::Unit::TestCase
   include Mirah
 
   def test_args

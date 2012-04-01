@@ -15,7 +15,7 @@
 # TODO refactor this and test_jvm_compiler to use mirah.rb
 require 'test_helper'
 
-class TestMacros < Test::Unit::TestCase
+class MacrosTest < Test::Unit::TestCase
   java_import 'java.lang.System'
 
   def parse(code)

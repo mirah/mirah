@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class TestMacros < Test::Unit::TestCase
+class MacrosTest < Test::Unit::TestCase
   def test_defmacro
     cls, = compile(<<-EOF)
       defmacro bar(x) do

@@ -16,7 +16,7 @@
 require 'test/unit'
 require 'mirah'
 
-class TestJavaTyper < Test::Unit::TestCase
+class JavaTyperTest < Test::Unit::TestCase
   include Mirah
 
   def setup

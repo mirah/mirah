@@ -15,7 +15,7 @@
 
 require 'test_helper'
 
-class TestGWT < Test::Unit::TestCase
+class GWTTest < Test::Unit::TestCase
   include Mirah::AST
 
   def test_jsni_static

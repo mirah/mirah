@@ -15,7 +15,7 @@
 require 'test_helper'
 
 
-class TestCommands < Test::Unit::TestCase
+class CommandsTest < Test::Unit::TestCase
   def teardown
     Mirah::AST.type_factory = nil
   end

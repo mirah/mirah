@@ -14,7 +14,7 @@
 # limitations under the License.
 require 'test_helper'
 
-class TestEnv < Test::Unit::TestCase
+class EnvTest < Test::Unit::TestCase
   include Mirah
 
   def test_use_file_path_separator

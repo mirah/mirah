@@ -14,7 +14,7 @@
 # limitations under the License.
 require 'test_helper'
 
-class TestCompilation < Test::Unit::TestCase
+class CompilationTest < Test::Unit::TestCase
   include Mirah
 
   class MockCompiler

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class TestJVMCompiler < Test::Unit::TestCase
+class JVMCompilerTest < Test::Unit::TestCase
   def assert_raise_java(type, message="")
     ex = assert_raise(NativeException) do
       yield
