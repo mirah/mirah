@@ -136,40 +136,8 @@ module JVMCompiler
   end
 end
 
-
-module CommonAssertions
-  import java.lang.System
-  import java.io.PrintStream
-
-  def assert_include(value, array, message=nil)
-    message = build_message message, '<?> does not include <?>', array, value
-    assert_block message do
-      array.include? value
-    end
-  end
-  
-  def capture_output
-    saved_output = System.out
-    output = StringIO.new
-    System.setOut(PrintStream.new(output.to_outputstream))
-    begin
-      yield
-      output.rewind
-      output.read
-    ensure
-      System.setOut(saved_output)
-    end
-  end
-
-  def assert_output(expected, &block)
-    assert_equal(expected, capture_output(&block))
-  end
-
-end
-
 class Test::Unit::TestCase
   include JVMCompiler
-  include CommonAssertions
   
   def setup
     @tmp_classes = []
