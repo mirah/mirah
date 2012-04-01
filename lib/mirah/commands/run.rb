@@ -22,14 +22,10 @@ module Mirah
       def execute
         execute_base do
           main = nil
-          class_map = {}
+
           
           # generate all bytes for all classes
-          generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
-          
-          generator.generate(args).each do |result|
-            class_map[result.classname.gsub(/\//, '.')] = Mirah::Util::ClassLoader.binary_string result.bytes
-          end
+          class_map = generate_class_map 
           
           # load all classes
           main = load_classes_and_find_main(class_map)
@@ -44,6 +40,16 @@ module Mirah
       end
       
       private
+
+      def generate_class_map
+        generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
+
+        class_map = {}
+        generator.generate(args).each do |result|
+          class_map[result.classname.gsub(/\//, '.')] = Mirah::Util::ClassLoader.binary_string result.bytes
+        end
+        class_map
+      end
       
       def load_classes_and_find_main(class_map)
         main = nil
@@ -65,7 +71,8 @@ module Mirah
             raise e
           end
         else
-          puts "No main found" unless @state.version_printed || @state.help_printed
+          $stderr.puts "No main found"
+          exit 1
         end
       end
     end

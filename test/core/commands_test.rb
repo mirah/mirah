@@ -76,13 +76,26 @@ class CommandsTest < Test::Unit::TestCase
     end
   end
 
+  def test_run_says_no_main_and_exits_with_non_zero_with_no_main
+    cmd = Mirah::Commands::Run.new([])
+
+    #stub class generation, loading, return nil main
+    def cmd.load_classes_and_find_main *args;nil;end
+    def cmd.generate_class_map;end
+
+    assert_non_zero_exit do
+      assert_output "No main found\n" do
+        cmd.execute
+      end
+    end
+  end
+
   def assert_non_zero_exit
     ex = assert_raise SystemExit do
       yield
     end
     assert_not_equal 0, ex.status
   end
-
 
   def assert_zero_exit
     ex = assert_raise SystemExit do
