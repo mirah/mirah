@@ -47,9 +47,11 @@ module Mirah
             args.shift
             Mirah::AST::Script.explicit_packages = true
           when '--help', '-h'
+            args.shift
             print_help
             
             self.exit_status_code = 0
+            break
           when '--java', '-j'
             if state.command == :compile
               require 'mirah/jvm/compiler/java_source'
@@ -59,6 +61,7 @@ module Mirah
               $stderr.puts "-j/--java flag only applies to \"compile\" mode."
 
               self.exit_status_code = 1
+              break
             end
           when '--jvm'
             args.shift
@@ -81,6 +84,7 @@ module Mirah
             print_version
             
             self.exit_status_code = 0 if args.empty?
+            break
           when '--no-save-extensions'
             args.shift
             state.save_extensions = false
@@ -88,6 +92,7 @@ module Mirah
             $stderr.puts "unrecognized flag: " + args[0]
             
             self.exit_status_code = 1
+            break
           end
         end
         
