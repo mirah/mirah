@@ -162,7 +162,6 @@ end
 
 class Test::Unit::TestCase
   include JVMCompiler
-  include CommonAssertions
 
   def setup
     @tmp_classes = []

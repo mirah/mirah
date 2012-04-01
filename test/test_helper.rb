@@ -17,3 +17,43 @@ require 'test/unit'
 require 'mirah'
 require 'jruby'
 require 'turn'
+
+module CommonAssertions
+  import java.lang.System
+  import java.io.PrintStream
+
+  def assert_include(value, array, message=nil)
+    message = build_message message, '<?> does not include <?>', array, value
+    assert_block message do
+      array.include? value
+    end
+  end
+  
+  def capture_output
+    saved_output = System.out
+    saved_stdout = $stdout
+    saved_stderr = $stderr
+    output = StringIO.new
+    System.setOut(PrintStream.new(output.to_outputstream))
+    $stdout = output
+    $stderr = output
+    begin
+      yield
+      output.rewind
+      output.read
+    ensure
+      System.setOut(saved_output)
+      $stdout = saved_stdout
+      $stderr = saved_stderr
+    end
+  end
+
+  def assert_output(expected, &block)
+    assert_equal(expected, capture_output(&block))
+  end
+
+end
+
+class Test::Unit::TestCase
+  include CommonAssertions
+end

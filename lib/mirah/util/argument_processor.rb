@@ -24,7 +24,9 @@ module Mirah
         @args = args
       end
 
-      attr_accessor :state, :args
+      attr_accessor :state, :args, :exit_status_code
+
+      alias exit? exit_status_code
 
       def process
         state.args = args
@@ -46,16 +48,17 @@ module Mirah
             Mirah::AST::Script.explicit_packages = true
           when '--help', '-h'
             print_help
-            throw :exit, 0
+            
+            self.exit_status_code = 0
           when '--java', '-j'
             if state.command == :compile
               require 'mirah/jvm/compiler/java_source'
               state.compiler_class = Mirah::JVM::Compiler::JavaSource
               args.shift
             else
-              puts "-j/--java flag only applies to \"compile\" mode."
-              print_help
-              throw :exit, 1
+              $stderr.puts "-j/--java flag only applies to \"compile\" mode."
+
+              self.exit_status_code = 1
             end
           when '--jvm'
             args.shift
@@ -87,22 +90,31 @@ module Mirah
           when '--version', '-v'
             args.shift
             print_version
-            throw :exit, 0 if args.empty?
+            
+            self.exit_status_code = 0 if args.empty?
           when '--no-save-extensions'
             args.shift
             state.save_extensions = false
           else
-            puts "unrecognized flag: " + args[0]
-            print_help
-            throw :exit, 1
+            $stderr.puts "unrecognized flag: " + args[0]
+            
+            self.exit_status_code = 1
           end
         end
+        
+        return if exit?
+        
         state.destination ||= File.join(File.expand_path('.'), '')
         state.compiler_class ||= Mirah::JVM::Compiler::JVMBytecode
       end
 
       def print_help
-        puts "#{$0} [flags] <files or -e SCRIPT>
+        puts help_message
+        state.help_printed = true
+      end
+
+      def help_message
+        "#{$0} [flags] <files or -e SCRIPT>
         -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
         --cd DIR\t\tSwitch to the specified DIR befor compilation
         -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
@@ -118,7 +130,6 @@ module Mirah
         -v, --version\t\tPrint the version of Mirah to the console
         -V, --verbose\t\tVerbose logging
         --vmodule logger.name=LEVEL[,...]\t\tSet the Level for the specified Java loggers"
-        state.help_printed = true
       end
 
       def print_version
