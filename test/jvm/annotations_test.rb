@@ -1,4 +1,4 @@
-class AnnotationsTestX < Test::Unit::TestCase
+class AnnotationsTest < Test::Unit::TestCase
   def deprecated
     @deprecated ||= java.lang.Deprecated.java_class
   end
