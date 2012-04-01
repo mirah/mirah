@@ -124,7 +124,7 @@ module Mirah
       def help_message
         "#{$0} [flags] <files or -e SCRIPT>
         -c, --classpath PATH\tAdd PATH to the Java classpath for compilation
-        --bootclasspath PATH\Set the Java bootclasspath to PATH for compilation
+        --bootclasspath PATH\tSet the Java bootclasspath to PATH for compilation
         --cd DIR\t\tSwitch to the specified DIR befor compilation
         -d, --dir DIR\t\tUse DIR as the base dir for compilation, packages
         -e CODE\t\tCompile or run the inline script following -e
