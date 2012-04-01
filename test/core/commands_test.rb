@@ -15,7 +15,7 @@
 require 'test_helper'
 
 
-class TestCommands < Test::Unit::TestCase
+class CommandsTest < Test::Unit::TestCase
   class RaisesMirahErrorCommand < Mirah::Commands::Base
     def execute
       execute_base { raise Mirah::MirahError, "just an error" }

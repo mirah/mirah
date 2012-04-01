@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class TestBlocks < Test::Unit::TestCase
+class BlocksTest < Test::Unit::TestCase
 
   def setup
     super

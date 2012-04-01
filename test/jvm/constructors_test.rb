@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class TestConstructor < Test::Unit::TestCase
+class ConstructorsTest < Test::Unit::TestCase
   def test_constructor
     cls, = compile(
         "class InitializeTest;def initialize;System.out.println 'Constructed';end;end")

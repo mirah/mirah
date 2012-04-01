@@ -14,7 +14,7 @@
 # limitations under the License.
 require 'test_helper'
 
-class TestTyper < Test::Unit::TestCase
+class TyperTest < Test::Unit::TestCase
   include Mirah
   include Mirah::Util::ProcessErrors
   java_import 'org.mirah.typer.TypeFuture'

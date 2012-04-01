@@ -1,4 +1,4 @@
-class TestMainMethod < Test::Unit::TestCase
+class MainMethodTest < Test::Unit::TestCase
   def test_main_generation_for_file_with_class_of_same_name
     code = <<-EOC
       class WithMain
