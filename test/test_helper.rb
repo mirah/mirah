@@ -31,14 +31,20 @@ module CommonAssertions
   
   def capture_output
     saved_output = System.out
+    saved_stdout = $stdout
+    saved_stderr = $stderr
     output = StringIO.new
     System.setOut(PrintStream.new(output.to_outputstream))
+    $stdout = output
+    $stderr = output
     begin
       yield
       output.rewind
       output.read
     ensure
       System.setOut(saved_output)
+      $stdout = saved_stdout
+      $stderr = saved_stderr
     end
   end
 

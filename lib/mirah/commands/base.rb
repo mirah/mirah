@@ -32,12 +32,15 @@ module Mirah
       attr_accessor :state, :args, :argument_processor
       
       def execute_base
+        argument_processor.process
+        if argument_processor.exit?
+          exit argument_processor.exit_status_code
+        end
         # because MirahCommand is a JRuby Java class, SystemExit bubbles through and makes noise
         # so we use a catch/throw to early exit instead
         # see util/process_errors.rb
         status = catch(:exit) do
           begin
-            argument_processor.process
             yield
           rescue Mirah::InternalCompilerError => ice
             Mirah.print_error(ice.message, ice.position) if ice.node
