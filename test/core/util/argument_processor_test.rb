@@ -13,4 +13,15 @@ class ArgumentProcessorTest < Test::Unit::TestCase
 
     assert_equal 0, status_code
   end
+
+  def test_arg_bootclasspath_sets_bootclasspath_on_type_factory_ugh
+    Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new # global state grumble grumble
+
+    path = "class:path"
+    state = Mirah::Util::CompilationState.new
+    processor = Mirah::Util::ArgumentProcessor.new state, ["--bootclasspath", path]
+    processor.process
+
+    assert_equal path, Mirah::AST.type_factory.bootclasspath
+  end
 end
