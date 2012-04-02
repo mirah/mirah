@@ -1,7 +1,7 @@
 require 'test_helper'
 
 class ClassLoaderTest < Test::Unit::TestCase
-  FIXTURES = File.expand_path("#{__FILE__}/../fixtures/") +"/"
+  FIXTURES = File.expand_path("#{__FILE__}/../../../fixtures/") +"/"
   A_CLASS = "#{FIXTURES}org/foo/A.class"
 
   def test_mirah_class_loader_find_class_in_map_successful

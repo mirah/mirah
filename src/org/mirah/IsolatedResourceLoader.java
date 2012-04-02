@@ -11,7 +11,7 @@ class IsolatedResourceLoader extends URLClassLoader {
     // just in case, we make the parent nil,
     // so if something tries to ask it for something,
     // it'll blow up.
-    IsolatedResourceLoader(URL[] urls) {
+    public IsolatedResourceLoader(URL[] urls) {
         super(urls, (ClassLoader) null);
     }
 
