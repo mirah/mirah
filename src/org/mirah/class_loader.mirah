@@ -7,6 +7,8 @@ import java.util.Map
 import java.nio.charset.Charset
 
 class MirahClassLoader < SecureClassLoader
+  # parent - the upstream classloader
+  # class_map - a map of class names to strings containing the bytes of a .class file.
   def initialize(parent:ClassLoader, class_map:Map)
     super(parent)
     @class_map = class_map
