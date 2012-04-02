@@ -240,11 +240,9 @@ module Mirah::JVM::Types
     
     def bootstrap_loader
       @bootstrap_loader ||= begin
-        parent = if @bootclasspath
-          Mirah::Util::IsolatedResourceLoader.new(make_urls(classpath))
-        else
-          nil
-        end
+        parent = if bootclasspath
+                   Mirah::Util::IsolatedResourceLoader.new(make_urls(bootclasspath))
+                 end
         bootstrap_jar = File.expand_path("#{__FILE__}/../../../../../javalib/mirah-bootstrap.jar")
         bootstrap_urls = [java.io.File.new(bootstrap_jar).to_uri.to_url].to_java(java.net.URL)
         URLClassLoader.new(bootstrap_urls, parent)
