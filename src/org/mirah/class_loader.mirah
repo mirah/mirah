@@ -39,11 +39,3 @@ class MirahClassLoader < SecureClassLoader
   end
 end
 
-class IsolatedResourceLoader < URLClassLoader
-  def initialize(urls:URL[])
-    super(nil, urls)
-  end
-  def getResource(name)
-    findResource(name)
-  end
-end
