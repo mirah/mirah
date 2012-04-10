@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'delegate'
+require 'mirah/util/delegate'
 
 module Mirah::JVM::Types
-  class ExtendedType < DelegateClass(Type)
+  class ExtendedType < Mirah::Util::DelegateClass(Type)
     def initialize(*args)
       super
       @static_includes = []
