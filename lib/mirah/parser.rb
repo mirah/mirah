@@ -23,7 +23,7 @@ module Mirah
 
     def initialize(state, typer, logging)
       @transformer = Mirah::Transform::Transformer.new(state, typer)
-      Java::MirahImpl::Builtin.initialize_builtins(@transformer)
+      #Java::MirahImpl::Builtin.initialize_builtins(@transformer)
       @logging = logging
       @verbose = state.verbose
     end

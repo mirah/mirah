@@ -93,7 +93,7 @@ module Mirah
 
         def visitScript(script, expression)
           @static = true
-          @filename = File.basename(script.position.filename)
+          @filename = File.basename(script.position.source.name)
           classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(@filename)
           @type = @typer.type_system.type(get_scope(script), classname)
           @file = file_builder(@filename)

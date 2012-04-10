@@ -104,6 +104,48 @@ class InlineCode < SpecialType
   end
 end
 
+class MethodType
+  implements ResolvedType
+  def initialize(returnType:ResolvedType, parameterTypes:List, isVararg:boolean)
+    @returnType = returnType
+    @parameterTypes = parameterTypes
+    @isVararg = isVararg
+    raise IllegalArgumentException unless parameterTypes.all? {|p| p.kind_of?(ResolvedType)}
+  end
+
+  def parameterTypes:List
+    @parameterTypes
+  end
+
+  def returnType:ResolvedType
+    @returnType
+  end
+
+  def isVararg:boolean
+    @isVararg
+  end
+
+  def widen(other:ResolvedType):ResolvedType
+    return self if other == self
+    raise IllegalArgumentException
+  end
+  def assignableFrom(other:ResolvedType):boolean
+    other == self
+  end
+  def name:String
+    raise UnsupportedOperationException
+  end
+  def isMeta:boolean
+    false
+  end
+  def isError:boolean
+    false
+  end
+  def matchesAnything:boolean
+    false  
+  end
+end
+
 interface TypeSystem do
   def getNullType:TypeFuture; end
   def getVoidType:TypeFuture; end
@@ -126,8 +168,9 @@ interface TypeSystem do
   def getArrayLiteralType(componentType:TypeFuture):TypeFuture; end
 
   def get(scope:Scope, type:TypeRef):TypeFuture; end
-  def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end
-  def getMethodDefType(target:TypeFuture, name:String, argTypes:List):AssignableTypeFuture; end
+  def getMethodType(call:CallFuture):TypeFuture; end  # Must resolve to MethodType
+  #def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end
+  def getMethodDefType(target:TypeFuture, name:String, argTypes:List):MethodFuture; end
   def getFieldType(target:TypeFuture, name:String, position:Position):AssignableTypeFuture; end
   def getLocalType(scope:Scope, name:String, position:Position):AssignableTypeFuture; end
   def getMainType(scope:Scope, script:Script):TypeFuture; end
@@ -135,4 +178,6 @@ interface TypeSystem do
 
   def defineType(scope:Scope, node:ClassDefinition, name:String, superclass:TypeFuture, interfaces:List):TypeFuture; end
   def addDefaultImports(scope:Scope):void; end
+  
+  def prepareClosure(block:Block, type:ResolvedType):Node; end  # Returns a replacement node.
 end

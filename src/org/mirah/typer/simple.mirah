@@ -4,6 +4,7 @@ import java.util.*
 import org.mirah.typer.*
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Node
+import mirah.lang.ast.Position
 import mirah.impl.MirahParser
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -139,21 +140,12 @@ class SimpleTypes; implements TypeSystem
     return getArrayType(basic_type) if typeref.isArray
     return basic_type
   end
-  def getMethodType(target, name, argTypes, position)
-    if argTypes.kind_of?(org::jruby::RubyArray)
-      # RubyArray claims to implement List, but it doesn't have the right
-      # implementation of equals or hashCode.
-      argTypes = ListWrapper.new(argTypes)
-    end
-    key = [target, name, argTypes]
-    t = TypeFuture(@methods[key])
-    unless t
-      # Start with an error message in case it isn't found.
-      t = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
-          ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
-      @methods[key] = t
-    end
-    t
+  def getMethodType(call)
+    target = call.resolved_target
+    argTypes = call.resolved_parameters
+    raise IllegalArgumentException if target.nil?
+    raise IllegalArgumentException unless argTypes.all?
+    getMethodTypeInternal(target, call.name, argTypes, call.position)
   end
   def getMethodDefType(target, name, argTypes)
     args = ArrayList.new(argTypes.size)
@@ -161,8 +153,27 @@ class SimpleTypes; implements TypeSystem
       resolved = TypeFuture(argTypes.get(i)).resolve
       args.add(i, resolved)
     end
-    AssignableTypeFuture(getMethodType(target.resolve, name, args, nil))
+    getMethodTypeInternal(target.resolve, name, args, nil)
   end
+  
+  def getMethodTypeInternal(target:ResolvedType, name:String, argTypes:List, position:Position):MethodFuture
+    if argTypes.kind_of?(org::jruby::RubyArray)
+      # RubyArray claims to implement List, but it doesn't have the right
+      # implementation of equals or hashCode.
+      argTypes = ListWrapper.new(argTypes)
+    end
+    key = [target, name, argTypes]
+    t = MethodFuture(@methods[key])
+    unless t
+      # Start with an error message in case it isn't found.
+      return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
+          ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
+      t = MethodFuture.new(return_type, argTypes, false, position)
+      @methods[key] = t
+    end
+    t
+  end
+  
   def getFieldType(target, name, position)
     key = [target.resolve, name]
     t = AssignableTypeFuture(@fields[key])

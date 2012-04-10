@@ -21,6 +21,8 @@ class TestJavaTyper < Test::Unit::TestCase
   include Mirah::Util::ProcessErrors
 
   java_import 'org.mirah.typer.simple.SimpleScoper'
+  java_import 'org.mirah.typer.BaseTypeFuture'
+  java_import 'org.mirah.typer.CallFuture'
   java_import 'org.mirah.typer.TypeFuture'
 
   def setup
@@ -39,6 +41,13 @@ class TestJavaTyper < Test::Unit::TestCase
     end
     type
   end
+  
+  def method_type(target, name, args)
+    target = @types.cache_and_wrap(target)
+    args = args.map {|arg| @types.cache_and_wrap(arg) }
+    call = CallFuture.new(@types, target, name, args, nil, nil)
+    @types.getMethodType(call).return_type
+  end
 
   def parse(text)
     AST.parse(text, '-', false, @mirah)
@@ -51,18 +60,18 @@ class TestJavaTyper < Test::Unit::TestCase
     # integral types
     ['boolean', 'char', 'double', 'float', 'int', 'long'].each do |type_name|
       type = @types.type(nil, type_name)
-      return_type = @types.getMethodType(string_meta, 'valueOf', [type])
+      return_type = method_type(string_meta, 'valueOf', [type])
       assert_equal(string, return_type.resolve, "valueOf(#{type}) should return #{string}")
     end
 
     # char[]
     type = @types.type(nil, 'char', true)
-    return_type = @types.getMethodType(string_meta, 'valueOf', [type])
+    return_type = method_type(string_meta, 'valueOf', [type])
     assert_equal(string, return_type.resolve)
 
     # Object
     type = @types.type(nil, 'java.lang.Object')
-    return_type = @types.getMethodType(string_meta, 'valueOf', [type])
+    return_type = method_type(string_meta, 'valueOf', [type])
     assert_equal(string, return_type.resolve)
   end
 
@@ -70,11 +79,11 @@ class TestJavaTyper < Test::Unit::TestCase
     string = @types.type(nil, 'java.lang.String')
 
     int = @types.type(nil, 'int')
-    return_type = @types.getMethodType(string, 'length', [])
+    return_type = method_type(string, 'length', [])
     assert_equal(int, return_type.resolve)
 
     byte_array = @types.type(nil, 'byte', true)
-    return_type = @types.getMethodType(string, 'getBytes', [])
+    return_type = method_type(string, 'getBytes', [])
     assert_equal(byte_array, return_type.resolve)
   end
 
@@ -82,7 +91,7 @@ class TestJavaTyper < Test::Unit::TestCase
     string_meta = @types.type(nil, 'java.lang.String', false, true)
     string = @types.type(nil, 'java.lang.String')
 
-    return_type = @types.getMethodType(string_meta, 'valueOf', [string])
+    return_type = method_type(string_meta, 'valueOf', [string])
     assert_equal(string, return_type.resolve)
   end
 
@@ -92,11 +101,11 @@ class TestJavaTyper < Test::Unit::TestCase
     char = @types.type(nil, 'char')
     long = @types.type(nil, 'long')
 
-    return_type = @types.getMethodType(string, 'charAt', [byte])
+    return_type = method_type(string, 'charAt', [byte])
     assert_kind_of(TypeFuture, return_type)
     assert_equal(char, return_type.resolve)
 
-    return_type = @types.getMethodType(string, 'charAt', [long]).resolve
+    return_type = method_type(string, 'charAt', [long]).resolve
     assert(return_type.isError)
   end
 
@@ -200,7 +209,7 @@ class TestJavaTyper < Test::Unit::TestCase
     int = @types.type(nil, 'int')
 
     # TODO fix intrinsics
-    assert_equal(@types.type(nil, 'byte'), @types.getMethodType(ary, "[]", [int]).resolve)
+    assert_equal(@types.type(nil, 'byte'), method_type(ary, "[]", [int]).resolve)
   end
 
   def test_int

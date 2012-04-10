@@ -23,6 +23,7 @@ module Mirah::JVM::Types
     java_import 'org.mirah.typer.BaseTypeFuture'
     java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
+    java_import 'org.mirah.typer.MethodFuture'
     java_import 'org.mirah.typer.TypeFuture'
     java_import 'org.mirah.typer.TypeSystem'
     java_import 'mirah.lang.ast.InterfaceDeclaration'
@@ -155,7 +156,13 @@ module Mirah::JVM::Types
       scope.local_type(name, position)
     end
 
-    def getMethodType(target, name, argTypes, position=nil)
+    def getMethodType(call)
+      target = call.resolved_target
+      argTypes = call.resolved_parameters
+      _find_method_type(target, call.name, argTypes, call.position)
+    end
+
+    def _find_method_type(target, name, argTypes, position)
       if target.respond_to?(:isError) && target.isError
         return target
       end
@@ -183,8 +190,8 @@ module Mirah::JVM::Types
           end
         end
       end
-      result = super(target, name, argTypes, position)
-      result.assign(type, position)
+      result = getMethodTypeInternal(target, name, argTypes, position)
+      result.return_type.assign(type, position)
       result
     end
     def getMethodDefType(target, name, argTypes)
@@ -193,8 +200,9 @@ module Mirah::JVM::Types
       end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
-      type = getMethodType(target, name, args)
+      type = _find_method_type(target, name, args, nil)
       type.onUpdate do |m, resolved|
+        resolved = resolved.returnType if resolved.respond_to?(:returnType)
         if Mirah::Typer.verbose
           Mirah::Typer.log "Learned %s method %s.%s%s = %s" % 
               [target.meta? ? "static" : "instance",
@@ -216,7 +224,7 @@ module Mirah::JVM::Types
       type
     end
     def getMainType(scope, script)
-      filename = File.basename(script.position.filename || 'DashE')
+      filename = File.basename(script.position.source.name || 'DashE')
       classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
       getMetaType(cache_and_wrap(declare_type(scope, classname)))
     end

@@ -248,21 +248,53 @@ class PickFirst < BaseTypeFuture
 end
 
 class CallFuture < BaseTypeFuture
-  def initialize(position:Position, types:TypeSystem, target:TypeFuture, name:String, args:List/*, block:Block*/)
+  def initialize(types:TypeSystem, target:TypeFuture, paramTypes:List, call:CallSite)
+    initialize(types, target, call.name.identifier, paramTypes, call.parameters, call.position)
+  end
+  
+  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
+    initialize(types, target, name, paramTypes, call.parameters, call.position)
+  end
+  
+  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, params:NodeList, position:Position)
     super(position)
     @types = types
     @target = target
     @name = name
-    @args = args
+    @paramTypes = paramTypes
+    @params = params
     @resolved_target = ResolvedType(nil)
-    @resolved_args = ArrayList.new(args.size)
-    args.size.times {@resolved_args.add(nil)}
-    #@block = block
+    @resolved_args = ArrayList.new(paramTypes.size)
+    paramTypes.size.times do |i|
+      @resolved_args.add(
+        if @paramTypes.get(i).kind_of?(BlockFuture)
+          @paramTypes.get(i)
+        else
+          nil
+        end
+      )
+    end
     setupListeners
+  end
+
+  def parameterNodes:NodeList
+    @params
   end
 
   def resolved_target=(type:ResolvedType):void
     @resolved_target = type
+  end
+  
+  def resolved_target
+    @resolved_target
+  end
+  
+  def name
+    @name
+  end
+  
+  def resolved_parameters
+    @resolved_args
   end
 
   def setupListeners
@@ -271,7 +303,7 @@ class CallFuture < BaseTypeFuture
       call.resolved_target = type
       call.maybeUpdate
     end
-    @args.each do |_arg|
+    @paramTypes.each do |_arg|
       arg = TypeFuture(_arg)
       arg.onUpdate do |a, type|
         call.resolveArg(a, type)
@@ -280,21 +312,37 @@ class CallFuture < BaseTypeFuture
   end
 
   def resolveArg(arg:TypeFuture, type:ResolvedType)
-    i = @args.indexOf(arg)
+    i = @paramTypes.indexOf(arg)
     @resolved_args.set(i, type)
     maybeUpdate
+  end
+
+  def resolveBlocks(type:MethodType)
+    @paramTypes.size.times do |i|
+      param = @paramTypes.get(i)
+      if param.kind_of?(BlockFuture)
+        BlockFuture(param).resolved(ResolvedType(type.parameterTypes.get(i)))
+      end
+    end
   end
 
   def maybeUpdate
     if @resolved_target && @resolved_args.all?
       call = self
-      new_method = @types.getMethodType(@resolved_target, @name, @resolved_args, self.position)
+      new_method = @types.getMethodType(self)
       if new_method != @method
         #@method.removeListener(self) if @method
         @method = new_method
         @method.onUpdate do |m, type|
           if m == call.currentMethodType
-            call.resolved(type)
+            if type.kind_of?(MethodType)
+              mtype = MethodType(type)
+              call.resolveBlocks(mtype)
+              call.resolved(mtype.returnType)
+            else
+              # TODO(ribrdb) should resolve blocks, return type
+              call.resolved(type)
+            end
           end
         end
       end
@@ -347,5 +395,41 @@ class LocalFuture < AssignableTypeFuture
     else
       super
     end
+  end
+end
+
+class BlockFuture < BaseTypeFuture
+  def initialize(block:Block, listener:TypeListener)
+    super(block.position)
+    @block = block
+    onUpdate(listener)
+  end
+
+  def block
+    @block
+  end
+end
+
+class MethodFuture < BaseTypeFuture
+  def initialize(returnType:AssignableTypeFuture, parameters:List, vararg:boolean, position:Position)
+    super(position)
+    @returnType = returnType
+    @vararg = vararg
+    mf = self
+    @returnType.onUpdate do |f, type|
+      if type.isError
+        mf.resolved(type)
+      else
+        mf.resolved(MethodType.new(type, parameters, mf.isVararg))
+      end
+    end
+  end
+  
+  def isVararg
+    @vararg
+  end
+  
+  def returnType
+    @returnType
   end
 end

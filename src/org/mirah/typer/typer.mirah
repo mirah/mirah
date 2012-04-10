@@ -101,7 +101,7 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     selfType = @scopes.getScope(call).selfType
-    methodType = CallFuture.new(call.position, @types, selfType, call.name.identifier, Collections.emptyList)
+    methodType = CallFuture.new(@types, selfType, Collections.emptyList, call)
     fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
     @scopes.copyScopeFrom(call, fcall)
     @futures[fcall] = methodType
@@ -136,8 +136,8 @@ class Typer < SimpleNodeVisitor
     selfType = scope.selfType
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
-    parameters.add(BlockType.new) if call.block
-    methodType = CallFuture.new(call.position, @types, selfType, call.name.identifier, parameters)
+    parameters.add(infer(call.block, true)) if call.block
+    methodType = CallFuture.new(@types, selfType, parameters, call)
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
@@ -182,8 +182,8 @@ class Typer < SimpleNodeVisitor
     target = infer(call.target)
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
-    parameters.add(BlockType.new) if call.block
-    methodType = CallFuture.new(call.position, @types, target, call.name.identifier, parameters)
+    parameters.add(infer(call.block, true)) if call.block
+    methodType = CallFuture.new(@types, target, parameters, call)
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
@@ -230,7 +230,7 @@ class Typer < SimpleNodeVisitor
     value = infer(call.value)
     name = call.name.identifier
     setter = "#{name}_set"
-    CallFuture.new(call.position, @types, target, setter, [value])
+    CallFuture.new(@types, target, setter, [value], nil, call.position)
   end
 
   def visitCast(cast, expression)
@@ -248,8 +248,8 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(node)
     target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(node.parameters)
-    parameters.add(BlockType.new) if node.block
-    CallFuture.new(node.position, @types, target, method.name.identifier, parameters)
+    parameters.add(infer(node.block, true)) if node.block
+    CallFuture.new(@types, target, method.name.identifier, parameters, node.parameters, node.position)
   end
 
   def visitZSuper(node, expression)
@@ -257,7 +257,7 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(node)
     target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(method.arguments)
-    CallFuture.new(node.position, @types, target, method.name.identifier, parameters)
+    CallFuture.new(@types, target, method.name.identifier, parameters, nil, node.position)
   end
 
   def visitClassDefinition(classdef, expression)
@@ -335,7 +335,7 @@ class Typer < SimpleNodeVisitor
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     parameters = inferAll(method.arguments)
     target = @scopes.getScope(method).selfType
-    @types.getMethodDefType(target, method.name.identifier, parameters).assign(type, node.position)
+    @types.getMethodDefType(target, method.name.identifier, parameters).returnType.assign(type, node.position)
   end
 
   def visitBreak(node, expression)
@@ -785,7 +785,7 @@ class Typer < SimpleNodeVisitor
     is_void = false
     if mdef.type
       returnType = @types.get(outer_scope, mdef.type.typeref)
-      type.declare(returnType, mdef.type.position)
+      type.returnType.declare(returnType, mdef.type.position)
       if @types.getVoidType().equals(returnType)
         is_void = true
       end
@@ -795,9 +795,9 @@ class Typer < SimpleNodeVisitor
     # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
     if is_void
       infer(mdef.body, false)
-      type.assign(@types.getVoidType, mdef.position)
+      type.returnType.assign(@types.getVoidType, mdef.position)
     else
-      type.assign(infer(mdef.body), mdef.body.position)
+      type.returnType.assign(infer(mdef.body), mdef.body.position)
     end
   end
 
@@ -819,10 +819,17 @@ class Typer < SimpleNodeVisitor
 
   # TODO is a constructor special?
 
-  # TODO
-  # def visitBlock(block, expression)
-  # end
-  # 
+  def visitBlock(block, expression)
+    types = @types
+    parent = block.parent
+    current_node = Node(block)
+    BlockFuture.new(block) do |x, resolvedType|
+      new_node = types.prepareClosure(block, resolvedType)
+      parent.replaceChild(current_node, new_node)
+      current_node = new_node
+    end
+  end
+
   # def visitMacroDefinition(defn, expression)
   #   buildAndLoadExtension(defn)
   #   defn.getParent.removeChild(defn)

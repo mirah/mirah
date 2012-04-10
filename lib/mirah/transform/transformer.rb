@@ -17,7 +17,7 @@ module Mirah
         @extra_body = nil
         @state = state
         @typer = typer
-        @types = typer.type_system
+        @types = typer.type_system if typer
         @files = {""=>{:filename => "", :line => 0, :code => ""}}
       end
 

@@ -20,7 +20,7 @@ module Mirah
     class Parse < Base
       def execute
         execute_base do
-          parser = Mirah::Parser.new(@state, false)
+          parser = Mirah::Parser.new(@state, nil, false)
           
           parser.parse_from_args(args)
         end
