@@ -205,3 +205,36 @@ end
 
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
+
+file 'javalib/mirah-newast-transitional.jar' do
+  require 'open-uri'
+  puts "Downloading mirah-newast-transitional.jar"
+  open('http://mirah.googlecode.com/files/mirah-newast-transitional.jar', 'rb') do |src|
+    open('javalib/mirah-newast-transitional.jar', 'wb') do |dest|
+      dest.write(src.read)
+    end
+  end
+end
+
+file 'build/org/mirah/typer/TypeFuture.class' => ['javalib/mirah-newast-transitional.jar'] + Dir['src/org/mirah/typer/*.mirah'] do
+  rm_rf 'build/org/mirah/typer'
+  mkdir_p 'build'
+  begin 
+  ant.java :jar => 'javalib/mirah-newast-transitional.jar', :fork => true, :failonerror => true,
+           :output => "ant.out" do
+    arg :line => 'compile --classpath javalib/mirah-parser.jar -d build src/org/mirah/typer'
+  end
+  ensure
+    STDERR.puts(open('ant.out').read)
+    rm 'ant.out'
+  end
+  unless File.exists?('build/org/mirah/typer/TypeFuture.class')
+    exit 1
+  end
+end
+
+file 'javalib/typer.jar' => 'build/org/mirah/typer/TypeFuture.class' do
+  ant.jar :jarfile => 'javalib/typer.jar' do
+    fileset :dir => 'build', :includes => 'org/mirah/typer/**'
+  end  
+end
