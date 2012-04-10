@@ -1,11 +1,22 @@
 package mirahparser.lang.ast
 
+interface CallSite < Node, Named, TypeName do
+  def name:Identifier; end
+  def target:Node; end
+  def parameters: NodeList; end
+  def block:Block; end
+end
+
 class FunctionalCall < NodeImpl
-  implements Named, TypeName
+  implements Named, TypeName, CallSite
   init_node do
     child name: Identifier
     child_list parameters: Node
-    child block: Node  # Should this be more specific?
+    child block: Block
+  end
+
+  def target:Node
+    @target ||= ImplicitSelf.new(position)
   end
 
   def typeref:TypeRef
@@ -15,12 +26,22 @@ end
 
 # An identifier with no parens or arguments - may be a variable local access or a call.
 class VCall < NodeImpl
-  implements Named, TypeName
+  implements Named, TypeName, CallSite
   init_node do
     child name: Identifier
   end
   def typeref:TypeRef
     TypeRefImpl.new(name.identifier, false, false, name.position)
+  end
+
+  def target:Node
+    @target ||= ImplicitSelf.new(position)
+  end
+  def parameters
+    @parameters ||= NodeList.new(position)
+  end
+  def block:Block
+    nil
   end
 end
 
@@ -32,12 +53,12 @@ class Cast < NodeImpl
 end
 
 class Call < NodeImpl
-  implements Named, TypeName
+  implements Named, TypeName, CallSite
   init_node do
     child target: Node
     child name: Identifier
     child_list parameters: Node
-    child block: Node
+    child block: Block
   end
 
   def typeref(maybeCast=false):TypeRef
@@ -75,6 +96,7 @@ class Colon2 < NodeImpl
   end
 end
 
+# TODO: Super and ZSuper should probably be CallSites
 class ZSuper < NodeImpl
   init_node
 end
