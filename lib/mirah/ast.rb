@@ -16,6 +16,7 @@
 require 'delegate'
 require 'mirah/transform'
 require 'mirah/ast/scope'
+require 'jruby/core_ext'
 
 module Mirah
   module AST
@@ -72,7 +73,11 @@ module Mirah
       #               takes priority over the `children` argument.
       # 
       def initialize(parent, position, children = [])
-        JRuby.reference(self.class).setRubyClassAllocator(JRuby.reference(self.class).reified_class)
+        # JRuby 1.6.x doesn't seem to like become_java! as much (see bottom of class)
+        if JRUBY_VERSION < '1.7'
+          JRuby.reference(self.class).setRubyClassAllocator(JRuby.reference(self.class).reified_class)
+        end
+        
         unless parent.nil? || Mirah::AST::Node === parent
           raise "Mirah::AST::Node.new parent #{parent.class} must be nil or === Mirah::AST::Node."
         end
@@ -252,7 +257,7 @@ module Mirah
       end
 
       def self.===(other)
-        super || (other.kind_of?(NodeProxy) && (self === other.__getobj__))
+        super || (other.kind_of?(NodeProxy) && (self === other.delegate))
       end
 
       def _set_parent(node)
@@ -296,8 +301,11 @@ module Mirah
       def top_level?
         false
       end
+      
+      if JRUBY_VERSION >= '1.7'
+        become_java!
+      end
     end
-
 
     class ErrorNode < Node
       def initialize(parent, error)
@@ -381,19 +389,36 @@ module Mirah
       end
     end
 
-    class NodeProxy < DelegateClass(Node)
+    class NodeProxy
+      attr_accessor :delegate
+      
       include Java::DubyLangCompiler::Node
       include Java::DubyLangCompiler.Call
+      
+      def initialize(node)
+        @delegate = node
+        cls = class << self; self; end
+        node.methods.each do |x|
+          next if x.to_s == 'kind_of?'
+          
+          # poor-man's delegation
+          cls.send :define_method, x do |*args, &block|
+            puts "delegated: #{node.class}.#{x}"
+            delegate.send x, *args, &block
+          end
+        end
+      end
+      
       def __inline__(node)
         node.parent = parent
-        __setobj__(node)
+        @delegate = node
       end
 
       def dup
-        value = __getobj__.dup
+        value = delegate.dup
         if value.respond_to?(:proxy=)
           new = super
-          new.__setobj__(value)
+          new.delegate = value
           new.proxy = new
           new
         else
@@ -402,7 +427,7 @@ module Mirah
       end
 
       def _dump(depth)
-        Marshal.dump(__getobj__)
+        Marshal.dump(delegate)
       end
 
       def self._load(str)
