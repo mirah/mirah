@@ -395,17 +395,36 @@ module Mirah
       include Java::DubyLangCompiler::Node
       include Java::DubyLangCompiler.Call
       
+      methods = Node.public_instance_methods(true)
+      methods -= ::Kernel.public_instance_methods(false)
+      methods |= ["to_s","to_a","inspect","==","=~","==="]
+
+      for method in methods
+        begin
+          module_eval <<-EOS, __FILE__, __LINE__+1
+            def #{method}(*args, &block)
+          	    @delegate.__send__(:#{method}, *args, &block)
+            	end
+          EOS
+        rescue SyntaxError
+          raise NameError, "invalid identifier %s" % method, caller(3)
+        end
+      end
+  
       def initialize(node)
         @delegate = node
-        cls = class << self; self; end
-        node.methods.each do |x|
-          next if x.to_s == 'kind_of?'
-          
-          # poor-man's delegation
-          cls.send :define_method, x do |*args, &block|
-            delegate.send x, *args, &block
-          end
+      end
+      
+      def method_missing(m, *args)  # :nodoc:
+        unless @delegate.respond_to?(m)
+          super(m, *args)
         end
+        @delegate.__send__(m, *args)
+      end
+      
+      def respond_to?(m, include_private = false)  # :nodoc:
+        return true if super
+        return @delegate.respond_to?(m, include_private)
       end
       
       def __inline__(node)
