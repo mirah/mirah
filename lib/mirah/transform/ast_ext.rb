@@ -6,6 +6,7 @@ module Mirah
       $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-parser.jar'
       java_import 'mirah.impl.MirahParser'
     end
+    java_import 'mirah.lang.ast.StringCodeSource'
     java_import 'org.mirah.mmeta.ErrorHandler'
 
     class MirahErrorHandler
@@ -39,12 +40,11 @@ module Mirah
       raise ArgumentError if src.nil?
       #filename = transformer.tag_filename(src, filename)
       parser = MirahParser.new
-      parser.filename = filename
       parser.errorHandler = MirahErrorHandler.new(transformer)
       begin
-        parser.parse(src)
+        parser.parse(StringCodeSource.new(filename, src))
       rescue => ex
-        if ex.cause.kind_of? Java::Mmeta::SyntaxError
+        if ex.cause.kind_of? Java::OrgMirahMmeta::SyntaxError
           ex = SyntaxError.wrap ex.cause, nil
         end
 
