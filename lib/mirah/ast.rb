@@ -403,7 +403,6 @@ module Mirah
           
           # poor-man's delegation
           cls.send :define_method, x do |*args, &block|
-            puts "delegated: #{node.class}.#{x}"
             delegate.send x, *args, &block
           end
         end
