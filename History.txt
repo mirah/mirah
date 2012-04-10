@@ -1,3 +1,47 @@
+=== 0.0.11 Pre-Hackathon Edition / 2012-04-09
+
+235e887 set version to 0.0.11
+d11f694 actually use the bootclasspath in the bootstrap_loader
+6f293d8 fix and test(barely) IsolatedResourceLoader
+cff273c add tests for MirahClassLoader
+98adac4 add some comments on class loaders
+e1ddf6a reorg run a little, ensure fail has non-zero exit
+6a7f2c4 add needed breaks in to args processor
+72c0031 clean up arg processor interface a bit
+886bc5f test that bootclasspath arg sets the bootclasspath
+141aceb add small test for args processor
+b981088 removing an accidental X from annotations test
+4361a10 rename test classes to match their filenames
+7312718 use git bitescript by default
+2642a28 add tab to cli help for bootclasspath
+97cee78 Support specifying --bootclasspath
+6b05845 clean up build_string in java_source
+ab5c6ac fixes #175. wrap string interp prior to calling method on it.
+b5148ed Merge pull request #174 from nighthacker/master
+5bb1d2a fixed mistaken command line flags in synopsis
+96a9074 closures in closures fixes: 155
+77f110f move block tests into block_test
+6e6bfaf previous change was insufficiently argy.
+98acfef complain if blocks don't have the right number of arguments
+7076279 add zip install instructions
+2930ff3 Update README.txt. Fixes #163
+9a06b83 Merge pull request #166 from keithcelt/master
+737c01c Silence ant runtime errors on systems building with ant 1.8
+f8e3edf Fixes 162 by requiring java.lang.System as a string
+f7c5bee rename tests so test is suffix instead of prefix
+0caf3d0 pull bitescript exts out into their own file
+d680a33 fixes #13. adding == & != on bools
+1a3da9f if no args & -v specified, exit with status 0
+a044d7b Remove conflicting "Exception" import and move "System" import to class body. Fixes #159.
+0d0b350 move constructor tests into their own file
+b351c13 don't raise errors on empty files
+84c2a83 have Mirah::Parser use the same code path as tests do
+56bee53 Tests. Fixes #157
+2fddffe Treat the expression as resolved if the primary_type is nil, as in `return`. #157
+1a5c40e Don't treat Ensure as an expression; it can never have a return type. #157
+e04c70f bump versions to 0.0.11.dev
+
+
 === 0.0.10 / 2011-11-20
 
 f6035d0 set version to 0.0.10
