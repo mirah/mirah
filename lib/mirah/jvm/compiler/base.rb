@@ -36,7 +36,7 @@ module Mirah
         def compile(ast, expression = false)
           begin
             ast.compile(self, expression)
-          rescue => ex
+          rescue Exception => ex
             raise Mirah::InternalCompilerError.wrap(ex, ast)
           end
           log "Compilation successful!"

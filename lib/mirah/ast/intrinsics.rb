@@ -411,19 +411,34 @@ module Mirah::AST
       # _expand
       expand = extension.define_method(
           position, 'expand', node_type)
+      pos = parent.position
       args = []
-      arguments.each_with_index do |arg, i|
+      puts self.arguments.inspect
+      expand_call = FunctionalCall.new(nil, pos, '_expand')
+      self.arguments.each_with_index do |arg, i|
         # TODO optional args
         args << if arg.kind_of?(BlockArgument)
-          "@call.block"
+          Call.new(expand_call, pos, 'block') do |block_call|
+            [Field.new(block_call, pos, 'call'), [], nil]
+          end
         else
-          "Node(args.get(#{i}))"
+          cast = FunctionalCall.new(expand_call, pos, 'duby.lang.compiler.Node')
+          cast.cast = true
+          cast.parameters = [] << Call.new(cast, pos, 'get') do |getcall|
+            [Local.new(getcall, pos, 'args'), [Fixnum.new(getcall, pos, i)], nil]
+          end
+          cast
         end
       end
+      puts self.arguments.inspect
+      expand_call.parameters = args
+      puts self.arguments.inspect
       expand.body = transformer.eval(<<-end)
         args = @call.arguments
-        _expand(#{args.join(', ')})
+        nil
       end
+      expand.body << expand_call
+      puts self.arguments.inspect
       actual_args = arguments.map do |arg|
         type = if arg.kind_of?(BlockArgument)
           Mirah::AST.type(nil, 'duby.lang.compiler.Block')

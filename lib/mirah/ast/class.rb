@@ -128,16 +128,24 @@ module Mirah::AST
     end
   end
 
-  defmacro('implements') do |transformer, fcall, parent|
-    klass = parent
-    klass = klass.parent unless ClassDefinition === klass
-
-    interfaces = fcall.parameters.map do |interface|
-      interface.parent = klass
-      interface
+  class Implements < Node
+    def infer(typer, expression)
+      resolve_if(typer) do
+        klass = parent
+        klass = klass.parent until ClassDefinition === klass
+        interfaces = children.map {|i| i.type_reference(typer) }
+        klass.implements(*interfaces)
+        typer.no_type
+      end
     end
-    klass.implements(*interfaces)
-    Noop.new(parent, fcall.position)
+    def compile(*args)
+    end
+  end
+
+  defmacro('implements') do |transformer, fcall, parent|
+    Implements.new(fcall.parent, fcall.position) do |node|
+      fcall.parameters.map {|i| i.parent = node; i}
+    end
   end
 
   class InterfaceDeclaration < ClassDefinition
