@@ -355,7 +355,7 @@ module Mirah
               redo
             end
           elsif @errors.size > 15
-            puts "Too many errors, giving up"
+            log "Too many errors, giving up"
             break
           end
           retried = false
