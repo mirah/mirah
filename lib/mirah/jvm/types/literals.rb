@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'delegate'
+require 'mirah/util/delegate'
 
 module Mirah::JVM::Types
 
   # Represents a literal number that can be represented
   # in multiple types
-  class NarrowingType < DelegateClass(PrimitiveType)
+  class NarrowingType < Mirah::Util::DelegateClass(PrimitiveType)
     def initialize(default_type, narrowed_type)
       super(default_type)
       @narrowed = default_type != narrowed_type && narrowed_type

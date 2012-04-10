@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'delegate'
+require 'mirah/util/delegate'
 require 'mirah/transform'
 require 'mirah/ast/scope'
 require 'jruby/core_ext'
@@ -257,7 +257,7 @@ module Mirah
       end
 
       def self.===(other)
-        super || (other.kind_of?(NodeProxy) && (self === other.delegate))
+        super || (other.kind_of?(NodeProxy) && (self === other.__getobj__))
       end
 
       def _set_parent(node)
@@ -389,54 +389,20 @@ module Mirah
       end
     end
 
-    class NodeProxy
-      attr_accessor :delegate
-      
+    class NodeProxy < Mirah::Util::DelegateClass(Node)
       include Java::DubyLangCompiler::Node
       include Java::DubyLangCompiler.Call
       
-      methods = Node.public_instance_methods(true)
-      methods -= ::Kernel.public_instance_methods(false)
-      methods |= ["to_s","to_a","inspect","==","=~","==="]
-
-      for method in methods
-        begin
-          module_eval <<-EOS, __FILE__, __LINE__+1
-            def #{method}(*args, &block)
-          	    @delegate.__send__(:#{method}, *args, &block)
-            	end
-          EOS
-        rescue SyntaxError
-          raise NameError, "invalid identifier %s" % method, caller(3)
-        end
-      end
-  
-      def initialize(node)
-        @delegate = node
-      end
-      
-      def method_missing(m, *args)  # :nodoc:
-        unless @delegate.respond_to?(m)
-          super(m, *args)
-        end
-        @delegate.__send__(m, *args)
-      end
-      
-      def respond_to?(m, include_private = false)  # :nodoc:
-        return true if super
-        return @delegate.respond_to?(m, include_private)
-      end
-      
       def __inline__(node)
         node.parent = parent
-        @delegate = node
+        __setobj__(node)
       end
 
       def dup
-        value = delegate.dup
+        value = __getobj__.dup
         if value.respond_to?(:proxy=)
           new = super
-          new.delegate = value
+          new.__setobj__(value)
           new.proxy = new
           new
         else
@@ -445,7 +411,7 @@ module Mirah
       end
 
       def _dump(depth)
-        Marshal.dump(delegate)
+        Marshal.dump(__getobj__)
       end
 
       def self._load(str)
