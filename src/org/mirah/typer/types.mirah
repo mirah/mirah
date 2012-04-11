@@ -60,6 +60,12 @@ class ErrorType < SpecialType
   def toString:String
     "<Error: #{message}>"
   end
+  def equals(other:Object)
+    other.kind_of?(ErrorType) && message.equals(ErrorType(other).message)
+  end
+  def hashCode
+    message.hashCode
+  end
   private
   def checkMessage(message:List)
     new_message = ArrayList.new(message.size)

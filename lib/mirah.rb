@@ -66,12 +66,20 @@ module Mirah
     start_line = position.start_line - position.source.initial_line
     end_line = position.end_line - position.source.initial_line
     start_col = position.start_column
-    start_col -= position.source.initial_column if start_line == 0
+    start_col -= if start_line == 0
+      position.source.initial_column
+    else
+      1
+    end
     end_col = position.end_column
-    end_col -= position.source.initial_column if end_line == 0
+    end_col -= if end_line == 0
+      position.source.initial_column
+    else
+      1
+    end
     result = ""
     position.source.contents.each_with_index do |line, lineno|
-      break if lineno > position.end_line
+      break if lineno > end_line
       if lineno >= start_line
         chomped = line.chomp
         result << chomped

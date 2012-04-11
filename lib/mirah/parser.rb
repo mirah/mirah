@@ -46,7 +46,11 @@ module Mirah
         end
       end
       raise 'nothing to parse? ' + files_or_scripts.inspect unless nodes.length > 0
-      nodes.compact
+      nodes = nodes.compact
+      if @verbose
+        nodes.each {|node| puts format_ast(node)}
+      end
+      nodes
     end
 
     def parse_inline(source)
@@ -61,6 +65,10 @@ module Mirah
 
     def parse_and_transform(filename, src)
       Mirah::AST.parse_ruby(transformer, src, filename)
+    end
+
+    def format_ast(ast)
+      AstPrinter.new.scan(ast, ast)
     end
 
     def expand_files(files_or_scripts)
@@ -79,6 +87,108 @@ module Mirah
         end
       end
       expanded
+    end
+
+    class AstPrinter < NodeScanner
+      def initialize
+        @out = ""
+        @indent = 0
+        @newline = true
+      end
+      def puts(*args)
+        print(*args)
+        @newline = true
+        @out << "\n"
+      end
+      def print(*args)
+        @out << (" " * @indent) if @newline
+        args.each {|arg| @out << arg}
+        @newline = false
+        @out
+      end
+      def indent
+        @indent += 2
+      end
+      def dedent
+        @indent -= 2
+      end
+      def enterNullChild(obj)
+        puts("nil")
+      end
+      
+      def startNode(node)
+        print("[#{node.java_class.simple_name}")
+        indent
+      end
+        
+      def enterDefault(node, arg)
+        startNode(node)
+        puts
+        true
+      end
+      
+      def exitDefault(node, arg)
+        dedent
+        if @out[-2,2] =~ /^[\[\]"]\n/
+          @out[-1,0] = "]"
+          @out
+        else
+          puts("]")
+        end
+      end
+      
+      %w(Boolean Fixnum Float CharLiteral).each do |name|
+        eval(<<-EOF)
+          def enter#{name}(node, arg)
+            startNode(node)
+            print(" ", node.value.to_s)
+            true
+          end
+        EOF
+      end
+      
+      def enterSimpleString(node, arg)
+        first_child = @out.rindex(/[\]\n]/, -2) < @out.rindex("[")
+        if first_child
+          @newline = false
+          @out[-1,1] = " "
+        end
+        print '"', node.value
+        true
+      end
+      
+      def exitSimpleString(node, arg)
+        puts '"'
+      end
+      
+      def enterTypeRefImpl(node, arg)
+        startNode(node)
+        print " #{node.name}"
+        print " array" if node.isArray
+        print " static" if node.isStatic
+        true
+      end
+      def enterNodeList(node, arg)
+        puts "["
+        indent
+        true
+      end
+      def enterBlockArgument(node, arg)
+        enterDefault(node, arg)
+        puts "optional" if node.optional
+        true
+      end
+      def enterLoop(node, arg)
+        enterDefault(node, arg)
+        puts "skipFirstCheck" if node.skipFirstCheck
+        puts "negative" if node.negative
+        true
+      end
+      def exitFieldAccess(node, arg)
+        puts "static" if node.isStatic
+        exitDefault(node, arg)
+      end
+      alias exitFieldAssign exitFieldAccess
     end
   end
 end
