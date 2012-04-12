@@ -11,6 +11,7 @@ interface ResolvedType do
   def assignableFrom(other:ResolvedType):boolean; end
   def name:String; end
   def isMeta:boolean; end
+  def isInterface:boolean; end
   def isError:boolean; end
   def matchesAnything:boolean; end
 end
@@ -268,7 +269,7 @@ class CallFuture < BaseTypeFuture
     paramTypes.size.times do |i|
       @resolved_args.add(
         if @paramTypes.get(i).kind_of?(BlockFuture)
-          @paramTypes.get(i)
+          BlockType.new
         else
           nil
         end
@@ -304,6 +305,7 @@ class CallFuture < BaseTypeFuture
       call.maybeUpdate
     end
     @paramTypes.each do |_arg|
+      next if _arg.kind_of?(BlockFuture)
       arg = TypeFuture(_arg)
       arg.onUpdate do |a, type|
         call.resolveArg(a, type)
@@ -317,31 +319,43 @@ class CallFuture < BaseTypeFuture
     maybeUpdate
   end
 
-  def resolveBlocks(type:MethodType)
+  def resolveBlocks(type:MethodType, error:ResolvedType)
     @paramTypes.size.times do |i|
       param = @paramTypes.get(i)
       if param.kind_of?(BlockFuture)
-        BlockFuture(param).resolved(ResolvedType(type.parameterTypes.get(i)))
+        block_type = error || ResolvedType(type.parameterTypes.get(i))
+        BlockFuture(param).resolved(block_type)
       end
     end
   end
 
-  def maybeUpdate
-    if @resolved_target && @resolved_args.all?
-      call = self
-      new_method = @types.getMethodType(self)
-      if new_method != @method
-        #@method.removeListener(self) if @method
-        @method = new_method
-        @method.onUpdate do |m, type|
-          if m == call.currentMethodType
-            if type.kind_of?(MethodType)
-              mtype = MethodType(type)
-              call.resolveBlocks(mtype)
-              call.resolved(mtype.returnType)
-            else
-              # TODO(ribrdb) should resolve blocks, return type
-              call.resolved(type)
+  def maybeUpdate:void
+    if @resolved_target
+      if @resolved_target.isError
+        puts "Target is error, returning same error"
+        @method = TypeFuture(nil)
+        resolved(@resolved_target)
+        resolveBlocks(nil, @resolved_target)
+      elsif @resolved_args.all?
+        call = self
+        new_method = @types.getMethodType(self)
+        if new_method != @method
+          #@method.removeListener(self) if @method
+          @method = new_method
+          @method.onUpdate do |m, type|
+            if m == call.currentMethodType
+              if type.kind_of?(MethodType)
+                mtype = MethodType(type)
+                call.resolveBlocks(mtype, nil)
+                call.resolved(mtype.returnType)
+              else
+                unless type.isError
+                  raise IllegalArgumentException, "Expected MethodType, got #{type}"
+                end
+                # TODO(ribrdb) should resolve blocks, return type
+                call.resolveBlocks(nil, type)
+                call.resolved(type)
+              end
             end
           end
         end
@@ -411,16 +425,17 @@ class BlockFuture < BaseTypeFuture
 end
 
 class MethodFuture < BaseTypeFuture
-  def initialize(returnType:AssignableTypeFuture, parameters:List, vararg:boolean, position:Position)
+  def initialize(name:String, parameters:List, returnType:AssignableTypeFuture, vararg:boolean, position:Position)
     super(position)
     @returnType = returnType
     @vararg = vararg
     mf = self
+    raise IllegalArgumentException if parameters.any? {|p| p.kind_of?(BlockType)}
     @returnType.onUpdate do |f, type|
       if type.isError
         mf.resolved(type)
       else
-        mf.resolved(MethodType.new(type, parameters, mf.isVararg))
+        mf.resolved(MethodType.new(name, parameters, type, mf.isVararg))
       end
     end
   end

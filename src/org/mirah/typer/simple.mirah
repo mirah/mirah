@@ -168,7 +168,7 @@ class SimpleTypes; implements TypeSystem
       # Start with an error message in case it isn't found.
       return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
           ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
-      t = MethodFuture.new(return_type, argTypes, false, position)
+      t = MethodFuture.new(name, argTypes, return_type, false, position)
       @methods[key] = t
     end
     t

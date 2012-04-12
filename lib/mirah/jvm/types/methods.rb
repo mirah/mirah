@@ -492,7 +492,7 @@ module Mirah::JVM::Types
         constructor = jvm_type.getConstructor(*descriptors)
         return JavaConstructor.new(@type_system, constructor) if constructor
       rescue => ex
-        log(ex.message)
+        log("#{ex.message}\n#{ex.backtrace.join("\n")}")
       end
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
@@ -525,7 +525,7 @@ module Mirah::JVM::Types
           return JavaMethod.new(@type_system, method)
         end
       rescue   => ex
-        log(ex.message)
+        log("#{ex.message}\n#{ex.backtrace.join("\n")}")
       end
       raise NameError, "No method #{self.name}.#{name}(#{types.join ', '})"
     end

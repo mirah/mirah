@@ -24,9 +24,13 @@ module Mirah::JVM::Types
     java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
     java_import 'org.mirah.typer.MethodFuture'
+    java_import 'org.mirah.typer.MethodType'
     java_import 'org.mirah.typer.TypeFuture'
     java_import 'org.mirah.typer.TypeSystem'
+    java_import 'mirah.lang.ast.ClassDefinition'
     java_import 'mirah.lang.ast.InterfaceDeclaration'
+    java_import 'mirah.lang.ast.Script'
+    java_import 'mirah.lang.ast.SimpleString'
     include TypeSystem
 
     attr_accessor :package
@@ -42,6 +46,7 @@ module Mirah::JVM::Types
     def initialize
       super(":unused")
       @known_types = ParanoidHash.new
+      @anonymous_classes = Hash.new {|h, k| h[k] = 0}
       @declarations = []
       @mirrors = {}
       @futures = {}
@@ -179,6 +184,7 @@ module Mirah::JVM::Types
           type.resolved(ErrorType.new([[method.message]]))
         else
           result = method.return_type
+          argTypes = method.argument_types
           if result.kind_of?(TypeFuture)
             if result.isResolved
               type.resolved(result.resolve)
@@ -370,6 +376,16 @@ module Mirah::JVM::Types
     end
 
     def define_type(scope, node)
+      if node.name.nil?
+        outer_node = node.find_ancestor {|n| (n != node && n.kind_of?(ClassDefinition)) || n.kind_of?(Script)}
+        if outer_node.kind_of?(ClassDefinition)
+          outer_name = outer_node.name.identifier
+        else
+          outer_name = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(node.position.source.name || 'DashE')
+        end
+        id = (@anonymous_classes[outer_node] += 1)
+        node.name_set(SimpleString.new("#{outer_name}$#{id}"))
+      end
       name = node.name.identifier
       full_name = name
       package = scope.package
@@ -411,6 +427,32 @@ module Mirah::JVM::Types
             @mirrors[name]
           end
         end
+      end
+    end
+    
+    def getAbstractMethods(type)
+      methods = []
+      unless type.isError
+        object = get_type("java.lang.Object")
+        # TODO support abstract methods
+        interfaces = [type]
+        until interfaces.empty?
+          interface = interfaces.pop
+          abstract_methods = interface.declared_instance_methods.select {|m| m.abstract?}
+          methods += abstract_methods.select do |m|
+            begin
+              # Skip methods defined on Object
+              object.java_method(m.name, *m.argument_types)
+              false
+            rescue NameError
+              true
+            end
+          end
+          interfaces.concat(interface.interfaces)
+        end
+      end
+      methods.map do |method|
+        MethodType.new(method.name, method.argument_types, method.return_type, false)
       end
     end
   end

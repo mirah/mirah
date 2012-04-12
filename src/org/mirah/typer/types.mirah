@@ -6,6 +6,9 @@ class SpecialType; implements ResolvedType, TypeFuture
   def initialize(name:String)
     @name = name
   end
+  def isInterface
+    false
+  end
   def isResolved
     true
   end
@@ -112,11 +115,18 @@ end
 
 class MethodType
   implements ResolvedType
-  def initialize(returnType:ResolvedType, parameterTypes:List, isVararg:boolean)
-    @returnType = returnType
+  # TODO should this include the defining class?
+  def initialize(name:String, parameterTypes:List, returnType:ResolvedType, isVararg:boolean)
+    @name = name
     @parameterTypes = parameterTypes
+    @returnType = returnType
     @isVararg = isVararg
     raise IllegalArgumentException unless parameterTypes.all? {|p| p.kind_of?(ResolvedType)}
+    raise IllegalArgumentException if parameterTypes.any? {|p| p.kind_of?(BlockType)}
+  end
+
+  def name
+    @name
   end
 
   def parameterTypes:List
@@ -138,10 +148,10 @@ class MethodType
   def assignableFrom(other:ResolvedType):boolean
     other == self
   end
-  def name:String
-    raise UnsupportedOperationException
-  end
   def isMeta:boolean
+    false
+  end
+  def isInterface:boolean
     false
   end
   def isError:boolean
@@ -185,5 +195,6 @@ interface TypeSystem do
   def defineType(scope:Scope, node:ClassDefinition, name:String, superclass:TypeFuture, interfaces:List):TypeFuture; end
   def addDefaultImports(scope:Scope):void; end
   
-  def prepareClosure(block:Block, type:ResolvedType):Node; end  # Returns a replacement node.
+  # Returns a List of MethodTypes of the abstract methods that a closure should implement.
+  def getAbstractMethods(type:ResolvedType):List; end
 end

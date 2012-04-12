@@ -34,6 +34,7 @@ class Typer < SimpleNodeVisitor
     @futures = HashMap.new
     @types = types
     @scopes = scopes
+    @closures = ClosureBuilder.new(self)
   end
 
   def type_system
@@ -265,7 +266,10 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(classdef)
     interfaces = inferAll(scope, classdef.interfaces)
     superclass = @types.get(scope, classdef.superclass.typeref) if classdef.superclass
-    type = @types.defineType(scope, classdef, classdef.name.identifier, superclass, interfaces)
+    name = if classdef.name
+      classdef.name.identifier
+    end
+    type = @types.defineType(scope, classdef, name, superclass, interfaces)
     new_scope = @scopes.addScope(classdef)
     new_scope.selfType = type
     infer(classdef.body, false) if classdef.body
@@ -583,8 +587,10 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitNodeList(body, expression)
-    (body.size - 1).times do |i|
+    i = 0
+    while i < body.size - 1
       infer(body.get(i), false)
+      i += 1
     end
     if body.size > 0
       infer(body.get(body.size - 1), expression != null)
@@ -820,13 +826,21 @@ class Typer < SimpleNodeVisitor
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
-    types = @types
-    parent = block.parent
-    current_node = Node(block)
+    closures = @closures
+    parent = Call(block.parent)
+    typer = self
     BlockFuture.new(block) do |x, resolvedType|
-      new_node = types.prepareClosure(block, resolvedType)
-      parent.replaceChild(current_node, new_node)
-      current_node = new_node
+      unless resolvedType.isError
+        # TODO: This will fail if the block's class changes.
+        new_node = closures.prepare(block, resolvedType)
+        if block == parent.block
+          parent.block = nil
+          parent.parameters.add(new_node)
+        else
+          parent.replaceChild(block, new_node)
+        end
+        typer.infer(new_node)
+      end
     end
   end
 

@@ -27,7 +27,7 @@ module Mirah
         results = []
         puts "Compiling..." if logging
         nodes.each do |ast|
-          puts "  #{ast.position.filename}" if logging
+          puts "  #{ast.position.source.name}" if logging
           compile_ast(ast, scoper, typer) do |filename, builder|
             results << CompilerResult.new(filename, builder.class_name, builder.generate)
           end
