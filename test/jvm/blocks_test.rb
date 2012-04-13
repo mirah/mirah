@@ -158,18 +158,17 @@ class TestBlocks < Test::Unit::TestCase
     # Comparator interface also defines equals(Object) as abstract,
     # but it can be inherited from Object. We test that here.
     cls, = compile(<<-EOF)
-      import java.util.ArrayList
       import java.util.Collections
-      list = ArrayList.new(["a", "ABC", "Cats", "b"])
-      Collections.sort(list) do |a, b|
-        String(a).compareToIgnoreCase(String(b))
+      import java.util.List
+      def sort(l:List)
+        Collections.sort(l) do |a:Object, b:Object|
+          String(a).compareToIgnoreCase(String(b))
+        end
+        l
       end
-      list.each {|x| System.out.println x}
     EOF
 
-    assert_output("a\nABC\nb\nCats\n") do
-      cls.main(nil)
-    end
+    assert_equal(["a", "ABC", "b", "Cats"], cls.sort(["a", "ABC", "Cats", "b"]))
   end
   
   def test_block_with_no_arguments_and_return_value

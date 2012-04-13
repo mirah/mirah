@@ -38,6 +38,7 @@ class SpecialType; implements ResolvedType, TypeFuture
   end
   def isMeta; false; end
   def isError; ":error".equals(name); end
+  def isBlock; ":block".equals(name); end
   def matchesAnything; false; end
 end
 
@@ -122,7 +123,7 @@ class MethodType
     @returnType = returnType
     @isVararg = isVararg
     raise IllegalArgumentException unless parameterTypes.all? {|p| p.kind_of?(ResolvedType)}
-    raise IllegalArgumentException if parameterTypes.any? {|p| p.kind_of?(BlockType)}
+    raise IllegalArgumentException if parameterTypes.any? {|p| ResolvedType(p).isBlock }
   end
 
   def name
@@ -175,6 +176,8 @@ interface TypeSystem do
   def getFixnumType(value:long):TypeFuture; end
   def getCharType(value:int):TypeFuture; end
   def getFloatType(value:double):TypeFuture; end
+
+  def getBlockType:ResolvedType; end
 
   def getMetaType(type:ResolvedType):ResolvedType; end
   def getArrayType(componentType:ResolvedType):ResolvedType; end

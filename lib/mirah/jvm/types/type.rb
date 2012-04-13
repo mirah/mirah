@@ -54,6 +54,10 @@ module Mirah
         def isMeta
           self.meta?
         end
+        
+        def isBlock
+          false
+        end
 
         def array?
           false
@@ -102,7 +106,7 @@ module Mirah
           return true if other.matchesAnything
 
           # TODO should we allow more here?
-          return interface? if other.name == ':block'
+          return interface? if other.isBlock
 
           return true if jvm_type && (jvm_type == other.jvm_type)
 

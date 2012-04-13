@@ -827,7 +827,7 @@ class Typer < SimpleNodeVisitor
 
   def visitBlock(block, expression)
     closures = @closures
-    parent = Call(block.parent)
+    parent = CallSite(block.parent)
     typer = self
     BlockFuture.new(block) do |x, resolvedType|
       unless resolvedType.isError

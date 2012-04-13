@@ -11,6 +11,7 @@ interface ResolvedType do
   def assignableFrom(other:ResolvedType):boolean; end
   def name:String; end
   def isMeta:boolean; end
+  def isBlock:boolean; end
   def isInterface:boolean; end
   def isError:boolean; end
   def matchesAnything:boolean; end
@@ -269,7 +270,7 @@ class CallFuture < BaseTypeFuture
     paramTypes.size.times do |i|
       @resolved_args.add(
         if @paramTypes.get(i).kind_of?(BlockFuture)
-          BlockType.new
+          types.getBlockType
         else
           nil
         end
@@ -332,7 +333,6 @@ class CallFuture < BaseTypeFuture
   def maybeUpdate:void
     if @resolved_target
       if @resolved_target.isError
-        puts "Target is error, returning same error"
         @method = TypeFuture(nil)
         resolved(@resolved_target)
         resolveBlocks(nil, @resolved_target)
@@ -430,7 +430,7 @@ class MethodFuture < BaseTypeFuture
     @returnType = returnType
     @vararg = vararg
     mf = self
-    raise IllegalArgumentException if parameters.any? {|p| p.kind_of?(BlockType)}
+    raise IllegalArgumentException if parameters.any? {|p| ResolvedType(p).isBlock}
     @returnType.onUpdate do |f, type|
       if type.isError
         mf.resolved(type)

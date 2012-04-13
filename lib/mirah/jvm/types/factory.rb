@@ -21,7 +21,7 @@ module Mirah::JVM::Types
     java_import 'org.mirah.typer.AssignableTypeFuture'
     java_import 'org.mirah.typer.PickFirst'
     java_import 'org.mirah.typer.BaseTypeFuture'
-    java_import 'org.mirah.typer.BlockType'
+    #java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
     java_import 'org.mirah.typer.MethodFuture'
     java_import 'org.mirah.typer.MethodType'
@@ -179,9 +179,9 @@ module Mirah::JVM::Types
                   [ target.meta? ? "static" : "instance",
                     name,
                     argTypes.map{|t| t.full_name}.join(', '),
-                    target.full_name]]]))
+                    target.full_name], position]]))
         elsif method.kind_of?(Exception)
-          type.resolved(ErrorType.new([[method.message]]))
+          type.resolved(ErrorType.new([[method.message, position]]))
         else
           result = method.return_type
           argTypes = method.argument_types
@@ -194,6 +194,15 @@ module Mirah::JVM::Types
           else
             type.resolved(result)
           end
+        end
+      end
+      argTypes = argTypes.map do |t|
+        if t.isBlock
+          type.position_set(position) if (position && type.position.nil?)
+          # This should only happen if type is an error.
+          type.resolve
+        else
+          t
         end
       end
       result = getMethodTypeInternal(target, name, argTypes, position)
@@ -321,7 +330,7 @@ module Mirah::JVM::Types
       return nil
     end
 
-    def block_type
+    def getBlockType
       @block_type ||= BlockType.new
     end
 

@@ -21,7 +21,11 @@ module Mirah
 
       def find_method2(mapped_type, name, mapped_params, meta, &block)
         find_method(mapped_type, name, mapped_params, meta, &block)
-      rescue => ex
+      rescue NameError => ex
+        raise ex unless ex.message.include?(name)
+        if block_given?
+          block.call(ex)
+        end
         ex
       end
 
