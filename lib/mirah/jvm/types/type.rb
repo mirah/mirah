@@ -12,7 +12,6 @@ module Mirah
           end
         end
 
-        include Java::DubyLangCompiler::Class
         include Mirah::JVM::MethodLookup
         include ResolvedType
 

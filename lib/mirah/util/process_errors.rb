@@ -16,12 +16,7 @@
 module Mirah
   module Util
     module ProcessErrors
-      begin
-        java_import 'org.mirah.types.ErrorType'
-      rescue NameError
-        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
-        java_import 'org.mirah.typer.ErrorType'
-      end
+      java_import 'org.mirah.typer.ErrorType'
 
       # errors - array of NodeErrors
       def process_errors(errors)

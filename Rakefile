@@ -30,8 +30,8 @@ end
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :gem => 'jar:bootstrap'
-
-task :default => :test
+task :bootstrap => 'javalib/mirah-bootstrap.jar'
+task :default => :'test:jvm:bytecode'
 def run_tests tests
   results = tests.map do |name|
     begin
@@ -56,14 +56,14 @@ end
 namespace :test do
 
   desc "run the core tests"
-  Rake::TestTask.new :core do |t|
+  Rake::TestTask.new :core  => :bootstrap do |t|
     t.libs << 'test'
     t.test_files = FileList["test/core/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
   desc "run tests for plugins"
-  Rake::TestTask.new :plugins do |t|
+  Rake::TestTask.new :plugins  => :bootstrap do |t|
     t.libs << 'test'
     t.test_files = FileList["test/plugins/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
@@ -76,7 +76,7 @@ namespace :test do
 
   namespace :jvm do
     desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode do |t|
+    Rake::TestTask.new :bytecode => :bootstrap do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
@@ -84,7 +84,7 @@ namespace :test do
     end
 
     desc "run jvm tests compiling to java source, then bytecode"
-    Rake::TestTask.new :javac do |t|
+    Rake::TestTask.new :javac => :bootstrap do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "javac_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
@@ -105,7 +105,7 @@ task :clean do
   ant.delete :quiet => true, :dir => 'dist'
 end
 
-task :compile => :init do
+task :compile => [:init, :bootstrap] do
   require 'mirah'
   # build the Ruby sources
   puts "Compiling Ruby sources"
@@ -115,32 +115,7 @@ task :compile => :init do
     'src/org/mirah/mirah_command.rb'
   ])
 
-  # build the Mirah sources
-  puts "Compiling Mirah sources"
-  Dir.chdir 'src' do
-    classpath = Mirah::Env.encode_paths([
-        'javalib/jruby-complete.jar',
-        'javalib/JRubyParser.jar',
-        'build',
-        '/usr/share/ant/lib/ant.jar'
-      ])
-   ant.taskdef :name=>"mirahc", :classname=>"org.mirah.ant.Compile",
-      :classpath=>"/Developer/mirah-complete.jar:javalib/mirah-parser.jar"
-   %w(org/mirah duby/lang mirah).each do |dir|
-     ant.mirahc :classpath => classpath,
-         :destdir => File.expand_path('../build'),
-         :src => File.expand_path(dir)
-   end
-
-    # Mirah.compile(
-    #   '-c', classpath,
-    #   '-d', '../build',
-    #   '--jvm', '1.6',
-    #   'org/mirah',
-    #   'duby/lang',
-    #   'mirah'
-    #   )
-  end
+  # TODO compile ant stuff
 
   # compile invokedynamic stuff
   ant.javac :destdir => 'build', :srcdir => 'src',
@@ -156,6 +131,7 @@ task :jar => :compile do
     fileset :dir => 'build'
     fileset :dir => '.', :includes => 'bin/*'
     fileset :dir => bitescript_lib_dir
+    zipfileset :src => 'javalib/mirah-bootstrap.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
@@ -177,11 +153,7 @@ namespace :jar do
   end
 
   desc "build bootstrap jar used by the gem"
-  task :bootstrap => :compile do
-    ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
-      fileset :dir => 'build'
-    end
-  end
+  task :bootstrap => 'javalib/mirah-bootstrap.jar'
 end
 
 desc "Build a distribution zip file"
@@ -206,7 +178,7 @@ end
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
 
-file 'javalib/mirah-newast-transitional.jar' do
+file_create 'javalib/mirah-newast-transitional.jar' do
   require 'open-uri'
   puts "Downloading mirah-newast-transitional.jar"
   open('http://mirah.googlecode.com/files/mirah-newast-transitional.jar', 'rb') do |src|
@@ -216,25 +188,53 @@ file 'javalib/mirah-newast-transitional.jar' do
   end
 end
 
-file 'build/org/mirah/typer/TypeFuture.class' => ['javalib/mirah-newast-transitional.jar'] + Dir['src/org/mirah/typer/*.mirah'] do
-  rm_rf 'build/org/mirah/typer'
-  mkdir_p 'build'
-  begin 
-  ant.java :jar => 'javalib/mirah-newast-transitional.jar', :fork => true, :failonerror => true,
-           :output => "ant.out" do
-    arg :line => 'compile --classpath javalib/mirah-parser.jar -d build src/org/mirah/typer'
+file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
+                                       'src/org/mirah/MirahClassLoader.java'] + 
+                                      Dir['src/org/mirah/{macros,typer}/*.mirah'] +
+                                      Dir['src/org/mirah/macros/anno/*.java'] do
+  rm_rf 'build/bootstrap'
+  mkdir_p 'build/bootstrap'
+
+  # Compile annotations and class loader
+  ant.javac :destdir => 'build/bootstrap', :srcdir => 'src',
+    :includes => 'org/mirah/**.java',
+    :includeantruntime => false
+
+  # Compile the Typer and Macro compiler
+  bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/typer',
+                    :classpath => 'javalib/mirah-parser.jar',
+                    :dest => 'build/bootstrap')
+  cp Dir['src/org/mirah/macros/*.tpl'], 'build/bootstrap/org/mirah/macros'
+
+  # Build the jar                    
+  ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
+    fileset :dir => 'build/bootstrap'
   end
-  ensure
-    STDERR.puts(open('ant.out').read)
-    rm 'ant.out'
+
+  rm_rf 'build/bootstrap'
+end
+                                        
+
+def bootstrap_mirahc(*paths)
+  options = if paths[-1].kind_of?(Hash)
+    paths.pop
+  else
+    {}
   end
-  unless File.exists?('build/org/mirah/typer/TypeFuture.class')
-    exit 1
+  args = options[:options] || []
+  if options[:classpath]
+    args << '--classpath' << options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
+  end
+  args << '-d' << File.expand_path(options[:dest])
+  jarfile = File.expand_path('javalib/mirah-newast-transitional.jar')
+  Dir.chdir(options[:dir] || '.') do
+    runjava(jarfile, 'compile', *(args + paths))
   end
 end
 
-file 'javalib/typer.jar' => 'build/org/mirah/typer/TypeFuture.class' do
-  ant.jar :jarfile => 'javalib/typer.jar' do
-    fileset :dir => 'build', :includes => 'org/mirah/typer/**'
-  end  
+def runjava(jar, *args)
+  sh 'java', '-jar', jar, *args
+  unless $?.success?
+    exit $?.exitstatus
+  end
 end

@@ -2,10 +2,9 @@ module Mirah
   module Transform
     class Transformer
       begin
-        include Java::DubyLangCompiler.Compiler
+        java_import 'org.mirah.macros.Compiler'
       rescue NameError
         $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-bootstrap.jar'
-        include Java::DubyLangCompiler.Compiler
       end
 
       attr_reader :errors, :state

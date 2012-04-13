@@ -144,8 +144,9 @@ class MacroBuilder; implements Compiler
                                [name, macroDef.arguments.clone, macroDef.body, casts])
     scope = @scopes.getScope(macroDef)
     if scope.package
-      script.body.insert(0, Package.new(SimpleString.new(scope.package)))
+      script.body.insert(0, Package.new(SimpleString.new(scope.package), nil))
     end
+    script
   end
   
   def extensionName(macroDef:MacroDefinition)

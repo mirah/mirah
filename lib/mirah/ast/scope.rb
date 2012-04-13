@@ -17,12 +17,7 @@ module Mirah
   module AST
     class StaticScope
       java_import 'java.util.LinkedHashMap'
-      begin
-        java_import 'org.mirah.typer.Scope'
-      rescue NameError
-        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
-        java_import 'org.mirah.typer.Scope'
-      end
+      java_import 'org.mirah.typer.Scope'
       java_import 'org.mirah.typer.AssignableTypeFuture'
       java_import 'org.mirah.typer.LocalFuture'
       java_import 'org.mirah.typer.ErrorType'

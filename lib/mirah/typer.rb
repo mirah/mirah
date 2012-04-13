@@ -17,12 +17,7 @@ require 'mirah/errors'
 
 module Mirah
   module Typer
-    begin
-      java_import 'org.mirah.typer.Typer'
-    rescue NameError
-      $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/typer.jar'
-      java_import 'org.mirah.typer.Typer'
-    end
+    java_import 'org.mirah.typer.Typer'
 
     class << self
       attr_accessor :verbose
