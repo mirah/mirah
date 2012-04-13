@@ -5,6 +5,7 @@ interface CallSite < Node, Named, TypeName do
   def target:Node; end
   def parameters: NodeList; end
   def block:Block; end
+  def block_set(block:Block):void; end
 end
 
 class FunctionalCall < NodeImpl
@@ -42,6 +43,9 @@ class VCall < NodeImpl
   end
   def block:Block
     nil
+  end
+  def block_set(block)
+    raise UnsupportedOperationException
   end
 end
 
