@@ -16,11 +16,6 @@
 require 'ant'
 require 'rake/testtask'
 
-# load mirah rake task
-$: << '../mirah/lib'
-#require '/Developer/mirah-complete.jar'
-require 'mirah_task'
-
 task :default => :build_parser
 
 task :clean do
@@ -28,8 +23,20 @@ task :clean do
   ant.delete :quiet => true, :dir => 'dist'
 end
 
-task :build_parser => 'dist/mirah-parser.jar'
+task :build_parser => ['javalib/mirah-complete_parsersupport.jar', 'dist/mirah-parser.jar']
 ant.taskdef :name => 'jarjar', :classpath => 'javalib/jarjar-1.1.jar', :classname=>"com.tonicsystems.jarjar.JarJarTask"
+
+def mirahc(path, options)
+  args = options[:options] || []
+  if options[:classpath]
+    args << '--classpath' << options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
+  end
+  args << '-d' << File.expand_path(options[:dest]) << path
+  jarfile = File.expand_path('javalib/mirah-complete_parsersupport.jar')
+  Dir.chdir(options[:dir] || '.') do
+    runjava(jarfile, 'compile', *args)
+  end
+end
 
 file 'build/mirah-parser.jar' => ['build/mirahparser/lang/ast/Node.class',
                                   'build/mirahparser/impl/MirahParser.class',
@@ -61,10 +68,10 @@ file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
 end
 
 file 'build/mirahparser/impl/MirahParser.class' => ['build/mirahparser/impl/Mirah.mirah', 'build/mirahparser/impl/MirahLexer.class'] do
-  mirahc('build/mirahparser/impl/Mirah.mirah',
+  mirahc('mirahparser/impl/Mirah.mirah',
          :dir => 'build',
          :dest => 'build',
-         :options => ['--classpath', 'build:javalib/mmeta-runtime.jar'])
+         :classpath => ['build', 'javalib/mmeta-runtime.jar'])
 end
 
 file 'build/org/mirahparser/ast/NodeMeta.class' => 'src/org/mirah/ast/meta.mirah' do
@@ -79,7 +86,7 @@ file 'build/mirahparser/lang/ast/Node.class' =>
       mirahc('.',
              :dir => 'src/mirah/lang/ast',
              :dest => 'build',
-             :options => ['--classpath', 'build'])
+             :classpath => ['build'])
 end
 
 file 'build/mirahparser/lang/ast/Node.java' =>
@@ -87,7 +94,8 @@ file 'build/mirahparser/lang/ast/Node.java' =>
       mirahc('.',
              :dir => 'src/mirah/lang/ast',
              :dest => 'build',
-             :options => ['--java', '--classpath', 'build'])
+             :classpath => ['build'],
+             :options => ['--java'])
 end
 
 file 'build/mirahparser/impl/MirahLexer.class' => Dir['src/mirahparser/impl/*.java'] do
@@ -121,18 +129,19 @@ task :doc => 'build/mirahparser/lang/ast/Node.java' do
   ant.javadoc :sourcepath => 'build', :destdir => 'doc'
 end
 
-def runjava(jar, *args)
-  options = {:failonerror => true, :fork => true}
-  if jar =~ /\.jar$/
-    options[:jar] = jar
-  else
-    options[:classname] = jar
-  end
-  options.merge!(args.pop) if args[-1].kind_of?(Hash)
-  puts "java #{jar} " + args.join(' ')
-  ant.java options do
-    args.each do |value|
-      arg :value => value
+file_create 'javalib/mirah-complete_parsersupport.jar' do
+  require 'open-uri'
+  puts "Downloading mirah-complete_parsersupport.jar"
+  open('http://mirah.googlecode.com/files/mirah-complete_parsersupport.jar', 'rb') do |src|
+    open('javalib/mirah-complete_parsersupport.jar', 'wb') do |dest|
+      dest.write(src.read)
     end
+  end
+end
+
+def runjava(jar, *args)
+  sh 'java', '-jar', jar, *args
+  unless $?.success?
+    exit $?.exitstatus
   end
 end
