@@ -1,6 +1,8 @@
 package org.mirah.typer
 import java.util.*
 import mirah.lang.ast.*
+import org.mirah.macros.JvmBackend
+import org.mirah.macros.MacroBuilder
 
 # Type inference engine.
 # Makes a single pass over the AST nodes building a graph of the type
@@ -29,12 +31,17 @@ import mirah.lang.ast.*
 # This typer is type system independent. It relies on a TypeSystem and a Scoper
 # to provide the types for methods, literals, variables, etc.
 class Typer < SimpleNodeVisitor
-  def initialize(types:TypeSystem, scopes:Scoper)
+  def initialize(types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
     @types = types
     @scopes = scopes
     @closures = ClosureBuilder.new(self)
+    @macros = MacroBuilder.new(self, jvm_backend)
+  end
+
+  def macro_compiler
+    @macros
   end
 
   def type_system
@@ -653,7 +660,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitUnquote(node, expression)
-    node.nodes.each {|n| infer(n, expression != nil)}
+    nodes = node.nodes
+    if nodes.size == 0
+      @types.getImplicitNilType
+    else
+      type = nil
+      nodes.each {|n| type = infer(n, expression != nil)}
+      type
+    end
   end
 
   def visitUnquoteAssign(node, expression)
@@ -844,9 +858,9 @@ class Typer < SimpleNodeVisitor
     end
   end
 
-  # def visitMacroDefinition(defn, expression)
-  #   buildAndLoadExtension(defn)
-  #   defn.getParent.removeChild(defn)
-  #   @types.getVoidType()
-  # end
+  def visitMacroDefinition(defn, expression)
+    @macros.buildExtension(defn)
+    defn.parent.removeChild(defn)
+    @types.getVoidType()
+  end
 end

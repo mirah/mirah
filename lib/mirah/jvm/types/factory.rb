@@ -219,11 +219,11 @@ module Mirah::JVM::Types
       type.onUpdate do |m, resolved|
         resolved = resolved.returnType if resolved.respond_to?(:returnType)
         if Mirah::Typer.verbose
-          Mirah::Typer.log "Learned %s method %s.%s%s = %s" % 
+          Mirah::Typer.log "Learned %s method %s.%s(%s) = %s" % 
               [target.meta? ? "static" : "instance",
-                target,
+                target.full_name,
                 name,
-                args,
+                args.map{|a| a.full_name}.join(', '),
                 resolved.full_name]
         end
         rewritten_name = name.sub(/=$/, '_set')

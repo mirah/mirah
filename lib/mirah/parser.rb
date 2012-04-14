@@ -90,6 +90,7 @@ module Mirah
     end
 
     class AstPrinter < NodeScanner
+      java_import "mirah.lang.ast.Node"
       def initialize
         @out = ""
         @indent = 0
@@ -133,7 +134,12 @@ module Mirah
           @out[-1,0] = "]"
           @out
         else
-          puts("]")
+          no_children = @out.rindex(/[\]\n]/, -2) < @out.rindex("[")
+          if no_children
+            @out[-1,0] = "]"
+          else
+            puts("]")
+          end
         end
       end
       
@@ -168,27 +174,49 @@ module Mirah
         print " static" if node.isStatic
         true
       end
+
       def enterNodeList(node, arg)
         puts "["
         indent
         true
       end
+
       def enterBlockArgument(node, arg)
         enterDefault(node, arg)
         puts "optional" if node.optional
         true
       end
+
       def enterLoop(node, arg)
         enterDefault(node, arg)
         puts "skipFirstCheck" if node.skipFirstCheck
         puts "negative" if node.negative
         true
       end
+
       def exitFieldAccess(node, arg)
         puts "static" if node.isStatic
         exitDefault(node, arg)
       end
       alias exitFieldAssign exitFieldAccess
+
+      def enterUnquote(node, arg)
+        enterDefault(node, arg)
+        object = node.object
+        if object
+          if object.kind_of?(Node)
+            scan(object, arg)
+          else
+            str = if node.object.respond_to?(:toString)
+              node.object.toString
+            else
+              node.object.inspect
+            end
+            puts "<", str, ">"
+          end
+        end
+        object.nil?
+      end
     end
   end
 end

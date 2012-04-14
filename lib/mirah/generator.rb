@@ -19,13 +19,16 @@ module Mirah
     include Mirah::Util::ProcessErrors
     java_import 'org.mirah.typer.simple.SimpleScoper'
     java_import 'org.mirah.typer.simple.TypePrinter'
+    java_import 'org.mirah.macros.JvmBackend'
 
     def initialize(state, compiler_class, logging, verbose)
+      @state = state
       @scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
       type_system = Mirah::JVM::Types::TypeFactory.new
-      @typer = Mirah::Typer::Typer.new(type_system, @scoper)
+      @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
       @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
+      @jvm_compiler = Mirah::Compiler::ASTCompiler.new(Mirah::JVM::Compiler::JVMBytecode, logging)
       @logging = logging
       @verbose = verbose
     end
@@ -68,6 +71,34 @@ module Mirah
         end
       end
       [@scoper, @typer]
+    end
+  
+    def compileAndLoadExtension(ast)
+      if verbose
+        printer = TypePrinter.new(@typer)
+        printer.scan(ast, nil)
+      end
+      process_inference_errors(@typer, [ast])
+      results = @jvm_compiler.compile_asts([ast], @scoper, @typer)
+      class_map = {}
+      first_class_name = nil
+      results.each do |result|
+        classname = result.classname.gsub(/\//, '.')
+        first_class_name ||= classname
+        class_map[classname] = Mirah::Util::ClassLoader.binary_string result.bytes
+        if @state.save_extensions
+          filename = "#{@state.destination}#{result.filename}"
+          FileUtils.mkdir_p(File.dirname(filename))
+          File.open(filename, 'wb') {|f| f.write(result.bytes)}
+        end
+      end
+      dcl = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
+      dcl.load_class(first_class_name)
+    end
+  
+    def logExtensionAst(ast)
+      return unless verbose
+      puts parser.format_ast(ast)
     end
   end
 end

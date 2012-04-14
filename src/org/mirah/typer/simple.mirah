@@ -221,7 +221,7 @@ class SimpleTypes; implements TypeSystem
     ast = Node(parser.parse(code.toString))
     types = SimpleTypes.new('foo')
     scopes = SimpleScoper.new
-    typer = Typer.new(types, scopes)
+    typer = Typer.new(types, scopes, nil)
 
     puts "Original AST:"
     TypePrinter.new(typer).scan(ast, nil)

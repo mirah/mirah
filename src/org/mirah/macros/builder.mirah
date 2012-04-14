@@ -17,6 +17,7 @@ package org.mirah.macros
 
 import java.io.InputStream
 import java.util.Arrays
+import java.util.Collections
 import java.util.HashMap
 import java.util.LinkedList
 import java.util.List
@@ -25,9 +26,11 @@ import mirah.lang.ast.Arguments
 import mirah.lang.ast.Array
 import mirah.lang.ast.Call
 import mirah.lang.ast.Cast
+import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.FieldAccess
 import mirah.lang.ast.Fixnum
 import mirah.lang.ast.MacroDefinition
+import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
 import mirah.lang.ast.NodeList
 import mirah.lang.ast.NodeScanner
@@ -83,6 +86,7 @@ class MacroBuilder; implements Compiler
   
   def buildExtension(macroDef:MacroDefinition)
     ast = constructAst(macroDef)
+    @backend.logExtensionAst(ast)
     @typer.infer(ast)
     klass = @backend.compileAndLoadExtension(ast)
     registerLoadedMacro(macroDef, klass)
@@ -164,6 +168,8 @@ class MacroBuilder; implements Compiler
   # Adds types to the arguments with none specified.
   # Uses Block for a block argument and Node for any other argument.
   def addMissingTypes(macroDef:MacroDefinition):void
+    macroDef.arguments ||= Arguments.new(Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
+    macroDef.body ||= NodeList.new
     # TODO optional, rest args
     macroDef.arguments.required.each do |_arg|
       arg = RequiredArgument(_arg)

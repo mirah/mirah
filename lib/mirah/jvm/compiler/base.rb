@@ -303,6 +303,20 @@ module Mirah
           visitSelf(node, expression)
         end
 
+        def visitUnquote(node, expression)
+          body = node.nodes
+          i, last = 0, body.size - 1
+          while i < last
+            visit(body.get(i), false)
+            i += 1
+          end
+          if last >= 0
+            visit(body.get(last), expression)
+          else
+            visitImplicitNil(node, expression)
+          end
+        end
+
         def get_binding(type)
           @bindings[type]
         end
