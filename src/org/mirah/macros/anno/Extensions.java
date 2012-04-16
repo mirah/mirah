@@ -2,5 +2,6 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.CLASS)
 @Target(ElementType.TYPE)
 public @interface Extensions {
-    Macro[] macros();
+    // TODO: The bootstrap mirah doesn't support Class annotation values. This is an array of class names.
+    String[] macros();
 }

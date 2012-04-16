@@ -197,13 +197,14 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
 
   # Compile annotations and class loader
   ant.javac :destdir => 'build/bootstrap', :srcdir => 'src',
-    :includes => 'org/mirah/**.java',
-    :includeantruntime => false
+    :includeantruntime => false, :debug => true, :listfiles => true
 
   # Compile the Typer and Macro compiler
   bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/typer',
-                    :classpath => 'javalib/mirah-parser.jar',
-                    :dest => 'build/bootstrap')
+                    :classpath => ['javalib/mirah-parser.jar', 'build/bootstrap'],
+                    :dest => 'build/bootstrap'
+#                    :options => ['-V']
+                    )
   cp Dir['src/org/mirah/macros/*.tpl'], 'build/bootstrap/org/mirah/macros'
 
   # Build the jar                    

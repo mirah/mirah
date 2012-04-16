@@ -124,20 +124,22 @@ module Mirah::JVM::Types
         mirror = jvm_type
       end
       if mirror
-        extensions = mirror.getDeclaredAnnotation('duby.anno.Extensions')
+        extensions = mirror.getDeclaredAnnotation('org.mirah.macros.anno.Extensions')
         return self if extensions.nil?
         macros = extensions['macros']
         return self if macros.nil?
-        macros.each do |macro|
+        macros.each do |macro_class|
+          macro_mirror = @type_system.get_mirror(macro_class)
+          macro = macro_mirror.getDeclaredAnnotation('org.mirah.macros.anno.MacroDef')
           macro_name = macro['name']
-          class_name = macro['class']
-          types = BiteScript::ASM::Type.get_argument_types(macro['signature'])
-          args = types.map do |type|
-            if type.class_name == 'duby.lang.compiler.Block'
-              @type_system.block_type
-            else
-              @type_system.type(nil, type)
-            end
+          types = if macro['signature'] != ''
+            BiteScript::ASM::Type.get_argument_types(macro['signature'])
+          else
+            types = macro['arguments']['required']
+            # TODO optional, rest args
+          end
+          args = types.map do |typename|
+            @type_system.type(nil, type)
           end
           klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)
           add_compiled_macro(klass, macro_name, args)
