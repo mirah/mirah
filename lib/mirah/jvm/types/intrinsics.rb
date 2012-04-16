@@ -44,6 +44,10 @@ module Mirah::JVM::Types
         @intrinsics
       end
     end
+    
+    def macros
+      @macros ||= Hash.new {|h, k| h[k] = {}}
+    end
 
     def add_method(name, args, method_or_type=nil, &block)
       if block_given?
@@ -53,22 +57,19 @@ module Mirah::JVM::Types
       intrinsics[name][args] = method_or_type
     end
 
-    def add_macro(name, *args, &block)
-      type = InlineCode.new(&block)
-      intrinsics[name][args] = Intrinsic.new(self, name, args, type) do
-        raise "Macro should be expanded, no called!"
-      end
-    end
-
     def add_compiled_macro(klass, name, arg_types)
-      add_macro(name, *arg_types) do |call, typer|
+      # TODO separate static and instance macros
+      return_type = InlineCode.new do |call, typer|
         #TODO scope
+        # We probably need to set the scope on all the parameters, plus the
+        # arguments and body of any block params. Also make sure scope is copied
+        # when cloned.
         # scope = typer.scoper.get_scope(call)
         # call.parameters.each do |arg|
         #   arg.scope = scope
         # end
         begin
-          expander = klass.constructors[0].newInstance(nil, call)
+          expander = klass.constructors[0].newInstance(typer.macro_compiler, call)
           ast = expander.expand
         rescue
           puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
@@ -90,12 +91,28 @@ module Mirah::JVM::Types
           Mirah::AST::Noop.new
         end
       end
+      macros[name][arg_types] = return_type
     end
     
     def wrap_with_scoped_body call, node
       wrapper = Mirah::AST::ScopedBody.new(call.parent, call.position)
       wrapper.static_scope = call.scope.static_scope
       wrapper << node
+    end
+
+    def declared_macros(name=nil)
+      result = []
+      each_name = lambda do |name, hash|
+        hash.each do |args, return_type|
+          result << [name, args, return_type]
+        end
+      end
+      if name
+        each_name.class(name, self.macros[name])
+      else
+        self.macros.each &each_name
+      end
+      result
     end
 
     def declared_intrinsics(name=nil)
@@ -184,24 +201,24 @@ module Mirah::JVM::Types
         end
       end
 
-      add_macro('kind_of?', class_type) do |transformer, call|
-        klass, object = call.parameters(0), call.target
-        Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
-          klass.parent = object.parent = call2
-          [
-            klass,
-            [object]
-          ]
-        end
-      end
-
-      add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
-        compiler.visit(call.target, expression)
-        if expression
-          klass = call.parameters(0).inferred_type!
-          compiler.method.instanceof(klass.unmeta)
-        end
-      end
+      # add_macro('kind_of?', class_type) do |transformer, call|
+      #   klass, object = call.parameters(0), call.target
+      #   Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
+      #     klass.parent = object.parent = call2
+      #     [
+      #       klass,
+      #       [object]
+      #     ]
+      #   end
+      # end
+      # 
+      # add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
+      #   compiler.visit(call.target, expression)
+      #   if expression
+      #     klass = call.parameters(0).inferred_type!
+      #     compiler.method.instanceof(klass.unmeta)
+      #   end
+      # end
     end
   end
 

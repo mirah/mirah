@@ -201,5 +201,5 @@ interface TypeSystem do
   # Returns a List of MethodTypes of the abstract methods that a closure should implement.
   def getAbstractMethods(type:ResolvedType):List; end
   
-  def addMacro(klass:ResolvedType, name:String, arguments:List):void; end
+  def addMacro(klass:ResolvedType, name:String, arguments:List, macro:Class):void; end
 end

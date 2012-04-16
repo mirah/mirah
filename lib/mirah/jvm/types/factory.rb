@@ -255,6 +255,10 @@ module Mirah::JVM::Types
       end
     end
 
+    def addMacro(klass, name, arguments, macro)
+      klass.unmeta.add_compiled_macro(macro, name, arguments)
+    end
+
     def define_types(builder)
       @declarations.each do |declaration|
         declaration.define(builder)

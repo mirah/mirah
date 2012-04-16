@@ -200,6 +200,6 @@ class MacroBuilder; implements Compiler
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
     extended_class = @scopes.getScope(macroDef).selfType.resolve
     arg_types = @typer.inferAll(macroDef.arguments)
-    @types.addMacro(extended_class, macroDef.name.identifier, arg_types)
+    @types.addMacro(extended_class, macroDef.name.identifier, arg_types, klass)
   end
 end
