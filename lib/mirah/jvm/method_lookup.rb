@@ -19,8 +19,8 @@ module Mirah
       # dummy log; it's expected the inclusion target will have it
       def log(msg); end
 
-      def find_method2(mapped_type, name, mapped_params, meta, &block)
-        find_method(mapped_type, name, mapped_params, meta, &block)
+      def find_method2(mapped_type, name, mapped_params, macro_params, meta, &block)
+        find_method(mapped_type, name, mapped_params, macro_params, meta, &block)
       rescue NameError => ex
         raise ex unless ex.message.include?(name)
         if block_given?
@@ -29,7 +29,7 @@ module Mirah
         ex
       end
 
-      def find_method(mapped_type, name, mapped_params, meta, &block)
+      def find_method(mapped_type, name, mapped_params, macro_params, meta, &block)
         raise ArgumentError if mapped_params.any? {|p| p.nil?}
         if mapped_type.error?
           raise "WTF?!?"
@@ -49,11 +49,11 @@ module Mirah
 
         if block_given?
           if constructor
-            mapped_type.add_method_listener('initialize') {block.call(find_method2(mapped_type.meta, 'new', mapped_params, true))}
+            mapped_type.add_method_listener('initialize') {block.call(find_method2(mapped_type.meta, 'new', mapped_params, macro_params, true))}
           else
-            mapped_type.add_method_listener(name) {block.call(find_method2(mapped_type, name, mapped_params, meta))}
+            mapped_type.add_method_listener(name) {block.call(find_method2(mapped_type, name, mapped_params, macro_params, meta))}
           end
-          block.call(find_method(mapped_type, name, mapped_params, meta))
+          block.call(find_method(mapped_type, name, mapped_params, macro_params, meta))
           return
         end
 
@@ -66,10 +66,18 @@ module Mirah
         rescue NameError => ex
           # TODO return nil instead of raising an exception if the method doesn't exist.
           raise ex unless ex.message =~ /#{mapped_type.name}\.#{name.sub('[]', '\[\]')}|No constructor #{mapped_type.name}/
+        end
+        
+        macro = mapped_type.unmeta.macro(name, macro_params)
+        if method && macro
+          method = nil  # Need full lookup to determine precedence.
+        elsif method.nil? && macro
+          method = macro
+        elsif method.nil?
           # exact args failed, do a deeper search
           log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
 
-          method = find_jls(mapped_type, name, mapped_params, meta, constructor)
+          method = find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor)
 
           unless method
             log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
@@ -81,7 +89,7 @@ module Mirah
         return method
       end
 
-      def find_jls(mapped_type, name, mapped_params, meta, constructor)
+      def find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor)
         interfaces = []
         by_name = if constructor
           mapped_type.unmeta.declared_constructors
@@ -90,10 +98,17 @@ module Mirah
         else
           mapped_type.find_callable_methods(name)
         end
-        find_jls2(mapped_type, name, mapped_params, meta, by_name)
+        method = find_jls2(mapped_type, name, mapped_params, meta, by_name, true)
+        return method if (constructor || macro_params.nil?)
+        macros = mapped_type.unmeta.find_callable_macros(name)
+        macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false)
+        if macro && method
+          raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{macro} and #{method}"
+        end
+        macro || method
       end
 
-      def find_jls2(mapped_type, name, mapped_params, meta, by_name)
+      def find_jls2(mapped_type, name, mapped_params, meta, by_name, include_fields=true)
         # filter by arity
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
 
@@ -109,8 +124,9 @@ module Mirah
         phase1_methods[0] ||
           phase2(mapped_params, by_name) ||
           phase3(mapped_params, by_name) ||
-          field_lookup(mapped_params, mapped_type, meta, name) ||
-          inner_class(mapped_params, mapped_type, meta, name)
+          (include_fields &&
+            (field_lookup(mapped_params, mapped_type, meta, name) ||
+             inner_class(mapped_params, mapped_type, meta, name)))
       end
 
       def phase1(mapped_params, potentials)

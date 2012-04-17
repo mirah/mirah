@@ -15,11 +15,11 @@
 
 import org.mirah.macros.Macro
 import org.mirah.macros.Compiler
-import mirah.lang.ast.Call
+import mirah.lang.ast.CallSite
 import mirah.lang.ast.Node
 
 class `name` implements Macro
-  def initialize(mirah:Compiler, call:Call)
+  def initialize(mirah:Compiler, call:CallSite)
     @mirah = mirah
     @call = call
   end

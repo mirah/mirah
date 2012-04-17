@@ -125,8 +125,9 @@ class Typer < SimpleNodeVisitor
     options = [infer(local, true), local, methodType, fcall]
     current_node = Node(call)
     typer = self
-    picker = PickFirst.new(options) do |picked_type, _node|
+    picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
+      picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
         node = InlineCode(picked_type).expand(fcall, typer)
         typer.infer(node, expression != nil)

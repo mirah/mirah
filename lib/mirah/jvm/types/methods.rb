@@ -82,6 +82,23 @@ module Mirah::JVM::Types
     end
   end
 
+  class Macro
+    java_import 'org.mirah.typer.InlineCode'
+    attr_reader :name, :argument_types, :return_type
+
+    def initialize(klass, name, args, &block)
+      raise ArgumentError, "Block required" unless block_given?
+      @class = klass
+      @name = name
+      @argument_types = args
+      @return_type = InlineCode.new(&block)
+    end
+
+    def declaring_class
+      @class
+    end
+  end
+
   class JavaCallable
     include ArgumentConversion
     java_import 'org.mirah.typer.ResolvedType'
@@ -438,6 +455,31 @@ module Mirah::JVM::Types
     end
 
     # TODO take a scope and check visibility
+    def find_callable_macros(name)
+      interfaces = []
+      macros = find_callable_macros2(name, interfaces)
+      seen = {}
+      until interfaces.empty?
+        interface = interfaces.pop
+        next if seen[interface]
+        seen[interface] = true
+        interfaces.concat(interface.interfaces)
+        macros.concat(interface.declared_macros(name))
+      end
+      macros
+    end
+    
+    def find_callable_macros2(name, interfaces)
+      macros = []
+      interfaces.concat(self.interfaces)
+      macros.concat(declared_macros(name))
+      if superclass && !superclass.error?
+        macros.concat(superclass.find_callable_macros2(name, interfaces))
+      end
+      macros
+    end
+
+    # TODO take a scope and check visibility
     def find_callable_methods(name, &proc)
       if block_given?
         add_method_listener(name) {proc.call(find_callable_methods(name))}
@@ -445,7 +487,7 @@ module Mirah::JVM::Types
         return
       end
       interfaces = if self.interface?  # TODO || self.abstract?
-        {}
+        []
       else
         nil
       end
@@ -474,7 +516,7 @@ module Mirah::JVM::Types
     end
 
     def get_method(name, args)
-      method = find_method(self, name, args, meta?)
+      method = find_method(self, name, args, nil, meta?)
       unless method
         # Allow constant narrowing for assignment methods
         if name =~ /=$/ && args[-1].respond_to?(:narrow!)

@@ -84,7 +84,7 @@ module Mirah
       first_class_name = nil
       results.each do |result|
         classname = result.classname.gsub(/\//, '.')
-        first_class_name ||= classname
+        first_class_name ||= classname if classname.include?('$Extension')
         class_map[classname] = Mirah::Util::ClassLoader.binary_string result.bytes
         if @state.save_extensions
           filename = "#{@state.destination}#{result.filename}"

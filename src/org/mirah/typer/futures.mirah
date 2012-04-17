@@ -241,7 +241,7 @@ class PickFirst < BaseTypeFuture
     me = self
     i = index
     type.onUpdate do |x, resolved|
-      if (me.picked == -1 && resolved.name != ':error') ||
+      if (me.picked == -1 && !resolved.isError) ||
           me.picked >= i
         me.pick(i, type, value, resolved)
       end

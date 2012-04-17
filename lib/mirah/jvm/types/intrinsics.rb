@@ -19,8 +19,6 @@ require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
   class Type
-    java_import 'org.mirah.typer.InlineCode'
-
     def load(builder, index)
       builder.send "#{prefix}load", index
     end
@@ -59,7 +57,7 @@ module Mirah::JVM::Types
 
     def add_compiled_macro(klass, name, arg_types)
       # TODO separate static and instance macros
-      return_type = InlineCode.new do |call, typer|
+      macro = Macro.new(self, name, arg_types) do |call, typer|
         #TODO scope
         # We probably need to set the scope on all the parameters, plus the
         # arguments and body of any block params. Also make sure scope is copied
@@ -69,10 +67,12 @@ module Mirah::JVM::Types
         #   arg.scope = scope
         # end
         begin
+          puts klass.constructors
+          puts "Invoking #{klass.constructors[0]}(#{typer.macro_compiler}, #{call})"
           expander = klass.constructors[0].newInstance(typer.macro_compiler, call)
           ast = expander.expand
-        rescue
-          puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
+        # rescue
+        #   puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
         end
         if ast
           body = Mirah::AST::NodeList.new
@@ -91,7 +91,7 @@ module Mirah::JVM::Types
           Mirah::AST::Noop.new
         end
       end
-      macros[name][arg_types] = return_type
+      macros[name][arg_types] = macro
     end
     
     def wrap_with_scoped_body call, node
@@ -103,16 +103,28 @@ module Mirah::JVM::Types
     def declared_macros(name=nil)
       result = []
       each_name = lambda do |name, hash|
-        hash.each do |args, return_type|
-          result << [name, args, return_type]
+        hash.each do |args, macro|
+          result << macro
         end
       end
       if name
-        each_name.class(name, self.macros[name])
+        each_name.call(name, self.macros[name])
       else
         self.macros.each &each_name
       end
       result
+    end
+
+    def macro(name, types)
+      macro = macros[name][types]
+      return macro if macro
+      macro = superclass.macro(name, types) if superclass
+      return macro if macro
+      interfaces.each do |interface|
+        macro = interface.macro(name, types)
+        return macro if macro
+      end
+      nil
     end
 
     def declared_intrinsics(name=nil)
@@ -252,34 +264,34 @@ module Mirah::JVM::Types
         compiler.method.arraylength
       end
 
-      add_macro('each', @type_system.block_type) do |transformer, call|
-        Mirah::AST::Loop.new(call.parent,
-                            call.position, true, false) do |forloop|
-          index = transformer.tmp
-          array = transformer.tmp
-
-          init = transformer.eval("#{index} = 0;#{array} = nil")
-          array_assignment = init.children[-1]
-          array_assignment.value = call.target
-          call.target.parent = array_assignment
-          forloop.init << init
-
-          var = call.block.args.args[0]
-          if var
-            forloop.pre << transformer.eval(
-                "#{var.name} = #{array}[#{index}]", '', forloop, index, array)
-          end
-          forloop.post << transformer.eval("#{index} += 1")
-          call.block.body.parent = forloop if call.block.body
-          [
-            Mirah::AST::Condition.new(forloop, call.position) do |c|
-              [transformer.eval("#{index} < #{array}.length",
-                                '', forloop, index, array)]
-            end,
-            call.block.body
-          ]
-        end
-      end
+      # add_macro('each', @type_system.block_type) do |transformer, call|
+      #   Mirah::AST::Loop.new(call.parent,
+      #                       call.position, true, false) do |forloop|
+      #     index = transformer.tmp
+      #     array = transformer.tmp
+      # 
+      #     init = transformer.eval("#{index} = 0;#{array} = nil")
+      #     array_assignment = init.children[-1]
+      #     array_assignment.value = call.target
+      #     call.target.parent = array_assignment
+      #     forloop.init << init
+      # 
+      #     var = call.block.args.args[0]
+      #     if var
+      #       forloop.pre << transformer.eval(
+      #           "#{var.name} = #{array}[#{index}]", '', forloop, index, array)
+      #     end
+      #     forloop.post << transformer.eval("#{index} += 1")
+      #     call.block.body.parent = forloop if call.block.body
+      #     [
+      #       Mirah::AST::Condition.new(forloop, call.position) do |c|
+      #         [transformer.eval("#{index} < #{array}.length",
+      #                           '', forloop, index, array)]
+      #       end,
+      #       call.block.body
+      #     ]
+      #   end
+      # end
     end
   end
 
@@ -296,11 +308,11 @@ module Mirah::JVM::Types
   class ArrayMetaType
     def add_intrinsics
       super
-      add_macro('cast', @type_system.type(nil, 'java.lang.Object')) do |transformer, call|
-        call.cast = true
-        call.resolve_if(nil) { unmeta }
-        call
-      end
+      # add_macro('cast', @type_system.type(nil, 'java.lang.Object')) do |transformer, call|
+      #   call.cast = true
+      #   call.resolve_if(nil) { unmeta }
+      #   call
+      # end
     end
   end
 
@@ -390,6 +402,7 @@ module Mirah::JVM::Types
   class IterableType < Type
     def add_intrinsics
       super
+      return
       add_enumerable_macros
       add_macro('each', @type_system.block_type) do |transformer, call|
         Mirah::AST::Loop.new(call.parent,
