@@ -20,7 +20,7 @@ end
 interface TypeFuture do
   def isResolved:boolean; end
   def resolve:ResolvedType; end
-  def onUpdate(listener:TypeListener):void; end
+  def onUpdate(listener:TypeListener):TypeListener; end
   def removeListener(listener:TypeListener):void; end
 end
 
@@ -30,8 +30,11 @@ class SimpleFuture; implements TypeFuture
   end
   def isResolved() true end
   def resolve() @type end
-  def onUpdate(listener) listener.updated(self, @type) end
-    def removeListener(listener); end
+  def onUpdate(listener)
+    listener.updated(self, @type)
+    listener
+  end
+  def removeListener(listener); end
 end
 
 class BaseTypeFuture; implements TypeFuture
@@ -71,9 +74,10 @@ class BaseTypeFuture; implements TypeFuture
     @position = pos
   end
 
-  def onUpdate(listener:TypeListener):void
+  def onUpdate(listener:TypeListener):TypeListener
     @listeners.add(listener)
     listener.updated(self, inferredType) if isResolved
+    listener
   end
 
   def removeListener(listener:TypeListener):void
@@ -94,6 +98,39 @@ class BaseTypeFuture; implements TypeFuture
         TypeListener(l).updated(self, type)
       end
     end
+  end
+end
+
+class DelegateFuture < BaseTypeFuture
+  def isResolved()
+    @type && @type.isResolved
+  end
+  def resolve()
+    if @type
+      @type.resolve
+    else
+      super
+    end
+  end
+  def type
+    @type
+  end
+  def type=(type:TypeFuture):void
+    if @type
+      if @type == type
+        return
+      else
+        @type.removeListener(@listener)
+      end
+    end
+    @type = type
+    delegate = self
+    @listener = type.onUpdate do |t, resolved|
+      if t == delegate.type
+        delegate.resolved(resolved)
+      end
+    end
+    resolved(nil) unless type.isResolved
   end
 end
 
@@ -314,7 +351,10 @@ class CallFuture < BaseTypeFuture
     end
   end
 
-  def resolveArg(arg:TypeFuture, type:ResolvedType)
+  def resolveArg(arg:TypeFuture, type:ResolvedType):void
+    if type.kind_of?(InlineCode)
+      return
+    end
     i = @paramTypes.indexOf(arg)
     @resolved_args.set(i, type)
     maybeUpdate

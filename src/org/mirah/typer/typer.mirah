@@ -125,19 +125,22 @@ class Typer < SimpleNodeVisitor
     options = [infer(local, true), local, methodType, fcall]
     current_node = Node(call)
     typer = self
+    future = DelegateFuture.new
     picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
       picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
         node = InlineCode(picked_type).expand(fcall, typer)
-        typer.infer(node, expression != nil)
+        future.type = typer.infer(node, expression != nil)
+      else
+        future.type = typefuture
       end
       current_node.parent.replaceChild(current_node, node)
       current_node = node
     end
-    picker.position = call.position
-    picker.error_message = "Unable to find local or method '#{call.name.identifier}'"
-    picker
+    future.position = call.position
+    future.error_message = "Unable to find local or method '#{call.name.identifier}'"
+    future
   end
 
   def visitFunctionalCall(call, expression)

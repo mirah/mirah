@@ -14,6 +14,21 @@
 # limitations under the License.
 
 class TestMacros < Test::Unit::TestCase
+  def test_vcall_macro
+    cls, = compile(<<-EOF)
+      import mirah.lang.ast.Node
+      import mirah.lang.ast.Null
+      macro def foo
+        Null.new
+      end
+
+      System.out.println(foo)
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end
+  
   def test_defmacro
     cls, = compile(<<-EOF)
       defmacro bar(x) do
@@ -63,7 +78,7 @@ class TestMacros < Test::Unit::TestCase
   def test_unquote
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
 
-    script, cls = compile(<<-'EOF')
+    script, cls = compile(<<-EOF)
       class UnquoteMacros
         macro def make_attr(name_node, type)
           name = name_node.string_value
