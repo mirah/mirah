@@ -149,13 +149,17 @@ class Typer < SimpleNodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
+    delegate = DelegateFuture.new
     methodType = CallFuture.new(@types, selfType, parameters, call)
+    delegate.type = methodType
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         node = InlineCode(resolvedType).expand(call, typer)
         call.parent.replaceChild(call, node)
-        typer.infer(node, expression != nil)
+        delegate.type = typer.infer(node, expression != nil)
+      else
+        delegate.type = methodType
       end
     end
     if call.parameters.size == 1
@@ -165,9 +169,9 @@ class Typer < SimpleNodeVisitor
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
       @scopes.copyScopeFrom(call, cast)
       castType = infer(cast, true)
-      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
+      TypeFuture(MaybeInline.new(call, delegate, cast, castType))
     else
-      methodType
+      delegate
     end
   end
 
@@ -196,12 +200,16 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     methodType = CallFuture.new(@types, target, parameters, call)
+    delegate = DelegateFuture.new
+    delegate.type = methodType
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         node = InlineCode(resolvedType).expand(call, typer)
         call.parent.replaceChild(call, node)
-        typer.infer(node, expression != nil)
+        delegate.type = typer.infer(node, expression != nil)
+      else
+        delegate.type = methodType
       end
     end
     if  call.parameters.size == 1
@@ -228,12 +236,12 @@ class Typer < SimpleNodeVisitor
           newType = infer(cast, expression != nil)
         end
         infer(newNode)
-        TypeFuture(MaybeInline.new(call, methodType, newNode, newType))
+        TypeFuture(MaybeInline.new(call, delegate, newNode, newType))
       else
-        methodType
+        delegate
       end
     else
-      methodType
+      delegate
     end
   end
 

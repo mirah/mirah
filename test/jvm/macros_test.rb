@@ -29,6 +29,36 @@ class TestMacros < Test::Unit::TestCase
     assert(!cls.respond_to?(:foo))
   end
   
+  def test_fcall_macro
+    cls, = compile(<<-EOF)
+      import mirah.lang.ast.Node
+      import mirah.lang.ast.Null
+      macro def foo
+        Null.new
+      end
+
+      System.out.println(foo())
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end
+  
+  def test_quote
+    cls, = compile(<<-EOF)
+      import mirah.lang.ast.Node
+      import mirah.lang.ast.Null
+      macro def foo
+        quote { nil }
+      end
+
+      System.out.println(foo)
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end  
+  
   def test_defmacro
     cls, = compile(<<-EOF)
       defmacro bar(x) do
