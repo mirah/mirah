@@ -330,6 +330,19 @@ class TypePrinter < NodeScanner
     @indent += 2
     true
   end
+  def enterUnquote(node, arg)
+    super(node, arg)
+    if node.object
+      if node.object.kind_of?(Node)
+        Node(node.object).accept(self, arg)
+      else
+        printIndent
+        print node.object
+        puts
+      end
+    end
+    node.object.nil?
+  end
   def exitDefault(node, arg)
     @indent -= 2
     nil
