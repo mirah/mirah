@@ -137,6 +137,10 @@ module Mirah::JVM::Types
       @types.type(nil, @member.declaring_class)
     end
 
+    def type_parameters
+      @declaring_class and @declaring_class.jvm_type.type_parameters
+    end
+
     def call(compiler, ast, expression, parameters=nil, delegate=false)
       target = compiler.inferred_type(ast.target)
       unless delegate
@@ -173,6 +177,10 @@ module Mirah::JVM::Types
 
     def abstract?
       @member.abstract?
+    end
+
+    def type_parameters
+      @member.type_parameters
     end
 
     def void?
@@ -212,6 +220,14 @@ module Mirah::JVM::Types
           target,
           name,
           [@member.return_type, *@member.argument_types])
+      end
+
+      if expression && !void?
+        # Insert a cast if the inferred type and actual type differ. This is part of generics support.
+        inferred_return_type = compiler.inferred_type(ast)
+        if !inferred_return_type.assignableFrom(return_type)
+          compiler.method.checkcast(inferred_return_type)
+        end
       end
 
       unless expression || void?

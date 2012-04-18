@@ -25,6 +25,7 @@ end
 require 'mirah/jvm/types/type'
 require 'mirah/jvm/types/primitive_type'
 require 'mirah/jvm/types/meta_type'
+require 'mirah/jvm/types/generic_type'
 require 'mirah/jvm/types/null_type'
 require 'mirah/jvm/types/implicit_nil_type'
 require 'mirah/jvm/types/unreachable_type'

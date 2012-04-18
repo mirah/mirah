@@ -64,7 +64,6 @@ class SimpleTypes; implements TypeSystem
       ].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
     @meta_types = {}
     @array_types = {}
-    @methods = {}
     @fields = {}
     @locals = {}
     @types[main_type] = @main_type = SimpleType.new(main_type, false, false)
@@ -162,16 +161,10 @@ class SimpleTypes; implements TypeSystem
       # implementation of equals or hashCode.
       argTypes = ListWrapper.new(argTypes)
     end
-    key = [target, name, argTypes]
-    t = MethodFuture(@methods[key])
-    unless t
-      # Start with an error message in case it isn't found.
-      return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
-          ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
-      t = MethodFuture.new(name, argTypes, return_type, false, position)
-      @methods[key] = t
-    end
-    t
+    # Start with an error message in case it isn't found.
+    return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
+        ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
+    MethodFuture.new(name, argTypes, return_type, false, position)
   end
   
   def getFieldType(target, name, position)

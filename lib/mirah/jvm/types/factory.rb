@@ -23,8 +23,10 @@ module Mirah::JVM::Types
     java_import 'org.mirah.typer.BaseTypeFuture'
     #java_import 'org.mirah.typer.BlockType'
     java_import 'org.mirah.typer.ErrorType'
+    java_import 'org.mirah.typer.GenericTypeFuture'
     java_import 'org.mirah.typer.MethodFuture'
     java_import 'org.mirah.typer.MethodType'
+    java_import 'org.mirah.typer.SimpleFuture'
     java_import 'org.mirah.typer.TypeFuture'
     java_import 'org.mirah.typer.TypeSystem'
     java_import 'mirah.lang.ast.ClassDefinition'
@@ -184,7 +186,34 @@ module Mirah::JVM::Types
           type.resolved(ErrorType.new([[method.message, position]]))
         else
           result = method.return_type
-          argTypes = method.argument_types
+
+          # Handle generics.
+          if name == 'new' and target.type_parameters
+            # TODO(shepheb): Support bounds other than "extends Object".
+            # TODO(shepheb): Fix this so it uses multiple Type<Object>s instead of one for all parameters.
+            result = Mirah::JVM::Types::GenericType.new(result) # Upgrade to a generic type.
+            type_parameters = target.type_parameters.map do |typevar| typevar.name end
+            type_parameters.each do |var|
+              gtf = nil
+              gtf = GenericTypeFuture.new(position, get_type('java.lang.Object'))
+              result.type_parameter_map.put(var, gtf)
+            end
+          elsif target.generic?
+            # TODO(shepheb): This only handles the case of a simple type variable. It wouldn't match ArrayList<String> to ArrayList<E>. Fix it.
+            genericParameterTypes = method.member.generic_parameter_types
+            genericParameterTypes.each_index do |i|
+              if genericParameterTypes[i].kind_of?(BiteScript::ASM::TypeVariable)
+                gtf = target.type_parameter_map.get(genericParameterTypes[i].name)
+                gtf.assign(SimpleFuture.new(argTypes[i]), position)
+              end
+            end
+
+            genericReturnType = method.member.generic_return_type
+            if genericReturnType.kind_of?(BiteScript::ASM::TypeVariable)
+              result = target.type_parameter_map.get(genericReturnType.name)
+            end
+          end
+
           if result.kind_of?(TypeFuture)
             if result.isResolved
               type.resolved(result.resolve)
@@ -194,6 +223,10 @@ module Mirah::JVM::Types
           else
             type.resolved(result)
           end
+
+          # TODO(shepheb): This is modifying the argTypes of _find_method_type, and it shouldn't be.
+          # Moved to the bottom so the generics code above can access the original argTypes that were passed to _find_method_type.
+          argTypes = method.argument_types
         end
       end
       argTypes = argTypes.map do |t|
