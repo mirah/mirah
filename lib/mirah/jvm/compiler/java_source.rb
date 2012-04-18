@@ -49,6 +49,10 @@ module Mirah
           super
         end
 
+        def logger_name
+          "org.mirah.ruby.JVM.Compiler.JavaSource"
+        end
+
         def file_builder(filename)
           Mirah::JavaSource::Builder.new(filename, self)
         end

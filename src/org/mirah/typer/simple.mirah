@@ -1,3 +1,7 @@
+# These are minimal implementations of the type system interfaces.
+# These are used for tests and may also be useful as building blocks
+# for a full type system.
+# The main type system implementation is in lib/mirah/jvm/types/factory.rb.
 package org.mirah.typer.simple
 
 import java.util.*

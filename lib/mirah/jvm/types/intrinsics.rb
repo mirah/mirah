@@ -56,6 +56,7 @@ module Mirah::JVM::Types
     end
 
     def add_compiled_macro(klass, name, arg_types)
+      log "Adding macro #{self.name}.#{name}(#{arg_types.map{|t| t.full_name}.join(', ')})"
       # TODO separate static and instance macros
       macro = Macro.new(self, name, arg_types) do |call, typer|
         #TODO scope

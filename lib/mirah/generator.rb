@@ -64,7 +64,7 @@ module Mirah
         end
         process_inference_errors(@typer, nodes, &error_handler)
       rescue NativeException => ex
-        log("Caught exception during type inference", ex)
+        log("Caught exception during type inference", ex.cause)
         raise ex
       ensure
         if self.logging?
@@ -77,6 +77,7 @@ module Mirah
   
     def compileAndLoadExtension(ast)
       if self.logging?
+        log "Inferred types:"
         printer = TypePrinter.new(@typer)
         printer.scan(ast, nil)
       end

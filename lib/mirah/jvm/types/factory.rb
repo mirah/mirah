@@ -232,7 +232,7 @@ module Mirah::JVM::Types
                 target.full_name,
                 name,
                 args.map{|a| a.full_name}.join(', '),
-                resolved.full_name]
+                resolved.full_name].to_java
         rewritten_name = name.sub(/=$/, '_set')
         if target.meta?
           target.unmeta.declare_static_method(rewritten_name, args, resolved, [])

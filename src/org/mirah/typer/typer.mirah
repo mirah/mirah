@@ -1,5 +1,6 @@
 package org.mirah.typer
 import java.util.*
+import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.macros.JvmBackend
 import org.mirah.macros.MacroBuilder
@@ -31,6 +32,10 @@ import org.mirah.macros.MacroBuilder
 # This typer is type system independent. It relies on a TypeSystem and a Scoper
 # to provide the types for methods, literals, variables, etc.
 class Typer < SimpleNodeVisitor
+  def self.initialize:void
+    @@log = Logger.getLogger(Typer.class.getName)
+  end
+  
   def initialize(types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
@@ -803,6 +808,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitMethodDefinition(mdef, expression)
+    @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
     scope = @scopes.addScope(mdef)
     outer_scope = @scopes.getScope(mdef)

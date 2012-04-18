@@ -26,6 +26,10 @@ module Mirah
 
         class CompilationError < Mirah::NodeError
         end
+        
+        def logger_name
+          "org.mirah.ruby.JVM.Compiler.Base"
+        end
 
         def initialize(scoper, typer)
           super()
@@ -67,7 +71,11 @@ module Mirah
         end
 
         def inferred_type(node)
-          @typer.get_inferred_type(node).resolve
+          begin
+            @typer.get_inferred_type(node).resolve
+          rescue Exception => ex
+            raise Mirah::InternalCompilerError.wrap(ex, node)
+          end
         end
 
         def error(message, node)
@@ -201,6 +209,7 @@ module Mirah
         end
 
         def visitClassDefinition(class_def, expression)
+          log "Compiling class #{class_def.name.identifier}"
           with(:type => inferred_type(class_def),
                :class => inferred_type(class_def).define(@file),
                :static => false) do

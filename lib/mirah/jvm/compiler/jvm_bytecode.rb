@@ -45,6 +45,10 @@ module Mirah
           @jump_scope = []
         end
 
+        def logger_name
+          "org.mirah.ruby.JVM.Compiler.JVMBytecode"
+        end
+
         def file_builder(filename)
           builder = BiteScript::FileBuilder.new(filename)
           builder.to_widen do |_a, _b|
@@ -578,7 +582,7 @@ module Mirah
 
         def annotation_value(scope, type, builder, name, value)
           if name
-            value_type = type.java_method(name).return_type
+            value_type = type.unmeta.java_method(name).return_type
             if value_type.array?
               unless value.kind_of?(Array)
                 raise "#{type.name}.#{name} should be an Array, got #{value.class}"
@@ -627,7 +631,7 @@ module Mirah
             if value_type.jvm_type.enum?
               builder.enum(name, value_type, value.identifier)
             elsif value_type.jvm_type.annotation?
-              subtype = inferred_type(value.type)
+              subtype = inferred_type(value)
               mirror = subtype.jvm_type
               builder.annotation(name, mirror) do |child|
                 value.values.each do |entry|

@@ -67,7 +67,7 @@ class TestMacros < Test::Unit::TestCase
     assert(!cls.respond_to?(:foo))
   end  
   
-  def test_macro_def
+  def test_macro_def_with_arg
     cls, = compile(<<-EOF)
       macro def bar(x)
         x

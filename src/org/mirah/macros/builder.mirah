@@ -22,6 +22,7 @@ import java.util.HashMap
 import java.util.LinkedList
 import java.util.List
 import mirah.impl.MirahParser
+import mirah.lang.ast.Annotation
 import mirah.lang.ast.Arguments
 import mirah.lang.ast.Array
 import mirah.lang.ast.Call
@@ -29,6 +30,7 @@ import mirah.lang.ast.Cast
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.FieldAccess
 import mirah.lang.ast.Fixnum
+import mirah.lang.ast.HashEntry
 import mirah.lang.ast.MacroDefinition
 import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
@@ -89,6 +91,7 @@ class MacroBuilder; implements Compiler
     @backend.logExtensionAst(ast)
     @typer.infer(ast)
     klass = @backend.compileAndLoadExtension(ast)
+    addToExtensions(macroDef, klass)
     registerLoadedMacro(macroDef, klass)
   end
   
@@ -144,9 +147,18 @@ class MacroBuilder; implements Compiler
     template = MacroBuilder.class.getResourceAsStream("template.mirah.tpl")
     name = extensionName(macroDef)
     addMissingTypes(macroDef)
+    argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
     script = deserializeScript("template.mirah.tpl", template,
-                               [name, macroDef.arguments.clone, macroDef.body, casts])
+                               [ name,
+                                 macroDef.arguments.clone,
+                                 macroDef.body,
+                                 casts,
+                                 # Annotations come last in the AST even though they're first
+                                 # in the source.
+                                 macroDef.name.clone,
+                                 argdef
+                               ])
     scope = @scopes.getScope(macroDef)
     if scope.package
       script.body.insert(0, Package.new(SimpleString.new(scope.package), nil))
@@ -193,9 +205,49 @@ class MacroBuilder; implements Compiler
     casts
   end
   
+  def makeArgAnnotation(args:Arguments):Annotation
+    # TODO other args
+    required = LinkedList.new
+    args.required_size.times do |i|
+      required.add(args.required(i).type.clone)
+    end
+    entries = [HashEntry.new(SimpleString.new('required'), Array.new(required))]
+    Annotation.new(SimpleString.new('org.mirah.macros.anno.MacroArgs'), entries)
+  end
+  
   # Returns a node to fetch the i'th macro argument during expansion.
   def fetchMacroArg(i:int):Node
-    Call.new(FieldAccess.new(SimpleString.new('call')), SimpleString.new('get'), [Fixnum.new(i)], nil)
+    Call.new(
+      Call.new(FieldAccess.new(SimpleString.new('call')),
+               SimpleString.new('parameters'), Collections.emptyList, nil),
+      SimpleString.new('get'), [Fixnum.new(i)], nil)
+  end
+  
+  def addToExtensions(macrodef:MacroDefinition, klass:Class):void
+    classdef = ClassDefinition(macrodef.findAncestor(ClassDefinition.class))
+    if classdef.nil?
+      return
+    end
+    extensions = Annotation(nil)
+    classdef.annotations_size.times do |i|
+      anno = classdef.annotations(i)
+      if anno.type.typeref.name.equals('org.mirah.macros.anno.Extensions')
+        extensions = anno
+        break
+      end
+    end
+    
+    if extensions.nil?
+      entries = [HashEntry.new(SimpleString.new('macros'), Array.new(Collections.emptyList))]
+      extensions = Annotation.new(SimpleString.new('org.mirah.macros.anno.Extensions'), entries)
+      @typer.infer(extensions)
+      classdef.annotations.add(extensions)
+    end
+    
+    array = Array(extensions.values(0).value)
+    new_entry = SimpleString.new(klass.getName)
+    @typer.infer(new_entry)
+    array.values.add(new_entry)
   end
   
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void

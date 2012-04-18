@@ -16,8 +16,6 @@
 module Mirah
   module JVM
     module MethodLookup
-      # dummy log; it's expected the inclusion target will have it
-      def log(msg); end
 
       def find_method2(mapped_type, name, mapped_params, macro_params, meta, &block)
         find_method(mapped_type, name, mapped_params, macro_params, meta, &block)
