@@ -226,6 +226,7 @@ class ListNodeState < BaseNodeState
           raise IllegalStateException
         end
         @listNode.remove(@lastIndex)
+        @nextIndex = @lastIndex
         @lastIndex = -1
       end
 
