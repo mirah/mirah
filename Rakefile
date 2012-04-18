@@ -205,6 +205,7 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
                     :dest => 'build/bootstrap'
 #                    :options => ['-V']
                     )
+  add_quote_macro                    
   cp Dir['src/org/mirah/macros/*.tpl'], 'build/bootstrap/org/mirah/macros'
 
   # Build the jar                    
@@ -214,7 +215,44 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
 
   rm_rf 'build/bootstrap'
 end
-                                        
+
+require 'bitescript'
+class Annotater < BiteScript::ASM::ClassWriter
+  def initialize(filename, &block)
+    cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
+    super(cr, 0)
+    @block = block
+    cr.accept(self, 0)
+    f = java.io.FileOutputStream.new(filename)
+    f.write(toByteArray)
+    f.close
+  end
+  def visitSource(*args); end
+  def visit(*args)
+    super
+    @block.call(self)
+  end
+end
+
+def add_quote_macro
+  Annotater.new('build/bootstrap/org/mirah/macros/QuoteMacro.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', false)
+    av.visit("name", "quote")
+    args = av.visitAnnotation('arguments', 'Lorg/mirah/macros/anno/MacroArgs;')
+    req = args.visitArray('required')
+    req.visit(nil, 'mirah.lang.ast.Block')
+    req.visitEnd
+    args.visitEnd
+    av.visitEnd
+  end
+  Annotater.new('build/bootstrap/org/mirah/macros/Macro.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/Extensions;', false)
+    macros = av.visitArray('macros')
+    macros.visit(nil, 'org.mirah.macros.QuoteMacro')
+    macros.visitEnd
+    av.visitEnd
+  end
+end
 
 def bootstrap_mirahc(*paths)
   options = if paths[-1].kind_of?(Hash)

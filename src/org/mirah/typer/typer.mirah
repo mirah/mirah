@@ -269,7 +269,7 @@ class Typer < SimpleNodeVisitor
     target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(node.parameters)
     parameters.add(infer(node.block, true)) if node.block
-    CallFuture.new(@types, target, method.name.identifier, parameters, node.parameters, node.position)
+    CallFuture.new(@types, target, method.name.identifier, parameters, nil, node.position)
   end
 
   def visitZSuper(node, expression)
@@ -672,14 +672,16 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitUnquote(node, expression)
+    # Convert the unquote into a NodeList and replace it with the NodeList.
+    # TODO(ribrdb) do these need to be cloned?
     nodes = node.nodes
-    if nodes.size == 0
-      @types.getImplicitNilType
+    replacement = if nodes.size == 1
+      Node(nodes.get(0))
     else
-      type = nil
-      nodes.each {|n| type = infer(n, expression != nil)}
-      type
+      NodeList.new(node.position, nodes)
     end
+    node.parent.replaceChild(node, replacement)
+    infer(replacement, expression != nil)
   end
 
   def visitUnquoteAssign(node, expression)

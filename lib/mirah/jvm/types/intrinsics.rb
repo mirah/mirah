@@ -62,13 +62,11 @@ module Mirah::JVM::Types
         # We probably need to set the scope on all the parameters, plus the
         # arguments and body of any block params. Also make sure scope is copied
         # when cloned.
-        # scope = typer.scoper.get_scope(call)
+        scope = typer.scoper.get_scope(call)
         # call.parameters.each do |arg|
         #   arg.scope = scope
         # end
         begin
-          puts klass.constructors
-          puts "Invoking #{klass.constructors[0]}(#{typer.macro_compiler}, #{call})"
           expander = klass.constructors[0].newInstance(typer.macro_compiler, call)
           ast = expander.expand
         # rescue
@@ -161,16 +159,14 @@ module Mirah::JVM::Types
           macro_mirror = @type_system.get_mirror(macro_class)
           macro = macro_mirror.getDeclaredAnnotation('org.mirah.macros.anno.MacroDef')
           macro_name = macro['name']
-          types = if macro['signature'] != ''
-            BiteScript::ASM::Type.get_argument_types(macro['signature'])
-          else
-            types = macro['arguments']['required']
-            # TODO optional, rest args
-          end
+          # TODO optional, rest args
+          types = macro['arguments']['required']
           args = types.map do |typename|
-            @type_system.type(nil, type)
+            type = @type_system.get_type(typename)
+            raise "Unable to find class #{typename}" unless type
+            type
           end
-          klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)
+          klass = JRuby.runtime.jruby_class_loader.loadClass(macro_class)
           add_compiled_macro(klass, macro_name, args)
         end
       end

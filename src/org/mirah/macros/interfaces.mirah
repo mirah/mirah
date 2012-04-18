@@ -18,6 +18,7 @@ package org.mirah.macros
 import java.util.Map
 import java.util.List
 import mirah.lang.ast.Call
+import mirah.lang.ast.CallSite
 import mirah.lang.ast.Cast
 import mirah.lang.ast.FieldAccess
 import mirah.lang.ast.Node
@@ -28,12 +29,11 @@ import org.mirah.macros.anno.*
 import org.mirah.typer.Scope
 
 
-$Extensions[macros:['org.mirah.macros.QuoteMacro']]
+# $Extensions[macros:['org.mirah.macros.QuoteMacro']]
 interface Macro do
   def expand:Node; end
 end
 
-$Extensions[macros:['org.mirah.macros.QuoteMacro']]
 interface Compiler do
   def serializeAst(node:Node):Object; end
   def deserializeAst(filename:String,
@@ -41,7 +41,7 @@ interface Compiler do
                      startCol:int,
                      code:String,
                      values:List,
-                     scope:Scope):Node
+                     scopeNode:Node):Node
   end
 end
 
@@ -51,9 +51,9 @@ interface JvmBackend do
 end
 
 # The bootstrap compiler can't generate newast macros, so we manually implement quote
-$MacroDef[name:'quote', signature:'(Lmirah.lang.ast.Block;)V']
+# $MacroDef[name:'quote', arguments:$MacroArgs[required:['mirah.lang.ast.Block']]
 class QuoteMacro; implements Macro
-  def initialize(mirah:Compiler, call:Call)
+  def initialize(mirah:Compiler, call:CallSite)
     @mirah = mirah
     @call = call
   end

@@ -16,7 +16,19 @@
 class TestMacros < Test::Unit::TestCase
   def test_vcall_macro
     cls, = compile(<<-EOF)
-      import mirah.lang.ast.Node
+      macro def foo
+        mirah::lang::ast::Null.new
+      end
+
+      System.out.println(foo)
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end
+
+  def test_import
+    cls, = compile(<<-EOF)
       import mirah.lang.ast.Null
       macro def foo
         Null.new
@@ -31,10 +43,8 @@ class TestMacros < Test::Unit::TestCase
   
   def test_fcall_macro
     cls, = compile(<<-EOF)
-      import mirah.lang.ast.Node
-      import mirah.lang.ast.Null
       macro def foo
-        Null.new
+        mirah::lang::ast::Null.new
       end
 
       System.out.println(foo())
@@ -46,8 +56,6 @@ class TestMacros < Test::Unit::TestCase
   
   def test_quote
     cls, = compile(<<-EOF)
-      import mirah.lang.ast.Node
-      import mirah.lang.ast.Null
       macro def foo
         quote { nil }
       end
@@ -59,9 +67,9 @@ class TestMacros < Test::Unit::TestCase
     assert(!cls.respond_to?(:foo))
   end  
   
-  def test_defmacro
+  def test_macro_def
     cls, = compile(<<-EOF)
-      defmacro bar(x) do
+      macro def bar(x)
         x
       end
       

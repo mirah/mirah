@@ -65,7 +65,7 @@ module Mirah
           end
         rescue NameError => ex
           # TODO return nil instead of raising an exception if the method doesn't exist.
-          raise ex unless ex.message =~ /#{mapped_type.name}\.#{name.sub('[]', '\[\]')}|No constructor #{mapped_type.name}/
+          raise ex unless ex.message =~ /#{Regexp.quote(mapped_type.name)}\.#{Regexp.quote(name)}|No constructor #{Regexp.quote(mapped_type.name)}/
         end
         
         macro = mapped_type.unmeta.macro(name, macro_params)

@@ -15,6 +15,20 @@
 
 module Mirah
   module Util
+    java_import 'java.util.logging.Formatter'
+    java_import 'java.util.logging.ConsoleHandler'
+    class LogFormatter < Formatter
+      def format(record)
+        sb = java.lang.StringBuilder.new
+        sb.append(record.level)
+        sb.append(' ')
+        sb.append(record.logger_name.sub(/^org.mirah./, ''))
+        sb.append(': ')
+        sb.append(formatMessage(record))
+        sb.append("\n")
+        sb.toString
+      end
+    end
     class ArgumentProcessor
       def initialize(state, args)
         @state = state
@@ -70,6 +84,23 @@ module Mirah
             Mirah::JVM::Compiler::JVMBytecode.verbose = true
             state.verbose = true
             args.shift
+          when '--vmodule'
+            args.shift
+            spec = args.shift
+            handler = java.util.logging.ConsoleHandler.new
+            handler.setLevel(java.util.logging.Level::ALL)
+            puts "handler.level = #{handler.level}"
+            handler.setFormatter(LogFormatter.new)
+            spec.split(',').each do |item|
+              logger, level = item.split("=")
+              logger = java.util.logging.Logger.getLogger(logger)
+              (state.loggers ||= []) << logger
+              level = java.util.logging.Level.parse(level)
+              logger.setLevel(level)
+              logger.addHandler(handler)
+              logger.use_parent_handlers = false
+              
+            end
           when '--version', '-v'
             args.shift
             print_version
@@ -102,7 +133,8 @@ module Mirah
         \t\t\t  version (1.4, 1.5, 1.6, 1.7)
         -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running
         -v, --version\t\tPrint the version of Mirah to the console
-        -V, --verbose\t\tVerbose logging"
+        -V, --verbose\t\tVerbose logging
+        --vmodule logger.name=LEVEL[,...]\t\tSet the Level for the specified Java loggers"
         state.help_printed = true
       end
 

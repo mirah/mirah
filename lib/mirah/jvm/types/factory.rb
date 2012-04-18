@@ -110,6 +110,8 @@ module Mirah::JVM::Types
       else
         future = BaseTypeFuture.new(nil)
         type.on_update {|_, resolved| future.resolved(resolved.meta)}
+        future.position_set(type.position)
+        future.error_message_set(type.error_message)
         future
       end
     end
@@ -147,7 +149,10 @@ module Mirah::JVM::Types
           types << nil
         end
 
-        PickFirst.new(types, nil)
+        future = PickFirst.new(types, nil)
+        future.position_set(typeref.position)
+        future.error_message_set("Cannot find class #{typeref.name}")
+        future
       end
       if typeref.isArray
         getArrayType(basic_type)

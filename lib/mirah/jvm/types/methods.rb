@@ -91,6 +91,7 @@ module Mirah::JVM::Types
       @class = klass
       @name = name
       @argument_types = args
+      raise ArgumentError unless args.all?
       @return_type = InlineCode.new(&block)
     end
 

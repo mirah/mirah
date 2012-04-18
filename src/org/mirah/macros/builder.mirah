@@ -92,9 +92,9 @@ class MacroBuilder; implements Compiler
     registerLoadedMacro(macroDef, klass)
   end
   
-  def serializeAst(node:Node, call:Call):Object
-    result = Object[5]
-    result[0] = node.position.source.name
+  def serializeAst(node:Node):Object
+    result = Object[6]
+    result[0] = SimpleString.new(node.position.source.name)
     result[1] = Fixnum.new(node.position.startLine)
     result[2] = Fixnum.new(node.position.startColumn)
     result[3] = splitString(node.position.source.substring(node.position.startChar,
@@ -102,6 +102,7 @@ class MacroBuilder; implements Compiler
     collector = ValueGetter.new
     collector.scan(node)
     result[4] = collector.values
+    result[5] = FieldAccess.new(SimpleString.new('call'))
     Arrays.asList(result)
   end
   
@@ -112,7 +113,7 @@ class MacroBuilder; implements Compiler
     script
   end
   
-  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List, scope:Scope):Node
+  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List, scopeNode:Node):Node
     parser = MirahParser.new
     script = Script(parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
     # TODO(ribrdb) scope
@@ -125,9 +126,9 @@ class MacroBuilder; implements Compiler
   end
 
   # If the string is too long split it into multiple string constants.
-  def splitString(string:String):Object
+  def splitString(string:String):Node
     if string.length < 65535
-      Object(string)
+      Node(SimpleString.new(string))
     else
       result = StringConcat.new
       while string.length >= 65535

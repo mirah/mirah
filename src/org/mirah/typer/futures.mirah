@@ -1,5 +1,7 @@
 package org.mirah.typer
 import java.util.*
+import java.util.logging.Logger
+import java.util.logging.Level
 import mirah.lang.ast.*
 
 interface TypeListener do
@@ -287,21 +289,29 @@ class PickFirst < BaseTypeFuture
 end
 
 class CallFuture < BaseTypeFuture
+  def self.initialize:void
+    @@log = Logger.getLogger(CallFuture.class.getName)
+  end
+  
+  def self.log
+    @@log
+  end
+  
   def initialize(types:TypeSystem, target:TypeFuture, paramTypes:List, call:CallSite)
-    initialize(types, target, call.name.identifier, paramTypes, call.parameters, call.position)
+    initialize(types, target, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
   end
   
   def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
-    initialize(types, target, name, paramTypes, call.parameters, call.position)
+    initialize(types, target, name, paramTypes, CallFuture.getNodes(call), call.position)
   end
   
-  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, params:NodeList, position:Position)
+  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
     @types = types
     @target = target
     @name = name
     @paramTypes = paramTypes
-    @params = params
+    @params = paramNodes
     @resolved_target = ResolvedType(nil)
     @resolved_args = ArrayList.new(paramTypes.size)
     paramTypes.size.times do |i|
@@ -316,7 +326,14 @@ class CallFuture < BaseTypeFuture
     setupListeners
   end
 
-  def parameterNodes:NodeList
+  def self.getNodes(call:CallSite):List
+    l = LinkedList.new
+    call.parameters.each {|p| l.add(p)} if call.parameters
+    l.add(call.block) if call.block
+    l
+  end
+
+  def parameterNodes:List
     @params
   end
 
@@ -336,31 +353,54 @@ class CallFuture < BaseTypeFuture
     @resolved_args
   end
 
+  def dt(type:TypeFuture)
+    "#{type} (#{type.isResolved ? type.resolve.toString : 'unresolved'})"
+  end
+
+  def log(level:Level, message:String, arg1:Object, arg2:Object):void
+    args = Object[2]
+    args[0] = arg1
+    args[1] = arg2
+    @@log.log(level, message, args)
+  end
+
   def setupListeners
     call = self
+    @@log.finer("Adding target listener for #{dt(@target)}")
     @target.onUpdate do |t, type|
       call.resolved_target = type
       call.maybeUpdate
     end
-    @paramTypes.each do |_arg|
-      next if _arg.kind_of?(BlockFuture)
-      arg = TypeFuture(_arg)
-      arg.onUpdate do |a, type|
-        call.resolveArg(a, type)
-      end
+    @paramTypes.size.times do |i|
+      arg = TypeFuture(@paramTypes.get(i))
+      next if arg.kind_of?(BlockFuture)
+      addParamListener(i, arg)
     end
   end
 
-  def resolveArg(arg:TypeFuture, type:ResolvedType):void
+  def addParamListener(i:int, arg:TypeFuture):void
+    index = i
+    @@log.finer("Adding param listener #{i} for #{dt(arg)}")
+    call = self
+    arg.onUpdate do |a, type|
+      call.resolveArg(index, a, type)
+    end
+  end
+
+  def resolveArg(i:int, arg:TypeFuture, type:ResolvedType):void
     if type.kind_of?(InlineCode)
+      @@log.finest("Skipped resolving InlineCode arg")
       return
     end
-    i = @paramTypes.indexOf(arg)
     @resolved_args.set(i, type)
+    @@log.finer("resolved arg #{i} #{dt(arg)}")
     maybeUpdate
   end
 
-  def resolveBlocks(type:MethodType, error:ResolvedType)
+  def resolveBlocks(type:MethodType, error:ResolvedType):void
+    if type && type.returnType.kind_of?(InlineCode)
+      return
+    end
     @paramTypes.size.times do |i|
       param = @paramTypes.get(i)
       if param.kind_of?(BlockFuture)
@@ -371,6 +411,7 @@ class CallFuture < BaseTypeFuture
   end
 
   def maybeUpdate:void
+    log(Level.FINER, "maybeUpdate(target={0}, args={1})", @resolved_target, @resolved_args)
     if @resolved_target
       if @resolved_target.isError
         @method = TypeFuture(nil)
