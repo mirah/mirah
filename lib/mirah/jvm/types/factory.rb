@@ -32,6 +32,7 @@ module Mirah::JVM::Types
     java_import 'mirah.lang.ast.Script'
     java_import 'mirah.lang.ast.SimpleString'
     include TypeSystem
+    include Mirah::Logging::Logged
 
     attr_accessor :package
     attr_reader :known_types
@@ -226,14 +227,12 @@ module Mirah::JVM::Types
       type = _find_method_type(target, name, args, nil, nil)
       type.onUpdate do |m, resolved|
         resolved = resolved.returnType if resolved.respond_to?(:returnType)
-        if Mirah::Typer.verbose
-          Mirah::Typer.log "Learned %s method %s.%s(%s) = %s" % 
-              [target.meta? ? "static" : "instance",
+        log "Learned {0} method {1}.{2}({3}) = {4}", [
+                target.meta? ? "static" : "instance",
                 target.full_name,
                 name,
                 args.map{|a| a.full_name}.join(', '),
                 resolved.full_name]
-        end
         rewritten_name = name.sub(/=$/, '_set')
         if target.meta?
           target.unmeta.declare_static_method(rewritten_name, args, resolved, [])

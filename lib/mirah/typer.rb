@@ -19,14 +19,6 @@ module Mirah
   module Typer
     java_import 'org.mirah.typer.Typer'
 
-    class << self
-      attr_accessor :verbose
-
-      def log(message)
-        puts "* [#{name}] #{message}" if Mirah::Typer.verbose
-      end
-    end
-
     InferenceError = Mirah::InferenceError
   end
 end

@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 require 'mirah/util/process_errors'
+require 'mirah/util/logging'
 
 module Mirah
   class Generator
     include Mirah::Util::ProcessErrors
+    include Mirah::Logging::Logged
     java_import 'org.mirah.typer.simple.SimpleScoper'
     java_import 'org.mirah.typer.simple.TypePrinter'
     java_import 'org.mirah.macros.JvmBackend'
@@ -62,10 +64,10 @@ module Mirah
         end
         process_inference_errors(@typer, nodes, &error_handler)
       rescue NativeException => ex
-        ex.cause.printStackTrace if verbose
+        log("Caught exception during type inference", ex)
         raise ex
       ensure
-        if verbose
+        if self.logging?
           printer = TypePrinter.new(@typer)
           nodes.each {|ast| printer.scan(ast, nil)}
         end
@@ -74,7 +76,7 @@ module Mirah
     end
   
     def compileAndLoadExtension(ast)
-      if verbose
+      if self.logging?
         printer = TypePrinter.new(@typer)
         printer.scan(ast, nil)
       end
@@ -97,8 +99,7 @@ module Mirah
     end
   
     def logExtensionAst(ast)
-      return unless verbose
-      puts parser.format_ast(ast)
+      log("Extension ast:\n#{parser.format_ast(ast)}")
     end
   end
 end

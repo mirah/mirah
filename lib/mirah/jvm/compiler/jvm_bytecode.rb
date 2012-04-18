@@ -5,6 +5,7 @@ module Mirah
         java_import java.lang.System
         java_import java.io.PrintStream
         include Mirah::JVM::MethodLookup
+        include Mirah::Logging::Logged
         Types = Mirah::JVM::Types
         java_import 'mirah.lang.ast.Node'
         java_import 'mirah.lang.ast.Array'
@@ -33,18 +34,10 @@ module Mirah
         class << self
           attr_accessor :verbose
 
-          def log(message)
-            puts "* [#{name}] #{message}" if JVMBytecode.verbose
-          end
-
           def classname_from_filename(filename)
             basename = File.basename(filename).sub(/\.(duby|mirah)$/, '')
             basename.split(/[_-]/).map{|x| x[0...1].upcase + x[1..-1]}.join
           end
-        end
-
-        module JVMLogger
-          def log(message); JVMBytecode.log(message); end
         end
 
         def initialize(scoper, typer)

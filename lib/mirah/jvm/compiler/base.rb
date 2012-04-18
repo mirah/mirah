@@ -19,8 +19,10 @@ module Mirah
       java_import 'mirah.lang.ast.ClassDefinition'
       java_import 'mirah.lang.ast.StaticMethodDefinition'
       java_import 'mirah.lang.ast.SimpleNodeVisitor'
+      
       class Base < SimpleNodeVisitor
         attr_accessor :filename, :method, :static, :class
+        include Mirah::Logging::Logged
 
         class CompilationError < Mirah::NodeError
         end
@@ -71,8 +73,6 @@ module Mirah
         def error(message, node)
           raise CompilationError.new(message, node)
         end
-
-        def log(message); Mirah::JVM::Compiler::JVMBytecode.log(message); end
 
         def toplevel_class
           @class = @type.define(@file)

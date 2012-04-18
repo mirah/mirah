@@ -13,22 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'mirah/util/logging'
+
 module Mirah
   module Util
-    java_import 'java.util.logging.Formatter'
-    java_import 'java.util.logging.ConsoleHandler'
-    class LogFormatter < Formatter
-      def format(record)
-        sb = java.lang.StringBuilder.new
-        sb.append(record.level)
-        sb.append(' ')
-        sb.append(record.logger_name.sub(/^org.mirah./, ''))
-        sb.append(': ')
-        sb.append(formatMessage(record))
-        sb.append("\n")
-        sb.toString
-      end
-    end
+
     class ArgumentProcessor
       def initialize(state, args)
         @state = state
@@ -79,28 +68,22 @@ module Mirah
             plugin = args.shift
             require "mirah/plugin/#{plugin}"
           when '--verbose', '-V'
-            Mirah::Typer.verbose = true
-            Mirah::AST.verbose = true
-            Mirah::JVM::Compiler::JVMBytecode.verbose = true
+            Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::ALL
             state.verbose = true
             args.shift
           when '--vmodule'
             args.shift
             spec = args.shift
-            handler = java.util.logging.ConsoleHandler.new
-            handler.setLevel(java.util.logging.Level::ALL)
-            puts "handler.level = #{handler.level}"
-            handler.setFormatter(LogFormatter.new)
             spec.split(',').each do |item|
               logger, level = item.split("=")
               logger = java.util.logging.Logger.getLogger(logger)
               (state.loggers ||= []) << logger
               level = java.util.logging.Level.parse(level)
               logger.setLevel(level)
-              logger.addHandler(handler)
-              logger.use_parent_handlers = false
-              
             end
+          when '--no-color'
+            args.shift
+            Mirah::Logging::MirahHandler.formatter = Mirah::Logging::LogFormatter.new(false)
           when '--version', '-v'
             args.shift
             print_version

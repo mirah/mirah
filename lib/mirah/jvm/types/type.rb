@@ -13,14 +13,12 @@ module Mirah
         end
 
         include Mirah::JVM::MethodLookup
+        include Mirah::Logging::Logged
+        
         include ResolvedType
 
         attr_reader :name, :type_system
         attr_writer :inner_class
-
-        def log(message)
-          puts "* [JVM::Types] #{message}" if Mirah::JVM::Compiler::JVMBytecode.verbose
-        end
 
         def initialize(type_system, mirror_or_name)
           @type_system = type_system
