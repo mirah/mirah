@@ -37,7 +37,10 @@ interface Node < Cloneable do
   def setParent(parent:Node):void; end  # This should only be called by NodeImpl!
   def originalNode:Node; end
   def setOriginalNode(node:Node):void; end  # Probably don't want to call this either.
-  def replaceChild(child:Node, newChild:Node):void; end
+
+  # Returns the new child, which may be a clone.
+  def replaceChild(child:Node, newChild:Node):Node; end
+
   def removeChild(child:Node):void; end
   def accept(visitor:NodeVisitor, arg:Object):Object; end
   def whenCloned(listener:CloneListener):void; end
@@ -166,7 +169,10 @@ class NodeImpl
   end
 
   def clone:Object
-    Node(super).setParent(nil)
+    cloned = NodeImpl(super)
+    cloned.setParent(nil)
+    cloned.clone_listeners = LinkedList.new(@clone_listeners)
+    cloned
   end
 
   def setParent(parent:Node)
@@ -213,10 +219,10 @@ class NodeImpl
     @clone_listeners = LinkedList.new
     self.position = position
   end
-
+  
   def childAdded(child:Node):Node
     return child if child.nil?
-    if child.parent
+    if child.parent && child.parent != self
       child = Node(child.clone)
     end
     child.setParent(self)
@@ -233,6 +239,11 @@ class NodeImpl
     @clone_listeners.each do |listener|
       CloneListener(listener).wasCloned(self, clone)
     end
+  end
+  
+  private
+  def clone_listeners=(listeners:LinkedList)
+    @clone_listeners = listeners
   end
 end
 

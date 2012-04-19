@@ -707,4 +707,39 @@ EOF
      assert_parse("[Script, [[MacroDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [[Fixnum, 2]], [AnnotationList]]]]",
                   "macro def foo(a); 2; end")
    end
+   
+   def test_clone_arguments
+     ast1 = parse("def foo(bar); end")
+     ast2 = parse("def baz; end")
+     method1 = ast1.body(0)
+     method2 = ast2.body(0)
+     assert_equal(1, method1.arguments.required_size)
+     assert_equal(0, method2.arguments.required_size)
+
+     method2.arguments_set(method1.arguments.clone)
+     assert_equal(1, method1.arguments.required_size)
+     assert_equal(1, method2.arguments.required_size)
+
+     method2.arguments.required.remove(0)
+     assert_equal(1, method1.arguments.required_size)
+     assert_equal(0, method2.arguments.required_size)
+   end
+   
+   def test_replaceChild
+     ast1 = parse("`foo`")
+     ast2 = parse("bar")
+     unquote = ast1.body(0)
+     call = ast2.body(0)
+     assert_equal ast1.body, unquote.parent
+     assert_equal ast2.body, call.parent
+     
+     new_call = ast1.body.replaceChild(unquote, call)
+     
+     assert_equal new_call, ast1.body(0)
+     assert_nil unquote.parent
+     assert_not_equal new_call, call
+     assert_equal new_call.toString, call.toString
+     assert_equal ast1.body, new_call.parent
+     assert_equal ast2.body, call.parent
+   end
 end

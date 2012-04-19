@@ -303,10 +303,15 @@ class ListNodeState < BaseNodeState
         node
       end
 
-      def replaceChild(oldChild:Node, newChild:Node):void
+      def replaceChild(oldChild:Node, newChild:Node):Node
+        if oldChild == newChild
+          return newChild
+        end
         i = @children.indexOf(oldChild)
-        set(i, `mirah.cast(type_name, 'newChild')`)
-        newChild.setOriginalNode(oldChild)
+        clone = childAdded(newChild)
+        set(i, `mirah.cast(type_name, 'clone')`)
+        clone.setOriginalNode(oldChild)
+        clone
       end
 
       def removeChild(child:Node):void
@@ -316,6 +321,7 @@ class ListNodeState < BaseNodeState
       def clone:Object
         _clone = super
         node = `mirah.cast(name, '_clone')`
+        @children = java::util::ArrayList.new(@children)
         it = node.listIterator
         while it.hasNext
           child = it.next
@@ -441,12 +447,14 @@ class NodeState < BaseNodeState
       def initialize(`@children`)
         `@constructor`
       end
-      def replaceChild(oldChild:Node, newChild:Node)
+      def replaceChild(oldChild:Node, newChild:Node):Node
         if oldChild == newChild
-          return
+          return newChild
         end
+        clone = childAdded(newChild)
         `@replaceBody`
         raise IllegalArgumentException, "No child #{oldChild}"
+        return Node(null)
       end
       def removeChild(child:Node)
         `@removeBody`
@@ -494,9 +502,9 @@ class NodeState < BaseNodeState
     @children.add([name, type])
     @replaceBody << mirah.quote do
       if self.`name` == oldChild
-        self.`setter`(`mirah.cast(type, 'newChild')`)
-        newChild.setOriginalNode(oldChild)
-        return
+        self.`setter`(`mirah.cast(type, 'clone')`)
+        clone.setOriginalNode(oldChild)
+        return clone
       end
     end
     @removeBody << mirah.quote do
