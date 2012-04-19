@@ -31,6 +31,7 @@ module Mirah
       attr_accessor :compiler_class
       attr_accessor :args
       attr_accessor :command
+      attr_accessor :loggers
 
       def set_jvm_version(ver_str)
         case ver_str

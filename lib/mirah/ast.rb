@@ -23,10 +23,12 @@ module Mirah
       attr_accessor :verbose
     end
 
+    java_import 'mirah.lang.ast.Array'
+    java_import 'mirah.lang.ast.Annotation'
     java_import 'mirah.lang.ast.Constant'
     java_import 'mirah.lang.ast.EmptyArray'
-    java_import 'mirah.lang.ast.EmptyArray'
     java_import 'mirah.lang.ast.Fixnum'
+    java_import 'mirah.lang.ast.HashEntry'
     java_import 'mirah.lang.ast.LocalAccess'
     java_import 'mirah.lang.ast.Node'
     java_import 'mirah.lang.ast.NodeList'
@@ -35,6 +37,7 @@ module Mirah
     java_import 'mirah.lang.ast.SimpleString'
     java_import 'mirah.lang.ast.TypeName'
     java_import 'mirah.lang.ast.TypeRef'
+
 
   end
 end

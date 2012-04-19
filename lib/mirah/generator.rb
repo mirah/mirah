@@ -13,10 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 require 'mirah/util/process_errors'
+require 'mirah/util/logging'
 
 module Mirah
   class Generator
     include Mirah::Util::ProcessErrors
+    include Mirah::Logging::Logged
     java_import 'org.mirah.typer.simple.SimpleScoper'
     java_import 'org.mirah.typer.simple.TypePrinter'
     java_import 'org.mirah.macros.JvmBackend'
@@ -29,6 +31,7 @@ module Mirah
       @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
       @jvm_compiler = Mirah::Compiler::ASTCompiler.new(Mirah::JVM::Compiler::JVMBytecode, logging)
+      type_system.maybe_initialize_builtins(@typer.macro_compiler)
       @logging = logging
       @verbose = verbose
     end
@@ -62,29 +65,35 @@ module Mirah
         end
         process_inference_errors(@typer, nodes, &error_handler)
       rescue NativeException => ex
-        ex.cause.printStackTrace if verbose
+        log("Caught exception during type inference", ex.cause)
         raise ex
       ensure
-        if verbose
-          printer = TypePrinter.new(@typer)
-          nodes.each {|ast| printer.scan(ast, nil)}
-        end
+        log_types(nodes)
       end
       [@scoper, @typer]
     end
   
-    def compileAndLoadExtension(ast)
-      if verbose
-        printer = TypePrinter.new(@typer)
-        printer.scan(ast, nil)
+    def log_types(nodes)
+      if self.logging?
+        buf = java.io.ByteArrayOutputStream.new
+        ps = java.io.PrintStream.new(buf)
+        printer = TypePrinter.new(@typer, ps)
+        nodes.each {|ast| printer.scan(ast, nil)}
+        ps.close()
+        log("Inferred types:\n{0}", java.lang.String.new(buf.toByteArray))
       end
+      
+    end
+  
+    def compileAndLoadExtension(ast)
+      log_types([ast])
       process_inference_errors(@typer, [ast])
       results = @jvm_compiler.compile_asts([ast], @scoper, @typer)
       class_map = {}
       first_class_name = nil
       results.each do |result|
         classname = result.classname.gsub(/\//, '.')
-        first_class_name ||= classname
+        first_class_name ||= classname if classname.include?('$Extension')
         class_map[classname] = Mirah::Util::ClassLoader.binary_string result.bytes
         if @state.save_extensions
           filename = "#{@state.destination}#{result.filename}"
@@ -97,8 +106,7 @@ module Mirah
     end
   
     def logExtensionAst(ast)
-      return unless verbose
-      puts parser.format_ast(ast)
+      log("Extension ast:\n#{parser.format_ast(ast)}")
     end
   end
 end

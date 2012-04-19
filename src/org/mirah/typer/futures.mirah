@@ -1,5 +1,7 @@
 package org.mirah.typer
 import java.util.*
+import java.util.logging.Logger
+import java.util.logging.Level
 import mirah.lang.ast.*
 
 interface TypeListener do
@@ -24,7 +26,7 @@ end
 interface TypeFuture do
   def isResolved:boolean; end
   def resolve:ResolvedType; end
-  def onUpdate(listener:TypeListener):void; end
+  def onUpdate(listener:TypeListener):TypeListener; end
   def removeListener(listener:TypeListener):void; end
 end
 
@@ -34,8 +36,11 @@ class SimpleFuture; implements TypeFuture
   end
   def isResolved() true end
   def resolve() @type end
-  def onUpdate(listener) listener.updated(self, @type) end
-    def removeListener(listener); end
+  def onUpdate(listener)
+    listener.updated(self, @type)
+    listener
+  end
+  def removeListener(listener); end
 end
 
 class BaseTypeFuture; implements TypeFuture
@@ -75,9 +80,10 @@ class BaseTypeFuture; implements TypeFuture
     @position = pos
   end
 
-  def onUpdate(listener:TypeListener):void
+  def onUpdate(listener:TypeListener):TypeListener
     @listeners.add(listener)
     listener.updated(self, inferredType) if isResolved
+    listener
   end
 
   def removeListener(listener:TypeListener):void
@@ -98,6 +104,39 @@ class BaseTypeFuture; implements TypeFuture
         TypeListener(l).updated(self, type)
       end
     end
+  end
+end
+
+class DelegateFuture < BaseTypeFuture
+  def isResolved()
+    @type && @type.isResolved
+  end
+  def resolve()
+    if @type
+      @type.resolve
+    else
+      super
+    end
+  end
+  def type
+    @type
+  end
+  def type=(type:TypeFuture):void
+    if @type
+      if @type == type
+        return
+      else
+        @type.removeListener(@listener)
+      end
+    end
+    @type = type
+    delegate = self
+    @listener = type.onUpdate do |t, resolved|
+      if t == delegate.type
+        delegate.resolved(resolved)
+      end
+    end
+    resolved(nil) unless type.isResolved
   end
 end
 
@@ -260,7 +299,7 @@ class PickFirst < BaseTypeFuture
     me = self
     i = index
     type.onUpdate do |x, resolved|
-      if (me.picked == -1 && resolved.name != ':error') ||
+      if (me.picked == -1 && !resolved.isError) ||
           me.picked >= i
         me.pick(i, type, value, resolved)
       end
@@ -269,21 +308,30 @@ class PickFirst < BaseTypeFuture
 end
 
 class CallFuture < BaseTypeFuture
+  def self.initialize:void
+    @@log = Logger.getLogger(CallFuture.class.getName)
+  end
+  
+  def self.log
+    @@log
+  end
+  
   def initialize(types:TypeSystem, target:TypeFuture, paramTypes:List, call:CallSite)
-    initialize(types, target, call.name.identifier, paramTypes, call.parameters, call.position)
+    initialize(types, target, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
   end
   
   def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
-    initialize(types, target, name, paramTypes, call.parameters, call.position)
+    initialize(types, target, name, paramTypes, CallFuture.getNodes(call), call.position)
   end
   
-  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, params:NodeList, position:Position)
+  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
+    raise IllegalArgumentException, "No target for #{name}" unless target
     @types = types
     @target = target
     @name = name
     @paramTypes = paramTypes
-    @params = params
+    @params = paramNodes
     @resolved_target = ResolvedType(nil)
     @resolved_args = ArrayList.new(paramTypes.size)
     paramTypes.size.times do |i|
@@ -298,7 +346,14 @@ class CallFuture < BaseTypeFuture
     setupListeners
   end
 
-  def parameterNodes:NodeList
+  def self.getNodes(call:CallSite):List
+    l = LinkedList.new
+    call.parameters.each {|p| l.add(p)} if call.parameters
+    l.add(call.block) if call.block
+    l
+  end
+
+  def parameterNodes:List
     @params
   end
 
@@ -318,32 +373,54 @@ class CallFuture < BaseTypeFuture
     @resolved_args
   end
 
+  def dt(type:TypeFuture)
+    "#{type} (#{(type &&type.isResolved) ? type.resolve.toString : 'unresolved'})"
+  end
+
+  def log(level:Level, message:String, arg1:Object, arg2:Object):void
+    args = Object[2]
+    args[0] = arg1
+    args[1] = arg2
+    @@log.log(level, message, args)
+  end
+
   def setupListeners
     call = self
+    @@log.finer("Adding target listener for #{dt(@target)}")
     @target.onUpdate do |t, type|
       call.resolved_target = type
       call.maybeUpdate
     end
-    @paramTypes.each do |_arg|
-      next if _arg.kind_of?(BlockFuture)
-      arg = TypeFuture(_arg)
-      arg.onUpdate do |a, type|
-        call.resolveArg(a, type)
-      end
+    @paramTypes.size.times do |i|
+      arg = TypeFuture(@paramTypes.get(i))
+      next if arg.kind_of?(BlockFuture)
+      addParamListener(i, arg)
     end
   end
 
-  def resolveArg(arg:TypeFuture, type:ResolvedType)
-    if type.isError
-      resolved(type)
-    else
-      i = @paramTypes.indexOf(arg)
-      @resolved_args.set(i, type)
-      maybeUpdate
+  def addParamListener(i:int, arg:TypeFuture):void
+    index = i
+    @@log.finer("Adding param listener #{i} for #{dt(arg)}")
+    call = self
+    arg.onUpdate do |a, type|
+      call.resolveArg(index, a, type)
     end
   end
 
-  def resolveBlocks(type:MethodType, error:ResolvedType)
+  def resolveArg(i:int, arg:TypeFuture, type:ResolvedType):void
+    if type.kind_of?(InlineCode)
+      @@log.finest("Skipped resolving InlineCode arg")
+      return
+    end
+    @resolved_args.set(i, type)
+    @@log.finer("resolved arg #{i} #{dt(arg)}")
+    maybeUpdate
+  end
+
+  def resolveBlocks(type:MethodType, error:ResolvedType):void
+    if type && type.returnType.kind_of?(InlineCode)
+      return
+    end
     @paramTypes.size.times do |i|
       param = @paramTypes.get(i)
       if param.kind_of?(BlockFuture)
@@ -354,6 +431,7 @@ class CallFuture < BaseTypeFuture
   end
 
   def maybeUpdate:void
+    log(Level.FINER, "maybeUpdate(target={0}, args={1})", @resolved_target, @resolved_args)
     if @resolved_target
       if @resolved_target.isError
         @method = TypeFuture(nil)

@@ -16,6 +16,7 @@
 require 'bitescript'
 require 'mirah/ast'
 require 'mirah/jvm/method_lookup'
+require 'mirah/util/logging'
 #require 'mirah/jvm/compiler'
 require 'set'
 module Mirah::JVM

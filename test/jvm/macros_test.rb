@@ -14,14 +14,62 @@
 # limitations under the License.
 
 class TestMacros < Test::Unit::TestCase
-if true
-  def test_macros
-    raise "Macros not implemented"
-  end
-else
-  def test_defmacro
+  def test_vcall_macro
     cls, = compile(<<-EOF)
-      defmacro bar(x) do
+      macro def foo
+        mirah::lang::ast::Null.new
+      end
+
+      System.out.println(foo)
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end
+
+  def test_import
+    cls, = compile(<<-EOF)
+      import mirah.lang.ast.Null
+      macro def foo
+        Null.new
+      end
+
+      System.out.println(foo)
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end
+  
+  def test_fcall_macro
+    cls, = compile(<<-EOF)
+      macro def foo
+        mirah::lang::ast::Null.new
+      end
+
+      System.out.println(foo())
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end
+  
+  def test_quote
+    cls, = compile(<<-EOF)
+      macro def foo
+        quote { nil }
+      end
+
+      System.out.println(foo)
+    EOF
+
+    assert_output("null\n") {cls.main(nil)}
+    assert(!cls.respond_to?(:foo))
+  end  
+  
+  def test_macro_def_with_arg
+    cls, = compile(<<-EOF)
+      macro def bar(x)
         x
       end
       
@@ -68,15 +116,17 @@ else
   def test_unquote
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
 
-    script, cls = compile(<<-'EOF')
+    script, cls = compile(<<-EOF)
+      import mirah.lang.ast.*
+
       class UnquoteMacros
-        macro def make_attr(name_node, type)
-          name = name_node.string_value
+        macro def make_attr(name_node:Identifier, type:TypeName)
+          name = name_node.identifier
           quote do
             def `name`
               @`name`
             end
-            def `"#{name}_set"`(`name`:`type`)
+            def `"#{name}_set"`(`name`: `type`)
               @`name` = `name`
             end
           end
@@ -94,6 +144,8 @@ else
   end
 
   def test_macro_hygene
+    # TODO hygenic macros?
+    return
     cls, = compile(<<-EOF)
       macro def doubleIt(arg)
         quote do
@@ -113,6 +165,28 @@ else
     assert_output("11\n1\n") {cls.foo}
   end
 
+  def test_gensym
+    # TODO hygenic macros?
+    return
+    cls, = compile(<<-EOF)
+      macro def doubleIt(arg)
+        x = gensym
+        quote do
+          `x` = `arg`
+          `x` = `x` + `x`
+          `x`
+        end
+      end
+
+      def foo
+        x = 1
+        System.out.println doubleIt(x)
+        System.out.println x
+      end
+    EOF
+
+    assert_output("2\n1\n") {cls.foo}
+  end
 
   def test_add_args_in_macro
     cls, = compile(<<-EOF)
@@ -162,5 +236,4 @@ else
     end
 
   end
-end
 end

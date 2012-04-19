@@ -37,7 +37,7 @@ module Mirah
             else
               puts ex.message
             end
-            puts ex.backtrace if @verbose
+            error(ex.backtrace.join("\n")) if self.logging?
           end
         end
         throw :exit, 1 unless errors.empty?

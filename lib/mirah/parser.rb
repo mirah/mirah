@@ -14,18 +14,18 @@
 # limitations under the License.
 
 require 'mirah/util/process_errors'
+require 'mirah/util/logging'
 require 'mirah/transform'
 require 'java'
 
 module Mirah
   class Parser
     include Mirah::Util::ProcessErrors
+    include Mirah::Logging::Logged
 
     def initialize(state, typer, logging)
       @transformer = Mirah::Transform::Transformer.new(state, typer)
-      #Java::MirahImpl::Builtin.initialize_builtins(@transformer)
       @logging = logging
-      @verbose = state.verbose
     end
 
     attr_accessor :transformer, :logging
@@ -47,8 +47,8 @@ module Mirah
       end
       raise 'nothing to parse? ' + files_or_scripts.inspect unless nodes.length > 0
       nodes = nodes.compact
-      if @verbose
-        nodes.each {|node| puts format_ast(node)}
+      if self.logging
+        nodes.each {|node| log "Parsed:\n #{format_ast(node)}"}
       end
       nodes
     end
@@ -206,6 +206,8 @@ module Mirah
         if object
           if object.kind_of?(Node)
             scan(object, arg)
+          elsif object.kind_of?(java.util.List) && object.all? {|i| i.kind_of?(Node)}
+            object.each {|o| scan(o, arg)}
           else
             str = if node.object.respond_to?(:toString)
               node.object.toString

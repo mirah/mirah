@@ -13,13 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import org.mirah.macros.anno.*
 import org.mirah.macros.Macro
 import org.mirah.macros.Compiler
-import mirah.lang.ast.Call
+import mirah.lang.ast.CallSite
 import mirah.lang.ast.Node
 
-class `name` implements Macro
-  def initialize(mirah:Compiler, call:Call)
+$MacroDef[name: `name`, arguments:`argdef`]
+class `classname` implements Macro
+  def initialize(mirah:Compiler, call:CallSite)
     @mirah = mirah
     @call = call
   end
@@ -30,5 +32,9 @@ class `name` implements Macro
   
   def expand:Node
     _expand(`casts`)
+  end
+  
+  def gensym:String
+    @mirah.scoper.getScope(@call).temp('gensym')
   end
 end

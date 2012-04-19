@@ -1,5 +1,6 @@
 package org.mirah.typer
 import java.util.*
+import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.macros.JvmBackend
 import org.mirah.macros.MacroBuilder
@@ -31,6 +32,10 @@ import org.mirah.macros.MacroBuilder
 # This typer is type system independent. It relies on a TypeSystem and a Scoper
 # to provide the types for methods, literals, variables, etc.
 class Typer < SimpleNodeVisitor
+  def self.initialize:void
+    @@log = Logger.getLogger(Typer.class.getName)
+  end
+  
   def initialize(types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
@@ -62,6 +67,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def infer(node:Node, expression:boolean=true)
+    @@log.entering("Typer", "infer", "infer(#{node})")
     return nil if node.nil?
     type = @futures[node]
     if type.nil?
@@ -125,18 +131,23 @@ class Typer < SimpleNodeVisitor
     options = [infer(local, true), local, methodType, fcall]
     current_node = Node(call)
     typer = self
-    picker = PickFirst.new(options) do |picked_type, _node|
+    future = DelegateFuture.new
+    picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
+      picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
         node = InlineCode(picked_type).expand(fcall, typer)
-        typer.infer(node, expression != nil)
+        future.type = typer.infer(node, expression != nil)
+      else
+        future.type = typefuture
       end
-      current_node.parent.replaceChild(current_node, node)
+      node = current_node.parent.replaceChild(current_node, node)
+      typer.infer(node, expression != nil)
       current_node = node
     end
-    picker.position = call.position
-    picker.error_message = "Unable to find local or method '#{call.name.identifier}'"
-    picker
+    future.position = call.position
+    future.error_message = "Unable to find local or method '#{call.name.identifier}'"
+    future
   end
 
   def visitFunctionalCall(call, expression)
@@ -145,13 +156,17 @@ class Typer < SimpleNodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
+    delegate = DelegateFuture.new
     methodType = CallFuture.new(@types, selfType, parameters, call)
+    delegate.type = methodType
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         node = InlineCode(resolvedType).expand(call, typer)
-        call.parent.replaceChild(call, node)
-        typer.infer(node, expression != nil)
+        node = call.parent.replaceChild(call, node)
+        delegate.type = typer.infer(node, expression != nil)
+      else
+        delegate.type = methodType
       end
     end
     if call.parameters.size == 1
@@ -161,9 +176,9 @@ class Typer < SimpleNodeVisitor
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
       @scopes.copyScopeFrom(call, cast)
       castType = infer(cast, true)
-      TypeFuture(MaybeInline.new(call, methodType, cast, castType))
+      TypeFuture(MaybeInline.new(call, delegate, cast, castType))
     else
-      methodType
+      delegate
     end
   end
 
@@ -182,7 +197,7 @@ class Typer < SimpleNodeVisitor
       call.parameters.add(assignment.value)
       newNode = Node(call)
     end
-    assignment.parent.replaceChild(assignment, newNode)
+    newNode = assignment.parent.replaceChild(assignment, newNode)
     infer(newNode)
   end
 
@@ -192,12 +207,16 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     methodType = CallFuture.new(@types, target, parameters, call)
+    delegate = DelegateFuture.new
+    delegate.type = methodType
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         node = InlineCode(resolvedType).expand(call, typer)
-        call.parent.replaceChild(call, node)
-        typer.infer(node, expression != nil)
+        node = call.parent.replaceChild(call, node)
+        delegate.type = typer.infer(node, expression != nil)
+      else
+        delegate.type = methodType
       end
     end
     if  call.parameters.size == 1
@@ -224,12 +243,12 @@ class Typer < SimpleNodeVisitor
           newType = infer(cast, expression != nil)
         end
         infer(newNode)
-        TypeFuture(MaybeInline.new(call, methodType, newNode, newType))
+        TypeFuture(MaybeInline.new(call, delegate, newNode, newType))
       else
-        methodType
+        delegate
       end
     else
-      methodType
+      delegate
     end
   end
 
@@ -257,7 +276,7 @@ class Typer < SimpleNodeVisitor
     target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(node.parameters)
     parameters.add(infer(node.block, true)) if node.block
-    CallFuture.new(@types, target, method.name.identifier, parameters, node.parameters, node.position)
+    CallFuture.new(@types, target, method.name.identifier, parameters, nil, node.position)
   end
 
   def visitZSuper(node, expression)
@@ -402,7 +421,7 @@ class Typer < SimpleNodeVisitor
       targetNode = Node(Node(old_args.get(0)).clone)
       params = ArrayList.new
       1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
-      call = Call.new(targetNode, SimpleString.new(node.position, 'new'), params, nil)
+      call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
       @scopes.copyScopeFrom(node, call)
       exceptions.add(infer(call))
       exceptions.add(call)
@@ -648,6 +667,8 @@ class Typer < SimpleNodeVisitor
       scope.package = node.name.identifier
       infer(node.body, false)
     else
+      # TODO this makes things complicated. Probably package should be a property of
+      # Script, and Package nodes should require a body.
       scope = @scopes.getScope(node)
       scope.package = node.name.identifier
     end
@@ -660,14 +681,16 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitUnquote(node, expression)
+    # Convert the unquote into a NodeList and replace it with the NodeList.
+    # TODO(ribrdb) do these need to be cloned?
     nodes = node.nodes
-    if nodes.size == 0
-      @types.getImplicitNilType
+    replacement = if nodes.size == 1
+      Node(nodes.get(0))
     else
-      type = nil
-      nodes.each {|n| type = infer(n, expression != nil)}
-      type
+      NodeList.new(node.position, nodes)
     end
+    replacement = node.parent.replaceChild(node, replacement)
+    infer(replacement, expression != nil)
   end
 
   def visitUnquoteAssign(node, expression)
@@ -679,7 +702,7 @@ class Typer < SimpleNodeVisitor
     else
       replacement = LocalAssignment.new(node.position, node.name, node.value)
     end
-    node.parent.replaceChild(node, replacement)
+    replacement = node.parent.replaceChild(node, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -789,6 +812,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitMethodDefinition(mdef, expression)
+    @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
     scope = @scopes.addScope(mdef)
     outer_scope = @scopes.getScope(mdef)
@@ -851,6 +875,7 @@ class Typer < SimpleNodeVisitor
           parent.block = nil
           parent.parameters.add(new_node)
         else
+          new_node.setParent(nil)
           parent.replaceChild(block, new_node)
         end
         typer.infer(new_node)

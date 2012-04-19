@@ -30,7 +30,7 @@ end
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :gem => 'jar:bootstrap'
-task :bootstrap => 'javalib/mirah-bootstrap.jar'
+task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar']
 task :default => :'test:jvm:bytecode'
 def run_tests tests
   results = tests.map do |name|
@@ -190,20 +190,22 @@ end
 
 file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
                                        'src/org/mirah/MirahClassLoader.java'] + 
-                                      Dir['src/org/mirah/{macros,typer}/*.mirah'] +
+                                      Dir['src/org/mirah/{macros,typer}/*.mirah*'] +
                                       Dir['src/org/mirah/macros/anno/*.java'] do
   rm_rf 'build/bootstrap'
   mkdir_p 'build/bootstrap'
 
   # Compile annotations and class loader
   ant.javac :destdir => 'build/bootstrap', :srcdir => 'src',
-    :includes => 'org/mirah/**.java',
-    :includeantruntime => false
+    :includeantruntime => false, :debug => true, :listfiles => true
 
   # Compile the Typer and Macro compiler
   bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/typer',
-                    :classpath => 'javalib/mirah-parser.jar',
-                    :dest => 'build/bootstrap')
+                    :classpath => ['javalib/mirah-parser.jar', 'build/bootstrap'],
+                    :dest => 'build/bootstrap'
+#                    :options => ['-V']
+                    )
+  add_quote_macro                    
   cp Dir['src/org/mirah/macros/*.tpl'], 'build/bootstrap/org/mirah/macros'
 
   # Build the jar                    
@@ -213,7 +215,55 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
 
   rm_rf 'build/bootstrap'
 end
-                                        
+
+file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/org/mirah/builtins/*.mirah'] do
+  rm_f 'javalib/mirah-builtins.jar'
+  rm_rf 'build/builtins'
+  mkdir_p 'build/builtins'
+  sh *%w(jruby -Ilib bin/mirahc --dest build/builtins src/org/mirah/builtins)
+  ant.jar :jarfile => 'javalib/mirah-builtins.jar' do
+    fileset :dir => 'build/builtins'
+  end
+  rm_rf 'build/builtins'
+end
+
+require 'bitescript'
+class Annotater < BiteScript::ASM::ClassWriter
+  def initialize(filename, &block)
+    cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
+    super(cr, 0)
+    @block = block
+    cr.accept(self, 0)
+    f = java.io.FileOutputStream.new(filename)
+    f.write(toByteArray)
+    f.close
+  end
+  def visitSource(*args); end
+  def visit(*args)
+    super
+    @block.call(self)
+  end
+end
+
+def add_quote_macro
+  Annotater.new('build/bootstrap/org/mirah/macros/QuoteMacro.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', false)
+    av.visit("name", "quote")
+    args = av.visitAnnotation('arguments', 'Lorg/mirah/macros/anno/MacroArgs;')
+    req = args.visitArray('required')
+    req.visit(nil, 'mirah.lang.ast.Block')
+    req.visitEnd
+    args.visitEnd
+    av.visitEnd
+  end
+  Annotater.new('build/bootstrap/org/mirah/macros/Macro.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/Extensions;', false)
+    macros = av.visitArray('macros')
+    macros.visit(nil, 'org.mirah.macros.QuoteMacro')
+    macros.visitEnd
+    av.visitEnd
+  end
+end
 
 def bootstrap_mirahc(*paths)
   options = if paths[-1].kind_of?(Hash)

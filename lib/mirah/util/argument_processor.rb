@@ -13,8 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'mirah/util/logging'
+
 module Mirah
   module Util
+
     class ArgumentProcessor
       def initialize(state, args)
         @state = state
@@ -65,11 +68,22 @@ module Mirah
             plugin = args.shift
             require "mirah/plugin/#{plugin}"
           when '--verbose', '-V'
-            Mirah::Typer.verbose = true
-            Mirah::AST.verbose = true
-            Mirah::JVM::Compiler::JVMBytecode.verbose = true
+            Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::ALL
             state.verbose = true
             args.shift
+          when '--vmodule'
+            args.shift
+            spec = args.shift
+            spec.split(',').each do |item|
+              logger, level = item.split("=")
+              logger = java.util.logging.Logger.getLogger(logger)
+              (state.loggers ||= []) << logger
+              level = java.util.logging.Level.parse(level)
+              logger.setLevel(level)
+            end
+          when '--no-color'
+            args.shift
+            Mirah::Logging::MirahHandler.formatter = Mirah::Logging::LogFormatter.new(false)
           when '--version', '-v'
             args.shift
             print_version
@@ -102,7 +116,8 @@ module Mirah
         \t\t\t  version (1.4, 1.5, 1.6, 1.7)
         -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running
         -v, --version\t\tPrint the version of Mirah to the console
-        -V, --verbose\t\tVerbose logging"
+        -V, --verbose\t\tVerbose logging
+        --vmodule logger.name=LEVEL[,...]\t\tSet the Level for the specified Java loggers"
         state.help_printed = true
       end
 

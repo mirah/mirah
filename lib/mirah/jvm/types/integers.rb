@@ -107,7 +107,7 @@ module Mirah::JVM::Types
 
       int_type = @type_system.type(nil, 'int')
       block_type = @type_system.block_type
-
+      return
       add_macro('downto', int_type, block_type) do |transformer, call|
         build_loop(call.parent, call.position, transformer,
                    call.block, call.target, call.parameters[0], false, true)

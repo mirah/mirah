@@ -22,6 +22,7 @@ import java.util.HashMap
 import java.util.LinkedList
 import java.util.List
 import mirah.impl.MirahParser
+import mirah.lang.ast.Annotation
 import mirah.lang.ast.Arguments
 import mirah.lang.ast.Array
 import mirah.lang.ast.Call
@@ -29,6 +30,7 @@ import mirah.lang.ast.Cast
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.FieldAccess
 import mirah.lang.ast.Fixnum
+import mirah.lang.ast.HashEntry
 import mirah.lang.ast.MacroDefinition
 import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
@@ -42,7 +44,7 @@ import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
-import org.mirah.typer.Scope
+import org.mirah.typer.TypeFuture
 import org.mirah.typer.Typer
 
 class ValueSetter < NodeScanner
@@ -84,17 +86,35 @@ class MacroBuilder; implements Compiler
     @extension_counters = HashMap.new
   end
   
+  def self.initialize:void
+    @@log = java::util::logging::Logger.getLogger(MacroBuilder.class.getName)
+  end
+  
   def buildExtension(macroDef:MacroDefinition)
     ast = constructAst(macroDef)
     @backend.logExtensionAst(ast)
     @typer.infer(ast)
     klass = @backend.compileAndLoadExtension(ast)
+    addToExtensions(macroDef, klass)
     registerLoadedMacro(macroDef, klass)
   end
   
-  def serializeAst(node:Node, call:Call):Object
-    result = Object[5]
-    result[0] = node.position.source.name
+  def typer
+    @typer
+  end
+  
+  def type_system
+    @types
+  end
+
+  def scoper
+    @scopes
+  end
+  
+  def serializeAst(node:Node):Object
+    raise IllegalArgumentException, "No position for #{node}" unless node.position
+    result = Object[6]
+    result[0] = SimpleString.new(node.position.source.name)
     result[1] = Fixnum.new(node.position.startLine)
     result[2] = Fixnum.new(node.position.startColumn)
     result[3] = splitString(node.position.source.substring(node.position.startChar,
@@ -102,6 +122,7 @@ class MacroBuilder; implements Compiler
     collector = ValueGetter.new
     collector.scan(node)
     result[4] = collector.values
+    result[5] = FieldAccess.new(SimpleString.new('call'))
     Arrays.asList(result)
   end
   
@@ -112,7 +133,7 @@ class MacroBuilder; implements Compiler
     script
   end
   
-  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List, scope:Scope):Node
+  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List, scopeNode:Node):Node
     parser = MirahParser.new
     script = Script(parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
     # TODO(ribrdb) scope
@@ -125,9 +146,9 @@ class MacroBuilder; implements Compiler
   end
 
   # If the string is too long split it into multiple string constants.
-  def splitString(string:String):Object
+  def splitString(string:String):Node
     if string.length < 65535
-      Object(string)
+      Node(SimpleString.new(string))
     else
       result = StringConcat.new
       while string.length >= 65535
@@ -143,9 +164,18 @@ class MacroBuilder; implements Compiler
     template = MacroBuilder.class.getResourceAsStream("template.mirah.tpl")
     name = extensionName(macroDef)
     addMissingTypes(macroDef)
+    argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
-    script = deserializeScript("template.mirah.tpl", template,
-                               [name, macroDef.arguments.clone, macroDef.body, casts])
+    script = deserializeScript("MacroTemplate", template,
+                               [ name,
+                                 macroDef.arguments.clone,
+                                 macroDef.body,
+                                 casts,
+                                 # Annotations come last in the AST even though they're first
+                                 # in the source.
+                                 macroDef.name.clone,
+                                 argdef
+                               ])
     scope = @scopes.getScope(macroDef)
     if scope.package
       script.body.insert(0, Package.new(SimpleString.new(scope.package), nil))
@@ -192,14 +222,57 @@ class MacroBuilder; implements Compiler
     casts
   end
   
+  def makeArgAnnotation(args:Arguments):Annotation
+    # TODO other args
+    required = LinkedList.new
+    args.required_size.times do |i|
+      required.add(args.required(i).type.clone)
+    end
+    entries = [HashEntry.new(SimpleString.new('required'), Array.new(required))]
+    Annotation.new(SimpleString.new('org.mirah.macros.anno.MacroArgs'), entries)
+  end
+  
   # Returns a node to fetch the i'th macro argument during expansion.
   def fetchMacroArg(i:int):Node
-    Call.new(FieldAccess.new(SimpleString.new('call')), SimpleString.new('get'), [Fixnum.new(i)], nil)
+    Call.new(
+      Call.new(FieldAccess.new(SimpleString.new('call')),
+               SimpleString.new('parameters'), Collections.emptyList, nil),
+      SimpleString.new('get'), [Fixnum.new(i)], nil)
+  end
+  
+  def addToExtensions(macrodef:MacroDefinition, klass:Class):void
+    classdef = ClassDefinition(macrodef.findAncestor(ClassDefinition.class))
+    if classdef.nil?
+      return
+    end
+    extensions = Annotation(nil)
+    classdef.annotations_size.times do |i|
+      anno = classdef.annotations(i)
+      if anno.type.typeref.name.equals('org.mirah.macros.anno.Extensions')
+        extensions = anno
+        break
+      end
+    end
+    
+    if extensions.nil?
+      entries = [HashEntry.new(SimpleString.new('macros'), Array.new(Collections.emptyList))]
+      extensions = Annotation.new(SimpleString.new('org.mirah.macros.anno.Extensions'), entries)
+      @typer.infer(extensions)
+      classdef.annotations.add(extensions)
+    end
+    
+    array = Array(extensions.values(0).value)
+    new_entry = SimpleString.new(klass.getName)
+    @typer.infer(new_entry)
+    array.values.add(new_entry)
   end
   
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
     extended_class = @scopes.getScope(macroDef).selfType.resolve
     arg_types = @typer.inferAll(macroDef.arguments)
-    @types.addMacro(extended_class, macroDef.name.identifier, arg_types)
+    arg_types.size.times do |i|
+      arg_types.set(i, TypeFuture(arg_types.get(i)).resolve)
+    end
+    @types.addMacro(extended_class, macroDef.name.identifier, arg_types, klass)
   end
 end

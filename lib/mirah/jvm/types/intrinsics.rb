@@ -19,8 +19,6 @@ require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
   class Type
-    java_import 'org.mirah.typer.InlineCode'
-
     def load(builder, index)
       builder.send "#{prefix}load", index
     end
@@ -44,6 +42,10 @@ module Mirah::JVM::Types
         @intrinsics
       end
     end
+    
+    def macros
+      @macros ||= Hash.new {|h, k| h[k] = {}}
+    end
 
     def add_method(name, args, method_or_type=nil, &block)
       if block_given?
@@ -53,49 +55,77 @@ module Mirah::JVM::Types
       intrinsics[name][args] = method_or_type
     end
 
-    def add_macro(name, *args, &block)
-      type = InlineCode.new(&block)
-      intrinsics[name][args] = Intrinsic.new(self, name, args, type) do
-        raise "Macro should be expanded, no called!"
-      end
-    end
-
     def add_compiled_macro(klass, name, arg_types)
-      add_macro(name, *arg_types) do |call, typer|
+      log "Adding macro #{self.name}.#{name}(#{arg_types.map{|t| t.full_name}.join(', ')})"
+      # TODO separate static and instance macros
+      macro = Macro.new(self, name, arg_types) do |call, typer|
         #TODO scope
-        # scope = typer.scoper.get_scope(call)
+        # We probably need to set the scope on all the parameters, plus the
+        # arguments and body of any block params. Also make sure scope is copied
+        # when cloned.
+        scope = typer.scoper.get_scope(call)
         # call.parameters.each do |arg|
         #   arg.scope = scope
         # end
         begin
-          expander = klass.constructors[0].newInstance(nil, call)
+          expander = klass.constructors[0].newInstance(typer.macro_compiler, call)
           ast = expander.expand
-        rescue
-          puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
+        # rescue
+        #   puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
         end
         if ast
-          body = Mirah::AST::NodeList.new
-          static_scope = typer.scoper.add_scope(body)
-          static_scope.parent = typer.scoper.get_scope(call)
-          body.add(ast)
-          if call.target
-            static_scope.self_type = call.target.inferred_type!
-            static_scope.self_node = call.target
-          else
-            static_scope.self_type = scope.self_type
-          end
-          
-          body
+          # TODO scope
+          # body = Mirah::AST::NodeList.new
+          # static_scope = typer.scoper.add_scope(body)
+          # static_scope.parent = typer.scoper.get_scope(call)
+          # body.add(ast)
+          # if call.target
+          #   static_scope.self_type = call.target.inferred_type!
+          #   static_scope.self_node = call.target
+          # else
+          #   static_scope.self_type = scope.self_type
+          # end
+          # 
+          # body
+          ast
         else
           Mirah::AST::Noop.new
         end
       end
+      macros[name][arg_types] = macro
     end
     
     def wrap_with_scoped_body call, node
       wrapper = Mirah::AST::ScopedBody.new(call.parent, call.position)
       wrapper.static_scope = call.scope.static_scope
       wrapper << node
+    end
+
+    def declared_macros(name=nil)
+      result = []
+      each_name = lambda do |name, hash|
+        hash.each do |args, macro|
+          result << macro
+        end
+      end
+      if name
+        each_name.call(name, self.macros[name])
+      else
+        self.macros.each &each_name
+      end
+      result
+    end
+
+    def macro(name, types)
+      macro = macros[name][types]
+      return macro if macro
+      macro = superclass.macro(name, types) if superclass
+      return macro if macro
+      interfaces.each do |interface|
+        macro = interface.macro(name, types)
+        return macro if macro
+      end
+      nil
     end
 
     def declared_intrinsics(name=nil)
@@ -124,22 +154,27 @@ module Mirah::JVM::Types
         mirror = jvm_type
       end
       if mirror
-        extensions = mirror.getDeclaredAnnotation('duby.anno.Extensions')
+        extensions = mirror.getDeclaredAnnotation('org.mirah.macros.anno.Extensions')
         return self if extensions.nil?
         macros = extensions['macros']
         return self if macros.nil?
-        macros.each do |macro|
+        macros.each do |macro_class|
+          macro_mirror = @type_system.get_mirror(macro_class)
+          macro = macro_mirror.getDeclaredAnnotation('org.mirah.macros.anno.MacroDef')
           macro_name = macro['name']
-          class_name = macro['class']
-          types = BiteScript::ASM::Type.get_argument_types(macro['signature'])
-          args = types.map do |type|
-            if type.class_name == 'duby.lang.compiler.Block'
-              @type_system.block_type
-            else
-              @type_system.type(nil, type)
-            end
+          # TODO optional, rest args
+          types = macro['arguments']['required']
+          args = types.map do |typename|
+            type = @type_system.get_type(typename)
+            raise "Unable to find class #{typename}" unless type
+            type
           end
-          klass = JRuby.runtime.jruby_class_loader.loadClass(class_name)
+          klass = begin
+            JRuby.runtime.jruby_class_loader.loadClass(macro_class)
+          rescue java.lang.NoClassDefFoundError => ex
+            puts $CLASSPATH.inspect
+            raise ex
+          end
           add_compiled_macro(klass, macro_name, args)
         end
       end
@@ -182,24 +217,24 @@ module Mirah::JVM::Types
         end
       end
 
-      add_macro('kind_of?', class_type) do |transformer, call|
-        klass, object = call.parameters(0), call.target
-        Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
-          klass.parent = object.parent = call2
-          [
-            klass,
-            [object]
-          ]
-        end
-      end
-
-      add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
-        compiler.visit(call.target, expression)
-        if expression
-          klass = call.parameters(0).inferred_type!
-          compiler.method.instanceof(klass.unmeta)
-        end
-      end
+      # add_macro('kind_of?', class_type) do |transformer, call|
+      #   klass, object = call.parameters(0), call.target
+      #   Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
+      #     klass.parent = object.parent = call2
+      #     [
+      #       klass,
+      #       [object]
+      #     ]
+      #   end
+      # end
+      # 
+      # add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
+      #   compiler.visit(call.target, expression)
+      #   if expression
+      #     klass = call.parameters(0).inferred_type!
+      #     compiler.method.instanceof(klass.unmeta)
+      #   end
+      # end
     end
   end
 
@@ -233,34 +268,34 @@ module Mirah::JVM::Types
         compiler.method.arraylength
       end
 
-      add_macro('each', @type_system.block_type) do |transformer, call|
-        Mirah::AST::Loop.new(call.parent,
-                            call.position, true, false) do |forloop|
-          index = transformer.tmp
-          array = transformer.tmp
-
-          init = transformer.eval("#{index} = 0;#{array} = nil")
-          array_assignment = init.children[-1]
-          array_assignment.value = call.target
-          call.target.parent = array_assignment
-          forloop.init << init
-
-          var = call.block.args.args[0]
-          if var
-            forloop.pre << transformer.eval(
-                "#{var.name} = #{array}[#{index}]", '', forloop, index, array)
-          end
-          forloop.post << transformer.eval("#{index} += 1")
-          call.block.body.parent = forloop if call.block.body
-          [
-            Mirah::AST::Condition.new(forloop, call.position) do |c|
-              [transformer.eval("#{index} < #{array}.length",
-                                '', forloop, index, array)]
-            end,
-            call.block.body
-          ]
-        end
-      end
+      # add_macro('each', @type_system.block_type) do |transformer, call|
+      #   Mirah::AST::Loop.new(call.parent,
+      #                       call.position, true, false) do |forloop|
+      #     index = transformer.tmp
+      #     array = transformer.tmp
+      # 
+      #     init = transformer.eval("#{index} = 0;#{array} = nil")
+      #     array_assignment = init.children[-1]
+      #     array_assignment.value = call.target
+      #     call.target.parent = array_assignment
+      #     forloop.init << init
+      # 
+      #     var = call.block.args.args[0]
+      #     if var
+      #       forloop.pre << transformer.eval(
+      #           "#{var.name} = #{array}[#{index}]", '', forloop, index, array)
+      #     end
+      #     forloop.post << transformer.eval("#{index} += 1")
+      #     call.block.body.parent = forloop if call.block.body
+      #     [
+      #       Mirah::AST::Condition.new(forloop, call.position) do |c|
+      #         [transformer.eval("#{index} < #{array}.length",
+      #                           '', forloop, index, array)]
+      #       end,
+      #       call.block.body
+      #     ]
+      #   end
+      # end
     end
   end
 
@@ -277,11 +312,11 @@ module Mirah::JVM::Types
   class ArrayMetaType
     def add_intrinsics
       super
-      add_macro('cast', @type_system.type(nil, 'java.lang.Object')) do |transformer, call|
-        call.cast = true
-        call.resolve_if(nil) { unmeta }
-        call
-      end
+      # add_macro('cast', @type_system.type(nil, 'java.lang.Object')) do |transformer, call|
+      #   call.cast = true
+      #   call.resolve_if(nil) { unmeta }
+      #   call
+      # end
     end
   end
 
@@ -371,6 +406,7 @@ module Mirah::JVM::Types
   class IterableType < Type
     def add_intrinsics
       super
+      return
       add_enumerable_macros
       add_macro('each', @type_system.block_type) do |transformer, call|
         Mirah::AST::Loop.new(call.parent,

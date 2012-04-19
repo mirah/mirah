@@ -21,6 +21,7 @@ require 'mirah/errors'
 module Mirah
   module Commands
     class Base
+      include Mirah::Logging::Logged
       def initialize(args)
         #Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
         @state = Mirah::Util::CompilationState.new
@@ -44,7 +45,7 @@ module Mirah
             raise ice.cause || ice
           rescue Mirah::MirahError => ex
             Mirah.print_error(ex.message, ex.position)
-            puts ex.backtrace if state.verbose
+            log "{0}\n{1}", [ex.message, ex.backtrace.join("\n")]
             throw :exit, 1
           end
           0

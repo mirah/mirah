@@ -34,6 +34,20 @@ module Mirah::JVM::Types
     java_import 'mirah.lang.ast.Script'
     java_import 'mirah.lang.ast.SimpleString'
     include TypeSystem
+    include Mirah::Logging::Logged
+    
+    begin
+      java_import 'org.mirah.builtins.Builtins'
+    rescue NameError
+      puts File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
+      $CLASSPATH << File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
+      begin
+        java_import 'org.mirah.builtins.Builtins'
+      rescue NameError
+        # We might be trying to compile mirah-builtins.jar, so just continue.
+        Builtins = nil
+      end
+    end
 
     attr_accessor :package
     attr_reader :known_types
@@ -62,6 +76,20 @@ module Mirah::JVM::Types
       end
       @declarations = []
       @futures = {}
+    end
+
+    def maybe_initialize_builtins(compiler)
+      if Builtins
+        begin
+          Builtins.initialize_builtins(compiler)
+        rescue NativeException => ex
+          log("Error initializing builtins", ex.cause)
+        rescue => ex
+          log("Error initializing builtins: #{ex.backtrace.join("\n")}")
+        end
+      else
+        warning "Unable to initialize builtins"
+      end
     end
 
     def wrap(resolved_type)
@@ -112,6 +140,8 @@ module Mirah::JVM::Types
       else
         future = BaseTypeFuture.new(nil)
         type.on_update {|_, resolved| future.resolved(resolved.meta)}
+        future.position_set(type.position)
+        future.error_message_set(type.error_message)
         future
       end
     end
@@ -149,7 +179,10 @@ module Mirah::JVM::Types
           types << nil
         end
 
-        PickFirst.new(types, nil)
+        future = PickFirst.new(types, nil)
+        future.position_set(typeref.position)
+        future.error_message_set("Cannot find class #{typeref.name}")
+        future
       end
       if typeref.isArray
         getArrayType(basic_type)
@@ -166,15 +199,18 @@ module Mirah::JVM::Types
     def getMethodType(call)
       target = call.resolved_target
       argTypes = call.resolved_parameters
-      _find_method_type(target, call.name, argTypes, call.position)
+      macro_types = call.parameter_nodes.map do |node|
+        get_type(node.java_class.name)
+      end if call.parameter_nodes
+      _find_method_type(target, call.name, argTypes, macro_types, call.position)
     end
 
-    def _find_method_type(target, name, argTypes, position)
+    def _find_method_type(target, name, argTypes, macroTypes, position)
       if target.respond_to?(:isError) && target.isError
         return target
       end
       type = BaseTypeFuture.new(nil)
-      target.find_method2(target, name, argTypes, target.meta?) do |method|
+      target.find_method2(target, name, argTypes, macroTypes, target.meta?) do |method|
         if method.nil?
           type.resolved(ErrorType.new([
               ["Cannot find %s method %s(%s) on %s" %
@@ -248,17 +284,15 @@ module Mirah::JVM::Types
       end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
-      type = _find_method_type(target, name, args, nil)
+      type = _find_method_type(target, name, args, nil, nil)
       type.onUpdate do |m, resolved|
         resolved = resolved.returnType if resolved.respond_to?(:returnType)
-        if Mirah::Typer.verbose
-          Mirah::Typer.log "Learned %s method %s.%s(%s) = %s" % 
-              [target.meta? ? "static" : "instance",
+        log "Learned {0} method {1}.{2}({3}) = {4}", [
+                target.meta? ? "static" : "instance",
                 target.full_name,
                 name,
                 args.map{|a| a.full_name}.join(', '),
-                resolved.full_name]
-        end
+                resolved.full_name].to_java
         rewritten_name = name.sub(/=$/, '_set')
         if target.meta?
           target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
@@ -286,6 +320,13 @@ module Mirah::JVM::Types
       else
         cache_and_wrap(type)
       end
+    end
+
+    def addMacro(klass, name, arguments, macro)
+      klass.unmeta.add_compiled_macro(macro, name, arguments)
+    end
+    def extendClass(classname, extensions)
+      get_type(classname).load_extensions(extensions)
     end
 
     def define_types(builder)

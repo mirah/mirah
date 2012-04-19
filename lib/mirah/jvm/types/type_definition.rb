@@ -44,7 +44,7 @@ module Mirah
         end
 
         def define(builder)
-          class_name = @name.tr('.', '/')
+          class_name = name.tr('.', '/')
           abstract = node && node.kind_of?(InterfaceDeclaration)  #node.abstract
           @type ||= builder.define_class(
               class_name,

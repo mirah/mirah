@@ -5,6 +5,7 @@ module Mirah
         java_import java.lang.System
         java_import java.io.PrintStream
         include Mirah::JVM::MethodLookup
+        include Mirah::Logging::Logged
         Types = Mirah::JVM::Types
         java_import 'mirah.lang.ast.Node'
         java_import 'mirah.lang.ast.Array'
@@ -33,23 +34,19 @@ module Mirah
         class << self
           attr_accessor :verbose
 
-          def log(message)
-            puts "* [#{name}] #{message}" if JVMBytecode.verbose
-          end
-
           def classname_from_filename(filename)
             basename = File.basename(filename).sub(/\.(duby|mirah)$/, '')
             basename.split(/[_-]/).map{|x| x[0...1].upcase + x[1..-1]}.join
           end
         end
 
-        module JVMLogger
-          def log(message); JVMBytecode.log(message); end
-        end
-
         def initialize(scoper, typer)
           super
           @jump_scope = []
+        end
+
+        def logger_name
+          "org.mirah.ruby.JVM.Compiler.JVMBytecode"
         end
 
         def file_builder(filename)
@@ -585,7 +582,7 @@ module Mirah
 
         def annotation_value(scope, type, builder, name, value)
           if name
-            value_type = type.java_method(name).return_type
+            value_type = type.unmeta.java_method(name).return_type
             if value_type.array?
               unless value.kind_of?(Array)
                 raise "#{type.name}.#{name} should be an Array, got #{value.class}"
@@ -634,7 +631,7 @@ module Mirah
             if value_type.jvm_type.enum?
               builder.enum(name, value_type, value.identifier)
             elsif value_type.jvm_type.annotation?
-              subtype = inferred_type(value.type)
+              subtype = inferred_type(value)
               mirror = subtype.jvm_type
               builder.annotation(name, mirror) do |child|
                 value.values.each do |entry|

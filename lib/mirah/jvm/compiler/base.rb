@@ -19,10 +19,17 @@ module Mirah
       java_import 'mirah.lang.ast.ClassDefinition'
       java_import 'mirah.lang.ast.StaticMethodDefinition'
       java_import 'mirah.lang.ast.SimpleNodeVisitor'
+      java_import 'mirah.lang.ast.NodeScanner'
+      
       class Base < SimpleNodeVisitor
         attr_accessor :filename, :method, :static, :class
+        include Mirah::Logging::Logged
 
         class CompilationError < Mirah::NodeError
+        end
+        
+        def logger_name
+          "org.mirah.ruby.JVM.Compiler.Base"
         end
 
         def initialize(scoper, typer)
@@ -65,14 +72,16 @@ module Mirah
         end
 
         def inferred_type(node)
-          @typer.get_inferred_type(node).resolve
+          begin
+            @typer.get_inferred_type(node).resolve
+          rescue Exception => ex
+            raise Mirah::InternalCompilerError.wrap(ex, node)
+          end
         end
 
         def error(message, node)
           raise CompilationError.new(message, node)
         end
-
-        def log(message); Mirah::JVM::Compiler::JVMBytecode.log(message); end
 
         def toplevel_class
           @class = @type.define(@file)
@@ -91,6 +100,43 @@ module Mirah
           log "...done!"
         end
 
+        # Scans the top level of a file to see if it contains anything outside of a ClassDefinition.
+        class ScriptScanner < NodeScanner
+          attr_reader :found_other, :found_method
+          def enterDefault(node, arg)
+            @found_other = true
+            false
+          end
+          def enterMethodDefinition(node, arg)
+            @found_method = true
+            false
+          end
+          def enterStaticMethodDefinition(node, arg)
+            @found_method = true
+            false
+          end
+          def enterConstructorDefinition(node, arg)
+            @found_method = true
+            false
+          end
+          def enterPackage(node, arg)
+            # ignore
+            false
+          end
+          def enterClassDefinition(node, arg)
+            # ignore
+            false
+          end
+          def enterImport(node, arg)
+            # ignore
+            false
+          end
+          def enterNodeList(node, arg)
+            # Scan the children
+            true
+          end
+        end
+
         def visitScript(script, expression)
           @static = true
           @filename = File.basename(script.position.source.name)
@@ -98,28 +144,33 @@ module Mirah
           @type = @typer.type_system.type(get_scope(script), classname)
           @file = file_builder(@filename)
           body = script.body
-          body = body.get(0) if body.size == 1
-          if body.class != ClassDefinition
-
+          scanner = ScriptScanner.new
+          scanner.scan(body, expression)
+          need_class = scanner.found_method || scanner.found_other
+          if need_class
             @class = @type.define(@file)
-            with :method => @class.main do
-              log "Starting main method"
+            if scanner.found_other
+              # Generate the main method
+              with :method => @class.main do
+                log "Starting main method"
 
-              @method.start
-              @current_scope = get_scope(script)
-              declare_locals(@current_scope)
-              begin_main
+                @method.start
+                @current_scope = get_scope(script)
+                declare_locals(@current_scope)
+                begin_main
 
-              prepare_binding(script) do
-                visit(body, false)
+                prepare_binding(script) do
+                  visit(body, false)
+                end
+
+                finish_main
+                @method.stop
               end
-
-              finish_main
-              @method.stop
+              log "Main method complete!"
+            else
+              visit(body, false)
             end
             @class.stop
-
-            log "Main method complete!"
           else
             visit(body, false)
           end
@@ -201,6 +252,7 @@ module Mirah
         end
 
         def visitClassDefinition(class_def, expression)
+          log "Compiling class #{class_def.name.identifier}"
           with(:type => inferred_type(class_def),
                :class => inferred_type(class_def).define(@file),
                :static => false) do
