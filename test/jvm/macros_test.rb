@@ -117,14 +117,16 @@ class TestMacros < Test::Unit::TestCase
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
 
     script, cls = compile(<<-EOF)
+      import mirah.lang.ast.*
+
       class UnquoteMacros
-        macro def make_attr(name_node, type)
-          name = name_node.string_value
+        macro def make_attr(name_node:Identifier, type:TypeName)
+          name = name_node.identifier
           quote do
             def `name`
               @`name`
             end
-            def `"#{name}_set"`(`name`:`type`)
+            def `"#{name}_set"`(`name`: `type`)
               @`name` = `name`
             end
           end
@@ -142,6 +144,8 @@ class TestMacros < Test::Unit::TestCase
   end
 
   def test_macro_hygene
+    # TODO hygenic macros?
+    return
     cls, = compile(<<-EOF)
       macro def doubleIt(arg)
         quote do
@@ -161,6 +165,28 @@ class TestMacros < Test::Unit::TestCase
     assert_output("11\n1\n") {cls.foo}
   end
 
+  def test_gensym
+    # TODO hygenic macros?
+    return
+    cls, = compile(<<-EOF)
+      macro def doubleIt(arg)
+        x = gensym
+        quote do
+          `x` = `arg`
+          `x` = `x` + `x`
+          `x`
+        end
+      end
+
+      def foo
+        x = 1
+        System.out.println doubleIt(x)
+        System.out.println x
+      end
+    EOF
+
+    assert_output("2\n1\n") {cls.foo}
+  end
 
   def test_add_args_in_macro
     cls, = compile(<<-EOF)

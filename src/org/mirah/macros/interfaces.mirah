@@ -26,7 +26,9 @@ import mirah.lang.ast.Script
 import mirah.lang.ast.SimpleString
 import mirah.lang.ast.Unquote
 import org.mirah.macros.anno.*
-import org.mirah.typer.Scope
+import org.mirah.typer.Scoper
+import org.mirah.typer.Typer
+import org.mirah.typer.TypeSystem
 
 
 # $Extensions[macros:['org.mirah.macros.QuoteMacro']]
@@ -43,6 +45,9 @@ interface Compiler do
                      values:List,
                      scopeNode:Node):Node
   end
+  def type_system:TypeSystem; end
+  def typer:Typer; end
+  def scoper:Scoper; end
 end
 
 interface JvmBackend do

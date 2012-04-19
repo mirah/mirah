@@ -33,4 +33,8 @@ class `classname` implements Macro
   def expand:Node
     _expand(`casts`)
   end
+  
+  def gensym:String
+    @mirah.scoper.getScope(@call).temp('gensym')
+  end
 end

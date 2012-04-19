@@ -99,7 +99,20 @@ class MacroBuilder; implements Compiler
     registerLoadedMacro(macroDef, klass)
   end
   
+  def typer
+    @typer
+  end
+  
+  def type_system
+    @types
+  end
+
+  def scoper
+    @scopes
+  end
+  
   def serializeAst(node:Node):Object
+    raise IllegalArgumentException, "No position for #{node}" unless node.position
     result = Object[6]
     result[0] = SimpleString.new(node.position.source.name)
     result[1] = Fixnum.new(node.position.startLine)
