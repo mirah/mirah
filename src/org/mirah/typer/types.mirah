@@ -202,4 +202,5 @@ interface TypeSystem do
   def getAbstractMethods(type:ResolvedType):List; end
   
   def addMacro(klass:ResolvedType, name:String, arguments:List, macro:Class):void; end
+  def extendClass(klassname:String, extensions:Class):void; end
 end

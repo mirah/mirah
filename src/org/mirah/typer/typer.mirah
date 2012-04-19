@@ -421,7 +421,7 @@ class Typer < SimpleNodeVisitor
       targetNode = Node(Node(old_args.get(0)).clone)
       params = ArrayList.new
       1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
-      call = Call.new(targetNode, SimpleString.new(node.position, 'new'), params, nil)
+      call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
       @scopes.copyScopeFrom(node, call)
       exceptions.add(infer(call))
       exceptions.add(call)
@@ -667,6 +667,8 @@ class Typer < SimpleNodeVisitor
       scope.package = node.name.identifier
       infer(node.body, false)
     else
+      # TODO this makes things complicated. Probably package should be a property of
+      # Script, and Package nodes should require a body.
       scope = @scopes.getScope(node)
       scope.package = node.name.identifier
     end

@@ -33,6 +33,19 @@ module Mirah::JVM::Types
     java_import 'mirah.lang.ast.SimpleString'
     include TypeSystem
     include Mirah::Logging::Logged
+    
+    begin
+      java_import 'org.mirah.builtins.Builtins'
+    rescue NameError
+      puts File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
+      $CLASSPATH << File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
+      begin
+        java_import 'org.mirah.builtins.Builtins'
+      rescue NameError
+        # We might be trying to compile mirah-builtins.jar, so just continue.
+        Builtins = nil
+      end
+    end
 
     attr_accessor :package
     attr_reader :known_types
@@ -61,6 +74,20 @@ module Mirah::JVM::Types
       end
       @declarations = []
       @futures = {}
+    end
+
+    def maybe_initialize_builtins(compiler)
+      if Builtins
+        begin
+          Builtins.initialize_builtins(compiler)
+        rescue NativeException => ex
+          log("Error initializing builtins", ex.cause)
+        rescue => ex
+          log("Error initializing builtins: #{ex.backtrace.join("\n")}")
+        end
+      else
+        warning "Unable to initialize builtins"
+      end
     end
 
     def wrap(resolved_type)
@@ -264,6 +291,9 @@ module Mirah::JVM::Types
 
     def addMacro(klass, name, arguments, macro)
       klass.unmeta.add_compiled_macro(macro, name, arguments)
+    end
+    def extendClass(classname, extensions)
+      get_type(classname).load_extensions(extensions)
     end
 
     def define_types(builder)

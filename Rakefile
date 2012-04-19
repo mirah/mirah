@@ -30,7 +30,7 @@ end
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :gem => 'jar:bootstrap'
-task :bootstrap => 'javalib/mirah-bootstrap.jar'
+task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar']
 task :default => :'test:jvm:bytecode'
 def run_tests tests
   results = tests.map do |name|
@@ -190,7 +190,7 @@ end
 
 file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
                                        'src/org/mirah/MirahClassLoader.java'] + 
-                                      Dir['src/org/mirah/{macros,typer}/*.mirah'] +
+                                      Dir['src/org/mirah/{macros,typer}/*.mirah*'] +
                                       Dir['src/org/mirah/macros/anno/*.java'] do
   rm_rf 'build/bootstrap'
   mkdir_p 'build/bootstrap'
@@ -214,6 +214,17 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
   end
 
   rm_rf 'build/bootstrap'
+end
+
+file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/org/mirah/builtins/*.mirah'] do
+  rm_f 'javalib/mirah-builtins.jar'
+  rm_rf 'build/builtins'
+  mkdir_p 'build/builtins'
+  sh *%w(jruby -Ilib bin/mirahc --dest build/builtins src/org/mirah/builtins)
+  ant.jar :jarfile => 'javalib/mirah-builtins.jar' do
+    fileset :dir => 'build/builtins'
+  end
+  rm_rf 'build/builtins'
 end
 
 require 'bitescript'

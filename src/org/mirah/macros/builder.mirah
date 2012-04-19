@@ -166,7 +166,7 @@ class MacroBuilder; implements Compiler
     addMissingTypes(macroDef)
     argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
-    script = deserializeScript("template.mirah.tpl", template,
+    script = deserializeScript("MacroTemplate", template,
                                [ name,
                                  macroDef.arguments.clone,
                                  macroDef.body,

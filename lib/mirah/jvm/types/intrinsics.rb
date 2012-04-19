@@ -169,7 +169,12 @@ module Mirah::JVM::Types
             raise "Unable to find class #{typename}" unless type
             type
           end
-          klass = JRuby.runtime.jruby_class_loader.loadClass(macro_class)
+          klass = begin
+            JRuby.runtime.jruby_class_loader.loadClass(macro_class)
+          rescue java.lang.NoClassDefFoundError => ex
+            puts $CLASSPATH.inspect
+            raise ex
+          end
           add_compiled_macro(klass, macro_name, args)
         end
       end
