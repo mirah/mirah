@@ -74,18 +74,20 @@ module Mirah::JVM::Types
         #   puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
         end
         if ast
-          body = Mirah::AST::NodeList.new
-          static_scope = typer.scoper.add_scope(body)
-          static_scope.parent = typer.scoper.get_scope(call)
-          body.add(ast)
-          if call.target
-            static_scope.self_type = call.target.inferred_type!
-            static_scope.self_node = call.target
-          else
-            static_scope.self_type = scope.self_type
-          end
-          
-          body
+          # TODO scope
+          # body = Mirah::AST::NodeList.new
+          # static_scope = typer.scoper.add_scope(body)
+          # static_scope.parent = typer.scoper.get_scope(call)
+          # body.add(ast)
+          # if call.target
+          #   static_scope.self_type = call.target.inferred_type!
+          #   static_scope.self_node = call.target
+          # else
+          #   static_scope.self_type = scope.self_type
+          # end
+          # 
+          # body
+          ast
         else
           Mirah::AST::Noop.new
         end

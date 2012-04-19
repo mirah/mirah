@@ -67,6 +67,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def infer(node:Node, expression:boolean=true)
+    @@log.entering("Typer", "infer", "infer(#{node})")
     return nil if node.nil?
     type = @futures[node]
     if type.nil?
@@ -140,7 +141,8 @@ class Typer < SimpleNodeVisitor
       else
         future.type = typefuture
       end
-      current_node.parent.replaceChild(current_node, node)
+      node = current_node.parent.replaceChild(current_node, node)
+      typer.infer(node, expression != nil)
       current_node = node
     end
     future.position = call.position
@@ -161,7 +163,7 @@ class Typer < SimpleNodeVisitor
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         node = InlineCode(resolvedType).expand(call, typer)
-        call.parent.replaceChild(call, node)
+        node = call.parent.replaceChild(call, node)
         delegate.type = typer.infer(node, expression != nil)
       else
         delegate.type = methodType
@@ -195,7 +197,7 @@ class Typer < SimpleNodeVisitor
       call.parameters.add(assignment.value)
       newNode = Node(call)
     end
-    assignment.parent.replaceChild(assignment, newNode)
+    newNode = assignment.parent.replaceChild(assignment, newNode)
     infer(newNode)
   end
 
@@ -211,7 +213,7 @@ class Typer < SimpleNodeVisitor
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         node = InlineCode(resolvedType).expand(call, typer)
-        call.parent.replaceChild(call, node)
+        node = call.parent.replaceChild(call, node)
         delegate.type = typer.infer(node, expression != nil)
       else
         delegate.type = methodType
@@ -685,7 +687,7 @@ class Typer < SimpleNodeVisitor
     else
       NodeList.new(node.position, nodes)
     end
-    node.parent.replaceChild(node, replacement)
+    replacement = node.parent.replaceChild(node, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -698,7 +700,7 @@ class Typer < SimpleNodeVisitor
     else
       replacement = LocalAssignment.new(node.position, node.name, node.value)
     end
-    node.parent.replaceChild(node, replacement)
+    replacement = node.parent.replaceChild(node, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -871,6 +873,7 @@ class Typer < SimpleNodeVisitor
           parent.block = nil
           parent.parameters.add(new_node)
         else
+          new_node.setParent(nil)
           parent.replaceChild(block, new_node)
         end
         typer.infer(new_node)

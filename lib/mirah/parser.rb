@@ -207,6 +207,8 @@ module Mirah
         if object
           if object.kind_of?(Node)
             scan(object, arg)
+          elsif object.kind_of?(java.util.List) && object.all? {|i| i.kind_of?(Node)}
+            object.each {|o| scan(o, arg)}
           else
             str = if node.object.respond_to?(:toString)
               node.object.toString

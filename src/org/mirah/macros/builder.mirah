@@ -44,7 +44,7 @@ import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
-import org.mirah.typer.Scope
+import org.mirah.typer.TypeFuture
 import org.mirah.typer.Typer
 
 class ValueSetter < NodeScanner
@@ -84,6 +84,10 @@ class MacroBuilder; implements Compiler
     @scopes = typer.scoper
     @backend = backend
     @extension_counters = HashMap.new
+  end
+  
+  def self.initialize:void
+    @@log = java::util::logging::Logger.getLogger(MacroBuilder.class.getName)
   end
   
   def buildExtension(macroDef:MacroDefinition)
@@ -253,6 +257,9 @@ class MacroBuilder; implements Compiler
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
     extended_class = @scopes.getScope(macroDef).selfType.resolve
     arg_types = @typer.inferAll(macroDef.arguments)
+    arg_types.size.times do |i|
+      arg_types.set(i, TypeFuture(arg_types.get(i)).resolve)
+    end
     @types.addMacro(extended_class, macroDef.name.identifier, arg_types, klass)
   end
 end

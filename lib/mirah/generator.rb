@@ -67,20 +67,25 @@ module Mirah
         log("Caught exception during type inference", ex.cause)
         raise ex
       ensure
-        if self.logging?
-          printer = TypePrinter.new(@typer)
-          nodes.each {|ast| printer.scan(ast, nil)}
-        end
+        log_types(nodes)
       end
       [@scoper, @typer]
     end
   
-    def compileAndLoadExtension(ast)
+    def log_types(nodes)
       if self.logging?
-        log "Inferred types:"
-        printer = TypePrinter.new(@typer)
-        printer.scan(ast, nil)
+        buf = java.io.ByteArrayOutputStream.new
+        ps = java.io.PrintStream.new(buf)
+        printer = TypePrinter.new(@typer, ps)
+        nodes.each {|ast| printer.scan(ast, nil)}
+        ps.close()
+        log("Inferred types:\n{0}", java.lang.String.new(buf.toByteArray))
       end
+      
+    end
+  
+    def compileAndLoadExtension(ast)
+      log_types([ast])
       process_inference_errors(@typer, [ast])
       results = @jvm_compiler.compile_asts([ast], @scoper, @typer)
       class_map = {}

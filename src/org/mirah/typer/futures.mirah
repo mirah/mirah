@@ -307,6 +307,7 @@ class CallFuture < BaseTypeFuture
   
   def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
+    raise IllegalArgumentException, "No target for #{name}" unless target
     @types = types
     @target = target
     @name = name
@@ -354,7 +355,7 @@ class CallFuture < BaseTypeFuture
   end
 
   def dt(type:TypeFuture)
-    "#{type} (#{type.isResolved ? type.resolve.toString : 'unresolved'})"
+    "#{type} (#{(type &&type.isResolved) ? type.resolve.toString : 'unresolved'})"
   end
 
   def log(level:Level, message:String, arg1:Object, arg2:Object):void
