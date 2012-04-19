@@ -742,4 +742,13 @@ EOF
      assert_equal ast1.body, new_call.parent
      assert_equal ast2.body, call.parent
    end
+   
+   def test_unquote_stringconcat
+     ast = parse('def foo `"#{bar}"`;end')
+   end
+   
+   def test_while_position
+     ast = parse('while true do 1 end')
+     assert_not_nil ast.body().position
+   end
 end

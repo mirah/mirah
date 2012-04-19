@@ -340,7 +340,7 @@ parser MirahParser {
              -> ^(StaticMethodDefinition name args type body annotations)
            | name=fname! arglist=f_arglist! body=bodystmt! verify_end(s)! $End
              {args = arglist.args; type=arglist.returnType}
-             ( ?{"initialize".equals(name.identifier)}
+             ( ?{nameIs(name, "initialize")}
                -> ^(ConstructorDefinition name args type body annotations)
              | -> ^(MethodDefinition name args type body annotations)
              )
@@ -858,18 +858,18 @@ parser MirahParser {
                  -> ^(NodeList l+);
   $Returns[Assignment]
   op_attr_assignment(target:Identifier, attr:Identifier, args:List, value:Node)
-        : ?{'[]'.equals(attr.identifier)}
+        : ?{nameIs(attr, '[]')}
           -> ^(ElemAssign ^(LocalAccess clone(target)) get_temps(args) value)
         | -> ^(AttrAssign ^(LocalAccess clone(target)) clone(attr) value)
         ;
   $Returns[Node]
   op_attr_assign_body(op:Identifier, fetch:Node, assignment:Assignment)
-      : ?{'&&'.equals(op.identifier)}
+      : ?{nameIs(op, '&&')}
            -> ^(If fetch
                    [assignment]
                    nil
                )
-      | ?{'||'.equals(op.identifier)}
+      | ?{nameIs(op, '||')}
         make_or(fetch, assignment)
       | old_val={assignment.value}
         new_val=-> ^(Call fetch op [old_val] nil)
@@ -1080,6 +1080,14 @@ parser MirahParser {
     else
       self._pos = start
       raise @error
+    end
+  }
+
+  def nameIs(name:Identifier, string:String) {
+    begin
+      string.equals(name.identifier)
+    rescue UnsupportedOperationException
+      false
     end
   }
 

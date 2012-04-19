@@ -40,6 +40,7 @@ class Loop < NodeImpl
   end
 
   def initialize(position:Position, condition:Node, body:List, negative:boolean, skipFirstCheck:boolean)
+    self.position = position
     self.init = NodeList.new
     self.condition = condition
     self.pre = NodeList.new
