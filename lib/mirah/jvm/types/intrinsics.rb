@@ -59,7 +59,9 @@ module Mirah::JVM::Types
 
     def add_compiled_macro(klass)
       name, arg_types = read_macrodef_annotation(klass)
-      
+      if arg_types.nil?
+        return
+      end
       log "Adding macro #{self.name}.#{name}(#{arg_types.map{|t| t.full_name}.join(', ')})"
       # TODO separate static and instance macros
       macro = Macro.new(self, name, arg_types) do |call, typer|
@@ -176,6 +178,10 @@ module Mirah::JVM::Types
 
     def read_macrodef_annotation(klass)
       macro = klass.getAnnotation(MacroDef.java_class)
+      if macro.nil?
+        error("Unable to load macro #{klass.name}: no MacroDef annotation")
+        return
+      end
       macro_name = macro.name
       # TODO optional, rest args
       args = macro.arguments.required.map do |typename|

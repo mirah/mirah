@@ -1,7 +1,5 @@
 package org.mirah.builtins
 
-import mirah.lang.ast.Block
-
 class ObjectExtensions
   macro def puts(node)
     quote {System.out.println(`node`)}

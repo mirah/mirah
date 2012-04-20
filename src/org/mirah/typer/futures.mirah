@@ -1,3 +1,4 @@
+# TODO: This code is thread hostile.
 package org.mirah.typer
 import java.util.*
 import java.util.logging.Logger
@@ -39,10 +40,12 @@ class SimpleFuture; implements TypeFuture
   def removeListener(listener); end
 end
 
+# Thread hostile
 class BaseTypeFuture; implements TypeFuture
   def initialize(position:Position)
     @position = position
     @listeners = ArrayList.new
+    @new_listeners = ArrayList(nil)
   end
   def initialize
     @listeners = ArrayList.new
@@ -77,13 +80,23 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def onUpdate(listener:TypeListener):TypeListener
-    @listeners.add(listener)
+    if @notifying
+      @new_listeners ||= ArrayList.new(@listeners)
+      @new_listeners.add(listener)
+    else
+      @listeners.add(listener)
+    end
     listener.updated(self, inferredType) if isResolved
     listener
   end
 
   def removeListener(listener:TypeListener):void
-    @listeners.remove(listener)
+    if @notifying
+      @new_listeners ||= ArrayList.new(@listeners)
+      @new_listeners.remove(listener)
+    else
+      @listeners.remove(listener)
+    end
   end
 
   def resolved(type:ResolvedType):void
@@ -96,10 +109,29 @@ class BaseTypeFuture; implements TypeFuture
     end
     if !type.equals(@resolved)
       @resolved = type
-      @listeners.each do |l|
-        TypeListener(l).updated(self, type)
-      end
+      notifyListeners
     end
+  end
+  
+  def notifyListeners:void
+    if @notifying
+      @notify_again = true
+      return
+    end
+    @notifying = true
+    begin
+      @notify_again = false
+      type = @resolved
+      @listeners.each do |l|
+        break if @notify_again
+        TypeListener(l).updated(self, type)
+      end      
+    end while @notify_again
+    if @new_listeners
+      @listeners = @new_listeners
+      @new_listeners = nil
+    end
+    @notifying = false
   end
 end
 
