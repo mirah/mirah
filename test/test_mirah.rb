@@ -751,4 +751,18 @@ EOF
      ast = parse('while true do 1 end')
      assert_not_nil ast.body().position
    end
+   
+   def test_do_block_position
+     ast = parse("quote do\na\nend")
+     block_pos = ast.body(0).block.body.position
+     contents = block_pos.source.substring(block_pos.startChar, block_pos.endChar)
+     assert_match(/^\s*a\s*$/, contents)
+   end
+
+   def test_brace_block_position
+     ast = parse("quote {a}")
+     block_pos = ast.body(0).block.body.position
+     contents = block_pos.source.substring(block_pos.startChar, block_pos.endChar)
+     assert_match(/^\s*a\s*$/, contents)
+   end
 end

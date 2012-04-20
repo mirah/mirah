@@ -26,6 +26,11 @@ class Block < NodeImpl
     child arguments: Arguments
     child_list body: Node
   end
+  
+  def initialize(position:Position, arguments:Arguments, body:NodeList)
+    initialize(position, arguments, java::util::Collections.emptyList)
+    self.body = body
+  end
 end
 
 class BindingReference < NodeImpl

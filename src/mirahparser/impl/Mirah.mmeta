@@ -69,6 +69,9 @@ parser MirahParser {
             b=statement?
             {addToBlock(a, b)};
 
+  $Returns[NodeList]
+  compstmt2: c=compstmt -> ^(NodeList c);
+
   $Returns[List]
   bodystmt: b=compstmt r=Rescue? e=Else? f=Ensure? {
     list = b
@@ -437,13 +440,13 @@ parser MirahParser {
   cmd_brace_block: brace_block;
   $Scope[@BEG]
   $Returns[Block]
-  brace_block: $LBrace opt_nl (p=block_param !"statement" b=compstmt opt_nl $RBrace
-                              |p={nil} b=compstmt opt_nl $RBrace) -> ^(Block p b)
+  brace_block: $LBrace opt_nl (p=block_param !"statement" b=compstmt2 opt_nl $RBrace
+                              |p={nil} b=compstmt2 opt_nl $RBrace) -> ^(Block p b)
              | do_block;
 
   $Scope[@BEG]
   $Returns[Block]
-  do_block: ~?{@cond} t=$Do s=block_start(t)! opt_nl p=block_param?! b=compstmt verify_end(s)! $End -> ^(Block p b);
+  do_block: ~?{@cond} t=$Do s=block_start(t)! opt_nl p=block_param?! b=compstmt2 verify_end(s)! $End -> ^(Block p b);
 
   # Do we need bv_decls?
   $Returns[Arguments]
