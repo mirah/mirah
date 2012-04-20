@@ -71,7 +71,7 @@ namespace :test do
 
   desc "run jvm tests, both bytecode and java source"
   task :jvm do
-    run_tests ["test:jvm:bytecode", "test:jvm:javac"]
+    run_tests ["test:jvm:bytecode"]
   end
 
   namespace :jvm do
