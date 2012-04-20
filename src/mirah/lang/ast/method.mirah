@@ -15,6 +15,8 @@
 
 package mirahparser.lang.ast
 
+import java.util.Collections
+
 interface FormalArgument < Named do
   def name:Identifier; end
   def type:TypeName; end
@@ -28,6 +30,15 @@ class Arguments < NodeImpl
     child rest: RestArgument
     child_list required2: RequiredArgument
     child block: BlockArgument
+  end
+  
+  def self.empty
+    empty(nil)
+  end
+  
+  def self.empty(position:Position)
+    args = Arguments.new(position, Collections.emptyList, Collections.emptyList, nil,
+                         Collections.emptyList, nil)
   end
 end
 

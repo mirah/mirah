@@ -765,4 +765,12 @@ EOF
      contents = block_pos.source.substring(block_pos.startChar, block_pos.endChar)
      assert_match(/^\s*a\s*$/, contents)
    end
+   
+   def test_unquote_arguments
+     ast = parse("`'foo'`")
+     unquote = ast.body(0)
+     unquote.object_set(unquote.value)
+     args = unquote.arguments
+     assert_equal('foo', args.required(0).name.identifier)
+   end
 end

@@ -94,13 +94,13 @@ class Unquote < NodeImpl
     if object.kind_of?(Arguments) || object.nil?
       Arguments(object)
     elsif object.kind_of?(List)
-      args = Arguments.new(position)
+      args = Arguments.empty(position)
       List(object).each do |o|
         add_arg(args, arg_item(o))
       end
       args
     else
-      args = Arguments.new(position)
+      args = Arguments.empty(position)
       add_arg(args, arg_item(object))
       args
     end
