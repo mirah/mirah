@@ -137,12 +137,10 @@ class Typer < SimpleNodeVisitor
       picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
         node = InlineCode(picked_type).expand(fcall, typer)
-        future.type = typer.infer(node, expression != nil)
-      else
-        future.type = typefuture
+        need_to_infer = true
       end
       node = current_node.parent.replaceChild(current_node, node)
-      typer.infer(node, expression != nil)
+      future.type = typer.infer(node, expression != nil)
       current_node = node
     end
     future.position = call.position

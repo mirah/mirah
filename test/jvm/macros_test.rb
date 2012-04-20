@@ -84,8 +84,7 @@ class TestMacros < Test::Unit::TestCase
   end
   
   
-  def test_instance_macro
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
+  def test_instance_macro_call
     script, cls = compile(<<-EOF)
       class InstanceMacros
         def foobar
@@ -93,16 +92,32 @@ class TestMacros < Test::Unit::TestCase
         end
 
         macro def macro_foobar
-          quote {foobar}
-        end
-      
-        def call_foobar
-          macro_foobar
+          quote {`@call.target`.foobar}
         end
       end
 
       def macro
         InstanceMacros.new.macro_foobar
+      end
+    EOF
+
+    assert_equal("foobar", script.macro)
+  end
+
+  def test_instance_macro_vcall
+    script, cls = compile(<<-EOF)
+      class InstanceMacros
+        def foobar
+          "foobar"
+        end
+
+        macro def macro_foobar
+          quote {`@call.target`.foobar}
+        end
+      
+        def call_foobar
+          macro_foobar
+        end
       end
 
       def function
@@ -111,7 +126,6 @@ class TestMacros < Test::Unit::TestCase
     EOF
 
     assert_equal("foobar", script.function)
-    assert_equal("foobar", script.macro)
   end
 
   def test_unquote

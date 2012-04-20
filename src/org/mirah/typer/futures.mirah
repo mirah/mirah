@@ -307,7 +307,9 @@ class CallFuture < BaseTypeFuture
   
   def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
-    raise IllegalArgumentException, "No target for #{name}" unless target
+    unless target
+      raise IllegalArgumentException, "No target for #{name}"
+    end
     @types = types
     @target = target
     @name = name
