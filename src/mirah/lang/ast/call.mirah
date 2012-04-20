@@ -27,10 +27,15 @@ end
 
 # An identifier with no parens or arguments - may be a variable local access or a call.
 class VCall < NodeImpl
-  implements Named, TypeName, CallSite
+  implements Named, TypeName, CallSite, Identifier
   init_node do
     child name: Identifier
   end
+  
+  def identifier
+    name.identifier
+  end
+  
   def typeref:TypeRef
     TypeRefImpl.new(name.identifier, false, false, name.position)
   end
