@@ -115,6 +115,8 @@ module Mirah
 
           return true if jvm_type && (jvm_type == other.jvm_type)
 
+          return assignable_from?(other.ungeneric) if other.generic?
+
           assignable_from?(other.superclass) ||
               other.interfaces.any? {|i| assignable_from?(i)}
         end

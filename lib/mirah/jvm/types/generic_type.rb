@@ -25,6 +25,10 @@ module Mirah
           self
         end
 
+        def ungeneric
+          @ungeneric
+        end
+
         def superclass
           @ungeneric.superclass.generic if @ungeneric.superclass
         end
@@ -46,6 +50,10 @@ module Mirah
             @type_parameter_map = HashMap.new
           end
           @type_parameter_map
+        end
+
+        def assignable_from?(other)
+          @ungeneric.assignable_from?(other)
         end
 
         def inspect(indent=0)

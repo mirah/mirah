@@ -225,29 +225,26 @@ module Mirah::JVM::Types
 
           # Handle generics.
           if name == 'new' and target.type_parameters
-            # TODO(shepheb): Support bounds other than "extends Object".
-            # TODO(shepheb): Fix this so it uses multiple Type<Object>s instead of one for all parameters.
             result = Mirah::JVM::Types::GenericType.new(result) # Upgrade to a generic type.
-            type_parameters = target.type_parameters.map do |typevar| typevar.name end
-            type_parameters.each do |var|
-              gtf = nil
-              gtf = GenericTypeFuture.new(position, get_type('java.lang.Object'))
-              result.type_parameter_map.put(var, gtf)
+            target.type_parameters.each do |var|
+              result.type_parameter_map.put(var.name, _build_generic_type_future(var.bounds, position))
+            end
+
+            genericParameterTypes = method.member.generic_parameter_types
+            if genericParameterTypes
+              genericParameterTypes.each_index do |i|
+                _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], target.type_parameter_map, position)
+              end
             end
           elsif target.generic?
-            # TODO(shepheb): This only handles the case of a simple type variable. It wouldn't match ArrayList<String> to ArrayList<E>. Fix it.
             genericParameterTypes = method.member.generic_parameter_types
-            genericParameterTypes.each_index do |i|
-              if genericParameterTypes[i].kind_of?(BiteScript::ASM::TypeVariable)
-                gtf = target.type_parameter_map.get(genericParameterTypes[i].name)
-                gtf.assign(SimpleFuture.new(argTypes[i]), position)
+            if genericParameterTypes
+              genericParameterTypes.each_index do |i|
+                _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], target.type_parameter_map, position)
               end
             end
 
-            genericReturnType = method.member.generic_return_type
-            if genericReturnType.kind_of?(BiteScript::ASM::TypeVariable)
-              result = target.type_parameter_map.get(genericReturnType.name)
-            end
+            result = _handle_nested_generic_return(result, method.member.generic_return_type, target.type_parameter_map, position)
           end
 
           if result.kind_of?(TypeFuture)
@@ -278,6 +275,64 @@ module Mirah::JVM::Types
       result.return_type.assign(type, position)
       result
     end
+
+    def _build_generic_type_future(bounds, position)
+      typeName = "java.lang.Object"
+      if bounds.size > 1
+        raise ArgumentError, "Multiple bounds on type variables are not supported."
+      elsif bounds.size == 1
+        typeName = bounds[0].raw_type.getClassName
+      end
+      GenericTypeFuture.new(position, typeName)
+    end
+
+    def _handle_nested_generic_parameter(expectedType, providedType, type_parameter_map, position)
+      if expectedType.kind_of?(BiteScript::ASM::TypeVariable)
+        gtf = type_parameter_map.get(expectedType.name)
+        gtf.assign(SimpleFuture.new(providedType), position)
+      elsif expectedType.kind_of?(BiteScript::ASM::Wildcard) && providedType.kind_of?(TypeFuture)
+        # TODO(shepheb): Handle bounds here.
+        gtf = type_parameter_map.get(expectedType.upper_bound.name)
+        gtf.assign(providedType, position)
+      elsif expectedType.kind_of?(BiteScript::ASM::ParameterizedType)
+        # We can assume assignable_from? here, or this method would not have been called.
+        expectedParameters = expectedType.type_arguments
+        # Look up the values of the provided type's parameters.
+        providedParameters = providedType.type_parameters.map do |var|
+          providedType.type_parameter_map.get(var.name)
+        end
+
+        if expectedParameters && providedParameters && expectedParameters.size == providedParameters.size
+          expectedParameters.each_index do |i|
+            _handle_nested_generic_parameter(expectedParameters[i], providedParameters[i], type_parameter_map, position)
+          end
+        else
+          raise ArgumentError, "Type parameter mismatch: Expected #{expectedParameters}, found #{providedParameters}."
+        end
+      end
+    end
+
+    # TODO(shepheb): Handles only one level of nesting, it should handle arbitrary depth by recursion.
+    def _handle_nested_generic_return(returnType, genericReturnType, type_parameter_map, position)
+      if genericReturnType.kind_of?(BiteScript::ASM::TypeVariable)
+        type_parameter_map.get(genericReturnType.name)
+      elsif genericReturnType.kind_of?(BiteScript::ASM::ParameterizedType)
+        returnType = GenericType.new(returnType)
+        expectedTypeParameters = returnType.jvm_type.type_parameters
+        providedTypeParameters = genericReturnType.type_arguments
+        if expectedTypeParameters && providedTypeParameters && expectedTypeParameters.size == providedTypeParameters.size
+          expectedTypeParameters.each_index do |i|
+            returnType.type_parameter_map.put(expectedTypeParameters[i].name, type_parameter_map.get(providedTypeParameters[i].name))
+          end
+        else
+          raise ArgumentError, "Type parameter mismatch: Expected #{expectedTypeParameters}, found #{providedTypeParameters}"
+        end
+        returnType
+      else
+        returnType
+      end
+    end
+
     def getMethodDefType(target, name, argTypes)
       if target.nil?
         return ErrorType.new([["No target"]])
