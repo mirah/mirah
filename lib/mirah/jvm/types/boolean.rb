@@ -35,7 +35,7 @@ module Mirah::JVM::Types
     end
     
     def math_type
-      Boolean
+      @type_system.type(nil, 'boolean')
     end
     
     # same as NumberType's

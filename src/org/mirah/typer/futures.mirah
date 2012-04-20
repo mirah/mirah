@@ -251,36 +251,6 @@ class AssignableTypeFuture < BaseTypeFuture
   end
 end
 
-class MaybeInline < BaseTypeFuture
-  def initialize(n:Node, type:TypeFuture, altNode:Node, altType:TypeFuture)
-    super(n.position)
-    node = n
-    @inlined = false
-    me = self
-    altType.onUpdate do |x, value|
-      if me.inlined || value.name != ':error'
-        unless me.inlined
-          me.inlined = true
-          node.parent.replaceChild(node, altNode)
-        end
-        me.resolved(value)
-      end
-    end
-    type.onUpdate do |x, value|
-      unless me.inlined
-        me.resolved(value)
-      end
-    end
-  end
-
-  def inlined=(inlined:boolean):void
-    @inlined = inlined
-  end
-  def inlined:boolean
-    @inlined
-  end
-end
-
 interface PickerListener do
   def picked(selection:TypeFuture, value:Object):void; end
 end

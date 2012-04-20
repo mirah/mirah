@@ -14,11 +14,6 @@
 # limitations under the License.
 
 class HashTest < Test::Unit::TestCase
-if true
-  def test_hashes
-    raise "Hashes not implemented"
-  end
-else
   def test_hashes
     cls, = compile(<<-EOF)
       def foo1
@@ -246,5 +241,4 @@ else
       cls.main(nil)
     end
   end
-end
 end

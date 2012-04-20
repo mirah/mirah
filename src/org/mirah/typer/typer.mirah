@@ -43,7 +43,6 @@ class Typer < SimpleNodeVisitor
     @scopes = scopes
     @closures = ClosureBuilder.new(self)
     @macros = MacroBuilder.new(self, jvm_backend)
-    @verifier = AstVerifier.new
   end
 
   def macro_compiler
@@ -56,10 +55,6 @@ class Typer < SimpleNodeVisitor
 
   def scoper
     @scopes
-  end
-
-  def verifier:NodeScanner
-    @verifier
   end
 
   def getInferredType(node:Node)
@@ -153,7 +148,6 @@ class Typer < SimpleNodeVisitor
         typer.logger.fine("Unable to replace #{current_node} with #{node}")
       else
         node = current_node.parent.replaceChild(current_node, node)
-        typer.verifier.scan(node, node)
         future.type = typer.infer(node, expression != nil)
       end
       current_node = node
@@ -178,7 +172,6 @@ class Typer < SimpleNodeVisitor
         typer.logger.fine("Expanding macro #{call}")
         node = InlineCode(resolvedType).expand(call, typer)
         node = call.parent.replaceChild(call, node)
-        typer.verifier.scan(node, node)
         delegate.type = typer.infer(node, expression != nil)
       else
         delegate.type = methodType
@@ -199,7 +192,6 @@ class Typer < SimpleNodeVisitor
         if arg != nil
           # We chose the cast.
           call.parent.replaceChild(call, cast)
-          typer.verifier.scan(cast, cast)
           typer.infer(cast, expression != nil)
         end
       end)
@@ -224,7 +216,6 @@ class Typer < SimpleNodeVisitor
       newNode = Node(call)
     end
     newNode = assignment.parent.replaceChild(assignment, newNode)
-    @verifier.scan(newNode, newNode)
     infer(newNode)
   end
 
@@ -242,7 +233,6 @@ class Typer < SimpleNodeVisitor
         typer.logger.fine("Expanding macro #{call}")
         node = InlineCode(resolvedType).expand(call, typer)
         node = call.parent.replaceChild(call, node)
-        typer.verifier.scan(node, node)
         delegate.type = typer.infer(node, expression != nil)
       else
         delegate.type = methodType
@@ -278,7 +268,6 @@ class Typer < SimpleNodeVisitor
         TypeFuture(PickFirst.new(items) do |type, arg|
           if arg != nil
             call.parent.replaceChild(call, newNode)
-            typer.verifier.scan(newNode, newNode)
             typer.infer(newNode, expression != nil)
           end
         end)
@@ -675,12 +664,10 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitScript(script, expression)
-    @verifier.scan(script, script)
     scope = @scopes.addScope(script)
     @types.addDefaultImports(scope)
     scope.selfType = @types.getMainType(scope, script)
     type = infer(script.body, false)
-    @verifier.scan(script, script)
     type
   end
 
@@ -731,7 +718,6 @@ class Typer < SimpleNodeVisitor
       NodeList.new(node.position, nodes)
     end
     replacement = node.parent.replaceChild(node, replacement)
-    @verifier.scan(replacement, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -745,7 +731,6 @@ class Typer < SimpleNodeVisitor
       replacement = LocalAssignment.new(node.position, node.name, node.value)
     end
     replacement = node.parent.replaceChild(node, replacement)
-    @verifier.scan(replacement, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -921,7 +906,6 @@ class Typer < SimpleNodeVisitor
         else
           new_node.setParent(nil)
           parent.replaceChild(block, new_node)
-          typer.verifier.scan(parent, parent)
         end
         typer.infer(new_node)
       end
@@ -932,22 +916,5 @@ class Typer < SimpleNodeVisitor
     @macros.buildExtension(defn)
     #defn.parent.removeChild(defn)
     @types.getVoidType()
-  end
-end
-
-class AstVerifier < NodeScanner
-  def enterScript(node, arg)
-    raise IllegalArgumentException, "#{node.parent} -> #{node} " unless node.parent.nil?
-    true
-  end
-  def enterDefault(node, arg)
-    if node == arg
-      raise IllegalArgumentException, "#{node}" if node.parent.nil?
-      true
-    else
-      raise IllegalArgumentException, "#{node}.parent should be #{arg}, got #{node.parent}" unless node.parent == arg
-      scan(node, node)
-      false
-    end
   end
 end

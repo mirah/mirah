@@ -80,9 +80,9 @@ module Mirah::JVM::Types
         begin
           Builtins.initialize_builtins(compiler)
         rescue NativeException => ex
-          log("Error initializing builtins", ex.cause)
+          error("Error initializing builtins", ex.cause)
         rescue => ex
-          log("Error initializing builtins: #{ex.message}\n\t#{ex.backtrace.join("\n\t")}")
+          error("Error initializing builtins: #{ex.message}\n\t#{ex.backtrace.join("\n\t")}")
         end
       else
         warning "Unable to initialize builtins"
