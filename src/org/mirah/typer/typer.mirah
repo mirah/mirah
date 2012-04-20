@@ -375,6 +375,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitLoop(node, expression)
+    enhanceLoop(node)
     infer(node.condition, true)
     infer(node.body, false)
     infer(node.init, false)
@@ -916,5 +917,39 @@ class Typer < SimpleNodeVisitor
     @macros.buildExtension(defn)
     #defn.parent.removeChild(defn)
     @types.getVoidType()
+  end
+  
+  # Look for special blocks in the loop body and move them into the loop node.
+  def enhanceLoop(node:Loop):void
+    it = node.body.listIterator
+    while it.hasNext
+      child = it.next
+      if child.kind_of?(FunctionalCall)
+        call = FunctionalCall(child)
+        name = call.name.identifier rescue nil
+        if name.nil? || call.parameters_size() != 0 || call.block.nil?
+          return
+        end
+        target_list = if name.equals("init")
+          node.init
+        elsif name.equals("pre")
+          node.pre
+        elsif name.equals("post")
+          node.post
+        else
+          NodeList(nil)
+        end
+        if target_list
+          it.remove
+          target_list.add(call.block.body)
+        else
+          return
+          nil
+        end
+      else
+        return
+        nil
+      end
+    end
   end
 end

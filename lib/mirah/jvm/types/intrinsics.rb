@@ -229,6 +229,14 @@ module Mirah::JVM::Types
         end
       end
 
+      add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
+        compiler.visit(call.target, expression)
+        if expression
+          klass = call.parameters(0).inferred_type!
+          compiler.method.instanceof(klass.unmeta)
+        end
+      end
+
       # add_macro('kind_of?', class_type) do |transformer, call|
       #   klass, object = call.parameters(0), call.target
       #   Mirah::AST::Call.new(call.parent, call.position, 'isInstance') do |call2|
@@ -240,13 +248,6 @@ module Mirah::JVM::Types
       #   end
       # end
       # 
-      # add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
-      #   compiler.visit(call.target, expression)
-      #   if expression
-      #     klass = call.parameters(0).inferred_type!
-      #     compiler.method.instanceof(klass.unmeta)
-      #   end
-      # end
     end
   end
 

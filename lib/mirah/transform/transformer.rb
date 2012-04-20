@@ -44,23 +44,21 @@ module Mirah
 
       class JMetaPosition
         attr_accessor :start_line, :end_line, :start_offset, :end_offset, :file
-        attr_accessor :startpos, :endpos, :start_col, :end_col
+        attr_accessor :startpos, :endpos, :start_column, :end_column, :source
 
-        def initialize(transformer, startpos, endpos)
+        def initialize(transformer, startpos, endpos, source)
           @startpos = startpos
           @endpos = endpos
           @transformer = transformer
-          @fileinfo = transformer.fileinfo(startpos.filename)
-          puts "filename: #{startpos.filename.inspect}" unless @fileinfo
-          @file = @fileinfo[:filename]
           @start_line = startpos.line
           @start_offset = startpos.pos
-          @start_col = startpos.col
+          @start_column = startpos.col
           @end_line = endpos.line
           @end_offset = endpos.pos
-          @end_col = endpos.col
+          @end_column = endpos.col
+          @source = source
         end
-
+        
         def +(other)
           JMetaPosition.new(@transformer, @startpos, other.endpos)
         end
@@ -71,33 +69,6 @@ module Mirah
           else
             @start_line
           end
-        end
-
-        def get_code
-          code = @fileinfo[:code][@start_offset, @end_offset - @start_offset]
-          filename = "#{@start_line}:#{@file}"
-          [filename, code]
-        end
-
-        def underline
-          result = ""
-          @fileinfo[:code].each_with_index do |line, lineno|
-            lineno += 1
-            if lineno >= @start_line && lineno <= @end_line
-              chomped = line.chomp
-              result << chomped
-              result << "\n"
-              start = 0
-              start = @start_col if lineno == @start_line
-              result << " " * start
-              endcol = chomped.size
-              endcol = @end_col if lineno == @end_line
-              result << "^" * [endcol - start, 1].max
-              result << "\n"
-              break if lineno == @end_line
-            end
-          end
-          result
         end
       end
 
