@@ -303,15 +303,12 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import 'java.util.concurrent.Callable'
       def foo(a:Callable)
-        # throws Exception
         a.call
       end
     EOF
     result = cls.foo {0}
     assert_equal 0, result
     m = cls.java_class.java_method 'foo', java.util.concurrent.Callable
-    assert_equal([java.lang.Exception.java_class], m.exception_types)
-
   end
 
   def test_class_decl
@@ -1531,60 +1528,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     cls.make_one(nil)
   end
 
-  def test_block_with_duby_interface
-    cls, interface = compile(<<-EOF)
-      interface MyProc do
-        def call; returns :void; end
-      end
-      def foo(b:MyProc)
-        b.call
-      end
-      def bar
-        foo {System.out.println "Hi"}
-      end
-    EOF
-    assert_output("Hi\n") do
-      cls.bar
-    end
-  end
-
-  def test_duby_iterable
-    cls, = compile(<<-EOF)
-      import java.util.Iterator
-      class MyIterator; implements Iterable, Iterator
-        def initialize(x:Object)
-          @next = x
-        end
-
-        def hasNext
-          @next != nil
-        end
-
-        def next
-          result = @next
-          @next = nil
-          result
-        end
-
-        def iterator
-          self
-        end
-
-        def remove
-          raise UnsupportedOperationException
-        end
-
-        def self.test(x:String)
-          MyIterator.new(x).each {|y| System.out.println y}
-        end
-      end
-    EOF
-    
-    assert_output("Hi\n") do
-      cls.test("Hi")
-    end
-  end
-
   def test_java_lang_cast
     cls, = compile(<<-EOF)
       def foo(a:Object)
@@ -1718,17 +1661,10 @@ class TestJVMCompiler < Test::Unit::TestCase
       def string(x:Object)
         x.kind_of?(String)
       end
-
-      def dynamic(c:Class, o:Object)
-        o.kind_of?(c)
-      end
     EOF
 
     assert_equal(true, cls.string("foo"))
     assert_equal(false, cls.string(2))
-    assert_equal(true, cls.dynamic(java.lang.String, "foo"))
-    assert_equal(true, cls.dynamic(java.lang.Object, "foo"))
-    assert_equal(false, cls.dynamic(java.lang.Object, nil))
   end
 
   def test_static_import
@@ -1951,27 +1887,6 @@ class TestJVMCompiler < Test::Unit::TestCase
     script.main(nil)
   end
 
-  def test_parameter_used_in_block
-    cls, = compile(<<-EOF)
-      def foo(x:String):void
-        thread = Thread.new do
-          System.out.println "Hello \#{x}"
-        end
-        begin
-          thread.run
-          thread.join
-        rescue
-          System.out.println "Uh Oh!"
-        end
-      end
-      
-      foo('there')
-    EOF
-    assert_output("Hello there\n") do
-      cls.main(nil)
-    end
-  end
-
   def test_colon2
     cls, = compile(<<-EOF)
       def foo
@@ -2062,4 +1977,5 @@ class TestJVMCompiler < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
 end

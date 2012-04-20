@@ -45,7 +45,7 @@ module Mirah
 
         ImplicitReturn = Struct.new(:value)
 
-        def initialize(scoper)
+        def initialize(scoper, typer)
           super
         end
 

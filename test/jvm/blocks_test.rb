@@ -191,4 +191,41 @@ class TestBlocks < Test::Unit::TestCase
     end
   end
 
+  def test_parameter_used_in_block
+    cls, = compile(<<-EOF)
+      def foo(x:String):void
+        thread = Thread.new do
+          System.out.println "Hello \#{x}"
+        end
+        begin
+          thread.run
+          thread.join
+        rescue
+          System.out.println "Uh Oh!"
+        end
+      end
+      
+      foo('there')
+    EOF
+    assert_output("Hello there\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_block_with_mirah_interface
+    cls, interface = compile(<<-EOF)
+      interface MyProc do
+        def call; returns :void; end
+      end
+      def foo(b:MyProc)
+        b.call
+      end
+      def bar
+        foo {System.out.println "Hi"}
+      end
+    EOF
+    assert_output("Hi\n") do
+      cls.bar
+    end
+  end
 end

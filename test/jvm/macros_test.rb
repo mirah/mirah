@@ -106,7 +106,7 @@ class TestMacros < Test::Unit::TestCase
 
   def test_instance_macro_vcall
     script, cls = compile(<<-EOF)
-      class InstanceMacros
+      class InstanceMacros2
         def foobar
           "foobar"
         end
@@ -121,7 +121,7 @@ class TestMacros < Test::Unit::TestCase
       end
 
       def function
-        InstanceMacros.new.call_foobar
+        InstanceMacros2.new.call_foobar
       end
     EOF
 

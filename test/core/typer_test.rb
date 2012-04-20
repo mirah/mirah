@@ -42,7 +42,7 @@ class TestTyper < Test::Unit::TestCase
 
   def new_typer(n)
     @types = SimpleTypes.new(n.to_s)
-    @typer = Mirah::Typer::Typer.new(@types, @scopes)
+    @typer = Mirah::Typer::Typer.new(@types, @scopes, nil)
     @mirah = Transform::Transformer.new(Mirah::Util::CompilationState.new, @typer)
     @typer
   end

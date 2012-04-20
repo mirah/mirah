@@ -232,7 +232,7 @@ module Mirah::JVM::Types
       add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
         compiler.visit(call.target, expression)
         if expression
-          klass = call.parameters(0).inferred_type!
+          klass = compiler.inferred_type(call.parameters(0))
           compiler.method.instanceof(klass.unmeta)
         end
       end
