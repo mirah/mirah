@@ -2,7 +2,7 @@ package org.mirah.macros.anno;
 
 import java.lang.annotation.*;
 
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface MacroDef {
     // TODO(ribrdb) Should this include modifiers?

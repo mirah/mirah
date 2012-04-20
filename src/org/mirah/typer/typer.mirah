@@ -113,11 +113,15 @@ class Typer < SimpleNodeVisitor
     ErrorType.new([["Inference error: unsupported node #{node}", node.position]])
   end
 
+  def logger
+    @@log
+  end
+
   def visitVCall(call, expression)
     selfType = @scopes.getScope(call).selfType
     methodType = CallFuture.new(@types, selfType, Collections.emptyList, call)
     fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
-    @scopes.copyScopeFrom(call, fcall)
+    fcall.setParent(call.parent)
     @futures[fcall] = methodType
 
 
@@ -127,7 +131,7 @@ class Typer < SimpleNodeVisitor
     # TODO should probably replace this with a FunctionalCall node if that's the
     # right one so the compiler doesn't have to deal with an extra node.
     local = LocalAccess.new(call.position, call.name)
-    @scopes.copyScopeFrom(call, local)
+    local.setParent(call.parent)
     options = [infer(local, true), local, methodType, fcall]
     current_node = Node(call)
     typer = self
@@ -136,13 +140,16 @@ class Typer < SimpleNodeVisitor
       node = Node(_node)
       picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
+        typer.logger.fine("Expanding macro #{call}")
         node = InlineCode(picked_type).expand(fcall, typer)
-        future.type = typer.infer(node, expression != nil)
-      else
-        future.type = typefuture
+        need_to_infer = true
       end
-      node = current_node.parent.replaceChild(current_node, node)
-      typer.infer(node, expression != nil)
+      if current_node.parent.nil?
+        typer.logger.fine("Unable to replace #{current_node} with #{node}")
+      else
+        node = current_node.parent.replaceChild(current_node, node)
+        future.type = typer.infer(node, expression != nil)
+      end
       current_node = node
     end
     future.position = call.position
@@ -162,6 +169,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
+        typer.logger.fine("Expanding macro #{call}")
         node = InlineCode(resolvedType).expand(call, typer)
         node = call.parent.replaceChild(call, node)
         delegate.type = typer.infer(node, expression != nil)
@@ -173,10 +181,20 @@ class Typer < SimpleNodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
+      items = LinkedList.new
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      @scopes.copyScopeFrom(call, cast)
-      castType = infer(cast, true)
-      TypeFuture(MaybeInline.new(call, delegate, cast, castType))
+      castType = @types.get(scope, call.typeref)
+      items.add(castType)
+      items.add(cast)
+      items.add(delegate)
+      items.add(nil)
+      TypeFuture(PickFirst.new(items) do |type, arg|
+        if arg != nil
+          # We chose the cast.
+          call.parent.replaceChild(call, cast)
+          typer.infer(cast, expression != nil)
+        end
+      end)
     else
       delegate
     end
@@ -212,6 +230,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
+        typer.logger.fine("Expanding macro #{call}")
         node = InlineCode(resolvedType).expand(call, typer)
         node = call.parent.replaceChild(call, node)
         delegate.type = typer.infer(node, expression != nil)
@@ -238,12 +257,20 @@ class Typer < SimpleNodeVisitor
           @scopes.copyScopeFrom(call, newNode)
         else
           cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
-          @scopes.copyScopeFrom(call, cast)
           newNode = Node(cast)
-          newType = infer(cast, expression != nil)
+          newType = @types.get(scope, typeref)
         end
-        infer(newNode)
-        TypeFuture(MaybeInline.new(call, delegate, newNode, newType))
+        items = LinkedList.new
+        items.add(newType)
+        items.add(newNode)
+        items.add(delegate)
+        items.add(nil)
+        TypeFuture(PickFirst.new(items) do |type, arg|
+          if arg != nil
+            call.parent.replaceChild(call, newNode)
+            typer.infer(newNode, expression != nil)
+          end
+        end)
       else
         delegate
       end
@@ -547,16 +574,16 @@ class Typer < SimpleNodeVisitor
     type
   end
 
-  # def visitHash(hash, expression)
-  #   hashType = @types.getHashType
-  #   @futures[hash] = hashType
-  #   target = TypeRefImpl.new('mirah.impl.Builtin', false, true, hash.position)
-  #   call = Call.new(target, SimpleString.new('new_hash'), nil, nil)
-  #   hash.parent.replaceChild(hash, call)
-  #   call.parameters.add(hash)
-  #   infer(call, expression != nil)
-  #   hashType
-  # end
+  def visitHash(hash, expression)
+    future = AssignableTypeFuture.new(hash.position)
+    @futures[hash] = future
+    target = TypeRefImpl.new('org.mirah.builtins.Builtins', false, true, hash.position)
+    call = Call.new(target, SimpleString.new('newHash'), Collections.emptyList, nil)
+    hash.parent.replaceChild(hash, call)
+    call.parameters.add(hash)
+    future.assign(infer(call, expression != nil), hash.position)
+    future
+  end
 
   def visitRegex(regex, expression)
     regex.strings.each {|r| infer(r)}
@@ -640,7 +667,8 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.addScope(script)
     @types.addDefaultImports(scope)
     scope.selfType = @types.getMainType(scope, script)
-    infer(script.body, false)
+    type = infer(script.body, false)
+    type
   end
 
   def visitAnnotation(anno, expression)
@@ -722,9 +750,10 @@ class Typer < SimpleNodeVisitor
   def mergeArgs(args:Arguments, it:ListIterator, req:ListIterator, opt:ListIterator, req2:ListIterator):void
     #it.each do |arg|
     while it.hasNext
-      arg = Named(it.next)
+      arg = FormalArgument(it.next)
       name = arg.name
       next unless name.kind_of?(Unquote)
+      next if arg.type # If the arg has a type then the unquote must only be an identifier.
       unquote = Unquote(name)
       new_args = unquote.arguments
       next unless new_args
@@ -885,7 +914,7 @@ class Typer < SimpleNodeVisitor
 
   def visitMacroDefinition(defn, expression)
     @macros.buildExtension(defn)
-    defn.parent.removeChild(defn)
+    #defn.parent.removeChild(defn)
     @types.getVoidType()
   end
 end

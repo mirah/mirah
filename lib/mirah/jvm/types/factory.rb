@@ -39,7 +39,6 @@ module Mirah::JVM::Types
     begin
       java_import 'org.mirah.builtins.Builtins'
     rescue NameError
-      puts File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
       $CLASSPATH << File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
       begin
         java_import 'org.mirah.builtins.Builtins'
@@ -83,9 +82,9 @@ module Mirah::JVM::Types
         begin
           Builtins.initialize_builtins(compiler)
         rescue NativeException => ex
-          log("Error initializing builtins", ex.cause)
+          error("Error initializing builtins", ex.cause)
         rescue => ex
-          log("Error initializing builtins: #{ex.backtrace.join("\n")}")
+          error("Error initializing builtins: #{ex.message}\n\t#{ex.backtrace.join("\n\t")}")
         end
       else
         warning "Unable to initialize builtins"
@@ -216,7 +215,7 @@ module Mirah::JVM::Types
               ["Cannot find %s method %s(%s) on %s" %
                   [ target.meta? ? "static" : "instance",
                     name,
-                    argTypes.map{|t| t.full_name}.join(', '),
+                    argTypes.map{|t| t ? t.full_name : "?"}.join(', '),
                     target.full_name], position]]))
         elsif method.kind_of?(Exception)
           type.resolved(ErrorType.new([[method.message, position]]))
@@ -263,7 +262,9 @@ module Mirah::JVM::Types
         end
       end
       argTypes = argTypes.map do |t|
-        if t.isBlock
+        if t.nil?
+          t
+        elsif t.isBlock
           type.position_set(position) if (position && type.position.nil?)
           # This should only happen if type is an error.
           type.resolve
@@ -271,7 +272,11 @@ module Mirah::JVM::Types
           t
         end
       end
-      result = getMethodTypeInternal(target, name, argTypes, position)
+      result = if argTypes.all?
+        getMethodTypeInternal(target, name, argTypes, position)
+      else
+        MethodFuture.new(name, argTypes, AssignableTypeFuture.new(nil), false, nil)
+      end
       result.return_type.assign(type, position)
       result
     end
@@ -377,8 +382,8 @@ module Mirah::JVM::Types
       end
     end
 
-    def addMacro(klass, name, arguments, macro)
-      klass.unmeta.add_compiled_macro(macro, name, arguments)
+    def addMacro(klass, macro)
+      klass.unmeta.add_compiled_macro(macro)
     end
     def extendClass(classname, extensions)
       get_type(classname).load_extensions(extensions)

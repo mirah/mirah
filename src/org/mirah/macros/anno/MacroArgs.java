@@ -2,7 +2,7 @@ package org.mirah.macros.anno;
 
 import java.lang.annotation.*;
 
-@Retention(RetentionPolicy.CLASS)
+@Retention(RetentionPolicy.RUNTIME)
 @Target({})
 public @interface MacroArgs {
     // TODO: The bootstrap mirah doesn't support Class annotation values. These are all class names.

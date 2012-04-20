@@ -28,7 +28,6 @@ module Mirah
       end
 
       def find_method(mapped_type, name, mapped_params, macro_params, meta, &block)
-        raise ArgumentError if mapped_params.any? {|p| p.nil?}
         if mapped_type.error?
           raise "WTF?!?"
         end
@@ -56,10 +55,12 @@ module Mirah
         end
 
         begin
-          if constructor
-            method = mapped_type.constructor(*mapped_params)
-          else
-            method = mapped_type.java_method(name, *mapped_params)
+          unless mapped_params.any? {|p| p.nil? || p.isError}
+            if constructor
+              method = mapped_type.constructor(*mapped_params)
+            else
+              method = mapped_type.java_method(name, *mapped_params)
+            end
           end
         rescue NameError => ex
           # TODO return nil instead of raising an exception if the method doesn't exist.
@@ -73,12 +74,12 @@ module Mirah
           method = macro
         elsif method.nil?
           # exact args failed, do a deeper search
-          log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
+          log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})" if mapped_params.all?
 
           method = find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor)
 
           unless method
-            log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})"
+            log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})" if mapped_params.all?
             return nil
           end
         end
@@ -99,7 +100,10 @@ module Mirah
         method = find_jls2(mapped_type, name, mapped_params, meta, by_name, true)
         return method if (constructor || macro_params.nil?)
         macros = mapped_type.unmeta.find_callable_macros(name)
-        macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false)
+        if macros.size != 0
+          log "Found potential macro match for #{mapped_type.name}.#{name}(#{macro_params.map(&:full_name).join ', '})"
+          macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false)
+        end
         if macro && method
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{macro} and #{method}"
         end
@@ -107,6 +111,7 @@ module Mirah
       end
 
       def find_jls2(mapped_type, name, mapped_params, meta, by_name, include_fields=true)
+        return nil if mapped_params.any? {|p| p.nil? || p.isError}
         # filter by arity
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
 
@@ -128,7 +133,7 @@ module Mirah
       end
 
       def phase1(mapped_params, potentials)
-        log "Beginning JLS phase 1 search with params (#{mapped_params.map(&:name)})"
+        log "Beginning JLS phase 1 search with params (#{mapped_params.map(&:name).join ', '})"
 
         # cycle through methods looking for more specific matches; gather matches of equal specificity
         methods = potentials.inject([]) do |currents, potential|
@@ -238,6 +243,9 @@ module Mirah
           # exact match
           next if target_type == in_type
 
+          unless target_type.respond_to?(:primitive?) && in_type.respond_to?(:primitive?)
+            puts "Huh?"
+          end
           # primitive is safely convertible
           if target_type.primitive?
             if in_type.primitive?

@@ -7,6 +7,7 @@ module Mirah
       java_import 'mirah.impl.MirahParser'
     end
     java_import 'mirah.lang.ast.StringCodeSource'
+    java_import 'org.mirah.macros.Macro'
     java_import 'org.mirah.mmeta.ErrorHandler'
 
     class MirahErrorHandler

@@ -68,7 +68,7 @@ module Mirah
             plugin = args.shift
             require "mirah/plugin/#{plugin}"
           when '--verbose', '-V'
-            Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::ALL
+            Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::FINE
             state.verbose = true
             args.shift
           when '--vmodule'

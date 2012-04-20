@@ -137,6 +137,10 @@ module Mirah
           end
         end
 
+        def visitMacroDefinition(node, expression)
+          # ignore. It was already compiled
+        end
+
         def visitScript(script, expression)
           @static = true
           @filename = File.basename(script.position.source.name)

@@ -1,3 +1,4 @@
+# TODO: This code is thread hostile.
 package org.mirah.typer
 import java.util.*
 import java.util.logging.Logger
@@ -43,10 +44,12 @@ class SimpleFuture; implements TypeFuture
   def removeListener(listener); end
 end
 
+# Thread hostile
 class BaseTypeFuture; implements TypeFuture
   def initialize(position:Position)
     @position = position
     @listeners = ArrayList.new
+    @new_listeners = ArrayList(nil)
   end
   def initialize
     @listeners = ArrayList.new
@@ -81,13 +84,23 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def onUpdate(listener:TypeListener):TypeListener
-    @listeners.add(listener)
+    if @notifying
+      @new_listeners ||= ArrayList.new(@listeners)
+      @new_listeners.add(listener)
+    else
+      @listeners.add(listener)
+    end
     listener.updated(self, inferredType) if isResolved
     listener
   end
 
   def removeListener(listener:TypeListener):void
-    @listeners.remove(listener)
+    if @notifying
+      @new_listeners ||= ArrayList.new(@listeners)
+      @new_listeners.remove(listener)
+    else
+      @listeners.remove(listener)
+    end
   end
 
   def resolved(type:ResolvedType):void
@@ -100,10 +113,29 @@ class BaseTypeFuture; implements TypeFuture
     end
     if !type.equals(@resolved)
       @resolved = type
-      @listeners.each do |l|
-        TypeListener(l).updated(self, type)
-      end
+      notifyListeners
     end
+  end
+  
+  def notifyListeners:void
+    if @notifying
+      @notify_again = true
+      return
+    end
+    @notifying = true
+    begin
+      @notify_again = false
+      type = @resolved
+      @listeners.each do |l|
+        break if @notify_again
+        TypeListener(l).updated(self, type)
+      end      
+    end while @notify_again
+    if @new_listeners
+      @listeners = @new_listeners
+      @new_listeners = nil
+    end
+    @notifying = false
   end
 end
 
@@ -238,41 +270,15 @@ class GenericTypeFuture < AssignableTypeFuture
   end
 end
 
-class MaybeInline < BaseTypeFuture
-  def initialize(n:Node, type:TypeFuture, altNode:Node, altType:TypeFuture)
-    super(n.position)
-    node = n
-    @inlined = false
-    me = self
-    altType.onUpdate do |x, value|
-      if me.inlined || value.name != ':error'
-        unless me.inlined
-          me.inlined = true
-          node.parent.replaceChild(node, altNode)
-        end
-        me.resolved(value)
-      end
-    end
-    type.onUpdate do |x, value|
-      unless me.inlined
-        me.resolved(value)
-      end
-    end
-  end
-
-  def inlined=(inlined:boolean):void
-    @inlined = inlined
-  end
-  def inlined:boolean
-    @inlined
-  end
-end
-
 interface PickerListener do
   def picked(selection:TypeFuture, value:Object):void; end
 end
 
 class PickFirst < BaseTypeFuture
+  def self.initialize:void
+    @@log = Logger.getLogger(PickFirst.class.getName)
+  end
+  
   def initialize(items:List, listener:PickerListener)
     @picked = -1
     @listener = listener
@@ -287,6 +293,7 @@ class PickFirst < BaseTypeFuture
   end
 
   def pick(index:int, type:TypeFuture, value:Object, resolvedType:ResolvedType)
+    @@log.finest("#{System.identityHashCode(self)} picked #{index} #{value} #{resolvedType.name}")
     if @picked != index
       @picked = index
       @listener.picked(type, value) if @listener
@@ -326,7 +333,9 @@ class CallFuture < BaseTypeFuture
   
   def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
-    raise IllegalArgumentException, "No target for #{name}" unless target
+    unless target
+      raise IllegalArgumentException, "No target for #{name}"
+    end
     @types = types
     @target = target
     @name = name
@@ -437,7 +446,7 @@ class CallFuture < BaseTypeFuture
         @method = TypeFuture(nil)
         resolved(@resolved_target)
         resolveBlocks(nil, @resolved_target)
-      elsif @resolved_args.all?
+      else
         call = self
         new_method = @types.getMethodType(self)
         if new_method != @method
@@ -532,7 +541,7 @@ class MethodFuture < BaseTypeFuture
     @returnType = returnType
     @vararg = vararg
     mf = self
-    raise IllegalArgumentException if parameters.any? {|p| ResolvedType(p).isBlock}
+    #raise IllegalArgumentException if parameters.any? {|p| ResolvedType(p).isBlock}
     @returnType.onUpdate do |f, type|
       if type.isError
         mf.resolved(type)

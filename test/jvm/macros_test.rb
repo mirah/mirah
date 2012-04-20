@@ -29,15 +29,16 @@ class TestMacros < Test::Unit::TestCase
 
   def test_import
     cls, = compile(<<-EOF)
-      import mirah.lang.ast.Null
+      import java.util.LinkedList
       macro def foo
-        Null.new
+        LinkedList.new
+        Node(nil)
       end
 
-      System.out.println(foo)
+      foo
     EOF
 
-    assert_output("null\n") {cls.main(nil)}
+    assert_output("") {cls.main(nil)}
     assert(!cls.respond_to?(:foo))
   end
   
@@ -83,8 +84,7 @@ class TestMacros < Test::Unit::TestCase
   end
   
   
-  def test_instance_macro
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
+  def test_instance_macro_call
     script, cls = compile(<<-EOF)
       class InstanceMacros
         def foobar
@@ -92,16 +92,32 @@ class TestMacros < Test::Unit::TestCase
         end
 
         macro def macro_foobar
-          quote {foobar}
-        end
-      
-        def call_foobar
-          macro_foobar
+          quote {`@call.target`.foobar}
         end
       end
 
       def macro
         InstanceMacros.new.macro_foobar
+      end
+    EOF
+
+    assert_equal("foobar", script.macro)
+  end
+
+  def test_instance_macro_vcall
+    script, cls = compile(<<-EOF)
+      class InstanceMacros
+        def foobar
+          "foobar"
+        end
+
+        macro def macro_foobar
+          quote {`@call.target`.foobar}
+        end
+      
+        def call_foobar
+          macro_foobar
+        end
       end
 
       def function
@@ -110,15 +126,12 @@ class TestMacros < Test::Unit::TestCase
     EOF
 
     assert_equal("foobar", script.function)
-    assert_equal("foobar", script.macro)
   end
 
   def test_unquote
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
 
     script, cls = compile(<<-EOF)
-      import mirah.lang.ast.*
-
       class UnquoteMacros
         macro def make_attr(name_node:Identifier, type:TypeName)
           name = name_node.identifier
@@ -190,9 +203,8 @@ class TestMacros < Test::Unit::TestCase
 
   def test_add_args_in_macro
     cls, = compile(<<-EOF)
-      macro def foo(a)
-        import duby.lang.compiler.Node
-        quote { bar "1", `Node(a.child_nodes.get(0)).child_nodes`, "2"}
+      macro def foo(a:Array)
+        quote { bar "1", `a.values`, "2"}
       end
 
       def bar(a:String, b:String, c:String, d:String)
@@ -209,7 +221,7 @@ class TestMacros < Test::Unit::TestCase
   
   def test_block_parameter_uses_outer_scope
     cls, = compile(<<-EOF)
-      macro def foo(&block)
+      macro def foo(block:Block)
         quote { z = `block.body`; System.out.println z }
       end
       apple = 1
