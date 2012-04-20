@@ -228,7 +228,11 @@ class MacroBuilder; implements Compiler
     i = 0
     args.required.each do |_arg|
       arg = RequiredArgument(_arg)
-      casts.add(Cast.new(TypeName(arg.type.clone), fetchMacroArg(i)))
+      if i == args.required_size() - 1 && arg.type.typeref.name.endsWith("Block")
+        casts.add(fetchMacroBlock)
+      else
+        casts.add(Cast.new(TypeName(arg.type.clone), fetchMacroArg(i)))
+      end
       i += 1
     end
     casts
@@ -254,6 +258,11 @@ class MacroBuilder; implements Compiler
       Call.new(FieldAccess.new(SimpleString.new('call')),
                SimpleString.new('parameters'), Collections.emptyList, nil),
       SimpleString.new('get'), [Fixnum.new(i)], nil)
+  end
+  
+  def fetchMacroBlock:Node
+    Call.new(FieldAccess.new(SimpleString.new('call')),
+             SimpleString.new('block'), Collections.emptyList, nil)
   end
   
   def addToExtensions(macrodef:MacroDefinition, klass:Class):void
