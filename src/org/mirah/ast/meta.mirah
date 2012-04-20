@@ -319,6 +319,7 @@ class ListNodeState < BaseNodeState
       end
 
       def initCopy:void
+        super
         new_children = java::util::ArrayList.new(@children.size)
         @children.each {|child| new_children.add(child ? childAdded(Node(Node(child).clone)) : nil)}
         @children = new_children
@@ -455,6 +456,7 @@ class NodeState < BaseNodeState
         raise IllegalArgumentException, "No child #{child}"
       end
       def initCopy:void
+        super
         `@cloneBody`
       end
     end

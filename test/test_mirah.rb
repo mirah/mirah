@@ -783,7 +783,7 @@ EOF
      end
      def enterDefault(node, arg)
        if node == arg
-         puts "#{" "*@indent}#{node} (#{id(node)}, parent = #{id(node.parent)})"
+         puts "#{" "*@indent}#{node} (#{id(node)}, parent = #{id(node.parent)})" if @print
          @indent += 2
          true
        else
@@ -821,5 +821,11 @@ EOF
      ast2 = ast.clone
      checker.scan(ast2, ast2)
      checker.scan(ast, ast)
+     
+     ast3 = ast.body(0).block.body.clone
+     checker.scan(ast, ast)
+     checker.scan(ast2, ast2)
+     checker.scan(ast3, ast3)
+     assert_nil(ast3.parent)
    end
 end
