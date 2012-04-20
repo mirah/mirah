@@ -31,6 +31,7 @@ import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.FieldAccess
 import mirah.lang.ast.Fixnum
 import mirah.lang.ast.HashEntry
+import mirah.lang.ast.Import
 import mirah.lang.ast.MacroDefinition
 import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
@@ -177,9 +178,20 @@ class MacroBuilder; implements Compiler
                                  argdef
                                ])
     scope = @scopes.getScope(macroDef)
+    preamble = NodeList.new
+    
     if scope.package
-      script.body.insert(0, Package.new(SimpleString.new(scope.package), nil))
+      preamble.add(Package.new(SimpleString.new(scope.package), nil))
     end
+    scope.search_packages.each do |pkg|
+      preamble.add(Import.new(SimpleString.new(String(pkg)), SimpleString.new('*')))
+    end
+    imports = scope.imports
+    imports.keySet.each do |key|
+      preamble.add(Import.new(SimpleString.new(String(imports.get(key))),
+                              SimpleString.new(String(key))))
+    end
+    script.body.insert(0, preamble)
     script
   end
   
@@ -226,7 +238,11 @@ class MacroBuilder; implements Compiler
     # TODO other args
     required = LinkedList.new
     args.required_size.times do |i|
-      required.add(args.required(i).type.clone)
+      arg = args.required(i)
+      name = arg.type.typeref.name
+      # FIXME these should probably be inferred instead of assuming the package.
+      name = "mirah.lang.ast.#{name}" unless name.startsWith('mirah.lang.ast.')
+      required.add(SimpleString.new(arg.position, name))
     end
     entries = [HashEntry.new(SimpleString.new('required'), Array.new(required))]
     Annotation.new(SimpleString.new('org.mirah.macros.anno.MacroArgs'), entries)
@@ -269,10 +285,6 @@ class MacroBuilder; implements Compiler
   
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
     extended_class = @scopes.getScope(macroDef).selfType.resolve
-    arg_types = @typer.inferAll(macroDef.arguments)
-    arg_types.size.times do |i|
-      arg_types.set(i, TypeFuture(arg_types.get(i)).resolve)
-    end
-    @types.addMacro(extended_class, macroDef.name.identifier, arg_types, klass)
+    @types.addMacro(extended_class, klass)
   end
 end

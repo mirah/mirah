@@ -722,9 +722,10 @@ class Typer < SimpleNodeVisitor
   def mergeArgs(args:Arguments, it:ListIterator, req:ListIterator, opt:ListIterator, req2:ListIterator):void
     #it.each do |arg|
     while it.hasNext
-      arg = Named(it.next)
+      arg = FormalArgument(it.next)
       name = arg.name
       next unless name.kind_of?(Unquote)
+      next if arg.type # If the arg has a type then the unquote must only be an identifier.
       unquote = Unquote(name)
       new_args = unquote.arguments
       next unless new_args

@@ -1,5 +1,7 @@
 package org.mirah.typer
 import mirah.lang.ast.Node
+import java.util.List
+import java.util.Map
 
 interface Scope do
   def selfType:TypeFuture; end  # Should this be resolved?
@@ -13,6 +15,8 @@ interface Scope do
   def package=(package:String):void; end
   def resetDefaultSelfNode:void; end
   def temp(name:String):String; end
+  def imports:Map; end  # Map of short -> long; probably should be reversed.
+  def search_packages:List; end
 end
 
 interface Scoper do

@@ -247,7 +247,7 @@ end
 
 def add_quote_macro
   Annotater.new('build/bootstrap/org/mirah/macros/QuoteMacro.class') do |klass|
-    av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', false)
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', true)
     av.visit("name", "quote")
     args = av.visitAnnotation('arguments', 'Lorg/mirah/macros/anno/MacroArgs;')
     req = args.visitArray('required')

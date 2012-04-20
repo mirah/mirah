@@ -826,7 +826,7 @@ module Mirah
 
             strcat.strings.each do |node|
               visit(node, true)
-              method = find_method(builder_class, "append", [inferred_type(node)], false)
+              method = find_method(builder_class, "append", [inferred_type(node)], nil, false)
               if method
                 @method.invokevirtual builder_class, "append", [method.return_type, *method.argument_types]
               else
@@ -975,7 +975,7 @@ module Mirah
           print_node.parameters.each {|param| visit(param, true)}
           params = print_node.parameters.map {|param| inferred_type(param).jvm_type}
           method_name = print_node.println ? "println" : "print"
-          method = find_method(PrintStream.java_class, method_name, params, false)
+          method = find_method(PrintStream.java_class, method_name, params, nil, false)
           if (method)
             @method.invokevirtual(
             PrintStream,

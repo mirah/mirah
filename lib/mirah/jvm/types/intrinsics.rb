@@ -19,6 +19,8 @@ require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
   class Type
+    java_import 'org.mirah.macros.anno.MacroDef'
+    
     def load(builder, index)
       builder.send "#{prefix}load", index
     end
@@ -55,7 +57,9 @@ module Mirah::JVM::Types
       intrinsics[name][args] = method_or_type
     end
 
-    def add_compiled_macro(klass, name, arg_types)
+    def add_compiled_macro(klass)
+      name, arg_types = read_macrodef_annotation(klass)
+      
       log "Adding macro #{self.name}.#{name}(#{arg_types.map{|t| t.full_name}.join(', ')})"
       # TODO separate static and instance macros
       macro = Macro.new(self, name, arg_types) do |call, typer|
@@ -159,26 +163,27 @@ module Mirah::JVM::Types
         macros = extensions['macros']
         return self if macros.nil?
         macros.each do |macro_class|
-          macro_mirror = @type_system.get_mirror(macro_class)
-          macro = macro_mirror.getDeclaredAnnotation('org.mirah.macros.anno.MacroDef')
-          macro_name = macro['name']
-          # TODO optional, rest args
-          types = macro['arguments']['required']
-          args = types.map do |typename|
-            type = @type_system.get_type(typename)
-            raise "Unable to find class #{typename}" unless type
-            type
-          end
           klass = begin
             JRuby.runtime.jruby_class_loader.loadClass(macro_class)
           rescue java.lang.NoClassDefFoundError => ex
-            puts $CLASSPATH.inspect
             raise ex
           end
-          add_compiled_macro(klass, macro_name, args)
+          add_compiled_macro(klass)
         end
       end
       self
+    end
+
+    def read_macrodef_annotation(klass)
+      macro = klass.getAnnotation(MacroDef.java_class)
+      macro_name = macro.name
+      # TODO optional, rest args
+      args = macro.arguments.required.map do |typename|
+        type = @type_system.get_type(typename)
+        raise "Unable to find class #{typename}" unless type
+        type
+      end
+      [macro_name, args]
     end
 
     def add_intrinsics
