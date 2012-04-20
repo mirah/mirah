@@ -62,6 +62,7 @@ module Mirah::JVM::Types
       if arg_types.nil?
         return
       end
+      
       log "Adding macro #{self.name}.#{name}(#{arg_types.map{|t| t.full_name}.join(', ')})"
       # TODO separate static and instance macros
       macro = Macro.new(self, name, arg_types) do |call, typer|

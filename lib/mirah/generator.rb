@@ -65,6 +65,8 @@ module Mirah
         end
         process_inference_errors(@typer, nodes, &error_handler)
       rescue NativeException => ex
+        ex.cause.printStackTrace
+        sleep(1)
         log("Caught exception during type inference", ex.cause)
         raise ex
       ensure

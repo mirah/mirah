@@ -139,11 +139,13 @@ class MacroBuilder; implements Compiler
     script = Script(parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
     # TODO(ribrdb) scope
     ValueSetter.new(values).scan(script)
-    if script.body_size == 1
+    node = if script.body_size == 1
       script.body(0)
     else
       script.body
     end
+    node.setParent(nil)
+    node
   end
 
   # If the string is too long split it into multiple string constants.
@@ -167,7 +169,7 @@ class MacroBuilder; implements Compiler
     addMissingTypes(macroDef)
     argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
-    script = deserializeScript("MacroTemplate", template,
+    script = deserializeScript("Macro", template,
                                [ name,
                                  macroDef.arguments.clone,
                                  macroDef.body,

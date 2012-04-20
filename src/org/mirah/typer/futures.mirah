@@ -286,6 +286,10 @@ interface PickerListener do
 end
 
 class PickFirst < BaseTypeFuture
+  def self.initialize:void
+    @@log = Logger.getLogger(PickFirst.class.getName)
+  end
+  
   def initialize(items:List, listener:PickerListener)
     @picked = -1
     @listener = listener
@@ -300,6 +304,7 @@ class PickFirst < BaseTypeFuture
   end
 
   def pick(index:int, type:TypeFuture, value:Object, resolvedType:ResolvedType)
+    @@log.finest("#{System.identityHashCode(self)} picked #{index} #{value} #{resolvedType.name}")
     if @picked != index
       @picked = index
       @listener.picked(type, value) if @listener
@@ -452,7 +457,7 @@ class CallFuture < BaseTypeFuture
         @method = TypeFuture(nil)
         resolved(@resolved_target)
         resolveBlocks(nil, @resolved_target)
-      elsif @resolved_args.all?
+      else
         call = self
         new_method = @types.getMethodType(self)
         if new_method != @method
@@ -546,7 +551,7 @@ class MethodFuture < BaseTypeFuture
     @returnType = returnType
     @vararg = vararg
     mf = self
-    raise IllegalArgumentException if parameters.any? {|p| ResolvedType(p).isBlock}
+    #raise IllegalArgumentException if parameters.any? {|p| ResolvedType(p).isBlock}
     @returnType.onUpdate do |f, type|
       if type.isError
         mf.resolved(type)

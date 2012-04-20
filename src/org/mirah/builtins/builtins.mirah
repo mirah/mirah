@@ -1,11 +1,12 @@
 package org.mirah.builtins
 
 import org.mirah.macros.Compiler
+import java.util.Collections
 
 class Builtins
   def self.initialize_builtins(mirah:Compiler)
-    mirah.type_system.extendClass('java.lang.Object', ObjectExtensions.class)
     mirah.type_system.extendClass('java.util.Map', MapExtensions.class)
+    mirah.type_system.extendClass('java.lang.Object', ObjectExtensions.class)
   end
   
   macro def newHash(hash:Hash)
@@ -15,20 +16,22 @@ class Builtins
     
     block = quote do
       `map` = java::util::HashMap.new(`Fixnum.new(capacity)`)
-      `map`.put(key, value)
+      `map`.put()
       `map`
     end
     result = block.remove(2)
     put_template = block.remove(1)
     i = 0
     while i < hash.size
-      block.add(put_template)
-      put = Call(block.get(i + 1))
       entry = hash.get(i)
-      put.parameters.set(0, entry.key)
-      put.parameters.set(1, entry.value)
+      put = Call(put_template.clone)
+      put.position = entry.position
+      put.parameters.add(entry.key)
+      put.parameters.add(entry.value)
+      block.add(put)
+      i += 1
     end
     block.add(result)
-    block
+    NodeList.new(hash.position, [block])
   end
 end
