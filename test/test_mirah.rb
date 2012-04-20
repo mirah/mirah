@@ -773,4 +773,53 @@ EOF
      args = unquote.arguments
      assert_equal('foo', args.required(0).name.identifier)
    end
+   
+   class CheckParents < NodeScanner
+     def initialize(test, print=false)
+       super()
+       @test = test
+       @print = false
+       @indent = 0
+     end
+     def enterDefault(node, arg)
+       if node == arg
+         puts "#{" "*@indent}#{node} (#{id(node)}, parent = #{id(node.parent)})"
+         @indent += 2
+         true
+       else
+         scan(node, node)
+         @test.assert_equal(arg, node.parent, node.inspect) 
+         false
+       end
+     end
+     def exitDefault(node, arg)
+       @indent -= 2 if node == arg
+     end
+     def id(obj)
+       return 'nil' if obj.nil?
+       inspected = obj.inspect
+       if inspected =~ /:(0x[a-f0-9]+)/
+         $1
+       else
+         obj.object_id
+       end
+     end
+   end
+   
+   def test_clone_parents
+     ast = parse(<<-EOF)
+       quote do
+         `map` = java::util::HashMap.new(`Fixnum.new(capacity)`)
+         `map`.put(a, b)
+         map.put(a, b)
+         nil
+       end
+     EOF
+     checker = CheckParents.new(self)
+     checker.scan(ast, ast)
+
+     ast2 = ast.clone
+     checker.scan(ast2, ast2)
+     checker.scan(ast, ast)
+   end
 end

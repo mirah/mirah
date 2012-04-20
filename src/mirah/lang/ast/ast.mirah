@@ -168,10 +168,11 @@ class NodeImpl
     "<#{getClass.getName}#{name}>"
   end
 
+  # Override initCopy instead
   def clone:Object
     cloned = NodeImpl(super)
-    cloned.setParent(nil)
-    cloned.clone_listeners = LinkedList.new(@clone_listeners)
+    cloned.initCopy
+    fireWasCloned(cloned)
     cloned
   end
 
@@ -241,9 +242,10 @@ class NodeImpl
     end
   end
   
-  private
-  def clone_listeners=(listeners:LinkedList)
-    @clone_listeners = listeners
+  # Should only be called during clone.
+  def initCopy:void
+    @parent = nil
+    @clone_listeners = LinkedList.new
   end
 end
 

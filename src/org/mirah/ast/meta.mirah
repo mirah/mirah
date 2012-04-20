@@ -318,16 +318,10 @@ class ListNodeState < BaseNodeState
         @children.remove(child)
       end
 
-      def clone:Object
-        _clone = super
-        node = `mirah.cast(name, '_clone')`
-        @children = java::util::ArrayList.new(@children)
-        it = node.listIterator
-        while it.hasNext
-          child = it.next
-          it.set(Node(Node(child).clone)) if child
-        end
-        node
+      def initCopy:void
+        new_children = java::util::ArrayList.new(@children.size)
+        @children.each {|child| new_children.add(child ? childAdded(Node(Node(child).clone)) : nil)}
+        @children = new_children
       end
 
       def add(node:`type_name`):void
@@ -460,12 +454,8 @@ class NodeState < BaseNodeState
         `@removeBody`
         raise IllegalArgumentException, "No child #{child}"
       end
-      def clone
-        _clone = super
-        node = `mirah.cast(name, '_clone')`
+      def initCopy:void
         `@cloneBody`
-        fireWasCloned(node)
-        node
       end
     end
   end
@@ -513,9 +503,11 @@ class NodeState < BaseNodeState
         return
       end
     end
-    clone_call = mirah.quote {self.`name`.clone}
+    clone_call = mirah.quote {childAdded(Node(self.`name`.clone))}
     @cloneBody << mirah.quote do
-      node.`setter`(`mirah.cast(type, clone_call)`) if self.`name`
+      if self.`name`
+        @`name` = `mirah.cast(type, clone_call)`
+      end
     end
     addGetters(name, type, node)
   end
@@ -528,9 +520,11 @@ class NodeState < BaseNodeState
     end
     size_name = "#{name}_size"
     @children.add([name, 'java.util.List'])
-    clone_call = mirah.quote {self.`name`.clone}
+    clone_call = mirah.quote {childAdded(Node(self.`name`.clone))}
     @cloneBody << mirah.quote do
-      node.`setter`(`mirah.cast(list_type, clone_call)`) if self.`name`
+      if self.`name`
+        @`name` = `mirah.cast(list_type, clone_call)`
+      end
     end
     mirah.quote do
       `addGetters(name, list_type, true)`
