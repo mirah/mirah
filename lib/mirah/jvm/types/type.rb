@@ -51,7 +51,15 @@ module Mirah
         def isMeta
           self.meta?
         end
-        
+
+
+        def generic?
+          false
+        end
+        def isGeneric
+          self.generic?
+        end
+
         def isBlock
           false
         end
@@ -107,6 +115,8 @@ module Mirah
 
           return true if jvm_type && (jvm_type == other.jvm_type)
 
+          return assignable_from?(other.ungeneric) if other.generic?
+
           assignable_from?(other.superclass) ||
               other.interfaces.any? {|i| assignable_from?(i)}
         end
@@ -138,6 +148,19 @@ module Mirah
 
         def unmeta
           self
+        end
+
+        def generic
+          @generic ||= GenericType.new(self)
+        end
+
+        def ungeneric
+          self
+        end
+
+        def type_parameters
+          return nil unless jvm_type
+          jvm_type.type_parameters
         end
 
         def basic_type
