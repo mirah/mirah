@@ -207,7 +207,7 @@ class TestMacros < Test::Unit::TestCase
   
   def test_block_parameter_uses_outer_scope
     cls, = compile(<<-EOF)
-      macro def foo(&block)
+      macro def foo(block:Block)
         quote { z = `block.body`; System.out.println z }
       end
       apple = 1

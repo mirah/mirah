@@ -886,7 +886,7 @@ class Typer < SimpleNodeVisitor
 
   def visitMacroDefinition(defn, expression)
     @macros.buildExtension(defn)
-    defn.parent.removeChild(defn)
+    #defn.parent.removeChild(defn)
     @types.getVoidType()
   end
 end
