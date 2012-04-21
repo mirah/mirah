@@ -894,6 +894,7 @@ class Typer < SimpleNodeVisitor
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
+    infer(block.arguments) if block.arguments
     closures = @closures
     parent = CallSite(block.parent)
     typer = self

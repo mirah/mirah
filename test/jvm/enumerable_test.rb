@@ -14,12 +14,7 @@
 # limitations under the License.
 
 class TestEnumerable < Test::Unit::TestCase
-if true
-  def test_fix_enumerables
-    raise "Enumerables not implemented"
-  end
-else
-  def test_for
+  def test_for_in_int_array
     cls, = compile(<<-EOF)
       def foo
         a = int[3]
@@ -30,6 +25,7 @@ else
         count
       end
     EOF
+    assert_equal(3, cls.foo)
 
     cls, = compile(<<-EOF)
       def foo(a:int[])
@@ -42,7 +38,9 @@ else
     EOF
 
     assert_equal(9, cls.foo([2, 3, 4].to_java(:int)))
+  end
 
+  def test_each_iterable
     cls, = compile(<<-EOF)
       def foo(a:Iterable)
         a.each do |x|
@@ -58,7 +56,9 @@ else
       list << "3"
       cls.foo(list)
     end
+  end
 
+  def test_each_arraylist
     cls, = compile(<<-EOF)
       import java.util.ArrayList
       def foo(a:ArrayList)
@@ -75,7 +75,9 @@ else
       list << "3"
       cls.foo(list)
     end
+  end
 
+  def test_each_int_arry
     cls, = compile(<<-EOF)
       def foo(a:int[])
         a.each {|x| x += 1;System.out.println x; redo if x == 2}
@@ -87,7 +89,7 @@ else
     end
   end
 
-  def test_all
+  def test_all_int_array
     cls, = compile(<<-EOF)
       def foo(a:int[])
         a.all? {|x| x % 2 == 0}
@@ -96,7 +98,9 @@ else
 
     assert_equal(false, cls.foo([2, 3, 4].to_java(:int)))
     assert_equal(true, cls.foo([2, 0, 4].to_java(:int)))
-
+  end
+  
+  def test_all_string_array
     cls, = compile(<<-EOF)
       def foo(a:String[])
         a.all?
@@ -156,64 +160,80 @@ else
   def test_general_loop
     cls, = compile(<<-EOF)
       def foo(x:boolean)
-        a = ""
-        __gloop__(nil, x, true, nil, nil) {a += "<body>"}
-        a
+        a = StringBuilder.new
+        while x
+          a.append "<body>"
+        end
+        a.toString
       end
     EOF
     assert_equal("", cls.foo(false))
 
     cls, = compile(<<-EOF)
       def foo
-        a = ""
-        __gloop__(nil, false, false, nil, nil) {a += "<body>"}
-        a
+        a = StringBuilder.new
+        begin
+          a.append "<body>"
+        end while false
+        a.toString
       end
     EOF
     assert_equal("<body>", cls.foo)
 
     cls, = compile(<<-EOF)
       def foo(x:boolean)
-        a = ""
-        __gloop__(a += "<init>", x, true, a += "<pre>", a += "<post>") do
-          a += "<body>"
+        a = StringBuilder.new
+        while x
+          init {a.append "<init>"}
+          pre {a.append "<pre>"}
+          post {a.append "<post>"}
+          a.append "<body>"
         end
-        a
+        a.toString
       end
     EOF
     assert_equal("<init>", cls.foo(false))
 
     cls, = compile(<<-EOF)
       def foo
-        a = ""
-        __gloop__(a += "<init>", false, false, a += "<pre>", a += "<post>") do
-          a += "<body>"
-        end
-        a
+        a = StringBuilder.new
+        begin
+          init {a.append "<init>"}
+          pre {a.append "<pre>"}
+          post {a.append "<post>"}
+          a.append "<body>"
+        end while false
+        a.toString
       end
     EOF
     assert_equal("<init><pre><body><post>", cls.foo)
 
     cls, = compile(<<-EOF)
       def foo
-        a = ""
-        __gloop__(a += "<init>", false, false, a += "<pre>", a += "<post>") do
-          a += "<body>"
+        a = StringBuilder.new
+        begin
+          init {a.append "<init>"}
+          pre {a.append "<pre>"}
+          post {a.append "<post>"}
+          a.append "<body>"
           redo if a.length < 20
-        end
-        a
+        end while false
+        a.toString
       end
     EOF
     assert_equal( "<init><pre><body><body><post>", cls.foo)
 
     cls, = compile(<<-EOF)
       def foo
-        a = ""
-        __gloop__(a += "<init>", a.length < 20, true, a += "<pre>", a += "<post>") do
+        a = StringBuilder.new
+        while a.length < 20
+          init {a.append "<init>"}
+          pre {a.append "<pre>"}
+          post {a.append "<post>"}
           next if a.length < 17
-          a += "<body>"
+          a.append "<body>"
         end
-        a
+        a.toString
       end
     EOF
     assert_equal("<init><pre><post><pre><body><post>", cls.foo)
@@ -305,5 +325,4 @@ else
       cls.test("Hi")
     end
   end
-end
 end
