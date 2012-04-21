@@ -14,7 +14,6 @@
 # limitations under the License.
 
 require 'bitescript'
-require 'mirah/jvm/types/enumerable'
 require 'mirah/jvm/types/bitescript_ext'
 
 module Mirah::JVM::Types
@@ -155,7 +154,7 @@ module Mirah::JVM::Types
     def load_extensions(klass=nil)
       mirror = nil
       if klass
-        mirror = @type_system.get_mirror(klass.getName)
+        mirror = @type_system.get_mirror(klass.name)
       elsif jvm_type
         mirror = jvm_type
       end
@@ -251,9 +250,18 @@ module Mirah::JVM::Types
   end
 
   class ArrayType
+    begin
+      java_import 'org.mirah.builtins.ArrayExtensions'
+      java_import 'org.mirah.builtins.EnumerableExtensions'
+    rescue NameError
+      ArrayExtensions = nil
+      EnumerableExtensions = nil
+    end
+
     def add_intrinsics
       super
-      # add_enumerable_macros
+      load_extensions(EnumerableExtensions.java_class) if EnumerableExtensions
+      load_extensions(ArrayExtensions.java_class) if ArrayExtensions
       int_type = @type_system.type(nil, 'int')
       add_method(
           '[]', [int_type], component_type) do |compiler, call, expression|
@@ -279,35 +287,6 @@ module Mirah::JVM::Types
         compiler.visit(call.target, true)
         compiler.method.arraylength
       end
-
-      # add_macro('each', @type_system.block_type) do |transformer, call|
-      #   Mirah::AST::Loop.new(call.parent,
-      #                       call.position, true, false) do |forloop|
-      #     index = transformer.tmp
-      #     array = transformer.tmp
-      # 
-      #     init = transformer.eval("#{index} = 0;#{array} = nil")
-      #     array_assignment = init.children[-1]
-      #     array_assignment.value = call.target
-      #     call.target.parent = array_assignment
-      #     forloop.init << init
-      # 
-      #     var = call.block.args.args[0]
-      #     if var
-      #       forloop.pre << transformer.eval(
-      #           "#{var.name} = #{array}[#{index}]", '', forloop, index, array)
-      #     end
-      #     forloop.post << transformer.eval("#{index} += 1")
-      #     call.block.body.parent = forloop if call.block.body
-      #     [
-      #       Mirah::AST::Condition.new(forloop, call.position) do |c|
-      #         [transformer.eval("#{index} < #{array}.length",
-      #                           '', forloop, index, array)]
-      #       end,
-      #       call.block.body
-      #     ]
-      #   end
-      # end
     end
   end
 

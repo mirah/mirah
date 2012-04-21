@@ -571,7 +571,7 @@ module Mirah::JVM::Types
           method = superclass.java_method(name, *types) rescue nil
         end
 
-        if method.nil? && jvm_type.abstract?
+        if method.nil? && jvm_type && jvm_type.abstract?
           interfaces.each do |interface|
             method = interface.java_method(name, *types) rescue nil
             break if method

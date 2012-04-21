@@ -16,33 +16,6 @@ require 'test_helper'
 require 'stringio'
 require 'fileutils'
 
-=begin
-unless Mirah::AST.macro "__gloop__"
-  Mirah::AST.defmacro "__gloop__" do |transformer, fcall, parent|
-    Mirah::AST::Loop.new(parent, parent.position, true, false) do |loop|
-      init, condition, check_first, pre, post = fcall.parameters
-      loop.check_first = check_first.literal
-
-      nil_t = Mirah::AST::Null
-      loop.init = init
-      loop.pre = pre
-      loop.post = post
-
-      body = fcall.block.body
-      body.parent = loop
-      [
-        Mirah::AST::Condition.new(loop, parent.position) do |c|
-          condition.parent = c
-          [condition]
-        end,
-        body
-      ]
-    end
-  end
-end
-=end
-
-
 module JVMCompiler
   import java.lang.System
   import java.io.PrintStream

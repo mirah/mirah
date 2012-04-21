@@ -14,6 +14,7 @@ module Mirah
           end
           @name = component_type.name
           @type_system = component_type.type_system
+          self.intrinsics
         end
 
         def array?

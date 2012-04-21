@@ -22,8 +22,8 @@ class Builtins
   def self.initialize_builtins(mirah:Compiler)
     mirah.type_system.extendClass('java.util.Map', MapExtensions.class)
     mirah.type_system.extendClass('java.lang.Object', ObjectExtensions.class)
-    mirah.type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
     mirah.type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
+    mirah.type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
     mirah.type_system.extendClass('int', IntExtensions.class)
   end
   
