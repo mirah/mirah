@@ -20,6 +20,10 @@ interface ResolvedType do
   def matchesAnything:boolean; end
 end
 
+interface GenericType do
+  def type_parameter_map:HashMap; end
+end
+
 interface TypeFuture do
   def isResolved:boolean; end
   def resolve:ResolvedType; end
@@ -248,6 +252,21 @@ class AssignableTypeFuture < BaseTypeFuture
       end
     end
     resolved(type || error)
+  end
+end
+
+# An AssignableTypeFuture that defaults to object when not otherwise constrained, instead of throwing an error.
+class GenericTypeFuture < AssignableTypeFuture
+  def initialize(position:Position, object:ResolvedType)
+    super(position)
+    @object = object
+  end
+
+  def resolve
+    unless isResolved
+      resolved(@object)
+    end
+    super
   end
 end
 
@@ -518,6 +537,7 @@ end
 class MethodFuture < BaseTypeFuture
   def initialize(name:String, parameters:List, returnType:AssignableTypeFuture, vararg:boolean, position:Position)
     super(position)
+    @methodName = name
     @returnType = returnType
     @vararg = vararg
     mf = self
@@ -529,6 +549,10 @@ class MethodFuture < BaseTypeFuture
         mf.resolved(MethodType.new(name, parameters, type, mf.isVararg))
       end
     end
+  end
+
+  def methodName
+    @methodName
   end
   
   def isVararg
