@@ -708,20 +708,23 @@ module Mirah
           if expression
             nodes = precompile_nodes(orig_nodes)
             simple = nodes.equal?(orig_nodes)
-            if !simple
+
+            unless simple
               @method.print(lvalue)
             end
-            first = true
-            unless nodes[0].kind_of?(Mirah::AST::String)
-              @method.print '""'
-              first = false
-            end
-            nodes.each do |node|
-              @method.print ' + ' unless first
-              first = false
+
+            @method.print '"" + ' unless nodes.first.kind_of?(Mirah::AST::String)
+
+            visit(nodes.first, true)
+
+            nodes[1..-1].each do |node|
+              @method.print ' + '
               visit(node, true)
             end
-            @method.puts ';' unless simple
+
+            unless simple
+              @method.puts ';'
+            end
           else
             orig_nodes.each {|n| visit(n, false)}
           end
