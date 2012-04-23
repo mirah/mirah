@@ -142,10 +142,11 @@ module Mirah::AST
       interface = method.argument_types[-1]
       outer_class = find_parent(MethodDefinition, Script).defining_class
       name = "#{outer_class.name}$#{duby.tmp}"
+
       klass = mirah.define_closure(position, name, outer_class)
       klass.interfaces = [interface]
 
-      binding = typer.get_scope(self).binding_type(outer_class, duby)
+      binding = typer.get_scope(self).binding_type(outer_class, mirah)
 
       klass.define_constructor(position,
                                ['binding', binding]) do |c|
