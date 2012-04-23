@@ -60,41 +60,6 @@ module Mirah::JVM::Types
       builder.send "if_icmp#{op}", label
     end
 
-    def build_loop(parent, position, duby, block, first_value,
-                   last_value, ascending, inclusive)
-      if ascending
-        comparison = "<"
-        op = "+="
-      else
-        comparison = ">"
-        op = "-="
-      end
-      comparison << "=" if inclusive
-      forloop = Mirah::AST::Loop.new(parent, position, true, false) do |forloop|
-        first, last = duby.tmp, duby.tmp
-        init = duby.eval("#{first} = 0; #{last} = 0;")
-        init.children[-2].value = first_value
-        init.children[-1].value = last_value
-        forloop.init << init
-
-        var = (block.args.args || [])[0]
-        if var
-          forloop.pre << duby.eval(
-              "#{var.name} = #{first}", '', forloop, first, last)
-        end
-        forloop.post << duby.eval("#{first} #{op} 1")
-        [
-          Mirah::AST::Condition.new(forloop, position) do |c|
-            [duby.eval("#{first} #{comparison} #{last}",
-                       '', forloop, first, last)]
-          end,
-          nil
-        ]
-      end
-      forloop.body = block.body
-      forloop
-    end
-
     def add_intrinsics
       super
       math_operator('<<', 'shl')
@@ -104,23 +69,6 @@ module Mirah::JVM::Types
       math_operator('&', 'and')
       math_operator('^', 'xor')
       unary_operator('~', 'not')
-
-      int_type = @type_system.type(nil, 'int')
-      block_type = @type_system.block_type
-      return
-      add_macro('downto', int_type, block_type) do |transformer, call|
-        build_loop(call.parent, call.position, transformer,
-                   call.block, call.target, call.parameters[0], false, true)
-      end
-      add_macro('upto', int_type, block_type) do |transformer, call|
-        build_loop(call.parent, call.position, transformer,
-                   call.block, call.target, call.parameters[0], true, true)
-      end
-      add_macro('times', block_type) do |transformer, call|
-        build_loop(call.parent, call.position, transformer,
-                   call.block, Mirah::AST::Fixnum.new(nilcall.position, 0),
-                   call.target, true, false)
-      end
     end
   end
 

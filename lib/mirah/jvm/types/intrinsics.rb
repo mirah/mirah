@@ -99,12 +99,6 @@ module Mirah::JVM::Types
       end
       macros[name][arg_types] = macro
     end
-    
-    def wrap_with_scoped_body call, node
-      wrapper = Mirah::AST::ScopedBody.new(call.parent, call.position)
-      wrapper.static_scope = call.scope.static_scope
-      wrapper << node
-    end
 
     def declared_macros(name=nil)
       result = []
