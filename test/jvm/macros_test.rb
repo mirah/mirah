@@ -128,7 +128,7 @@ class MacrosTest < Test::Unit::TestCase
     assert_equal("foobar", script.function)
   end
 
-  def test_unquote
+  def test_unquote_method_definitions_with_main
     # TODO fix annotation output and create a duby.anno.Extensions annotation.
 
     script, cls = compile(<<-EOF)
@@ -246,6 +246,20 @@ class MacrosTest < Test::Unit::TestCase
         end
       EOF
     end
+  end
 
+  def test_macro_def_unquote_named_method_without_main
+    cls, = compile <<-EOF
+      class FooHaver
+        macro def null_method name
+          quote {
+            def `name`
+            end
+          }
+        end
+        null_method :testing
+      end
+    EOF
+    assert_equal nil, cls.new.testing
   end
 end
