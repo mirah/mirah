@@ -359,7 +359,11 @@ module Mirah
         end
 
         def scoped_body(scope, expression)
-          @method.block do
+          if @method
+            @method.block do
+              super
+            end
+          else
             super
           end
         end
