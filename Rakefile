@@ -189,7 +189,8 @@ file_create 'javalib/mirah-newast-transitional.jar' do
 end
 
 file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
-                                       'src/org/mirah/MirahClassLoader.java'] + 
+                                       'src/org/mirah/MirahClassLoader.java',
+                                       'src/org/mirah/IsolatedResourceLoader.java'] +
                                       Dir['src/org/mirah/{macros,typer}/*.mirah*'] +
                                       Dir['src/org/mirah/macros/anno/*.java'] do
   rm_rf 'build/bootstrap'
