@@ -26,7 +26,12 @@ module Mirah
     def initialize(state, compiler_class, logging, verbose)
       @state = state
       @scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
+
+      # TODO untie this from the jvm backend (nh)
       type_system = Mirah::JVM::Types::TypeFactory.new
+      type_system.classpath = state.classpath
+      type_system.bootclasspath = state.bootclasspath
+
       @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
       @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)

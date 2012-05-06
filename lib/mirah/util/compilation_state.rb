@@ -33,13 +33,7 @@ module Mirah
       attr_accessor :command
       attr_accessor :loggers
 
-      def classpath=(classpath)
-        Mirah::AST.type_factory.classpath = classpath
-      end
-
-      def bootclasspath=(classpath)
-        Mirah::AST.type_factory.bootclasspath = classpath
-      end
+      attr_accessor :classpath, :bootclasspath
 
       def set_jvm_version(ver_str)
         case ver_str
