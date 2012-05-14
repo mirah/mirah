@@ -21,6 +21,7 @@ module Mirah
 
       def find_method(mapped_type, name, mapped_params, meta)
         raise ArgumentError if mapped_params.any? {|p| p.nil?}
+
         if name == 'new'
           if meta
             name = "<init>"

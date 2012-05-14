@@ -143,7 +143,7 @@ module Mirah::AST
 
     def prepare(typer, method)
       mirah = typer.transformer
-      interface = method.argument_types[-1]
+      interface_or_abstract_class = method.argument_types[-1]
       outer_class = scope.defining_class
 
       binding = scope.binding_type(mirah)
@@ -151,7 +151,15 @@ module Mirah::AST
       name = "#{outer_class.name}$#{mirah.tmp}"
 
       klass = mirah.define_closure(position, name, outer_class)
-      klass.interfaces = [interface]
+      case
+      when interface_or_abstract_class.interface?
+        klass.interfaces = [interface_or_abstract_class]
+      when interface_or_abstract_class.abstract?
+        klass.superclass = interface_or_abstract_class
+      else
+        raise "#{interface_or_abstract_class.name} isn't an interface or abstract"
+      end
+
       klass.define_constructor(position,
                                ['binding', binding]) do |c|
           mirah.eval("@binding = binding", '-', c, 'binding')
@@ -205,7 +213,7 @@ module Mirah::AST
 
     def build_method(klass, binding, typer)
       # find all methods which would not otherwise be on java.lang.Object
-      impl_methods = find_methods(klass.interfaces).select do |m|
+      impl_methods = find_abstract_methods(klass).select do |m|
         begin
           # Very cumbersome. Not sure how it got this way.
           mirror = BiteScript::ASM::ClassMirror.for_name('java.lang.Object')
@@ -241,13 +249,17 @@ module Mirah::AST
       end
     end
 
-    def find_methods(interfaces)
+    def find_abstract_methods(klass)
       methods = []
-      interfaces = interfaces.dup
+      interfaces = klass.interfaces.dup
       until interfaces.empty?
         interface = interfaces.pop
         methods += interface.declared_instance_methods.select {|m| m.abstract?}
         interfaces.concat(interface.interfaces)
+      end
+
+      if klass.superclass && klass.superclass.abstract?
+        methods += klass.superclass.declared_instance_methods.select{|m| m.abstract? }
       end
       methods
     end
