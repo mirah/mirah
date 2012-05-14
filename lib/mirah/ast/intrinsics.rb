@@ -413,7 +413,6 @@ module Mirah::AST
           position, 'expand', node_type)
       pos = parent.position
       args = []
-      puts self.arguments.inspect
       expand_call = FunctionalCall.new(nil, pos, '_expand')
       self.arguments.each_with_index do |arg, i|
         # TODO optional args
@@ -430,15 +429,12 @@ module Mirah::AST
           cast
         end
       end
-      puts self.arguments.inspect
       expand_call.parameters = args
-      puts self.arguments.inspect
       expand.body = transformer.eval(<<-end)
         args = @call.arguments
         nil
       end
       expand.body << expand_call
-      puts self.arguments.inspect
       actual_args = arguments.map do |arg|
         type = if arg.kind_of?(BlockArgument)
           Mirah::AST.type(nil, 'duby.lang.compiler.Block')
