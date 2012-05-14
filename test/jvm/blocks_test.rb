@@ -23,7 +23,7 @@ class BlocksTest < Test::Unit::TestCase
   def parse_and_type code, name=tmp_script_name
     parse_and_resolve_types name, code
   end
-  
+
   #this should probably be a core test
   def test_empty_block_parses_and_types_without_error
     assert_nothing_raised do
@@ -302,5 +302,21 @@ class BlocksTest < Test::Unit::TestCase
           end
         end
       CODE
+  end
+
+  def test_method_requiring_subclass_of_abstract_class_finds_abstract_method
+    cls, = compile(<<-EOF)
+      import java.io.OutputStream
+      def foo x:OutputStream
+        x.write byte(1)
+      rescue
+      end
+      foo do |b:int|
+        puts "writing"
+      end
+    EOF
+    assert_output "writing\n" do
+      cls.main(nil)
+    end
   end
 end

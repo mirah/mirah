@@ -621,7 +621,6 @@ module Mirah::JVM::Types
       methods = []
       unless type.isError
         object = get_type("java.lang.Object")
-        # TODO support abstract methods
         interfaces = [type]
         until interfaces.empty?
           interface = interfaces.pop
@@ -636,6 +635,12 @@ module Mirah::JVM::Types
             end
           end
           interfaces.concat(interface.interfaces)
+        end
+        # TODO ensure this works with hierarchies of abstract classes
+        # reject the methods implemented by the abstract class
+        if type.abstract?
+          implemented_methods = type.declared_instance_methods.reject{|m| m.abstract?}.map { |m| [m.name, m.argument_types, m.return_type] }
+          methods = methods.reject{|m| implemented_methods.include? [m.name, m.argument_types, m.return_type] }
         end
       end
       methods.map do |method|

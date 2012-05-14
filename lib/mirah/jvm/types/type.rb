@@ -80,6 +80,10 @@ module Mirah
           # mirrors for all incoming types without blowing up on e.g. 'boolean' or 'int'
           (@type || BiteScript::ASM::ClassMirror.for_name(@name)).interface? rescue nil
         end
+        
+        def abstract?
+          (@type || BiteScript::ASM::ClassMirror.for_name(@name)).abstract? rescue nil
+        end
 
         def dynamic?
           false
@@ -110,8 +114,7 @@ module Mirah
           return true if other == self
           return true if other.matchesAnything
 
-          # TODO should we allow more here?
-          return interface? if other.isBlock
+          return interface? || abstract? if other.isBlock
 
           return true if jvm_type && (jvm_type == other.jvm_type)
 
