@@ -80,17 +80,7 @@ namespace :test do
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
-      java.lang.System.set_property("jruby.duby.enabled", "true")
     end
-
-    desc "run jvm tests compiling to java source, then bytecode"
-    Rake::TestTask.new :javac => :bootstrap do |t|
-      t.libs << 'test' <<'test/jvm'
-      t.ruby_opts.concat ["-r", "javac_test_helper"]
-      t.test_files = FileList["test/jvm/**/*test.rb"]
-      java.lang.System.set_property("jruby.duby.enabled", "true")
-    end
-
   end
 end
 

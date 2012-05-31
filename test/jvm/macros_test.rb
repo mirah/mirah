@@ -129,8 +129,6 @@ class MacrosTest < Test::Unit::TestCase
   end
 
   def test_unquote
-    # TODO fix annotation output and create a duby.anno.Extensions annotation.
-
     script, cls = compile(<<-EOF)
       class UnquoteMacros
         macro def make_attr(name_node:Identifier, type:TypeName)
