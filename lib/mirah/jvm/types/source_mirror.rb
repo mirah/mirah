@@ -80,10 +80,13 @@ module Mirah::JVM::Types
         end
 
         def classpath
-          [
-            '-classpath',
-            $CLASSPATH.to_a.join(java.io.File.pathSeparator)
+          options = [
+            '-classpath', Mirah::AST.type_factory.classpath
           ]
+          if Mirah::AST.type_factory.bootclasspath
+            options << '-bootclasspath' << Mirah::AST.type_factory.bootclasspath
+          end
+          options
         end
 
         def get_java_file(tools)

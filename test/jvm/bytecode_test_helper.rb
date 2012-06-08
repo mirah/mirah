@@ -120,8 +120,6 @@ module JVMCompiler
     compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
 
     generate_classes compiler_results
-
-
   end
 
   def tmp_script_name

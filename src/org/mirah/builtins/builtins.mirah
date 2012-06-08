@@ -25,6 +25,13 @@ class Builtins
     mirah.type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
     mirah.type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
     mirah.type_system.extendClass('int', IntExtensions.class)
+
+    mirah.type_system.extendClass('byte', NumberExtensions.class)
+    mirah.type_system.extendClass('short', NumberExtensions.class)
+    mirah.type_system.extendClass('int', NumberExtensions.class)
+    mirah.type_system.extendClass('long', NumberExtensions.class)
+    mirah.type_system.extendClass('float', NumberExtensions.class)
+    mirah.type_system.extendClass('double', NumberExtensions.class)
   end
   
   macro def newHash(hash:Hash)

@@ -25,9 +25,10 @@ module AppEngine::Rake
   APIS = AppEngine::SDK::API_JAR
   TOOLS = AppEngine::SDK::TOOLS_JAR
 
-  $CLASSPATH << SERVLET
-  $CLASSPATH << APIS
-  $CLASSPATH << TOOLS
+  CLASSPATH = []
+  CLASSPATH << SERVLET
+  CLASSPATH << APIS
+  CLASSPATH << TOOLS
 
   class AppEngineTask < Rake::Task
     def initialize(*args, &block)
@@ -38,14 +39,15 @@ module AppEngine::Rake
     def init(src, war)
       @src = src
       @war = war
-      unless $CLASSPATH.include?(webinf_classes)
-        $CLASSPATH << webinf_classes
+      unless CLASSPATH.include?(webinf_classes)
+        CLASSPATH << webinf_classes
       end
       webinf_lib_jars.each do |jar|
-        $CLASSPATH << jar unless $CLASSPATH.include?(jar)
+        CLASSPATH << jar unless CLASSPATH.include?(jar)
       end
       Mirah.source_paths << src
       Mirah.dest_paths << webinf_classes
+      Mirah.compiler_options = ['--classpath', Mirah::Env.encode_paths(CLASSPATH)]
       directory(webinf_classes)
       directory(webinf_lib)
 

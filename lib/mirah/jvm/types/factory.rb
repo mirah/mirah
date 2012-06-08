@@ -35,7 +35,7 @@ module Mirah::JVM::Types
     java_import 'mirah.lang.ast.SimpleString'
     include TypeSystem
     include Mirah::Logging::Logged
-    
+
     begin
       java_import 'org.mirah.builtins.Builtins'
     rescue NameError
@@ -48,6 +48,7 @@ module Mirah::JVM::Types
       end
     end
 
+    java_import 'java.net.URLClassLoader'
     attr_accessor :package
     attr_reader :known_types
 
@@ -549,14 +550,57 @@ module Mirah::JVM::Types
       end
     end
 
+    def make_urls(classpath)
+      Mirah::Env.decode_paths(classpath).map do |filename|
+        java.io.File.new(filename).to_uri.to_url
+      end.to_java(java.net.URL)
+    end
+
+    def classpath
+      @classpath ||= Mirah::Env.encode_paths(['.',
+                                              #TODO nh make this less hacked together.
+                                              File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
+                                              File.dirname(__FILE__) + '/../../../../javalib/mirah-parser.jar',
+                                              File.dirname(__FILE__) + '/../../../../javalib/mirah-bootstrap.jar'])
+    end
+
+    def classpath=(classpath)
+      @classpath = classpath
+      @resource_loader = nil
+    end
+
+    def resource_loader
+      @resource_loader ||= URLClassLoader.new(make_urls(classpath), bootstrap_loader)
+    end
+
+    def bootstrap_loader
+      @bootstrap_loader ||= begin
+        parent = if bootclasspath
+                   Mirah::Util::IsolatedResourceLoader.new(make_urls(bootclasspath))
+                 end
+        bootstrap_jar = File.expand_path("#{__FILE__}/../../../../../javalib/mirah-bootstrap.jar")
+        bootstrap_urls = [java.io.File.new(bootstrap_jar).to_uri.to_url].to_java(java.net.URL)
+        URLClassLoader.new(bootstrap_urls, parent)
+      end
+    end
+
+    def bootclasspath=(classpath)
+      @bootclasspath = classpath
+      @bootstrap_loader = nil
+      @resource_loader = nil
+    end
+
+    attr_reader :bootclasspath
+
     def get_mirror(name)
       @mirrors[name] ||= begin
         classname = name.tr('.', '/')
-        stream = JRuby.runtime.jruby_class_loader.getResourceAsStream(classname + ".class")
+        stream = resource_loader.getResourceAsStream(classname + ".class")
         if stream
           BiteScript::ASM::ClassMirror.load(stream)
         else
-          url = JRuby.runtime.jruby_class_loader.getResource(classname + ".java")
+          # TODO(ribrdb) Should this use a separate sourcepath?
+          url = resource_loader.getResource(classname + ".java")
           if url
             file = java.io.File.new(url.toURI)
             mirrors = JavaSourceMirror.load(file, self)
@@ -568,12 +612,11 @@ module Mirah::JVM::Types
         end
       end
     end
-    
+
     def getAbstractMethods(type)
       methods = []
       unless type.isError
         object = get_type("java.lang.Object")
-        # TODO support abstract methods
         interfaces = [type]
         until interfaces.empty?
           interface = interfaces.pop
@@ -588,6 +631,12 @@ module Mirah::JVM::Types
             end
           end
           interfaces.concat(interface.interfaces)
+        end
+        # TODO ensure this works with hierarchies of abstract classes
+        # reject the methods implemented by the abstract class
+        if type.abstract?
+          implemented_methods = type.declared_instance_methods.reject{|m| m.abstract?}.map { |m| [m.name, m.argument_types, m.return_type] }
+          methods = methods.reject{|m| implemented_methods.include? [m.name, m.argument_types, m.return_type] }
         end
       end
       methods.map do |method|
