@@ -9,6 +9,7 @@ import org.mirah.typer.*
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Node
 import mirah.lang.ast.Position
+import mirah.lang.ast.StreamCodeSource
 import mirah.impl.MirahParser
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -69,6 +70,7 @@ class SimpleTypes; implements TypeSystem
       ].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
     @meta_types = {}
     @array_types = {}
+    @methods = {}
     @fields = {}
     @locals = {}
     @types[main_type] = @main_type = SimpleType.new(main_type, false, false)
@@ -148,7 +150,11 @@ class SimpleTypes; implements TypeSystem
     target = call.resolved_target
     argTypes = call.resolved_parameters
     raise IllegalArgumentException if target.nil?
-    raise IllegalArgumentException unless argTypes.all?
+    unless argTypes.all?
+      error = BaseTypeFuture.new(call.position)
+      error.resolved(ErrorType.new([["Unresolved args", call.position]]))
+      return error
+    end
     getMethodTypeInternal(target, call.name, argTypes, call.position)
   end
   def getMethodDefType(target, name, argTypes)
@@ -161,15 +167,22 @@ class SimpleTypes; implements TypeSystem
   end
   
   def getMethodTypeInternal(target:ResolvedType, name:String, argTypes:List, position:Position):MethodFuture
-    if argTypes.kind_of?(org::jruby::RubyArray)
+    if argTypes.getClass.getName.equals("org.jruby.RubyArray")
       # RubyArray claims to implement List, but it doesn't have the right
       # implementation of equals or hashCode.
       argTypes = ListWrapper.new(argTypes)
     end
-    # Start with an error message in case it isn't found.
-    return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
-        ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
-    MethodFuture.new(name, argTypes, return_type, false, position)
+
+    key = [target, name, argTypes]
+    t = MethodFuture(@methods[key])
+    unless t
+      # Start with an error message in case it isn't found.
+      return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
+          ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
+      t = MethodFuture.new(name, argTypes, return_type, false, position)
+      @methods[key] = t
+    end
+    t
   end
   
   def getFieldType(target, name, position)
@@ -208,15 +221,12 @@ class SimpleTypes; implements TypeSystem
   end
 
   def self.main(args:String[]):void
+    logger = org::mirah::MirahLogFormatter.new(true).install
+    logger.setLevel(java::util::logging::Level.ALL)
     parser = MirahParser.new
-    code = StringBuilder.new
-    reader = BufferedReader.new(InputStreamReader.new(FileInputStream.new(args[0])))
-    buffer = char[8192]
-    while (read = reader.read(buffer, 0, buffer.length)) > 0
-      code.append(buffer, 0, read);
-    end
+    code = StreamCodeSource.new(args[0])
 
-    ast = Node(parser.parse(code.toString))
+    ast = Node(parser.parse(code))
     types = SimpleTypes.new('foo')
     scopes = SimpleScoper.new
     typer = Typer.new(types, scopes, nil)

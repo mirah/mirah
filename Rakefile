@@ -179,7 +179,8 @@ file_create 'javalib/mirah-newast-transitional.jar' do
 end
 
 file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
-                                       'src/org/mirah/MirahClassLoader.java'] + 
+                                       'src/org/mirah/MirahClassLoader.java',
+                                       'src/org/mirah/MirahLogFormatter.mirah'] + 
                                       Dir['src/org/mirah/{macros,typer}/*.mirah*'] +
                                       Dir['src/org/mirah/macros/anno/*.java'] do
   rm_rf 'build/bootstrap'
@@ -190,7 +191,7 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
     :includeantruntime => false, :debug => true, :listfiles => true
 
   # Compile the Typer and Macro compiler
-  bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/typer',
+  bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/MirahLogFormatter.mirah', 'src/org/mirah/typer',
                     :classpath => ['javalib/mirah-parser.jar', 'build/bootstrap'],
                     :dest => 'build/bootstrap'
 #                    :options => ['-V']

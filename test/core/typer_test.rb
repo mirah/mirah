@@ -248,7 +248,7 @@ class TyperTest < Test::Unit::TestCase
   end
   
   def test_rescue_w_different_type_raises_inference_error_when_expression
-    ast = parse("begin true; 1.0; rescue; ''; end")
+    ast = parse("puts begin true; 1.0; rescue; ''; end")
 
     assert_raise(Mirah::InferenceError) {infer(ast)}
   end

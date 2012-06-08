@@ -272,13 +272,9 @@ module Mirah::JVM::Types
           t
         end
       end
-      result = if argTypes.all?
-        getMethodTypeInternal(target, name, argTypes, position)
-      else
-        MethodFuture.new(name, argTypes, AssignableTypeFuture.new(nil), false, nil)
-      end
-      result.return_type.assign(type, position)
-      result
+      return_type = AssignableTypeFuture.new(nil)
+      return_type.assign(type, position)
+      MethodFuture.new(name, argTypes, return_type, false, position)
     end
 
     def _build_generic_type_future(bounds, position)
