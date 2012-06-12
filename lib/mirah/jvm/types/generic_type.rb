@@ -34,7 +34,7 @@ module Mirah
         end
 
         def interfaces(include_parent=true)
-          []
+          ungeneric.interfaces
         end
 
         def jvm_type

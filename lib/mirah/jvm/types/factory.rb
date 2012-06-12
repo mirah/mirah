@@ -236,7 +236,7 @@ module Mirah::JVM::Types
                 _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], target.type_parameter_map, position)
               end
             end
-          elsif target.generic?
+          elsif target.generic? && method.respond_to?(:member)
             genericParameterTypes = method.member.generic_parameter_types
             if genericParameterTypes
               genericParameterTypes.each_index do |i|
