@@ -308,10 +308,20 @@ class Typer < SimpleNodeVisitor
 
   def visitZSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    scope = @scopes.getScope(node)
-    target = @types.getSuperClass(scope.selfType)
-    parameters = inferAll(method.arguments)
-    CallFuture.new(@types, target, method.name.identifier, parameters, nil, node.position)
+    locals = LinkedList.new
+    [ method.arguments.required,
+        method.arguments.optional,
+        method.arguments.required2].each do |args|
+      Iterable(args).each do |arg|
+        farg = FormalArgument(arg)
+        local = LocalAccess.new(farg.position, farg.name)
+        @scopes.copyScopeFrom(farg, local)
+        infer(local, true)
+        locals.add(local)
+      end
+    end
+    replacement = Super.new(node.position, locals, nil)
+    infer(node.parent.replaceChild(node, replacement), expression != nil)
   end
 
   def visitClassDefinition(classdef, expression)
