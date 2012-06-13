@@ -122,8 +122,12 @@ class MethodType
     @parameterTypes = parameterTypes
     @returnType = returnType
     @isVararg = isVararg
-    raise IllegalArgumentException unless parameterTypes.all? {|p| p.kind_of?(ResolvedType)}
-    raise IllegalArgumentException if parameterTypes.any? {|p| ResolvedType(p).isBlock }
+    # parameterTypes.each do |p|
+    #   unless p.kind_of?(ResolvedType)
+    #     raise IllegalArgumentException.new("#{p} is not a ResolvedType")
+    #   end
+    # end
+    raise IllegalArgumentException if parameterTypes.any? {|p| p && ResolvedType(p).isBlock }
   end
 
   def name
