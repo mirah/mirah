@@ -201,18 +201,28 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitElemAssign(assignment, expression)
+    value_type = infer(assignment.value)
+    value = assignment.value
+    assignment.removeChild(value)
+    if value_type.kind_of?(NarrowingTypeFuture)
+      narrowingCall(infer(assignment.target),
+                    '[]=',
+                    inferAll(assignment.args),
+                    NarrowingTypeFuture(value_type),
+                    assignment.position)
+    end
     call = Call.new(assignment.position, assignment.target, SimpleString.new('[]='), nil, nil)
     call.parameters = assignment.args
     if expression
       temp = @scopes.getScope(assignment).temp('val')
       call.parameters.add(LocalAccess.new(SimpleString.new(temp)))
       newNode = Node(NodeList.new([
-        LocalAssignment.new(SimpleString.new(temp), assignment.value),
+        LocalAssignment.new(SimpleString.new(temp), value),
         call,
         LocalAccess.new(SimpleString.new(temp))
       ]))
     else
-      call.parameters.add(assignment.value)
+      call.parameters.add(value)
       newNode = Node(call)
     end
     newNode = assignment.parent.replaceChild(assignment, newNode)
@@ -284,9 +294,48 @@ class Typer < SimpleNodeVisitor
     value = infer(call.value)
     name = call.name.identifier
     setter = "#{name}_set"
+    if (value.kind_of?(NarrowingTypeFuture))
+      narrowingCall(target, setter, Collections.emptyList, NarrowingTypeFuture(value), call.position)
+    end
     CallFuture.new(@types, target, setter, [value], nil, call.position)
   end
+  
+  def narrowingCall(target:TypeFuture,
+                    name:String,
+                    param_types:List,
+                    value:NarrowingTypeFuture,
+                    position:Position):void
+    # Try looking up both the wide type and the narrow type.
+    wide_params = LinkedList.new(param_types)
+    wide_params.add(value.wide_future)
+    wide_call = CallFuture.new(@types, target, name, wide_params, nil, position)
 
+    narrow_params = LinkedList.new(param_types)
+    narrow_params.add(value.narrow_future)
+    narrow_call = CallFuture.new(@types, target, name, narrow_params, nil, position)
+
+    # If there's a match for the wide type (or both are errors) we always use
+    # the wider one.
+    wide_is_error = true
+    narrow_is_error = true
+    wide_call.onUpdate do |x, resolved|
+      wide_is_error = resolved.isError
+      if wide_is_error && !narrow_is_error
+        value.narrow
+      else
+        value.widen
+      end
+    end
+    narrow_call.onUpdate do |x, resolved|
+      narrow_is_error = resolved.isError
+      if wide_is_error && !narrow_is_error
+        value.narrow
+      else
+        value.widen
+      end
+    end
+  end
+  
   def visitCast(cast, expression)
     # TODO check for compatibility
     infer(cast.value)

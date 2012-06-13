@@ -29,6 +29,7 @@ module Mirah::JVM::Types
     java_import 'org.mirah.typer.SimpleFuture'
     java_import 'org.mirah.typer.TypeFuture'
     java_import 'org.mirah.typer.TypeSystem'
+    java_import 'org.mirah.typer.NarrowingTypeFuture'
     java_import 'mirah.lang.ast.ClassDefinition'
     java_import 'mirah.lang.ast.InterfaceDeclaration'
     java_import 'mirah.lang.ast.Script'
@@ -123,17 +124,37 @@ module Mirah::JVM::Types
     def getRegexType; cache_and_wrap_type('java.util.regex.Pattern') end
     def getStringType; cache_and_wrap_type('java.lang.String') end
     def getBooleanType; cache_and_wrap_type('boolean') end
-    # TODO narrowing
+
     def getFixnumType(value)
       long = java.lang.Long.new(value)
       if long.int_value != value
         cache_and_wrap_type('long')
-      else
+      elsif long.short_value != value
         cache_and_wrap_type('int')
+      elsif long.byte_value != value
+        wide = type(nil, 'int')
+        narrow = type(nil, 'short')
+        NarrowingTypeFuture.new(nil, wide, narrow)
+      else
+        wide = type(nil, 'int')
+        narrow = type(nil, 'byte')
+        NarrowingTypeFuture.new(nil, wide, narrow)
       end
     end
+    
     def getCharType(value) cache_and_wrap_type('char') end
-    def getFloatType(value); cache_and_wrap_type('double') end
+
+    def getFloatType(value)
+      d = java.lang.Double.new(value)
+      if d.float_value != value
+        cache_and_wrap_type('double')
+      else
+        wide = type(nil, 'double')
+        narrow = type(nil, 'float')
+        NarrowingTypeFuture.new(nil, wide, narrow)
+      end
+    end
+
     def getMetaType(type)
       if type.kind_of?(Type)
         type.meta
