@@ -497,13 +497,13 @@ module Mirah::JVM::Types
     end
 
     # TODO take a scope and check visibility
-    def find_callable_methods(name, &proc)
+    def find_callable_methods(name, include_interfaces=false, &proc)
       if block_given?
         add_method_listener(name) {proc.call(find_callable_methods(name))}
         proc.call(find_callable_methods(name))
         return
       end
-      interfaces = if self.interface?  # TODO || self.abstract?
+      interfaces = if self.interface? || include_interfaces # TODO || self.abstract?
         []
       else
         nil

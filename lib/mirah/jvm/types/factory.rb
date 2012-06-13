@@ -360,6 +360,9 @@ module Mirah::JVM::Types
       if target.nil?
         return ErrorType.new([["No target"]])
       end
+      unless argTypes.all? {|a| a.hasDeclaration}
+        infer_override_args(target, name, argTypes)
+      end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
       type = _find_method_type(target, name, args, nil, nil)
@@ -405,6 +408,19 @@ module Mirah::JVM::Types
     end
     def extendClass(classname, extensions)
       get_type(classname).load_extensions(extensions)
+    end
+
+    def infer_override_args(target, name, arg_types)
+      # TODO What if the method we're overriding hasn't been inferred yet?
+      log("Infering argument types for #{name}")
+      by_name = target.resolve.find_callable_methods(name, true)
+      by_name_and_arity = by_name.select {|m| m.argument_types.size == arg_types.size}
+      if by_name_and_arity.size == 1
+        arg_types.zip(by_name_and_arity[0].argument_types).each do |arg, super_arg|
+          arg.declare(cache_and_wrap(super_arg), arg.position)
+        end
+      # TODO else give a more useful error?
+      end
     end
 
     def define_types(builder)

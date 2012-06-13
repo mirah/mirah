@@ -83,7 +83,6 @@ class BlocksTest < Test::Unit::TestCase
       import java.util.Observable
       class MyObservable < Observable
         def initialize
-          super
           setChanged
         end
       end
