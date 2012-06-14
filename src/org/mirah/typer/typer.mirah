@@ -919,7 +919,7 @@ class Typer < SimpleNodeVisitor
     if mdef.type
       returnType = @types.get(outer_scope, mdef.type.typeref)
       type.returnType.declare(returnType, mdef.type.position)
-      if @types.getVoidType().equals(returnType)
+      if @types.getVoidType().resolve.equals(returnType.resolve)
         is_void = true
       end
     end
