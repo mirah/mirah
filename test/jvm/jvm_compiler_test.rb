@@ -475,29 +475,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal '-', cls.foo(-1)
   end
 
-
-  def test_local_decl
-    cls, = compile(<<-EOF)
-      import 'java.lang.String'
-      a = :fixnum
-      b = :int
-      c = :long
-      d = :float
-      e = :string
-      f = String
-      System.out.println a
-      System.out.println b
-      System.out.println c
-      System.out.println d
-      System.out.println e
-      System.out.println f
-    EOF
-    output = capture_output do
-      cls.main([].to_java(:string))
-    end
-    assert_equal("0\n0\n0\n0.0\nnull\nnull\n", output)
-  end
-
   def test_multi_assign
     cls, = compile(<<-EOF)
       def foo
@@ -857,7 +834,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_interface_override_return_type
-    assert_raise Mirah::Typer::InferenceError do
+    assert_raise Mirah::MirahError do
       compile(<<-EOF)
         interface A
           def a:int; end
@@ -1647,7 +1624,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_inner_class
     cls, = compile(<<-EOF)
       def foo
-        Character.UnicodeBlock.ARROWS
+        Character::UnicodeBlock.ARROWS
       end
     EOF
 
@@ -1757,7 +1734,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_return_type
-    assert_raise Mirah::Typer::InferenceError do
+    assert_raise Mirah::MirahError do
       compile(<<-EOF)
         class ReturnsA
           def a:int
@@ -1767,7 +1744,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       EOF
     end
 
-    assert_raise Mirah::Typer::InferenceError do
+    assert_raise Mirah::MirahError do
       compile(<<-EOF)
         class ReturnsB
           def self.a:String
@@ -1970,7 +1947,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     ex = assert_raise Mirah::MirahError  do
       compile("Interface Implements_Go do; end")
     end
-    assert_equal("InferenceError", ex.message)
+    assert_equal("Cannot find class Implements_Go", ex.message)
   end
   
   def test_bool_equality
