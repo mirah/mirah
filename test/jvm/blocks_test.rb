@@ -45,7 +45,9 @@ class BlocksTest < Test::Unit::TestCase
   def test_non_empty_block_parses_and_types_without_error
     assert_nothing_raised do
       parse_and_type(<<-CODE)
-        interface Bar do;def run:void;end;end
+        interface Bar
+          def run:void; end
+        end
       
         class Foo
           def initialize; end
@@ -260,7 +262,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_with_no_params_on_interface_with
-    assert_raises Mirah::NodeError do
+    assert_raises Mirah::MirahError do
       parse_and_type(<<-CODE)
         interface Bar do
           def run(a:string):void;end
@@ -279,7 +281,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_with_too_many_params
-    assert_raises Mirah::NodeError do
+    assert_raises Mirah::MirahError do
       parse_and_type(<<-CODE)
         interface Bar do
           def run(a:string):void;end
