@@ -953,6 +953,7 @@ class Typer < SimpleNodeVisitor
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
+    new_scope = @scopes.addScope(block)
     infer(block.arguments) if block.arguments
     closures = @closures
     parent = CallSite(block.parent)

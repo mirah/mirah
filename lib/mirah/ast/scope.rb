@@ -95,6 +95,7 @@ module Mirah
           type = LocalFuture.new(name, position)
           type.onUpdate {|_, resolved| self << name unless resolved.isError}
           if parent && !shadowed?(name)
+            # TODO what if a var of the same name is later declared in the parent scope?
             type.parent_set(parent.local_type(name, position))
           end
           type
