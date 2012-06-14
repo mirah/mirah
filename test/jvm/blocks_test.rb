@@ -214,7 +214,7 @@ class BlocksTest < Test::Unit::TestCase
   def test_block_with_mirah_interface
     cls, interface = compile(<<-EOF)
       interface MyProc do
-        def call; returns :void; end
+        def call:void; end
       end
       def foo(b:MyProc)
         b.call
