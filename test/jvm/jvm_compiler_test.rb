@@ -829,23 +829,23 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_interface_declaration
-    interface = compile('interface A do; end').first
+    interface = compile('interface A; end').first
     assert(interface.java_class.interface?)
     assert_equal('A', interface.java_class.name)
 
-    a, b = compile('interface A do; end; interface B < A do; end')
+    a, b = compile('interface A; end; interface B < A; end')
     assert_include(a, b.ancestors)
     assert_equal('A', a.java_class.name)
     assert_equal('B', b.java_class.name)
 
     a, b, c = compile(<<-EOF)
-      interface A do
+      interface A
       end
 
-      interface B do
+      interface B
       end
 
-      interface C < A, B do
+      interface C < A, B
       end
     EOF
 
@@ -859,11 +859,11 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_interface_override_return_type
     assert_raise Mirah::Typer::InferenceError do
       compile(<<-EOF)
-        interface A do
+        interface A
           def a:int; end
         end
 
-        class Impl; implements A
+        class Impl implements A
           def a
             "foo"
           end
@@ -1479,7 +1479,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_method_lookup_with_overrides
     cls, = compile(<<-EOF)
-      class Bar; implements Runnable
+      class Bar implements Runnable
         def foo(x:Bar)
           Thread.new(x)
         end

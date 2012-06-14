@@ -127,6 +127,10 @@ module Mirah
             # ignore
             false
           end
+          def enterInterfaceDeclaration(node, arg)
+            # ignore
+            false
+          end
           def enterImport(node, arg)
             # ignore
             false
