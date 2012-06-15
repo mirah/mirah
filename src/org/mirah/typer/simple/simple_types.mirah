@@ -1,7 +1,18 @@
-# These are minimal implementations of the type system interfaces.
-# These are used for tests and may also be useful as building blocks
-# for a full type system.
-# The main type system implementation is in lib/mirah/jvm/types/factory.rb.
+# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 package org.mirah.typer.simple
 
 import java.util.*
@@ -16,51 +27,9 @@ import java.io.InputStreamReader
 import java.io.FileInputStream
 import java.io.PrintStream
 
-class ListWrapper < AbstractList
-  def initialize(list:List)
-    @list = list
-  end
-  def size
-    @list.size
-  end
-  def get(i)
-    @list.get(i)
-  end
-end
-
-class SimpleType < SpecialType
-  def initialize(name:String, meta=false, array=false)
-    super(name)
-    @meta = meta
-    @array = array
-  end
-
-  def widen(other)
-    return self if other.matchesAnything
-    return ErrorType.new([["Incompatible types"]]) unless equals(other)
-    self
-  end
-  def assignableFrom(other)
-    matchesAnything || other.matchesAnything || equals(other)
-  end
-  def isMeta
-    @meta
-  end
-  def isArray
-    @array
-  end
-  def toString
-    "<#{isMeta ? 'Meta' : ''}Type #{name}#{isArray ? '[]' : ''}>"
-  end
-  def equals(other)
-    return false if other.nil?
-    toString.equals(other.toString)
-  end
-  def hashCode
-    toString.hashCode
-  end
-end
-
+# A minimal TypeSystem for the Typer tests.
+# The main TypeSystem is Mirah::JVM::Types::TypeFactory, in
+# lib/mirah/jvm/types/factory.rb
 class SimpleTypes; implements TypeSystem
   def initialize(main_type:String)
     @types = {}
@@ -219,145 +188,23 @@ class SimpleTypes; implements TypeSystem
   end
   def addDefaultImports(scope)
   end
-
-  def self.main(args:String[]):void
-    logger = org::mirah::MirahLogFormatter.new(true).install
-    logger.setLevel(java::util::logging::Level.ALL)
-    parser = MirahParser.new
-    code = StreamCodeSource.new(args[0])
-
-    ast = Node(parser.parse(code))
-    types = SimpleTypes.new('foo')
-    scopes = SimpleScoper.new
-    typer = Typer.new(types, scopes, nil)
-
-    puts "Original AST:"
-    TypePrinter.new(typer).scan(ast, nil)
-    puts
-    puts "Inferring types..."
-
-    typer.infer(ast, false)
-
-    TypePrinter.new(typer).scan(ast, nil)
-  end
 end
 
-class SimpleScope; implements Scope
-  def initialize
-    @nextTemp = -1
-  end
-  def context:Node
-    @node
-  end
-  def context=(node:Node):void
-    @node = node
-  end
-  def selfType:TypeFuture
-    @selfType || (@parent && @parent.selfType)
-  end
-  def selfType=(type:TypeFuture):void
-    @selfType = type
-  end
-  def parent:Scope
-    @parent
-  end
-  def parent=(scope:Scope):void
-    @parent = scope
-  end
-  def import(fullname:String, shortname:String)
-  end
-  def package:String
-    @package
-  end
-  def package=(p:String)
-    @package = p
-  end
-  def temp(name)
-    "#{name}#{@nextTemp += 1}"
-  end
-  def shadow(name:String):void; end
-  def resetDefaultSelfNode:void; end
-end
+logger = org::mirah::MirahLogFormatter.new(true).install
+logger.setLevel(java::util::logging::Level.ALL)
+parser = MirahParser.new
+code = StreamCodeSource.new("stdin", System.in)
 
-interface ScopeFactory do
-  def newScope(scoper:Scoper, node:Node):Scope; end
-end
+ast = Node(parser.parse(code))
+types = SimpleTypes.new('foo')
+scopes = SimpleScoper.new
+typer = Typer.new(types, scopes, nil)
 
-class SimpleScoper; implements Scoper
-  def initialize
-    @scopes = {}
-  end
-  def initialize(factory:ScopeFactory)
-    @factory = factory
-    @scopes = {}
-  end
-  def getScope(node)
-    orig = node
-    until node.parent.nil?
-      node = node.parent
-      scope = Scope(@scopes[node])
-      return scope if scope
-    end
-    Scope(@scopes[node]) || addScope(node)
-  end
-  def getIntroducedScope(node:Node)
-    Scope(@scopes[node])
-  end
-  def addScope(node)
-    scope = if @factory
-      @factory.newScope(self, node)
-    else
-      SimpleScope.new
-    end
-    @scopes[node] = scope
-    scope
-  end
-  def copyScopeFrom(from, to)
-    @scopes[to] = getScope(from)
-  end
-end
+puts "Original AST:"
+TypePrinter.new(typer).scan(ast, nil)
+puts
+puts "Inferring types..."
 
-class TypePrinter < NodeScanner
-  def initialize(typer:Typer)
-    initialize(typer, System.out)
-  end
-  
-  def initialize(typer:Typer, writer:PrintStream)
-    @indent = 0
-    @typer = typer
-    @args = Object[1]
-    @args[0] = ""
-    @out = writer
-  end
-  def printIndent:void
-    @out.printf("%#{@indent}s", @args) if @indent > 0
-  end
-  def enterDefault(node, arg)
-    printIndent
-    @out.print(node)
-    type = @typer.getInferredType(node)
-    if type
-      @out.print ": #{type.resolve}"
-    end
-    @out.println
-    @indent += 2
-    true
-  end
-  def enterUnquote(node, arg)
-    super(node, arg)
-    if node.object
-      if node.object.kind_of?(Node)
-        Node(node.object).accept(self, arg)
-      else
-        printIndent
-        @out.print node.object
-        @out.println
-      end
-    end
-    node.object.nil?
-  end
-  def exitDefault(node, arg)
-    @indent -= 2
-    nil
-  end
-end
+typer.infer(ast, false)
+
+TypePrinter.new(typer).scan(ast, nil)
