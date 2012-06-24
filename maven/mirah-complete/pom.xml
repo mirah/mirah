@@ -4,14 +4,14 @@
   <parent>
     <groupId>org.mirah</groupId>
     <artifactId>shared</artifactId>
-    <version>0.0.13-SNAPSHOT</version>
+    <version>0.0.12-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.mirah</groupId>
   <artifactId>mirah-complete</artifactId>
   <packaging>jar</packaging>
-  <version>0.0.13-SNAPSHOT</version>
+  <version>0.0.12-SNAPSHOT</version>
   <name>Mirah Complete</name>
 
   <build>
