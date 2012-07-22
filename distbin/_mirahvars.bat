@@ -15,9 +15,6 @@ rem ----- Verify and Set Required Environment Variables -----------------------
 
 if not "%JAVA_HOME%" == "" goto gotJava
 
-for %%P in (%PATH%) do if exist %%P\java.exe set JAVA_HOME=%%P..\
-if not "%JAVA_HOME%" == "" goto gotJava
-
 echo You must set JAVA_HOME to point at your JRE/JDK installation
 set MIRAH_BAT_ERROR=1
 exit /b 1
