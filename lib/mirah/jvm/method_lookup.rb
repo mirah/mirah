@@ -31,16 +31,15 @@ module Mirah
         if mapped_type.error?
           raise "WTF?!?"
         end
-        if name == 'new'
-          if meta
-            name = "<init>"
-            constructor = true
-            mapped_type = mapped_type.unmeta
-            meta = false
-          else
-            constructor = false
-          end
-        elsif name == '<init>' && !meta
+
+        if name == 'new' && meta # we're calling SomeClass.new
+          name = "<init>"
+          constructor = true
+          mapped_type = mapped_type.unmeta
+          meta = false
+        elsif name == 'new' && !meta # we're calling some_instance.new
+          constructor = false
+        elsif name == '<init>' && !meta # how do we get here?
           constructor = true
         end
 
