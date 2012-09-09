@@ -65,33 +65,37 @@ module Mirah
   def self.underline(position)
     start_line = position.start_line - position.source.initial_line
     end_line = position.end_line - position.source.initial_line
+
     start_col = position.start_column
-    start_col -= if start_line == 0
-      position.source.initial_column
-    else
-      1
-    end
     end_col = position.end_column
-    end_col -= if end_line == 0
+    adjustment = if start_line == 0
       position.source.initial_column
     else
       1
     end
+
+    start_col -= adjustment
+    end_col -= adjustment
+
     result = ""
     position.source.contents.each_with_index do |line, lineno|
       break if lineno > end_line
-      if lineno >= start_line
-        chomped = line.chomp
-        result << chomped
-        result << "\n"
-        start = 0
-        start = start_col if lineno == start_line
-        result << " " * start
-        endcol = chomped.size
-        endcol = end_col if lineno == end_line
-        result << "^" * [endcol - start, 1].max
-        result << "\n"
-      end
+      next if lineno < start_line
+
+      chomped = line.chomp
+      result << chomped
+      result << "\n"
+
+      start = 0
+      start = start_col if lineno == start_line
+      
+      result << " " * start
+
+      endcol = chomped.size
+      endcol = end_col if lineno == end_line
+
+      result << "^" * [endcol - start, 1].max
+      result << "\n"
     end
     result
   end
