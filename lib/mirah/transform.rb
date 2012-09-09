@@ -16,6 +16,5 @@
 require 'base64'
 require 'jruby'
 require 'mirah/errors'
-require 'mirah/transform/error'
 require 'mirah/transform/transformer'
 require 'mirah/transform/ast_ext'
