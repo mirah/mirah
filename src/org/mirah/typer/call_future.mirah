@@ -161,12 +161,19 @@ class CallFuture < BaseTypeFuture
         if new_method != @method
           #@method.removeListener(self) if @method
           @method = new_method
+          resolved_target = @resolved_target
+          void_type = @types.getVoidType().resolve
           @method.onUpdate do |m, type|
             if m == call.currentMethodType
               if type.kind_of?(MethodType)
                 mtype = MethodType(type)
                 call.resolveBlocks(mtype, nil)
-                call.resolved(mtype.returnType)
+                is_void = void_type.equals(mtype.returnType)
+                if is_void
+                  call.resolved(resolved_target)
+                else
+                  call.resolved(mtype.returnType)
+                end
               else
                 unless type.isError
                   raise IllegalArgumentException, "Expected MethodType, got #{type}"
