@@ -20,6 +20,9 @@ import java.util.Collections
 
 # This class transforms a Block into an anonymous class once the Typer has figured out
 # the interface to implement (or the abstract superclass).
+#
+# Note: This is ugly. It depends on the internals of the JVM scope and jvm_bytecode classes,
+# and the BindingReference node is a hack. This should really all be cleaned up.
 class ClosureBuilder
   def initialize(typer:Typer)
     @typer = typer
@@ -38,41 +41,42 @@ class ClosureBuilder
     klass = build_class(block.position, parent_type)
 
     # TODO(ribrdb) binding
+    parent_scope = @scoper.getScope(block)
+    build_constructor(enclosing_body, klass, parent_scope)
     
     unless add_methods(klass, block)
       build_method(klass, block, parent_type)
     end
     
-    # Infer the ClassDefinition so the scopes are prepared
-    enclosing_body.insert(0, klass)
-    closure_type = @typer.infer(klass)
-    
     # Now assign the parent scopes
-    parent_scope = @scoper.getScope(block)
     klass.body.each do |n|
       unless n.kind_of?(ConstructorDefinition)
-        method = MethodDefinition(n).body
-        @scoper.getScope(method).parent = parent_scope
+        method = MethodDefinition(n)
+        @scoper.addScope(method).parent = parent_scope
       end
     end
 
+    # Infer the types
+    enclosing_body.insert(0, klass)
+    closure_type = @typer.infer(klass)
+    
     target = makeTypeName(block.position, closure_type.resolve)
-    Call.new(block.position, target, SimpleString.new("new"), Collections.emptyList, nil)
+    Call.new(block.position, target, SimpleString.new("new"), [BindingReference.new], nil)
   end
 
   # Builds an anonymous class.
   def build_class(position:Position, parent_type:ResolvedType)
-    interfaces = if parent_type.isInterface
+    interfaces = if (parent_type && parent_type.isInterface)
       [makeTypeName(position, parent_type)]
     else
       Collections.emptyList
     end
-    superclass = if parent_type.isInterface
+    superclass = if (parent_type.nil? || parent_type.isInterface)
       nil
     else
       makeTypeName(position, parent_type)
     end
-    ClassDefinition.new(position, nil, superclass, Collections.emptyList, interfaces, nil)
+    ClosureDefinition.new(position, nil, superclass, Collections.emptyList, interfaces, nil)
   end
 
   def makeTypeName(position:Position, type:ResolvedType)
@@ -115,5 +119,19 @@ class ClosureBuilder
       method.body = NodeList(block.body.clone)
       klass.body.add(method)
     end
+  end
+  
+  def build_constructor(enclosing_body:NodeList, klass:ClassDefinition, parent_scope:Scope):void
+    parent_scope.binding_type ||= begin
+      binding_klass = build_class(klass.position, nil)
+      enclosing_body.insert(0, binding_klass)
+      @typer.infer(binding_klass, true).resolve
+    end
+    binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
+    args = Arguments.new(klass.position, [RequiredArgument.new(SimpleString.new('binding'), binding_type_name)],
+                         Collections.emptyList, nil, Collections.emptyList, nil)
+    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil)
+    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil)
+    klass.body.add(constructor)
   end
 end

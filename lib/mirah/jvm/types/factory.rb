@@ -560,7 +560,7 @@ module Mirah::JVM::Types
         else
           outer_name = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(node.position.source.name || 'DashE')
         end
-        id = (@anonymous_classes[outer_node] += 1)
+        id = (@anonymous_classes[outer_name] += 1)
         node.name_set(SimpleString.new("#{outer_name}$#{id}"))
       end
       name = node.name.identifier

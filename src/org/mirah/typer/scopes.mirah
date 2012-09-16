@@ -33,6 +33,8 @@ interface Scope do
   def temp(name:String):String; end
   def imports:Map; end  # Map of short -> long; probably should be reversed.
   def search_packages:List; end
+  def binding_type:ResolvedType; end
+  def binding_type=(type:ResolvedType); end
 end
 
 interface Scoper do

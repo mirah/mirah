@@ -155,19 +155,11 @@ module Mirah
         @self_node
       end
 
-      def binding_type(defining_class=nil, mirah=nil)
-        @binding_type ||= begin
-          if parent
-            parent.binding_type(defining_class, mirah)
-          else
-            name = "#{defining_class.name}$#{mirah.tmp}"
-            factory = Mirah::AST.type_factory
-            if factory
-              factory.declare_type(self, name)
-            else
-              Mirah::AST::TypeReference.new(name, false, false)
-            end
-          end
+      def binding_type
+        if parent
+          parent.binding_type
+        else
+          @binding_type
         end
       end
 
@@ -178,6 +170,7 @@ module Mirah
           @binding_type = type
         end
       end
+      alias :binding_type_set :binding_type= 
 
       def has_binding?
         @binding_type != nil || (parent && parent.has_binding?)

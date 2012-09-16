@@ -404,6 +404,10 @@ class Typer < SimpleNodeVisitor
     type
   end
 
+  def visitClosureDefinition(classdef, expression)
+    visitClassDefinition(classdef, expression)
+  end
+
   def visitInterfaceDeclaration(idef, expression)
     visitClassDefinition(idef, expression)
   end
@@ -988,6 +992,13 @@ class Typer < SimpleNodeVisitor
         typer.infer(new_node)
       end
     end
+  end
+
+  def visitBindingReference(ref, expression)
+    binding = @scopes.getScope(ref).binding_type
+    future = BaseTypeFuture.new
+    future.resolved(binding)
+    future
   end
 
   def visitMacroDefinition(defn, expression)

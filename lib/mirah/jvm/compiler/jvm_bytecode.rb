@@ -114,7 +114,7 @@ module Mirah
             @method.dup
             @method.invokespecial type, "<init>", [@method.void]
             if node.respond_to? :arguments
-              node.arguments.args.each do |param|
+              node.arguments.required.each do |param|
                 name = param.name.identifier
                 param_type = inferred_type(param)
                 if scope.captured?(param.name.identifier)
@@ -243,7 +243,7 @@ module Mirah
         end
 
         def visitClosureDefinition(class_def, expression)
-          compiler = ClosureCompiler.new(@file, @type, self)
+          compiler = ClosureCompiler.new(@file, @type, self, @scoper, @typer)
           compiler.visitClassDefinition(class_def, expression)
         end
 
@@ -1063,12 +1063,12 @@ module Mirah
         end
 
         class ClosureCompiler < JVMBytecode
-          def initialize(file, type, parent)
+          def initialize(file, type, parent, scoper, typer)
+            super(scoper, typer)
             @file = file
             @type = type
             @jump_scope = []
             @parent = parent
-            @scopes = parent.scopes
           end
 
           def prepare_binding(node)
@@ -1079,6 +1079,8 @@ module Mirah
               @method.aload 0
               @method.getfield(@class, 'binding', @binding)
               type.store(@method, @method.local('$binding', type))
+            else
+              log "No binding for #{node} (#{scope.has_binding?} #{scope.parent} #{scope.parent && scope.parent.has_binding?})"
             end
             begin
               yield

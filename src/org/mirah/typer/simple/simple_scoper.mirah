@@ -53,13 +53,15 @@ class SimpleScoper; implements Scoper
     Scope(@scopes[node])
   end
   def addScope(node)
-    scope = if @factory
-      @factory.newScope(self, node)
-    else
-      SimpleScope.new
+    Scope(@scopes[node]) || begin
+      scope = if @factory
+        @factory.newScope(self, node)
+      else
+        SimpleScope.new
+      end
+      @scopes[node] = scope
+      scope
     end
-    @scopes[node] = scope
-    scope
   end
   def copyScopeFrom(from, to)
     @scopes[to] = getScope(from)
