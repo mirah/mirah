@@ -36,6 +36,10 @@ class LocalFuture < AssignableTypeFuture
   def parent=(parent:LocalFuture)
     @parent = parent
     parent.addChild(self)
+    me = self
+    parent.onUpdate do |x, resolved|
+      me.resolved(resolved)
+    end
     checkAssignments
   end
 
