@@ -261,23 +261,24 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
-  def test_block_with_no_params_on_interface_with
-    assert_raises Mirah::MirahError do
-      parse_and_type(<<-CODE)
+  def test_block_with_missing_params
+    cls, = compile(<<-CODE)
         interface Bar do
           def run(a:string):void;end
         end
 
         class Foo
           def foo(a:Bar)
-            1
+            a.run("x")
           end
         end
         Foo.new.foo do
-          1
+          puts "hi"
         end
         CODE
-      end
+    assert_output "hi\n" do
+      cls.main(nil)
+    end
   end
 
   def test_block_with_too_many_params

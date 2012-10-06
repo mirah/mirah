@@ -114,6 +114,10 @@ class ClosureBuilder
       else
         Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
       end
+      while args.required.size < mtype.parameterTypes.size
+        arg = RequiredArgument.new(block.position, SimpleString.new("arg#{args.required.size}"), nil)
+        args.required.add(arg)
+      end
       return_type = makeTypeName(block.position, mtype.returnType)
       method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
       method.body = NodeList(block.body.clone)
