@@ -78,6 +78,13 @@ class ValueGetter < NodeScanner
   end
 end
 
+# Builds all the macro classes.
+#
+# It's where the transformation magic happens.
+# Whenever there's a macro definition, this slurps it up and converts it into a class.
+# It is also responsible for transformations of things like optional arguments and I think,
+# managing intrinsics.
+#
 class MacroBuilder; implements Compiler
   def initialize(typer:Typer, backend:JvmBackend)
     @typer = typer
