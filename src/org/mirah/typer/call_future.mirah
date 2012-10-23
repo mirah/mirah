@@ -32,19 +32,20 @@ class CallFuture < BaseTypeFuture
     @@log
   end
   
-  def initialize(types:TypeSystem, target:TypeFuture, paramTypes:List, call:CallSite)
-    initialize(types, target, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
+  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, paramTypes:List, call:CallSite)
+    initialize(types, scope, target, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
   end
   
-  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
-    initialize(types, target, name, paramTypes, CallFuture.getNodes(call), call.position)
+  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
+    initialize(types, scope, target, name, paramTypes, CallFuture.getNodes(call), call.position)
   end
   
-  def initialize(types:TypeSystem, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
+  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
     unless target
       raise IllegalArgumentException, "No target for #{name}"
     end
+    @scope = scope
     @types = types
     @target = target
     @name = name
@@ -69,6 +70,10 @@ class CallFuture < BaseTypeFuture
     call.parameters.each {|p| l.add(p)} if call.parameters
     l.add(call.block) if call.block
     l
+  end
+
+  def scope
+    @scope
   end
 
   def parameterNodes:List

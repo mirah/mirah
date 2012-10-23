@@ -223,15 +223,15 @@ module Mirah::JVM::Types
       macro_types = call.parameter_nodes.map do |node|
         get_type(node.java_class.name)
       end if call.parameter_nodes
-      _find_method_type(target, call.name, argTypes, macro_types, call.position)
+      _find_method_type(call.scope, target, call.name, argTypes, macro_types, call.position)
     end
 
-    def _find_method_type(target, name, argTypes, macroTypes, position)
+    def _find_method_type(scope, target, name, argTypes, macroTypes, position)
       if target.respond_to?(:isError) && target.isError
         return target
       end
       type = BaseTypeFuture.new(nil)
-      target.find_method2(target, name, argTypes, macroTypes, target.meta?) do |method|
+      target.find_method2(target, name, argTypes, macroTypes, target.meta?, scope) do |method|
         if method.nil?
           type.resolved(ErrorType.new([
               ["Cannot find %s method %s(%s) on %s" %
@@ -365,7 +365,7 @@ module Mirah::JVM::Types
       end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
-      type = _find_method_type(target, name, args, nil, nil)
+      type = _find_method_type(nil, target, name, args, nil, nil)
       type.onUpdate do |m, resolved|
         resolved = resolved.returnType if resolved.respond_to?(:returnType)
         log "Learned {0} method {1}.{2}({3}) = {4}", [

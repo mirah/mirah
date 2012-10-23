@@ -45,7 +45,7 @@ class JavaTyperTest < Test::Unit::TestCase
   def method_type(target, name, args)
     target = @types.cache_and_wrap(target)
     args = args.map {|arg| @types.cache_and_wrap(arg) }
-    call = CallFuture.new(@types, target, name, args, nil, nil)
+    call = CallFuture.new(@types, nil, target, name, args, nil, nil)
     @types.getMethodType(call).return_type
   end
 

@@ -16,9 +16,10 @@
 module Mirah
   module JVM
     module MethodLookup
+      java_import 'mirah.lang.ast.ConstructorDefinition'
 
-      def find_method2(mapped_type, name, mapped_params, macro_params, meta, &block)
-        find_method(mapped_type, name, mapped_params, macro_params, meta, &block)
+      def find_method2(mapped_type, name, mapped_params, macro_params, meta, scope=nil, &block)
+        find_method(mapped_type, name, mapped_params, macro_params, meta, scope, &block)
       rescue NameError => ex
         raise ex unless ex.message.include?(name)
         if block_given?
@@ -27,7 +28,7 @@ module Mirah
         ex
       end
 
-      def find_method(mapped_type, name, mapped_params, macro_params, meta, &block)
+      def find_method(mapped_type, name, mapped_params, macro_params, meta, scope=nil, &block)
         if mapped_type.error?
           raise "WTF?!?"
         end
@@ -41,6 +42,12 @@ module Mirah
           constructor = false
         elsif name == '<init>' && !meta # how do we get here?
           constructor = true
+        elsif name == 'initialize' && !meta && scope
+          context = scope.context
+          if context.kind_of?(ConstructorDefinition) || context.findAncesor(ConstructorDefinition.class)
+            constructor = true
+            name = '<init>'
+          end
         end
 
         if block_given?
