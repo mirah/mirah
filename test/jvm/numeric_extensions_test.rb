@@ -1,4 +1,4 @@
-class MainMethodTest < Test::Unit::TestCase
+class NumericExtensionsTest < Test::Unit::TestCase
   def test_power_macro
     cls, = compile(<<-EOF)
       def run(n1:int, n2:int)

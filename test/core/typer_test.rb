@@ -43,7 +43,8 @@ class TyperTest < Test::Unit::TestCase
   def new_typer(n)
     @types = SimpleTypes.new(n.to_s)
     @typer = Mirah::Typer::Typer.new(@types, @scopes, nil)
-    @mirah = Transform::Transformer.new(Mirah::Util::CompilationState.new, @typer)
+#    @typer.define_method(:visitRescue) { |n,e| super.tap{|x|puts x}}
+    @mirah = Transform::Transformer.new(Mirah::Util::CompilationState.new.tap{|x|x.verbose=true}, @typer)
     @typer
   end
 
@@ -61,6 +62,16 @@ class TyperTest < Test::Unit::TestCase
     process_inference_errors(typer, [ast]) do |errors|
       errors.each {|e| add_failure(e.message)}
     end
+  end
+
+  def assert_errors_including(message, typer, ast)
+    actual_errors = []
+    process_inference_errors(typer, [ast]) do |errors|
+      actual_errors += errors
+    end
+    fail("no errors") if actual_errors.empty?
+    assert actual_errors.any?{|error| error.message.join("\n").include? message },
+           "no errors with message \"#{message}\" in [#{actual_errors}"
   end
 
   def infer(ast, expression=true)
@@ -248,17 +259,16 @@ class TyperTest < Test::Unit::TestCase
   end
   
   def test_rescue_w_different_type_raises_inference_error_when_expression
-    ast = parse("puts begin true; 1.0; rescue; ''; end")
-
-    assert_raise(Mirah::InferenceError) {infer(ast)}
+    ast = parse("1 + begin true; 1.0; rescue; ''; end")
+    infer(ast, true)
+    assert_errors_including "Incompatible types", @typer, ast
   end
 
   def test_rescue_w_different_type_doesnt_raise_inference_error_when_statement
     ast = parse("begin true; 1.0; rescue; ''; end")
-
-    assert_nothing_raised {infer(ast)}
+    infer(ast, false)
+    assert_no_errors @typer, ast
   end
-
 
   def test_colon2
     ast = parse("java::lang::System.out")
