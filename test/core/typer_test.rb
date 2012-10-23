@@ -43,8 +43,7 @@ class TyperTest < Test::Unit::TestCase
   def new_typer(n)
     @types = SimpleTypes.new(n.to_s)
     @typer = Mirah::Typer::Typer.new(@types, @scopes, nil)
-#    @typer.define_method(:visitRescue) { |n,e| super.tap{|x|puts x}}
-    @mirah = Transform::Transformer.new(Mirah::Util::CompilationState.new.tap{|x|x.verbose=true}, @typer)
+    @mirah = Transform::Transformer.new(Mirah::Util::CompilationState.new, @typer)
     @typer
   end
 
