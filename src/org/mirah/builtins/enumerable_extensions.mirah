@@ -36,13 +36,13 @@ class EnumerableExtensions
       end
     end
   end
-  
+
   macro def all?
     quote do
       `@call.target`.all? {|x| x}
     end
   end
-  
+
   macro def any?(block:Block)
     x = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0)

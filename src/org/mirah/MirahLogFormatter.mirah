@@ -15,7 +15,7 @@ class MirahLogFormatter < Formatter
     @names = {}
     @inverse_names = {}
   end
-  
+
   def format_name(sb:StringBuilder, level:int, name:String):void
     sb.append("\e[1m") if @color
     sb.append("* [")
@@ -31,7 +31,7 @@ class MirahLogFormatter < Formatter
     sb.append('] ')
     sb.append("\e[0m") if @color
   end
-  
+
   def shorten(name:String):String
     short = String(@names[name])
     return short if short
@@ -50,7 +50,7 @@ class MirahLogFormatter < Formatter
     end
     return name
   end
-  
+
   def join(list:Iterable, sep:String):String
     sb = StringBuilder.new
     it = list.iterator
@@ -60,7 +60,7 @@ class MirahLogFormatter < Formatter
     end
     sb.toString
   end
-  
+
   def format(record):String
     sb = StringBuilder.new
     format_name(sb, record.getLevel.intValue, record.getLoggerName)
@@ -75,7 +75,7 @@ class MirahLogFormatter < Formatter
     end
     sb.toString
   end
-  
+
   def install
     handler = ConsoleHandler.new
     handler.setLevel(Level.ALL)

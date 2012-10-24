@@ -35,7 +35,7 @@ class Compile < Task
   end
 
   def execute:void
-    
+
     handleOutput("compiling Mirah source in #{expand(@src)} to #{@target}")
     log("classpath: #{@classpath}", 3)
     target = @target
@@ -46,7 +46,7 @@ class Compile < Task
     jvm_version = @jvm_version
     verbose = @verbose
     exception = Exception(nil)
-    
+
     t = Thread.new do
       # JRuby wants to use the context classloader, but that's ant's
       # classloader, not the one that contains JRuby.
@@ -66,13 +66,13 @@ class Compile < Task
         MirahCommand.compile(args)
       rescue => ex
         inner_exception = ex
-      end      
+      end
       # scoping hack
       exception = inner_exception
     end
     t.start
     t.join
-    
+
     raise BuildException.new(exception) if exception
   end
 
@@ -103,7 +103,7 @@ class Compile < Task
   def setVerbose(verbose:boolean):void
     @verbose = verbose
   end
-  
+
   def setJvmversion(version:String):void
     @jvm_version = version
   end

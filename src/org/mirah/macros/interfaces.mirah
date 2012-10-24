@@ -62,7 +62,7 @@ class QuoteMacro; implements Macro
     @mirah = mirah
     @call = call
   end
-  
+
   def expand
     node = if @call.block.body_size == 1
       @call.block.body(0)

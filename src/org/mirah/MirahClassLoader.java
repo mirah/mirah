@@ -10,7 +10,7 @@ import java.nio.charset.Charset;
 
 public class MirahClassLoader extends SecureClassLoader {
   private Map<String, String> class_map;
-  
+
   public MirahClassLoader(ClassLoader parent, Map<String, String> class_map) {
     super(parent);
     this.class_map = class_map;

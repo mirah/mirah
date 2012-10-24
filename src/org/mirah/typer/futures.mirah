@@ -41,14 +41,14 @@ end
 
 interface TypeFuture do
   def isResolved:boolean; end
-  
+
   # Returns the resolved type for this future, or an ErrorType if not yet resolved.
   def resolve:ResolvedType; end
-  
+
   # Add a listener for this future.
   # listener will be called whenever this future resolves to a different type.
   # If the future is already resolved listener will be immediately called.
   def onUpdate(listener:TypeListener):TypeListener; end
-  
+
   def removeListener(listener:TypeListener):void; end
 end

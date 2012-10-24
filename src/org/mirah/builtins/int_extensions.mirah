@@ -31,7 +31,7 @@ class IntExtensions
       end
     }
   end
-  
+
   macro def upto(n, block:Block)
     i = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0).name.identifier

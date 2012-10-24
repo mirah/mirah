@@ -27,19 +27,19 @@ class CallFuture < BaseTypeFuture
   def self.initialize:void
     @@log = Logger.getLogger(CallFuture.class.getName)
   end
-  
+
   def self.log
     @@log
   end
-  
+
   def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, paramTypes:List, call:CallSite)
     initialize(types, scope, target, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
   end
-  
+
   def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
     initialize(types, scope, target, name, paramTypes, CallFuture.getNodes(call), call.position)
   end
-  
+
   def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
     unless target
@@ -83,15 +83,15 @@ class CallFuture < BaseTypeFuture
   def resolved_target=(type:ResolvedType):void
     @resolved_target = type
   end
-  
+
   def resolved_target
     @resolved_target
   end
-  
+
   def name
     @name
   end
-  
+
   def resolved_parameters
     @resolved_args
   end
