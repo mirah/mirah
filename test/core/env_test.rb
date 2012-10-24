@@ -25,7 +25,7 @@ class EnvTest < Test::Unit::TestCase
     abc = %w[a b c]
     assert_equal(abc.join(Mirah::Env.path_separator), Mirah::Env.encode_paths(abc))
   end
-  
+
   def test_encode_paths_with_single_element
     assert_equal('a', Mirah::Env.encode_paths(['a']))
   end
@@ -38,17 +38,17 @@ class EnvTest < Test::Unit::TestCase
     paths_to_append = %w[a b c d]
     encoded_paths = paths_to_append.join Mirah::Env.path_separator
     path_array = ['1','2']
-    
+
     assert_equal(['1','2','a','b','c','d'], Mirah::Env.decode_paths(encoded_paths, path_array))
     assert_equal(['1','2','a','b','c','d'], path_array)
   end
-  
+
   def test_decode_paths_with_empty_list
     assert_equal([], Mirah::Env.decode_paths(''))
   end
-  
+
   def test_decode_paths_with_single_element
     assert_equal(['a'], Mirah::Env.decode_paths('a'))
   end
-  
+
 end

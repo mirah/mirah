@@ -21,7 +21,7 @@ import java.util.regex.Matcher
 def count_substring(pattern:string, source:string)
     (source.length() - source.replace(pattern, "").length()) / pattern.length()
 end
- 
+
 puts count_substring("th", "the three truths")      # ==> 3
 puts count_substring("abab", "ababababab")          # ==> 2
 puts count_substring("a*b", "abaabba*bbaba*bbab")   # ==> 2

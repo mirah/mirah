@@ -14,11 +14,11 @@
 # limitations under the License.
 
 
-def reverse(s:string) 
+def reverse(s:string)
     StringBuilder.new(s).reverse.toString()
 end
 
-def palindrome?(s:string) 
+def palindrome?(s:string)
     s.equals(reverse(s))
 end
 

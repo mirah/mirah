@@ -460,7 +460,7 @@ module Mirah
               chained_constructor = true
             end
           end
-              
+
           method = type.get_method(name, params)
           unless method
             target = static ? @class.name : 'self'

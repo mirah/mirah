@@ -28,7 +28,7 @@ module CommonAssertions
       array.include? value
     end
   end
-  
+
   def capture_output
     saved_output = System.out
     saved_stdout = $stdout

@@ -28,9 +28,9 @@ while !guessed do
     if userNumber == number
         guessed = true
         puts "you guessed it"
-    elsif userNumber > number 
+    elsif userNumber > number
         puts "too high"
     else
-        puts "too low"        
+        puts "too low"
     end
 end

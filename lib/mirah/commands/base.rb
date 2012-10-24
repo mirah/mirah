@@ -29,9 +29,9 @@ module Mirah
         @args = args
         @argument_processor = Mirah::Util::ArgumentProcessor.new(@state, @args)
       end
-      
+
       attr_accessor :state, :args, :argument_processor
-      
+
       def execute_base
         argument_processor.process
         if argument_processor.exit?

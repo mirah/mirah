@@ -26,7 +26,7 @@ import org.mirah.macros.MacroBuilder
 # dependencies. Whenever a new type is learned or a type changes any dependent
 # types get updated.
 #
-# An important feature is that types will change over time. 
+# An important feature is that types will change over time.
 # The first time an assignment to a variable resolves, the typer will pick that
 # type for the variable. When a new assignment resolves, two things can happen:
 #  - if the assigned type is compatible with the old, just continue.
@@ -51,7 +51,7 @@ class Typer < SimpleNodeVisitor
   def self.initialize:void
     @@log = Logger.getLogger(Typer.class.getName)
   end
-  
+
   def initialize(types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
@@ -316,7 +316,7 @@ class Typer < SimpleNodeVisitor
     end
     CallFuture.new(@types, scope, target, setter, [value], nil, call.position)
   end
-  
+
   def narrowingCall(scope:Scope,
                     target:TypeFuture,
                     name:String,
@@ -353,7 +353,7 @@ class Typer < SimpleNodeVisitor
       end
     end
   end
-  
+
   def visitCast(cast, expression)
     # TODO check for compatibility
     infer(cast.value)
@@ -1008,7 +1008,7 @@ class Typer < SimpleNodeVisitor
     #defn.parent.removeChild(defn)
     @types.getVoidType()
   end
-  
+
   # Look for special blocks in the loop body and move them into the loop node.
   def enhanceLoop(node:Loop):void
     it = node.body.listIterator

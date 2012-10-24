@@ -34,12 +34,12 @@ class Builtins
     mirah.type_system.extendClass('float', NumberExtensions.class)
     mirah.type_system.extendClass('double', NumberExtensions.class)
   end
-  
+
   macro def newHash(hash:Hash)
     map = gensym
     capacity = int(hash.size * 0.84)
     capacity = 16 if capacity < 16
-    
+
     block = quote do
       `map` = java::util::HashMap.new(`Fixnum.new(capacity)`)
       `map`.put()

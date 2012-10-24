@@ -16,10 +16,10 @@
 
 macro def eachChar(value, &block)
 
-    quote { 
+    quote {
         `value`.toCharArray.each do | my_char |
             `block.body`
-        end 
+        end
     }
 end
 

@@ -5,7 +5,7 @@
   <div>
     <form method=post>
       <textarea id=body name=body style="width:95%;font-family:monospace" rows=5
-        ><% if @page && @page.body %><%=h @page.body %><% end 
+        ><% if @page && @page.body %><%=h @page.body %><% end
       %></textarea><br>
       Your Name: <input name=nickname value="<%=h nickname %>"><br>
       Comment: <input name=comment value=<% if @page %>

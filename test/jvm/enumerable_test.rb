@@ -99,7 +99,7 @@ class EnumerableTest < Test::Unit::TestCase
     assert_equal(false, cls.foo([2, 3, 4].to_java(:int)))
     assert_equal(true, cls.foo([2, 0, 4].to_java(:int)))
   end
-  
+
   def test_all_string_array
     cls, = compile(<<-EOF)
       def foo(a:String[])
@@ -239,7 +239,7 @@ class EnumerableTest < Test::Unit::TestCase
     assert_equal("<init><pre><post><pre><body><post>", cls.foo)
   end
 
-  
+
     def test_each
     cls, = compile(<<-EOF)
       def foo
@@ -250,7 +250,7 @@ class EnumerableTest < Test::Unit::TestCase
       cls.foo
     end
   end
-  
+
   def test_each_without_block_arguments
     cls, = compile(<<-EOF)
       def foo
@@ -320,7 +320,7 @@ class EnumerableTest < Test::Unit::TestCase
         end
       end
     EOF
-    
+
     assert_output("Hi\n") do
       cls.test("Hi")
     end

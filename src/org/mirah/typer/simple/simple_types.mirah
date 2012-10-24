@@ -134,7 +134,7 @@ class SimpleTypes; implements TypeSystem
     end
     getMethodTypeInternal(target.resolve, name, args, nil)
   end
-  
+
   def getMethodTypeInternal(target:ResolvedType, name:String, argTypes:List, position:Position):MethodFuture
     if argTypes.getClass.getName.equals("org.jruby.RubyArray")
       # RubyArray claims to implement List, but it doesn't have the right
@@ -153,7 +153,7 @@ class SimpleTypes; implements TypeSystem
     end
     t
   end
-  
+
   def getFieldType(target, name, position)
     key = [target.resolve, name]
     t = AssignableTypeFuture(@fields[key])

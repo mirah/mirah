@@ -116,18 +116,18 @@ module Mirah
       def enterNullChild(obj)
         puts("nil")
       end
-      
+
       def startNode(node)
         print("[#{node.java_class.simple_name}")
         indent
       end
-        
+
       def enterDefault(node, arg)
         startNode(node)
         puts
         true
       end
-      
+
       def exitDefault(node, arg)
         dedent
         if @out[-2,2] =~ /^[\[\]"]\n/
@@ -142,7 +142,7 @@ module Mirah
           end
         end
       end
-      
+
       %w(Boolean Fixnum Float CharLiteral).each do |name|
         eval(<<-EOF)
           def enter#{name}(node, arg)
@@ -152,7 +152,7 @@ module Mirah
           end
         EOF
       end
-      
+
       def enterSimpleString(node, arg)
         first_child = @out.rindex(/[\]\n]/, -2) < @out.rindex("[")
         if first_child
@@ -162,11 +162,11 @@ module Mirah
         print '"', node.value
         true
       end
-      
+
       def exitSimpleString(node, arg)
         puts '"'
       end
-      
+
       def enterTypeRefImpl(node, arg)
         startNode(node)
         print " #{node.name}"

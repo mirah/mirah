@@ -15,17 +15,17 @@
 
 /**
 * Java encodes strings in UTF-16, which represents each character with one
-* or two 16-bit values. The length method of String objects returns the 
-* number of 16-bit values used to encode a string, so the number of bytes 
+* or two 16-bit values. The length method of String objects returns the
+* number of 16-bit values used to encode a string, so the number of bytes
 * can be determined by doubling that number.
-*/ 
+*/
 
 s = "Hello, world!"
 puts s.length() * 2
 
 /**
-* Another way to know the byte length of a string is to explicitly 
+* Another way to know the byte length of a string is to explicitly
 * specify the charset we desire.
-*/ 
+*/
 puts s.getBytes("UTF-16").length
 puts s.getBytes("UTF-8").length

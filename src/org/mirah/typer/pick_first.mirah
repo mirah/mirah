@@ -29,7 +29,7 @@ class PickFirst < BaseTypeFuture
   def self.initialize:void
     @@log = Logger.getLogger(PickFirst.class.getName)
   end
-  
+
   # Items must be a list with an even number of elements:
   # [future1, arg1, ..., futureX, argX]
   # futureX and argX are passed to the listener when futureX is chosen.

@@ -12,10 +12,10 @@ Datastore API:
   Model.all -> Query
   property foo, String # or any supported datastore type
                        # For numbers use Long or Double
-  
+
   instance.save
   instance.key
-  
+
   instance.foo
   instance.foo=
 

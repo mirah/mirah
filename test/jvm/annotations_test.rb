@@ -14,7 +14,7 @@ class AnnotationsTest < Test::Unit::TestCase
     assert_not_nil cls.java_class.java_method('foo').annotation(deprecated)
     assert_nil cls.java_class.annotation(deprecated)
   end
-  
+
   def test_annotation_on_a_class
     cls, = compile(<<-EOF)
       $Deprecated
@@ -23,7 +23,7 @@ class AnnotationsTest < Test::Unit::TestCase
     EOF
     assert_not_nil cls.java_class.annotation(deprecated)
   end
-  
+
   def test_annotation_on_a_field
     cls, = compile(<<-EOF)
       class AnnotatedField
@@ -36,7 +36,7 @@ class AnnotationsTest < Test::Unit::TestCase
 
     assert_not_nil cls.java_class.declared_fields[0].annotation(deprecated)
   end
-  
+
   def test_annotation_with_an_integer
     jruby_method = Java::OrgJrubyAnno::JRubyMethod.java_class
 

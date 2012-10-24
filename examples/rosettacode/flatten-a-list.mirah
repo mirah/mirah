@@ -17,18 +17,18 @@ import java.util.ArrayList
 import java.util.List
 import java.util.Collection
 
-def flatten(list: Collection) 
+def flatten(list: Collection)
     flatten(list, ArrayList.new)
 end
 def flatten(source: Collection, result: List)
 
     source.each do |x|
-        if (Collection.class.isAssignableFrom(x.getClass())) 
-            flatten(Collection(x), result)  
+        if (Collection.class.isAssignableFrom(x.getClass()))
+            flatten(Collection(x), result)
         else
             result.add(x)
             result  # if branches must return same type
-        end 
+        end
     end
     result
 end

@@ -24,7 +24,7 @@ interface Node do
   # def parent
   #   returns Node
   # end
-  # 
+  #
   # # Returns the value of string-literalish nodes
   # def string_value
   #   returns String

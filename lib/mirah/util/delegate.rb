@@ -5,7 +5,7 @@ module Mirah
     class Delegator
       IgnoreBacktracePat = %r"\A#{Regexp.quote(__FILE__)}:\d+:in `"
     end
-  
+
     def self.DelegateClass(superclass)
       klass = Class.new
       methods = superclass.public_instance_methods(true).map(&:to_s)

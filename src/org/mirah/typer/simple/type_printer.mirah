@@ -32,7 +32,7 @@ class TypePrinter < NodeScanner
   def initialize(typer:Typer)
     initialize(typer, System.out)
   end
-  
+
   def initialize(typer:Typer, writer:PrintStream)
     @indent = 0
     @typer = typer

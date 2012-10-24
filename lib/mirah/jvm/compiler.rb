@@ -25,7 +25,7 @@ module Mirah
     class FunctionalCall
       attr_accessor :target
     end
-    
+
     class Super
       attr_accessor :target
     end

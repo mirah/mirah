@@ -27,12 +27,12 @@ class ArrayExtensions
     end
     array = gensym
     i = gensym
-    
+
     getter = quote { `array`[`i`] }
     if type
       getter = Cast.new(type.position, type, getter)
     end
-    
+
     quote do
       while `i` < `array`.length
         init {`array` = `@call.target`; `i` = 0}

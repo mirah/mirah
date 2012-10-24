@@ -16,7 +16,7 @@
 
 x = ""
 
-5.times do 
+5.times do
     x = x + "ha"
 end
 

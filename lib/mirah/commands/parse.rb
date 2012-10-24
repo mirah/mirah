@@ -21,13 +21,13 @@ module Mirah
       def execute
         execute_base do
           parser = Mirah::Parser.new(@state, nil, false)
-          
+
           parser.parse_from_args(args).each do |ast|
             puts parser.format_ast(ast)
           end
         end
       end
-      
+
       def command_name
         :parse
       end

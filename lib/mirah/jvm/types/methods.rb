@@ -485,7 +485,7 @@ module Mirah::JVM::Types
       end
       macros
     end
-    
+
     def find_callable_macros2(name, interfaces)
       macros = []
       interfaces.concat(self.interfaces)

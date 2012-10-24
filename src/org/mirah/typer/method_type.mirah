@@ -71,6 +71,6 @@ class MethodType
     false
   end
   def matchesAnything:boolean
-    false  
+    false
   end
 end
