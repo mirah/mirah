@@ -397,8 +397,9 @@ module Mirah::JVM::Types
       end
       if type.kind_of?(ErrorType)
         puts "Got error type for method #{name} on #{target.resolve} (#{target.resolve.class})"
-        return_type = AssignableTypeFuture.new(type.position)
-        return_type.declare(type, type.position)
+        position = type.position rescue nil
+        return_type = AssignableTypeFuture.new(position)
+        return_type.declare(type, position)
         type = MethodFuture.new(name, args, return_type, false, nil)
       end
       type.to_java(MethodFuture)
@@ -596,7 +597,7 @@ module Mirah::JVM::Types
       if !name.include?('.') && package && !package.empty?
         full_name = "#{package}.#{name}"
       end
-      if @known_types.include? full_name
+      if @known_types.include?(full_name) && @known_types[full_name].kind_of?(TypeDefinition)
         existing = @known_types[full_name]
         unless existing.node
           existing.node = node

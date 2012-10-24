@@ -254,11 +254,13 @@ class Typer < SimpleNodeVisitor
     delegate = DelegateFuture.new
     delegate.type = methodType
     typer = self
+    current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         typer.logger.fine("Expanding macro #{call}")
         node = InlineCode(resolvedType).expand(call, typer)
-        node = call.parent.replaceChild(call, node)
+        node = current_node.parent.replaceChild(current_node, node)
+        current_node = node
         delegate.type = typer.infer(node, expression != nil)
       else
         delegate.type = methodType
