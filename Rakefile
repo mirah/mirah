@@ -94,6 +94,7 @@ task :clean do
   ant.delete :quiet => true, :dir => 'build'
   ant.delete :quiet => true, :dir => 'dist'
   rm 'javalib/mirah-bootstrap.jar'
+  rm 'javalib/mirah-builtins.jar'
 end
 
 task :compile => [:init, :bootstrap] do
