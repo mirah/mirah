@@ -41,7 +41,7 @@ class JavaTyperTest < Test::Unit::TestCase
     end
     type
   end
-  
+
   def method_type(target, name, args)
     target = @types.cache_and_wrap(target)
     args = args.map {|arg| @types.cache_and_wrap(arg) }

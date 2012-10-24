@@ -19,7 +19,7 @@ class BlocksTest < Test::Unit::TestCase
     super
     clear_tmp_files
   end
-  
+
   def parse_and_type code, name=tmp_script_name
     parse_and_resolve_types name, code
   end
@@ -29,7 +29,7 @@ class BlocksTest < Test::Unit::TestCase
     assert_nothing_raised do
       parse_and_type(<<-CODE)
         interface Bar do;def run:void;end;end
-      
+
         class Foo
           def initialize; end
           def foo(a:Bar)
@@ -41,14 +41,14 @@ class BlocksTest < Test::Unit::TestCase
       CODE
     end
   end
-  
+
   def test_non_empty_block_parses_and_types_without_error
     assert_nothing_raised do
       parse_and_type(<<-CODE)
         interface Bar
           def run:void; end
         end
-      
+
         class Foo
           def initialize; end
           def foo(a:Bar)
@@ -171,7 +171,7 @@ class BlocksTest < Test::Unit::TestCase
 
     assert_equal(["a", "ABC", "b", "Cats"], cls.sort(["a", "ABC", "Cats", "b"]))
   end
-  
+
   def test_block_with_no_arguments_and_return_value
     cls, = compile(<<-EOF)
       import java.util.concurrent.Callable
@@ -205,7 +205,7 @@ class BlocksTest < Test::Unit::TestCase
           System.out.println "Uh Oh!"
         end
       end
-      
+
       foo('there')
     EOF
     assert_output("Hello there\n") do
@@ -248,7 +248,7 @@ class BlocksTest < Test::Unit::TestCase
           def run:void;end
           def run2:void;end;
         end
-        
+
         class Foo
           def foo(a:Bar)
             1
@@ -303,7 +303,7 @@ class BlocksTest < Test::Unit::TestCase
   def test_closure_in_closure_doesnt_raise_error
     parse_and_type(<<-CODE)
         interface Bar do;def run:void;end;end
-      
+
         class Foo
           def foo(a:Bar)
             1

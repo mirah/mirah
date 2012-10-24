@@ -91,7 +91,7 @@ class HashTest < Test::Unit::TestCase
         def key
           "key"
         end
-        
+
         def foo
           map = {}
           map[key] = "value"

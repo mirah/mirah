@@ -21,7 +21,7 @@ class ConstructorsTest < Test::Unit::TestCase
       cls.new
     end
   end
-  
+
   def test_constructor_chaining
     foo, = compile(<<-EOF)
       class Foo5

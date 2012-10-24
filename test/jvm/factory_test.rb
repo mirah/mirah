@@ -14,7 +14,7 @@
 # limitations under the License.
 
 class FactoryTest < Test::Unit::TestCase
-  def test_bootclass_loader_can_find_things_on_bootclasspath   
+  def test_bootclass_loader_can_find_things_on_bootclasspath
     factory = Mirah::JVM::Types::TypeFactory.new
     factory.bootclasspath = File.expand_path("#{__FILE__}/../../fixtures/") +"/"
     assert factory.bootstrap_loader.get_resource 'org/foo/A.class'

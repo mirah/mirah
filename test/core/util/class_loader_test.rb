@@ -21,8 +21,8 @@ class ClassLoaderTest < Test::Unit::TestCase
     end
     assert_equal java.lang.ClassNotFoundException, ex.cause.class
   end
-  
-  
+
+
   def test_isolated_resource_loader_only_finds_resources_given_to_it
     loader = Mirah::Util::IsolatedResourceLoader.new [java.net.URL.new("file:#{FIXTURES}")]
     url = loader.get_resource "my.properties"

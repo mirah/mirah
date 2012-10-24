@@ -256,7 +256,7 @@ class TyperTest < Test::Unit::TestCase
 
     assert_no_errors(typer, ast)
   end
-  
+
   def test_rescue_w_different_type_raises_inference_error_when_expression
     ast = parse("1 + begin true; 1.0; rescue; ''; end")
     infer(ast, true)
