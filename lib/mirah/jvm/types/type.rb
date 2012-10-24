@@ -129,7 +129,7 @@ module Mirah
 
         def widen(other)
           return self if assignable_from?(other)
-          common_parent = (ancestors_and_interfaces & other.ancestors_and_interfaces)[0]
+          common_parent = (ancestors_and_interfaces & ([other] + other.ancestors_and_interfaces))[0]
           common_parent || ErrorType.new([["Incompatible types #{self} and #{other}."]])
         end
 
