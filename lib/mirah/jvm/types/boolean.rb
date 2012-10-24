@@ -33,11 +33,11 @@ module Mirah::JVM::Types
       add_method('==', args, ComparisonIntrinsic.new(self, '==', :eq, args))
       add_method('!=', args, ComparisonIntrinsic.new(self, '!=', :ne, args))
     end
-    
+
     def math_type
       @type_system.type(nil, 'boolean')
     end
-    
+
     # same as NumberType's
     def compile_boolean_operator(compiler, op, negated, call, label)
       # Promote the target or the argument if necessary

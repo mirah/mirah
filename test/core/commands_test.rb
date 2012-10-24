@@ -22,7 +22,7 @@ class CommandsTest < Test::Unit::TestCase
     end
     def command_name; :foo; end
   end
-  
+
   class MirahProcessesErrorCommand < Mirah::Commands::Base
     include  Mirah::Util::ProcessErrors
     def execute
@@ -30,7 +30,7 @@ class CommandsTest < Test::Unit::TestCase
     end
     def command_name; :foo; end
   end
-  
+
   class SuccessfulCommand < Mirah::Commands::Base
     def execute
       execute_base { "something" }
@@ -49,23 +49,23 @@ class CommandsTest < Test::Unit::TestCase
       RaisesMirahErrorCommand.new(['-bad-argument']).execute
     end
   end
-  
+
   def test_on_v_with_no_args_exits_without_running_command
     assert_zero_exit do
       RaisesMirahErrorCommand.new(['-v']).execute
     end
   end
-    
+
   def test_on_j_option_when_command_is_not_compile_has_non_zero_exit_code
     assert_non_zero_exit do
       RaisesMirahErrorCommand.new(['-j']).execute
     end
   end
-  
+
   def test_success_is_truthy
     assert SuccessfulCommand.new([]).execute, "expected it to be truthy"
   end
-  
+
   def test_process_errors_causes_a_non_zero_exit
     assert_non_zero_exit do
       MirahProcessesErrorCommand.new([]).execute

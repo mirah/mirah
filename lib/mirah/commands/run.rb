@@ -23,28 +23,28 @@ module Mirah
         execute_base do
           main = nil
           class_map = {}
-          
+
           # generate all bytes for all classes
           generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
-          
+
           generator.generate(args).each do |result|
             class_map[result.classname.gsub(/\//, '.')] = Mirah::Util::ClassLoader.binary_string result.bytes
           end
-          
+
           # load all classes
           main = load_classes_and_find_main(class_map)
-          
+
           # run the main method we found
           run_main(main)
         end
       end
-      
+
       def command_name
         :run
       end
-      
+
       private
-      
+
       def load_classes_and_find_main(class_map)
         main = nil
         dcl = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
@@ -55,7 +55,7 @@ module Mirah
         end
         main
       end
-      
+
       def run_main(main)
         if main
           begin

@@ -53,7 +53,7 @@ class ValueSetter < NodeScanner
     @index = 0
     @objects = objects
   end
-  
+
   def enterUnquote(node, arg)
     node.object = @objects.get(@index)
     @index += 1
@@ -65,12 +65,12 @@ class ValueGetter < NodeScanner
   def initialize
     @values = NodeList.new
   end
-  
+
   def enterUnquote(node, arg)
     @values.add(node.value)
     true
   end
-  
+
   def values
     array = Array.new
     array.values = @values
@@ -93,11 +93,11 @@ class MacroBuilder; implements Compiler
     @backend = backend
     @extension_counters = HashMap.new
   end
-  
+
   def self.initialize:void
     @@log = java::util::logging::Logger.getLogger(MacroBuilder.class.getName)
   end
-  
+
   def buildExtension(macroDef:MacroDefinition)
     ast = constructAst(macroDef)
     @backend.logExtensionAst(ast)
@@ -106,11 +106,11 @@ class MacroBuilder; implements Compiler
     addToExtensions(macroDef, klass)
     registerLoadedMacro(macroDef, klass)
   end
-  
+
   def typer
     @typer
   end
-  
+
   def type_system
     @types
   end
@@ -118,7 +118,7 @@ class MacroBuilder; implements Compiler
   def scoper
     @scopes
   end
-  
+
   def serializeAst(node:Node):Object
     raise IllegalArgumentException, "No position for #{node}" unless node.position
     result = Object[6]
@@ -133,14 +133,14 @@ class MacroBuilder; implements Compiler
     result[5] = FieldAccess.new(SimpleString.new('call'))
     Arrays.asList(result)
   end
-  
+
   def deserializeScript(filename:String, code:InputStream, values:List):Script
     parser = MirahParser.new
     script = Script(parser.parse(StreamCodeSource.new(filename, code)))
     ValueSetter.new(values).scan(script)
     script
   end
-  
+
   def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List, scopeNode:Node):Node
     parser = MirahParser.new
     script = Script(parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
@@ -169,7 +169,7 @@ class MacroBuilder; implements Compiler
       result
     end
   end
-  
+
   def constructAst(macroDef:MacroDefinition):Script
     template = MacroBuilder.class.getResourceAsStream("template.mirah.tpl")
     name = extensionName(macroDef)
@@ -188,7 +188,7 @@ class MacroBuilder; implements Compiler
                                ])
     scope = @scopes.getScope(macroDef)
     preamble = NodeList.new
-    
+
     if scope.package
       preamble.add(Package.new(SimpleString.new(scope.package), nil))
     end
@@ -203,7 +203,7 @@ class MacroBuilder; implements Compiler
     script.body.insert(0, preamble)
     script
   end
-  
+
   def extensionName(macroDef:MacroDefinition)
     enclosing_type = @scopes.getScope(macroDef).selfType.resolve
     counter = Integer(@extension_counters.get(enclosing_type))
@@ -215,7 +215,7 @@ class MacroBuilder; implements Compiler
     @extension_counters.put(enclosing_type, Integer.new(id))
     "#{enclosing_type.name}$Extension#{id}"
   end
-  
+
   # Adds types to the arguments with none specified.
   # Uses Block for a block argument and Node for any other argument.
   def addMissingTypes(macroDef:MacroDefinition):void
@@ -246,7 +246,7 @@ class MacroBuilder; implements Compiler
     end
     casts
   end
-  
+
   def makeArgAnnotation(args:Arguments):Annotation
     # TODO other args
     required = LinkedList.new
@@ -260,7 +260,7 @@ class MacroBuilder; implements Compiler
     entries = [HashEntry.new(SimpleString.new('required'), Array.new(required))]
     Annotation.new(SimpleString.new('org.mirah.macros.anno.MacroArgs'), entries)
   end
-  
+
   # Returns a node to fetch the i'th macro argument during expansion.
   def fetchMacroArg(i:int):Node
     Call.new(
@@ -268,12 +268,12 @@ class MacroBuilder; implements Compiler
                SimpleString.new('parameters'), Collections.emptyList, nil),
       SimpleString.new('get'), [Fixnum.new(i)], nil)
   end
-  
+
   def fetchMacroBlock:Node
     Call.new(FieldAccess.new(SimpleString.new('call')),
              SimpleString.new('block'), Collections.emptyList, nil)
   end
-  
+
   def addToExtensions(macrodef:MacroDefinition, klass:Class):void
     classdef = ClassDefinition(macrodef.findAncestor(ClassDefinition.class))
     if classdef.nil?
@@ -287,20 +287,20 @@ class MacroBuilder; implements Compiler
         break
       end
     end
-    
+
     if extensions.nil?
       entries = [HashEntry.new(SimpleString.new('macros'), Array.new(Collections.emptyList))]
       extensions = Annotation.new(SimpleString.new('org.mirah.macros.anno.Extensions'), entries)
       @typer.infer(extensions)
       classdef.annotations.add(extensions)
     end
-    
+
     array = Array(extensions.values(0).value)
     new_entry = SimpleString.new(klass.getName)
     @typer.infer(new_entry)
     array.values.add(new_entry)
   end
-  
+
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
     extended_class = @scopes.getScope(macroDef).selfType.resolve
     @types.addMacro(extended_class, klass)

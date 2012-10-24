@@ -5,9 +5,9 @@ class MainMethodTest < Test::Unit::TestCase
       end
       System.out.println 'bar'
     EOC
-    
+
     main_class, = compile code, 'with_main'
-    
+
     assert_output "bar\n" do
       main_class.main(nil)
     end

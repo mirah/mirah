@@ -40,22 +40,22 @@ module Mirah
       @logging = logging
       @verbose = verbose
     end
-    
+
     attr_accessor :parser, :compiler, :typer, :logging, :verbose
-      
+
     def generate(arguments)
       # collect all ASTs from all files
       top_nodes = parser.parse_from_args(arguments)
-      
+
       # enter all ASTs into inference engine
       puts "Inferring types..." if logging
       scoper, typer = infer_asts(top_nodes)
-      
+
       # compile each AST in turn
       compiler_results = compiler.compile_asts(top_nodes, scoper, typer)
-      
+
       puts "Done!" if logging
-      
+
       compiler_results
     end
 
@@ -77,7 +77,7 @@ module Mirah
       end
       [@scoper, @typer]
     end
-  
+
     def log_types(nodes)
       if self.logging?
         buf = java.io.ByteArrayOutputStream.new
@@ -87,9 +87,9 @@ module Mirah
         ps.close()
         log("Inferred types:\n{0}", java.lang.String.new(buf.toByteArray))
       end
-      
+
     end
-  
+
     def compileAndLoadExtension(ast)
       log_types([ast])
       process_inference_errors(@typer, [ast])
@@ -109,7 +109,7 @@ module Mirah
       dcl = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
       dcl.load_class(first_class_name)
     end
-  
+
     def logExtensionAst(ast)
       log("Extension ast:\n#{parser.format_ast(ast)}")
     end

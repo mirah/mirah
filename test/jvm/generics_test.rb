@@ -21,11 +21,11 @@ class TestGenerics < Test::Unit::TestCase
     super
     clear_tmp_files
   end
-  
+
   def parse_and_type code, name=tmp_script_name
     parse_and_resolve_types name, code
   end
-  
+
   def test_generics_calls_collections
     cls, = compile(<<-EOF)
       import java.util.ArrayList

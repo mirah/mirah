@@ -29,7 +29,7 @@ class ClosureBuilder
     @types = typer.type_system
     @scoper = typer.scoper
   end
-  
+
   def prepare(block:Block, parent_type:ResolvedType)
     enclosing_node = block.findAncestor {|node| node.kind_of?(MethodDefinition) || node.kind_of?(Script)}
     enclosing_body = if enclosing_node.kind_of?(MethodDefinition)
@@ -37,17 +37,17 @@ class ClosureBuilder
     else
       Script(enclosing_node).body
     end
-    
+
     klass = build_class(block.position, parent_type)
 
     # TODO(ribrdb) binding
     parent_scope = @scoper.getScope(block)
     build_constructor(enclosing_body, klass, parent_scope)
-    
+
     unless add_methods(klass, block)
       build_method(klass, block, parent_type)
     end
-    
+
     # Now assign the parent scopes
     klass.body.each do |n|
       unless n.kind_of?(ConstructorDefinition)
@@ -59,7 +59,7 @@ class ClosureBuilder
     # Infer the types
     enclosing_body.insert(0, klass)
     closure_type = @typer.infer(klass)
-    
+
     target = makeTypeName(block.position, closure_type.resolve)
     Call.new(block.position, target, SimpleString.new("new"), [BindingReference.new], nil)
   end
@@ -124,7 +124,7 @@ class ClosureBuilder
       klass.body.add(method)
     end
   end
-  
+
   def build_constructor(enclosing_body:NodeList, klass:ClassDefinition, parent_scope:Scope):void
     parent_scope.binding_type ||= begin
       binding_klass = build_class(klass.position, nil)

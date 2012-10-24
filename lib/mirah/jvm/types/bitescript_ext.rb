@@ -18,7 +18,7 @@ class BiteScript::MethodBuilder
     iconst_m1
     ixor
   end
-  
+
   def lnot
     # TODO would any of these be faster?
     #   iconst_m1; i2l

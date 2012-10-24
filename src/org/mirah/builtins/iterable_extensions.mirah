@@ -26,12 +26,12 @@ class IterableExtensions
       type = TypeName(nil)
     end
     it = gensym
-    
+
     getter = quote { `it`.next }
     if type
       getter = Cast.new(type.position, type, getter)
     end
-    
+
     quote do
       while `it`.hasNext
         init {`it` = `@call.target`.iterator}

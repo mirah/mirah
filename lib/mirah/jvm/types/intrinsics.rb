@@ -19,7 +19,7 @@ require 'mirah/jvm/types/bitescript_ext'
 module Mirah::JVM::Types
   class Type
     java_import 'org.mirah.macros.anno.MacroDef'
-    
+
     def load(builder, index)
       builder.send "#{prefix}load", index
     end
@@ -43,7 +43,7 @@ module Mirah::JVM::Types
         @intrinsics
       end
     end
-    
+
     def macros
       @macros ||= Hash.new {|h, k| h[k] = {}}
     end
@@ -61,7 +61,7 @@ module Mirah::JVM::Types
       if arg_types.nil?
         return
       end
-      
+
       log "Adding macro #{self.name}.#{name}(#{arg_types.map{|t| t.full_name}.join(', ')})"
       # TODO separate static and instance macros
       macro = Macro.new(self, name, arg_types) do |call, typer|
@@ -239,7 +239,7 @@ module Mirah::JVM::Types
       #     ]
       #   end
       # end
-      # 
+      #
     end
   end
 

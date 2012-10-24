@@ -22,7 +22,7 @@ module Mirah
       def execute
         execute_base do
           generator = Mirah::Generator.new(@state, @state.compiler_class, true, @state.verbose)
-          
+
           generator.generate(@state.args).each do |result|
             filename = "#{@state.destination}#{result.filename}"
             FileUtils.mkdir_p(File.dirname(filename))
@@ -30,7 +30,7 @@ module Mirah
           end
         end
       end
-      
+
       def command_name
         :compile
       end

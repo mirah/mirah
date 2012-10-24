@@ -97,7 +97,7 @@ class BaseTypeFuture; implements TypeFuture
       notifyListeners
     end
   end
-  
+
   def notifyListeners:void
     if @notifying
       @notify_again = true
@@ -110,7 +110,7 @@ class BaseTypeFuture; implements TypeFuture
       @listeners.each do |l|
         break if @notify_again
         TypeListener(l).updated(self, type)
-      end      
+      end
     end while @notify_again
     if @new_listeners
       @listeners = @new_listeners

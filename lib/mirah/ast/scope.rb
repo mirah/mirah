@@ -43,7 +43,7 @@ module Mirah
       def context
         @scope_node
       end
-      
+
       def to_s
         "#<StaticScope node=#{@scope_node.inspect}>"
       end
@@ -170,7 +170,7 @@ module Mirah
           @binding_type = type
         end
       end
-      alias :binding_type_set :binding_type= 
+      alias :binding_type_set :binding_type=
 
       def has_binding?
         @binding_type != nil || (parent && parent.has_binding?)

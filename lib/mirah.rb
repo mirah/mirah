@@ -61,7 +61,7 @@ module Mirah
     puts "#{position.source.name}:#{position.start_line}: #{message}"
     puts underline(position)
   end
-  
+
   def self.underline(position)
     start_line = position.start_line - position.source.initial_line
     end_line = position.end_line - position.source.initial_line
@@ -88,7 +88,7 @@ module Mirah
 
       start = 0
       start = start_col if lineno == start_line
-      
+
       result << " " * start
 
       endcol = chomped.size

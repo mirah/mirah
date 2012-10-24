@@ -37,7 +37,7 @@ class BinaryTrees
         check += TreeNode.bottomUpTree(-i,depth).itemCheck
         i += 1
       end
-      
+
       puts "#{iterations * 2}\t trees of depth #{depth}\t check: #{check}"
       depth += 2
     end

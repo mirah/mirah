@@ -16,7 +16,7 @@
 import java.util.Scanner
 
 puts 'Enter time to sleep in milliseconds: '
-ms = Scanner.new(System.in).nextInt() 
+ms = Scanner.new(System.in).nextInt()
 puts 'Sleeping...'
 Thread.sleep(ms)
 puts 'Awake!'

@@ -72,7 +72,7 @@ module Mirah
           # TODO return nil instead of raising an exception if the method doesn't exist.
           raise ex unless ex.message =~ /#{Regexp.quote(mapped_type.name)}\.#{Regexp.quote(name)}|No constructor #{Regexp.quote(mapped_type.name)}/
         end
-        
+
         macro = mapped_type.unmeta.macro(name, macro_params)
         if method && macro
           method = nil  # Need full lookup to determine precedence.
@@ -192,8 +192,8 @@ module Mirah
       def field_lookup(mapped_params, mapped_type, meta, name)
         log("Attempting #{meta ? 'static' : 'instance'} field lookup for '#{name}' on class #{mapped_type}")
         # if we get to this point, the potentials do not match, so we ignore them
-        
-        
+
+
         # search for a field of the given name
         if name =~ /_set$/
           # setter

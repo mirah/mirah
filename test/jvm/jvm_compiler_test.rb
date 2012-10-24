@@ -315,17 +315,17 @@ class JVMCompilerTest < Test::Unit::TestCase
     foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
   end
-  
+
   def test_class_name_from_file_with_underscore
     foo, = compile("System.out.println 'blah'", 'class_name_test.mirah')
     assert_equal('ClassNameTest', foo.java_class.name)
   end
-  
+
   def test_class_name_from_file_with_dash
     foo, = compile("System.out.println 'blah'", 'class-dash-test.mirah')
     assert_equal('ClassDashTest', foo.java_class.name)
   end
-  
+
   def test_puts
     cls, = compile("def foo;puts 'Hello World!';end")
     output = capture_output do
@@ -710,11 +710,11 @@ class JVMCompilerTest < Test::Unit::TestCase
         def a
           @a
         end
-        
+
         def self.set_b(b:fixnum)
           @@b = b
         end
-        
+
         def b
           @@b
         end
@@ -726,7 +726,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     second = cls.new(2)
     assert_equal(1, first.a)
     assert_equal(2, second.a)
-    
+
     cls.set_b 0
     assert_equal(0, first.b)
     assert_equal(0, second.b)
@@ -1604,7 +1604,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       def call(a:int, b:int, c:int)
         System.out.print "\#{a}, \#{b}, \#{c}"
       end
-      
+
       def test_call(a:int)
         call(a, if a < 10;a+=1;a;else;a;end, a)
       end
@@ -1790,7 +1790,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_package
     script, cls = compile(<<-EOF)
       package foo
-      
+
       package foo.bar {
         class PackagedBar
           def self.dosomething
@@ -1798,7 +1798,7 @@ class JVMCompilerTest < Test::Unit::TestCase
           end
         end
       }
-      
+
       def dosomething
         "foo"
       end
@@ -1852,18 +1852,18 @@ class JVMCompilerTest < Test::Unit::TestCase
           2.5
         end
       end
-      
+
       class WideB < WideA
         def a
           super
           3.5
         end
       end
-      
+
       def self.b
         1.5
       end
-      
+
       1.5
       WideA.new.a
       WideB.new.a
@@ -1893,22 +1893,22 @@ class JVMCompilerTest < Test::Unit::TestCase
     entry = java.util.HashMap.new(:a => 1).entrySet.iterator.next
     assert_equal(entry, cls.foo(entry))
   end
-  
+
   def test_covariant_arrays
     cls, = compile(<<-EOF)
       System.out.println java::util::Arrays.toString(String[5])
     EOF
-    
+
     assert_output("[null, null, null, null, null]\n") do
       cls.main(nil)
     end
   end
-  
+
   def test_getClass_on_object_array
     cls, = compile(<<-EOF)
       System.out.println Object[0].getClass.getName
     EOF
-    
+
     assert_output("[Ljava.lang.Object;\n") do
       cls.main(nil)
     end
@@ -1949,14 +1949,14 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
     assert_equal("Cannot find class Implements_Go", ex.message)
   end
-  
+
   def test_bool_equality
     cls, = compile("System.out.println true == false")
     assert_output("false\n") do
       cls.main(nil)
     end
   end
-  
+
   def test_bool_inequality
     cls, = compile("System.out.println true != false")
     assert_output("true\n") do

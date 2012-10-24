@@ -14,7 +14,7 @@ module Mirah
 
         include Mirah::JVM::MethodLookup
         include Mirah::Logging::Logged
-        
+
         include ResolvedType
 
         attr_reader :name, :type_system
@@ -80,7 +80,7 @@ module Mirah
           # mirrors for all incoming types without blowing up on e.g. 'boolean' or 'int'
           (@type || BiteScript::ASM::ClassMirror.for_name(@name)).interface? rescue nil
         end
-        
+
         def abstract?
           (@type || BiteScript::ASM::ClassMirror.for_name(@name)).abstract? rescue nil
         end

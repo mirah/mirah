@@ -52,7 +52,7 @@ module Mirah
           when '--help', '-h'
             args.shift
             print_help
-            
+
             self.exit_status_code = 0
             break
           when '--java', '-j'
@@ -96,7 +96,7 @@ module Mirah
           when '--version', '-v'
             args.shift
             print_version
-            
+
             self.exit_status_code = 0 if args.empty?
             break
           when '--no-save-extensions'
@@ -104,14 +104,14 @@ module Mirah
             state.save_extensions = false
           else
             $stderr.puts "unrecognized flag: " + args[0]
-            
+
             self.exit_status_code = 1
             break
           end
         end
-        
+
         return if exit?
-        
+
         state.destination ||= File.join(File.expand_path('.'), '')
         state.compiler_class ||= Mirah::JVM::Compiler::JVMBytecode
       end

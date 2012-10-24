@@ -41,7 +41,7 @@ class MacrosTest < Test::Unit::TestCase
     assert_output("") {cls.main(nil)}
     assert(!cls.respond_to?(:foo))
   end
-  
+
   def test_fcall_macro
     cls, = compile(<<-EOF)
       macro def foo
@@ -54,7 +54,7 @@ class MacrosTest < Test::Unit::TestCase
     assert_output("null\n") {cls.main(nil)}
     assert(!cls.respond_to?(:foo))
   end
-  
+
   def test_quote
     cls, = compile(<<-EOF)
       macro def foo
@@ -66,14 +66,14 @@ class MacrosTest < Test::Unit::TestCase
 
     assert_output("null\n") {cls.main(nil)}
     assert(!cls.respond_to?(:foo))
-  end  
-  
+  end
+
   def test_macro_def_with_arg
     cls, = compile(<<-EOF)
       macro def bar(x)
         x
       end
-      
+
       def foo
         bar("bar")
       end
@@ -82,8 +82,8 @@ class MacrosTest < Test::Unit::TestCase
     assert_equal("bar", cls.foo)
     assert(!cls.respond_to?(:bar))
   end
-  
-  
+
+
   def test_instance_macro_call
     script, cls = compile(<<-EOF)
       class InstanceMacros
@@ -114,7 +114,7 @@ class MacrosTest < Test::Unit::TestCase
         macro def macro_foobar
           quote {`@call.target`.foobar}
         end
-      
+
         def call_foobar
           macro_foobar
         end
@@ -216,7 +216,7 @@ class MacrosTest < Test::Unit::TestCase
       cls.main(nil)
     end
   end
-  
+
   def test_block_parameter_uses_outer_scope
     cls, = compile(<<-EOF)
       macro def foo(block:Block)
