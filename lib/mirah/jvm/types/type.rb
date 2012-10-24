@@ -109,8 +109,8 @@ module Mirah
         end
 
         def assignable_from?(other)
-          return false if other.nil?
-          return true if !primitive? && other.name == 'null'
+          return false unless other
+          return true if !primitive? && other.kind_of?(NullType)
           return true if other == self
           return true if other.matchesAnything
 
@@ -229,7 +229,7 @@ module Mirah
             new_ancestors = get_ancestors.call(self)
             until new_ancestors.empty?
               klass = new_ancestors.shift
-              next if klass.nil? || klass.name == 'java.lang.Object'
+              next if klass.nil? || klass.name == 'java.lang.Object' || klass.isError
               ancestors << klass
               new_ancestors.concat(get_ancestors.call(klass))
             end
