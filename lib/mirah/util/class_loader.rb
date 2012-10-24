@@ -1,6 +1,6 @@
 module Mirah
   module Util
-    
+
     ClassLoader = Java::OrgMirah::MirahClassLoader
 
     # converts string to a java string w/ binary encoding

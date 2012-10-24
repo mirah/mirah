@@ -24,7 +24,7 @@ module Mirah::JVM::Types
       super(default_type)
       @narrowed = default_type != narrowed_type && narrowed_type
     end
-    
+
     def hash
       __getobj__.hash
     end
@@ -38,12 +38,12 @@ module Mirah::JVM::Types
       end
     end
   end
-  
+
   class FixnumLiteral < NarrowingType
     def self.range(type)
       type::MIN_VALUE .. type::MAX_VALUE
     end
-    
+
     BYTE_RANGE = range(java.lang.Byte)
     SHORT_RANGE = range(java.lang.Short)
     INT_RANGE = range(java.lang.Integer)
@@ -56,7 +56,7 @@ module Mirah::JVM::Types
       else
         Long
       end
-      
+
       # TODO chars?
       # There's not really any way to tell if we should narrow to a char
       # or a byte/short.  I suppose we could try both, but that seems ugly.
@@ -71,7 +71,7 @@ module Mirah::JVM::Types
       else
         Long
       end
-      
+
       super(default_type, narrowed_type)
     end
   end

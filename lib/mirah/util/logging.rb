@@ -10,14 +10,14 @@ module Mirah
     MirahLogger.addHandler(MirahHandler)
     MirahLogger.use_parent_handlers = false
     MirahHandler.level = Level::ALL
-    
+
     class LogFormatter < Formatter
       def initialize(use_color=true)
         @color = use_color
         @names = {}
         @inverse_names = {}
       end
-      
+
       def format_name(sb, level, name)
         sb.append("\e[1m") if @color
         sb.append("* [")
@@ -33,7 +33,7 @@ module Mirah
         sb.append('] ')
         sb.append("\e[0m") if @color
       end
-      
+
       def shorten(name)
         short = @names[name]
         return short if short
@@ -51,7 +51,7 @@ module Mirah
         end
         return name
       end
-      
+
       def format(record)
         sb = java.lang.StringBuilder.new
         format_name(sb, record.level.int_value, record.logger_name)
@@ -67,7 +67,7 @@ module Mirah
         sb.toString
       end
     end
-    
+
     MirahHandler.formatter = LogFormatter.new
 
     module Logged
@@ -75,24 +75,24 @@ module Mirah
       def logger
         @logger ||= java.util.logging.Logger.getLogger(logger_name)
       end
-      
+
       def logger_name
         name = self.class.name.sub(/^Mirah::/, '').gsub('::', '.')
         "org.mirah.ruby.#{name}"
       end
-      
+
       def error(*args)
         logger.log(Level::SEVERE, *args)
       end
-      
+
       def warning(*args)
         logger.log(Level::WARNING, *args)
       end
-      
+
       def info(*args)
         logger.log(Level::INFO, *args)
       end
-      
+
       def log(*args)
         vlog(1, *args)
       end

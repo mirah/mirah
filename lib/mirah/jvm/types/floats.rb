@@ -26,7 +26,7 @@ module Mirah::JVM::Types
     def box_type
       java.lang.Float
     end
-    
+
     def suffix
       'g'
     end
@@ -47,7 +47,7 @@ module Mirah::JVM::Types
         builder.ldc_float(value)
       end
     end
-    
+
     def compile_widen(builder, type)
       case type.name
       when 'float'
@@ -59,7 +59,7 @@ module Mirah::JVM::Types
       end
     end
   end
-  
+
   class DoubleType < FloatType
     def prefix
       'd'

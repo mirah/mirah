@@ -141,7 +141,7 @@ module Mirah::JVM::Types
         NarrowingTypeFuture.new(nil, wide, narrow)
       end
     end
-    
+
     def getCharType(value) cache_and_wrap_type('char') end
 
     def getFloatType(value)

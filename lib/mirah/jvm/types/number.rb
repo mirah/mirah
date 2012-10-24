@@ -44,11 +44,11 @@ module Mirah::JVM::Types
     def math_type
       self
     end
-    
+
     def suffix
       ''
     end
-    
+
     # Adds an intrinsic that delegates to an intrinsic in another primitive
     # type. That type must support promoting the "this" argument.
     def delegate_intrinsic(name, type, return_type)
@@ -64,7 +64,7 @@ module Mirah::JVM::Types
         end
       end
     end
-    
+
     def add_delegates(name, return_type = nil)
       index = TYPE_ORDERING.index(math_type.name)
       larger_types = TYPE_ORDERING[index + 1, TYPE_ORDERING.size]

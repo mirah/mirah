@@ -20,14 +20,14 @@ module Mirah
       java_import 'mirah.lang.ast.StaticMethodDefinition'
       java_import 'mirah.lang.ast.SimpleNodeVisitor'
       java_import 'mirah.lang.ast.NodeScanner'
-      
+
       class Base < SimpleNodeVisitor
         attr_accessor :filename, :method, :static, :class
         include Mirah::Logging::Logged
 
         class CompilationError < Mirah::NodeError
         end
-        
+
         def logger_name
           "org.mirah.ruby.JVM.Compiler.Base"
         end
