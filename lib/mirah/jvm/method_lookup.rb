@@ -82,7 +82,7 @@ module Mirah
           # exact args failed, do a deeper search
           log "No exact match for #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})" if mapped_params.all?
 
-          method = find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor)
+          method = find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor, scope)
 
           unless method
             log "Failed to locate method #{mapped_type.name}.#{name}(#{mapped_params.map(&:name).join ', '})" if mapped_params.all?
@@ -94,7 +94,7 @@ module Mirah
         return method
       end
 
-      def find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor)
+      def find_jls(mapped_type, name, mapped_params, macro_params, meta, constructor, scope=nil)
         interfaces = []
         by_name = if constructor
           mapped_type.unmeta.declared_constructors
@@ -103,12 +103,12 @@ module Mirah
         else
           mapped_type.find_callable_methods(name)
         end
-        method = find_jls2(mapped_type, name, mapped_params, meta, by_name, true)
+        method = find_jls2(mapped_type, name, mapped_params, meta, by_name, true, scope)
         return method if (constructor || macro_params.nil?)
         macros = mapped_type.unmeta.find_callable_macros(name)
         if macros.size != 0
           log "Found potential macro match for #{mapped_type.name}.#{name}(#{macro_params.map(&:full_name).join ', '})"
-          macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false)
+          macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false, scope)
         end
         if macro && method
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{macro} and #{method}"
@@ -116,7 +116,7 @@ module Mirah
         macro || method
       end
 
-      def find_jls2(mapped_type, name, mapped_params, meta, by_name, include_fields=true)
+      def find_jls2(mapped_type, name, mapped_params, meta, by_name, include_fields=true, scope=nil)
         return nil if mapped_params.any? {|p| p.nil? || p.isError}
         # filter by arity
         by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
@@ -134,7 +134,7 @@ module Mirah
           phase2(mapped_params, by_name) ||
           phase3(mapped_params, by_name) ||
           (include_fields &&
-            (field_lookup(mapped_params, mapped_type, meta, name) ||
+            (field_lookup(mapped_params, mapped_type, meta, name, scope) ||
              inner_class(mapped_params, mapped_type, meta, name)))
       end
 
@@ -144,7 +144,7 @@ module Mirah
         # cycle through methods looking for more specific matches; gather matches of equal specificity
         methods = potentials.inject([]) do |currents, potential|
           method_params = potential.argument_types
-          raise "Bad arguments for method #{potential.declaring_class}.#{potential.name}" unless method_params.all?
+          next currents unless method_params.all?
 
           # exact match always wins; duplicates not possible
           if each_is_exact(mapped_params, method_params)
@@ -189,7 +189,7 @@ module Mirah
         nil
       end
 
-      def field_lookup(mapped_params, mapped_type, meta, name)
+      def field_lookup(mapped_params, mapped_type, meta, name, scope)
         log("Attempting #{meta ? 'static' : 'instance'} field lookup for '#{name}' on class #{mapped_type}")
         # if we get to this point, the potentials do not match, so we ignore them
 
@@ -213,15 +213,22 @@ module Mirah
 
         if (meta && !field.static?) ||
             (!meta && field.static?)
-          field == nil
+          return nil
         end
 
         # check accessibility
         # TODO: protected field access check appropriate to current type
         if setter
-          raise "cannot set final field '#{name}' on class #{mapped_type}" if field.final?
+          if field.final?
+            log "cannot set final field '#{name}' on class #{mapped_type}"
+            return nil
+          end
         end
-        raise "cannot access field '#{name}' on class #{mapped_type}" unless field.public?
+        unless field.public?
+          from = " from #{scope.selfType.resolve.name}" if scope
+          log "cannot access field '#{name}' on class #{mapped_type}#{from}"
+          return nil
+        end
 
         field
       end

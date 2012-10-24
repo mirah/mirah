@@ -465,10 +465,10 @@ module Mirah::JVM::Types
       else
         listeners[block] = block
       end
-      if !self.meta? && jvm_type && superclass
+      if !self.meta? && jvm_type && superclass && !superclass.isError
         superclass.add_method_listener(name, self)
       end
-      interfaces.each {|i| i.add_method_listener(name, self)}
+      interfaces.each {|i| i.add_method_listener(name, self) unless i.isError}
     end
 
     # TODO take a scope and check visibility
@@ -478,7 +478,7 @@ module Mirah::JVM::Types
       seen = {}
       until interfaces.empty?
         interface = interfaces.pop
-        next if seen[interface]
+        next if seen[interface] || interface.isError
         seen[interface] = true
         interfaces.concat(interface.interfaces)
         macros.concat(interface.declared_macros(name))

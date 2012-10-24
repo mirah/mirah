@@ -118,10 +118,10 @@ module Mirah::JVM::Types
     def macro(name, types)
       macro = macros[name][types]
       return macro if macro
-      macro = superclass.macro(name, types) if superclass
+      macro = superclass.macro(name, types) if (superclass && !superclass.isError)
       return macro if macro
       interfaces.each do |interface|
-        macro = interface.macro(name, types)
+        macro = interface.macro(name, types) unless interface.isError
         return macro if macro
       end
       nil
@@ -140,7 +140,7 @@ module Mirah::JVM::Types
         end
       end
       interfaces.each do |interface|
-        methods.concat(interface.declared_intrinsics(name))
+        methods.concat(interface.declared_intrinsics(name)) unless interface.isError
       end
       methods
     end

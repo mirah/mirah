@@ -224,6 +224,10 @@ module Mirah::JVM::Types
         get_type(node.java_class.name)
       end if call.parameter_nodes
       _find_method_type(call.scope, target, call.name, argTypes, macro_types, call.position)
+    rescue => ex
+      Mirah.print_error("Error getting method type #{target.name}.#{call.name}: #{ex.message}", call.position)
+      puts ex.backtrace.join("\n\t")
+      ErrorType.new([["Internal error: #{ex}", call.position]])
     end
 
     def _find_method_type(scope, target, name, argTypes, macroTypes, position)
@@ -245,27 +249,33 @@ module Mirah::JVM::Types
           result = method.return_type
 
           # Handle generics.
-          if name == 'new' and target.type_parameters
-            result = Mirah::JVM::Types::GenericType.new(result) # Upgrade to a generic type.
-            target.type_parameters.each do |var|
-              result.type_parameter_map.put(var.name, _build_generic_type_future(var.bounds, position))
-            end
-
-            genericParameterTypes = method.member.generic_parameter_types
-            if genericParameterTypes
-              genericParameterTypes.each_index do |i|
-                _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], target.type_parameter_map, position)
+          begin
+            if name == 'new' and target.type_parameters
+              result = Mirah::JVM::Types::GenericType.new(result) # Upgrade to a generic type.
+              target.type_parameters.each do |var|
+                result.type_parameter_map.put(var.name, _build_generic_type_future(var.bounds, position))
               end
-            end
-          elsif target.generic? && method.respond_to?(:member)
-            genericParameterTypes = method.member.generic_parameter_types
-            if genericParameterTypes
-              genericParameterTypes.each_index do |i|
-                _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], target.type_parameter_map, position)
-              end
-            end
 
-            result = _handle_nested_generic_return(result, method.member.generic_return_type, target.type_parameter_map, position)
+              genericParameterTypes = method.member.generic_parameter_types
+              if genericParameterTypes
+                genericParameterTypes.each_index do |i|
+                  _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], result.type_parameter_map, position)
+                end
+              end
+            elsif target.generic? && method.respond_to?(:member)
+              genericParameterTypes = method.member.generic_parameter_types
+              if genericParameterTypes
+                genericParameterTypes.each_index do |i|
+                  _handle_nested_generic_parameter(genericParameterTypes[i], argTypes[i], target.type_parameter_map, position)
+                end
+              end
+
+              result = _handle_nested_generic_return(result, method.member.generic_return_type, target.type_parameter_map, position)
+            end
+          rescue => ex
+            Mirah.print_error("Error inferring generics: #{ex.message}", position)
+            log("Error inferring generics: #{ex.message}\n#{ex.backtrace.join("\n")}")
+            result = method.return_type
           end
 
           if result.kind_of?(TypeFuture)
@@ -322,7 +332,11 @@ module Mirah::JVM::Types
         expectedParameters = expectedType.type_arguments
         # Look up the values of the provided type's parameters.
         providedParameters = providedType.type_parameters.map do |var|
-          providedType.type_parameter_map.get(var.name)
+          if providedType.generic?
+            providedType.type_parameter_map.get(var.name)
+          else
+            type_parameter_map.get(var.name)
+          end
         end
 
         if expectedParameters && providedParameters && expectedParameters.size == providedParameters.size
@@ -378,13 +392,22 @@ module Mirah::JVM::Types
         if target.meta?
           target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
         else
-          target.declare_method(rewritten_name, args, resolved, [])
+          target.declare_method(rewritten_name, args, resolved, []) unless target.isError
         end
       end
       if type.kind_of?(ErrorType)
         puts "Got error type for method #{name} on #{target.resolve} (#{target.resolve.class})"
+        return_type = AssignableTypeFuture.new(type.position)
+        return_type.declare(type, type.position)
+        type = MethodFuture.new(name, args, return_type, false, nil)
       end
-      type
+      type.to_java(MethodFuture)
+    rescue => ex
+      target_name = target.respond_to?(:name) ? target.name : target.resolve.name
+      error("Error getting method def type #{target_name}.#{name}: #{ex.message}\n#{ex.backtrace.join("\n\t")}")
+      return_type = AssignableTypeFuture.new(nil)
+      return_type.declare(ErrorType.new([["Internal error: #{ex}"]]), nil)
+      MethodFuture.new(name, [], return_type, false, nil)
     end
     def getMainType(scope, script)
       filename = File.basename(script.position.source.name || 'DashE')
@@ -401,6 +424,10 @@ module Mirah::JVM::Types
       else
         cache_and_wrap(type)
       end
+    rescue => ex
+      Mirah.print_error("Error defining type #{name}: #{ex.message}", node.position)
+      puts ex.backtrace.join("\n\t")
+      ErrorType.new([["Internal error: #{ex}", node.position]])
     end
 
     def addMacro(klass, macro)

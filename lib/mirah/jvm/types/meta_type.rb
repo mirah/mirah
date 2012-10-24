@@ -22,7 +22,11 @@ module Mirah
         end
 
         def superclass
-          @unmeta.superclass.meta if @unmeta.superclass
+          if @unmeta.superclass
+            @unmeta.superclass.meta
+          else
+            nil
+          end
         end
 
         def interfaces(include_parent=true)
