@@ -16,7 +16,7 @@
 import java.util.ArrayList
 import java.util.HashMap
 
-# booleans 
+# booleans
 puts 'true is true' if true
 puts 'false is false' if (!false)
 

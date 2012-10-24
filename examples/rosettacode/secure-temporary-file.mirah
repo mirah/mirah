@@ -16,8 +16,8 @@
 import java.io.File
 
 filename = File.createTempFile('prefix', '.suffix')
- 
+
 # Delete temp file when program exits
 filename.deleteOnExit()
- 
+
 puts filename

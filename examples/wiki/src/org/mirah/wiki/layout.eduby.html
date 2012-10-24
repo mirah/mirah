@@ -3,51 +3,51 @@
   <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <title><%=h @title %></title>
-    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css"> 
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css">
     <link href="/stylesheets/prettify.css" type="text/css" rel="stylesheet" />
     <script type="text/javascript" src="/javascripts/prettify.js"></script>
   </head>
   <body onload="prettyPrint()">
-    <div id="page"> 
-      <div id="sidebar"> 
+    <div id="page">
+      <div id="sidebar">
 
         <h1>Mirah</h1>
- 
-        <ul id="sidebar-items"> 
- 
-          <li> 
-            <h3>Join the community</h3> 
-            <ul class="links"> 
+
+        <ul id="sidebar-items">
+
+          <li>
+            <h3>Join the community</h3>
+            <ul class="links">
               <li><a href="/">Home Page</a></li>
               <li><a href="http://github.com/mirah/mirah">github</a></li>
               <li><a href="/wiki/Resources">Resources</a></li>
               <li><a href="/wiki/MirahHowto">Howto</a></li>
-              <li><a 
+              <li><a
       href="http://groups.google.com/group/mirah/"
-      target="_new">Send Feedback</a></li> 
-            </ul> 
-          </li> 
- 
-          <li> 
-            <h3>Sample Apps</h3> 
-            <ul class="links"> 
+      target="_new">Send Feedback</a></li>
+            </ul>
+          </li>
+
+          <li>
+            <h3>Sample Apps</h3>
+            <ul class="links">
               <li><a href="http://github.com/mirah/mirah/tree/master/examples/appengine/">Guestbook</a> |
                   <a href="http://github.com/jacortinas/appengine-rails-jquery-demo">Mustache</a></li>
             </ul>
             <a href="/wiki/MirahSamples">Sample Code</a>
-          </li> 
- 
-          <li> 
-            <h3>Mirah Videos</h3> 
-            <ul class="links"> 
+          </li>
+
+          <li>
+            <h3>Mirah Videos</h3>
+            <ul class="links">
               <li><a href="http://www.youtube.com/watch?v=08rNKxW0PPo">ribrdb</a> |
-                  <a href="http://confreaks.net/videos/196-rubyconf2009-ruby-mutants">headius</a></li> 
-            </ul> 
-          </li> 
- 
-      </div> 
- 
-      <div id="content"> 
+                  <a href="http://confreaks.net/videos/196-rubyconf2009-ruby-mutants">headius</a></li>
+            </ul>
+          </li>
+
+      </div>
+
+      <div id="content">
         <div id=hlinks>
           <% if user %>
             <%=h user.getEmail %>&nbsp;|&nbsp;
@@ -66,4 +66,4 @@
     </div>
   </body>
 </html>
-    
+

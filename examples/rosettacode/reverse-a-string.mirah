@@ -14,7 +14,7 @@
 # limitations under the License.
 
 
-def reverse(s:string) 
+def reverse(s:string)
     StringBuilder.new(s).reverse
 end
 

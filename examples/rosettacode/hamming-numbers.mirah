@@ -15,13 +15,13 @@
 
 import java.math.BigInteger
 import java.util.PriorityQueue
- 
+
 def updateFrontier(x:BigInteger, queue:PriorityQueue):void
     queue.offer(x.shiftLeft(1))
     queue.offer(x.multiply(BigInteger.valueOf(3)))
     queue.offer(x.multiply(BigInteger.valueOf(5)))
 end
- 
+
 def hamming(n:int):BigInteger
     raise "Invalid parameter" if (n <= 0)
 
@@ -42,8 +42,8 @@ end
 nums = ""
 1.upto(20) do | i |
      nums = nums + " #{hamming(i)}"
-end 
+end
 puts "Hamming(1 .. 20) =#{nums}"
 puts "\nHamming(1691) = #{hamming(1691)}"
-puts "Hamming(1000000) = #{hamming(1000000)}" 
+puts "Hamming(1000000) = #{hamming(1000000)}"
 

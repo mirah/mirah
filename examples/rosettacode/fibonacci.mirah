@@ -18,7 +18,7 @@ def fibonacci(n:int)
     return n if n < 2
     fibPrev = 1
     fib = 1
-    3.upto(Math.abs(n)) do 
+    3.upto(Math.abs(n)) do
         oldFib = fib
         fib = fib + fibPrev
         fibPrev = oldFib
