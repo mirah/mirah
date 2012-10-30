@@ -759,14 +759,12 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_implements
     cls, = compile(<<-EOF)
-      import java.lang.Iterable
-      class Foo implements Iterable
+      class ImplementsTest implements Iterable
         def iterator
           nil
         end
       end
     EOF
-
     assert_include java.lang.Iterable.java_class, cls.java_class.interfaces
   end
 
