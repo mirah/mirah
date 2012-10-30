@@ -141,14 +141,15 @@ class Typer < SimpleNodeVisitor
     @futures[fcall] = methodType
 
 
-    # This might actually be a local access instead of a method call,
-    # so try both. If the local works, we'll go with that. If not, we'll
-    # leave the method call.
+    # This might actually be a local or primitive access instead of a method call,
+    # so try them all.
     # TODO should probably replace this with a FunctionalCall node if that's the
     # right one so the compiler doesn't have to deal with an extra node.
+    primitive = Constant.new(call.position, call.name)
+    primitive.setParent(call.parent)
     local = LocalAccess.new(call.position, call.name)
     local.setParent(call.parent)
-    options = [infer(local, true), local, methodType, fcall]
+    options = [infer(primitive, true), primitive, infer(local, true), local, methodType, fcall]
     current_node = Node(call)
     typer = self
     future = DelegateFuture.new
