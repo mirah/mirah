@@ -220,11 +220,7 @@ module Mirah
           if args
             args.each do |arg|
               if AST::OptionalArgument === arg
-                new_args = if args_are_types
-                  arg_types_for_opt
-                else
-                  args_for_opt
-                end
+                new_args = arg_types_for_opt
                 method = create_method_builder(name, node, @static, exceptions,
                 return_type, new_args)
                 with :method => method do

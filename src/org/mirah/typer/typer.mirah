@@ -902,6 +902,7 @@ class Typer < SimpleNodeVisitor
     type = @types.getLocalType(scope, arg.name.identifier, arg.position)
     type.declare(@types.get(scope, arg.type.typeref), arg.type.position) if arg.type
     type.assign(infer(arg.value), arg.value.position)
+    type
   end
 
   def visitRestArgument(arg, expression)
@@ -939,6 +940,7 @@ class Typer < SimpleNodeVisitor
     infer(mdef.arguments)
     parameters = inferAll(mdef.arguments)
     type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters)
+    declareOptionalMethods(selfType, mdef, parameters, type.returnType)
     is_void = false
     if mdef.type
       returnType = @types.get(outer_scope, mdef.type.typeref)
@@ -955,6 +957,18 @@ class Typer < SimpleNodeVisitor
       type.returnType.assign(@types.getVoidType, mdef.position)
     else
       type.returnType.assign(infer(mdef.body), mdef.body.position)
+    end
+  end
+  
+  def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
+    if mdef.arguments.optional_size > 0
+      args = ArrayList.new(argTypes)
+      first_optional_arg = mdef.arguments.required_size
+      last_optional_arg = first_optional_arg + mdef.arguments.optional_size - 1
+      last_optional_arg.downto(first_optional_arg) do |i|
+        args.remove(i)
+        @types.getMethodDefType(target, mdef.name.identifier, args).returnType.declare(type, mdef.position)
+      end
     end
   end
 
