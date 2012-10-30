@@ -248,14 +248,12 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     a, b = compile(<<-EOF)
       class VoidBase
-        def foo
-          returns void
+        def foo:void
           System.out.println "foo"
         end
       end
       class VoidChain < VoidBase
-        def bar
-          returns void
+        def bar:void
           System.out.println "bar"
         end
 
