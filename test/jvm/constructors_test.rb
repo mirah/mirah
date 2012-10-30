@@ -54,7 +54,7 @@ class ConstructorsTest < Test::Unit::TestCase
   end
 
   def test_super_constructor
-    script, sc_a, sc_b = compile(<<-EOF)
+    sc_a, sc_b = compile(<<-EOF)
       class SC_A
         def initialize(a:int)
           System.out.println "A"
