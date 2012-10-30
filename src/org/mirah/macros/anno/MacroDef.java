@@ -9,4 +9,5 @@ public @interface MacroDef {
     // What about restrictions on where it applies (e.g. only as a FunctionalCall, only in a ClassDefinition)
     String name();
     MacroArgs arguments() default @MacroArgs;
+	boolean isStatic() default false;
 }

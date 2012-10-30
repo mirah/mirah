@@ -13,27 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import org.mirah.macros.anno.*
-import org.mirah.macros.Macro
-import org.mirah.macros.Compiler
+package org.mirah.builtins
 import mirah.lang.ast.*
 
-$MacroDef[name: `name`, arguments:`argdef`, isStatic:`isStatic`]
-class `classname` implements Macro
-  def initialize(mirah:Compiler, call:CallSite)
-    @mirah = mirah
-    @call = call
-  end
-
-  def _expand(`args`):Node
-    `body`
-  end
-
-  def expand:Node
-    _expand(`casts`)
-  end
-
-  def gensym:String
-    @mirah.scoper.getScope(@call).temp('gensym')
+class ArrayMetaExtensions
+  macro def cast(array)
+    type = @mirah.typer.infer(@call.target).resolve
+    Cast.new(@call.position, TypeRefImpl.new(type.name, true, false, @call.target.position), array)
   end
 end

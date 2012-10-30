@@ -57,8 +57,11 @@ module Mirah::JVM::Types
     end
 
     def add_compiled_macro(klass)
-      name, arg_types = read_macrodef_annotation(klass)
+      name, arg_types, is_static = read_macrodef_annotation(klass)
       if arg_types.nil?
+        return
+      elsif is_static && !self.meta?
+        self.meta.add_compiled_macro(klass)
         return
       end
 
@@ -182,7 +185,7 @@ module Mirah::JVM::Types
         raise "Unable to find class #{typename}" unless type
         type
       end
-      [macro_name, args]
+      [macro_name, args, macro.is_static]
     end
 
     def add_intrinsics
@@ -291,12 +294,16 @@ module Mirah::JVM::Types
           compiler.method.ldc_class(unmeta)
         end
       end
+      add_method('[]', [], unmeta.array_type.meta) do |compiler, call, expression|
+        compiler.method.ldc_class(unmeta.array_type.meta)
+      end
     end
   end
 
   class ArrayMetaType
     def add_intrinsics
       super
+      load_extensions(@type_system.type(nil, 'org.mirah.builtins.ArrayMetaExtensions'))
       # add_macro('cast', @type_system.type(nil, 'java.lang.Object')) do |transformer, call|
       #   call.cast = true
       #   call.resolve_if(nil) { unmeta }

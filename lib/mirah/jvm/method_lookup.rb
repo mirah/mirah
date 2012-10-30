@@ -105,7 +105,7 @@ module Mirah
         end
         method = find_jls2(mapped_type, name, mapped_params, meta, by_name, true, scope)
         return method if (constructor || macro_params.nil?)
-        macros = mapped_type.unmeta.find_callable_macros(name)
+        macros = mapped_type.find_callable_macros(name)
         if macros.size != 0
           log "Found potential macro match for #{mapped_type.name}.#{name}(#{macro_params.map(&:full_name).join ', '})"
           macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false, scope)

@@ -176,6 +176,8 @@ class MacroBuilder; implements Compiler
     addMissingTypes(macroDef)
     argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
+    scope = @scopes.getScope(macroDef)
+    isStatic = mirah::lang::ast::Boolean.new(macroDef.name.position, macroDef.isStatic || scope.selfType.resolve.isMeta)
     script = deserializeScript("Macro", template,
                                [ name,
                                  macroDef.arguments.clone,
@@ -184,9 +186,9 @@ class MacroBuilder; implements Compiler
                                  # Annotations come last in the AST even though they're first
                                  # in the source.
                                  macroDef.name.clone,
-                                 argdef
+                                 argdef,
+                                 isStatic
                                ])
-    scope = @scopes.getScope(macroDef)
     preamble = NodeList.new
 
     if scope.package
