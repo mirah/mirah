@@ -271,6 +271,7 @@ module Mirah::JVM::Types
               end
 
               result = _handle_nested_generic_return(result, method.member.generic_return_type, target.type_parameter_map, position)
+              result.resolve if result.respond_to?(:resolve)
             end
           rescue => ex
             Mirah.print_error("Error inferring generics: #{ex.message}", position)
@@ -316,7 +317,7 @@ module Mirah::JVM::Types
       elsif bounds.size == 1
         typeName = bounds[0].raw_type.getClassName
       end
-      GenericTypeFuture.new(position, typeName)
+      GenericTypeFuture.new(position, type(nil, typeName))
     end
 
     def _handle_nested_generic_parameter(expectedType, providedType, type_parameter_map, position)
