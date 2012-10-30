@@ -90,7 +90,7 @@ module Mirah
           end
         end
 
-        log "Found method #{method.declaring_class.name}.#{name}(#{method.argument_types.map(&:name).join ', '}) from #{mapped_type.name}"
+        log "Found method #{method.declaring_class.name}.#{name}(#{method.argument_types.map(&:name).join ', '}) from #{mapped_type.name}" if method
         return method
       end
 

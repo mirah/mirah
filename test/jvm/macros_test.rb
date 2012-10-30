@@ -234,7 +234,7 @@ class MacrosTest < Test::Unit::TestCase
   end
 
   def test_method_def_after_macro_def_with_same_name_raises_error
-    assert_raises Mirah::InferenceError do
+    assert_raises Mirah::MirahError do
       compile(<<-EOF)
         macro def foo
           quote { System.out.println :z }
@@ -242,6 +242,7 @@ class MacrosTest < Test::Unit::TestCase
         def foo
           :bar
         end
+        foo
       EOF
     end
   end
@@ -249,7 +250,7 @@ class MacrosTest < Test::Unit::TestCase
   def test_macro_def_unquote_named_method_without_main
     cls, = compile <<-EOF
       class FooHaver
-        macro def null_method name
+        macro def null_method(name)
           quote {
             def `name`
             end
