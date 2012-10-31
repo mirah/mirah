@@ -131,7 +131,7 @@ class MacrosTest < Test::Unit::TestCase
   def test_unquote_method_definitions_with_main
     script, cls = compile(<<-EOF)
       class UnquoteMacros
-        macro def make_attr(name_node:Identifier, type:TypeName)
+        macro def self.make_attr(name_node:Identifier, type:TypeName)
           name = name_node.identifier
           quote do
             def `name`
@@ -236,7 +236,7 @@ class MacrosTest < Test::Unit::TestCase
   def test_method_def_after_macro_def_with_same_name_raises_error
     assert_raises Mirah::MirahError do
       compile(<<-EOF)
-        macro def foo
+        macro def self.foo
           quote { System.out.println :z }
         end
         def foo
@@ -250,7 +250,7 @@ class MacrosTest < Test::Unit::TestCase
   def test_macro_def_unquote_named_method_without_main
     cls, = compile <<-EOF
       class FooHaver
-        macro def null_method(name)
+        macro def self.null_method(name)
           quote {
             def `name`
             end
@@ -260,5 +260,19 @@ class MacrosTest < Test::Unit::TestCase
       end
     EOF
     assert_equal nil, cls.new.testing
+  end
+  
+  def test_attr_accessor
+    script, cls = compile(<<-EOF)
+      class AttrAccessorTest
+        attr_accessor foo: int
+      end
+
+      x = AttrAccessorTest.new
+      System.out.println x.foo
+      x.foo = 3
+      System.out.println x.foo
+    EOF
+    assert_output("0\n3\n") {script.main(nil)}
   end
 end

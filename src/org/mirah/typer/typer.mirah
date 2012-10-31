@@ -135,7 +135,9 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     scope = @scopes.getScope(call)
-    methodType = CallFuture.new(@types, scope, scope.selfType, Collections.emptyList, call)
+    targetType = scope.selfType
+    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
+    methodType = CallFuture.new(@types, scope, targetType, Collections.emptyList, call)
     fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
     fcall.setParent(call.parent)
     @futures[fcall] = methodType
@@ -180,7 +182,9 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     delegate = DelegateFuture.new
-    methodType = CallFuture.new(@types, scope, scope.selfType, parameters, call)
+    targetType = scope.selfType
+    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
+    methodType = CallFuture.new(@types, scope, targetType, parameters, call)
     delegate.type = methodType
     typer = self
     methodType.onUpdate do |x, resolvedType|
