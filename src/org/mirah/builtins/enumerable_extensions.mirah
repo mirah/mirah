@@ -38,8 +38,9 @@ class EnumerableExtensions
   end
 
   macro def all?
+    x = gensym
     quote do
-      `@call.target`.all? {|x| x}
+      `@call.target`.all? {|`x`| `x`}
     end
   end
 
@@ -65,8 +66,9 @@ class EnumerableExtensions
   end
 
   macro def any?
+    x = gensym
     quote do
-      `@call.target`.any? {|x| x}
+      `@call.target`.any? {|`x`| `x`}
     end
   end
 end
