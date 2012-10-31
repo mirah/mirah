@@ -53,7 +53,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      java.lang.Integer
+      @type_system.type(nil, 'java.lang.Integer')
     end
 
     def jump_if(builder, op, label)
@@ -82,7 +82,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      java.lang.Long
+      @type_system.type(nil, 'java.lang.Long')
     end
 
     def literal(builder, value)

@@ -33,6 +33,10 @@ module Mirah
           @ungeneric.superclass.generic if @ungeneric.superclass
         end
 
+        def declared_macros(name=nil)
+          @ungeneric.declared_macros(name)
+        end
+
         def interfaces(include_parent=true)
           ungeneric.interfaces
         end

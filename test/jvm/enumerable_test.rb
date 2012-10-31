@@ -287,6 +287,15 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("true\nfalse\n") do
       cls.foo
     end
+
+    cls, = compile(<<-EOF)
+      def foo
+        System.out.println [1,2,3].all? {|x| x.intValue > 3}
+      end
+    EOF
+    assert_output("false\n") do
+      cls.foo
+    end
   end
 
   def test_mirah_iterable

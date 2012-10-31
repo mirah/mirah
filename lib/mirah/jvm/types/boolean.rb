@@ -28,6 +28,10 @@ module Mirah::JVM::Types
       builder.invokestatic box_type, "valueOf", [box_type, self]
     end
 
+    def box_type
+      @type_system.type(nil, 'java.lang.Boolean')
+    end
+
     def add_intrinsics
       args = [math_type]
       add_method('==', args, ComparisonIntrinsic.new(self, '==', :eq, args))

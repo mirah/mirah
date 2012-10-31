@@ -73,7 +73,7 @@ module Mirah
           raise ex unless ex.message =~ /#{Regexp.quote(mapped_type.name)}\.#{Regexp.quote(name)}|No constructor #{Regexp.quote(mapped_type.name)}/
         end
 
-        macro = mapped_type.unmeta.macro(name, macro_params)
+        macro = mapped_type.macro(name, macro_params)
         if method && macro
           method = nil  # Need full lookup to determine precedence.
         elsif method.nil? && macro
@@ -108,7 +108,7 @@ module Mirah
         macros = mapped_type.find_callable_macros(name)
         if macros.size != 0
           log "Found potential macro match for #{mapped_type.name}.#{name}(#{macro_params.map(&:full_name).join ', '})"
-          macro = find_jls2(mapped_type.unmeta, name, macro_params, meta, macros, false, scope)
+          macro = find_jls2(mapped_type, name, macro_params, meta, macros, false, scope)
         end
         if macro && method
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{macro} and #{method}"

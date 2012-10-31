@@ -633,7 +633,7 @@ class Typer < SimpleNodeVisitor
       node = Node(v)
       component.assign(infer(node, true), node.position)
     end
-    @types.getArrayLiteralType(component)
+    @types.getArrayLiteralType(component, array.position)
   end
 
   def visitFixnum(fixnum, expression)
@@ -660,14 +660,19 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitHash(hash, expression)
-    future = AssignableTypeFuture.new(hash.position)
-    @futures[hash] = future
-    target = TypeRefImpl.new('org.mirah.builtins.Builtins', false, true, hash.position)
-    call = Call.new(target, SimpleString.new('newHash'), Collections.emptyList, nil)
-    hash.parent.replaceChild(hash, call)
-    call.parameters.add(hash)
-    future.assign(infer(call, expression != nil), hash.position)
-    future
+    keyType = AssignableTypeFuture.new(hash.position)
+    valueType = AssignableTypeFuture.new(hash.position)
+    hash.each do |e|
+      entry = HashEntry(e)
+      keyType.assign(infer(entry.key, true), entry.key.position)
+      valueType.assign(infer(entry.value, true), entry.value.position)
+      infer(entry, false)
+    end
+    @types.getHashLiteralType(keyType, valueType, hash.position)
+  end
+  
+  def visitHashEntry(entry, expression)
+    @types.getVoidType
   end
 
   def visitRegex(regex, expression)

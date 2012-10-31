@@ -922,6 +922,36 @@ module Mirah
           end
         end
 
+        def visitHash(node, expression)
+          set_position(node.position)
+          if expression
+            # create basic arraylist
+            @method.new java::util::HashMap
+            @method.dup
+            @method.ldc_int [node.size / 0.75, 16].max.to_i
+            @method.invokespecial java::util::HashMap, "<init>", [@method.void, @method.int]
+
+            node.each do |e|
+              @method.dup
+              [e.key, e.value].each do |n|
+                visit(n, true)
+                # TODO this feels like it should be in the node.compile itself
+                if inferred_type(n).primitive?
+                  inferred_type(n).box(@method)
+                end
+              end
+              @method.invokeinterface java::util::Map, "put", [@method.object, @method.object, @method.object]
+              @method.pop
+            end
+          else
+            # elements, as non-expressions
+            node.each do |n|
+              visit(n.key, false)
+              visit(n.value, false)
+            end
+          end
+        end
+
         def visitNot(node, expression)
           visit(node.value, expression)
           if expression

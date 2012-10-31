@@ -56,7 +56,10 @@ interface TypeSystem do
   def getArrayType(componentType:TypeFuture):TypeFuture; end
 
   # Returns a future for the type of an array literal: [ 1, 2, 3]
-  def getArrayLiteralType(componentType:TypeFuture):TypeFuture; end
+  def getArrayLiteralType(componentType:TypeFuture, position:Position):TypeFuture; end
+
+  # Returns a future for the type of a hash literal: {a: b}
+  def getHashLiteralType(keyType:TypeFuture, valueType:TypeFuture, position:Position):TypeFuture; end
 
   # Convert a TypeRef to a TypeFuture.
   def get(scope:Scope, type:TypeRef):TypeFuture; end

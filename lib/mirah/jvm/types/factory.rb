@@ -182,8 +182,41 @@ module Mirah::JVM::Types
         future
       end
     end
-    def getArrayLiteralType(type)
-      return cache_and_wrap_type('java.util.List')
+    def box(type)
+      boxed = BaseTypeFuture.new(nil)
+      type.on_update do |_, resolved|
+        if resolved.isError || !resolved.primitive?
+          boxed.resolved(resolved)
+        else
+          boxed.resolved(resolved.box_type)
+        end
+      end
+      boxed
+    end
+    
+    def getArrayLiteralType(type, position)
+      result = Mirah::JVM::Types::GenericType.new(type(nil, 'java.util.List')) # Upgrade to a generic type.
+      variable = result.type_parameters[0]
+      result.type_parameter_map[variable.name] = _build_generic_type_future(variable.bounds, position)
+      result.type_parameter_map[variable.name].assign(box(type), position)
+      wrap(result)
+    rescue => ex
+      Mirah.print_error("Error inferring generics: #{ex.message}", position)
+      log("Error inferring generics: #{ex.message}\n#{ex.backtrace.join("\n")}")
+      cache_and_wrap_type('java.util.List')
+    end
+    def getHashLiteralType(key_type, value_type, position)
+      result = Mirah::JVM::Types::GenericType.new(type(nil, 'java.util.HashMap')) # Upgrade to a generic type.
+      generic_key, generic_value = result.type_parameters
+      for variable, type in [[generic_key, key_type], [generic_value, value_type]]
+        result.type_parameter_map[variable.name] = _build_generic_type_future(variable.bounds, position)
+        result.type_parameter_map[variable.name].assign(box(type), position)
+      end
+      wrap(result)
+    rescue => ex
+      Mirah.print_error("Error inferring generics: #{ex.message}", position)
+      log("Error inferring generics: #{ex.message}\n#{ex.backtrace.join("\n")}")
+      cache_and_wrap_type('java.util.HashMap')
     end
     def get(scope, typeref)
       basic_type = if scope.nil?

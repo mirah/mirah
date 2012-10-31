@@ -24,7 +24,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      java.lang.Float
+      @type_system.type(nil, 'java.lang.Float')
     end
 
     def suffix
@@ -70,7 +70,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      java.lang.Double
+      @type_system.type(nil, 'java.lang.Double')
     end
 
     def wide?
