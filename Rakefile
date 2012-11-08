@@ -107,7 +107,9 @@ task :compile => [:init, :bootstrap] do
     'src/org/mirah/mirah_command.rb'
   ])
 
-  # TODO compile ant stuff
+  # compile ant stuff
+  ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
+  sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:build --dest build src/org/mirah/ant)
 
   # compile invokedynamic stuff
   ant.javac :destdir => 'build', :srcdir => 'src',
