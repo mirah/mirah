@@ -42,8 +42,7 @@ interface Compiler do
                      startLine:int,
                      startCol:int,
                      code:String,
-                     values:List,
-                     scopeNode:Node):Node
+                     values:List):Node
   end
   def type_system:TypeSystem; end
   def typer:Typer; end
@@ -73,6 +72,26 @@ class QuoteMacro; implements Macro
     unquote = Unquote.new
     unquote.object = serialized
     loadCall = Call.new(FieldAccess.new(SimpleString.new("mirah")), SimpleString.new("deserializeAst"), [unquote], nil)
+    Cast.new(SimpleString.new(node.getClass.getName), loadCall)
+  end
+end
+
+class CompilerQuoteMacro; implements Macro
+  def initialize(mirah:Compiler, call:CallSite)
+    @mirah = mirah
+    @call = call
+  end
+
+  def expand
+    node = if @call.block.body_size == 1
+      @call.block.body(0)
+    else
+      @call.block.body
+    end
+    serialized = @mirah.serializeAst(node)
+    unquote = Unquote.new
+    unquote.object = serialized
+    loadCall = Call.new(@call.target, SimpleString.new("deserializeAst"), [unquote], nil)
     Cast.new(SimpleString.new(node.getClass.getName), loadCall)
   end
 end
