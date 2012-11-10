@@ -24,4 +24,8 @@ class EnumValue
     @declaring_type = declaring_type
     @name = name
   end
+  
+  def toString
+    "#{@declaring_type.className}.#{@name}"
+  end
 end
