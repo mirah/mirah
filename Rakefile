@@ -93,8 +93,8 @@ desc "clean up build artifacts"
 task :clean do
   ant.delete :quiet => true, :dir => 'build'
   ant.delete :quiet => true, :dir => 'dist'
-  rm 'javalib/mirah-bootstrap.jar'
-  rm 'javalib/mirah-builtins.jar'
+  rm_f 'javalib/mirah-bootstrap.jar'
+  rm_f 'javalib/mirah-builtins.jar'
 end
 
 task :compile => [:init, :bootstrap] do
@@ -107,6 +107,7 @@ task :compile => [:init, :bootstrap] do
     'src/org/mirah/mirah_command.rb'
   ])
 
+  # compile ant stuff
   ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
   sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:build --dest build src/org/mirah/ant)
 
