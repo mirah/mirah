@@ -81,10 +81,10 @@ module Mirah::JVM::Types
 
         def classpath
           options = [
-            '-classpath', Mirah::AST.type_factory.classpath
+            '-classpath', @type_factory.classpath
           ]
-          if Mirah::AST.type_factory.bootclasspath
-            options << '-bootclasspath' << Mirah::AST.type_factory.bootclasspath
+          if @type_factory.bootclasspath
+            options << '-bootclasspath' << @type_factory.bootclasspath
           end
           options
         end
