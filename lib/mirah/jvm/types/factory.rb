@@ -695,7 +695,8 @@ module Mirah::JVM::Types
         classname = name.tr('.', '/')
         stream = resource_loader.getResourceAsStream(classname + ".class")
         if stream
-          BiteScript::ASM::ClassMirror.load(stream)
+          mirror = BiteScript::ASM::ClassMirror.load(stream)
+          mirror if mirror.type.class_name == name
         else
           # TODO(ribrdb) Should this use a separate sourcepath?
           url = resource_loader.getResource(classname + ".java")
