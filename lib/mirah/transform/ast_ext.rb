@@ -19,7 +19,7 @@ module Mirah
 
       def warning(messages, positions)
         print "Warning: "
-        messages.each_with_index do |message, i|
+        messages.each.with_index do |message, i|
           jpos = positions[i]
           if jpos
             dpos = Mirah::Transform::Transformer::JMetaPosition.new(@transformer, jpos, jpos, @source)

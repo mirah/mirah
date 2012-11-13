@@ -240,18 +240,11 @@ module Mirah
       end
 
       def each_is_exact(incoming, target)
-        incoming.each_with_index do |in_type, i|
-          target_type = target[i]
-
-          # exact match
-          return false unless target_type == in_type
-        end
-        return true
+        incoming.zip(target).all? { |in_type, target_type| target_type == in_type }
       end
 
       def each_is_exact_or_subtype_or_convertible(incoming, target)
-        incoming.each_with_index do |in_type, i|
-          target_type = target[i]
+        incoming.zip(target).each do |in_type, target_type|
 
           # exact match
           next if target_type == in_type
