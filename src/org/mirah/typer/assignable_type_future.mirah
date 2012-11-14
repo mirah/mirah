@@ -30,6 +30,10 @@ class AssignableTypeFuture < BaseTypeFuture
     @declarations = HashMap.new
   end
 
+  def self.initialize:void
+    @@log = Logger.getLogger(AssignableTypeFuture.class.getName)
+  end
+
   # Set the declared type. Only one declaration is allowed.
   def declare(type:TypeFuture, position:Position):TypeFuture
     base_type = self
@@ -54,7 +58,7 @@ class AssignableTypeFuture < BaseTypeFuture
       TypeFuture(@assignments[value])
     else
       variable = self
-      assignment = BaseTypeFuture.new(position)
+      assignment = AssignmentFuture.new(self, value, position)
       @assignments[value] = assignment
       value.onUpdate do |x, resolved|
         variable.checkAssignments
@@ -97,8 +101,10 @@ class AssignableTypeFuture < BaseTypeFuture
       if value.isResolved
         resolved = value.resolve
         if resolved.isError
+          @@log.finest("#{self}: found error #{resolved}")
           error ||= resolved
         else
+          @@log.finest("#{self}: adding type #{resolved}")
           if type
             type = type.widen(value.resolve)
           else
@@ -107,6 +113,22 @@ class AssignableTypeFuture < BaseTypeFuture
         end
       end
     end
+    @@log.finer("#{self}: checkAssignments: resolving as #{type || error}")
     resolved(type || error)
+  end
+
+  def resolve
+    unless isResolved
+      if hasDeclaration
+        @@log.finer("#{self}: Resolving declarations")
+        @declarations.values.each {|t| TypeFuture(t).resolve}
+        @@log.finer("#{self}: done")
+      else
+        @@log.finer("#{self}: Resolving assignments")
+        assignedValues(true, true).each {|v| TypeFuture(v).resolve }
+        @@log.finer("#{self}: done")
+      end
+    end
+    super
   end
 end

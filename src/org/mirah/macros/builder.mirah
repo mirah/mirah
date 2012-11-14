@@ -121,7 +121,7 @@ class MacroBuilder; implements Compiler
 
   def serializeAst(node:Node):Object
     raise IllegalArgumentException, "No position for #{node}" unless node.position
-    result = Object[6]
+    result = Object[5]
     result[0] = SimpleString.new(node.position.source.name)
     result[1] = Fixnum.new(node.position.startLine)
     result[2] = Fixnum.new(node.position.startColumn)
@@ -130,7 +130,6 @@ class MacroBuilder; implements Compiler
     collector = ValueGetter.new
     collector.scan(node)
     result[4] = collector.values
-    result[5] = FieldAccess.new(SimpleString.new('call'))
     Arrays.asList(result)
   end
 
@@ -141,7 +140,7 @@ class MacroBuilder; implements Compiler
     script
   end
 
-  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List, scopeNode:Node):Node
+  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List):Node
     parser = MirahParser.new
     script = Script(parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
     # TODO(ribrdb) scope

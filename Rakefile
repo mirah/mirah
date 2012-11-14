@@ -254,10 +254,27 @@ def add_quote_macro
     args.visitEnd
     av.visitEnd
   end
+  Annotater.new('build/bootstrap/org/mirah/macros/CompilerQuoteMacro.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', true)
+    av.visit("name", "quote")
+    args = av.visitAnnotation('arguments', 'Lorg/mirah/macros/anno/MacroArgs;')
+    req = args.visitArray('required')
+    req.visit(nil, 'mirah.lang.ast.Block')
+    req.visitEnd
+    args.visitEnd
+    av.visitEnd
+  end
   Annotater.new('build/bootstrap/org/mirah/macros/Macro.class') do |klass|
     av = klass.visitAnnotation('Lorg/mirah/macros/anno/Extensions;', false)
     macros = av.visitArray('macros')
     macros.visit(nil, 'org.mirah.macros.QuoteMacro')
+    macros.visitEnd
+    av.visitEnd
+  end
+  Annotater.new('build/bootstrap/org/mirah/macros/Compiler.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/Extensions;', false)
+    macros = av.visitArray('macros')
+    macros.visit(nil, 'org.mirah.macros.CompilerQuoteMacro')
     macros.visitEnd
     av.visitEnd
   end

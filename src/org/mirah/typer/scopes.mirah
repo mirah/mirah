@@ -40,5 +40,6 @@ end
 interface Scoper do
   def getScope(node:Node):Scope; end
   def addScope(node:Node):Scope; end
+  def getIntroducedScope(node:Node):Scope; end
   def copyScopeFrom(from:Node, to:Node):void; end
 end
