@@ -155,6 +155,7 @@ class Typer < SimpleNodeVisitor
     current_node = Node(call)
     typer = self
     future = DelegateFuture.new
+    future.type = infer(local, true)
     picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
       picked_type = typefuture.resolve
