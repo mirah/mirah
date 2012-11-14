@@ -33,6 +33,10 @@ class BaseTypeFuture; implements TypeFuture
     @listeners = ArrayList.new
   end
 
+  def self.initialize:void
+    @@log = Logger.getLogger(BaseTypeFuture.class.getName)
+  end
+
   def isResolved
     @resolved != nil
   end
@@ -42,7 +46,12 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def resolve
-    @resolved ||= ErrorType.new([[error_message, @position]])
+    unless @resolved
+      @@log.finest("#{self}: error: #{error_message}")
+      @resolved = ErrorType.new([[error_message, @position]])
+      notifyListeners
+    end
+    @resolved
   end
 
   # The error message used if this future doesn't resolve.
