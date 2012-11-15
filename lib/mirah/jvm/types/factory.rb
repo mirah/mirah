@@ -480,8 +480,9 @@ module Mirah::JVM::Types
           arg.declare(cache_and_wrap(super_arg), arg.position)
         end
       else
-        log("Found multiple method types:")
+        log("Found method types:")
         filtered_args.each {|args| log("  #{args.map{|a|a.full_name}.inspect}")}
+        arg_types.each {|arg| arg.declare(ErrorType.new([["Missing declaration"]]), nil)}
       # TODO else give a more useful error?
       end
     end
