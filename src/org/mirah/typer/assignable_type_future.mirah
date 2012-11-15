@@ -121,7 +121,7 @@ class AssignableTypeFuture < BaseTypeFuture
     unless isResolved
       if hasDeclaration
         @@log.finer("#{self}: Resolving declarations")
-        @declarations.values.each {|t| TypeFuture(t).resolve}
+        @declarations.keySet.each {|t| TypeFuture(t).resolve}
         @@log.finer("#{self}: done")
       else
         @@log.finer("#{self}: Resolving assignments")
