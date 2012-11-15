@@ -265,12 +265,14 @@ module Mirah::JVM::Types
       type = BaseTypeFuture.new(nil)
       target.find_method2(target, name, argTypes, macroTypes, target.meta?, scope) do |method|
         if method.nil?
-          type.resolved(ErrorType.new([
-              ["Cannot find %s method %s(%s) on %s" %
-                  [ target.meta? ? "static" : "instance",
-                    name,
-                    argTypes.map{|t| t ? t.full_name : "?"}.join(', '),
-                    target.full_name], position]]))
+          unless argTypes.any?{|t| t && t.isError && (type.resolved(t); true)}
+            type.resolved(ErrorType.new([
+                ["Cannot find %s method %s(%s) on %s" %
+                    [ target.meta? ? "static" : "instance",
+                      name,
+                      argTypes.map{|t| t ? t.full_name : "?"}.join(', '),
+                      target.full_name], position]]))
+          end
         elsif method.kind_of?(Exception)
           type.resolved(ErrorType.new([[method.message, position]]))
         else
@@ -472,10 +474,14 @@ module Mirah::JVM::Types
       log("Infering argument types for #{name}")
       by_name = target.resolve.find_callable_methods(name, true)
       by_name_and_arity = by_name.select {|m| m.argument_types.size == arg_types.size}
-      if by_name_and_arity.size == 1
-        arg_types.zip(by_name_and_arity[0].argument_types).each do |arg, super_arg|
+      filtered_args = Set.new(by_name_and_arity.map {|m| m.argument_types})
+      if filtered_args.size == 1
+        arg_types.zip(filtered_args.first).each do |arg, super_arg|
           arg.declare(cache_and_wrap(super_arg), arg.position)
         end
+      else
+        log("Found multiple method types:")
+        filtered_args.each {|args| log("  #{args.map{|a|a.full_name}.inspect}")}
       # TODO else give a more useful error?
       end
     end
