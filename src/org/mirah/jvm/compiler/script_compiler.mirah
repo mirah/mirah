@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.logging.Logger
 import org.mirah.util.Context
 
 class ScriptCompiler < BaseCompiler

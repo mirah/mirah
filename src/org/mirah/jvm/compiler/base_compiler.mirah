@@ -15,6 +15,9 @@
 
 package org.mirah.jvm.compiler
 
+import javax.tools.DiagnosticListener
+import mirah.lang.ast.Node
+import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
@@ -55,23 +58,23 @@ class BaseCompiler < SimpleNodeVisitor
     end
   end
 
-  def getInferredType(node)
+  def getInferredType(node:Node)
     begin
-      @typer.get_inferred_type(node).resolve
+      @typer.getInferredType(node).resolve
     rescue Exception => ex
       reportICE(ex, node.position)
     end
   end
 
   def defaultNode(node, arg)
-    reportError("#{getClass} can't compile node #{node.class}", node.position)
+    reportError("#{getClass} can't compile node #{node.getClass}", node.position)
   end
 
-  def visit(node, arg)
+  def visit(node:Node, arg:Object)
     begin
       node.accept(self, arg)
     rescue ReportedException => ex
-      throw ex
+      raise ex
     rescue Throwable => ex
       reportICE(ex, node.position)
     end

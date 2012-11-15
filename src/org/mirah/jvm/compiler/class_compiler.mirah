@@ -15,6 +15,8 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.logging.Logger
+import mirah.lang.ast.ClassDefinition
 import org.mirah.util.Context
 
 class ClassCompiler < BaseCompiler
@@ -27,7 +29,7 @@ class ClassCompiler < BaseCompiler
   end
   
   def compile
-    @@log.info "Compiling class #{@class_def.name.identifier}"
+    @@log.info "Compiling class #{@classdef.name.identifier}"
     @type = getInferredType(@classdef)
   end
 end

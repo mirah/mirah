@@ -15,8 +15,10 @@
 
 package org.mirah.jvm.compiler
 
-import org.mirah.typer.Typer
+import java.util.logging.Logger
+import javax.tools.DiagnosticListener
 import mirah.lang.ast.*
+import org.mirah.typer.Typer
 import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic

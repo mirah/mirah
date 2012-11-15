@@ -15,8 +15,8 @@
 
 package org.mirah.jvm.compiler
 
-import org.mirah.typer.Typer
 import mirah.lang.ast.*
+import org.mirah.typer.Typer
 import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.Context
 
@@ -103,7 +103,7 @@ class ScriptCleanup < NodeScanner
   def getOrCreateClass(script:Script)
     scope = @typer.scoper.getIntroducedScope(script)
     type = @typer.type_system.getMainType(scope, script).resolve
-    klass = @classes[type]
+    klass = ClassDefinition(@classes[type])
     if klass.nil?
       klass = @parser.quote do
         class `type.name`
