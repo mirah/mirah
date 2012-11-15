@@ -209,7 +209,7 @@ class Typer < SimpleNodeVisitor
       items.add(cast)
       items.add(delegate)
       items.add(nil)
-      TypeFuture(PickFirst.new(items) do |type, arg|
+      TypeFuture(PickFirst.new(items, delegate) do |type, arg|
         if arg != nil
           # We chose the cast.
           call.parent.replaceChild(call, cast)
@@ -299,7 +299,7 @@ class Typer < SimpleNodeVisitor
         items.add(newNode)
         items.add(delegate)
         items.add(nil)
-        TypeFuture(PickFirst.new(items) do |type, arg|
+        TypeFuture(PickFirst.new(items, delegate) do |type, arg|
           if arg != nil
             call.parent.replaceChild(call, newNode)
             typer.infer(newNode, expression != nil)
