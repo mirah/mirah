@@ -480,10 +480,10 @@ class Typer < SimpleNodeVisitor
       @types.getVoidType()
     end
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    parameters = inferAll(method.arguments)
-    target = @scopes.getScope(method).selfType
-    methodType = @types.getMethodDefType(target, method.name.identifier, parameters, nil, node.position)
-    methodType.returnType.assign(type, node.position)
+    methodType = infer(method)
+    if methodType.kind_of?(MethodFuture)
+      MethodFuture(methodType).returnType.assign(type, node.position)
+    end
   end
 
   def visitBreak(node, expression)
@@ -953,6 +953,7 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(mdef.arguments)
     returnType = @types.get(outer_scope, mdef.type.typeref) if mdef.type
     type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters, returnType, mdef.name.position)
+    @futures[mdef] = type
     declareOptionalMethods(selfType, mdef, parameters, type.returnType)
     is_void = type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
     # TODO deal with overridden methods?
@@ -964,6 +965,7 @@ class Typer < SimpleNodeVisitor
     else
       type.returnType.assign(infer(mdef.body), mdef.body.position)
     end
+    type
   end
   
   def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
