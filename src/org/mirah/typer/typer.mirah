@@ -482,7 +482,8 @@ class Typer < SimpleNodeVisitor
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     parameters = inferAll(method.arguments)
     target = @scopes.getScope(method).selfType
-    @types.getMethodDefType(target, method.name.identifier, parameters).returnType.assign(type, node.position)
+    methodType = @types.getMethodDefType(target, method.name.identifier, parameters, nil, node.position)
+    methodType.returnType.assign(type, node.position)
   end
 
   def visitBreak(node, expression)
@@ -950,16 +951,10 @@ class Typer < SimpleNodeVisitor
     inferAll(mdef.annotations)
     infer(mdef.arguments)
     parameters = inferAll(mdef.arguments)
-    type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters)
+    returnType = @types.get(outer_scope, mdef.type.typeref) if mdef.type
+    type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters, returnType, mdef.name.position)
     declareOptionalMethods(selfType, mdef, parameters, type.returnType)
-    is_void = false
-    if mdef.type
-      returnType = @types.get(outer_scope, mdef.type.typeref)
-      type.returnType.declare(returnType, mdef.type.position)
-      if @types.getVoidType().resolve.equals(returnType.resolve)
-        is_void = true
-      end
-    end
+    is_void = type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
     # TODO deal with overridden methods?
     # TODO throws
     # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
@@ -978,7 +973,7 @@ class Typer < SimpleNodeVisitor
       last_optional_arg = first_optional_arg + mdef.arguments.optional_size - 1
       last_optional_arg.downto(first_optional_arg) do |i|
         args.remove(i)
-        @types.getMethodDefType(target, mdef.name.identifier, args).returnType.declare(type, mdef.position)
+        @types.getMethodDefType(target, mdef.name.identifier, args, type, mdef.name.position)
       end
     end
   end
