@@ -401,16 +401,19 @@ module Mirah::JVM::Types
       end
     end
 
-    def getMethodDefType(target, name, argTypes)
+    def getMethodDefType(target, name, argTypes, returnType, position)
       if target.nil?
-        return ErrorType.new([["No target"]])
+        return ErrorType.new([["No target", position]])
       end
       unless argTypes.all? {|a| a.hasDeclaration}
         infer_override_args(target, name, argTypes)
       end
+      if returnType.nil?
+        returnType = infer_override_return_type(target, name, argTypes)
+      end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
-      type = _find_method_type(nil, target, name, args, nil, nil)
+      type = _find_method_type(nil, target, name, args, nil, position)
       type.onUpdate do |m, resolved|
         resolved = resolved.returnType if resolved.respond_to?(:returnType)
         log "Learned {0} method {1}.{2}({3}) = {4}", [
@@ -423,7 +426,7 @@ module Mirah::JVM::Types
         if target.meta?
           target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
         else
-          target.declare_method(rewritten_name, args, resolved, []) unless target.isError
+          target.declare_method(rewritten_name, args, resolved, [])
         end
       end
       if type.kind_of?(ErrorType)
@@ -431,7 +434,9 @@ module Mirah::JVM::Types
         position = type.position rescue nil
         return_type = AssignableTypeFuture.new(position)
         return_type.declare(type, position)
-        type = MethodFuture.new(name, args, return_type, false, nil)
+        type = MethodFuture.new(name, args, return_type, false, position)
+      elsif returnType
+        type.returnType.declare(returnType, position)
       end
       type.to_java(MethodFuture)
     rescue => ex
@@ -485,6 +490,15 @@ module Mirah::JVM::Types
         arg_types.each {|arg| arg.declare(ErrorType.new([["Missing declaration"]]), nil)}
       # TODO else give a more useful error?
       end
+    end
+    
+    def infer_override_return_type(target, name, arg_types)
+      by_name = target.resolve.find_callable_methods(name, true)
+      by_name_and_arity = {}
+      by_name.each {|m| by_name_and_arity[m.argument_types] = m if m.argument_types.size == arg_types.size }
+      resolved_args = arg_types.map {|a| a.resolve}
+      match = by_name_and_arity[resolved_args]
+      return cache_and_wrap(match.return_type) if match
     end
 
     def define_types(builder)
