@@ -144,7 +144,7 @@ module Mirah
 
               log "Starting new #{is_static ? 'static ' : ''}method #{node.name.identifier}(#{arg_types})"
               args = visit(node.arguments, true)
-              method_body(method, args, node, inferred_type(node))
+              method_body(method, args, node, inferred_type(node).returnType)
               log "Method #{node.name.identifier}(#{arg_types}) complete!"
             end
           end

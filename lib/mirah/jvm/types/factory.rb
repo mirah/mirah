@@ -415,18 +415,14 @@ module Mirah::JVM::Types
       target = target.resolve
       type = _find_method_type(nil, target, name, args, nil, position)
       type.onUpdate do |m, resolved|
-        resolved = resolved.returnType if resolved.respond_to?(:returnType)
-        log "Learned {0} method {1}.{2}({3}) = {4}", [
-                target.meta? ? "static" : "instance",
-                target.full_name,
-                name,
-                args.map{|a| a.full_name}.join(', '),
-                resolved.full_name].to_java
-        rewritten_name = name.sub(/=$/, '_set')
-        if target.meta?
-          target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
-        else
-          target.declare_method(rewritten_name, args, resolved, [])
+        _declare_method(target, name, args, type)
+      end
+      args.each_with_index do |arg, i|
+        if arg.isError
+          argTypes[i].onUpdate do |x, resolved|
+            args[i] = resolved
+            _declare_method(target, name, args, type)
+          end
         end
       end
       if type.kind_of?(ErrorType)
@@ -446,6 +442,24 @@ module Mirah::JVM::Types
       return_type.declare(ErrorType.new([["Internal error: #{ex}"]]), nil)
       MethodFuture.new(name, [], return_type, false, nil)
     end
+    def _declare_method(target, name, args, type)
+      return if args.any? {|a| a.isError }
+      return unless type.kind_of?(MethodFuture) && type.returnType.isResolved
+      resolved = type.returnType.resolve
+      resolved = resolved.returnType if resolved.respond_to?(:returnType)
+      log "Learned {0} method {1}.{2}({3}) = {4}", [
+              target.meta? ? "static" : "instance",
+              target.full_name,
+              name,
+              args.map{|a| a.full_name}.join(', '),
+              resolved.full_name].to_java
+      rewritten_name = name.sub(/=$/, '_set')
+      if target.meta?
+        target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
+      else
+        target.declare_method(rewritten_name, args, resolved, [])
+      end      
+    end
     def getMainType(scope, script)
       filename = File.basename(script.position.source.name || 'DashE')
       classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
@@ -453,6 +467,7 @@ module Mirah::JVM::Types
     end
     def defineType(scope, node, name, superclass, interfaces)
       # TODO what if superclass or interfaces change later?
+      log("Defining type #{name} < #{superclass.resolve.name if superclass} #{interfaces.map{|i|i.resolve.name}.inspect}")
       type = define_type(scope, node)
       future = @futures[type.name]
       if future
