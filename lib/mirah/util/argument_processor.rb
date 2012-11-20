@@ -102,6 +102,8 @@ module Mirah
           when '--no-save-extensions'
             args.shift
             state.save_extensions = false
+          when '--new-backend', '-N'
+            state.compiler_class = Mirah::JVM::Compiler::Backend
           else
             $stderr.puts "unrecognized flag: " + args[0]
 

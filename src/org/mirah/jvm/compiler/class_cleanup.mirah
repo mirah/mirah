@@ -59,10 +59,7 @@ class ClassCleanup < NodeScanner
     end
     unless @init_nodes.isEmpty
       if @constructors.isEmpty
-        constructor = @parser.quote { def initialize; end }
-        @typer.infer(constructor)
-        @klass.body.add(constructor)
-        @constructors.add(constructor)
+        add_default_constructor
       end
       @init_nodes.each do |n|
         node = Node(n)
@@ -90,7 +87,15 @@ class ClassCleanup < NodeScanner
         @typer.infer(nodes, false)
       end
     end
-
+    if @constructors.isEmpty && !@klass.kind_of?(InterfaceDeclaration)
+      add_default_constructor
+    end
+  end
+  def add_default_constructor
+    constructor = @parser.quote { def initialize; end }
+    @typer.infer(constructor)
+    @klass.body.add(constructor)
+    @constructors.add(constructor)
   end
   def error(message:String, position:Position)
     @context[DiagnosticListener].report(MirahDiagnostic.error(position, message))

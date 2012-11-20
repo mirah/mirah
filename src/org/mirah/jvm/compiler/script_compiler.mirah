@@ -24,6 +24,7 @@ class ScriptCompiler < BaseCompiler
   end
   def initialize(context:Context)
     super(context)
+    @classes = ArrayList.new
   end
   
   def visitScript(script, expression)
@@ -31,10 +32,21 @@ class ScriptCompiler < BaseCompiler
   end
     
   def visitClassDefinition(class_def, expression)
-    ClassCompiler.new(self.context, class_def).compile
+    compiler = ClassCompiler.new(self.context, class_def)
+    @classes.add(compiler)
+    compiler.compile
   end
   
   def visitInterfaceDeclaration(class_def, expression)
-    visitClassDefinition(class_def, expression)
+    compiler = InterfaceCompiler.new(self.context, class_def)
+    @classes.add(compiler)
+    compiler.compile
+  end
+  
+  def generate(consumer:BytecodeConsumer)
+    @classes.each do |c|
+      compiler = ClassCompiler(compiler)
+      consumer.consumeClass(compiler.internal_name, compiler.getBytes)
+    end
   end
 end

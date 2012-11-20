@@ -31,3 +31,19 @@ module Mirah
     end
   end
 end
+
+module Mirah
+  module JVM
+    module Compiler
+      begin
+        java_import 'org.mirah.jvm.compiler.Backend'
+      rescue NameError
+        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-compiler.jar'
+        begin
+          java_import 'org.mirah.jvm.compiler.Backend'
+        rescue
+        end
+      end
+    end
+  end
+end

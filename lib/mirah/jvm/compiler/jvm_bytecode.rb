@@ -40,7 +40,7 @@ module Mirah
           end
         end
 
-        def initialize(scoper, typer)
+        def initialize(typer)
           super
           @jump_scope = []
         end

@@ -36,7 +36,7 @@ module Mirah
       end
 
       def compile_ast(ast, scoper, typer, &block)
-        @compiler = compiler_class.new(scoper, typer)
+        @compiler = compiler_class.new(typer)
         compiler.visit(ast, nil)
         compiler.generate(&block)
       end
