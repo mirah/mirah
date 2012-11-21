@@ -214,7 +214,7 @@ file 'javalib/mirah-util.jar' do
 
   # compile ant stuff
   ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
-  sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:build --dest #{build_dir} src/org/mirah/ant)
+  sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:#{build_dir} --dest #{build_dir} src/org/mirah/ant)
 
   # compile invokedynamic stuff
   ant.javac :destdir => build_dir, :srcdir => 'src',
