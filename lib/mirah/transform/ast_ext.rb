@@ -1,11 +1,6 @@
 module Mirah
   module AST
-    begin
-      java_import 'mirah.impl.MirahParser'
-    rescue NameError
-      $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-parser.jar'
-      java_import 'mirah.impl.MirahParser'
-    end
+    java_import 'mirah.impl.MirahParser'
     java_import 'mirah.lang.ast.StringCodeSource'
     java_import 'org.mirah.macros.Macro'
     java_import 'org.mirah.mmeta.ErrorHandler'

@@ -40,13 +40,8 @@ module Mirah::JVM::Types
     begin
       java_import 'org.mirah.builtins.Builtins'
     rescue NameError
-      $CLASSPATH << File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar'
-      begin
-        java_import 'org.mirah.builtins.Builtins'
-      rescue NameError
-        # We might be trying to compile mirah-builtins.jar, so just continue.
-        Builtins = nil
-      end
+      # We might be trying to compile mirah-builtins.jar, so just continue.
+      Builtins = nil
     end
 
     java_import 'java.net.URLClassLoader'
