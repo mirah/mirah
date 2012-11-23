@@ -48,7 +48,7 @@ class ClassCompiler < BaseCompiler
     @classwriter = ClassWriter.new(ClassWriter.COMPUTE_MAXS)
     @classwriter.visit(Opcodes.V1_6, flags, internal_name, nil, superclass, interfaces)
     filename = self.filename
-    @classwriter.visit_source(filename, nil) if filename
+    @classwriter.visitSource(filename, nil) if filename
   end
   
   def flags
@@ -77,7 +77,7 @@ class ClassCompiler < BaseCompiler
   end
   
   def interfaces
-    size = size
+    size = @classdef.interfaces.size
     array = String[size]
     i = 0
     size.times do |i|

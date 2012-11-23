@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'mirah/jvm/compiler'
 require 'mirah/util/logging'
 
 module Mirah

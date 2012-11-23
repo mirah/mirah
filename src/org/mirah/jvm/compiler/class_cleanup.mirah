@@ -66,8 +66,9 @@ class ClassCleanup < NodeScanner
         node.parent.removeChild(node)
       end
       @constructors.each do |c|
+        constructor = MethodDefinition(c)
         nodes = NodeList.new
-        old_body = c.body
+        old_body = constructor.body
         if old_body.size > 0
           first = old_body.get(0)
           if first.kind_of?(Super) || first.kind_of?(ZSuper)
@@ -78,7 +79,7 @@ class ClassCleanup < NodeScanner
             next
           end
         end
-        c.body = nodes
+        constructor.body = nodes
         @init_nodes.each do |n|
           node = Node(n)
           nodes.add(node)

@@ -14,11 +14,14 @@
 # limitations under the License.
 
 package org.mirah.jvm.compiler
+
 import org.jruby.org.objectweb.asm.Opcodes
+import mirah.lang.ast.ClassDefinition
+import mirah.lang.ast.InterfaceDeclaration
 
 class InterfaceCompiler < ClassCompiler
   def initialize(context:Context, classdef:InterfaceDeclaration)
-    super
+    super(context, ClassDefinition(classdef))
   end
   
   def flags

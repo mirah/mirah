@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.ArrayList
 import java.util.logging.Logger
 import org.mirah.util.Context
 

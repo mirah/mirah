@@ -41,7 +41,8 @@ module Mirah
         $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-compiler.jar'
         begin
           java_import 'org.mirah.jvm.compiler.Backend'
-        rescue
+        #rescue
+	  puts "Unable to load new Backend"
         end
       end
     end

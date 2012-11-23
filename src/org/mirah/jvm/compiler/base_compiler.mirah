@@ -19,6 +19,7 @@ import javax.tools.DiagnosticListener
 import mirah.lang.ast.Node
 import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
+import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 import org.mirah.typer.Typer
@@ -49,7 +50,7 @@ class BaseCompiler < SimpleNodeVisitor
     @context[DiagnosticListener].report(MirahDiagnostic.warning(position, message))
   end
 
-  def reportICE(ex:Throwable, position:Position)
+  def reportICE(ex:Throwable, position:Position):RuntimeException
     if ex.kind_of?(ReportedException)
       raise ex
     else
@@ -58,11 +59,11 @@ class BaseCompiler < SimpleNodeVisitor
     end
   end
 
-  def getInferredType(node:Node)
+  def getInferredType(node:Node):JVMType
     begin
-      @typer.getInferredType(node).resolve
+      JVMType(@typer.getInferredType(node).resolve)
     rescue Exception => ex
-      reportICE(ex, node.position)
+      raise reportICE(ex, node.position)
     end
   end
 
