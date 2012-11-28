@@ -13,6 +13,11 @@ module Mirah
           @unmeta.basic_type
         end
 
+        def name
+          return @unmeta.name if @unmeta
+          super
+        end
+
         def meta?
           true
         end
