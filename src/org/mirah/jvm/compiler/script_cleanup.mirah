@@ -57,8 +57,8 @@ class ScriptCleanup < NodeScanner
         node.parent.removeChild(node)
         nodes.body.add(node)
       end
-      @typer.infer(nodes, false)
       klass.body.add(nodes)
+      @typer.infer(nodes, false)
     end
   end
   def enterDefault(node, arg)
@@ -111,6 +111,8 @@ class ScriptCleanup < NodeScanner
         end
       end
       klass.position = script.position
+      script.body.add(klass)
+      @typer.infer(klass, false)
     end
     ClassDefinition(klass)
   end

@@ -28,14 +28,14 @@ class ClassCompiler < BaseCompiler
     @@log = Logger.getLogger(ClassCompiler.class.getName)
   end
   def initialize(context:Context, classdef:ClassDefinition)
-    @context = context
+    super(context)
     @classdef = classdef
   end
   
   def compile
     @@log.info "Compiling class #{@classdef.name.identifier}"
     @type = getInferredType(@classdef)
-    start_class
+    startClass
   end
   
   def getBytes:byte[]
@@ -43,7 +43,7 @@ class ClassCompiler < BaseCompiler
     @classwriter.toByteArray
   end
   
-  def start_class
+  def startClass:void
     # TODO: need to support widening before we use COMPUTE_FRAMES
     @classwriter = ClassWriter.new(ClassWriter.COMPUTE_MAXS)
     @classwriter.visit(Opcodes.V1_6, flags, internal_name, nil, superclass, interfaces)

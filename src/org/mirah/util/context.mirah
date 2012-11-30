@@ -10,6 +10,8 @@ class Context
   
   def add(klass:Class, value:Object)
     @state[klass] = klass.cast(value)
+  rescue ClassCastException
+	  raise ClassCastException, "#{value.getClass} is not a #{klass}"
   end
   
   def get(klass:Class)

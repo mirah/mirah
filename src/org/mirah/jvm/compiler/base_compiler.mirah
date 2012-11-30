@@ -57,6 +57,7 @@ class BaseCompiler < SimpleNodeVisitor
       reportError("Internal error: #{ex.getMessage}", position)
       raise ReportedException.new(ex)
     end
+    RuntimeException(nil)  # unreachable
   end
 
   def getInferredType(node:Node):JVMType
@@ -77,7 +78,7 @@ class BaseCompiler < SimpleNodeVisitor
     rescue ReportedException => ex
       raise ex
     rescue Throwable => ex
-      reportICE(ex, node.position)
+      raise reportICE(ex, node.position)
     end
   end
 

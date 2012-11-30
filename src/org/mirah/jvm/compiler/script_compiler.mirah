@@ -46,7 +46,7 @@ class ScriptCompiler < BaseCompiler
   
   def generate(consumer:BytecodeConsumer)
     @classes.each do |c|
-      compiler = ClassCompiler(compiler)
+      compiler = ClassCompiler(c)
       consumer.consumeClass(compiler.internal_name, compiler.getBytes)
     end
   end
