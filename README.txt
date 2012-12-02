@@ -8,12 +8,12 @@
 Mirah is a customizable programming language featuring static types,
 local type inference and a heavily Ruby-inspired syntax. Mirah
 currently includes a typer/compiler backend for the JVM which can
-output either JVM bytecode or Java source files.
+output JVM bytecode.
 
 == FEATURES:
 
 * Ruby-like syntax
-* Compiles to .class or .java
+* Compiles to .class
 * Fast as Java
 * No runtime library
 
@@ -23,8 +23,6 @@ mirah <script.mirah>
 mirah -e "inline script"
 mirahc <script.mirah>
 mirahc -e "inline script" # produces DashE.class
-mirahc --java <script.mirah>
-mirahc --java -e "inline script" # produces DashE.java
 
 == REQUIREMENTS:
 
