@@ -17,6 +17,7 @@ class Backend
     @context[Typer] = typer
     @context[DiagnosticListener] = SimpleDiagnostics.new(false)  # TODO fix colors
     @context[Compiler] = typer.macro_compiler
+    @context[AnnotationCompiler] = AnnotationCompiler.new(@context)
     @cleanup = ScriptCleanup.new(@context)
     @compiler = ScriptCompiler.new(@context)
   end

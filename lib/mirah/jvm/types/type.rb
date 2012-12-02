@@ -52,9 +52,22 @@ module Mirah
         def internal_name
           full_name.tr('.', '/')
         end
-        
         def class_id
           BiteScript::Signature.class_id(self)
+        end
+        def getAsmType
+          BiteScript::ASM::Type.get_type(class_id)
+        end
+        def isAnnotation
+          jvm_type.annotation?
+        end
+        def retention
+          if jvm_type.respond_to?(:getDeclaredAnnotation)
+            retention = jvm_type.getDeclaredAnnotation('java.lang.annotation.Retention')
+            retention.value.name
+          else
+            nil
+          end
         end
 
         def jvm_type

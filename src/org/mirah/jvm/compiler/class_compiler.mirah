@@ -32,10 +32,11 @@ class ClassCompiler < BaseCompiler
     @classdef = classdef
   end
   
-  def compile
+  def compile:void
     @@log.info "Compiling class #{@classdef.name.identifier}"
     @type = getInferredType(@classdef)
     startClass
+    @classwriter.visitEnd
   end
   
   def getBytes:byte[]
@@ -49,6 +50,7 @@ class ClassCompiler < BaseCompiler
     @classwriter.visit(Opcodes.V1_6, flags, internal_name, nil, superclass, interfaces)
     filename = self.filename
     @classwriter.visitSource(filename, nil) if filename
+    context[AnnotationCompiler].compile(@classdef.annotations, @classwriter)
   end
   
   def flags

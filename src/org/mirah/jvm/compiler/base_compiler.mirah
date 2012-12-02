@@ -23,6 +23,8 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 import org.mirah.typer.Typer
+import org.mirah.typer.Scope
+import org.mirah.typer.Scoper
 
 class ReportedException < RuntimeException
   def initialize(ex:Throwable)
@@ -36,6 +38,7 @@ class BaseCompiler < SimpleNodeVisitor
   def initialize(context:Context)
     @context = context
     @typer = context[Typer]
+    @scoper = context[Scoper]
   end
   
   def reportError(message:String, position:Position)
@@ -66,6 +69,10 @@ class BaseCompiler < SimpleNodeVisitor
     rescue Exception => ex
       raise reportICE(ex, node.position)
     end
+  end
+
+  def getScope(node:Node):Scope
+    @scoper.getScope(node)
   end
 
   def defaultNode(node, arg)

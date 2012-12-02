@@ -8,7 +8,7 @@ class Context
     @state = {}
   end
   
-  def add(klass:Class, value:Object)
+  def add(klass:Class, value:Object):void
     @state[klass] = klass.cast(value)
   rescue ClassCastException
 	  raise ClassCastException, "#{value.getClass} is not a #{klass}"
