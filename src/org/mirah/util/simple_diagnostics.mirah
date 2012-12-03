@@ -1,6 +1,7 @@
 package org.mirah.util
 
 import java.util.Arrays
+import java.util.HashMap
 import java.util.Locale
 import javax.tools.Diagnostic.Kind
 import javax.tools.DiagnosticListener
@@ -8,26 +9,23 @@ import mirah.lang.ast.CodeSource
 
 class TooManyErrorsException < RuntimeException; end
 
-class SimpleDiagnostics implements DiagnosticListener
+class SimpleDiagnostics; implements DiagnosticListener
   def initialize(color:boolean)
     @errors = 0
     @newline = /\r?\n/
-    @prefixes = if color
-      {
-        Kind.ERROR => "\e[1m\e[31mERROR\e[0m: ",
-        Kind.MANDATORY_WARNING => "\e[1m\e[33mWARNING\e[0m: ",
-        Kind.WARNING => "\e[1m\e[33mWARNING\e[0m: ",
-        Kind.NOTE => "",
-        Kind.OTHER => "",
-      }
+    @prefixes = HashMap.new
+    if color
+      @prefixes.put(Kind.ERROR, "\e[1m\e[31mERROR\e[0m: ")
+      @prefixes.put(Kind.MANDATORY_WARNING, "\e[1m\e[33mWARNING\e[0m: ")
+      @prefixes.put(Kind.WARNING, "\e[1m\e[33mWARNING\e[0m: ")
+      @prefixes.put(Kind.NOTE, "")
+      @prefixes.put(Kind.OTHER, "")
     else
-      {
-        Kind.ERROR => "ERROR: ",
-        Kind.MANDATORY_WARNING => "WARNING: ",
-        Kind.WARNING => "WARNING: ",
-        Kind.NOTE => "",
-        Kind.OTHER => "",
-      }
+      @prefixes.put(Kind.ERROR, "ERROR: ")
+      @prefixes.put(Kind.MANDATORY_WARNING, "WARNING: ")
+      @prefixes.put(Kind.WARNING, "WARNING: ")
+      @prefixes.put(Kind.NOTE, "")
+      @prefixes.put(Kind.OTHER, "")
     end
   end
   
@@ -51,12 +49,12 @@ class SimpleDiagnostics implements DiagnosticListener
         line = lines[target_line]
         System.err.println(line)
         space = char[int(start_col)]
-        Arrays.fill(space, ?\ )
+        Arrays.fill(space, char(32))
         System.err.print(space)
         length = Math.min(diagnostic.getEndPosition - diagnostic.getStartPosition,
                           line.length - start_col)
         underline = char[int(Math.max(length, 1))]
-        Arrays.fill(underline, ?^)
+        Arrays.fill(underline, char(94))
         System.err.println(underline)
       end
     end
