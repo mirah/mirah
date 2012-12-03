@@ -168,7 +168,8 @@ end
 file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
                                        'src/org/mirah/MirahClassLoader.java',
                                        'src/org/mirah/IsolatedResourceLoader.java',
-                                       'src/org/mirah/MirahLogFormatter.mirah'] + 
+                                       'src/org/mirah/MirahLogFormatter.mirah',
+                                       'src/org/mirah/util/simple_diagnostics.mirah'] + 
                                       Dir['src/org/mirah/{macros,typer}/*.mirah'] +
                                       Dir['src/org/mirah/typer/simple/*.mirah'] +
                                       Dir['src/org/mirah/macros/anno/*.java'] do
@@ -182,10 +183,11 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
 
   # Compile the Typer and Macro compiler
   bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/MirahLogFormatter.mirah', 'src/org/mirah/typer',
-                    :classpath => ['javalib/mirah-parser.jar', 'build/bootstrap'],
-                    :dest => build_dir
-#                    :options => ['-V']
-                    )
+                   'src/org/mirah/util/simple_diagnostics.mirah',
+                   :classpath => ['javalib/mirah-parser.jar', 'build/bootstrap'],
+                   :dest => build_dir
+#                  :options => ['-V']
+                   )
   add_quote_macro                    
   cp Dir['src/org/mirah/macros/*.tpl'], "#{build_dir}/org/mirah/macros"
 
