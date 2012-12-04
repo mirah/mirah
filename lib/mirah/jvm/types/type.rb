@@ -59,7 +59,10 @@ module Mirah
           BiteScript::ASM::Type.get_type(class_id)
         end
         def isAnnotation
-          jvm_type.annotation?
+          jvm_type ? jvm_type.annotation? : false
+        end
+        def isEnum
+          jvm_type ? jvm_type.enum? : false
         end
         def retention
           if jvm_type.respond_to?(:getDeclaredAnnotation)
@@ -106,6 +109,9 @@ module Mirah
 
         def primitive?
           false
+        end
+        def isPrimitive
+          self.primitive?
         end
 
         def interface?
