@@ -19,6 +19,7 @@ require 'mirah/jvm/method_lookup'
 require 'mirah/jvm/types'
 require 'bitescript'
 require 'mirah/jvm/compiler/jvm_bytecode'
+require 'mirah/transform/ast_ext'
 
 module Mirah
   module AST
@@ -28,6 +29,23 @@ module Mirah
 
     class Super
       attr_accessor :target
+    end
+  end
+end
+
+module Mirah
+  module JVM
+    module Compiler
+      begin
+        java_import 'org.mirah.jvm.compiler.Backend'
+      rescue NameError
+        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-compiler.jar'
+        begin
+          java_import 'org.mirah.jvm.compiler.Backend'
+        rescue
+	        puts "Unable to load new Backend"
+        end
+      end
     end
   end
 end

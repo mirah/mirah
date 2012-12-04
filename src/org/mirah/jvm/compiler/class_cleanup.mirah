@@ -15,8 +15,10 @@
 
 package org.mirah.jvm.compiler
 
-import org.mirah.typer.Typer
+import java.util.logging.Logger
+import javax.tools.DiagnosticListener
 import mirah.lang.ast.*
+import org.mirah.typer.Typer
 import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
@@ -57,18 +59,16 @@ class ClassCleanup < NodeScanner
     end
     unless @init_nodes.isEmpty
       if @constructors.isEmpty
-        constructor = @parser.quote { def initialize; end }
-        @typer.infer(constructor)
-        @klass.body.add(constructor)
-        @constructors.add(constructor)
+        add_default_constructor
       end
       @init_nodes.each do |n|
         node = Node(n)
         node.parent.removeChild(node)
       end
       @constructors.each do |c|
+        constructor = MethodDefinition(c)
         nodes = NodeList.new
-        old_body = c.body
+        old_body = constructor.body
         if old_body.size > 0
           first = old_body.get(0)
           if first.kind_of?(Super) || first.kind_of?(ZSuper)
@@ -79,7 +79,7 @@ class ClassCleanup < NodeScanner
             next
           end
         end
-        c.body = nodes
+        constructor.body = nodes
         @init_nodes.each do |n|
           node = Node(n)
           nodes.add(node)
@@ -88,7 +88,15 @@ class ClassCleanup < NodeScanner
         @typer.infer(nodes, false)
       end
     end
-
+    if @constructors.isEmpty && !@klass.kind_of?(InterfaceDeclaration)
+      add_default_constructor
+    end
+  end
+  def add_default_constructor
+    constructor = @parser.quote { def initialize; end }
+    @typer.infer(constructor)
+    @klass.body.add(constructor)
+    @constructors.add(constructor)
   end
   def error(message:String, position:Position)
     @context[DiagnosticListener].report(MirahDiagnostic.error(position, message))

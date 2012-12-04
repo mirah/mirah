@@ -15,11 +15,10 @@
 
 class JVMCompilerTest < Test::Unit::TestCase
   def assert_raise_java(type, message="")
-    ex = assert_raise(NativeException) do
+    ex = assert_raise(type) do
       yield
     end
-    assert_equal type, ex.cause.class
-    assert_equal message, ex.cause.message.to_s
+    assert_equal message, ex.message.to_s
   end
 
   def test_local

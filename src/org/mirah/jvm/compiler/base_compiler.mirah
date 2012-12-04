@@ -15,10 +15,16 @@
 
 package org.mirah.jvm.compiler
 
+import javax.tools.DiagnosticListener
+import mirah.lang.ast.Node
+import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
+import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 import org.mirah.typer.Typer
+import org.mirah.typer.Scope
+import org.mirah.typer.Scoper
 
 class ReportedException < RuntimeException
   def initialize(ex:Throwable)
@@ -32,6 +38,7 @@ class BaseCompiler < SimpleNodeVisitor
   def initialize(context:Context)
     @context = context
     @typer = context[Typer]
+    @scoper = context[Scoper]
   end
   
   def reportError(message:String, position:Position)
@@ -46,34 +53,39 @@ class BaseCompiler < SimpleNodeVisitor
     @context[DiagnosticListener].report(MirahDiagnostic.warning(position, message))
   end
 
-  def reportICE(ex:Throwable, position:Position)
+  def reportICE(ex:Throwable, position:Position):RuntimeException
     if ex.kind_of?(ReportedException)
       raise ex
     else
       reportError("Internal error: #{ex.getMessage}", position)
       raise ReportedException.new(ex)
     end
+    RuntimeException(nil)  # unreachable
   end
 
-  def getInferredType(node)
+  def getInferredType(node:Node):JVMType
     begin
-      @typer.get_inferred_type(node).resolve
+      JVMType(@typer.getInferredType(node).resolve)
     rescue Exception => ex
-      reportICE(ex, node.position)
+      raise reportICE(ex, node.position)
     end
   end
 
-  def defaultNode(node, arg)
-    reportError("#{getClass} can't compile node #{node.class}", node.position)
+  def getScope(node:Node):Scope
+    @scoper.getScope(node)
   end
 
-  def visit(node, arg)
+  def defaultNode(node, arg)
+    reportError("#{getClass} can't compile node #{node.getClass}", node.position)
+  end
+
+  def visit(node:Node, arg:Object)
     begin
       node.accept(self, arg)
     rescue ReportedException => ex
-      throw ex
+      raise ex
     rescue Throwable => ex
-      reportICE(ex, node.position)
+      raise reportICE(ex, node.position)
     end
   end
 

@@ -126,10 +126,10 @@ class RescueTest < Test::Unit::TestCase
     EOF
 
     assert_equal "x", cls.foo(true)
-    ex = assert_raise NativeException do
+    ex = assert_raise java.lang.Exception do
       cls.foo(false)
     end
-    assert_equal "java.lang.Exception: !x", ex.message
+    assert_equal "!x", ex.message
 
     cls, = compile(<<-EOF)
       def foo:long

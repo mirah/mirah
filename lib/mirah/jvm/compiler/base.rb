@@ -32,13 +32,13 @@ module Mirah
           "org.mirah.ruby.JVM.Compiler.Base"
         end
 
-        def initialize(scoper, typer)
+        def initialize(typer)
           super()
           @jump_scope = []
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
-          @scoper = scoper
+          @scoper = typer.scoper
           @typer = typer
         end
 

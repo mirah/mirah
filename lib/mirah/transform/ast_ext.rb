@@ -8,29 +8,7 @@ module Mirah
     end
     java_import 'mirah.lang.ast.StringCodeSource'
     java_import 'org.mirah.macros.Macro'
-    java_import 'org.mirah.mmeta.ErrorHandler'
-
-    class MirahErrorHandler
-      include ErrorHandler
-      def initialize(transformer, source)
-        @transformer = transformer
-        @source = source
-      end
-
-      def warning(messages, positions)
-        print "Warning: "
-        messages.each_with_index do |message, i|
-          jpos = positions[i]
-          if jpos
-            dpos = Mirah::Transform::Transformer::JMetaPosition.new(@transformer, jpos, jpos, @source)
-            print "#{message} at "
-            Mirah.print_error("", dpos)
-          else
-            print message
-          end
-        end
-      end
-    end
+    java_import 'org.mirah.util.SimpleDiagnostics'
 
     def parse(src, filename='dash_e', raise_errors=false, transformer=nil)
       raise ArgumentError unless transformer
@@ -43,9 +21,14 @@ module Mirah
       #filename = transformer.tag_filename(src, filename)
       parser = MirahParser.new
       source = StringCodeSource.new(filename, src)
-      parser.errorHandler = MirahErrorHandler.new(transformer, source)
+      parser.diagnostics = SimpleDiagnostics.new(true)
       begin
-        parser.parse(source)
+        ast = parser.parse(source)
+        if parser.diagnostics.error_count > 0
+          puts "#{parser.diagnostics.error_count} errors, exiting"
+          throw :exit, 1
+        end
+        return ast
       rescue NativeException => ex
         ex.cause.printStackTrace
         raise ex

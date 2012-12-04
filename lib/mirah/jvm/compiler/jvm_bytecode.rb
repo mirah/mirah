@@ -40,7 +40,7 @@ module Mirah
           end
         end
 
-        def initialize(scoper, typer)
+        def initialize(typer)
           super
           @jump_scope = []
         end
@@ -1094,7 +1094,7 @@ module Mirah
 
         class ClosureCompiler < JVMBytecode
           def initialize(file, type, parent, scoper, typer)
-            super(scoper, typer)
+            super(typer)
             @file = file
             @type = type
             @jump_scope = []

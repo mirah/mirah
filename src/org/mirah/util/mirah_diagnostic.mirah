@@ -1,25 +1,26 @@
 package org.mirah.util
 
 import javax.tools.Diagnostic
+import javax.tools.Diagnostic.Kind
 import mirah.lang.ast.Position
 
 class MirahDiagnostic implements Diagnostic
-  def initialize(kind:Diagnostic.Kind, position:Position, message:String)
+  def initialize(kind:Kind, position:Position, message:String)
     @kind = kind
     @position = position
-    @message = String
+    @message = message
   end
   
   def self.error(position:Position, message:String)
-    MirahDiagnostic.new(Diagnostic.Kind.ERROR, position, message)
+    MirahDiagnostic.new(Kind.ERROR, position, message)
   end
   
   def self.warning(position:Position, message:String)
-    MirahDiagnostic.new(Diagnostic.Kind.WARNING, position, message)
+    MirahDiagnostic.new(Kind.WARNING, position, message)
   end
   
-  def self.node(position:Position, message:String)
-    MirahDiagnostic.new(Diagnostic.Kind.NOTE, position, message)
+  def self.note(position:Position, message:String)
+    MirahDiagnostic.new(Kind.NOTE, position, message)
   end
   
   def getKind
@@ -37,39 +38,39 @@ class MirahDiagnostic implements Diagnostic
   #TODO
   def getCode; nil; end
   
-  def getColumnNumber
+  def getColumnNumber:long
     if @position
-      @position.startColumn
+      long(@position.startColumn)
     else
       Diagnostic.NOPOS
     end
   end
   
-  def getEndPosition
+  def getEndPosition:long
     if @position
-      @position.endChar
+      long(@position.endChar)
     else
       Diagnostic.NOPOS
     end
   end
   
-  def getLineNumber
+  def getLineNumber:long
     if @position
-      @position.startLine
+      long(@position.startLine)
     else
       Diagnostic.NOPOS
     end
   end
   
-  def getPosition
+  def getPosition:long
     if @position
-      @position.startChar
+      long(@position.startChar)
     else
       Diagnostic.NOPOS
     end
   end
   
-  def getStartPosition
+  def getStartPosition:long
     getPosition
   end
 end
