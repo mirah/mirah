@@ -78,7 +78,8 @@ module Mirah
     end_col -= adjustment
 
     result = ""
-    position.source.contents.each_with_index do |line, lineno|
+    
+    position.source.contents.lines.each_with_index do |line, lineno|
       break if lineno > end_line
       next if lineno < start_line
 
