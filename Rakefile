@@ -185,7 +185,7 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
   bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/MirahLogFormatter.mirah', 'src/org/mirah/typer',
                    'src/org/mirah/util/simple_diagnostics.mirah',
                    :classpath => ['javalib/mirah-parser.jar', 'build/bootstrap'],
-                   :dest => 'build/bootstrap'
+                   :dest => build_dir
 #                  :options => ['-V']
                    )
   add_quote_macro                    
