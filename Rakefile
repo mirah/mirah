@@ -97,26 +97,8 @@ task :clean do
   rm_f 'javalib/mirah-builtins.jar'
 end
 
-task :compile => [:init, :bootstrap] do
-  require 'mirah'
-  # build the Ruby sources
-  puts "Compiling Ruby sources"
-  JRuby::Compiler.compile_argv([
-    '-t', 'build',
-    '--javac',
-    'src/org/mirah/mirah_command.rb'
-  ])
-
-  # compile ant stuff
-  ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
-  sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:build --dest build src/org/mirah/ant)
-
-  # compile invokedynamic stuff
-  ant.javac :destdir => 'build', :srcdir => 'src',
-    :includes => 'org/mirah/DynalangBootstrap.java',
-    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar',
-    :includeantruntime => false
-end
+task :compile => [:init, :bootstrap, :util]
+task :util => 'javalib/mirah-util.jar'
 
 desc "build basic jar for distribution"
 task :jar => :compile do
@@ -191,11 +173,12 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
                                       Dir['src/org/mirah/{macros,typer}/*.mirah'] +
                                       Dir['src/org/mirah/typer/simple/*.mirah'] +
                                       Dir['src/org/mirah/macros/anno/*.java'] do
-  rm_rf 'build/bootstrap'
-  mkdir_p 'build/bootstrap'
+  build_dir = 'build/bootstrap'
+  rm_rf build_dir
+  mkdir_p build_dir
 
   # Compile annotations and class loader
-  ant.javac :destdir => 'build/bootstrap', :srcdir => 'src',
+  ant.javac :destdir => build_dir, :srcdir => 'src',
     :includeantruntime => false, :debug => true, :listfiles => true
 
   # Compile the Typer and Macro compiler
@@ -206,15 +189,47 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
 #                  :options => ['-V']
                    )
   add_quote_macro                    
-  cp Dir['src/org/mirah/macros/*.tpl'], 'build/bootstrap/org/mirah/macros'
+  cp Dir['src/org/mirah/macros/*.tpl'], "#{build_dir}/org/mirah/macros"
 
   # Build the jar                    
   ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
-    fileset :dir => 'build/bootstrap'
+    fileset :dir => build_dir
   end
 
-  rm_rf 'build/bootstrap'
+  rm_rf build_dir
 end
+
+
+file 'javalib/mirah-util.jar' do
+  require 'mirah'
+  build_dir = 'build/util'
+  rm_rf build_dir
+  mkdir_p build_dir
+
+  # build the Ruby sources
+  puts "Compiling Ruby sources"
+  JRuby::Compiler.compile_argv([
+    '-t', build_dir,
+    '--javac',
+    'src/org/mirah/mirah_command.rb'
+  ])
+
+  # compile ant stuff
+  ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
+  sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:#{build_dir} --dest #{build_dir} src/org/mirah/ant)
+
+  # compile invokedynamic stuff
+  ant.javac :destdir => build_dir, :srcdir => 'src',
+    :includes => 'org/mirah/DynalangBootstrap.java',
+    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar',
+    :includeantruntime => false
+
+  # Build the jar
+  ant.jar :jarfile => 'javalib/mirah-util.jar' do
+    fileset :dir => build_dir
+  end
+end
+
 
 file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/org/mirah/builtins/*.mirah'] do
   rm_f 'javalib/mirah-builtins.jar'

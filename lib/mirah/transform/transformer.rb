@@ -19,7 +19,7 @@ module Mirah
       begin
         java_import 'org.mirah.macros.Compiler'
       rescue NameError
-        $CLASSPATH << File.dirname(__FILE__) + '/../../../javalib/mirah-bootstrap.jar'
+        # builtins not compiled yet
       end
 
       attr_reader :errors, :state

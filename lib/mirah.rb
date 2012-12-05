@@ -17,6 +17,11 @@ require 'fileutils'
 require 'rbconfig'
 require 'bitescript'
 
+$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-builtins.jar'
+$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-parser.jar'
+$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-bootstrap.jar'
+$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-util.jar'
+
 require 'mirah/version'
 require 'mirah/transform'
 require 'mirah/ast'
@@ -78,8 +83,7 @@ module Mirah
     end_col -= adjustment
 
     result = ""
-    
-    position.source.contents.lines.each_with_index do |line, lineno|
+    position.source.contents.each_line.with_index do |line, lineno|
       break if lineno > end_line
       next if lineno < start_line
 
