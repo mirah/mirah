@@ -52,8 +52,8 @@ module Mirah
         def file_builder(filename)
           builder = BiteScript::FileBuilder.new(filename)
           builder.to_widen do |_a, _b|
-            a = @typer.type_system.get_type(_a)
-            b = @typer.type_system.get_type(_b)
+            a = @typer.type_system.get_type(_a.tr('/', '.'))
+            b = @typer.type_system.get_type(_b.tr('/', '.'))
             a_ancestors = []
             while a
               a_ancestors << a.name
@@ -65,7 +65,13 @@ module Mirah
               b = b.superclass
             end
             intersection = (a_ancestors & b_ancestors)
-            intersection[0].gsub('.', '/')
+            if intersection.size == 0
+              puts "#{_a} => #{a}, #{_b} => #{b}"
+              puts "#{a_ancestors.inspect} & #{b_ancestors.inspect} = []"
+              'java/lang/Object'
+            else
+              intersection[0].gsub('.', '/')
+            end
           end
           @typer.type_system.define_types(builder)
           builder
