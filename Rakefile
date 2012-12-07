@@ -243,18 +243,19 @@ file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/
 end
 
 require 'bitescript'
-class Annotater < BiteScript::ASM::ClassWriter
+class Annotater < BiteScript::ASM::ClassVisitor
   def initialize(filename, &block)
     cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
-    super(cr, 0)
+    cw = BiteScript::ASM::ClassWriter.new(0)
+    super(BiteScript::ASM::Opcodes::ASM4, cw)
     @block = block
     cr.accept(self, 0)
     f = java.io.FileOutputStream.new(filename)
-    f.write(toByteArray)
+    f.write(cw.toByteArray)
     f.close
   end
   def visitSource(*args); end
-  def visit(*args)
+  def visit(version, access, name, sig, superclass, interfaces)
     super
     @block.call(self)
   end
