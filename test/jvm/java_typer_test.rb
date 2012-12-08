@@ -221,6 +221,11 @@ class JavaTyperTest < Test::Unit::TestCase
     ast = parse("#{1 << 33}")
     assert_equal(@types.type(nil, 'long'), inferred_type(ast))
   end
+  
+  def test_char
+    ast = parse("?a")
+    assert_equal(@types.type(nil, 'char'), inferred_type(ast))
+  end
 
   def test_dynamic_assignability
     ast = parse("a = 1; a = dynamic('foo')")
