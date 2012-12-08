@@ -17,7 +17,7 @@ package org.mirah.jvm.compiler
 
 import java.io.File
 import java.util.logging.Logger
-import mirah.lang.ast.ClassDefinition
+import mirah.lang.ast.*
 import org.mirah.util.Context
 
 import org.jruby.org.objectweb.asm.ClassWriter
@@ -36,7 +36,33 @@ class ClassCompiler < BaseCompiler
     @@log.info "Compiling class #{@classdef.name.identifier}"
     @type = getInferredType(@classdef)
     startClass
+    visit(@classdef.body, nil)
     @classwriter.visitEnd
+  end
+  
+  def visitClassAppendSelf(node, expression)
+    saved = @static
+    @static = true
+    visit(node.body, expression)
+    @static = saved
+    nil
+  end
+  
+  def visitMethodDefinition(node, expression)
+    isStatic = @static || node.kind_of?(StaticMethodDefinition)
+    constructor = isStatic && "initialize".equals(node.name.identifier)
+    name = constructor ? "<clinit>" : node.name.identifier.replaceFirst("=$", "_set")
+    method = MethodCompiler.new(context, methodFlags(node, isStatic), name)
+    method.compile(@classwriter, node)
+  end
+  
+  def visitStaticMethodDefinition(node, expression)
+    visitMethodDefinition(node, expression)
+  end
+  
+  def visitConstructorDefinition(node, expression)
+    method = MethodCompiler.new(context, Opcodes.ACC_PUBLIC, "<init>")
+    method.compile(@classwriter, node)
   end
   
   def getBytes:byte[]
@@ -55,6 +81,14 @@ class ClassCompiler < BaseCompiler
   
   def flags
     Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER
+  end
+  
+  def methodFlags(mdef:MethodDefinition, isStatic:boolean)
+    if isStatic
+      Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC
+    else
+      Opcodes.ACC_PUBLIC
+    end
   end
   
   def internal_name

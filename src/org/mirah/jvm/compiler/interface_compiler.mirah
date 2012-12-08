@@ -18,6 +18,7 @@ package org.mirah.jvm.compiler
 import org.jruby.org.objectweb.asm.Opcodes
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.InterfaceDeclaration
+import mirah.lang.ast.MethodDefinition
 
 class InterfaceCompiler < ClassCompiler
   def initialize(context:Context, classdef:InterfaceDeclaration)
@@ -26,5 +27,13 @@ class InterfaceCompiler < ClassCompiler
   
   def flags
     super | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE
+  end
+  
+  def methodFlags(mdef:MethodDefinition, isStatic:boolean)
+    if isStatic
+      super
+    else
+      super | Opcodes.ACC_ABSTRACT
+    end
   end
 end

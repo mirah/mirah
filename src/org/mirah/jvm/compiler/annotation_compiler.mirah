@@ -37,6 +37,15 @@ class ClassAnnotationFactory implements AnnotationVisitorFactory
   end
 end
 
+class MethodAnnotationFactory implements AnnotationVisitorFactory
+  def initialize(visitor:MethodVisitor)
+    @visitor = visitor
+  end
+  def create(type, runtime)
+    @visitor.visitAnnotation(type, runtime)
+  end
+end
+
 class AnnotationCompiler < BaseCompiler
   def initialize(context:Context)
     super(context)
@@ -48,6 +57,10 @@ class AnnotationCompiler < BaseCompiler
   
   def compile(annotations:AnnotationList, visitor:ClassVisitor):void
     compile(annotations, ClassAnnotationFactory.new(visitor))
+  end
+  
+  def compile(annotations:AnnotationList, visitor:MethodVisitor):void
+    compile(annotations, MethodAnnotationFactory.new(visitor))
   end
 
   def compile(annotations:AnnotationList, factory:AnnotationVisitorFactory):void

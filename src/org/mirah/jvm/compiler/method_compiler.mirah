@@ -15,11 +15,15 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.logging.Logger
 import mirah.lang.ast.*
-import org.jruby.org.objectweb.asm.ClassVisitor
-import org.jruby.org.objectweb.asm.Opcodes
+import org.mirah.jvm.types.JVMType
+import org.jruby.org.objectweb.asm.*
+import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
 
-class ClassCompiler < BaseCompiler
+import java.util.List
+
+class MethodCompiler < BaseCompiler
   def self.initialize:void
     @@log = Logger.getLogger(ClassCompiler.class.getName)
   end
@@ -32,17 +36,16 @@ class ClassCompiler < BaseCompiler
   def compile(cv:ClassVisitor, mdef:MethodDefinition):void
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
-    unless @flags & Opcodes.ACC_ABSTRACT
+    isVoid = @descriptor.getDescriptor.endsWith(")V") ? Boolean.TRUE : nil
+    if (@flags & Opcodes.ACC_ABSTRACT) == 0
       visit(mdef.body, isVoid)
     end
     @builder.visitEnd
   end
 
-  def visitNodeList(nodes, expression)
-    size = nodes.size
-    last = size - 1
-    size.times do |i|
-      visit(nodes.get(i), i < last ? nil : expression)
-    end
+  def createBuilder(cv:ClassVisitor, mdef:MethodDefinition)
+    type = getInferredType(mdef)
+    @descriptor = methodDescriptor(@name, JVMType(type.returnType), type.parameterTypes)
+    GeneratorAdapter.new(@flags, @descriptor, nil, nil, cv)
   end
 end

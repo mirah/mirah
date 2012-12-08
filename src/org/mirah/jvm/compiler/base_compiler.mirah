@@ -15,16 +15,21 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.List
 import javax.tools.DiagnosticListener
+import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
 import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
 import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
+import org.mirah.typer.MethodType
 import org.mirah.typer.Typer
 import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
+import org.jruby.org.objectweb.asm.Type
+import org.jruby.org.objectweb.asm.commons.Method
 
 class ReportedException < RuntimeException
   def initialize(ex:Throwable)
@@ -33,7 +38,7 @@ class ReportedException < RuntimeException
 end
 
 class BaseCompiler < SimpleNodeVisitor
-  attr_reader context:Context
+  attr_reader context:Context, typer:Typer, scoper:Scoper
   
   def initialize(context:Context)
     @context = context
@@ -64,11 +69,23 @@ class BaseCompiler < SimpleNodeVisitor
   end
 
   def getInferredType(node:Node):JVMType
-    begin
-      JVMType(@typer.getInferredType(node).resolve)
-    rescue Exception => ex
-      raise reportICE(ex, node.position)
+    JVMType(@typer.getInferredType(node).resolve)
+  rescue Exception => ex
+    raise reportICE(ex, node.position)
+  end
+
+  def getInferredType(mdef:MethodDefinition):MethodType
+    MethodType(typer.getInferredType(mdef).resolve)
+  rescue Exception => ex
+    raise reportICE(ex, mdef.name.position)
+  end
+
+  def methodDescriptor(name:String, returnType:JVMType, argTypes:List):Method
+    args = Type[argTypes.size]
+    args.length.times do |i|
+      args[i] = JVMType(argTypes[i]).getAsmType
     end
+    Method.new(name, returnType.getAsmType, args)
   end
 
   def getScope(node:Node):Scope
@@ -89,8 +106,12 @@ class BaseCompiler < SimpleNodeVisitor
     end
   end
 
-  def visitNodeList(nodes, arg)
-    nodes.each {|n| visit(Node(n), arg)}
+  def visitNodeList(nodes, expression)
+    size = nodes.size
+    last = size - 1
+    size.times do |i|
+      visit(nodes.get(i), i < last ? nil : expression)
+    end
   end
   
   def visitPackage(node, arg)
