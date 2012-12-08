@@ -23,6 +23,18 @@ import org.mirah.util.Context
 import java.util.ArrayList
 
 # Moves top-level nodes into the appropriate class/method.
+# For example, if foo.mirah contained this:
+#     def bar:void; end
+#     puts :hi
+# ScriptCleanup transforms it to this:
+#    class Foo
+#      class << self
+#        def bar:void; end
+#      end
+#      def self.main(ARGV:String[])
+#        puts :hi
+#      end
+#    end
 class ScriptCleanup < NodeScanner
   def initialize(context:Context)
     @context = context
