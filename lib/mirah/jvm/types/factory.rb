@@ -726,6 +726,16 @@ module Mirah::JVM::Types
 
     attr_reader :bootclasspath
 
+    def mirror_class(klass)
+      name = klass.name.tr('.', '/')
+      if klass.respond_to?(:resource_as_stream)
+        stream = klass.resource_as_stream("/#{name}.class")
+      else
+        stream = klass.get_resource_as_stream("/#{name}.class")
+      end
+      BiteScript::ASM::ClassMirror.load(stream)
+    end
+
     def get_mirror(name)
       @mirrors[name] ||= begin
         classname = name.tr('.', '/')

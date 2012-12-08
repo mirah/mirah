@@ -151,7 +151,7 @@ module Mirah::JVM::Types
     def load_extensions(klass=nil)
       mirror = nil
       if klass
-        mirror = @type_system.get_mirror(klass.name)
+        mirror = @type_system.mirror_class(klass)
       elsif jvm_type
         mirror = jvm_type
       end
