@@ -730,8 +730,10 @@ module Mirah::JVM::Types
       name = klass.name.tr('.', '/')
       if klass.respond_to?(:resource_as_stream)
         stream = klass.resource_as_stream("/#{name}.class")
-      else
+      elsif klass.respond_to?(:get_resource_as_stream)
         stream = klass.get_resource_as_stream("/#{name}.class")
+      else
+        return get_mirror(klass.name)
       end
       BiteScript::ASM::ClassMirror.load(stream)
     end
