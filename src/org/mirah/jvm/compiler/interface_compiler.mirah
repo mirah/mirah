@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,34 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah'
-require 'mirah/jvm/compiler/base'
-require 'mirah/jvm/method_lookup'
-require 'mirah/jvm/types'
-require 'bitescript'
-require 'mirah/jvm/compiler/jvm_bytecode'
-require 'mirah/transform/ast_ext'
+package org.mirah.jvm.compiler
 
-module Mirah
-  module AST
-    class FunctionalCall
-      attr_accessor :target
-    end
+import org.jruby.org.objectweb.asm.Opcodes
+import mirah.lang.ast.ClassDefinition
+import mirah.lang.ast.InterfaceDeclaration
+import mirah.lang.ast.MethodDefinition
 
-    class Super
-      attr_accessor :target
-    end
+class InterfaceCompiler < ClassCompiler
+  def initialize(context:Context, classdef:InterfaceDeclaration)
+    super(context, ClassDefinition(classdef))
   end
-end
-
-module Mirah
-  module JVM
-    module Compiler
-      begin
-        java_import 'org.mirah.jvm.compiler.Backend'
-      rescue NameError
-        puts "Unable to load new Backend"
-      end
+  
+  def flags
+    super | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE
+  end
+  
+  def methodFlags(mdef:MethodDefinition, isStatic:boolean)
+    if isStatic
+      super
+    else
+      super | Opcodes.ACC_ABSTRACT
     end
   end
 end

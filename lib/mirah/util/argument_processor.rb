@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'mirah/jvm/compiler'
 require 'mirah/util/logging'
 
 module Mirah
@@ -102,6 +103,9 @@ module Mirah
           when '--no-save-extensions'
             args.shift
             state.save_extensions = false
+          when '--new-backend', '-N'
+            args.shift
+            state.compiler_class = Mirah::JVM::Compiler::Backend
           else
             $stderr.puts "unrecognized flag: " + args[0]
 

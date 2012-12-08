@@ -32,13 +32,13 @@ module Mirah
           "org.mirah.ruby.JVM.Compiler.Base"
         end
 
-        def initialize(scoper, typer)
+        def initialize(typer)
           super()
           @jump_scope = []
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
-          @scoper = scoper
+          @scoper = typer.scoper
           @typer = typer
         end
 
@@ -205,7 +205,7 @@ module Mirah
             name = "<clinit>"
           end
           arg_types = args.map { |arg| inferred_type(arg) }
-          return_type = inferred_type(node)
+          return_type = inferred_type(node).return_type
           exceptions = []  # TODO
 
           with :static => is_static, :current_scope => introduced_scope(node) do
@@ -341,6 +341,13 @@ module Mirah
             inferred_type(node).literal(method, node.value)
           end
         end
+        
+        def visitCharLiteral(node, expression)
+          if expression
+            inferred_type(node).literal(method, node.value)
+          end
+        end
+        
         alias visitFloat visitFixnum
 
         def visitSelf(node, expression)

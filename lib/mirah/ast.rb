@@ -34,10 +34,10 @@ module Mirah
     java_import 'mirah.lang.ast.NodeList'
     java_import 'mirah.lang.ast.Noop'
     java_import 'mirah.lang.ast.OptionalArgument'
+    java_import 'mirah.lang.ast.Position'
     java_import 'mirah.lang.ast.SimpleString'
     java_import 'mirah.lang.ast.TypeName'
     java_import 'mirah.lang.ast.TypeRef'
-
 
   end
 end

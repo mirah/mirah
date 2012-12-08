@@ -126,13 +126,15 @@ class SimpleTypes; implements TypeSystem
     end
     getMethodTypeInternal(target, call.name, argTypes, call.position)
   end
-  def getMethodDefType(target, name, argTypes)
+  def getMethodDefType(target, name, argTypes, returnType, position)
     args = ArrayList.new(argTypes.size)
     argTypes.size.times do |i|
       resolved = TypeFuture(argTypes.get(i)).resolve
       args.add(i, resolved)
     end
-    getMethodTypeInternal(target.resolve, name, args, nil)
+    result = getMethodTypeInternal(target.resolve, name, args, position)
+    result.returnType.declare(returnType, position) if returnType
+    result
   end
 
   def getMethodTypeInternal(target:ResolvedType, name:String, argTypes:List, position:Position):MethodFuture

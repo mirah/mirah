@@ -265,12 +265,14 @@ module Mirah::JVM::Types
       type = BaseTypeFuture.new(nil)
       target.find_method2(target, name, argTypes, macroTypes, target.meta?, scope) do |method|
         if method.nil?
-          type.resolved(ErrorType.new([
-              ["Cannot find %s method %s(%s) on %s" %
-                  [ target.meta? ? "static" : "instance",
-                    name,
-                    argTypes.map{|t| t ? t.full_name : "?"}.join(', '),
-                    target.full_name], position]]))
+          unless argTypes.any?{|t| t && t.isError && (type.resolved(t); true)}
+            type.resolved(ErrorType.new([
+                ["Cannot find %s method %s(%s) on %s" %
+                    [ target.meta? ? "static" : "instance",
+                      name,
+                      argTypes.map{|t| t ? t.full_name : "?"}.join(', '),
+                      target.full_name], position]]))
+          end
         elsif method.kind_of?(Exception)
           type.resolved(ErrorType.new([[method.message, position]]))
         else
@@ -399,29 +401,28 @@ module Mirah::JVM::Types
       end
     end
 
-    def getMethodDefType(target, name, argTypes)
+    def getMethodDefType(target, name, argTypes, returnType, position)
       if target.nil?
-        return ErrorType.new([["No target"]])
+        return ErrorType.new([["No target", position]])
       end
       unless argTypes.all? {|a| a.hasDeclaration}
         infer_override_args(target, name, argTypes)
       end
+      if returnType.nil?
+        returnType = infer_override_return_type(target, name, argTypes)
+      end
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
-      type = _find_method_type(nil, target, name, args, nil, nil)
+      type = _find_method_type(nil, target, name, args, nil, position)
       type.onUpdate do |m, resolved|
-        resolved = resolved.returnType if resolved.respond_to?(:returnType)
-        log "Learned {0} method {1}.{2}({3}) = {4}", [
-                target.meta? ? "static" : "instance",
-                target.full_name,
-                name,
-                args.map{|a| a.full_name}.join(', '),
-                resolved.full_name].to_java
-        rewritten_name = name.sub(/=$/, '_set')
-        if target.meta?
-          target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
-        else
-          target.declare_method(rewritten_name, args, resolved, []) unless target.isError
+        _declare_method(target, name, args, type)
+      end
+      args.each_with_index do |arg, i|
+        if arg.isError
+          argTypes[i].onUpdate do |x, resolved|
+            args[i] = resolved
+            _declare_method(target, name, args, type)
+          end
         end
       end
       if type.kind_of?(ErrorType)
@@ -429,7 +430,9 @@ module Mirah::JVM::Types
         position = type.position rescue nil
         return_type = AssignableTypeFuture.new(position)
         return_type.declare(type, position)
-        type = MethodFuture.new(name, args, return_type, false, nil)
+        type = MethodFuture.new(name, args, return_type, false, position)
+      elsif returnType
+        type.returnType.declare(returnType, position)
       end
       type.to_java(MethodFuture)
     rescue => ex
@@ -439,6 +442,24 @@ module Mirah::JVM::Types
       return_type.declare(ErrorType.new([["Internal error: #{ex}"]]), nil)
       MethodFuture.new(name, [], return_type, false, nil)
     end
+    def _declare_method(target, name, args, type)
+      return if args.any? {|a| a.isError }
+      return unless type.kind_of?(MethodFuture) && type.returnType.isResolved
+      resolved = type.returnType.resolve
+      resolved = resolved.returnType if resolved.respond_to?(:returnType)
+      log "Learned {0} method {1}.{2}({3}) = {4}", [
+              target.meta? ? "static" : "instance",
+              target.full_name,
+              name,
+              args.map{|a| a.full_name}.join(', '),
+              resolved.full_name].to_java
+      rewritten_name = name.sub(/=$/, '_set')
+      if target.meta?
+        target.unmeta.declare_static_method(rewritten_name, args, resolved, [])
+      else
+        target.declare_method(rewritten_name, args, resolved, [])
+      end      
+    end
     def getMainType(scope, script)
       filename = File.basename(script.position.source.name || 'DashE')
       classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
@@ -446,6 +467,7 @@ module Mirah::JVM::Types
     end
     def defineType(scope, node, name, superclass, interfaces)
       # TODO what if superclass or interfaces change later?
+      log("Defining type #{name} < #{superclass.resolve.name if superclass} #{interfaces.map{|i|i.resolve.name}.inspect}")
       type = define_type(scope, node)
       future = @futures[type.name]
       if future
@@ -472,12 +494,26 @@ module Mirah::JVM::Types
       log("Infering argument types for #{name}")
       by_name = target.resolve.find_callable_methods(name, true)
       by_name_and_arity = by_name.select {|m| m.argument_types.size == arg_types.size}
-      if by_name_and_arity.size == 1
-        arg_types.zip(by_name_and_arity[0].argument_types).each do |arg, super_arg|
+      filtered_args = Set.new(by_name_and_arity.map {|m| m.argument_types})
+      if filtered_args.size == 1
+        arg_types.zip(filtered_args.first).each do |arg, super_arg|
           arg.declare(cache_and_wrap(super_arg), arg.position)
         end
+      else
+        log("Found method types:")
+        filtered_args.each {|args| log("  #{args.map{|a|a.full_name}.inspect}")}
+        arg_types.each {|arg| arg.declare(ErrorType.new([["Missing declaration"]]), nil)}
       # TODO else give a more useful error?
       end
+    end
+    
+    def infer_override_return_type(target, name, arg_types)
+      by_name = target.resolve.find_callable_methods(name, true)
+      by_name_and_arity = {}
+      by_name.each {|m| by_name_and_arity[m.argument_types] = m if m.argument_types.size == arg_types.size }
+      resolved_args = arg_types.map {|a| a.resolve}
+      match = by_name_and_arity[resolved_args]
+      return cache_and_wrap(match.return_type) if match
     end
 
     def define_types(builder)
@@ -690,12 +726,25 @@ module Mirah::JVM::Types
 
     attr_reader :bootclasspath
 
+    def mirror_class(klass)
+      name = klass.name.tr('.', '/')
+      if klass.respond_to?(:resource_as_stream)
+        stream = klass.resource_as_stream("/#{name}.class")
+      elsif klass.respond_to?(:get_resource_as_stream)
+        stream = klass.get_resource_as_stream("/#{name}.class")
+      else
+        return get_mirror(klass.name)
+      end
+      BiteScript::ASM::ClassMirror.load(stream)
+    end
+
     def get_mirror(name)
       @mirrors[name] ||= begin
         classname = name.tr('.', '/')
         stream = resource_loader.getResourceAsStream(classname + ".class")
         if stream
-          BiteScript::ASM::ClassMirror.load(stream)
+          mirror = BiteScript::ASM::ClassMirror.load(stream)
+          mirror if mirror.type.class_name == name
         else
           # TODO(ribrdb) Should this use a separate sourcepath?
           url = resource_loader.getResource(classname + ".java")

@@ -20,6 +20,8 @@ module Mirah
     class CompilationState
       def initialize
         @save_extensions = true
+        # We're still not generating stack frames correctly, so default to 1.6.
+        set_jvm_version('1.6')
       end
 
       attr_accessor :verbose, :destination

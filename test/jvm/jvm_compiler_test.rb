@@ -15,11 +15,10 @@
 
 class JVMCompilerTest < Test::Unit::TestCase
   def assert_raise_java(type, message="")
-    ex = assert_raise(NativeException) do
+    ex = assert_raise(type) do
       yield
     end
-    assert_equal type, ex.cause.class
-    assert_equal message, ex.cause.message.to_s
+    assert_equal message, ex.message.to_s
   end
 
   def test_local
@@ -147,10 +146,9 @@ class JVMCompilerTest < Test::Unit::TestCase
     cls, = compile("def foo; a = char[2]; a; end")
     assert_equal(Java::char[].java_class, cls.foo.class.java_class)
     assert_equal([0,0], cls.foo.to_a)
-    # Pending char constants or casts
-    # cls, = compile("def foo; a = char[2]; a[0] = 1; a[0]; end")
-    # assert_equal(Fixnum, cls.foo.class)
-    # assert_equal(1, cls.foo)
+
+    cls, = compile("def foo; a = char[2]; a[0] = ?x; a[0]; end")
+    assert_equal(?x.ord, cls.foo)
 
     cls, = compile("def foo; a = int[2]; a; end")
     assert_equal(Java::int[].java_class, cls.foo.class.java_class)

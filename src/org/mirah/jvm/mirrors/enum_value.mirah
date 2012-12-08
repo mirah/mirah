@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,34 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah'
-require 'mirah/jvm/compiler/base'
-require 'mirah/jvm/method_lookup'
-require 'mirah/jvm/types'
-require 'bitescript'
-require 'mirah/jvm/compiler/jvm_bytecode'
-require 'mirah/transform/ast_ext'
+package org.mirah.jvm.mirrors
 
-module Mirah
-  module AST
-    class FunctionalCall
-      attr_accessor :target
-    end
+import org.jruby.org.objectweb.asm.Type
 
-    class Super
-      attr_accessor :target
-    end
+class EnumValue
+  attr_reader declaring_type:Type, name:String
+
+  def initialize(declaring_type:Type, name:String)
+    @declaring_type = declaring_type
+    @name = name
   end
-end
-
-module Mirah
-  module JVM
-    module Compiler
-      begin
-        java_import 'org.mirah.jvm.compiler.Backend'
-      rescue NameError
-        puts "Unable to load new Backend"
-      end
-    end
+  
+  def toString
+    "#{@declaring_type.className}.#{@name}"
   end
 end
