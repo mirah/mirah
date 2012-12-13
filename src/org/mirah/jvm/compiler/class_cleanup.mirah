@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.Collections
 import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.*
@@ -57,43 +58,23 @@ class ClassCleanup < NodeScanner
       @cinit.body = nodes
       @cinit.body.add(old_body)
     end
-    unless @init_nodes.isEmpty
-      if @constructors.isEmpty
-        add_default_constructor
+    if @constructors.isEmpty 
+      add_default_constructor unless @klass.kind_of?(InterfaceDeclaration)
+    else
+      cleanup = ConstructorCleanup.new(@context)
+      init = if @init_nodes.nil?
+        nil
+      else
+        NodeList.new(@init_nodes)
       end
-      @init_nodes.each do |n|
-        node = Node(n)
-        node.parent.removeChild(node)
+      @constructors.each do |n|
+        cleanup.clean(ConstructorDefinition(n), init)
       end
-      @constructors.each do |c|
-        constructor = MethodDefinition(c)
-        nodes = NodeList.new
-        old_body = constructor.body
-        if old_body.size > 0
-          first = old_body.get(0)
-          if first.kind_of?(Super) || first.kind_of?(ZSuper)
-            old_body.removeChild(first)
-            nodes.add(first)
-          elsif first.kind_of?(FunctionalCall) && 'initialize'.equals(FunctionalCall(first).name.identifier)
-            # already delegating to another constructor, don't modify this one.
-            next
-          end
-        end
-        constructor.body = nodes
-        @init_nodes.each do |n|
-          node = Node(n)
-          nodes.add(node)
-        end
-        nodes.add(old_body)
-        @typer.infer(nodes, false)
-      end
-    end
-    if @constructors.isEmpty && !@klass.kind_of?(InterfaceDeclaration)
-      add_default_constructor
     end
   end
   def add_default_constructor
     constructor = @parser.quote { def initialize; end }
+    constructor.body.add(Super.new(constructor.position, Collections.emptyList, nil))
     @typer.infer(constructor)
     @klass.body.add(constructor)
     @constructors.add(constructor)
@@ -136,6 +117,7 @@ class ClassCleanup < NodeScanner
     end
     false
   end
+  
   def enterClassDefinition(node, arg)
     ClassCleanup.new(@context, node).scan(node.body, arg)
     false
