@@ -109,7 +109,7 @@ class ClassCompiler < BaseCompiler
   end
   
   def superclass
-    getInferredType(@classdef.superclass).internal_name if @classdef.superclass
+    @type.superclass.internal_name if @type.superclass
   end
   
   def interfaces
