@@ -19,7 +19,9 @@ import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.JVMType
 import org.jruby.org.objectweb.asm.*
+import org.jruby.org.objectweb.asm.Type as AsmType
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
+
 
 import java.util.List
 
@@ -33,10 +35,14 @@ class MethodCompiler < BaseCompiler
     @name = name
   end
   
+  def isVoid
+    @descriptor.getDescriptor.endsWith(")V")
+  end
+  
   def compile(cv:ClassVisitor, mdef:MethodDefinition):void
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
-    isExpression = @descriptor.getDescriptor.endsWith(")V") ? nil : Boolean.TRUE
+    isExpression = isVoid() ? nil : Boolean.TRUE
     if (@flags & Opcodes.ACC_ABSTRACT) == 0
       visit(mdef.body, isExpression)
       @builder.returnValue
@@ -51,6 +57,13 @@ class MethodCompiler < BaseCompiler
       returnType = typer.type_system.getVoidType.resolve
     end
     @descriptor = methodDescriptor(@name, JVMType(returnType), type.parameterTypes)
+    @selfType = JVMType(getScope(mdef).selfType.resolve)
+    superclass = @selfType.superclass
+    @superclass = if superclass
+     superclass.getAsmType
+    else
+      AsmType.getType(Object.class)
+    end
     GeneratorAdapter.new(@flags, @descriptor, nil, nil, cv)
   end
   
@@ -62,6 +75,18 @@ class MethodCompiler < BaseCompiler
       else
         @builder.push(int(node.value))
       end
+    end
+  end
+  
+  def visitSuper(node, expression)
+    @builder.loadThis
+    @builder.loadArgs
+    # This is a poorly named method, really it's invokeSpecial
+    @builder.invokeConstructor(@superclass, @descriptor)
+    if expression && isVoid
+      @builder.loadThis
+    elsif expression.nil? && !isVoid
+      @builder.pop
     end
   end
 end

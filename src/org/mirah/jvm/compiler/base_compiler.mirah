@@ -43,7 +43,7 @@ class BaseCompiler < SimpleNodeVisitor
   def initialize(context:Context)
     @context = context
     @typer = context[Typer]
-    @scoper = context[Scoper]
+    @scoper = @typer.scoper
   end
   
   def reportError(message:String, position:Position)
@@ -61,6 +61,8 @@ class BaseCompiler < SimpleNodeVisitor
   def reportICE(ex:Throwable, position:Position):RuntimeException
     if ex.kind_of?(ReportedException)
       raise ex
+    elsif ex.getCause.kind_of?(ReportedException)
+      raise ex.getCause
     else
       reportError("Internal error: #{ex.getMessage}", position)
       raise ReportedException.new(ex)
@@ -97,7 +99,7 @@ class BaseCompiler < SimpleNodeVisitor
                 node.position)
   end
 
-  def visit(node:Node, arg:Object)
+  def visit(node:Node, arg:Object):void
     begin
       node.accept(self, arg)
     rescue ReportedException => ex
