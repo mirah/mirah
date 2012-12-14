@@ -53,14 +53,14 @@ class ScriptCleanup < NodeScanner
     end
     klass = getOrCreateClass(script)
     unless @main_code.isEmpty
-      main = @parser.quote { def self.main(ARGV:String[]); end }
+      main = @parser.quote { def self.main(ARGV:String[]):void; end }
       @main_code.each do |n|
         node = Node(n)
         node.parent.removeChild(node)
         main.body.add(node)
       end
-      @typer.infer(main, false)
       klass.body.add(main)
+      @typer.infer(main, false)
     end
     unless @methods.isEmpty
       nodes = @parser.quote { class << self; end }
@@ -119,7 +119,7 @@ class ScriptCleanup < NodeScanner
     if klass.nil?
       klass = @parser.quote do
         class `type.name`
-          def initialize; end
+          def initialize;super; end
         end
       end
       klass.position = script.position
