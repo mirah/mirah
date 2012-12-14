@@ -81,6 +81,11 @@ namespace :test do
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
+    Rake::TestTask.new :new => [:bootstrap, "javalib/mirah-compiler.jar"] do |t|
+      t.libs << 'test' << 'test/jvm'
+      t.ruby_opts.concat ["-r", "new_backend_test_helper"]
+      t.test_files = FileList["test/jvm/**/*test.rb"]
+    end
   end
 end
 

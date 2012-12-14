@@ -91,10 +91,14 @@ module JVMCompiler
     loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
 
     classes.keys.map do |name|
-      cls = loader.load_class(name.tr('/', '.'))
-      proxy = JavaUtilities.get_proxy_class(cls.name)
-      @tmp_classes << "#{name}.class"
-      proxy
+      begin
+        cls = loader.load_class(name.tr('/', '.'))
+        proxy = JavaUtilities.get_proxy_class(cls.name)
+        @tmp_classes << "#{name}.class"
+        proxy
+      rescue java.lang.ClassFormatError => ex
+        raise "Unable to load class #{name}: #{ex.message}"
+      end
     end
   end
 
@@ -114,7 +118,7 @@ module JVMCompiler
 
     #Java::MirahImpl::Builtin.initialize_builtins(transformer)
 
-    ast = [AST.parse(code, name, true, transformer)]
+    ast = [AST.parse_ruby(nil, code, name)]
 
     scoper, typer = generator.infer_asts(ast, true)
     compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
