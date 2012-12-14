@@ -36,16 +36,32 @@ class MethodCompiler < BaseCompiler
   def compile(cv:ClassVisitor, mdef:MethodDefinition):void
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
-    isVoid = @descriptor.getDescriptor.endsWith(")V") ? Boolean.TRUE : nil
+    isExpression = @descriptor.getDescriptor.endsWith(")V") ? nil : Boolean.TRUE
     if (@flags & Opcodes.ACC_ABSTRACT) == 0
-      visit(mdef.body, isVoid)
+      visit(mdef.body, isExpression)
+      @builder.returnValue
     end
-    @builder.visitEnd
+    @builder.endMethod
   end
 
   def createBuilder(cv:ClassVisitor, mdef:MethodDefinition)
     type = getInferredType(mdef)
-    @descriptor = methodDescriptor(@name, JVMType(type.returnType), type.parameterTypes)
+    returnType = JVMType(type.returnType)
+    if @name.endsWith("init>")
+      returnType = typer.type_system.getVoidType.resolve
+    end
+    @descriptor = methodDescriptor(@name, JVMType(returnType), type.parameterTypes)
     GeneratorAdapter.new(@flags, @descriptor, nil, nil, cv)
+  end
+  
+  def visitFixnum(node, expression)
+    if expression
+      isLong = "long".equals(getInferredType(node).name)
+      if isLong
+        @builder.push(node.value)
+      else
+        @builder.push(int(node.value))
+      end
+    end
   end
 end
