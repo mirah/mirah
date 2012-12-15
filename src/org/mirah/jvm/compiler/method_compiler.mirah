@@ -33,6 +33,8 @@ class MethodCompiler < BaseCompiler
     super(context)
     @flags = flags
     @name = name
+    @locals = {}
+    @args = {}
   end
   
   def isVoid
@@ -50,6 +52,27 @@ class MethodCompiler < BaseCompiler
     @builder.endMethod
   end
 
+  def collectArgNames(mdef:MethodDefinition):void
+    i = 0
+    args = mdef.arguments
+    args.required_size.times do |a|
+      @args[args.required(a).name.identifier] = Integer.valueOf(i)
+      i += 1
+    end
+    args.optional_size.times do |a|
+      @args[args.optional(a).name.identifier] = Integer.valueOf(i)
+      i += 1
+    end
+    if args.rest
+      @args[args.rest.name.identifier] = Integer.valueOf(i)
+      i += 1
+    end
+    args.required2_size.times do |a|
+      @args[args.required2(a).name.identifier] = Integer.valueOf(i)
+      i += 1
+    end
+  end
+
   def createBuilder(cv:ClassVisitor, mdef:MethodDefinition)
     type = getInferredType(mdef)
     returnType = JVMType(type.returnType)
@@ -64,12 +87,18 @@ class MethodCompiler < BaseCompiler
     else
       AsmType.getType(Object.class)
     end
+    collectArgNames(mdef)
     GeneratorAdapter.new(@flags, @descriptor, nil, nil, cv)
+  end
+  
+  def recordPosition(position:Position)
+    @builder.visitLineNumber(position.startLine, @builder.mark) if position
   end
   
   def visitFixnum(node, expression)
     if expression
       isLong = "long".equals(getInferredType(node).name)
+      recordPosition(node.position)
       if isLong
         @builder.push(node.value)
       else
@@ -81,6 +110,7 @@ class MethodCompiler < BaseCompiler
   def visitSuper(node, expression)
     @builder.loadThis
     @builder.loadArgs
+    recordPosition(node.position)
     # This is a poorly named method, really it's invokeSpecial
     @builder.invokeConstructor(@superclass, @descriptor)
     if expression && isVoid
@@ -88,5 +118,33 @@ class MethodCompiler < BaseCompiler
     elsif expression.nil? && !isVoid
       @builder.pop
     end
+  end
+  
+  def visitLocalAccess(local, expression)
+    if expression
+      recordPosition(local.position)
+      name = local.name.identifier
+      index = @locals[name]
+      if index
+        @builder.loadLocal(Integer(index).intValue)
+      else
+        index = @args[name]
+        @builder.loadArg(Integer(index).intValue)
+      end
+    end
+  end
+
+  def visitLocalAssignment(local, expression)
+    visit(local.value, Boolean.TRUE)
+    @builder.dup if expression
+    name = local.name.identifier
+    index = @locals[name]
+    if index.nil?
+      type = getInferredType(local).getAsmType
+      index = Integer.valueOf(@builder.newLocal(type))
+      @locals[name] = index
+    end
+    recordPosition(local.position)
+    @builder.storeLocal(Integer(index).intValue)
   end
 end
