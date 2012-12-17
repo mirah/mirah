@@ -750,7 +750,7 @@ module Mirah::JVM::Types
           url = resource_loader.getResource(classname + ".java")
           if url
             file = java.io.File.new(url.toURI)
-            mirrors = JavaSourceMirror.load(file, self)
+            mirrors = JavaSourceMirror.load(file, self) rescue []
             mirrors.each do |mirror|
               @mirrors[mirror.type.class_name] = mirror
             end if mirrors

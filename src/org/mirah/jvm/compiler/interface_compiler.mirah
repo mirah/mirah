@@ -26,7 +26,7 @@ class InterfaceCompiler < ClassCompiler
   end
   
   def flags
-    super | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE
+    Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT | Opcodes.ACC_INTERFACE
   end
   
   def methodFlags(mdef:MethodDefinition, isStatic:boolean)

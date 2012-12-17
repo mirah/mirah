@@ -41,6 +41,10 @@ class MethodCompiler < BaseCompiler
     @descriptor.getDescriptor.endsWith(")V")
   end
   
+  def method
+    @builder
+  end
+  
   def compile(cv:ClassVisitor, mdef:MethodDefinition):void
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
@@ -50,6 +54,10 @@ class MethodCompiler < BaseCompiler
       @builder.returnValue
     end
     @builder.endMethod
+  end
+
+  def compile(node:Node)
+    visit(node, Boolean.TRUE)
   end
 
   def collectArgNames(mdef:MethodDefinition):void
@@ -140,11 +148,17 @@ class MethodCompiler < BaseCompiler
     name = local.name.identifier
     index = @locals[name]
     if index.nil?
+      # TODO put variable name into debug info
       type = getInferredType(local).getAsmType
       index = Integer.valueOf(@builder.newLocal(type))
       @locals[name] = index
     end
     recordPosition(local.position)
     @builder.storeLocal(Integer(index).intValue)
+  end
+  
+  def visitCall(call, expression)
+    compiler = CallCompiler.new(self, call.position, call.target, call.name.identifier, call.parameters)
+    compiler.compile(expression != nil)
   end
 end

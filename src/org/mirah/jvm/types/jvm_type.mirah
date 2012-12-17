@@ -6,6 +6,7 @@ import java.util.List
 
 interface JVMMethod
   def returnType:JVMType; end
+  def accept(visitor:MemberVisitor, expression:boolean):void; end
 end
 
 interface JVMType < ResolvedType
