@@ -22,6 +22,7 @@ import mirah.lang.ast.Node
 import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMMethod
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 import org.mirah.typer.MethodType
@@ -88,6 +89,15 @@ class BaseCompiler < SimpleNodeVisitor
       args[i] = JVMType(argTypes[i]).getAsmType
     end
     Method.new(name, returnType.getAsmType, args)
+  end
+
+  def methodDescriptor(method:JVMMethod):Method
+    argTypes = method.argumentTypes
+    args = Type[method.argumentTypes.size]
+    args.length.times do |i|
+      args[i] = JVMType(argTypes[i]).getAsmType
+    end
+    Method.new(method.name, method.returnType.getAsmType, args)
   end
 
   def getScope(node:Node):Scope

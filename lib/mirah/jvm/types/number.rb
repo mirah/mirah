@@ -39,40 +39,9 @@ module Mirah::JVM::Types
   
   class MathIntrinsic < Intrinsic
     java_import 'org.jruby.org.objectweb.asm.commons.GeneratorAdapter'
-
-    def op
-      case name
-      when '+'
-        GeneratorAdapter::ADD
-      when '&'
-        GeneratorAdapter::AND
-      when '/'
-        GeneratorAdapter::DIV
-      when '*'
-        GeneratorAdapter::MUL
-      when '-@'
-        GeneratorAdapter::NEG
-      when '|'
-        GeneratorAdapter::OR
-      when '%'
-        GeneratorAdapter::REM
-      when '<<'
-        GeneratorAdapter::SHL
-      when'>>'
-        GeneratorAdapter::SHR
-      when '-'
-        GeneratorAdapter::SUB
-      when '>>>'
-        GeneratorAdapter::USHR
-      when '^'
-        GeneratorAdapter::XOR
-      else
-        raise "Unsupported operator #{name}"
-      end
-    end
     
     def accept(visitor, expression)
-      visitor.visitMath(op, return_type, expression)
+      visitor.visitMath(self, expression)
     end
   end
 

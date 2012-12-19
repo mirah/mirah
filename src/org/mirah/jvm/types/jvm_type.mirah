@@ -5,6 +5,9 @@ import org.jruby.org.objectweb.asm.Type
 import java.util.List
 
 interface JVMMethod
+  def declaringClass:JVMType; end
+  def name:String; end
+  def argumentTypes:List; end
   def returnType:JVMType; end
   def accept(visitor:MemberVisitor, expression:boolean):void; end
 end

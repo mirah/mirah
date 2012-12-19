@@ -16,9 +16,11 @@
 package org.mirah.jvm.compiler
 
 import java.util.Arrays
+import java.util.List
 import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberVisitor
 import org.mirah.util.Context
 
@@ -50,19 +52,129 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     method.accept(self, expression)
   end
   
-  def recordPosition
+  def recordPosition:void
     @compiler.recordPosition(@position)
   end
   
-  def visitMath(op:int, type:JVMType, expression:boolean)
+  def convertArgs(argumentTypes:List):void
+    argumentTypes.size.times do |i|
+      arg = @args.get(i)
+      @compiler.compile(arg)
+      convertValue(getInferredType(arg), JVMType(argumentTypes[i]))
+    end
+  end
+  
+  def convertValue(currentType:JVMType, wantedType:JVMType):void
+    unless currentType.equals(wantedType)
+      if currentType.isPrimitive && wantedType.isPrimitive
+        @method.cast(currentType.getAsmType, wantedType.getAsmType)
+      elsif currentType.isPrimitive
+        @method.box(currentType.getAsmType)
+      elsif wantedType.isPrimitive
+        @method.unbox(currentType.getAsmType)
+      end
+    end
+  end
+  
+  def pop(type:JVMType):void
+    size = type.getAsmType.getSize
+    if size == 1
+      @method.pop
+    elsif size == 2
+      @method.pop2
+    end
+  end
+
+  def convertResult(returnedType:JVMType, expression:boolean):void
+    if expression
+      # TODO casts for generic method calls
+    else
+      pop(returnedType)
+    end
+  end
+
+  def computeMathOp(name:String):int
+    name = name.intern
+    if name == '+'
+      GeneratorAdapter.ADD
+    elsif name == '&'
+      GeneratorAdapter.AND
+    elsif name == '/'
+      GeneratorAdapter.DIV
+    elsif name == '*'
+      GeneratorAdapter.MUL
+    elsif name == '-@'
+      GeneratorAdapter.NEG
+    elsif name == '|'
+      GeneratorAdapter.OR
+    elsif name == '%'
+      GeneratorAdapter.REM
+    elsif name == '<<'
+      GeneratorAdapter.SHL
+    elsif name =='>>'
+      GeneratorAdapter.SHR
+    elsif name == '-'
+      GeneratorAdapter.SUB
+    elsif name == '>>>'
+      GeneratorAdapter.USHR
+    elsif name == '^'
+      GeneratorAdapter.XOR
+    else
+      raise IllegalArgumentException, "Unsupported operator #{name}"
+    end
+  end
+
+  def visitMath(method:JVMMethod, expression:boolean)
+    op = computeMathOp(method.name)
+    type = method.returnType
     asm_type = type.getAsmType
     @compiler.compile(@target)
-    @method.cast(getInferredType(@target).getAsmType, asm_type)
-    value = @args.get(0)
-    @compiler.compile(value)
-    @method.cast(getInferredType(value).getAsmType, asm_type)
+    convertValue(getInferredType(@target), type)
+    convertArgs([type])
     recordPosition
     @method.math(op, asm_type)
-    @method.pop unless expression
+    convertResult(type, expression)
+  end
+  
+  def visitMethodCall(method:JVMMethod, expression:boolean)
+    @compiler.compile(@target)
+    convertArgs(method.argumentTypes)
+    recordPosition
+    @method.invokeVirtual(method.declaringClass.getAsmType, methodDescriptor(method))
+    convertResult(method.returnType, expression)
+  end
+  def visitStaticMethodCall(method:JVMMethod, expression:boolean)
+    convertArgs(method.argumentTypes)
+    recordPosition
+    @method.invokeStatic(method.declaringClass.getAsmType, methodDescriptor(method))    
+    convertResult(method.returnType, expression)
+  end
+  def visitFieldAccess(method:JVMMethod, expression:boolean)
+    @compiler.compile(@target)
+    if expression
+      recordPosition
+      @method.getField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
+    else
+      @method.pop
+    end
+  end
+  def visitStaticFieldAccess(method:JVMMethod, expression:boolean)
+    if expression
+      recordPosition
+      @method.getStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
+    else
+      @method.pop
+    end
+  end
+  def visitFieldAssign(method:JVMMethod, expression:boolean)
+    @compiler.compile(@target)
+    @compiler.compile(@args.get(0))
+    @method.dupX1 if expression
+    @method.putField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
+  end
+  def visitStaticFieldAssign(method:JVMMethod, expression:boolean)
+    @compiler.compile(@args.get(0))
+    @method.dup if expression
+    @method.putStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
   end
 end

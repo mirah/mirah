@@ -215,6 +215,14 @@ module Mirah::JVM::Types
       false
     end
 
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticMethodCall(self, expression)
+      else
+        visitor.visitMethodCall(self, expression)
+      end
+    end
+
     def call(compiler, ast, expression, parameters=nil)
       target = compiler.inferred_type(ast.target)
       compiler.visit(ast.target, true)
@@ -296,6 +304,10 @@ module Mirah::JVM::Types
       # but actual type is null object
       compiler.method.aconst_null if expression && void?
       return_type.pop(compiler.method) unless expression || void?
+    end
+
+    def accept(visitor, expression)
+      visitor.visitStaticMethodCall(self, expression)
     end
   end
 
@@ -381,6 +393,14 @@ module Mirah::JVM::Types
         end
       end
     end
+
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticFieldAccess(self, expression)
+      else
+        visitor.visitFieldAccess(self, expression)
+      end
+    end
   end
 
   class JavaFieldSetter < JavaFieldAccessor
@@ -409,6 +429,14 @@ module Mirah::JVM::Types
         compiler.method.putfield(target, name, @member.type)
       end
     end
+
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticFieldAssign(self, expression)
+      else
+        visitor.visitFieldAssign(self, expression)
+      end
+    end
   end
 
   class MirahMember
@@ -433,6 +461,14 @@ module Mirah::JVM::Types
 
     def abstract?
       @declaring_class.interface?
+    end
+
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticMethodCall(self, expression)
+      else
+        visitor.visitMethodCall(self, expression)
+      end
     end
   end
 
