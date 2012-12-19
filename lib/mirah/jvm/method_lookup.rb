@@ -125,7 +125,7 @@ module Mirah
 
         if phase1_methods.size > 1
           method_list = phase1_methods.map do |m|
-            "#{m.name}(#{m.parameter_types.map(&:name).join(', ')})"
+            "#{m.name}(#{m.argument_types.map(&:name).join(', ')})"
           end.join("\n")
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{method_list}"
         end

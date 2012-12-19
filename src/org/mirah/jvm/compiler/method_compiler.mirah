@@ -114,6 +114,36 @@ class MethodCompiler < BaseCompiler
       end
     end
   end
+  def visitFloat(node, expression)
+    if expression
+      isFloat = "float".equals(getInferredType(node).name)
+      recordPosition(node.position)
+      if isFloat
+        @builder.push(float(node.value))
+      else
+        @builder.push(node.value)
+      end
+    end
+  end
+  def visitBoolean(node, expression)
+    if expression
+      recordPosition(node.position)
+      @builder.push(node.value ? 1 : 0)
+    end
+  end
+  def visitSimpleString(node, expression)
+    if expression
+      recordPosition(node.position)
+      @builder.push(node.value)
+    end
+  end
+  def visitNull(node, expression)
+    value = String(nil)
+    if expression
+      recordPosition(node.position)
+      @builder.push(value)
+    end
+  end
   
   def visitSuper(node, expression)
     @builder.loadThis
