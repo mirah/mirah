@@ -93,7 +93,7 @@ class BaseCompiler < SimpleNodeVisitor
 
   def methodDescriptor(method:JVMMethod):Method
     argTypes = method.argumentTypes
-    args = Type[method.argumentTypes.size]
+    args = Type[argTypes.size]
     args.length.times do |i|
       args[i] = JVMType(argTypes[i]).getAsmType
     end

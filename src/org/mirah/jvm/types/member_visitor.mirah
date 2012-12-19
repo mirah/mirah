@@ -8,4 +8,5 @@ interface MemberVisitor
   def visitStaticFieldAccess(method:JVMMethod, expression:boolean):void; end
   def visitFieldAssign(method:JVMMethod, expression:boolean):void; end
   def visitStaticFieldAssign(method:JVMMethod, expression:boolean):void; end
+  def visitConstructor(method:JVMMethod, expression:boolean):void; end
 end

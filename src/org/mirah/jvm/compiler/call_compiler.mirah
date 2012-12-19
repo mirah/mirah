@@ -26,7 +26,9 @@ import org.mirah.util.Context
 
 import org.jruby.org.objectweb.asm.ClassWriter
 import org.jruby.org.objectweb.asm.Opcodes
+import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
+import org.jruby.org.objectweb.asm.commons.Method
 
 
 class CallCompiler < BaseCompiler implements MemberVisitor
@@ -148,6 +150,22 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     recordPosition
     @method.invokeStatic(method.declaringClass.getAsmType, methodDescriptor(method))    
     convertResult(method.returnType, expression)
+  end
+  def visitConstructor(method:JVMMethod, expression:boolean)
+    argTypes = method.argumentTypes
+    klass = method.declaringClass.getAsmType
+    asmArgs = Type[method.argumentTypes.size]
+    asmArgs.length.times do |i|
+      asmArgs[i] = JVMType(argTypes[i]).getAsmType
+    end
+
+    @method.newInstance(klass)
+    @method.dup if expression
+    convertArgs(argTypes)
+    recordPosition
+    desc = Method.new("<init>", Type.getType("V"), asmArgs)
+
+    @method.invokeConstructor(method.declaringClass.getAsmType, desc)
   end
   def visitFieldAccess(method:JVMMethod, expression:boolean)
     @compiler.compile(@target)

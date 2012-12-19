@@ -177,6 +177,10 @@ module Mirah::JVM::Types
     def constructor?
       true
     end
+
+    def accept(visitor, expression)
+      visitor.visitConstructor(self, expression)
+    end
   end
 
   class JavaMethod < JavaConstructor
