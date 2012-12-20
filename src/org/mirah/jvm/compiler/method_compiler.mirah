@@ -103,6 +103,22 @@ class MethodCompiler < BaseCompiler
     @builder.visitLineNumber(position.startLine, @builder.mark) if position
   end
   
+  def defaultValue(type:JVMType)
+    if type.isPrimitive
+      if 'long'.equals(type.name)
+        @builder.push(long(0))
+      elsif 'double'.equals(type.name)
+        @builder.push(double(0))
+      elsif 'float'.equals(type.name)
+        @builder.push(float(0))
+      else
+        @builder.push(0)
+      end
+    else
+      @builder.push(String(nil))
+    end
+  end
+  
   def visitFixnum(node, expression)
     if expression
       isLong = "long".equals(getInferredType(node).name)
@@ -190,5 +206,33 @@ class MethodCompiler < BaseCompiler
   def visitCall(call, expression)
     compiler = CallCompiler.new(self, call.position, call.target, call.name.identifier, call.parameters)
     compiler.compile(expression != nil)
+  end
+  
+  def visitNodeList(node, expression)
+    if node.size == 0
+      if expression
+        defaultValue(getInferredType(node))
+      else
+        @builder.visitInsn(Opcodes.NOP)
+      end
+    else
+      super
+    end
+  end
+  
+  def visitIf(node, expression)
+    compile(node.condition)
+    elseLabel = @builder.newLabel
+    endifLabel = @builder.newLabel
+    if getInferredType(node.condition).isPrimitive
+      @builder.ifZCmp(GeneratorAdapter.EQ, elseLabel)
+    else
+      @builder.ifNull(elseLabel)
+    end
+    visit(node.body, expression)
+    @builder.goTo(endifLabel)
+    @builder.mark(elseLabel)
+    visit(node.elseBody, expression)
+    @builder.mark(endifLabel)
   end
 end
