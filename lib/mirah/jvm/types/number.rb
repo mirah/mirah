@@ -35,6 +35,10 @@ module Mirah::JVM::Types
     def jump_if_not(compiler, call, label)
       @type.compile_boolean_operator(compiler, @op, true, call, label)
     end
+    
+    def accept(visitor, expression)
+      visitor.visitComparison(self, expression)
+    end
   end
   
   class MathIntrinsic < Intrinsic

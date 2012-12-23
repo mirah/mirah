@@ -2,6 +2,7 @@ package org.mirah.jvm.types
 
 interface MemberVisitor
   def visitMath(method:JVMMethod, expression:boolean):void; end
+  def visitComparison(method:JVMMethod, expression:boolean):void; end
   def visitMethodCall(method:JVMMethod, expression:boolean):void; end
   def visitStaticMethodCall(method:JVMMethod, expression:boolean):void; end
   def visitFieldAccess(method:JVMMethod, expression:boolean):void; end

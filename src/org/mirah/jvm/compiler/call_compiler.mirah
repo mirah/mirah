@@ -117,6 +117,42 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     convertResult(type, expression)
   end
   
+  def computeComparisonOp(name:String):int
+    name = name.intern
+    if name == '=='
+      GeneratorAdapter.EQ
+    elsif name == '>='
+      GeneratorAdapter.GE
+    elsif name == '>'
+      GeneratorAdapter.GT
+    elsif name == '<='
+      GeneratorAdapter.LE
+    elsif name == '<'
+      GeneratorAdapter.LT
+    elsif name == '!='
+      GeneratorAdapter.NE
+    else
+      raise IllegalArgumentException, "Unsupported comparison #{name}"
+    end
+  end
+  
+  def visitComparison(method:JVMMethod, expression:boolean)
+    op = computeComparisonOp(method.name)
+    type = method.declaringClass
+    @compiler.compile(@target)
+    @method.convertValue(getInferredType(@target), type)
+    convertArgs([type])
+    ifTrue = @method.newLabel
+    done = @method.newLabel
+    @method.ifCmp(type.getAsmType, op, ifTrue)
+    @method.push(0)
+    @method.goTo(done)
+    @method.mark(ifTrue)
+    @method.push(1)
+    @method.mark(done)
+    @method.pop unless expression
+  end
+  
   def visitMethodCall(method:JVMMethod, expression:boolean)
     @compiler.compile(@target)
     convertArgs(method.argumentTypes)
