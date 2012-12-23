@@ -41,7 +41,11 @@ class MethodCompiler < BaseCompiler
     @descriptor.getDescriptor.endsWith(")V")
   end
   
-  def method
+  def isStatic
+    (@flags & Opcodes.ACC_STATIC) != 0
+  end
+  
+  def bytecode
     @builder
   end
   
@@ -83,11 +87,11 @@ class MethodCompiler < BaseCompiler
 
   def createBuilder(cv:ClassVisitor, mdef:MethodDefinition)
     type = getInferredType(mdef)
-    returnType = JVMType(type.returnType)
+    @returnType = JVMType(type.returnType)
     if @name.endsWith("init>")
-      returnType = typer.type_system.getVoidType.resolve
+      @returnType = JVMType(typer.type_system.getVoidType.resolve)
     end
-    @descriptor = methodDescriptor(@name, JVMType(returnType), type.parameterTypes)
+    @descriptor = methodDescriptor(@name, @returnType, type.parameterTypes)
     @selfType = JVMType(getScope(mdef).selfType.resolve)
     superclass = @selfType.superclass
     @superclass = if superclass
@@ -96,7 +100,7 @@ class MethodCompiler < BaseCompiler
       AsmType.getType(Object.class)
     end
     collectArgNames(mdef)
-    GeneratorAdapter.new(@flags, @descriptor, nil, nil, cv)
+    Bytecode.new(@flags, @descriptor, cv)
   end
   
   def recordPosition(position:Position)
@@ -170,7 +174,7 @@ class MethodCompiler < BaseCompiler
     if expression && isVoid
       @builder.loadThis
     elsif expression.nil? && !isVoid
-      @builder.pop
+      @builder.pop(@returnType)
     end
   end
   
@@ -201,6 +205,11 @@ class MethodCompiler < BaseCompiler
     end
     recordPosition(local.position)
     @builder.storeLocal(Integer(index).intValue)
+  end
+  
+  def visitFunctionalCall(call, expression)
+    compiler = CallCompiler.new(self, call.position, call.target, call.name.identifier, call.parameters)
+    compiler.compile(expression != nil)
   end
   
   def visitCall(call, expression)
@@ -234,5 +243,80 @@ class MethodCompiler < BaseCompiler
     @builder.mark(elseLabel)
     visit(node.elseBody, expression)
     @builder.mark(endifLabel)
+  end
+  
+  def visitImplicitNil(node, expression)
+    if expression
+      defaultValue(getInferredType(node))
+    end
+  end
+  
+  def visitReturn(node, expression)
+    compile(node.value) unless isVoid
+    @builder.returnValue
+  end
+  
+  def visitCast(node, expression)
+    compile(node.value)
+    from = getInferredType(node.value)
+    to = getInferredType(node)
+    if from.isPrimitive
+      @builder.cast(from.getAsmType, to.getAsmType)
+    else
+      @builder.checkCast(to.getAsmType)
+    end
+    @builder.pop(to) unless expression
+  end
+  
+  def visitFieldAccess(node, expression)
+    klass = @selfType.getAsmType
+    name = node.name.identifier
+    type = getInferredType(node)
+    isStatic = node.isStatic || self.isStatic
+    if isStatic
+      recordPosition(node.position)
+      @builder.getStatic(klass, name, type.getAsmType)
+    else
+      @builder.loadThis
+      recordPosition(node.position)
+      @builder.getField(klass, name, type.getAsmType)
+    end
+    unless expression
+      @builder.pop(type)
+    end
+  end
+  
+  def visitFieldAssign(node, expression)
+    klass = @selfType.getAsmType
+    name = node.name.identifier
+    type = getInferredType(node)
+    isStatic = node.isStatic || self.isStatic
+    @builder.loadThis unless isStatic
+    compile(node.value)
+    if expression
+      valueType = getInferredType(node.value)
+      if isStatic
+        @builder.dup(valueType)
+      else
+        @builder.dupX1(valueType)
+      end
+    end
+    @builder.convertValue(valueType, type)
+    @builder.dupX1(getInferredType(node.value)) if expression
+    
+    recordPosition(node.position)
+    if isStatic
+      @builder.putStatic(klass, name, type.getAsmType)
+    else
+      @builder.putField(klass, name, type.getAsmType)
+    end
+  end
+  
+  def visitEmptyArray(node, expression)
+    compile(node.size)
+    recordPosition(node.position)
+    type = getInferredType(node).getComponentType
+    @builder.newArray(type.getAsmType)
+    @builder.pop unless expression
   end
 end

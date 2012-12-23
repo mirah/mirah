@@ -183,7 +183,8 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     delegate = DelegateFuture.new
-    targetType = scope.selfType
+    call.target.setParent(call)  # FIXME: workaround AST bug
+    targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     methodType = CallFuture.new(@types, scope, targetType, parameters, call)
     delegate.type = methodType

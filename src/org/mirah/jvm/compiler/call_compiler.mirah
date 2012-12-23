@@ -38,7 +38,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String, args:NodeList)
     super(compiler.context)
     @compiler = compiler
-    @method = compiler.method
+    @method = compiler.bytecode
     @position = position
     @target = target
     @name = name
@@ -62,28 +62,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     argumentTypes.size.times do |i|
       arg = @args.get(i)
       @compiler.compile(arg)
-      convertValue(getInferredType(arg), JVMType(argumentTypes[i]))
-    end
-  end
-  
-  def convertValue(currentType:JVMType, wantedType:JVMType):void
-    unless currentType.equals(wantedType)
-      if currentType.isPrimitive && wantedType.isPrimitive
-        @method.cast(currentType.getAsmType, wantedType.getAsmType)
-      elsif currentType.isPrimitive
-        @method.box(currentType.getAsmType)
-      elsif wantedType.isPrimitive
-        @method.unbox(currentType.getAsmType)
-      end
-    end
-  end
-  
-  def pop(type:JVMType):void
-    size = type.getAsmType.getSize
-    if size == 1
-      @method.pop
-    elsif size == 2
-      @method.pop2
+      @method.convertValue(getInferredType(arg), JVMType(argumentTypes[i]))
     end
   end
 
@@ -91,7 +70,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     if expression
       # TODO casts for generic method calls
     else
-      pop(returnedType)
+      @method.pop(returnedType)
     end
   end
 
@@ -131,7 +110,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     type = method.returnType
     asm_type = type.getAsmType
     @compiler.compile(@target)
-    convertValue(getInferredType(@target), type)
+    @method.convertValue(getInferredType(@target), type)
     convertArgs([type])
     recordPosition
     @method.math(op, asm_type)
@@ -180,14 +159,12 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     if expression
       recordPosition
       @method.getStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
-    else
-      @method.pop
     end
   end
   def visitFieldAssign(method:JVMMethod, expression:boolean)
     @compiler.compile(@target)
     @compiler.compile(@args.get(0))
-    @method.dupX1 if expression
+    @method.dupX1(getInferredType(@args.get(0))) if expression
     @method.putField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
   end
   def visitStaticFieldAssign(method:JVMMethod, expression:boolean)
