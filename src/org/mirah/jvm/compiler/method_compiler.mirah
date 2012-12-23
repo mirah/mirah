@@ -217,15 +217,15 @@ class MethodCompiler < BaseCompiler
     compiler.compile(expression != nil)
   end
   
-  def visitNodeList(node, expression)
+  def compileBody(node:NodeList, expression:Object, type:JVMType)
     if node.size == 0
       if expression
-        defaultValue(getInferredType(node))
+        defaultValue(type)
       else
         @builder.visitInsn(Opcodes.NOP)
       end
     else
-      super
+      visitNodeList(node, expression)
     end
   end
   
@@ -238,10 +238,11 @@ class MethodCompiler < BaseCompiler
     else
       @builder.ifNull(elseLabel)
     end
-    visit(node.body, expression)
+    type = getInferredType(node)
+    compileBody(node.body, expression, type)
     @builder.goTo(endifLabel)
     @builder.mark(elseLabel)
-    visit(node.elseBody, expression)
+    compileBody(node.elseBody, expression, type)
     @builder.mark(endifLabel)
   end
   
