@@ -303,7 +303,6 @@ class MethodCompiler < BaseCompiler
       end
     end
     @builder.convertValue(valueType, type)
-    @builder.dupX1(getInferredType(node.value)) if expression
     
     recordPosition(node.position)
     if isStatic
