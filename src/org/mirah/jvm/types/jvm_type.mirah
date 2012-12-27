@@ -29,4 +29,6 @@ interface JVMType < ResolvedType
   
   def hasStaticField(name:String):boolean; end
   def getMethod(name:String, params:List):JVMMethod; end
+  def getDeclaredFields:JVMMethod[]; end
+  def getDeclaredField(name:String):JVMMethod; end
 end
