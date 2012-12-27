@@ -12,6 +12,7 @@ module Mirah
           @scope = scope
           @name = name
           @node = node
+          @fields = {}
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
         end
 

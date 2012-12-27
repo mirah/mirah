@@ -27,14 +27,15 @@ import java.util.List
 
 class MethodCompiler < BaseCompiler
   def self.initialize:void
-    @@log = Logger.getLogger(ClassCompiler.class.getName)
+    @@log = Logger.getLogger(MethodCompiler.class.getName)
   end
-  def initialize(context:Context, flags:int, name:String)
+  def initialize(context:Context, klass:JVMType, flags:int, name:String)
     super(context)
     @flags = flags
     @name = name
     @locals = {}
     @args = {}
+    @klass = klass
   end
   
   def isVoid
@@ -290,8 +291,8 @@ class MethodCompiler < BaseCompiler
   def visitFieldAssign(node, expression)
     klass = @selfType.getAsmType
     name = node.name.identifier
-    type = getInferredType(node)
     isStatic = node.isStatic || self.isStatic
+    type = @klass.getDeclaredField(node.name.identifier).returnType
     @builder.loadThis unless isStatic
     compile(node.value)
     if expression

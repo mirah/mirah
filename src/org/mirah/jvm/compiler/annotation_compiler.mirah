@@ -20,6 +20,7 @@ import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.jruby.org.objectweb.asm.AnnotationVisitor
 import org.jruby.org.objectweb.asm.ClassVisitor
+import org.jruby.org.objectweb.asm.FieldVisitor
 import org.jruby.org.objectweb.asm.MethodVisitor
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.TypeSystem
@@ -39,6 +40,15 @@ end
 
 class MethodAnnotationFactory implements AnnotationVisitorFactory
   def initialize(visitor:MethodVisitor)
+    @visitor = visitor
+  end
+  def create(type, runtime)
+    @visitor.visitAnnotation(type, runtime)
+  end
+end
+
+class FieldAnnotationFactory implements AnnotationVisitorFactory
+  def initialize(visitor:FieldVisitor)
     @visitor = visitor
   end
   def create(type, runtime)

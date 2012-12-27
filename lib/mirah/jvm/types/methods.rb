@@ -25,6 +25,12 @@ class Java::JavaMethod
   end
 end
 
+class BiteScript::ASM::FieldMirror
+  def returnType
+    self.type
+  end
+end
+
 module Mirah::JVM::Types
   AST ||= Mirah::AST
 
@@ -477,6 +483,8 @@ module Mirah::JVM::Types
   end
 
   class Type
+    java_import "org.mirah.jvm.types.JVMMethod" rescue nil
+
     def method_listeners
       if meta?
         unmeta.method_listeners
@@ -684,9 +692,24 @@ module Mirah::JVM::Types
       end
       intrinsics[name][[]]
     end
+    
+    def getDeclaredFields
+      @member.getDeclaredFields.to_java(JVMMethod)
+    end
+    
+    def getDeclaredField(name)
+      @member.getDeclaredField(name)
+    end
+    
+    def hasStaticField(name)
+      f = getDeclaredField(name)
+      f && f.static?
+    end
   end
 
   class TypeDefinition
+    java_import "org.mirah.jvm.types.JVMMethod" rescue nil
+
     def java_method(name, *types)
       method = instance_methods[name].find {|m| m.argument_types == types}
       return method if method
@@ -744,6 +767,27 @@ module Mirah::JVM::Types
 
     def static_methods
       @static_methods ||= Hash.new {|h, k| h[k] = []}
+    end
+    
+    def getDeclaredFields
+      @fields.values.to_java(JVMMethod)
+    end
+    
+    def getDeclaredField(name)
+      @fields[name]
+    end
+    
+    def hasStaticField(name)
+      f = getDeclaredField(name)
+      f && f.static?
+    end
+    
+    def declared_fields
+      @fields ||= {}
+    end
+
+    def declare_field(name, type, static)
+      declared_fields[name] ||= MirahMember.new(self, name, [], type, static, [])
     end
 
     def declare_method(name, arguments, type, exceptions)

@@ -19,6 +19,7 @@ import java.io.File
 import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.util.Context
+import org.mirah.jvm.types.JVMType
 
 import org.jruby.org.objectweb.asm.ClassWriter
 import org.jruby.org.objectweb.asm.Opcodes
@@ -30,12 +31,14 @@ class ClassCompiler < BaseCompiler
   def initialize(context:Context, classdef:ClassDefinition)
     super(context)
     @classdef = classdef
+    @fields = {}
   end
   
   def compile:void
     @@log.info "Compiling class #{@classdef.name.identifier}"
     @type = getInferredType(@classdef)
     startClass
+    declareFields
     visit(@classdef.body, nil)
     @classwriter.visitEnd
   end
@@ -52,7 +55,7 @@ class ClassCompiler < BaseCompiler
     isStatic = @static || node.kind_of?(StaticMethodDefinition)
     constructor = isStatic && "initialize".equals(node.name.identifier)
     name = constructor ? "<clinit>" : node.name.identifier.replaceFirst("=$", "_set")
-    method = MethodCompiler.new(context, methodFlags(node, isStatic), name)
+    method = MethodCompiler.new(context, @type, methodFlags(node, isStatic), name)
     method.compile(@classwriter, node)
   end
   
@@ -61,7 +64,7 @@ class ClassCompiler < BaseCompiler
   end
   
   def visitConstructorDefinition(node, expression)
-    method = MethodCompiler.new(context, Opcodes.ACC_PUBLIC, "<init>")
+    method = MethodCompiler.new(context, @type, Opcodes.ACC_PUBLIC, "<init>")
     method.compile(@classwriter, node)
   end
   
@@ -77,6 +80,17 @@ class ClassCompiler < BaseCompiler
     filename = self.filename
     @classwriter.visitSource(filename, nil) if filename
     context[AnnotationCompiler].compile(@classdef.annotations, @classwriter)
+  end
+  
+  def declareFields
+    @type.getDeclaredFields.each do |f|
+      isStatic = @type.hasStaticField(f.name)
+      flags = Opcodes.ACC_PUBLIC
+      flags |= Opcodes.ACC_STATIC if isStatic
+      fv = @classwriter.visitField(flags, f.name, f.returnType.getAsmType.getDescriptor, nil, nil)
+      # TODO field annotations
+      fv.visitEnd
+    end
   end
   
   def flags
