@@ -154,7 +154,11 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   end
   
   def visitMethodCall(method:JVMMethod, expression:boolean)
+    isVoid = method.returnType.getAsmType.getDescriptor.equals('V')
     @compiler.compile(@target)
+    if expression && isVoid
+      @method.dup
+    end
     convertArgs(method.argumentTypes)
     recordPosition
     @method.invokeVirtual(method.declaringClass.getAsmType, methodDescriptor(method))
