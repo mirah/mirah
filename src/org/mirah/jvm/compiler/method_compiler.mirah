@@ -295,8 +295,8 @@ class MethodCompiler < BaseCompiler
     type = @klass.getDeclaredField(node.name.identifier).returnType
     @builder.loadThis unless isStatic
     compile(node.value)
+    valueType = getInferredType(node.value)
     if expression
-      valueType = getInferredType(node.value)
       if isStatic
         @builder.dup(valueType)
       else
