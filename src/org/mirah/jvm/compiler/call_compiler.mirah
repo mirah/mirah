@@ -167,8 +167,13 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def visitStaticMethodCall(method:JVMMethod, expression:boolean)
     convertArgs(method.argumentTypes)
     recordPosition
-    @method.invokeStatic(method.declaringClass.getAsmType, methodDescriptor(method))    
-    convertResult(method.returnType, expression)
+    @method.invokeStatic(method.declaringClass.getAsmType, methodDescriptor(method))
+    isVoid = method.returnType.getAsmType.getDescriptor.equals('V')
+    if isVoid
+      @method.pushNil if expression  # Should this be an error?
+    else
+      convertResult(method.returnType, expression)
+    end
   end
   def visitConstructor(method:JVMMethod, expression:boolean)
     argTypes = method.argumentTypes
