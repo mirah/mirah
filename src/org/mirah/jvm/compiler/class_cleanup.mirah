@@ -40,7 +40,7 @@ class ClassCleanup < NodeScanner
     @constructors = ArrayList.new
   end
   def clean:void
-    scan(@klass, nil)
+    scan(@klass.body, nil)
     unless @static_init_nodes.isEmpty
       if @cinit.nil?
         @cinit = @parser.quote { def self.initialize:void; end }
@@ -75,8 +75,8 @@ class ClassCleanup < NodeScanner
   def add_default_constructor
     constructor = @parser.quote { def initialize; end }
     constructor.body.add(Super.new(constructor.position, Collections.emptyList, nil))
-    @typer.infer(constructor)
     @klass.body.add(constructor)
+    @typer.infer(constructor)
     @constructors.add(constructor)
   end
   def error(message:String, position:Position)
@@ -110,16 +110,12 @@ class ClassCleanup < NodeScanner
     @cinit = node
   end
   def enterConstructorDefinition(node, arg)
-    if isStatic(node)
-      setCinit(node)
-    else
-      @constructors.add(node)
-    end
+    @constructors.add(node)
     false
   end
   
   def enterClassDefinition(node, arg)
-    ClassCleanup.new(@context, node).scan(node.body, arg)
+    ClassCleanup.new(@context, node).clean
     false
   end
   def enterInterfaceDeclaration(node, arg)

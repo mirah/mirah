@@ -18,7 +18,10 @@ package org.mirah.jvm.compiler
 import mirah.lang.ast.*
 import org.mirah.typer.Typer
 import org.mirah.macros.Compiler as MacroCompiler
+import org.mirah.util.AstFormatter
 import org.mirah.util.Context
+import java.util.logging.Level
+import java.util.logging.Logger
 
 import java.util.ArrayList
 
@@ -36,6 +39,10 @@ import java.util.ArrayList
 #      end
 #    end
 class ScriptCleanup < NodeScanner
+  def self.initialize:void
+    @@log = Logger.getLogger(ScriptCleanup.class.getName)
+  end
+  
   def initialize(context:Context)
     @context = context
     @typer = context[Typer]
@@ -45,33 +52,35 @@ class ScriptCleanup < NodeScanner
     @classes = {}
   end
   def enterScript(node, arg)
+    @@log.log(Level.FINER, "Before cleanup:\n{0}", AstFormatter.new(node))
     true
   end
   def exitScript(script, arg)
-    if @main_code.isEmpty && @methods.isEmpty
-      return script
-    end
-    klass = getOrCreateClass(script)
-    unless @main_code.isEmpty
-      main = @parser.quote { def self.main(ARGV:String[]):void; end }
-      @main_code.each do |n|
-        node = Node(n)
-        node.parent.removeChild(node)
-        main.body.add(node)
+    unless @main_code.isEmpty && @methods.isEmpty
+      klass = getOrCreateClass(script)
+      unless @main_code.isEmpty
+        main = @parser.quote { def self.main(ARGV:String[]):void; end }
+        @main_code.each do |n|
+          node = Node(n)
+          node.parent.removeChild(node)
+          main.body.add(node)
+        end
+        klass.body.add(main)
+        @typer.infer(main, false)
       end
-      klass.body.add(main)
-      @typer.infer(main, false)
-    end
-    unless @methods.isEmpty
-      nodes = @parser.quote { class << self; end }
-      @methods.each do |n|
-        node = Node(n)
-        node.parent.removeChild(node)
-        nodes.body.add(node)
+      unless @methods.isEmpty
+        nodes = @parser.quote { class << self; end }
+        @methods.each do |n|
+          node = Node(n)
+          node.parent.removeChild(node)
+          nodes.body.add(node)
+        end
+        klass.body.add(nodes)
+        @typer.infer(nodes, false)
       end
-      klass.body.add(nodes)
-      @typer.infer(nodes, false)
     end
+    @@log.log(Level.FINE, "After cleanup:\n{0}", AstFormatter.new(script))
+    script
   end
   def enterDefault(node, arg)
     @main_code.add(node)
@@ -96,7 +105,7 @@ class ScriptCleanup < NodeScanner
   def enterClassDefinition(node, arg)
     type = @typer.infer(node).resolve
     @classes[type] = node
-    ClassCleanup.new(@context, node).scan(node.body, arg)
+    ClassCleanup.new(@context, node).clean
     false
   end
   def enterInterfaceDeclaration(node, arg)

@@ -13,25 +13,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+package org.mirah.jvm.compiler
+
 import mirah.lang.ast.*
 import org.mirah.typer.Typer
+import org.mirah.util.AstFormatter
+import org.mirah.util.Context
+import java.util.Collections
+import java.util.logging.Level
+import java.util.logging.Logger
 
 # Ensures the first thing in the constructor is a call to super or another constructor of this class.
 
 class ConstructorCleanup < SimpleNodeVisitor
+  def self.initialize:void
+    @@log = Logger.getLogger(ConstructorCleanup.class.getName)
+  end
   def initialize(context:Context)
     @context = context
     @typer = context[Typer]
   end
   
   def clean(constructor:ConstructorDefinition, extra_init:NodeList):void
+    @@log.log(Level.FINER, "Before cleanup {0}", AstFormatter.new(constructor))
     found_delegate = constructor.accept(self, extra_init)
+    @@log.finest("found_delegate: #{found_delegate}")
     unless Boolean.TRUE.equals(found_delegate)
-      delegate = ZSuper.new(constructor.name.position)
+      delegate = Super.new(constructor.name.position, Collections.emptyList, nil)
       constructor.body.insert(0, delegate)
       @typer.infer(delegate, false)
-      insertNodesAfter(delegate, extra_init)
+      insertNodesAfter(constructor.body.get(0), extra_init)
     end
+    @@log.log(Level.FINE, "After cleanup {0}", AstFormatter.new(constructor))
   end
   
   def defaultNode(node, arg)
