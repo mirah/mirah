@@ -92,12 +92,16 @@ class BaseCompiler < SimpleNodeVisitor
   end
 
   def methodDescriptor(method:JVMMethod):Method
+    returnType = method.returnType.getAsmType
+    if method.name.endsWith("init>")
+      returnType = Type.VOID_TYPE
+    end
     argTypes = method.argumentTypes
     args = Type[argTypes.size]
     args.length.times do |i|
       args[i] = JVMType(argTypes[i]).getAsmType
     end
-    Method.new(method.name, method.returnType.getAsmType, args)
+    Method.new(method.name, returnType, args)
   end
 
   def getScope(node:Node):Scope

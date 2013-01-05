@@ -28,7 +28,12 @@ interface JVMType < ResolvedType
   def getComponentType:JVMType; end
   
   def hasStaticField(name:String):boolean; end
+  
+  # Find the JVMMethod for a method call.
+  # TODO: We've already looked this up during inference, it'd be better if
+  # we could save that instead of doing the full search again.
   def getMethod(name:String, params:List):JVMMethod; end
+  
   def getDeclaredFields:JVMMethod[]; end
   def getDeclaredField(name:String):JVMMethod; end
 end

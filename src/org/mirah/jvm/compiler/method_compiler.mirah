@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.LinkedList
 import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.JVMType
@@ -95,11 +96,8 @@ class MethodCompiler < BaseCompiler
     @descriptor = methodDescriptor(@name, @returnType, type.parameterTypes)
     @selfType = JVMType(getScope(mdef).selfType.resolve)
     superclass = @selfType.superclass
-    @superclass = if superclass
-     superclass.getAsmType
-    else
-      AsmType.getType(Object.class)
-    end
+    @superclass = superclass || JVMType(
+        typer.type_system.get(nil, TypeRefImpl.new("java.lang.Object", false, false, nil)).resolve)
     collectArgNames(mdef)
     Bytecode.new(@flags, @descriptor, cv)
   end
@@ -168,10 +166,16 @@ class MethodCompiler < BaseCompiler
   
   def visitSuper(node, expression)
     @builder.loadThis
-    @builder.loadArgs
+    paramTypes = LinkedList.new
+    node.parameters_size.times do |i|
+      param = node.parameters(i)
+      compile(param)
+      paramTypes.add(getInferredType(param))
+    end
     recordPosition(node.position)
+    method = @superclass.getMethod(@name, paramTypes)
     # This is a poorly named method, really it's invokeSpecial
-    @builder.invokeConstructor(@superclass, @descriptor)
+    @builder.invokeConstructor(@superclass.getAsmType, methodDescriptor(method))
     if expression && isVoid
       @builder.loadThis
     elsif expression.nil? && !isVoid
