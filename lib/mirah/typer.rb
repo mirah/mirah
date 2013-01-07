@@ -18,7 +18,5 @@ require 'mirah/errors'
 module Mirah
   module Typer
     java_import 'org.mirah.typer.Typer'
-
-    InferenceError = Mirah::InferenceError
   end
 end
