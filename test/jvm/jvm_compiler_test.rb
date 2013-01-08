@@ -1958,7 +1958,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
-  def test_field_setter_wit_nil
+  def test_field_setter_with_nil
     cls, = compile(<<-EOF)
       import mirah.lang.ast.*
       a = Arguments.new

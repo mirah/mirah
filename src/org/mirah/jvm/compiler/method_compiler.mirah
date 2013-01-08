@@ -324,4 +324,11 @@ class MethodCompiler < BaseCompiler
     @builder.newArray(type.getAsmType)
     @builder.pop unless expression
   end
+  
+  def visitAttrAssign(node, expression)
+    compiler = CallCompiler.new(
+        self, node.position, node.target,
+        "#{node.name.identifier}_set", [node.value])
+    compiler.compile(expression != nil)
+  end
 end

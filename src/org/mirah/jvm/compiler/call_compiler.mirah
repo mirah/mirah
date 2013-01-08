@@ -36,19 +36,30 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     @@log = Logger.getLogger(ClassCompiler.class.getName)
   end
   def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String, args:NodeList)
+    initialize(compiler, position, target, name)
+    @args = Node[args.size]
+    args.size.times {|i| @args[i] = args.get(i)}
+  end
+  def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String, args:List)
+    initialize(compiler, position, target, name)
+    @args = Node[args.size]
+    args.toArray(@args)
+  end
+  
+  # TODO: private
+  def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String)
     super(compiler.context)
     @compiler = compiler
     @method = compiler.bytecode
     @position = position
     @target = target
     @name = name
-    @args = args
   end
   
   def compile(expression:boolean):void
-    argTypes = JVMType[@args.size]
-    @args.size.times do |i|
-      argTypes[i] = getInferredType(@args.get(i))
+    argTypes = JVMType[@args.length]
+    @args.length.times do |i|
+      argTypes[i] = getInferredType(@args[i])
     end
     method = getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
     method.accept(self, expression)
@@ -60,7 +71,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   
   def convertArgs(argumentTypes:List):void
     argumentTypes.size.times do |i|
-      arg = @args.get(i)
+      arg = @args[i]
       @compiler.compile(arg)
       @method.convertValue(getInferredType(arg), JVMType(argumentTypes[i]))
     end
@@ -208,13 +219,13 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   end
   def visitFieldAssign(method:JVMMethod, expression:boolean)
     @compiler.compile(@target)
-    @compiler.compile(@args.get(0))
-    @method.dupX1(getInferredType(@args.get(0))) if expression
+    @compiler.compile(@args[0])
+    @method.dupX1(getInferredType(@args[0])) if expression
     recordPosition
     @method.putField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
   end
   def visitStaticFieldAssign(method:JVMMethod, expression:boolean)
-    @compiler.compile(@args.get(0))
+    @compiler.compile(@args[0])
     @method.dup if expression
     recordPosition
     @method.putStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
@@ -228,9 +239,10 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   end
   def visitArrayAssign(method:JVMMethod, expression:boolean)
     @compiler.compile(@target)
-    convertArgs([method.argumentTypes[0], getInferredType(@args.get(1))])
-    @method.dupX2(getInferredType(@args.get(1))) if expression
-    @method.convertValue(getInferredType(@args.get(1)), JVMType(method.argumentTypes[1]))
+    value_type = getInferredType(@args[1])
+    convertArgs([method.argumentTypes[0], value_type])
+    @method.dupX2(value_type) if expression
+    @method.convertValue(value_type, JVMType(method.argumentTypes[1]))
     recordPosition
     @method.arrayStore(method.returnType.getAsmType)
   end
