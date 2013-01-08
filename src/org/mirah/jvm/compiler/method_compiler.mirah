@@ -333,7 +333,28 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitStringConcat(node, expression)
-    compiler = StringCompiler.new(self)
-    compiler.compile(node, expression != nil)
+    visit(node.strings, expression)
+  end
+  
+  def visitStringPieceList(node, expression)
+    if node.size == 0
+      if expression
+        recordPosition(node.position)
+        @builder.push("")
+      end
+    elsif node.size == 1 && node.get(0).kind_of?(SimpleString)
+      visit(node.get(0), expression)
+    else
+      compiler = StringCompiler.new(self)
+      compiler.compile(node, expression != nil)
+    end
+  end
+  
+  def visitRegex(node, expression)
+    # TODO regex flags
+    compile(node.strings)
+    recordPosition(node.position)
+    pattern = findType("java.util.regex.Pattern")
+    @builder.invokeStatic(pattern.getAsmType, methodDescriptor("compile", pattern, [findType("java.lang.String")]))
   end
 end

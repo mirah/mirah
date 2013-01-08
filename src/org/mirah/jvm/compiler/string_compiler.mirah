@@ -18,7 +18,7 @@ package org.mirah.jvm.compiler
 import java.util.logging.Logger
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.commons.Method
-import mirah.lang.ast.StringConcat
+import mirah.lang.ast.StringPieceList
 
 class StringCompiler < BaseCompiler
   def self.initialize:void
@@ -38,19 +38,23 @@ class StringCompiler < BaseCompiler
     @bytecode.invokeVirtual(@sb.getAsmType, methodDescriptor(method))
   end
   
-  def compile(node:StringConcat, expression:boolean):void
+  def compile(node:StringPieceList, expression:boolean):void
     sb = @sb.getAsmType
     @bytecode.newInstance(sb)
     @bytecode.dup
     @bytecode.invokeConstructor(sb, Method.new("<init>", Type.getType("V"), Type[0]))
-    visitStringConcat(node, Boolean.TRUE)
-    @bytecode.invokeVirtual(sb, methodDescriptor("toString", getInferredType(node), []))
+    visitStringPieceList(node, Boolean.TRUE)
+    @bytecode.invokeVirtual(sb, methodDescriptor("toString", findType("java.lang.String"), []))
     @bytecode.pop unless expression
   end
   
   def visitStringConcat(node, expression)
-    node.strings_size.times do |i|
-      node.strings(i).accept(self, Boolean.TRUE)
+    visitStringPieceList(node.strings, expression)
+  end
+  
+  def visitStringPieceList(node, expression)
+    node.size.times do |i|
+      node.get(i).accept(self, expression)
     end
   end
   
