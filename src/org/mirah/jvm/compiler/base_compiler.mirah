@@ -21,6 +21,7 @@ import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
 import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
+import mirah.lang.ast.TypeRefImpl
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
@@ -146,5 +147,9 @@ class BaseCompiler < SimpleNodeVisitor
   
   def visitUnquote(node, arg)
     node.nodes.each {|n| visit(Node(n), arg)}
+  end
+  
+  def findType(name:String):JVMType
+    JVMType(@typer.type_system.get(nil, TypeRefImpl.new(name, false, false, nil)).resolve)
   end
 end

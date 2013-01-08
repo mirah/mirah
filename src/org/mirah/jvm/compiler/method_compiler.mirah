@@ -331,4 +331,9 @@ class MethodCompiler < BaseCompiler
         "#{node.name.identifier}_set", [node.value])
     compiler.compile(expression != nil)
   end
+  
+  def visitStringConcat(node, expression)
+    compiler = StringCompiler.new(self)
+    compiler.compile(node, expression != nil)
+  end
 end
