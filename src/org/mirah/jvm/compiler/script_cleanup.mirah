@@ -132,7 +132,7 @@ class ScriptCleanup < NodeScanner
         end
       end
       klass.position = script.position
-      script.body.add(klass)
+      script.body.insert(0, klass)
       @typer.infer(klass, false)
     end
     ClassDefinition(klass)
