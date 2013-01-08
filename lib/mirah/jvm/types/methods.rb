@@ -187,6 +187,10 @@ module Mirah::JVM::Types
     def accept(visitor, expression)
       visitor.visitConstructor(self, expression)
     end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::CONSTRUCTOR
+    end
   end
 
   class JavaMethod < JavaConstructor
@@ -230,6 +234,14 @@ module Mirah::JVM::Types
         visitor.visitStaticMethodCall(self, expression)
       else
         visitor.visitMethodCall(self, expression)
+      end
+    end
+    
+    def kind
+      if self.static?
+        Java::OrgMirahJvmTypes::MemberKind::STATIC_METHOD
+      else
+        Java::OrgMirahJvmTypes::MemberKind::METHOD
       end
     end
 
@@ -318,6 +330,10 @@ module Mirah::JVM::Types
 
     def accept(visitor, expression)
       visitor.visitStaticMethodCall(self, expression)
+    end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::STATIC_METHOD
     end
   end
 
@@ -411,6 +427,14 @@ module Mirah::JVM::Types
         visitor.visitFieldAccess(self, expression)
       end
     end
+    
+    def kind
+      if self.static?
+        Java::OrgMirahJvmTypes::MemberKind::STATIC_FIELD_ACCESS
+      else
+        Java::OrgMirahJvmTypes::MemberKind::FIELD_ACCESS
+      end
+    end
   end
 
   class JavaFieldSetter < JavaFieldAccessor
@@ -447,6 +471,14 @@ module Mirah::JVM::Types
         visitor.visitFieldAssign(self, expression)
       end
     end
+    
+    def kind
+      if self.static?
+        Java::OrgMirahJvmTypes::MemberKind::STATIC_FIELD_ASSIGN
+      else
+        Java::OrgMirahJvmTypes::MemberKind::FIELD_ASSIGN
+      end
+    end
   end
 
   class MirahMember
@@ -478,6 +510,23 @@ module Mirah::JVM::Types
         visitor.visitStaticMethodCall(self, expression)
       else
         visitor.visitMethodCall(self, expression)
+      end
+    end
+    
+    
+    def kind
+      if self.static?
+        if @name == "initialize"
+          Java::OrgMirahJvmTypes::MemberKind::STATIC_INITIALIZER
+        else
+          Java::OrgMirahJvmTypes::MemberKind::STATIC_METHOD
+        end
+      else
+        if @name == "initialize"
+          Java::OrgMirahJvmTypes::MemberKind::CONSTRUCTOR
+        else
+          Java::OrgMirahJvmTypes::MemberKind::METHOD
+        end
       end
     end
   end

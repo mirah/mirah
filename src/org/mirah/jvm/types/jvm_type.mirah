@@ -10,6 +10,7 @@ interface JVMMethod
   def argumentTypes:List; end
   def returnType:JVMType; end
   def accept(visitor:MemberVisitor, expression:boolean):void; end
+  def kind:MemberKind; end
 end
 
 interface JVMType < ResolvedType

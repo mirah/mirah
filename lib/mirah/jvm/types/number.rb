@@ -39,6 +39,10 @@ module Mirah::JVM::Types
     def accept(visitor, expression)
       visitor.visitComparison(self, expression)
     end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::COMPARISON_OP
+    end
   end
   
   class MathIntrinsic < Intrinsic
@@ -46,6 +50,10 @@ module Mirah::JVM::Types
     
     def accept(visitor, expression)
       visitor.visitMath(self, expression)
+    end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::MATH_OP
     end
   end
 

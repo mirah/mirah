@@ -23,6 +23,7 @@ import mirah.lang.ast.Position
 import mirah.lang.ast.SimpleNodeVisitor
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.MemberKind
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 import org.mirah.typer.MethodType
@@ -93,15 +94,20 @@ class BaseCompiler < SimpleNodeVisitor
 
   def methodDescriptor(method:JVMMethod):Method
     returnType = method.returnType.getAsmType
-    if method.name.endsWith("init>")
+    name = method.name
+    if MemberKind.CONSTRUCTOR == method.kind
+      name = '<init>'
       returnType = Type.VOID_TYPE
+    elsif MemberKind.STATIC_INITIALIZER == method.kind
+      name = '<clinit>'
+      returnType = Type.VOID_TYPE      
     end
     argTypes = method.argumentTypes
     args = Type[argTypes.size]
     args.length.times do |i|
       args[i] = JVMType(argTypes[i]).getAsmType
     end
-    Method.new(method.name, returnType, args)
+    Method.new(name, returnType, args)
   end
 
   def getScope(node:Node):Scope
