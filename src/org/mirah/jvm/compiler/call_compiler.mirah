@@ -210,11 +210,32 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     @compiler.compile(@target)
     @compiler.compile(@args.get(0))
     @method.dupX1(getInferredType(@args.get(0))) if expression
+    recordPosition
     @method.putField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
   end
   def visitStaticFieldAssign(method:JVMMethod, expression:boolean)
     @compiler.compile(@args.get(0))
     @method.dup if expression
+    recordPosition
     @method.putStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
+  end
+  def visitArrayAccess(method:JVMMethod, expression:boolean)
+    @compiler.compile(@target)
+    convertArgs(method.argumentTypes)
+    recordPosition
+    @method.arrayLoad(method.returnType.getAsmType)
+    convertResult(method.returnType, expression)
+  end
+  def visitArrayAssign(method:JVMMethod, expression:boolean)
+    @compiler.compile(@target)
+    convertArgs([method.argumentTypes[0], getInferredType(@args.get(1))])
+    @method.dupX2(getInferredType(@args.get(1))) if expression
+    @method.convertValue(getInferredType(@args.get(1)), JVMType(method.argumentTypes[1]))
+    recordPosition
+    @method.arrayStore(method.returnType.getAsmType)
+  end
+  def visitArrayLength(method:JVMMethod, expression:boolean)
+    @compiler.compile(@target)
+    @method.arrayLength
   end
 end

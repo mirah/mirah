@@ -54,13 +54,22 @@ module Mirah::JVM::Types
     include ArgumentConversion
     attr_reader :name, :argument_types, :return_type
 
-    def initialize(klass, name, args, type, &block)
+    def initialize(klass, name, args, type, kind=nil, &block)
       raise ArgumentError, "Block required" unless block_given?
       @class = klass
       @name = name
       @argument_types = args
       @return_type = type
       @block = block
+      @kind = kind
+    end
+
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind.const_get(@kind)
+    end
+    
+    def accept(visitor, expression)
+      visitor.send("visit_#{@kind.downcase}", self, expression)
     end
 
     def call(builder, ast, expression, *args)

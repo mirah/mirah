@@ -62,6 +62,15 @@ class Bytecode < GeneratorAdapter
       dup2X1
     end
   end
+  
+  def dupX2(type:JVMType)
+    size = type.getAsmType.getSize
+    if size == 1
+      dupX2
+    elsif size == 2
+      dup2X2
+    end
+  end
 
   def convertValue(currentType:JVMType, wantedType:JVMType):void
     unless currentType.equals(wantedType)

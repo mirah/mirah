@@ -10,4 +10,7 @@ interface MemberVisitor
   def visitFieldAssign(method:JVMMethod, expression:boolean):void; end
   def visitStaticFieldAssign(method:JVMMethod, expression:boolean):void; end
   def visitConstructor(method:JVMMethod, expression:boolean):void; end
+  def visitArrayLength(method:JVMMethod, expression:boolean):void; end
+  def visitArrayAccess(method:JVMMethod, expression:boolean):void; end
+  def visitArrayAssign(method:JVMMethod, expression:boolean):void; end  
 end

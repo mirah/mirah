@@ -48,10 +48,10 @@ module Mirah::JVM::Types
       @macros ||= Hash.new {|h, k| h[k] = {}}
     end
 
-    def add_method(name, args, method_or_type=nil, &block)
+    def add_method(name, args, method_or_type=nil, kind=nil, &block)
       if block_given?
         method_or_type = Intrinsic.new(self, name, args,
-                                       method_or_type, &block)
+                                       method_or_type, kind, &block)
       end
       intrinsics[name][args] = method_or_type
     end
@@ -261,7 +261,7 @@ module Mirah::JVM::Types
       load_extensions(ArrayExtensions.java_class) if ArrayExtensions
       int_type = @type_system.type(nil, 'int')
       add_method(
-          '[]', [int_type], component_type) do |compiler, call, expression|
+          '[]', [int_type], component_type, "ARRAY_ACCESS") do |compiler, call, expression|
         if expression
           compiler.visit(call.target, true)
           compiler.visit(call.parameters(0), true)
@@ -271,7 +271,7 @@ module Mirah::JVM::Types
 
       add_method('[]=',
                  [int_type, component_type],
-                 component_type) do |compiler, call, expression|
+                 component_type, "ARRAY_ASSIGN") do |compiler, call, expression|
         compiler.visit(call.target, true)
         convert_args(compiler, call.parameters, [@type_system.type(nil, 'int'), component_type])
         component_type.astore(compiler.method)
@@ -280,7 +280,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('length', [], int_type) do |compiler, call, expression|
+      add_method('length', [], int_type, "ARRAY_LENGTH") do |compiler, call, expression|
         compiler.visit(call.target, true)
         compiler.method.arraylength
       end
