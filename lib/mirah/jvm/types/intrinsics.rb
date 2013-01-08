@@ -322,59 +322,6 @@ module Mirah::JVM::Types
       char_type = @type_system.type(nil, 'char')
       float_type = @type_system.type(nil, 'float')
       double_type = @type_system.type(nil, 'double')
-      add_method('+', [string_type], string_type) do |compiler, call, expression|
-        if expression
-          java_method('concat', string_type).call(compiler, call, expression)
-        end
-      end
-      add_method('+', [bool_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, bool_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [char_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, char_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [int_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, int_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [long_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, long_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [float_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, float_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [double_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, double_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
       add_method('[]', [int_type], char_type) do |compiler, call, expression|
         if expression
           compiler.visit(call.target, true)

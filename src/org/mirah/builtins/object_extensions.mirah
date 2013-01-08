@@ -70,7 +70,7 @@ class ObjectExtensions
     while i < size
       e = hash.get(i)
       i += 1
-      name = Identifier(e.key).identifier + "_set"
+      name = "#{Identifier(e.key).identifier}_set"
       method = quote do
         def `name`(value:`e.value`):void  #`
           @`e.key` = value

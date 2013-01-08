@@ -140,6 +140,10 @@ module Mirah::JVM::Types
     def parameter_types
       @member.parameter_types
     end
+    
+    def synthetic?
+      @member.synthetic?
+    end
   end
 
   class JavaConstructor < JavaCallable
@@ -514,6 +518,10 @@ module Mirah::JVM::Types
       @declaring_class.interface?
     end
 
+    def synthetic?
+      false
+    end
+
     def accept(visitor, expression)
       if self.static?
         visitor.visitStaticMethodCall(self, expression)
@@ -700,7 +708,7 @@ module Mirah::JVM::Types
       methods = []
       if jvm_type && !array?
         jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaMethod.new(@type_system, method) unless method.static?
+          methods << JavaMethod.new(@type_system, method) unless (method.static? || method.synthetic?)
         end
       end
       methods.concat((meta? ? unmeta : self).declared_intrinsics(name))
@@ -710,7 +718,7 @@ module Mirah::JVM::Types
       methods = []
       if jvm_type && !unmeta.array?
         jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaStaticMethod.new(@type_system, method) if method.static?
+          methods << JavaStaticMethod.new(@type_system, method) if (method.static? && !method.synthetic?)
         end
       end
       methods.concat(meta.declared_intrinsics(name))

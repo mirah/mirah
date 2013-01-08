@@ -152,15 +152,17 @@ module Mirah
           end
 
           # otherwise, check for potential match and compare to current
-          # TODO: missing ambiguity check; picks last method of equal specificity
+          # TODO: missing ambiguity check; picks first method of equal specificity
+          # Picking the first method means we prefer methods from the child class,
+          # which is important if the parent class is not accessible (like AbstractStringBuilder).
           if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
             if currents.size > 0
-              if is_more_specific?(potential.argument_types, currents[0].argument_types)
-                # potential is better, dump all currents
-                currents = [potential]
-              elsif is_more_specific?(currents[0].argument_types, potential.argument_types)
+              if is_more_specific?(currents[0].argument_types, potential.argument_types)
                 # currents are better, try next potential
                 #next
+              elsif is_more_specific?(potential.argument_types, currents[0].argument_types)
+                # potential is better, dump all currents
+                currents = [potential]
               else
                 # equal specificity, append to currents
                 currents << potential
