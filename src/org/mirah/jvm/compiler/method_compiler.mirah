@@ -398,4 +398,18 @@ class MethodCompiler < BaseCompiler
     end
     @builder.returnValue
   end
+  
+  def visitSelf(node, expression)
+    if expression
+      recordPosition(node.position)
+      @builder.loadThis
+    end
+  end
+
+  def visitImplicitSelf(node, expression)
+    if expression
+      recordPosition(node.position)
+      @builder.loadThis
+    end
+  end
 end
