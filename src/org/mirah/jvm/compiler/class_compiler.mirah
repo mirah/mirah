@@ -133,7 +133,6 @@ class ClassCompiler < BaseCompiler
     size.times do |i|
       node = @classdef.interfaces.get(i)
       array[i] = getInferredType(node).internal_name
-      i += 1
     end
     array
   end
