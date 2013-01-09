@@ -488,4 +488,10 @@ class MethodCompiler < BaseCompiler
       reportError("Next outside of loop", node.position)
     end
   end
+  
+  def visitArray(node, expression)
+    @arrays ||= ArrayCompiler.new(self, @builder)
+    @arrays.compile(node)
+    @builder.pop unless expression
+  end
 end
