@@ -57,7 +57,12 @@ class MethodCompiler < BaseCompiler
     isExpression = isVoid() ? nil : Boolean.TRUE
     if (@flags & Opcodes.ACC_ABSTRACT) == 0
       visit(mdef.body, isExpression)
-      @builder.returnValue
+      body_position = if mdef.body_size > 0
+        mdef.body(mdef.body_size - 1).position
+      else
+        mdef.body.position
+      end
+      returnValue(mdef)
     end
     @builder.endMethod
   end
@@ -356,5 +361,41 @@ class MethodCompiler < BaseCompiler
     recordPosition(node.position)
     pattern = findType("java.util.regex.Pattern")
     @builder.invokeStatic(pattern.getAsmType, methodDescriptor("compile", pattern, [findType("java.lang.String")]))
+    @builder.pop unless expression
+  end
+  
+  def visitNot(node, expression)
+    visit(node.value, expression)
+    if expression
+      recordPosition(node.position)
+      done = @builder.newLabel
+      elseLabel = @builder.newLabel
+      type = getInferredType(node.value)
+      if type.isPrimitive
+        @builder.ifZCmp(GeneratorAdapter.EQ, elseLabel)
+      else
+        @builder.ifNull(elseLabel)
+      end
+      @builder.push(0)
+      @builder.goTo(done)
+      @builder.mark(elseLabel)
+      @builder.push(1)
+      @builder.mark(done)
+    end
+  end
+  
+  def returnValue(mdef:MethodDefinition)
+    body = mdef.body
+    type = getInferredType(body)
+    unless isVoid || @returnType.assignableFrom(type)
+      # TODO this error should be caught by the typer
+      body_position = if body.size > 0
+        body.get(body.size - 1).position
+      else
+        body.position
+      end
+      reportError("Invalid return type #{type.name}, expected #{@returnType.name}", body_position)
+    end
+    @builder.returnValue
   end
 end

@@ -47,7 +47,9 @@ module Mirah
         @compiler = compiler_class.new(typer)
         compiler.visit(ast, nil)
         compiler.generate(&block)
-      rescue NativeException => ex
+      rescue java.lang.UnsupportedOperationException => ex
+        raise MirahError.new(ex.message)
+      rescue java.lang.Throwable => ex
         ex.cause.printStackTrace
         raise ex
       end
