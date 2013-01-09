@@ -35,44 +35,54 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void
     @@log = Logger.getLogger(ClassCompiler.class.getName)
   end
-  def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String, args:NodeList)
-    initialize(compiler, position, target, name)
+  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:NodeList)
+    initialize(compiler, bytecode, position, target, name)
     @args = Node[args.size]
     args.size.times {|i| @args[i] = args.get(i)}
   end
-  def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String, args:List)
-    initialize(compiler, position, target, name)
+  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:List)
+    initialize(compiler, bytecode, position, target, name)
     @args = Node[args.size]
     args.toArray(@args)
   end
   
   # TODO: private
-  def initialize(compiler:MethodCompiler, position:Position, target:Node, name:String)
+  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String)
     super(compiler.context)
     @compiler = compiler
-    @method = compiler.bytecode
+    @method = bytecode
     @position = position
     @target = target
     @name = name
   end
   
   def compile(expression:boolean):void
-    argTypes = JVMType[@args.length]
-    @args.length.times do |i|
-      argTypes[i] = getInferredType(@args[i])
+    getMethod.accept(self, expression)
+  end
+  
+  def getMethod
+    @member ||= begin
+      argTypes = JVMType[@args.length]
+      @args.length.times do |i|
+        argTypes[i] = getInferredType(@args[i])
+      end
+      getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
     end
-    method = getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
-    method.accept(self, expression)
   end
   
   def recordPosition:void
-    @compiler.recordPosition(@position)
+    @method.recordPosition(@position)
+  end
+  
+  # private
+  def compile(node:Node):void
+    @compiler.visit(node, Boolean.TRUE)
   end
   
   def convertArgs(argumentTypes:List):void
     argumentTypes.size.times do |i|
       arg = @args[i]
-      @compiler.compile(arg)
+      compile(arg)
       @method.convertValue(getInferredType(arg), JVMType(argumentTypes[i]))
     end
   end
@@ -120,7 +130,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     op = computeMathOp(method.name)
     type = method.returnType
     asm_type = type.getAsmType
-    @compiler.compile(@target)
+    compile(@target)
     @method.convertValue(getInferredType(@target), type)
     convertArgs([type])
     recordPosition
@@ -128,7 +138,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     convertResult(type, expression)
   end
   
-  def computeComparisonOp(name:String):int
+  def self.computeComparisonOp(name:String):int
     name = name.intern
     if name == '=='
       GeneratorAdapter.EQ
@@ -147,12 +157,18 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     end
   end
   
-  def visitComparison(method:JVMMethod, expression:boolean)
-    op = computeComparisonOp(method.name)
+  def compileComparisonValues(method:JVMMethod)
     type = method.declaringClass
-    @compiler.compile(@target)
+    compile(@target)
     @method.convertValue(getInferredType(@target), type)
     convertArgs([type])
+  end
+  
+  def visitComparison(method:JVMMethod, expression:boolean)
+    compileComparisonValues(method)
+
+    op = CallCompiler.computeComparisonOp(method.name)
+    type = method.declaringClass
     ifTrue = @method.newLabel
     done = @method.newLabel
     @method.ifCmp(type.getAsmType, op, ifTrue)
@@ -166,7 +182,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   
   def visitMethodCall(method:JVMMethod, expression:boolean)
     isVoid = method.returnType.getAsmType.getDescriptor.equals('V')
-    @compiler.compile(@target)
+    compile(@target)
     if expression && isVoid
       @method.dup
     end
@@ -203,7 +219,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     @method.invokeConstructor(method.declaringClass.getAsmType, desc)
   end
   def visitFieldAccess(method:JVMMethod, expression:boolean)
-    @compiler.compile(@target)
+    compile(@target)
     if expression
       recordPosition
       @method.getField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
@@ -218,27 +234,27 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     end
   end
   def visitFieldAssign(method:JVMMethod, expression:boolean)
-    @compiler.compile(@target)
-    @compiler.compile(@args[0])
+    compile(@target)
+    compile(@args[0])
     @method.dupX1(getInferredType(@args[0])) if expression
     recordPosition
     @method.putField(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
   end
   def visitStaticFieldAssign(method:JVMMethod, expression:boolean)
-    @compiler.compile(@args[0])
+    compile(@args[0])
     @method.dup if expression
     recordPosition
     @method.putStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
   end
   def visitArrayAccess(method:JVMMethod, expression:boolean)
-    @compiler.compile(@target)
+    compile(@target)
     convertArgs(method.argumentTypes)
     recordPosition
     @method.arrayLoad(method.returnType.getAsmType)
     convertResult(method.returnType, expression)
   end
   def visitArrayAssign(method:JVMMethod, expression:boolean)
-    @compiler.compile(@target)
+    compile(@target)
     value_type = getInferredType(@args[1])
     convertArgs([method.argumentTypes[0], value_type])
     @method.dupX2(value_type) if expression
@@ -247,7 +263,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     @method.arrayStore(method.returnType.getAsmType)
   end
   def visitArrayLength(method:JVMMethod, expression:boolean)
-    @compiler.compile(@target)
+    compile(@target)
     @method.arrayLength
   end
   
@@ -259,7 +275,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   end
   
   def visitInstanceof(method, expression)
-    @compiler.compile(@target)
+    compile(@target)
     if expression
       @method.instanceOf(getInferredType(@args[0]).getAsmType)
     else

@@ -21,6 +21,7 @@ import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
 import org.jruby.org.objectweb.asm.commons.Method
 
+import mirah.lang.ast.Position
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
 
@@ -30,6 +31,10 @@ class Bytecode < GeneratorAdapter
     super(Opcodes.ASM4,
           klass.visitMethod(flags, method.getName, method.getDescriptor, nil, nil),
           flags, method.getName, method.getDescriptor)
+  end
+  
+  def recordPosition(position:Position)
+    visitLineNumber(position.startLine, mark) if position
   end
   
   def pushNil:void

@@ -108,7 +108,7 @@ class MethodCompiler < BaseCompiler
   end
   
   def recordPosition(position:Position)
-    @builder.visitLineNumber(position.startLine, @builder.mark) if position
+    @builder.recordPosition(position)
   end
   
   def defaultValue(type:JVMType)
@@ -207,23 +207,28 @@ class MethodCompiler < BaseCompiler
     @builder.dup if expression
     name = local.name.identifier
     index = @locals[name]
-    if index.nil?
+    argIndex = @args[name]
+    if index.nil? && argIndex.nil?
       # TODO put variable name into debug info
       type = getInferredType(local).getAsmType
       index = Integer.valueOf(@builder.newLocal(type))
       @locals[name] = index
     end
     recordPosition(local.position)
-    @builder.storeLocal(Integer(index).intValue)
+    if index
+      @builder.storeLocal(Integer(index).intValue)
+    else
+      @builder.storeArg(Integer(argIndex).intValue)
+    end
   end
   
   def visitFunctionalCall(call, expression)
-    compiler = CallCompiler.new(self, call.position, call.target, call.name.identifier, call.parameters)
+    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters)
     compiler.compile(expression != nil)
   end
   
   def visitCall(call, expression)
-    compiler = CallCompiler.new(self, call.position, call.target, call.name.identifier, call.parameters)
+    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters)
     compiler.compile(expression != nil)
   end
   
@@ -240,19 +245,27 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitIf(node, expression)
-    compile(node.condition)
     elseLabel = @builder.newLabel
     endifLabel = @builder.newLabel
-    if getInferredType(node.condition).isPrimitive
-      @builder.ifZCmp(GeneratorAdapter.EQ, elseLabel)
-    else
-      @builder.ifNull(elseLabel)
-    end
+    compiler = ConditionCompiler.new(self, @builder)
     type = getInferredType(node)
-    compileBody(node.body, expression, type)
-    @builder.goTo(endifLabel)
+    
+    need_then = !expression.nil? || node.body_size > 0
+    need_else = !expression.nil? || node.elseBody_size > 0
+
+    if need_then
+      compiler.negate
+      compiler.compile(node.condition, elseLabel)
+      compileBody(node.body, expression, type)
+      @builder.goTo(endifLabel)
+    else
+      compiler.compile(node.condition, endifLabel)
+    end
+    
     @builder.mark(elseLabel)
-    compileBody(node.elseBody, expression, type)
+    if need_else
+      compileBody(node.elseBody, expression, type)
+    end
     @builder.mark(endifLabel)
   end
   
@@ -332,7 +345,7 @@ class MethodCompiler < BaseCompiler
   
   def visitAttrAssign(node, expression)
     compiler = CallCompiler.new(
-        self, node.position, node.target,
+        self, @builder, node.position, node.target,
         "#{node.name.identifier}_set", [node.value])
     compiler.compile(expression != nil)
   end
@@ -410,6 +423,69 @@ class MethodCompiler < BaseCompiler
     if expression
       recordPosition(node.position)
       @builder.loadThis
+    end
+  end
+  
+  def visitLoop(node, expression)
+    old_loop = @loop
+    @loop = LoopCompiler.new(@builder)
+    
+    visit(node.init, nil)
+    
+    predicate = ConditionCompiler.new(self, @builder)
+    
+    preLabel = @builder.newLabel
+    unless node.skipFirstCheck
+      @builder.mark(@loop.getNext) unless node.post_size > 0
+      # Jump out of the loop if the condition is false
+      predicate.negate unless node.negative
+      predicate.compile(node.condition, @loop.getBreak)
+    end
+      
+    @builder.mark(preLabel)
+    visit(node.pre, nil)
+    
+    @builder.mark(@loop.getRedo)
+    visit(node.body, nil) if node.body
+    
+    if node.skipFirstCheck || node.post_size > 0
+      @builder.mark(@loop.getNext)
+      visit(node.post, nil)
+      # Loop if the condition is true
+      predicate.negate if node.negative
+      predicate.compile(node.condition, preLabel)
+    else
+      @builder.goTo(@loop.getNext)
+    end
+    @builder.mark(@loop.getBreak)
+
+    # loops always evaluate to null
+    @builder.pushNil if expression
+  ensure
+    @loop = old_loop
+  end
+  
+  def visitBreak(node, expression)
+    if @loop
+      @builder.goTo(@loop.getBreak)
+    else
+      reportError("Break outside of loop", node.position)
+    end
+  end
+  
+  def visitRedo(node, expression)
+    if @loop
+      @builder.goTo(@loop.getRedo)
+    else
+      reportError("Redo outside of loop", node.position)
+    end
+  end
+  
+  def visitNext(node, expression)
+    if @loop
+      @builder.goTo(@loop.getNext)
+    else
+      reportError("Next outside of loop", node.position)
     end
   end
 end
