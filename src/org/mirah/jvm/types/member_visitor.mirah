@@ -13,4 +13,6 @@ interface MemberVisitor
   def visitArrayLength(method:JVMMethod, expression:boolean):void; end
   def visitArrayAccess(method:JVMMethod, expression:boolean):void; end
   def visitArrayAssign(method:JVMMethod, expression:boolean):void; end  
+  def visitClassLiteral(method:JVMMethod, expression:boolean):void; end  
+  def visitInstanceof(method:JVMMethod, expression:boolean):void; end  
 end

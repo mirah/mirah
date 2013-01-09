@@ -224,7 +224,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
+      add_method('kind_of?', [object_type.meta], boolean, "INSTANCEOF") do |compiler, call, expression|
         compiler.visit(call.target, expression)
         if expression
           klass = compiler.inferred_type(call.parameters(0))
@@ -289,7 +289,7 @@ module Mirah::JVM::Types
 
   class MetaType
     def add_intrinsics
-      add_method('class', [], @type_system.type(nil, 'java.lang.Class')) do |compiler, call, expression|
+      add_method('class', [], @type_system.type(nil, 'java.lang.Class'), "CLASS_LITERAL") do |compiler, call, expression|
         if expression
           compiler.method.ldc_class(unmeta)
         end

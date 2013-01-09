@@ -250,4 +250,20 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     @compiler.compile(@target)
     @method.arrayLength
   end
+  
+  def visitClassLiteral(method, expression)
+    if expression
+      recordPosition
+      @method.push(getInferredType(@target).getAsmType)
+    end
+  end
+  
+  def visitInstanceof(method, expression)
+    @compiler.compile(@target)
+    if expression
+      @method.instanceOf(getInferredType(@args[0]).getAsmType)
+    else
+      @method.pop(getInferredType(@target))
+    end
+  end
 end
