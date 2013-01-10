@@ -193,7 +193,7 @@ module Mirah::JVM::Types
       object_type = @type_system.type(nil, 'java.lang.Object')
       class_type = @type_system.type(nil, 'java.lang.Class')
 
-      add_method('nil?', [], boolean) do |compiler, call, expression|
+      add_method('nil?', [], boolean, 'IS_NULL') do |compiler, call, expression|
         if expression
           compiler.visit(call.target, true)
           compiler.method.op_to_bool do |target|
@@ -202,7 +202,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('==', [object_type], boolean) do |compiler, call, expression|
+      add_method('==', [object_type], boolean, 'COMPARISON_OP') do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
           compiler.visit(call.target, true)
@@ -213,7 +213,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('!=', [object_type], boolean) do |compiler, call, expression|
+      add_method('!=', [object_type], boolean, 'COMPARISON_OP') do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
           compiler.visit(call.target, true)

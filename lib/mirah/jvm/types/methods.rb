@@ -69,7 +69,8 @@ module Mirah::JVM::Types
     end
     
     def accept(visitor, expression)
-      visitor.send("visit_#{@kind.downcase}", self, expression)
+      name = "visit_#{@kind.downcase}".sub(/_op$/,"")
+      visitor.send(name, self, expression)
     end
 
     def call(builder, ast, expression, *args)

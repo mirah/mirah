@@ -282,4 +282,21 @@ class CallCompiler < BaseCompiler implements MemberVisitor
       @method.pop(getInferredType(@target))
     end
   end
+  
+  def visitIsNull(method, expression)
+    compile(@target)
+    if expression
+      recordPosition
+      nonNull = @method.newLabel
+      done = @method.newLabel
+      @method.ifNonNull(nonNull)
+      @method.push(1)
+      @method.goTo(done)
+      @method.mark(nonNull)
+      @method.push(0)
+      @method.mark(done)
+    else
+      @method.pop
+    end
+  end
 end
