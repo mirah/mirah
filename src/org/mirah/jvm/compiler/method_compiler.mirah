@@ -449,6 +449,8 @@ class MethodCompiler < BaseCompiler
       # Jump out of the loop if the condition is false
       predicate.negate unless node.negative
       predicate.compile(node.condition, @loop.getBreak)
+      # un-negate the predicate
+      predicate.negate
     end
       
     @builder.mark(preLabel)
