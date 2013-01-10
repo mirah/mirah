@@ -494,4 +494,9 @@ class MethodCompiler < BaseCompiler
     @arrays.compile(node)
     @builder.pop unless expression
   end
+  def visitRaise(node, expression)
+    compile(node.args(0))
+    recordPosition(node.position)
+    @builder.throwException
+  end
 end
