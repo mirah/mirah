@@ -51,6 +51,7 @@ class ClassCleanup < NodeScanner
       @static_init_nodes.each do |n|
         node = Node(n)
         node.parent.removeChild(node)
+        node.setParent(nil)  # TODO: ast bug
         nodes.add(node)
       end
       @typer.infer(nodes, false)

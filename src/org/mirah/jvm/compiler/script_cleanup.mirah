@@ -63,6 +63,7 @@ class ScriptCleanup < NodeScanner
         @main_code.each do |n|
           node = Node(n)
           node.parent.removeChild(node)
+          node.setParent(nil)  # TODO: ast bug
           main.body.add(node)
         end
         klass.body.add(main)
@@ -73,6 +74,7 @@ class ScriptCleanup < NodeScanner
         @methods.each do |n|
           node = Node(n)
           node.parent.removeChild(node)
+          node.setParent(nil)  # TODO: ast bug
           nodes.body.add(node)
         end
         klass.body.add(nodes)
