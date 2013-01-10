@@ -141,4 +141,8 @@ class ClassCleanup < NodeScanner
       @init_nodes.add(node)
     end
   end
+  
+  def enterMacroDefinition(node, arg)
+    false
+  end
 end

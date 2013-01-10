@@ -31,6 +31,7 @@ import org.mirah.typer.MethodType
 import org.mirah.typer.Typer
 import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
+import org.mirah.typer.UnreachableType
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.commons.Method
 
@@ -74,7 +75,9 @@ class BaseCompiler < SimpleNodeVisitor
   end
 
   def getInferredType(node:Node):JVMType
-    JVMType(@typer.getInferredType(node).resolve)
+    type = @typer.getInferredType(node).resolve
+    return nil if type.kind_of?(UnreachableType)
+    JVMType(type)
   rescue Exception => ex
     raise reportICE(ex, node.position)
   end
@@ -151,5 +154,9 @@ class BaseCompiler < SimpleNodeVisitor
   
   def findType(name:String):JVMType
     JVMType(@typer.type_system.get(nil, TypeRefImpl.new(name, false, false, nil)).resolve)
+  end
+  
+  def visitMacroDefinition(node, expression)
+    # ignore. It was already compiled
   end
 end

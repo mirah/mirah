@@ -21,6 +21,7 @@ interface JVMType < ResolvedType
 
   def isPrimitive:boolean; end
   def isEnum:boolean; end
+  def isInterface:boolean; end
 
   def isAnnotation:boolean; end
   def retention:String; end

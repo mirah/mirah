@@ -188,7 +188,11 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     end
     convertArgs(method.argumentTypes)
     recordPosition
-    @method.invokeVirtual(method.declaringClass.getAsmType, methodDescriptor(method))
+    if method.declaringClass.isInterface
+      @method.invokeInterface(method.declaringClass.getAsmType, methodDescriptor(method))
+    else
+      @method.invokeVirtual(method.declaringClass.getAsmType, methodDescriptor(method))
+    end
     convertResult(method.returnType, expression)
   end
   def visitStaticMethodCall(method:JVMMethod, expression:boolean)
