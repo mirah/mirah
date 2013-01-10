@@ -279,6 +279,7 @@ class MethodCompiler < BaseCompiler
   
   def visitReturn(node, expression)
     compile(node.value) unless isVoid
+    handleEnsures(node, MethodDefinition.class)
     @builder.returnValue
   end
   
@@ -469,6 +470,7 @@ class MethodCompiler < BaseCompiler
   
   def visitBreak(node, expression)
     if @loop
+      handleEnsures(node, Loop.class)
       @builder.goTo(@loop.getBreak)
     else
       reportError("Break outside of loop", node.position)
@@ -477,6 +479,7 @@ class MethodCompiler < BaseCompiler
   
   def visitRedo(node, expression)
     if @loop
+      handleEnsures(node, Loop.class)
       @builder.goTo(@loop.getRedo)
     else
       reportError("Redo outside of loop", node.position)
@@ -485,6 +488,7 @@ class MethodCompiler < BaseCompiler
   
   def visitNext(node, expression)
     if @loop
+      handleEnsures(node, Loop.class)
       @builder.goTo(@loop.getNext)
     else
       reportError("Next outside of loop", node.position)
@@ -535,6 +539,33 @@ class MethodCompiler < BaseCompiler
         visit(clause.body, expression)
         @builder.goTo(done)
       end
+      @builder.mark(done)
+    end
+  end
+  
+  def handleEnsures(node:Node, klass:Class):void
+    while node.parent
+      visit(Ensure(node).ensureClause, nil) if node.kind_of?(Ensure)
+      break if klass.isInstance(node)
+      node = node.parent
+    end
+  end
+  
+  def visitEnsure(node, expression)
+    start = @builder.mark
+    bodyEnd = @builder.newLabel
+    visit(node.body, expression)
+    @builder.mark(bodyEnd)
+    visit(node.ensureClause, nil)
+    
+    # If the body was empty, it can't throw any exceptions
+    # so we must not emit a try/catch.
+    unless start.getOffset == bodyEnd.getOffset
+      done = @builder.newLabel
+      @builder.goTo(done)
+      @builder.catchException(start, bodyEnd, nil)
+      visit(node.ensureClause, nil)
+      @builder.throwException
       @builder.mark(done)
     end
   end
