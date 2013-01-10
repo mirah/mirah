@@ -507,6 +507,12 @@ class MethodCompiler < BaseCompiler
     @builder.pop unless expression
   end
   
+  def visitHash(node, expression)
+    @hashes ||= HashCompiler.new(self, @builder)
+    @hashes.compile(node)
+    @builder.pop unless expression
+  end
+  
   def visitRaise(node, expression)
     compile(node.args(0))
     recordPosition(node.position)
