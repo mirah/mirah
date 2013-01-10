@@ -155,6 +155,12 @@ class MethodCompiler < BaseCompiler
       @builder.push(node.value ? 1 : 0)
     end
   end
+  def visitCharLiteral(node, expression)
+    if expression
+      recordPosition(node.position)
+      @builder.push(node.value)
+    end
+  end
   def visitSimpleString(node, expression)
     if expression
       recordPosition(node.position)
@@ -568,5 +574,8 @@ class MethodCompiler < BaseCompiler
       @builder.throwException
       @builder.mark(done)
     end
+  end
+  
+  def visitNoop(node, expression)
   end
 end
