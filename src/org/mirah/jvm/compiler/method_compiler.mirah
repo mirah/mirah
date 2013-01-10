@@ -202,24 +202,26 @@ class MethodCompiler < BaseCompiler
     end
   end
 
-  def visitLocalAssignment(local, expression)
-    visit(local.value, Boolean.TRUE)
-    @builder.dup if expression
-    name = local.name.identifier
+  def storeLocal(name:String, type:AsmType)
     index = @locals[name]
     argIndex = @args[name]
     if index.nil? && argIndex.nil?
       # TODO put variable name into debug info
-      type = getInferredType(local).getAsmType
       index = Integer.valueOf(@builder.newLocal(type))
       @locals[name] = index
     end
-    recordPosition(local.position)
     if index
       @builder.storeLocal(Integer(index).intValue)
     else
       @builder.storeArg(Integer(argIndex).intValue)
     end
+  end
+
+  def visitLocalAssignment(local, expression)
+    visit(local.value, Boolean.TRUE)
+    @builder.dup if expression
+    recordPosition(local.position)
+    storeLocal(local.name.identifier, getInferredType(local).getAsmType)
   end
   
   def visitFunctionalCall(call, expression)
@@ -400,7 +402,7 @@ class MethodCompiler < BaseCompiler
   def returnValue(mdef:MethodDefinition)
     body = mdef.body
     type = getInferredType(body)
-    unless isVoid || @returnType.assignableFrom(type)
+    unless isVoid || type.nil? || @returnType.assignableFrom(type)
       # TODO this error should be caught by the typer
       body_position = if body.size > 0
         body.get(body.size - 1).position
@@ -494,9 +496,46 @@ class MethodCompiler < BaseCompiler
     @arrays.compile(node)
     @builder.pop unless expression
   end
+  
   def visitRaise(node, expression)
     compile(node.args(0))
     recordPosition(node.position)
     @builder.throwException
+  end
+  
+  def visitRescue(node, expression)
+    start = @builder.mark
+    bodyEnd = @builder.newLabel
+    bodyIsExpression = if expression.nil? || node.elseClause.size == 0
+      nil
+    else
+      Boolean.TRUE
+    end
+    visit(node.body, bodyIsExpression)
+    @builder.mark(bodyEnd)
+    visit(node.elseClause, expression) if node.elseClause.size > 0
+    
+    # If the body was empty, it can't throw any exceptions
+    # so we must not emit a try/catch.
+    unless start.getOffset == bodyEnd.getOffset
+      done = @builder.newLabel
+      @builder.goTo(done)
+      node.clauses_size.times do |clauseIndex|
+        clause = node.clauses(clauseIndex)
+        clause.types_size.times do |typeIndex|
+          type = getInferredType(clause.types(typeIndex))
+          @builder.catchException(start, bodyEnd, type.getAsmType)
+        end
+        if clause.name
+          recordPosition(clause.name.position)
+          storeLocal(clause.name.identifier, AsmType.getType('Ljava/lang/Throwable;'))
+        else
+          @builder.pop
+        end
+        visit(clause.body, expression)
+        @builder.goTo(done)
+      end
+      @builder.mark(done)
+    end
   end
 end
