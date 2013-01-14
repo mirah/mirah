@@ -186,6 +186,7 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
                     :dest => build_dir
 #                    :options => ['-V']
                     )
+
   add_quote_macro                    
   cp Dir['src/org/mirah/macros/*.tpl'], "#{build_dir}/org/mirah/macros"
 
@@ -193,8 +194,6 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
   ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
     fileset :dir => build_dir
   end
-
-  rm_rf build_dir
 end
 
 
