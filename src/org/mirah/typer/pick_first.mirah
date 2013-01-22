@@ -35,12 +35,25 @@ class PickFirst < BaseTypeFuture
   # futureX and argX are passed to the listener when futureX is chosen.
   # If multiple futures resolve the one that occurs first in items is chosen.
   def initialize(items:List, listener:PickerListener)
+    initialize(items, TypeFuture(items.get(0)), listener)
+  end
+
+  def initialize(items:List, default:TypeFuture, listener:PickerListener)
     @picked = -1
     @listener = listener
+    @default = default
     items.size.times do |i|
       next if i % 2 != 0
       addItem(i, TypeFuture(items.get(i)), items.get(i + 1))
     end
+  end
+  
+  def resolve
+    unless isResolved
+      # We haven't resolved, so the default must be an error.
+      resolved(@default.resolve) 
+    end
+    super
   end
 
   def picked

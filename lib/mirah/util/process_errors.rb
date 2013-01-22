@@ -55,9 +55,15 @@ module Mirah
           type = type.resolve if type
           if (type && type.isError)
             @errors[type] ||= begin
-              if type.message.size == 1 && type.message[0].size == 1
+              if type.message.size == 1
                 m = type.message[0]
-                m << node rescue nil
+                if m.size == 1
+                  m << node rescue nil
+                elsif m.size == 2 && m[1] == nil
+                  m[1] = node.position rescue nil
+                end
+              elsif type.message.size == 0
+                type.message << ["Error", node.position]
               end
               type
             end

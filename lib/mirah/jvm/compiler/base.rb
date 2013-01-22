@@ -205,7 +205,7 @@ module Mirah
             name = "<clinit>"
           end
           arg_types = args.map { |arg| inferred_type(arg) }
-          return_type = inferred_type(node)
+          return_type = inferred_type(node).return_type
           exceptions = []  # TODO
 
           with :static => is_static, :current_scope => introduced_scope(node) do

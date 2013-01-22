@@ -83,7 +83,7 @@ module Mirah::JVM::Types
         #   puts "Unable to expand macro #{name.inspect} from #{klass} with #{call}"
         end
         if ast
-          body = Mirah::AST::NodeList.new(ast.position)
+          body = Mirah::AST::NodeList.new(ast.position.to_java(Mirah::AST::Position))
           # TODO scope
           # static_scope = typer.scoper.add_scope(body)
           # static_scope.parent = typer.scoper.get_scope(call)
@@ -151,7 +151,7 @@ module Mirah::JVM::Types
     def load_extensions(klass=nil)
       mirror = nil
       if klass
-        mirror = @type_system.get_mirror(klass.name)
+        mirror = @type_system.mirror_class(klass)
       elsif jvm_type
         mirror = jvm_type
       end

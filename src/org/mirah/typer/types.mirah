@@ -71,7 +71,13 @@ interface TypeSystem do
   #def getMethodType(target:ResolvedType, name:String, argTypes:List, position:Position):TypeFuture; end
 
   # Returns the MethodFuture for a method definition.
-  def getMethodDefType(target:TypeFuture, name:String, argTypes:List):MethodFuture; end
+  # argTypes is a list of TypeFutures
+  # returnType is nil if there is no declared return type
+  def getMethodDefType(target:TypeFuture,
+                       name:String,
+                       argTypes:List,
+                       returnType:TypeFuture,
+                       position:Position):MethodFuture; end
 
   def getFieldType(target:TypeFuture, name:String, position:Position):AssignableTypeFuture; end
 

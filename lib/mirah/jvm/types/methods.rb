@@ -84,6 +84,7 @@ module Mirah::JVM::Types
 
   class Macro
     java_import 'org.mirah.typer.InlineCode'
+    java_import 'org.mirah.typer.NodeBuilder'
     attr_reader :name, :argument_types, :return_type
 
     def initialize(klass, name, args, &block)
@@ -92,7 +93,7 @@ module Mirah::JVM::Types
       @name = name
       @argument_types = args
       raise ArgumentError unless args.all?
-      @return_type = InlineCode.new(&block)
+      @return_type = InlineCode.new(block.to_java(NodeBuilder))
     end
 
     def declaring_class

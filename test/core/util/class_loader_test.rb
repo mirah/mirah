@@ -16,10 +16,9 @@ class ClassLoaderTest < Test::Unit::TestCase
   def test_mirah_class_loader_w_missing_class_raises_class_not_found
     class_loader = Mirah::Util::ClassLoader.new nil, {}
 
-    ex = assert_raise NativeException do
+    ex = assert_raise java.lang.ClassNotFoundException do
       class_loader.find_class 'org.doesnt.exist.Class'
     end
-    assert_equal java.lang.ClassNotFoundException, ex.cause.class
   end
 
 

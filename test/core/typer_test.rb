@@ -155,7 +155,7 @@ class TyperTest < Test::Unit::TestCase
 
 #    assert_equal(@types.getNullType, @types.getMethodType(type, 'foo', [@types.getStringType.resolve]).resolve)
     assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a', nil).resolve)
-    assert_equal(@types.getNullType, inferred_type(mdef))
+    assert_equal(@types.getNullType, inferred_type(mdef).returnType)
     assert_equal(@types.getStringType, inferred_type(mdef.arguments.required.get(0)))
 
     ast1 = parse("#{def_foo}(a:String); a; end")
@@ -166,7 +166,7 @@ class TyperTest < Test::Unit::TestCase
 
     # assert_equal(@types.getStringType, @types.getMethodType(type, 'foo', [@types.getStringType.resolve]).resolve)
     assert_equal(@types.getStringType, @types.getLocalType(inner_scope, 'a', nil).resolve)
-    assert_equal(@types.getStringType, inferred_type(mdef))
+    assert_equal(@types.getStringType, inferred_type(mdef).returnType)
     assert_equal(@types.getStringType, inferred_type(mdef.arguments.required.get(0)))
   end
 
@@ -180,8 +180,8 @@ class TyperTest < Test::Unit::TestCase
     infer(ast)
     ast = ast.body
     self_type = @scopes.getScope(ast.get(0)).selfType
-    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(0)))
-    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(0)).returnType)
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)).returnType)
 
     # Reverse the order, ensure deferred inference succeeds
     ast = parse("def baz; bar(1, 'x'); end; def bar(a:Int, b:String); 1.0; end")
@@ -192,8 +192,8 @@ class TyperTest < Test::Unit::TestCase
 
     assert_no_errors(typer, ast)
 
-    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(0)))
-    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(0)).returnType)
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)).returnType)
 
     # modify bar call to have bogus types, ensure resolution fails
     ast = parse("def baz; bar(1, 1); end; def bar(a:Int, b:String); 1.0; end")
@@ -203,7 +203,7 @@ class TyperTest < Test::Unit::TestCase
     ast = ast.body
 
     assert_equal(":error", inferred_type(ast.get(0)).name)
-    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast.get(1)).returnType)
   end
 
   def test_if
