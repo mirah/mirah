@@ -30,7 +30,7 @@ class SpecialType; implements ResolvedType, TypeFuture
     true
   end
   def resolve
-    self
+    ResolvedType(self)
   end
   def name
     @name
