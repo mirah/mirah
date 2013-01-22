@@ -195,8 +195,6 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
   ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
     fileset :dir => build_dir
   end
-
-  rm_rf build_dir
 end
 
 
