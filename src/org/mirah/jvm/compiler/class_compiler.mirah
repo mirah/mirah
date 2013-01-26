@@ -16,6 +16,8 @@
 package org.mirah.jvm.compiler
 
 import java.io.File
+import java.util.Collections
+import java.util.LinkedList
 import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.util.Context
@@ -23,6 +25,7 @@ import org.mirah.jvm.types.JVMType
 
 import org.jruby.org.objectweb.asm.ClassWriter
 import org.jruby.org.objectweb.asm.Opcodes
+import org.jruby.org.objectweb.asm.commons.Method
 
 class ClassCompiler < BaseCompiler
   def self.initialize:void
@@ -32,11 +35,18 @@ class ClassCompiler < BaseCompiler
     super(context)
     @classdef = classdef
     @fields = {}
+    @innerClasses = LinkedList.new
+    @type = getInferredType(@classdef)
   end
+  def initialize(context:Context, classdef:ClassDefinition, outerClass:JVMType, method:Method)
+    initialize(context, classdef)
+    @outerClass = outerClass
+    @enclosingMethod = method
+  end
+  
   
   def compile:void
     @@log.info "Compiling class #{@classdef.name.identifier}"
-    @type = getInferredType(@classdef)
     startClass
     declareFields
     visit(@classdef.body, nil)
@@ -55,7 +65,7 @@ class ClassCompiler < BaseCompiler
     isStatic = @static || node.kind_of?(StaticMethodDefinition)
     constructor = isStatic && "initialize".equals(node.name.identifier)
     name = constructor ? "<clinit>" : node.name.identifier.replaceFirst("=$", "_set")
-    method = MethodCompiler.new(context, @type, methodFlags(node, isStatic), name)
+    method = MethodCompiler.new(self, @type, methodFlags(node, isStatic), name)
     method.compile(@classwriter, node)
   end
   
@@ -64,8 +74,20 @@ class ClassCompiler < BaseCompiler
   end
   
   def visitConstructorDefinition(node, expression)
-    method = MethodCompiler.new(context, @type, Opcodes.ACC_PUBLIC, "<init>")
+    method = MethodCompiler.new(self, @type, Opcodes.ACC_PUBLIC, "<init>")
     method.compile(@classwriter, node)
+  end
+  
+  def visitClassDefinition(node, expression)
+    compileInnerClass(node, nil)
+  end
+  
+  def compileInnerClass(node:ClassDefinition, method:Method)
+    compiler = ClassCompiler.new(context, node, @type, method)
+    @innerClasses.add(compiler)
+    # TODO only supporting anonymous inner classes for now.
+    @classwriter.visitInnerClass(compiler.internal_name, nil, nil, 0)
+    compiler.compile
   end
   
   def getBytes:byte[]
@@ -79,6 +101,11 @@ class ClassCompiler < BaseCompiler
     @classwriter.visit(Opcodes.V1_6, flags, internal_name, nil, superclass, interfaces)
     filename = self.filename
     @classwriter.visitSource(filename, nil) if filename
+    if @outerClass
+      method = @enclosingMethod.getName if @enclosingMethod
+      desc = @enclosingMethod.getDescriptor if @enclosingMethod
+      @classwriter.visitOuterClass(@outerClass.internal_name, method, desc)
+    end
     context[AnnotationCompiler].compile(@classdef.annotations, @classwriter)
   end
   
@@ -135,5 +162,9 @@ class ClassCompiler < BaseCompiler
       array[i] = getInferredType(node).internal_name
     end
     array
+  end
+  
+  def innerClasses
+    Collections.unmodifiableCollection(@innerClasses)
   end
 end

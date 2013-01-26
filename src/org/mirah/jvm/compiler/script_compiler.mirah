@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.compiler
 
-import java.util.ArrayList
+import java.util.LinkedList
 import java.util.logging.Logger
 import org.mirah.util.Context
 
@@ -25,7 +25,7 @@ class ScriptCompiler < BaseCompiler
   end
   def initialize(context:Context)
     super(context)
-    @classes = ArrayList.new
+    @classes = LinkedList.new
   end
   
   def visitScript(script, expression)
@@ -45,9 +45,10 @@ class ScriptCompiler < BaseCompiler
   end
   
   def generate(consumer:BytecodeConsumer)
-    @classes.each do |c|
-      compiler = ClassCompiler(c)
+    until @classes.isEmpty
+      compiler = ClassCompiler(@classes.removeFirst)
       consumer.consumeClass(compiler.internal_name, compiler.getBytes)
+      @classes.addAll(compiler.innerClasses)
     end
   end
 end

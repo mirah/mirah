@@ -30,13 +30,14 @@ class MethodCompiler < BaseCompiler
   def self.initialize:void
     @@log = Logger.getLogger(MethodCompiler.class.getName)
   end
-  def initialize(context:Context, klass:JVMType, flags:int, name:String)
-    super(context)
+  def initialize(compiler:ClassCompiler, klass:JVMType, flags:int, name:String)
+    super(compiler.context)
     @flags = flags
     @name = name
     @locals = {}
     @args = {}
     @klass = klass
+    @classCompiler = compiler
   end
   
   def isVoid
@@ -585,5 +586,13 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitNoop(node, expression)
+  end
+  
+  def visitClassDefinition(node, expression)
+    @classCompiler.compileInnerClass(node, @descriptor)
+  end
+  
+  def visitClosureDefinition(node, exporession)
+    @classCompiler.compileInnerClass(node, @descriptor)
   end
 end
