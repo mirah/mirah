@@ -186,8 +186,7 @@ class MethodCompiler < BaseCompiler
     end
     recordPosition(node.position)
     method = @superclass.getMethod(@name, paramTypes)
-    # This is a poorly named method, really it's invokeSpecial
-    @builder.invokeConstructor(@superclass.getAsmType, methodDescriptor(method))
+    @builder.invokeSpecial(@superclass.getAsmType, methodDescriptor(method))
     if expression && isVoid
       @builder.loadThis
     elsif expression.nil? && !isVoid

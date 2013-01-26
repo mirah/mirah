@@ -92,4 +92,8 @@ class Bytecode < GeneratorAdapter
       end
     end
   end
+  
+  def invokeSpecial(type:Type, method:Method):void
+    invokeConstructor(type, method)
+  end
 end

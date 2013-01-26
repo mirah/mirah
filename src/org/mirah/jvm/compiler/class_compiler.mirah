@@ -42,8 +42,7 @@ class ClassCompiler < BaseCompiler
     initialize(context, classdef)
     @outerClass = outerClass
     @enclosingMethod = method
-  end
-  
+  end  
   
   def compile:void
     @@log.info "Compiling class #{@classdef.name.identifier}"
