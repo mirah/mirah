@@ -118,6 +118,10 @@ class BaseCompiler < SimpleNodeVisitor
     @scoper.getScope(node)
   end
 
+  def getIntroducedScope(node:Node):Scope
+    @scoper.getIntroducedScope(node)
+  end
+
   def defaultNode(node, arg)
     reportError("#{getClass.getSimpleName} can't compile node #{node.getClass.getSimpleName}",
                 node.position)

@@ -50,6 +50,7 @@ class ClassCompiler < BaseCompiler
     declareFields
     visit(@classdef.body, nil)
     @classwriter.visitEnd
+    @@log.fine "Finished class #{@classdef.name.identifier}"
   end
   
   def visitClassAppendSelf(node, expression)

@@ -91,12 +91,14 @@ class ClassCleanup < NodeScanner
     false
   end
   def enterMethodDefinition(node, arg)
+    MethodCleanup.new(@context, node).clean
     false
   end
   def enterStaticMethodDefinition(node, arg)
     if "initialize".equals(node.name.identifier)
       setCinit(node)
     end
+    MethodCleanup.new(@context, node).clean
     false
   end
   def isStatic(node:Node)
@@ -112,6 +114,7 @@ class ClassCleanup < NodeScanner
   end
   def enterConstructorDefinition(node, arg)
     @constructors.add(node)
+    MethodCleanup.new(@context, node).clean
     false
   end
   

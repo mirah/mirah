@@ -67,6 +67,7 @@ class ScriptCleanup < NodeScanner
           main.body.add(node)
         end
         klass.body.add(main)
+        @typer.scoper.copyScopeFrom(script, main)
         @typer.infer(main, false)
       end
       unless @methods.isEmpty
@@ -107,6 +108,11 @@ class ScriptCleanup < NodeScanner
   def enterClassDefinition(node, arg)
     type = @typer.infer(node).resolve
     @classes[type] = node
+    ClassCleanup.new(@context, node).clean
+    false
+  end
+  def enterClosureDefinition(node, arg)
+    @main_code.add(node)
     ClassCleanup.new(@context, node).clean
     false
   end

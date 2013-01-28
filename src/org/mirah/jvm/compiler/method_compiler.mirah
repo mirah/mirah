@@ -22,6 +22,7 @@ import org.mirah.jvm.types.JVMType
 import org.jruby.org.objectweb.asm.*
 import org.jruby.org.objectweb.asm.Type as AsmType
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
+import org.jruby.org.objectweb.asm.commons.Method as AsmMethod
 
 
 import java.util.List
@@ -53,10 +54,12 @@ class MethodCompiler < BaseCompiler
   end
   
   def compile(cv:ClassVisitor, mdef:MethodDefinition):void
+    @@log.fine "Compiling method #{mdef.name.identifier}"
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
     isExpression = isVoid() ? nil : Boolean.TRUE
     if (@flags & Opcodes.ACC_ABSTRACT) == 0
+      prepareBinding(mdef)
       visit(mdef.body, isExpression)
       body_position = if mdef.body_size > 0
         mdef.body(mdef.body_size - 1).position
@@ -66,6 +69,7 @@ class MethodCompiler < BaseCompiler
       returnValue(mdef)
     end
     @builder.endMethod
+    @@log.fine "Finished method #{mdef.name.identifier}"
   end
 
   def compile(node:Node)
@@ -106,6 +110,31 @@ class MethodCompiler < BaseCompiler
         typer.type_system.get(nil, TypeRefImpl.new("java.lang.Object", false, false, nil)).resolve)
     collectArgNames(mdef)
     Bytecode.new(@flags, @descriptor, cv)
+  end
+  
+  def prepareBinding(mdef:MethodDefinition):void
+    scope = getIntroducedScope(mdef)
+    type = JVMType(scope.binding_type)
+    if type
+      # Figure out if we need to create a binding or if it already exists.
+      # If this method is inside a ClosureDefinition, the binding is stored
+      # in a field. Otherwise, this is the method enclosing the closure,
+      # and it needs to create the binding.
+      shouldCreateBinding = mdef.findAncestor(ClosureDefinition.class).nil?
+      if shouldCreateBinding
+        @builder.newInstance(type.getAsmType)
+        @builder.dup
+        args = AsmType[0]
+        @builder.invokeConstructor(type.getAsmType, AsmMethod.new("<init>", AsmType.getType("V"), args))
+      else
+        @builder.loadThis
+        @builder.getField(@selfType.getAsmType, 'binding', type.getAsmType)
+      end
+      # TODO: Save any captured method arguments into the binding
+      @binding = @builder.newLocal(type.getAsmType)
+      @@log.info("binding index = #{@binding}")
+      @builder.storeLocal(@binding, type.getAsmType)
+    end
   end
   
   def recordPosition(position:Position)
@@ -208,7 +237,7 @@ class MethodCompiler < BaseCompiler
     end
   end
 
-  def storeLocal(name:String, type:AsmType)
+  def storeLocal(name:String, type:AsmType):void
     index = @locals[name]
     argIndex = @args[name]
     if index.nil? && argIndex.nil?
@@ -593,5 +622,10 @@ class MethodCompiler < BaseCompiler
   
   def visitClosureDefinition(node, exporession)
     @classCompiler.compileInnerClass(node, @descriptor)
+  end
+  
+  def visitBindingReference(node, expression)
+    @@log.info("loading binding #{@binding}")
+    @builder.loadLocal(@binding) if expression
   end
 end
