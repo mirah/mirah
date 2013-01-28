@@ -132,7 +132,6 @@ class MethodCompiler < BaseCompiler
       end
       # TODO: Save any captured method arguments into the binding
       @binding = @builder.newLocal(type.getAsmType)
-      @@log.info("binding index = #{@binding}")
       @builder.storeLocal(@binding, type.getAsmType)
     end
   end
@@ -553,7 +552,7 @@ class MethodCompiler < BaseCompiler
   def visitRescue(node, expression)
     start = @builder.mark
     bodyEnd = @builder.newLabel
-    bodyIsExpression = if expression.nil? || node.elseClause.size == 0
+    bodyIsExpression = if expression.nil? || node.elseClause.size > 0
       nil
     else
       Boolean.TRUE
@@ -579,7 +578,7 @@ class MethodCompiler < BaseCompiler
         else
           @builder.pop
         end
-        visit(clause.body, expression)
+        compileBody(clause.body, expression, getInferredType(clause.body))
         @builder.goTo(done)
       end
       @builder.mark(done)
@@ -625,7 +624,6 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitBindingReference(node, expression)
-    @@log.info("loading binding #{@binding}")
     @builder.loadLocal(@binding) if expression
   end
 end
