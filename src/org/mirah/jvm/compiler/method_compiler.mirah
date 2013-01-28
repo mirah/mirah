@@ -60,7 +60,7 @@ class MethodCompiler < BaseCompiler
     isExpression = isVoid() ? nil : Boolean.TRUE
     if (@flags & Opcodes.ACC_ABSTRACT) == 0
       prepareBinding(mdef)
-      visit(mdef.body, isExpression)
+      compileBody(mdef.body, isExpression, @returnType)
       body_position = if mdef.body_size > 0
         mdef.body(mdef.body_size - 1).position
       else
