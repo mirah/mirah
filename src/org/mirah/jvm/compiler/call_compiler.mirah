@@ -35,25 +35,26 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void
     @@log = Logger.getLogger(ClassCompiler.class.getName)
   end
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:NodeList)
-    initialize(compiler, bytecode, position, target, name)
+  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:NodeList, returnType:JVMType)
+    initialize(compiler, bytecode, position, target, name, returnType)
     @args = Node[args.size]
     args.size.times {|i| @args[i] = args.get(i)}
   end
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:List)
-    initialize(compiler, bytecode, position, target, name)
+  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:List, returnType:JVMType)
+    initialize(compiler, bytecode, position, target, name, returnType)
     @args = Node[args.size]
     args.toArray(@args)
   end
   
   # TODO: private
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String)
+  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, returnType:JVMType)
     super(compiler.context)
     @compiler = compiler
     @method = bytecode
     @position = position
     @target = target
     @name = name
+    @returnType = returnType
   end
   
   def compile(expression:boolean):void
@@ -89,6 +90,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
 
   def convertResult(returnedType:JVMType, expression:boolean):void
     if expression
+      @method.convertValue(returnedType, @returnType)
       # TODO casts for generic method calls
     else
       @method.pop(returnedType)

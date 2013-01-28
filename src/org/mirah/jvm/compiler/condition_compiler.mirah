@@ -93,7 +93,7 @@ class ConditionCompiler < BaseCompiler
   end
   
   def visitCall(node, expression)
-    call = CallCompiler.new(@method, @bytecode, node.position, node.target, node.name.identifier, node.parameters)
+    call = CallCompiler.new(@method, @bytecode, node.position, node.target, node.name.identifier, node.parameters, getInferredType(node))
     member = call.getMethod
     kind = member.kind
     if MemberKind.COMPARISON_OP == kind

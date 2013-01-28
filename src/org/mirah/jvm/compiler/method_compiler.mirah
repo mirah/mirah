@@ -259,12 +259,12 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitFunctionalCall(call, expression)
-    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters)
+    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters, getInferredType(call))
     compiler.compile(expression != nil)
   end
   
   def visitCall(call, expression)
-    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters)
+    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters, getInferredType(call))
     compiler.compile(expression != nil)
   end
   
@@ -383,7 +383,7 @@ class MethodCompiler < BaseCompiler
   def visitAttrAssign(node, expression)
     compiler = CallCompiler.new(
         self, @builder, node.position, node.target,
-        "#{node.name.identifier}_set", [node.value])
+        "#{node.name.identifier}_set", [node.value], getInferredType(node.value))
     compiler.compile(expression != nil)
   end
   
