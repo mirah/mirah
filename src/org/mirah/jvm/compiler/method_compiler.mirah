@@ -60,6 +60,7 @@ class MethodCompiler < BaseCompiler
     isExpression = isVoid() ? nil : Boolean.TRUE
     if (@flags & Opcodes.ACC_ABSTRACT) == 0
       prepareBinding(mdef)
+      @lookingForDelegate = mdef.kind_of?(ConstructorDefinition)
       compileBody(mdef.body, isExpression, @returnType)
       body_position = if mdef.body_size > 0
         mdef.body(mdef.body_size - 1).position
@@ -205,6 +206,7 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitSuper(node, expression)
+    @lookingForDelegate = false
     @builder.loadThis
     paramTypes = LinkedList.new
     node.parameters_size.times do |i|
@@ -259,7 +261,14 @@ class MethodCompiler < BaseCompiler
   end
   
   def visitFunctionalCall(call, expression)
-    compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters, getInferredType(call))
+    name = call.name.identifier
+    # if this is the first line of a constructor, a call to 'initialize' is really a call to another
+    # constructor.
+    if @lookingForDelegate && name.equals("initialize")
+      name = "<init>"
+    end
+    @lookingForDelegate = false
+    compiler = CallCompiler.new(self, @builder, call.position, call.target, name, call.parameters, getInferredType(call))
     compiler.compile(expression != nil)
   end
   

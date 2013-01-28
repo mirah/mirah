@@ -215,9 +215,14 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     asmArgs.length.times do |i|
       asmArgs[i] = JVMType(argTypes[i]).getAsmType
     end
-
-    @method.newInstance(klass)
-    @method.dup if expression
+    
+    isDelegateCall = !expression && @target.kind_of?(ImplicitSelf) && @target.findAncestor(ConstructorDefinition.class) != nil
+    if isDelegateCall
+      @method.loadThis
+    else
+      @method.newInstance(klass)
+      @method.dup if expression
+    end
     convertArgs(argTypes)
     recordPosition
     desc = Method.new("<init>", Type.getType("V"), asmArgs)

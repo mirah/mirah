@@ -36,7 +36,7 @@ class ConstructorCleanup < SimpleNodeVisitor
   
   def clean(constructor:ConstructorDefinition, extra_init:NodeList):void
     @@log.log(Level.FINER, "Before cleanup {0}", AstFormatter.new(constructor))
-    found_delegate = constructor.accept(self, extra_init)
+    found_delegate = constructor.body.accept(self, extra_init)
     @@log.finest("found_delegate: #{found_delegate}")
     unless Boolean.TRUE.equals(found_delegate)
       delegate = Super.new(constructor.name.position, Collections.emptyList, nil)
