@@ -73,10 +73,11 @@ class ScriptCleanup < NodeScanner
       unless @methods.isEmpty
         nodes = @parser.quote { class << self; end }
         @methods.each do |n|
-          node = Node(n)
-          node.parent.removeChild(node)
-          node.setParent(nil)  # TODO: ast bug
-          nodes.body.add(node)
+          mdef = MethodDefinition(n)
+          MethodCleanup.new(@context, mdef).clean
+          mdef.parent.removeChild(mdef)
+          mdef.setParent(nil)  # TODO: ast bug
+          nodes.body.add(mdef)
         end
         klass.body.add(nodes)
         @typer.infer(nodes, false)
