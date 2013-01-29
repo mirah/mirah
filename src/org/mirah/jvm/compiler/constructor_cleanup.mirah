@@ -53,7 +53,12 @@ class ConstructorCleanup < SimpleNodeVisitor
   
   # The delegate constructor call must be first, but it could be inside a NodeList or an Ensure/Rescue.
   def visitNodeList(node, arg)
-    node.get(0).accept(self, arg) if node.size > 0
+    node.size.times do |i|
+      child = node.get(i)
+      unless child.kind_of?(ClassDefinition)
+        return node.get(0).accept(self, arg)
+      end
+    end
   end
   # Note: I'm not sure if java allows these:
   def visitEnsure(node, arg)
