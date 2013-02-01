@@ -185,8 +185,10 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def visitMethodCall(method:JVMMethod, expression:boolean)
     isVoid = method.returnType.getAsmType.getDescriptor.equals('V')
     compile(@target)
+    returnType = method.returnType
     if expression && isVoid
       @method.dup
+      returnType = getInferredType(@target)
     end
     convertArgs(method.argumentTypes)
     recordPosition
@@ -195,7 +197,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     else
       @method.invokeVirtual(method.declaringClass.getAsmType, methodDescriptor(method))
     end
-    convertResult(method.returnType, expression)
+    convertResult(returnType, expression)
   end
   def visitStaticMethodCall(method:JVMMethod, expression:boolean)
     convertArgs(method.argumentTypes)
