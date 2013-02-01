@@ -50,7 +50,7 @@ module Mirah
       rescue java.lang.UnsupportedOperationException => ex
         raise MirahError.new(ex.message)
       rescue java.lang.Throwable => ex
-        ex.cause.printStackTrace
+        ex.cause.printStackTrace if ex.cause
         raise ex
       end
     end

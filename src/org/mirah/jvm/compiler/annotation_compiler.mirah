@@ -73,9 +73,18 @@ class AnnotationCompiler < BaseCompiler
     compile(annotations, MethodAnnotationFactory.new(visitor))
   end
 
+  def compile(annotations:AnnotationList, visitor:FieldVisitor):void
+    compile(annotations, FieldAnnotationFactory.new(visitor))
+  end
+
   def compile(annotations:AnnotationList, factory:AnnotationVisitorFactory):void
     annotations.size.times do |i|
       anno = annotations.get(i)
+      
+      # FIXME these classes aren't actually on the classpath, and probably shouldn't be.
+      # They are SOURCE retention annotations used only by the compiler.
+      next if anno.type.typeref.name.startsWith("org.mirah.jvm.")
+      
       type = getInferredType(anno)
       unless type.isAnnotation
         reportError("#{type.name} is not an annotation", anno.position)

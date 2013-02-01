@@ -82,6 +82,9 @@ class ScriptCleanup < NodeScanner
         klass.body.add(nodes)
         @typer.infer(nodes, false)
       end
+      if @generatedClass
+        ClassCleanup.new(@context, klass).clean
+      end
     end
     @@log.log(Level.FINE, "After cleanup:\n{0}", AstFormatter.new(script))
     script
@@ -143,6 +146,7 @@ class ScriptCleanup < NodeScanner
       klass.position = script.position
       script.body.insert(0, klass)
       @typer.infer(klass, false)
+      @generatedClass = true
     end
     ClassDefinition(klass)
   end

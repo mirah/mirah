@@ -19,6 +19,7 @@ import java.util.Collections
 import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.*
+import org.mirah.jvm.types.JVMType
 import org.mirah.typer.Typer
 import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.Context
@@ -38,6 +39,7 @@ class ClassCleanup < NodeScanner
     @static_init_nodes = ArrayList.new
     @init_nodes = ArrayList.new
     @constructors = ArrayList.new
+    @field_annotations = AnnotationCollector.new(context)
   end
   def clean:void
     scan(@klass.body, nil)
@@ -72,6 +74,7 @@ class ClassCleanup < NodeScanner
         cleanup.clean(ConstructorDefinition(n), init)
       end
     end
+    declareFields
   end
   def add_default_constructor
     constructor = @parser.quote { def initialize; end }
@@ -80,6 +83,32 @@ class ClassCleanup < NodeScanner
     @typer.infer(constructor)
     @constructors.add(constructor)
   end
+  
+  def declareFields:void
+    return if @found_field_declarations
+    type = JVMType(@typer.getInferredType(@klass).resolve)
+    type.getDeclaredFields.each do |f|
+      name = f.name
+      annotations = @field_annotations.getAnnotations(name) || AnnotationList.new
+      isStatic = type.hasStaticField(f.name)
+      flags = Array.new([])
+      if isStatic
+        flags.values.add(SimpleString.new("STATIC"))
+      end
+      modifiers = Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+        HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE')),
+        HashEntry.new(SimpleString.new('flags'), flags)
+        ])
+      annotations.add(modifiers)
+      decl = FieldDeclaration.new(SimpleString.new(name), SimpleString.new(f.returnType.name), [])
+      decl.isStatic = isStatic
+      decl.annotations = annotations
+      @klass.body.add(decl)
+      @typer.infer(modifiers)
+      @typer.infer(decl)
+    end
+  end
+  
   def error(message:String, position:Position)
     @context[DiagnosticListener].report(MirahDiagnostic.error(position, message))
   end
@@ -96,6 +125,7 @@ class ClassCleanup < NodeScanner
   end
   def enterStaticMethodDefinition(node, arg)
     if "initialize".equals(node.name.identifier)
+      @field_annotations.collect(node.body)
       setCinit(node)
     end
     MethodCleanup.new(@context, node).clean
@@ -114,6 +144,7 @@ class ClassCleanup < NodeScanner
   end
   def enterConstructorDefinition(node, arg)
     @constructors.add(node)
+    @field_annotations.collect(node.body)
     MethodCleanup.new(@context, node).clean
     false
   end
@@ -139,13 +170,18 @@ class ClassCleanup < NodeScanner
     false
   end
   def enterFieldAssign(node, arg)
+    @field_annotations.collect(node)
     if node.isStatic || isStatic(node)
       @static_init_nodes.add(node)
     else
       @init_nodes.add(node)
     end
   end
-  
+  def enterFieldDeclaration(node, arg)
+    # We've already cleaned this class, don't add more field decls.
+    @found_field_declarations = true
+    false
+  end
   def enterMacroDefinition(node, arg)
     false
   end

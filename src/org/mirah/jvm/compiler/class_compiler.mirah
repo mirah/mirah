@@ -47,7 +47,6 @@ class ClassCompiler < BaseCompiler
   def compile:void
     @@log.info "Compiling class #{@classdef.name.identifier}"
     startClass
-    declareFields
     visit(@classdef.body, nil)
     @classwriter.visitEnd
     @@log.fine "Finished class #{@classdef.name.identifier}"
@@ -109,15 +108,11 @@ class ClassCompiler < BaseCompiler
     context[AnnotationCompiler].compile(@classdef.annotations, @classwriter)
   end
   
-  def declareFields
-    @type.getDeclaredFields.each do |f|
-      isStatic = @type.hasStaticField(f.name)
-      flags = Opcodes.ACC_PUBLIC
-      flags |= Opcodes.ACC_STATIC if isStatic
-      fv = @classwriter.visitField(flags, f.name, f.returnType.getAsmType.getDescriptor, nil, nil)
-      # TODO field annotations
-      fv.visitEnd
-    end
+  def visitFieldDeclaration(node, expression)
+    flags = calculateFlagsFromAnnotations(node.annotations)
+    fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, nil)
+    context[AnnotationCompiler].compile(node.annotations, fv)
+    fv.visitEnd
   end
   
   def flags
