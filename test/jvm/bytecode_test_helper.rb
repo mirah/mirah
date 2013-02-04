@@ -40,7 +40,6 @@ module JVMCompiler
   def clean_tmp_files
     return unless @tmp_classes
     File.unlink(*@tmp_classes)
-    @tmp_classes.clear
   end
 
   def compiler_type
@@ -152,7 +151,6 @@ class Test::Unit::TestCase
 
   def setup
     @tmp_classes = []
-
   end
 
   def cleanup
