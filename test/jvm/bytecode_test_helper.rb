@@ -27,17 +27,6 @@ module JVMCompiler
     state
   end
 
-
-#  def create_transformer
-#    state = Mirah::Util::CompilationState.new
-#    state.save_extensions = false
-#
-#    transformer = Mirah::Transform::Transformer.new(state)
-#    Java::MirahImpl::Builtin.initialize_builtins(transformer)
-#    transformer
-#  end
-
-
   def clear_tmp_files
     return unless @tmp_classes
 
@@ -65,8 +54,6 @@ module JVMCompiler
 
    generator = Mirah::Generator.new(state, compiler_type, false, false)
    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
-
-   #Java::MirahImpl::Builtin.initialize_builtins(transformer)
 
    ast = [AST.parse(code, name, true, transformer)]
 
@@ -98,12 +85,6 @@ module JVMCompiler
     end
   end
 
-  #def compile_ast  ast
-  #  compiler = create_compiler
-  #  compiler.compile(ast)
-  #  compiler
-  #end
-
   def compile(code, name = tmp_script_name)
     clear_tmp_files
 
@@ -111,8 +92,6 @@ module JVMCompiler
 
     generator = Mirah::Generator.new(state, compiler_type, false, false)
     transformer = Mirah::Transform::Transformer.new(state, generator.typer)
-
-    #Java::MirahImpl::Builtin.initialize_builtins(transformer)
 
     ast = [AST.parse(code, name, true, transformer)]
 
