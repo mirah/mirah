@@ -460,6 +460,10 @@ module Mirah::JVM::Types
     def abstract?
       @declaring_class.interface?
     end
+
+    def varargs?
+      false
+    end
   end
 
   class Type
