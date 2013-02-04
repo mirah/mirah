@@ -127,11 +127,19 @@ class MethodCompiler < BaseCompiler
         @builder.dup
         args = AsmType[0]
         @builder.invokeConstructor(type.getAsmType, AsmMethod.new("<init>", AsmType.getType("V"), args))
+        @args.keySet.each do |name|
+          # Save any captured method arguments into the binding
+          if scope.isCaptured(name)
+            localType = JVMType(typer.type_system.getLocalType(scope, name, mdef.position).resolve)
+            @builder.dup
+            @builder.loadArg(@args[name].intValue)
+            @builder.putField(type.getAsmType, name, localType.getAsmType)
+          end
+        end
       else
         @builder.loadThis
         @builder.getField(@selfType.getAsmType, 'binding', type.getAsmType)
       end
-      # TODO: Save any captured method arguments into the binding
       @bindingType = type
       @binding = @builder.newLocal(type.getAsmType)
       @builder.storeLocal(@binding, type.getAsmType)
