@@ -132,6 +132,7 @@ class MethodCompiler < BaseCompiler
         @builder.getField(@selfType.getAsmType, 'binding', type.getAsmType)
       end
       # TODO: Save any captured method arguments into the binding
+      @bindingType = type
       @binding = @builder.newLocal(type.getAsmType)
       @builder.storeLocal(@binding, type.getAsmType)
     end
@@ -228,12 +229,17 @@ class MethodCompiler < BaseCompiler
     if expression
       recordPosition(local.position)
       name = local.name.identifier
-      index = @locals[name]
-      if index
-        @builder.loadLocal(Integer(index).intValue)
+      if @bindingType != nil && getScope(local).isCaptured(name)
+        @builder.loadLocal(@binding)
+        @builder.getField(@bindingType.getAsmType, name, getInferredType(local).getAsmType)
       else
-        index = @args[name]
-        @builder.loadArg(Integer(index).intValue)
+        index = @locals[name]
+        if index
+          @builder.loadLocal(Integer(index).intValue)
+        else
+          index = @args[name]
+          @builder.loadArg(Integer(index).intValue)
+        end
       end
     end
   end
@@ -254,10 +260,31 @@ class MethodCompiler < BaseCompiler
   end
 
   def visitLocalAssignment(local, expression)
+    name = local.name.identifier
+    isCaptured = @bindingType != nil && getScope(local).isCaptured(name)
+
+    if isCaptured
+      @builder.loadLocal(@binding)
+    end
+
     visit(local.value, Boolean.TRUE)
-    @builder.dup if expression
+
+    if expression
+      if isCaptured
+        @builder.dupX1
+      else
+        @builder.dup
+      end
+    end
+    
     recordPosition(local.position)
-    storeLocal(local.name.identifier, getInferredType(local).getAsmType)
+    type = JVMType(typer.type_system.getLocalType(getScope(local), name, local.position).resolve)
+
+    if isCaptured
+      @builder.putField(@bindingType.getAsmType, name, type.getAsmType)
+    else
+      storeLocal(name, type.getAsmType)
+    end
   end
   
   def visitFunctionalCall(call, expression)

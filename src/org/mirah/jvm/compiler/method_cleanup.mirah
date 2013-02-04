@@ -17,11 +17,15 @@ package org.mirah.jvm.compiler
 
 import mirah.lang.ast.*
 import org.mirah.util.Context
+import org.mirah.typer.Typer
+import org.mirah.jvm.types.JVMType
 
 # Runs class cleanup on any enclosed classes.
 class MethodCleanup < NodeScanner
   def initialize(context:Context, method:MethodDefinition)
     @context = context
+    @typer = context[Typer]
+    @scope = @typer.scoper.getIntroducedScope(method)
     @method = method
   end
 
@@ -39,6 +43,19 @@ class MethodCleanup < NodeScanner
   end
 
   def enterClosureDefinition(node, arg)
+    if @typer.getInferredType(node).resolve.equals(@scope.binding_type) && node.body_size == 0
+      @scope.capturedLocals.each do |name|
+        type = JVMType(@typer.type_system.getLocalType(@scope, String(name), node.position).resolve)
+        typeref = TypeRefImpl.new(type.name, type.isArray, false, node.position)
+        decl = FieldDeclaration.new(SimpleString.new(String(name)), typeref, [
+          Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+            HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED')),
+            ])
+        ])
+        node.body.add(decl)
+        @typer.infer(decl)
+      end
+    end
     enterClassDefinition(node, arg)
     false
   end
