@@ -84,6 +84,11 @@ class ClassCleanup < NodeScanner
     @constructors.add(constructor)
   end
   
+  def makeTypeRef(type:JVMType):TypeRef
+    # FIXME: there's no way to represent multi-dimensional arrays in a TypeRef
+    TypeRefImpl.new(type.name, type.isArray, false, nil)
+  end
+  
   def declareFields:void
     return if @found_field_declarations
     type = JVMType(@typer.getInferredType(@klass).resolve)
@@ -100,7 +105,7 @@ class ClassCleanup < NodeScanner
         HashEntry.new(SimpleString.new('flags'), flags)
         ])
       annotations.add(modifiers)
-      decl = FieldDeclaration.new(SimpleString.new(name), SimpleString.new(f.returnType.name), [])
+      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), [])
       decl.isStatic = isStatic
       decl.annotations = annotations
       @klass.body.add(decl)
