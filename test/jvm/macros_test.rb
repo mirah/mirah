@@ -275,4 +275,20 @@ class MacrosTest < Test::Unit::TestCase
     EOF
     assert_output("0\n3\n") {script.main(nil)}
   end
+
+  def test_separate_compilation
+    compile(<<-CODE)
+      class InlineOneSayer
+        macro def say_one
+          quote do
+            puts "one"
+          end
+        end
+      end
+    CODE
+    script, _ =compile(<<-CODE)
+      InlineOneSayer.new.say_one
+    CODE
+    assert_output("one\n") {script.main(nil)}
+  end
 end

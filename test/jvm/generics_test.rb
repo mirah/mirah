@@ -17,11 +17,6 @@ require 'test_helper'
 require 'jvm/bytecode_test_helper'
 class TestGenerics < Test::Unit::TestCase
 
-  def setup
-    super
-    clear_tmp_files
-  end
-
   def parse_and_type code, name=tmp_script_name
     parse_and_resolve_types name, code
   end

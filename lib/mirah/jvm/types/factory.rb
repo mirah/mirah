@@ -686,16 +686,20 @@ module Mirah::JVM::Types
       end.to_java(java.net.URL)
     end
 
+
+    def base_classpath
+      Mirah::Env.encode_paths(['.',
+                               File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
+                               File.dirname(__FILE__) + '/../../../../javalib/mirah-parser.jar',
+                               File.dirname(__FILE__) + '/../../../../javalib/mirah-bootstrap.jar'])
+    end
+
     def classpath
-      @classpath ||= Mirah::Env.encode_paths(['.',
-                                              #TODO nh make this less hacked together.
-                                              File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
-                                              File.dirname(__FILE__) + '/../../../../javalib/mirah-parser.jar',
-                                              File.dirname(__FILE__) + '/../../../../javalib/mirah-bootstrap.jar'])
+      @classpath ||= base_classpath
     end
 
     def classpath=(classpath)
-      @classpath = classpath
+      @classpath = classpath +":" + base_classpath
       @resource_loader = nil
     end
 
