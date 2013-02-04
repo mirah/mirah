@@ -143,9 +143,16 @@ end
 class Test::Unit::TestCase
   include JVMCompiler
 
+  class << self
+    include JVMCompiler
+    def startup
+      clean_tmp_directory
+    end
+  end
+
   def setup
     @tmp_classes = []
-    clean_tmp_directory
+
   end
 
   def cleanup

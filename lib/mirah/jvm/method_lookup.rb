@@ -118,8 +118,9 @@ module Mirah
 
       def find_jls2(mapped_type, name, mapped_params, meta, by_name, include_fields=true, scope=nil)
         return nil if mapped_params.any? {|p| p.nil? || p.isError}
-        # filter by arity
-        by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size}
+
+        # filter by arity, varargs
+        by_name_and_arity = by_name.select {|m| m.argument_types.size == mapped_params.size }
 
         phase1_methods = phase1(mapped_params, by_name_and_arity)
 
@@ -132,7 +133,7 @@ module Mirah
 
         phase1_methods[0] ||
           phase2(mapped_params, by_name) ||
-          phase3(mapped_params, by_name) ||
+          phase3(mapped_params, by_name)[0] ||
           (include_fields &&
             (field_lookup(mapped_params, mapped_type, meta, name, scope) ||
              inner_class(mapped_params, mapped_type, meta, name)))
@@ -186,7 +187,26 @@ module Mirah
       end
 
       def phase3(mapped_params, potentials)
-        nil
+        potential_varargs = potentials.select{|m| m.varargs? }
+        methods = potential_varargs.inject([]) do |currents, potential|
+          method_params = potential.argument_types
+          # match n-1 params of potential
+          non_varargs_params, possible_varargs_params = mapped_params.partition.with_index{|param,i| i < method_params.size-1}
+          
+          vararg_types = possible_varargs_params.size.times.map{ method_params.last.component_type }
+          
+          if each_is_exact(non_varargs_params, method_params[0..-2]) &&
+              each_is_exact(possible_varargs_params, vararg_types)
+            return [potential]
+          end
+          
+          if each_is_exact_or_subtype_or_convertible(non_varargs_params, method_params[0..-2]) &&
+              each_is_exact_or_subtype_or_convertible(possible_varargs_params, vararg_types)
+            currents << potential
+          end
+
+          currents
+        end
       end
 
       def field_lookup(mapped_params, mapped_type, meta, name, scope)

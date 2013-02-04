@@ -446,6 +446,20 @@ module Mirah
           end
         end
 
+        def visitVarargsArray type, parameters
+          @method.push_int parameters.size
+          @method.anewarray type.component_type
+          parameters.each.with_index do |value, i|
+            @method.dup
+            @method.push_int i
+            visit(value, true)
+            if type.primitive? && type != compiler.inferred_type(value)
+              inferred_type(value).compile_widen(compiler.method, type)
+            end
+            @method.aastore
+          end
+        end
+
         def visitFunctionalCall(fcall, expression)
           scope = get_scope(fcall)
           type = get_scope(fcall).self_type.resolve
