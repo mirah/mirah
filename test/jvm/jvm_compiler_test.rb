@@ -14,6 +14,7 @@
 # limitations under the License.
 
 class JVMCompilerTest < Test::Unit::TestCase
+
   def assert_raise_java(type, message="")
     ex = assert_raise(type) do
       yield

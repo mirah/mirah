@@ -17,32 +17,29 @@ require 'stringio'
 require 'fileutils'
 
 module JVMCompiler
+  TEST_DEST = File.expand_path(File.dirname(__FILE__)+'/../../tmp/') + "/"
+  $CLASSPATH << TEST_DEST
+
   import java.lang.System
   import java.io.PrintStream
   include Mirah
 
   def new_state
     state = Mirah::Util::CompilationState.new
-    state.save_extensions = false
+    state.save_extensions = true
+    state.destination = TEST_DEST
+    state.classpath =  TEST_DEST
     state
   end
 
+  def clean_tmp_directory
+    FileUtils.rm_rf TEST_DEST
+    FileUtils.mkdir_p TEST_DEST
+  end
 
-#  def create_transformer
-#    state = Mirah::Util::CompilationState.new
-#    state.save_extensions = false
-#
-#    transformer = Mirah::Transform::Transformer.new(state)
-#    Java::MirahImpl::Builtin.initialize_builtins(transformer)
-#    transformer
-#  end
-
-
-  def clear_tmp_files
+  def clean_tmp_files
     return unless @tmp_classes
-
     File.unlink(*@tmp_classes)
-    @tmp_classes.clear
   end
 
   def compiler_type
@@ -59,14 +56,10 @@ module JVMCompiler
  end
 
  def parse_and_resolve_types name, code
-   clear_tmp_files
-
    state = new_state
 
    generator = Mirah::Generator.new(state, compiler_type, false, false)
    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
-
-   #Java::MirahImpl::Builtin.initialize_builtins(transformer)
 
    ast = [AST.parse(code, name, true, transformer)]
 
@@ -81,47 +74,29 @@ module JVMCompiler
 
     compiler_results.each do |result|
       bytes = result.bytes
-
-      FileUtils.mkdir_p(File.dirname(result.filename))
-      File.open(result.filename, 'wb') { |f| f.write(bytes) }
-
+      filename = "#{TEST_DEST}/#{result.filename}"
+      FileUtils.mkdir_p(File.dirname(filename))
+      File.open(filename, 'wb') { |f| f.write(bytes) }
+      @tmp_classes << "#{filename}.class"
       classes[result.filename[0..-7]] = Mirah::Util::ClassLoader.binary_string bytes
     end
 
     loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
 
     classes.keys.map do |name|
-      begin
-        cls = loader.load_class(name.tr('/', '.'))
-        proxy = JavaUtilities.get_proxy_class(cls.name)
-        @tmp_classes << "#{name}.class"
-        proxy
-      rescue java.lang.ClassFormatError => ex
-        raise "Unable to load class #{name}: #{ex.message}"
-      end
+      cls = loader.load_class(name.tr('/', '.'))
+      JavaUtilities.get_proxy_class(cls.name)
     end
   end
 
-  #def compile_ast  ast
-  #  compiler = create_compiler
-  #  compiler.compile(ast)
-  #  compiler
-  #end
-
   def compile(code, name = tmp_script_name)
-    clear_tmp_files
-
     state = new_state
 
     generator = Mirah::Generator.new(state, compiler_type, false, false)
     transformer = Mirah::Transform::Transformer.new(state, generator.typer)
 
-    #Java::MirahImpl::Builtin.initialize_builtins(transformer)
 
     ast = [AST.parse_ruby(nil, code, name)]
-
-    scoper, typer = generator.infer_asts(ast, true)
-    compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
 
     generate_classes compiler_results
   end
@@ -165,12 +140,18 @@ end
 class Test::Unit::TestCase
   include JVMCompiler
 
+  class << self
+    include JVMCompiler
+    def startup
+      clean_tmp_directory
+    end
+  end
+
   def setup
     @tmp_classes = []
   end
 
-  def teardown
-    #reset_type_factory
-    clear_tmp_files
+  def cleanup
+    clean_tmp_files
   end
 end

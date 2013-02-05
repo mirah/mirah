@@ -13,10 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'mirah/errors'
+class VarargsTest < Test::Unit::TestCase
 
-module Mirah
-  module Typer
-    java_import 'org.mirah.typer.Typer'
+  def test_varargs_method_with_passed_varargs
+    cls, = compile(<<-EOF)
+      puts String.format("%s %s's", "rocking", "banana")
+    EOF
+    assert_output "rocking banana's\n" do
+      cls.main nil
+    end
   end
+
+  def test_varargs_method_lookup_without_passed_varargs
+    cls, = compile(<<-EOF)
+      puts String.format("rocking with no args")
+    EOF
+    assert_output "rocking with no args\n" do
+      cls.main nil
+    end
+  end
+
 end

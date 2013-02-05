@@ -37,13 +37,30 @@ module Mirah::JVM::Types
   module ArgumentConversion
     def convert_args(compiler, values, types=nil)
       # TODO boxing/unboxing
-      # TODO varargs
       types ||= argument_types
-      values.zip(types).each do |value, type|
+
+      if respond_to?(:varargs?) && varargs?
+        non_varargs_types = types[0..-2]
+        
+        non_varargs_values = values.first non_varargs_types.size
+        varargs_values = values.to_a.last(values.size - non_varargs_values.size)
+        varargs_type = types.last
+        
+        values_and_types = non_varargs_values.zip(non_varargs_types)
+      else
+        values_and_types = values.zip(types)
+      end
+      
+      
+      values_and_types.each do |value, type|
         compiler.visit(value, true)
         if type.primitive? && type != compiler.inferred_type(value)
-            compiler.inferred_type(value).compile_widen(compiler.method, type)
+          compiler.inferred_type(value).compile_widen(compiler.method, type)
         end
+      end
+
+      if respond_to?(:varargs?) && varargs?
+        compiler.visitVarargsArray(varargs_type, varargs_values)
       end
     end
   end
@@ -95,6 +112,10 @@ module Mirah::JVM::Types
 
     def exceptions
       []
+    end
+
+    def varargs?
+      false
     end
   end
 
@@ -197,6 +218,11 @@ module Mirah::JVM::Types
     def constructor?
       true
     end
+
+    def varargs?
+      @member.varargs?
+    end
+
 
     def accept(visitor, expression)
       visitor.visitConstructor(self, expression)
@@ -519,33 +545,8 @@ module Mirah::JVM::Types
       @declaring_class.interface?
     end
 
-    def synthetic?
+    def varargs?
       false
-    end
-
-    def accept(visitor, expression)
-      if self.static?
-        visitor.visitStaticMethodCall(self, expression)
-      else
-        visitor.visitMethodCall(self, expression)
-      end
-    end
-    
-    
-    def kind
-      if self.static?
-        if @name == "initialize"
-          Java::OrgMirahJvmTypes::MemberKind::STATIC_INITIALIZER
-        else
-          Java::OrgMirahJvmTypes::MemberKind::STATIC_METHOD
-        end
-      else
-        if @name == "initialize"
-          Java::OrgMirahJvmTypes::MemberKind::CONSTRUCTOR
-        else
-          Java::OrgMirahJvmTypes::MemberKind::METHOD
-        end
-      end
     end
   end
 

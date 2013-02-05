@@ -44,7 +44,8 @@ Extract it, and add `bin` to your `$PATH` to be able to use `mirah`, `mirahc`, e
 
 === SOURCE:
 
-To build and install from source,
+To build and install from source, you'll need jruby 1.7.0 or
+higher. Then just follow these commands.
 
 $ git clone http://github.com/mirah/mirah.git
 $ cd mirah

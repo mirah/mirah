@@ -76,6 +76,7 @@ module Mirah::JVM::Types
         # call.parameters.each do |arg|
         #   arg.scope = scope
         # end
+
         begin
           expander = klass.constructors[0].newInstance(typer.macro_compiler, call)
           ast = expander.expand
@@ -162,10 +163,10 @@ module Mirah::JVM::Types
         return self if macros.nil?
         macros.each do |macro_class|
           klass = begin
-            JRuby.runtime.jruby_class_loader.loadClass(macro_class)
-          rescue java.lang.NoClassDefFoundError => ex
-            raise ex
-          end
+                    JRuby.runtime.jruby_class_loader.loadClass(macro_class)
+                  rescue java.lang.NoClassDefFoundError => ex
+                    raise ex
+                  end
           add_compiled_macro(klass)
         end
       end
