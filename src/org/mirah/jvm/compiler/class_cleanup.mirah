@@ -16,6 +16,7 @@
 package org.mirah.jvm.compiler
 
 import java.util.Collections
+import java.util.List
 import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.*
@@ -40,8 +41,17 @@ class ClassCleanup < NodeScanner
     @init_nodes = ArrayList.new
     @constructors = ArrayList.new
     @field_annotations = AnnotationCollector.new(context)
+    @methods = ArrayList.new
   end
+
+  def self.initialize:void
+    @@log = Logger.getLogger(ClassCleanup.class.getName)
+  end
+
   def clean:void
+    if !addCleanedAnnotation()
+      return
+    end
     scan(@klass.body, nil)
     unless @static_init_nodes.isEmpty
       if @cinit.nil?
@@ -75,7 +85,24 @@ class ClassCleanup < NodeScanner
       end
     end
     declareFields
+    @methods.each do |m|
+      addOptionalMethods(MethodDefinition(m))
+    end
   end
+  
+  # Adds the org.mirah.jvm.compiler.Cleaned annotation to the class.
+  # Returns true if the annotation was added, or false if it already exists.
+  def addCleanedAnnotation:boolean
+    @klass.annotations_size.times do |i|
+      anno = @klass.annotations(i)
+      if "org.mirah.jvm.compiler.Cleaned".equals(anno.type.typeref.name)
+        return false
+      end
+    end
+    @klass.annotations.add(Annotation.new(SimpleString.new("org.mirah.jvm.compiler.Cleaned"), Collections.emptyList))
+    true
+  end
+  
   def add_default_constructor
     constructor = @parser.quote { def initialize; end }
     constructor.body.add(Super.new(constructor.position, Collections.emptyList, nil))
@@ -90,13 +117,13 @@ class ClassCleanup < NodeScanner
   end
   
   def declareFields:void
-    return if @found_field_declarations
+    return if @alreadyCleaned
     type = JVMType(@typer.getInferredType(@klass).resolve)
     type.getDeclaredFields.each do |f|
       name = f.name
       annotations = @field_annotations.getAnnotations(name) || AnnotationList.new
       isStatic = type.hasStaticField(f.name)
-      flags = Array.new([])
+      flags = Array.new(Collections.emptyList)
       if isStatic
         flags.values.add(SimpleString.new("STATIC"))
       end
@@ -105,7 +132,7 @@ class ClassCleanup < NodeScanner
         HashEntry.new(SimpleString.new('flags'), flags)
         ])
       annotations.add(modifiers)
-      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), [])
+      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), Collections.emptyList)
       decl.isStatic = isStatic
       decl.annotations = annotations
       @klass.body.add(decl)
@@ -126,6 +153,7 @@ class ClassCleanup < NodeScanner
   end
   def enterMethodDefinition(node, arg)
     MethodCleanup.new(@context, node).clean
+    @methods.add(node)
     false
   end
   def enterStaticMethodDefinition(node, arg)
@@ -133,6 +161,7 @@ class ClassCleanup < NodeScanner
       @field_annotations.collect(node.body)
       setCinit(node)
     end
+    @methods.add(node)
     MethodCleanup.new(@context, node).clean
     false
   end
@@ -151,6 +180,7 @@ class ClassCleanup < NodeScanner
     @constructors.add(node)
     @field_annotations.collect(node.body)
     MethodCleanup.new(@context, node).clean
+    @methods.add(node)
     false
   end
   
@@ -184,10 +214,60 @@ class ClassCleanup < NodeScanner
   end
   def enterFieldDeclaration(node, arg)
     # We've already cleaned this class, don't add more field decls.
-    @found_field_declarations = true
+    @alreadyCleaned = true
     false
   end
   def enterMacroDefinition(node, arg)
     false
+  end
+  
+  def addOptionalMethods(mdef:MethodDefinition):void
+    if mdef.arguments.optional_size > 0
+      parent = NodeList(mdef.parent)
+      params = buildDefaultParameters(mdef.arguments)
+      new_args = Arguments(mdef.arguments.clone)
+      num_optional_args = new_args.optional_size
+      optional_arg_offset = new_args.required_size
+      @@log.fine("Generating #{num_optional_args} optarg methods for #{mdef.name.identifier}")
+      (num_optional_args - 1).downto(0) do |i|
+        @@log.finer("Generating optarg method #{i}")
+        arg = new_args.optional.remove(i)
+        params.set(optional_arg_offset + i, arg.value)
+        method = buildOptargBridge(mdef, new_args, params)
+        parent.add(method)
+        @typer.infer(method)
+      end
+    end
+  end
+  
+  def buildDefaultParameters(args:Arguments):List
+    params = ArrayList.new
+    args.required_size.times do |i|
+      arg = args.required(i)
+      params.add(LocalAccess.new(arg.position, arg.name))
+    end
+    args.optional_size.times do |i|
+      optarg = args.optional(i)
+      params.add(LocalAccess.new(optarg.position, optarg.name))
+    end
+    if args.rest
+      params.add(LocalAccess.new(args.rest.position, arg.name))
+    end
+    args.required2_size.times do |i|
+      arg = args.required2(i)
+      params.add(LocalAccess.new(arg.position, arg.name))
+    end
+    params
+  end
+  
+  def buildOptargBridge(orig:MethodDefinition, args:Arguments, params:List):Node
+    mdef = MethodDefinition(orig.clone)
+    mdef.arguments = Arguments(args.clone)
+    mdef.body = NodeList.new([FunctionalCall.new(mdef.position, mdef.name, params, nil)])
+    modifiers = Annotation.new(mdef.position, SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+      HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC')),
+      HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('SYNTHETIC'), SimpleString.new('BRIDGE')]))
+      ])
+    mdef.annotations = AnnotationList.new([modifiers])
   end
 end
