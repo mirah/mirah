@@ -95,8 +95,10 @@ module JVMCompiler
     generator = Mirah::Generator.new(state, compiler_type, false, false)
     transformer = Mirah::Transform::Transformer.new(state, generator.typer)
 
-
     ast = [AST.parse_ruby(nil, code, name)]
+
+    scoper, typer = generator.infer_asts(ast, true)
+    compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
 
     generate_classes compiler_results
   end
