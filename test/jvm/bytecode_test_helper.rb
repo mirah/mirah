@@ -17,7 +17,7 @@ require 'stringio'
 require 'fileutils'
 
 module JVMCompiler
-  TEST_DEST = File.expand_path(File.dirname(__FILE__)+'/../../tmp/') + "/"
+  TEST_DEST = File.expand_path(File.dirname(__FILE__)+'/../../tmp_test/') + "/"
   $CLASSPATH << TEST_DEST
 
   import java.lang.System
@@ -30,11 +30,6 @@ module JVMCompiler
     state.destination = TEST_DEST
     state.classpath =  TEST_DEST
     state
-  end
-
-  def clean_tmp_directory
-    FileUtils.rm_rf TEST_DEST
-    FileUtils.mkdir_p TEST_DEST
   end
 
   def clean_tmp_files
@@ -77,7 +72,7 @@ module JVMCompiler
       filename = "#{TEST_DEST}/#{result.filename}"
       FileUtils.mkdir_p(File.dirname(filename))
       File.open(filename, 'wb') { |f| f.write(bytes) }
-      @tmp_classes << "#{filename}.class"
+      @tmp_classes << filename
       classes[result.filename[0..-7]] = Mirah::Util::ClassLoader.binary_string bytes
     end
 
@@ -141,13 +136,6 @@ end
 
 class Test::Unit::TestCase
   include JVMCompiler
-
-  class << self
-    include JVMCompiler
-    def startup
-      clean_tmp_directory
-    end
-  end
 
   def setup
     @tmp_classes = []

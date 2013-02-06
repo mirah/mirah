@@ -76,12 +76,17 @@ namespace :test do
 
   namespace :jvm do
     desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode => :bootstrap do |t|
+    Rake::TestTask.new :bytecode => [:bootstrap, :clean_tmp_test_directory] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
   end
+end
+
+task :clean_tmp_test_directory do
+  FileUtils.rm_rf "tmp_test"
+  FileUtils.mkdir_p "tmp_test"
 end
 
 task :init do
