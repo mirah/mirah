@@ -1479,7 +1479,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_super
     cls, = compile(<<-EOF)
-      class Foo
+      class SuperEqual
         def equals(other:Object); super(other); end
       end
     EOF
