@@ -33,4 +33,14 @@ class VarargsTest < Test::Unit::TestCase
     end
   end
 
+  def test_varargs_method_with_passed_array
+    cls, = compile(<<-EOF)
+      import java.util.Arrays
+      def foo
+        array = String[0]
+        Arrays.asList(array)
+      end
+    EOF
+    assert_equal([], cls.foo.to_a)
+  end
 end

@@ -39,7 +39,9 @@ module Mirah::JVM::Types
       # TODO boxing/unboxing
       types ||= argument_types
 
-      if respond_to?(:varargs?) && varargs?
+      is_varargs = varargs_call?(compiler, values.to_a, types)
+      
+      if is_varargs
         non_varargs_types = types[0..-2]
         
         non_varargs_values = values.first non_varargs_types.size
@@ -59,9 +61,16 @@ module Mirah::JVM::Types
         end
       end
 
-      if respond_to?(:varargs?) && varargs?
+      if is_varargs
         compiler.visitVarargsArray(varargs_type, varargs_values)
       end
+    end
+    
+    def varargs_call?(compiler, values, types)
+      return false unless (respond_to?(:varargs?) && varargs?)
+      return true if values.size != types.size
+      return false if types.last.assignable_from?(compiler.inferred_type(values.last))
+      true
     end
   end
 
