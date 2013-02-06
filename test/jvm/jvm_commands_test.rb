@@ -12,17 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'test_helper'
 
-class FactoryTest < Test::Unit::TestCase
-  def test_bootclass_loader_can_find_things_on_bootclasspath
-    factory = Mirah::JVM::Types::TypeFactory.new
-    factory.bootclasspath = File.expand_path("#{__FILE__}/../../fixtures/") +"/"
-    assert factory.bootstrap_loader.get_resource 'org/foo/A.class'
+
+class JVMCommandsTest < Test::Unit::TestCase
+  def test_dash_e_eval
+    assert_output "1\n" do
+      Mirah::Commands::Run.new(['-e','puts 1']).execute
+    end
   end
-
-  def test_nil_classpath_is_ok
-    factory = Mirah::JVM::Types::TypeFactory.new
-    factory.classpath = nil
-  end
-
 end

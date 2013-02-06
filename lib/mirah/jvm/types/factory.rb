@@ -699,7 +699,9 @@ module Mirah::JVM::Types
     end
 
     def classpath=(classpath)
-      @classpath = classpath +":" + base_classpath
+      if classpath
+        @classpath = classpath + ":" + base_classpath
+      end
       @resource_loader = nil
     end
 
