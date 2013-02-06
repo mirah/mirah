@@ -32,18 +32,23 @@ module Mirah::JVM::Types
     def convert_args(compiler, values, types=nil)
       # TODO boxing/unboxing
       types ||= argument_types
-
+      needs_to_build_varargs_array = false
+      
       if respond_to?(:varargs?) && varargs?
         non_varargs_types = types[0..-2]
-        
         non_varargs_values = values.first non_varargs_types.size
+
         varargs_values = values.to_a.last(values.size - non_varargs_values.size)
         varargs_type = types.last
-        
-        values_and_types = non_varargs_values.zip(non_varargs_types)
-      else
-        values_and_types = values.zip(types)
+
+        unless varargs_values.length == 1 &&
+          varargs_type.compatible?(compiler.inferred_type(varargs_values.first))
+          needs_to_build_varargs_array = true
+          values = non_varargs_values
+        end
       end
+
+      values_and_types = values.zip(types)
       
       
       values_and_types.each do |value, type|
@@ -53,7 +58,7 @@ module Mirah::JVM::Types
         end
       end
 
-      if respond_to?(:varargs?) && varargs?
+      if needs_to_build_varargs_array
         compiler.visitVarargsArray(varargs_type, varargs_values)
       end
     end

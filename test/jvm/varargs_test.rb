@@ -33,4 +33,15 @@ class VarargsTest < Test::Unit::TestCase
     end
   end
 
+  def test_varargs_method_lookup_when_passed_array
+    cls, = compile(<<-EOF)
+      args = String[1]
+      args[0] = "an array"
+      puts String.format("rocking with %s", args)
+    EOF
+    assert_output "rocking with an array\n" do
+      cls.main nil
+    end
+  end
+
 end
