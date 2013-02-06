@@ -50,11 +50,11 @@ module Mirah::JVM::Types
 
       values_and_types = values.zip(types)
       
-      
       values_and_types.each do |value, type|
         compiler.visit(value, true)
-        if type.primitive? && type != compiler.inferred_type(value)
-          compiler.inferred_type(value).compile_widen(compiler.method, type)
+        in_type = compiler.inferred_type(value)
+        if in_type.primitive? && type != in_type
+          in_type.compile_widen(compiler.method, type)
         end
       end
 

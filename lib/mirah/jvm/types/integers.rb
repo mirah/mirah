@@ -39,6 +39,8 @@ module Mirah::JVM::Types
         builder.i2f
       when 'double'
         builder.i2d
+      when @wrapper.java_class.name, 'java.lang.Object'
+        builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from #{name} to #{type}"
       end
@@ -105,6 +107,8 @@ module Mirah::JVM::Types
         builder.l2f
       when 'double'
         builder.l2d
+      when @wrapper.java_class.name, 'java.lang.Object'
+        builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from Int to #{type}"
       end

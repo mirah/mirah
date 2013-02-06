@@ -54,6 +54,8 @@ module Mirah::JVM::Types
         # Do nothing
       when 'double'
         builder.f2d
+      when @wrapper.java_class.name, 'java.lang.Object'
+        builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from float to #{type}"
       end
@@ -93,7 +95,11 @@ module Mirah::JVM::Types
     end
 
     def compile_widen(builder, type)
-      if type.name != 'double'
+      case type.name
+      when 'double'
+      when @wrapper.java_class.name, 'java.lang.Object'
+        builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
+      else
         raise ArgumentError, "Invalid widening conversion from double to #{type}"
       end
     end

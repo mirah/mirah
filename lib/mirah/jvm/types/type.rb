@@ -120,6 +120,8 @@ module Mirah
 
           return assignable_from?(other.ungeneric) if other.generic?
 
+          return other.convertible_to?(self) if other.primitive?
+
           assignable_from?(other.superclass) ||
               other.interfaces.any? {|i| assignable_from?(i)}
         end

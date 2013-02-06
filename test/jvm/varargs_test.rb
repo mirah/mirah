@@ -24,6 +24,24 @@ class VarargsTest < Test::Unit::TestCase
     end
   end
 
+  def test_varargs_method_with_passed_including_int_varargs
+    cls, = compile(<<-EOF)
+      puts String.format("%s %d's", "rocking", 3)
+    EOF
+    assert_output "rocking 3's\n" do
+      cls.main nil
+    end
+  end
+
+  def test_varargs_method_with_passed_including_integer_varargs
+    cls, = compile(<<-EOF)
+      puts String.format("%s %d's", "rocking", Integer.valueOf(3))
+    EOF
+    assert_output "rocking 3's\n" do
+      cls.main nil
+    end
+  end
+
   def test_varargs_method_lookup_without_passed_varargs
     cls, = compile(<<-EOF)
       puts String.format("rocking with no args")

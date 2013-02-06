@@ -791,15 +791,54 @@ class JVMCompilerTest < Test::Unit::TestCase
       def _Double(a:double)
         a
       end
-      EOF
+    EOF
 
-      assert_equal(1.0, cls._Byte(1))
-      assert_equal(127.0, cls._Byte(127))
-      assert_equal(128.0, cls._Short(128))
-      assert_equal(32767.0, cls._Short(32767))
-      assert_equal(32768.0, cls._Int(32768))
-      assert_equal(2147483648.0, cls._Long(2147483648))
+    assert_equal(1.0, cls._Byte(1))
+    assert_equal(127.0, cls._Byte(127))
+    assert_equal(128.0, cls._Short(128))
+    assert_equal(32767.0, cls._Short(32767))
+    assert_equal(32768.0, cls._Int(32768))
+    assert_equal(2147483648.0, cls._Long(2147483648))
   end
+
+  def test_argument_boxing
+    [ [:short], [:int,:integer], [:long], [:byte]].each do |types|
+      primitive, full = types.first, types.last
+      begin
+        cls, = compile(<<-EOF)
+        def to_#{primitive}(a:#{full.capitalize}):void
+          puts a
+        end
+        to_#{primitive} #{primitive}(1)
+        EOF
+        assert_output("1\n") { cls.main nil}
+      rescue => e
+        raise "#{primitive} #{e.message}"
+      end
+    end
+    %w[float double].each do |type|
+      begin
+      cls, = compile(<<-EOF)
+        def to_#{type}(a:#{type.capitalize}):void
+          puts a
+        end
+        to_#{type} #{type}(1)
+        EOF
+      assert_output("1.0\n") { cls.main nil}
+      rescue => e
+        raise "#{type} #{e.message}"
+      end
+    end
+
+    cls, = compile(<<-EOF)
+      def to_character(a:Character):void
+        puts a
+      end
+      to_character char(65)
+    EOF
+    assert_output("A\n") { cls.main nil}
+  end
+
 
   def test_interface_declaration
     interface = compile('interface A; end').first
