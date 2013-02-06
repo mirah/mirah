@@ -81,10 +81,38 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   end
   
   def convertArgs(argumentTypes:List):void
-    argumentTypes.size.times do |i|
+    # TODO support required2 methods
+    num_required = if @member.isVararg
+      argumentTypes.size - 1
+    else
+      argumentTypes.size
+    end
+    num_required.times do |i|
       arg = @args[i]
       compile(arg)
       @method.convertValue(getInferredType(arg), JVMType(argumentTypes[i]))
+    end
+    if @member.isVararg
+      createVarargArray(JVMType(argumentTypes[i]), num_required)
+    end
+  end
+  
+  def createVarargArray(arrayType:JVMType, offset:int):void
+    vararg_items = @args.length - offset
+    if vararg_items == 1 && arrayType.assignableFrom(getInferredType(@args[offset]))
+      compile(@args[offset])
+    else
+      type = arrayType.getComponentType
+      @method.push(vararg_items)
+      @method.newArray(type.getAsmType)
+      vararg_items.times do |i|
+        @method.dup
+        @method.push(i)
+        arg = @args[offset + i]
+        compile(arg)
+        @method.convertValue(getInferredType(arg), type)
+        @method.arrayStore(type.getAsmType)
+      end
     end
   end
 

@@ -126,6 +126,10 @@ module Mirah::JVM::Types
     def varargs?
       false
     end
+    
+    def isVararg
+      varargs?
+    end
   end
 
   class Macro
@@ -232,6 +236,9 @@ module Mirah::JVM::Types
       @member.varargs?
     end
 
+    def isVararg
+      varargs?
+    end
 
     def accept(visitor, expression)
       visitor.visitConstructor(self, expression)
@@ -556,6 +563,10 @@ module Mirah::JVM::Types
 
     def varargs?
       false
+    end
+    
+    def isVararg
+      varargs?
     end
   end
 

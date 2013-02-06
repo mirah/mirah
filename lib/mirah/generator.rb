@@ -29,7 +29,7 @@ module Mirah
 
       # TODO untie this from the jvm backend (nh)
       type_system = Mirah::JVM::Types::TypeFactory.new
-      type_system.classpath = state.classpath
+      type_system.classpath = state.classpath if state.classpath
       type_system.bootclasspath = state.bootclasspath
 
       @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
