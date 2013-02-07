@@ -27,7 +27,7 @@ import org.jruby.org.objectweb.asm.ClassWriter
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.commons.Method
 
-class ClassCompiler < BaseCompiler
+class ClassCompiler < BaseCompiler implements InnerClassCompiler
   def self.initialize:void
     @@log = Logger.getLogger(ClassCompiler.class.getName)
   end
@@ -81,7 +81,7 @@ class ClassCompiler < BaseCompiler
     compileInnerClass(node, nil)
   end
   
-  def compileInnerClass(node:ClassDefinition, method:Method)
+  def compileInnerClass(node:ClassDefinition, method:Method):void
     compiler = ClassCompiler.new(context, node, @type, method)
     @innerClasses.add(compiler)
     # TODO only supporting anonymous inner classes for now.

@@ -33,7 +33,7 @@ import org.jruby.org.objectweb.asm.commons.Method
 
 class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void
-    @@log = Logger.getLogger(ClassCompiler.class.getName)
+    @@log = Logger.getLogger(CallCompiler.class.getName)
   end
   def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:NodeList, returnType:JVMType)
     initialize(compiler, bytecode, position, target, name, returnType)

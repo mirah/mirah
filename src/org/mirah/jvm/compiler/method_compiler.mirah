@@ -19,19 +19,24 @@ import java.util.LinkedList
 import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.JVMType
+import org.mirah.util.Context
 import org.jruby.org.objectweb.asm.*
 import org.jruby.org.objectweb.asm.Type as AsmType
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
 import org.jruby.org.objectweb.asm.commons.Method as AsmMethod
 
-
 import java.util.List
+
+interface InnerClassCompiler
+  def context:Context; end
+  def compileInnerClass(node:ClassDefinition, method:AsmMethod):void; end
+end
 
 class MethodCompiler < BaseCompiler
   def self.initialize:void
     @@log = Logger.getLogger(MethodCompiler.class.getName)
   end
-  def initialize(compiler:ClassCompiler, klass:JVMType, flags:int, name:String)
+  def initialize(compiler:InnerClassCompiler, klass:JVMType, flags:int, name:String)
     super(compiler.context)
     @flags = flags
     @name = name

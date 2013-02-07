@@ -245,6 +245,31 @@ file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/
   rm_rf 'build/builtins'
 end
 
+file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/org/mirah/{util,jvm/types,jvm/compiler}/*.mirah'] do
+  rm_f 'javalib/mirah-compiler.jar'
+  rm_rf 'build/compiler'
+  mkdir_p 'build/compiler'
+  phase3_files = Dir['src/org/mirah/jvm/compiler/{class,interface,script}_compiler.mirah'] + ['src/org/mirah/jvm/compiler/backend.mirah']
+  phase2_files = Dir['src/org/mirah/jvm/compiler/{condition,method,string}_compiler.mirah']
+  phase1_files = Dir['src/org/mirah/jvm/compiler/*.mirah'] - phase2_files - phase3_files
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar) +
+       %w(src/org/mirah/util src/org/mirah/jvm/types src/org/mirah/jvm/compiler/base_compiler.mirah))
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
+       %w(src/org/mirah/util/context.mirah) + phase1_files)
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
+       %w(src/org/mirah/util/context.mirah) + phase2_files)
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
+       %w(src/org/mirah/util/context.mirah) + phase3_files)
+  ant.jar :jarfile => 'javalib/mirah-compiler.jar' do
+    fileset :dir => 'build/compiler'
+  end
+  rm_rf 'build/compiler'
+end
+
 require 'bitescript'
 class Annotater < BiteScript::ASM::ClassVisitor
   def initialize(filename, &block)
