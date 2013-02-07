@@ -50,7 +50,7 @@ end
 
 desc "run full test suite"
 task :test do
-  run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
+  run_tests [ 'test:core', 'test:plugins', 'test:jvm', 'test:jvm:new' ]
 end
 
 namespace :test do
@@ -107,8 +107,9 @@ task :clean do
   rm_f 'javalib/mirah-builtins.jar'
 end
 
-task :compile => [:init, :bootstrap, :util]
+task :compile => [:init, :bootstrap, :util, :jvm_backend]
 task :util => 'javalib/mirah-util.jar'
+task :jvm_backend => 'javalib/mirah-compiler.jar'
 
 desc "build basic jar for distribution"
 task :jar => :compile do
@@ -119,6 +120,7 @@ task :jar => :compile do
     fileset :dir => bitescript_lib_dir
     zipfileset :src => 'javalib/mirah-bootstrap.jar'
     zipfileset :src => 'javalib/mirah-builtins.jar'
+    zipfileset :src => 'javalib/mirah-compiler.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
