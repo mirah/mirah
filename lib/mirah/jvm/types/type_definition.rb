@@ -51,6 +51,7 @@ module Mirah
               class_name,
               :visibility => :public,
               :abstract => abstract,
+              :interface => abstract,
               :superclass => superclass,
               :interfaces => interfaces)
         end
