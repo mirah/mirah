@@ -262,12 +262,12 @@ class BlocksTest < Test::Unit::TestCase
           def run(a:string):void;end
         end
 
-        class Foo
+        class TakesABar
           def foo(a:Bar)
             a.run("x")
           end
         end
-        Foo.new.foo do
+        TakesABar.new.foo do
           puts "hi"
         end
         CODE
@@ -279,16 +279,16 @@ class BlocksTest < Test::Unit::TestCase
   def test_block_with_too_many_params
     assert_raises Mirah::MirahError do
       parse_and_type(<<-CODE)
-        interface Bar do
+        interface SingleArgMethod do
           def run(a:string):void;end
         end
 
-        class Foo
-          def foo(a:Bar)
+        class ExpectsSingleArgMethod
+          def foo(a:SingleArgMethod)
             1
           end
         end
-        Foo.new.foo do |a, b|
+        ExpectsSingleArgMethod.new.foo do |a, b|
           1
         end
         CODE

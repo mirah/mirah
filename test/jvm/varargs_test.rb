@@ -24,6 +24,24 @@ class VarargsTest < Test::Unit::TestCase
     end
   end
 
+  def test_varargs_method_with_passed_including_int_varargs
+    cls, = compile(<<-EOF)
+      puts String.format("%s %d's", "rocking", 3)
+    EOF
+    assert_output "rocking 3's\n" do
+      cls.main nil
+    end
+  end
+
+  def test_varargs_method_with_passed_including_integer_varargs
+    cls, = compile(<<-EOF)
+      puts String.format("%s %d's", "rocking", Integer.valueOf(3))
+    EOF
+    assert_output "rocking 3's\n" do
+      cls.main nil
+    end
+  end
+
   def test_varargs_method_lookup_without_passed_varargs
     cls, = compile(<<-EOF)
       puts String.format("rocking with no args")
@@ -33,14 +51,15 @@ class VarargsTest < Test::Unit::TestCase
     end
   end
 
-  def test_varargs_method_with_passed_array
+  def test_varargs_method_lookup_when_passed_array
     cls, = compile(<<-EOF)
-      import java.util.Arrays
-      def foo
-        array = String[0]
-        Arrays.asList(array)
-      end
+      args = String[1]
+      args[0] = "an array"
+      puts String.format("rocking with %s", args)
     EOF
-    assert_equal([], cls.foo.to_a)
+    assert_output "rocking with an array\n" do
+      cls.main nil
+    end
   end
+
 end

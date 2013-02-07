@@ -453,8 +453,9 @@ module Mirah
             @method.dup
             @method.push_int i
             visit(value, true)
-            if type.primitive? && type != compiler.inferred_type(value)
-              inferred_type(value).compile_widen(compiler.method, type)
+            in_type = inferred_type(value)
+            if in_type.primitive? && in_type != type.component_type
+              in_type.compile_widen(@method, type.component_type)
             end
             @method.aastore
           end

@@ -3,13 +3,13 @@ module Mirah
     module Types
       class PrimitiveType < Type
         WIDENING_CONVERSIONS = {
-          'byte' => ['byte', 'short', 'int', 'long', 'float', 'double'],
-          'short' => ['short', 'int', 'long', 'float', 'double'],
-          'char' => ['char', 'int', 'long', 'float', 'double'],
-          'int' => ['int', 'long', 'float', 'double'],
-          'long' => ['long', 'float', 'double'],
-          'float' => ['float', 'double'],
-          'double' => ['double']
+          'byte' => ['byte', 'short', 'int', 'long', 'float', 'double', 'java.lang.Byte', 'java.lang.Object'],
+          'short' => ['short', 'int', 'long', 'float', 'double', 'java.lang.Short', 'java.lang.Object'],
+          'char' => ['char', 'int', 'long', 'float', 'double', 'java.lang.Character', 'java.lang.Object'],
+          'int' => ['int', 'long', 'float', 'double','java.lang.Integer', 'java.lang.Object'],
+          'long' => ['long', 'float', 'double', 'java.lang.Long', 'java.lang.Object'],
+          'float' => ['float', 'double', 'java.lang.Float', 'java.lang.Object'],
+          'double' => ['double', 'java.lang.Double', 'java.lang.Object']
         }
 
         def initialize(types, type, wrapper)

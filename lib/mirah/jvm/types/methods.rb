@@ -38,39 +38,35 @@ module Mirah::JVM::Types
     def convert_args(compiler, values, types=nil)
       # TODO boxing/unboxing
       types ||= argument_types
-
-      is_varargs = varargs_call?(compiler, values.to_a, types)
+      needs_to_build_varargs_array = false
       
-      if is_varargs
+      if respond_to?(:varargs?) && varargs?
         non_varargs_types = types[0..-2]
-        
         non_varargs_values = values.first non_varargs_types.size
+
         varargs_values = values.to_a.last(values.size - non_varargs_values.size)
         varargs_type = types.last
-        
-        values_and_types = non_varargs_values.zip(non_varargs_types)
-      else
-        values_and_types = values.zip(types)
-      end
-      
-      
-      values_and_types.each do |value, type|
-        compiler.visit(value, true)
-        if type.primitive? && type != compiler.inferred_type(value)
-          compiler.inferred_type(value).compile_widen(compiler.method, type)
+
+        unless varargs_values.length == 1 &&
+          varargs_type.compatible?(compiler.inferred_type(varargs_values.first))
+          needs_to_build_varargs_array = true
+          values = non_varargs_values
         end
       end
 
-      if is_varargs
+      values_and_types = values.zip(types)
+      
+      values_and_types.each do |value, type|
+        compiler.visit(value, true)
+        in_type = compiler.inferred_type(value)
+        if in_type.primitive? && type != in_type
+          in_type.compile_widen(compiler.method, type)
+        end
+      end
+
+      if needs_to_build_varargs_array
         compiler.visitVarargsArray(varargs_type, varargs_values)
       end
-    end
-    
-    def varargs_call?(compiler, values, types)
-      return false unless (respond_to?(:varargs?) && varargs?)
-      return true if values.size != types.size
-      return false if types.last.assignable_from?(compiler.inferred_type(values.last))
-      true
     end
   end
 
