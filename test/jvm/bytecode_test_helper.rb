@@ -15,6 +15,7 @@
 require 'test_helper'
 require 'stringio'
 require 'fileutils'
+require 'set'
 
 module JVMCompiler
   TEST_DEST = File.expand_path(File.dirname(__FILE__)+'/../../tmp_test/') + "/"
@@ -138,7 +139,7 @@ class Test::Unit::TestCase
   include JVMCompiler
 
   def setup
-    @tmp_classes = []
+    @tmp_classes = Set.new
   end
 
   def cleanup
