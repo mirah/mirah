@@ -15,7 +15,12 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.LinkedHashMap
+import java.util.LinkedList
+
 import org.jruby.org.objectweb.asm.ClassVisitor
+import org.jruby.org.objectweb.asm.Label
+import org.jruby.org.objectweb.asm.MethodVisitor
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
@@ -27,10 +32,82 @@ import org.mirah.jvm.types.JVMType
 
 # Helper class for generating jvm bytecode.
 class Bytecode < GeneratorAdapter
+  class LocalInfo
+    def initialize(name:String, index:int, type:Type, scopeStart:Label, scopeEnd:Label)
+      @name = name
+      @index = index
+      @type = type
+      @scopeStart = scopeStart
+      @scopeEnd = scopeEnd
+    end
+    def declare(visitor:MethodVisitor):void
+      visitor.visitLocalVariable(@name, @type.getDescriptor, nil, @scopeStart, @scopeEnd, @index)
+    end
+    def toString
+      "<Local #{index} (#{name}:#{type.getDescriptor})>"
+    end
+    attr_reader name:String, index:int, type:Type, scopeStart:Label, scopeEnd:Label
+  end
+  
   def initialize(flags:int, method:Method, klass:ClassVisitor)
     super(Opcodes.ASM4,
           klass.visitMethod(flags, method.getName, method.getDescriptor, nil, nil),
           flags, method.getName, method.getDescriptor)
+    @endLabel = newLabel
+    @locals = LinkedHashMap.new
+    @nextLocal = (flags & Opcodes.ACC_STATIC == Opcodes.ACC_STATIC) ? 0 : 1
+    @firstLocal = @nextLocal
+  end
+
+  def arguments
+    args = LinkedList.new
+    @locals.values.each do |info|
+      if LocalInfo(info).index < @firstLocal
+        args.add(info)
+      else
+        break
+      end
+    end
+    return args
+  end
+  
+  def declareArg(name:String, type:JVMType)
+    declareLocal(name, type.getAsmType)
+    @firstLocal = @nextLocal
+  end
+  
+  def declareLocal(name:String, type:JVMType):LocalInfo
+    declareLocal(name, type.getAsmType)
+  end
+  
+  def declareLocal(name:String, type:Type):LocalInfo
+    LocalInfo(@locals[name] ||= begin
+      index = @nextLocal
+      @nextLocal += type.getSize
+      LocalInfo.new(name, index, type, mark(), @endLabel)
+    end)
+  end
+
+  def storeLocal(name:String, type:JVMType):void
+    storeLocal(name, type.getAsmType)
+  end
+  
+  def storeLocal(name:String, type:Type):void
+    info = declareLocal(name, type)
+    visitVarInsn(info.type.getOpcode(Opcodes.ISTORE), info.index)
+  end
+  
+  def loadLocal(name:String):void
+    info = LocalInfo(@locals[name])
+    visitVarInsn(info.type.getOpcode(Opcodes.ILOAD), info.index)
+  end
+
+  def endMethod:void
+    mark(@endLabel)
+    @locals.values.each do |info|
+      LocalInfo(info).declare(self)
+    end
+    super
   end
   
   def recordPosition(position:Position)

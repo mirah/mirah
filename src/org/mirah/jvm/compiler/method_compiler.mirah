@@ -82,24 +82,26 @@ class MethodCompiler < BaseCompiler
     visit(node, Boolean.TRUE)
   end
 
-  def collectArgNames(mdef:MethodDefinition):void
-    i = 0
+  def collectArgNames(mdef:MethodDefinition, bytecode:Bytecode):void
     args = mdef.arguments
     args.required_size.times do |a|
-      @args[args.required(a).name.identifier] = Integer.valueOf(i)
-      i += 1
+      arg = args.required(a)
+      type = getInferredType(arg)
+      bytecode.declareArg(arg.name.identifier, type)
     end
     args.optional_size.times do |a|
-      @args[args.optional(a).name.identifier] = Integer.valueOf(i)
-      i += 1
+      optarg = args.optional(a)
+      type = getInferredType(optarg)
+      bytecode.declareArg(optarg.name.identifier, type)
     end
     if args.rest
-      @args[args.rest.name.identifier] = Integer.valueOf(i)
-      i += 1
+      type = getInferredType(args.rest)
+      bytecode.declareArg(args.rest.name.identifier, type)
     end
     args.required2_size.times do |a|
-      @args[args.required2(a).name.identifier] = Integer.valueOf(i)
-      i += 1
+      arg = args.required2(a)
+      type = getInferredType(arg)
+      bytecode.declareArg(arg.name.identifier, type)
     end
   end
 
@@ -114,8 +116,9 @@ class MethodCompiler < BaseCompiler
     superclass = @selfType.superclass
     @superclass = superclass || JVMType(
         typer.type_system.get(nil, TypeRefImpl.new("java.lang.Object", false, false, nil)).resolve)
-    collectArgNames(mdef)
-    Bytecode.new(@flags, @descriptor, cv)
+    builder = Bytecode.new(@flags, @descriptor, cv)
+    collectArgNames(mdef, builder)
+    builder
   end
   
   def prepareBinding(mdef:MethodDefinition):void
@@ -132,13 +135,13 @@ class MethodCompiler < BaseCompiler
         @builder.dup
         args = AsmType[0]
         @builder.invokeConstructor(type.getAsmType, AsmMethod.new("<init>", AsmType.getType("V"), args))
-        @args.keySet.each do |name|
+        @builder.arguments.each do |_arg|
+          arg = LocalInfo(_arg)
           # Save any captured method arguments into the binding
-          if scope.isCaptured(name)
-            localType = JVMType(typer.type_system.getLocalType(scope, name, mdef.position).resolve)
+          if scope.isCaptured(arg.name)
             @builder.dup
-            @builder.loadArg(@args[name].intValue)
-            @builder.putField(type.getAsmType, name, localType.getAsmType)
+            @builder.loadLocal(arg.name)
+            @builder.putField(type.getAsmType, arg.name, arg.type)
           end
         end
       else
@@ -246,29 +249,8 @@ class MethodCompiler < BaseCompiler
         @builder.loadLocal(@binding)
         @builder.getField(@bindingType.getAsmType, name, getInferredType(local).getAsmType)
       else
-        index = @locals[name]
-        if index
-          @builder.loadLocal(Integer(index).intValue)
-        else
-          index = @args[name]
-          @builder.loadArg(Integer(index).intValue)
-        end
+        @builder.loadLocal(name)
       end
-    end
-  end
-
-  def storeLocal(name:String, type:AsmType):void
-    index = @locals[name]
-    argIndex = @args[name]
-    if index.nil? && argIndex.nil?
-      # TODO put variable name into debug info
-      index = Integer.valueOf(@builder.newLocal(type))
-      @locals[name] = index
-    end
-    if index
-      @builder.storeLocal(Integer(index).intValue)
-    else
-      @builder.storeArg(Integer(argIndex).intValue)
     end
   end
 
@@ -296,7 +278,7 @@ class MethodCompiler < BaseCompiler
     if isCaptured
       @builder.putField(@bindingType.getAsmType, name, type.getAsmType)
     else
-      storeLocal(name, type.getAsmType)
+      @builder.storeLocal(name, type)
     end
   end
   
@@ -623,7 +605,7 @@ class MethodCompiler < BaseCompiler
         end
         if clause.name
           recordPosition(clause.name.position)
-          storeLocal(clause.name.identifier, AsmType.getType('Ljava/lang/Throwable;'))
+          @builder.storeLocal(clause.name.identifier, AsmType.getType('Ljava/lang/Throwable;'))
         else
           @builder.pop
         end
