@@ -49,7 +49,8 @@
                   jruby -S rake jar
                   rm -rf dist/classes
                   mkdir dist/classes
-                  unzip dist/mirah.jar -d dist/classes &gt; /dev/null
+                  unzip -o javalib/mirah-util.jar -d dist/classes &gt; /dev/null
+                  unzip -o dist/mirah.jar -d dist/classes &gt; /dev/null
                 </argument>
               </arguments>
             </configuration>
