@@ -114,6 +114,7 @@ task :jar => :compile do
     fileset :dir => bitescript_lib_dir
     zipfileset :src => 'javalib/mirah-bootstrap.jar'
     zipfileset :src => 'javalib/mirah-builtins.jar'
+    zipfileset :src => 'javalib/mirah-util.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
