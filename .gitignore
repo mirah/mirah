@@ -9,6 +9,7 @@ target
 .redcar
 .DS_Store
 Gemfile.lock
+*~
 
 # ignore generated jar files
 javalib/mirah-bootstrap.jar
