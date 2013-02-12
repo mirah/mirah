@@ -21,7 +21,8 @@ class MapExtensions
   end
 
   macro def []=(key, value)
-    quote { `@call.target`.put(`key`, `value`) }
+    wrapped_value = [value]
+    quote { `@call.target`.put(`key`, `wrapped_value`) }
   end
 
   macro def empty?
