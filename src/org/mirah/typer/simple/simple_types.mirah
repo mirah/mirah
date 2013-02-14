@@ -85,7 +85,7 @@ class SimpleTypes; implements TypeSystem
   end
 
   def getMetaType(type:ResolvedType)
-    return type if type.isMeta
+    return type if (type.isMeta || type.isError)
     t = ResolvedType(@meta_types[type])
     unless t
       t = ResolvedType(SimpleType.new(type.name, true, false))
@@ -108,9 +108,17 @@ class SimpleTypes; implements TypeSystem
   def getArrayType(componentType:TypeFuture)
     TypeFuture(getArrayType(componentType.resolve))
   end
+  def createType(name:String)
+    if name.equals(name.toLowerCase())
+      TypeFuture(ErrorType.new([["Cannot find class #{name}"]]))
+    else
+      TypeFuture(SimpleType.new(name, false, false))
+    end
+  end
+  
   def get(scope, typeref)
     raise IllegalArgumentException if typeref.nil?
-    basic_type = lookup(typeref.name) || SimpleType.new(typeref.name, false, false)
+    basic_type = lookup(typeref.name) || createType(typeref.name)
     return getMetaType(basic_type) if typeref.isStatic
     return getArrayType(basic_type) if typeref.isArray
     return basic_type
