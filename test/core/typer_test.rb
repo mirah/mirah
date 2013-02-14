@@ -23,6 +23,8 @@ class TyperTest < Test::Unit::TestCase
   java_import 'mirah.lang.ast.VCall'
   java_import 'mirah.lang.ast.FunctionalCall'
   java_import 'mirah.lang.ast.LocalAccess'
+  java_import 'mirah.lang.ast.LocalAssignment'
+  java_import 'org.mirah.typer.simple.TypePrinter'
 
   module TypeFuture
     def inspect
@@ -283,12 +285,16 @@ class TyperTest < Test::Unit::TestCase
 
   def test_vcall
     ast = parse("foo = 1; def bar; end; foo; bar")
+
     assert_kind_of(VCall, ast.body(2))
     assert_kind_of(VCall, ast.body(3))
+
     infer(ast)
-    assert_equal(@types.getFixnumType(1), inferred_type(ast.body(2)))
-    assert_equal(@types.getNullType, inferred_type(ast.body(3)))
-    assert_kind_of(LocalAccess, ast.body(2))
-    assert_kind_of(FunctionalCall, ast.body(3))
+
+    assert_kind_of(LocalAssignment, ast.body(0))
+    assert_equal(@types.getFixnumType(1), inferred_type(ast.body(0)))
+    assert_equal(@types.getNullType, inferred_type(ast.body(1)).return_type)
+    assert inferred_type(ast.body(2)).meta?
+    assert inferred_type(ast.body(3)).meta?
   end
 end
