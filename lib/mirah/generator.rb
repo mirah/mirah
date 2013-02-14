@@ -28,15 +28,20 @@ module Mirah
       @scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
 
       # TODO untie this from the jvm backend (nh)
-      type_system = Mirah::JVM::Types::TypeFactory.new
-      type_system.classpath = state.classpath if state.classpath
-      type_system.bootclasspath = state.bootclasspath
+      type_system = state.type_system || begin
+        java_types = Mirah::JVM::Types::TypeFactory.new
+        java_types.classpath = state.classpath if state.classpath
+        java_types.bootclasspath = state.bootclasspath
+        java_types
+      end
 
       @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
       @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
       @jvm_compiler = Mirah::Compiler::ASTCompiler.new(Mirah::JVM::Compiler::JVMBytecode, logging)
-      type_system.maybe_initialize_builtins(@typer.macro_compiler)
+      if type_system.respond_to?(:maybe_initialize_builtins)
+        type_system.maybe_initialize_builtins(@typer.macro_compiler)
+      end
       @logging = logging
       @verbose = verbose
     end

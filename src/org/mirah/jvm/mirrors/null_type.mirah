@@ -15,17 +15,23 @@
 
 package org.mirah.jvm.mirrors
 
+import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.jvm.types.JVMType
+import org.mirah.typer.ResolvedType
 
-class EnumValue
-  attr_reader declaring_type:Type, name:String
-
-  def initialize(declaring_type:Type, name:String)
-    @declaring_type = declaring_type
-    @name = name
+class NullType < BaseType
+  def initialize
+    super('null', Type.getType('Ljava/lang/Object;'), Opcodes.ACC_PUBLIC, nil)
   end
-  
-  def toString
-    "#{@declaring_type.className}.#{@name}"
+  def widen(other:ResolvedType):ResolvedType
+    if other.matchesAnything
+      self
+    else
+      other
+    end
+  end
+  def assignableFrom(other:ResolvedType):boolean
+    other.matchesAnything || (other.kind_of?(JVMType) && !JVMType(other).isPrimitive)
   end
 end

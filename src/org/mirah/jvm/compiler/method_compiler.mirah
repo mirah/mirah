@@ -116,7 +116,7 @@ class MethodCompiler < BaseCompiler
     superclass = @selfType.superclass
     @superclass = superclass || JVMType(
         typer.type_system.get(nil, TypeRefImpl.new("java.lang.Object", false, false, nil)).resolve)
-    builder = Bytecode.new(@flags, @descriptor, cv)
+    builder = Bytecode.new(@flags, @descriptor, cv, mdef.findAncestor(Script.class).position.source)
     collectArgNames(mdef, builder)
     builder
   end

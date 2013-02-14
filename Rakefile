@@ -86,6 +86,12 @@ namespace :test do
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
+    
+    desc "run tests for mirror type system"
+    Rake::TestTask.new :mirrors  => "javalib/mirah-mirrors.jar" do |t|
+      t.libs << 'test'
+      t.test_files = FileList["test/mirrors/**/*test.rb"]
+    end
   end
 end
 
@@ -275,6 +281,19 @@ file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/o
     fileset :dir => 'build/compiler'
   end
   rm_rf 'build/compiler'
+end
+
+file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/org/mirah/jvm/mirrors/*.mirah'] do
+  rm_f 'javalib/mirah-mirrors.jar'
+  rm_rf 'build/mirros'
+  mkdir_p 'build/mirrors'
+  sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirrors ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar) +
+       %w(src/org/mirah/jvm/mirrors/))
+  ant.jar :jarfile => 'javalib/mirah-mirrors.jar' do
+    fileset :dir => 'build/mirrors'
+  end
+  rm_rf 'build/mirrors'
 end
 
 require 'bitescript'

@@ -106,6 +106,10 @@ module Mirah
           when '--new-backend', '-N'
             args.shift
             state.compiler_class = Mirah::JVM::Compiler::Backend
+          when '--new-types', '-T'
+            args.shift
+            java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
+            state.type_system = MirrorTypeSystem.new
           else
             $stderr.puts "unrecognized flag: " + args[0]
 

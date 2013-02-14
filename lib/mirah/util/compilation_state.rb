@@ -34,6 +34,7 @@ module Mirah
       attr_accessor :args
       attr_accessor :command
       attr_accessor :loggers
+      attr_accessor :type_system
 
       attr_accessor :classpath, :bootclasspath
 

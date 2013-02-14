@@ -26,6 +26,7 @@ import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
 import org.jruby.org.objectweb.asm.commons.Method
 
+import mirah.lang.ast.CodeSource
 import mirah.lang.ast.Position
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
@@ -49,7 +50,7 @@ class Bytecode < GeneratorAdapter
     attr_reader name:String, index:int, type:Type, scopeStart:Label, scopeEnd:Label
   end
   
-  def initialize(flags:int, method:Method, klass:ClassVisitor)
+  def initialize(flags:int, method:Method, klass:ClassVisitor, codesource:CodeSource)
     super(Opcodes.ASM4,
           klass.visitMethod(flags, method.getName, method.getDescriptor, nil, nil),
           flags, method.getName, method.getDescriptor)
@@ -57,6 +58,7 @@ class Bytecode < GeneratorAdapter
     @locals = LinkedHashMap.new
     @nextLocal = (flags & Opcodes.ACC_STATIC == Opcodes.ACC_STATIC) ? 0 : 1
     @firstLocal = @nextLocal
+    @codesource = codesource
   end
 
   def arguments
@@ -111,7 +113,7 @@ class Bytecode < GeneratorAdapter
   end
   
   def recordPosition(position:Position)
-    visitLineNumber(position.startLine, mark) if position
+    visitLineNumber(position.startLine, mark) if position && position.source == @codesource
   end
   
   def pushNil:void
