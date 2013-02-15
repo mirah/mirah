@@ -9,6 +9,7 @@ target
 .redcar
 .DS_Store
 Gemfile.lock
+vendor/
 *~
 
 # ignore generated jar files
