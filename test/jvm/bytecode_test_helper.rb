@@ -34,7 +34,7 @@ module JVMCompiler
 
   def clean_tmp_files
     return unless @tmp_classes
-    File.unlink(*@tmp_classes)
+    File.unlink(*@tmp_classes.uniq)
   end
 
   def compiler_type
@@ -69,7 +69,7 @@ module JVMCompiler
 
     compiler_results.each do |result|
       bytes = result.bytes
-      filename = "#{TEST_DEST}/#{result.filename}"
+      filename = "#{TEST_DEST}#{result.filename}"
       FileUtils.mkdir_p(File.dirname(filename))
       File.open(filename, 'wb') { |f| f.write(bytes) }
       @tmp_classes << filename
