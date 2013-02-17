@@ -129,7 +129,7 @@ class MacrosTest < Test::Unit::TestCase
   end
 
   def test_unquote_method_definitions_with_main
-    script, cls = compile(<<-EOF)
+    script, cls = compile(<<-'EOF')
       class UnquoteMacros
         macro def self.make_attr(name_node:Identifier, type:TypeName)
           name = name_node.identifier
