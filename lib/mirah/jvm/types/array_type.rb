@@ -6,12 +6,7 @@ module Mirah
 
         def initialize(component_type)
           @component_type = component_type
-          if @component_type.jvm_type
-            #@type = java.lang.reflect.Array.newInstance(@component_type.jvm_type, 0).class
-          else
-            # FIXME: THIS IS WRONG, but I don't know how to fix it
-            #@type = @component_type
-          end
+
           @name = component_type.name
           @type_system = component_type.type_system
           self.intrinsics
