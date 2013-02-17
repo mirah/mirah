@@ -197,4 +197,8 @@ class CallFuture < BaseTypeFuture
   def currentMethodType
     @method
   end
+
+  def toString
+    "<#{getClass.getSimpleName}: name=#{@name} target=#{@target} resolved: #{@resolved_target} params=#{@params} paramTypes=#{@paramTypes} resolved: #{@resolved_args}>"
+  end
 end
