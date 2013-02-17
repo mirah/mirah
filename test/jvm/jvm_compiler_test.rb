@@ -16,9 +16,12 @@
 class JVMCompilerTest < Test::Unit::TestCase
 
   def assert_raise_java(type, message="")
-    ex = assert_raise(type) do
+    begin
       yield
+    rescue Exception => e
+      ex = e
     end
+    assert_equal type, ex.class
     assert_equal message, ex.message.to_s
   end
 
