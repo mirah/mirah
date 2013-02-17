@@ -1419,6 +1419,18 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
   end
 
+  def test_lowercase_inner_class
+    cls, = compile(<<-EOF)
+      import org.foo.LowerCaseInnerClass
+
+      def foo
+        LowerCaseInnerClass.inner.field
+      end
+    EOF
+
+    assert_equal(1234, cls.foo)
+  end
+
   def test_class_literal
     cls, = compile(<<-EOF)
       def foo
