@@ -24,6 +24,7 @@ import mirah.lang.ast.*
 class LocalFuture < AssignableTypeFuture
   def initialize(name:String, position:Position)
     super(position)
+    @name = name
     self.error_message = "Undefined variable #{name}"
     @children = ArrayList.new
   end
@@ -66,6 +67,10 @@ class LocalFuture < AssignableTypeFuture
     else
       super
     end
+  end
+
+  def toString
+    "<#{getClass.getSimpleName} name=#{@name} #{@children}>"
   end
 end
 
