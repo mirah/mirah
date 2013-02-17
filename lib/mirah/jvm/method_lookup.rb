@@ -126,7 +126,12 @@ module Mirah
 
         if phase1_methods.size > 1
           method_list = phase1_methods.map do |m|
-            "#{m.name}(#{m.parameter_types.map(&:name).join(', ')})"
+            case m.member
+            when BiteScript::ASM::MethodMirror
+              m.member.inspect
+            else
+              "#{m.name}(#{m.parameter_types.map(&:name).join(', ')})"
+            end
           end.join("\n")
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{method_list}"
         end
@@ -155,7 +160,7 @@ module Mirah
           # otherwise, check for potential match and compare to current
           # TODO: missing ambiguity check; picks last method of equal specificity
           if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
-            if currents.size > 0
+            if !currents.empty?
               if is_more_specific?(potential.argument_types, currents[0].argument_types)
                 # potential is better, dump all currents
                 currents = [potential]
@@ -272,6 +277,7 @@ module Mirah
           unless target_type.respond_to?(:primitive?) && in_type.respond_to?(:primitive?)
             puts "Huh?"
           end
+
           # primitive is safely convertible
           if target_type.primitive?
             if in_type.primitive?
