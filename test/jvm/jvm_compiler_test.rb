@@ -297,18 +297,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
   end
 
-  def test_interface
-    cls, = compile(<<-EOF)
-      import 'java.util.concurrent.Callable'
-      def foo(a:Callable)
-        a.call
-      end
-    EOF
-    result = cls.foo {0}
-    assert_equal 0, result
-    m = cls.java_class.java_method 'foo', java.util.concurrent.Callable
-  end
-
   def test_class_decl
     foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
@@ -837,51 +825,6 @@ class JVMCompilerTest < Test::Unit::TestCase
       to_character char(65)
     EOF
     assert_output("A\n") { cls.main nil}
-  end
-
-
-  def test_interface_declaration
-    interface = compile('interface A; end').first
-    assert(interface.java_class.interface?)
-    assert_equal('A', interface.java_class.name)
-
-    a, b = compile('interface A; end; interface B < A; end')
-    assert_include(a, b.ancestors)
-    assert_equal('A', a.java_class.name)
-    assert_equal('B', b.java_class.name)
-
-    a, b, c = compile(<<-EOF)
-      interface A
-      end
-
-      interface B
-      end
-
-      interface C < A, B
-      end
-    EOF
-
-    assert_include(a, c.ancestors)
-    assert_include(b, c.ancestors)
-    assert_equal('A', a.java_class.name)
-    assert_equal('B', b.java_class.name)
-    assert_equal('C', c.java_class.name)
-  end
-
-  def test_interface_override_return_type
-    assert_raise Mirah::MirahError do
-      compile(<<-EOF)
-        interface A
-          def a:int; end
-        end
-
-        class Impl implements A
-          def a
-            "foo"
-          end
-        end
-      EOF
-    end
   end
 
   def test_raise
