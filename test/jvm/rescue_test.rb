@@ -126,10 +126,9 @@ class RescueTest < Test::Unit::TestCase
     EOF
 
     assert_equal "x", cls.foo(true)
-    ex = assert_raise java.lang.Exception do
+    assert_raise_java java.lang.Exception, "!x" do
       cls.foo(false)
     end
-    assert_equal "!x", ex.message
 
     cls, = compile(<<-EOF)
       def foo:long

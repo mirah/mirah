@@ -132,6 +132,20 @@ module CommonAssertions
     assert_equal(expected, capture_output(&block))
   end
 
+  def assert_raise_java(type, message=nil)
+    begin
+      yield
+    rescue Exception => e
+      ex = e
+    end
+    assert_equal type, ex.class
+    if message
+      assert_equal message,
+                   ex.message.to_s,
+                  "expected error message to be '#{message}' but was '#{ex.message}'"
+    end
+    ex
+  end
 end
 
 class Test::Unit::TestCase
