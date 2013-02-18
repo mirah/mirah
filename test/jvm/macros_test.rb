@@ -27,7 +27,7 @@ class MacrosTest < Test::Unit::TestCase
     assert(!cls.respond_to?(:foo))
   end
 
-  def test_import
+  def test_imported_constants_available_in_macros
     cls, = compile(<<-EOF)
       import java.util.LinkedList
       macro def foo

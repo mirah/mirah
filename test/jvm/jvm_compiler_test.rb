@@ -259,37 +259,6 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   end
 
-  def test_import
-    cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-
-    cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-  end
-
-  def test_no_quote_import
-    cls, = compile("import java.util.ArrayList as AL; def foo; AL.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-
-    cls, = compile("import java.util.ArrayList; def foo; ArrayList.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-  end
-
-  def test_imported_decl
-    cls, = compile("import 'java.util.ArrayList'; def foo(a:ArrayList); a.size; end")
-    assert_equal 0, cls.foo(java.util.ArrayList.new)
-  end
-
-  def test_import_package
-    cls, = compile(<<-EOF)
-      import java.util.*
-      def foo
-        ArrayList.new
-      end
-    EOF
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-  end
-
   def test_class_decl
     foo, = compile("class ClassDeclTest;end")
     assert_equal('ClassDeclTest', foo.java_class.name)
@@ -1450,35 +1419,6 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     assert_equal(true, cls.string("foo"))
     assert_equal(false, cls.string(2))
-  end
-
-  def test_static_import
-    cls, = compile(<<-EOF)
-      import java.util.Arrays
-      include Arrays
-      def list(x:Object[])
-        asList(x)
-      end
-    EOF
-
-    o = ["1", "2", "3"].to_java(:object)
-    list = cls.list(o)
-    assert_kind_of(Java::JavaUtil::List, list)
-    assert_equal(["1", "2", "3"], list.to_a)
-
-    cls, = compile(<<-EOF)
-      import java.util.Arrays
-      class StaticImports
-        include Arrays
-        def list(x:Object[])
-          asList(x)
-        end
-      end
-    EOF
-
-    list = cls.new.list(o)
-    assert_kind_of(Java::JavaUtil::List, list)
-    assert_equal(["1", "2", "3"], list.to_a)
   end
 
   # TODO: need a writable field somewhere...
