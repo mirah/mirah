@@ -259,7 +259,7 @@ module Mirah
       end
 
       def inner_class(params, type, meta, name)
-        return unless params.size == 0 && meta
+        return unless params.empty? && meta
         log("Attempting inner class lookup for '#{name}' on #{type}")
         type.inner_class_getter(name)
       end
