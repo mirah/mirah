@@ -37,7 +37,23 @@ class ObjectExtensions
   macro def self.loop(block:Block)
     quote { while true do `block.body` end }
   end
-  
+
+  macro def self.abstract(klass:ClassDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('ABSTRACT')]))])
+    klass.annotations.add(anno)
+    klass.setParent(nil)
+    klass
+  end
+
+  macro def self.abstract(mdef:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('ABSTRACT')]))])
+    mdef.annotations.add(anno)
+    mdef.setParent(nil)
+    mdef
+  end
+
   macro def self.attr_accessor(hash:Hash)
     args = [hash]
     quote do
