@@ -20,11 +20,14 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedList;
 import java.util.ListIterator;
+import java.util.logging.Logger;
 
-import mmeta.BaseParser;
-import mmeta.BaseParser.Token;
+import org.mirah.mmeta.BaseParser;
+import org.mirah.mmeta.BaseParser.Token;
 
 public class MirahLexer {
+
+  private static final Logger logger = Logger.getLogger(MirahLexer.class.getName());
 
   private interface Lexer {
     int skipWhitespace(int pos);
@@ -335,7 +338,7 @@ public class MirahLexer {
        }
         i += 1;
       }
-      throw new mmeta.SyntaxError("*/", "*/", end, string, null);
+      throw parser.syntaxError("*/", null);
     }
 
     private Tokens processFirstChar(int i) {
@@ -1231,7 +1234,7 @@ public class MirahLexer {
       while (it.hasPrevious()) {
         Token<Tokens> savedToken = it.previous();
         if (pos >= savedToken.pos && pos <= savedToken.startpos) {
-          System.out.println("Warning, uncached token " + savedToken.type + " at " + pos);
+          logger.fine("Warning, uncached token " + savedToken.type + " at " + pos);
           parser._pos = savedToken.endpos;
           return savedToken;
         }

@@ -940,6 +940,10 @@ parser MirahParser {
     super(@source.contents, rule)
   }
 
+  def getDiagnosticSource {
+	Object(@source)
+  }
+
   def self.readToString(stream:InputStream) {
     reader = BufferedReader.new(InputStreamReader.new(stream))
     buffer = char[8192]
@@ -1034,7 +1038,7 @@ parser MirahParser {
       begin
         String(@escape.parse(character, rule))
       rescue SyntaxError
-        raise SyntaxError.new("valid escape", "", _pos, _string, _list);
+        raise syntaxError("valid escape", nil);
       end
     else
       character
@@ -1140,7 +1144,7 @@ parser MirahParser {
     begin
       Long.parseLong(string.replace('_', ''), radix)
     rescue NumberFormatException
-      raise SyntaxError.new('valid number', '', _pos, _string, _list)
+      raise syntaxError('valid number', nil)
     end
   }
 
