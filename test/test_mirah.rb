@@ -779,6 +779,12 @@ EOF
      assert_equal('foo', args.required(0).name.identifier)
    end
    
+
+   def test_implements
+     assert_parse("[Script, [[ClassDefinition, [Constant, [SimpleString, A]], [Constant, [SimpleString, B]], [[Fixnum, 1]], [TypeNameList, [Constant, [SimpleString, Bar]]], [AnnotationList]]]]",
+                  "class A < B\n#foo\nimplements Bar;1;end")
+   end
+
    class CheckParents < NodeScanner
      def initialize(test, print=false)
        super()

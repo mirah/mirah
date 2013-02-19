@@ -729,7 +729,7 @@ parser MirahParser {
 
   $Returns[List]
   opt_implements
-          : term? $Implements! l=rlistOf(:cpath) term {l}
+          : terms? $Implements! l=rlistOf(:cpath) term {l}
           | term {nil}
           ;
 
