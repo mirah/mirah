@@ -99,6 +99,7 @@ module Mirah::JVM::Types
     def cache_and_wrap(resolved_type)
       @futures[resolved_type.name] ||= wrap(resolved_type)
     end
+
     def cache_and_wrap_type(name)
       @futures[name] ||= begin
         type = type(nil, name)
@@ -112,6 +113,7 @@ module Mirah::JVM::Types
     def addDefaultImports(scope)
       scope.import('java.lang.*', '*')
     end
+
     def getNullType; cache_and_wrap_type('null') end
     def getImplicitNilType; cache_and_wrap_type('implicit_nil') end
     def getVoidType; cache_and_wrap_type('void') end
@@ -163,6 +165,7 @@ module Mirah::JVM::Types
         future
       end
     end
+
     def getSuperClass(future)
       superclass = BaseTypeFuture.new(nil)
       future.on_update do |_, type|
@@ -170,6 +173,7 @@ module Mirah::JVM::Types
       end
       superclass
     end
+
     def getArrayType(type)
       if type.kind_of?(Type)
         type.array_type
@@ -179,6 +183,7 @@ module Mirah::JVM::Types
         future
       end
     end
+
     def box(type)
       boxed = BaseTypeFuture.new(nil)
       type.on_update do |_, resolved|
@@ -202,6 +207,7 @@ module Mirah::JVM::Types
       log("Error inferring generics: #{ex.message}\n#{ex.backtrace.join("\n")}")
       cache_and_wrap_type('java.util.List')
     end
+
     def getHashLiteralType(key_type, value_type, position)
       result = Mirah::JVM::Types::GenericType.new(type(nil, 'java.util.HashMap')) # Upgrade to a generic type.
       generic_key, generic_value = result.type_parameters
@@ -215,6 +221,7 @@ module Mirah::JVM::Types
       log("Error inferring generics: #{ex.message}\n#{ex.backtrace.join("\n")}")
       cache_and_wrap_type('java.util.HashMap')
     end
+
     def get(scope, typeref)
       basic_type = if scope.nil?
         cache_and_wrap_type(typeref.name)
@@ -243,6 +250,7 @@ module Mirah::JVM::Types
         basic_type
       end
     end
+
     def getLocalType(scope, name, position)
       scope.local_type(name, position)
     end
@@ -413,12 +421,14 @@ module Mirah::JVM::Types
       if returnType.nil?
         returnType = infer_override_return_type(target, name, argTypes)
       end
+
       args = argTypes.map {|a| a.resolve}
       target = target.resolve
       type = _find_method_type(nil, target, name, args, nil, position)
       type.onUpdate do |m, resolved|
         _declare_method(target, name, args, type)
       end
+
       args.each_with_index do |arg, i|
         if arg.isError
           argTypes[i].onUpdate do |x, resolved|
@@ -427,6 +437,7 @@ module Mirah::JVM::Types
           end
         end
       end
+
       if type.kind_of?(ErrorType)
         puts "Got error type for method #{name} on #{target.resolve} (#{target.resolve.class})"
         position = type.position rescue nil
@@ -436,6 +447,7 @@ module Mirah::JVM::Types
       elsif returnType
         type.returnType.declare(returnType, position)
       end
+
       type.to_java(MethodFuture)
     rescue => ex
       target_name = target.respond_to?(:name) ? target.name : target.resolve.name
@@ -444,6 +456,7 @@ module Mirah::JVM::Types
       return_type.declare(ErrorType.new([["Internal error: #{ex}"]]), nil)
       MethodFuture.new(name, [], return_type, false, nil)
     end
+
     def _declare_method(target, name, args, type)
       return if args.any? {|a| a.isError }
       return unless type.kind_of?(MethodFuture) && type.returnType.isResolved
@@ -462,6 +475,7 @@ module Mirah::JVM::Types
         target.declare_method(rewritten_name, args, resolved, [])
       end      
     end
+
     def getFieldType(target, name, position)
       # This is currently only used for fields in the current class
       klass = target.resolve
@@ -474,11 +488,13 @@ module Mirah::JVM::Types
       end
       t
     end
+
     def getMainType(scope, script)
       filename = File.basename(script.position.source.name || 'DashE')
       classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
       getMetaType(cache_and_wrap(declare_type(scope, classname)))
     end
+
     def defineType(scope, node, name, superclass, interfaces)
       # TODO what if superclass or interfaces change later?
       log("Defining type #{name} < #{superclass.resolve.name if superclass} #{interfaces.map{|i|i.resolve.name}.inspect}")
@@ -499,6 +515,7 @@ module Mirah::JVM::Types
     def addMacro(klass, macro)
       klass.unmeta.add_compiled_macro(macro)
     end
+
     def extendClass(classname, extensions)
       get_type(classname).load_extensions(extensions)
     end
@@ -558,8 +575,9 @@ module Mirah::JVM::Types
       end
       orig = name
       if name.kind_of? Java::JavaClass
+        #TODO is is possible to get here anymore?
         if name.array?
-          return type(name.component_type, true)
+          return type(scope, name.component_type, true)
         else
           name = name.name
         end
@@ -699,7 +717,6 @@ module Mirah::JVM::Types
         java.io.File.new(filename).to_uri.to_url
       end.to_java(java.net.URL)
     end
-
 
     def base_classpath
       Mirah::Env.encode_paths(['.',

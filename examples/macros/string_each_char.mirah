@@ -14,10 +14,9 @@
 # limitations under the License.
 
 
-macro def eachChar(value, &block)
-
+macro def eachChar(value, block:Block)
     quote {
-        `value`.toCharArray.each do | my_char |
+        `value`.toCharArray.each do |`block.arguments` |
             `block.body`
         end
     }

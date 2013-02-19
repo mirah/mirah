@@ -152,7 +152,11 @@ class Typer < SimpleNodeVisitor
     primitive.setParent(call.parent)
     local = LocalAccess.new(call.position, call.name)
     local.setParent(call.parent)
-    options = [infer(primitive, true), primitive, infer(local, true), local, methodType, fcall]
+    options = [
+               infer(local, true), local,
+               methodType, fcall,
+               infer(primitive, true), primitive
+              ]
     current_node = Node(call)
     typer = self
     future = DelegateFuture.new

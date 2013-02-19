@@ -15,13 +15,6 @@
 
 class JVMCompilerTest < Test::Unit::TestCase
 
-  def assert_raise_java(type, message="")
-    ex = assert_raise(type) do
-      yield
-    end
-    assert_equal message, ex.message.to_s
-  end
-
   def test_local
     cls, = compile("def foo; a = 1; a; end")
     assert_equal(1, cls.foo)
@@ -263,49 +256,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     EOF
     assert_output("foo\nbar\n") { b.foobar }
 
-  end
-
-  def test_import
-    cls, = compile("import 'java.util.ArrayList'; def foo; ArrayList.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-
-    cls, = compile("import 'AL', 'java.util.ArrayList'; def foo; AL.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-  end
-
-  def test_no_quote_import
-    cls, = compile("import java.util.ArrayList as AL; def foo; AL.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-
-    cls, = compile("import java.util.ArrayList; def foo; ArrayList.new; end; foo")
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-  end
-
-  def test_imported_decl
-    cls, = compile("import 'java.util.ArrayList'; def foo(a:ArrayList); a.size; end")
-    assert_equal 0, cls.foo(java.util.ArrayList.new)
-  end
-
-  def test_import_package
-    cls, = compile(<<-EOF)
-      import java.util.*
-      def foo
-        ArrayList.new
-      end
-    EOF
-    assert_equal java.util.ArrayList.java_class, cls.foo.java_class
-  end
-
-  def test_interface
-    cls, = compile(<<-EOF)
-      import 'java.util.concurrent.Callable'
-      def foo(a:Callable)
-        a.call
-      end
-    EOF
-    result = cls.foo {0}
-    assert_equal 0, result
-    m = cls.java_class.java_method 'foo', java.util.concurrent.Callable
   end
 
   def test_class_decl
@@ -838,51 +788,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("A\n") { cls.main nil}
   end
 
-
-  def test_interface_declaration
-    interface = compile('interface A; end').first
-    assert(interface.java_class.interface?)
-    assert_equal('A', interface.java_class.name)
-
-    a, b = compile('interface A; end; interface B < A; end')
-    assert_include(a, b.ancestors)
-    assert_equal('A', a.java_class.name)
-    assert_equal('B', b.java_class.name)
-
-    a, b, c = compile(<<-EOF)
-      interface A
-      end
-
-      interface B
-      end
-
-      interface C < A, B
-      end
-    EOF
-
-    assert_include(a, c.ancestors)
-    assert_include(b, c.ancestors)
-    assert_equal('A', a.java_class.name)
-    assert_equal('B', b.java_class.name)
-    assert_equal('C', c.java_class.name)
-  end
-
-  def test_interface_override_return_type
-    assert_raise Mirah::MirahError do
-      compile(<<-EOF)
-        interface A
-          def a:int; end
-        end
-
-        class Impl implements A
-          def a
-            "foo"
-          end
-        end
-      EOF
-    end
-  end
-
   def test_raise
     cls, = compile(<<-EOF)
       def foo
@@ -931,153 +836,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_raise_java(java.lang.Throwable, "darn") do
       cls.foo
     end
-  end
-
-  def test_ensure
-    cls, = compile(<<-EOF)
-      def foo
-        1
-      ensure
-        System.out.println "Hi"
-      end
-    EOF
-    output = capture_output do
-      assert_equal(1, cls.foo)
-    end
-    assert_equal "Hi\n", output
-
-    cls, = compile(<<-EOF)
-      def foo
-        return 1
-      ensure
-        System.out.println "Hi"
-      end
-    EOF
-    output = capture_output do
-      assert_equal(1, cls.foo)
-    end
-    assert_equal "Hi\n", output
-
-    cls, = compile(<<-EOF)
-      def foo
-        begin
-          break
-        ensure
-          System.out.println "Hi"
-        end while false
-      end
-    EOF
-    output = capture_output do
-      cls.foo
-    end
-    assert_equal "Hi\n", output
-  end
-
-  def test_cast
-    cls, = compile(<<-EOF)
-      def f2b; byte(1.0); end
-      def f2s; short(1.0); end
-      def f2c; char(1.0); end
-      def f2i; int(1.0); end
-      def f2l; long(1.0); end
-      def f2d; int(1.0); end
-
-      def i2b; byte(1); end
-      def i2s; short(1); end
-      def i2c; char(1); end
-      def i2l; long(1); end
-      def i2f; float(1); end
-      def i2d; int(1); end
-
-      def b2s; short(byte(1)); end
-      def b2c; char(byte(1)); end
-      def b2i; int(byte(1)); end
-      def b2l; long(byte(1)); end
-      def b2f; float(byte(1)); end
-      def b2d; double(byte(1)); end
-
-      def s2b; byte(short(1)); end
-      def s2c; char(short(1)); end
-      def s2i; int(short(1)); end
-      def s2l; long(short(1)); end
-      def s2f; float(short(1)); end
-      def s2d; double(short(1)); end
-
-      def c2b; byte(char(1)); end
-      def c2s; short(char(1)); end
-      def c2i; int(char(1)); end
-      def c2l; long(char(1)); end
-      def c2f; float(char(1)); end
-      def c2d; double(char(1)); end
-
-      def l2b; byte(long(1)); end
-      def l2c; char(long(1)); end
-      def l2i; int(long(1)); end
-      def l2l; long(long(1)); end
-      def l2f; float(long(1)); end
-      def l2d; double(long(1)); end
-
-      def d2b; byte(1.0); end
-      def d2s; short(1.0); end
-      def d2c; char(1.0); end
-      def d2i; int(1.0); end
-      def d2l; long(1.0); end
-      def d2f; float(1.0); end
-
-      def hard_i2f(a:int)
-        float(if a < 0
-          a *= -1
-          a * 2
-        else
-          a * 2
-        end)
-      end
-    EOF
-
-    assert_equal 1, cls.b2s
-    assert_equal 1, cls.b2c
-    assert_equal 1, cls.b2i
-    assert_equal 1, cls.b2l
-    assert_equal 1.0, cls.b2f
-    assert_equal 1.0, cls.b2d
-
-    assert_equal 1, cls.s2b
-    assert_equal 1, cls.s2c
-    assert_equal 1, cls.s2i
-    assert_equal 1, cls.s2l
-    assert_equal 1.0, cls.s2f
-    assert_equal 1.0, cls.s2d
-
-    assert_equal 1, cls.c2b
-    assert_equal 1, cls.c2s
-    assert_equal 1, cls.c2i
-    assert_equal 1, cls.c2l
-    assert_equal 1.0, cls.c2f
-    assert_equal 1.0, cls.c2d
-
-    assert_equal 1, cls.i2b
-    assert_equal 1, cls.i2s
-    assert_equal 1, cls.i2c
-    assert_equal 1, cls.i2l
-    assert_equal 1.0, cls.i2f
-    assert_equal 1.0, cls.i2d
-
-    assert_equal 1, cls.f2b
-    assert_equal 1, cls.f2s
-    assert_equal 1, cls.f2c
-    assert_equal 1, cls.f2i
-    assert_equal 1, cls.f2l
-    assert_equal 1.0, cls.f2d
-
-    assert_equal 1, cls.d2b
-    assert_equal 1, cls.d2s
-    assert_equal 1, cls.d2c
-    assert_equal 1, cls.d2i
-    assert_equal 1, cls.d2l
-    assert_equal 1.0, cls.d2f
-
-    assert_equal 2.0, cls.hard_i2f(1)
-    assert_equal 4.0, cls.hard_i2f(-2)
   end
 
   def test_set
@@ -1539,43 +1297,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     cls.make_one(nil)
   end
 
-  def test_java_lang_cast
-    cls, = compile(<<-EOF)
-      def foo(a:Object)
-        Integer(a).intValue
-      end
-    EOF
-
-    assert_equal(2, cls.foo(java.lang.Integer.new(2)))
-  end
-
-  def test_array_cast
-    cls, = compile(<<-EOF)
-      def foo(a:Object)
-        bar(String[].cast(a))
-      end
-
-      def bar(a:String[])
-        a[0]
-      end
-    EOF
-
-    assert_equal("foo", cls.foo(["foo", "bar"].to_java(:string)))
-
-    cls, = compile(<<-EOF)
-      def foo(a:Object)
-        bar(int[].cast(a))
-      end
-
-      def bar(a:int[])
-        a[0]
-      end
-    EOF
-
-    assert_equal(2, cls.foo([2, 3].to_java(:int)))
-
-  end
-
   def test_string_interpolation
     cls, = compile(<<-EOF)
       def foo(name:String)
@@ -1666,6 +1387,18 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
   end
 
+  def test_lowercase_inner_class
+    cls, = compile(<<-EOF)
+      import org.foo.LowerCaseInnerClass
+
+      def foo
+        LowerCaseInnerClass.inner.field
+      end
+    EOF
+
+    assert_equal(1234, cls.foo)
+  end
+
   def test_class_literal
     cls, = compile(<<-EOF)
       def foo
@@ -1685,35 +1418,6 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     assert_equal(true, cls.string("foo"))
     assert_equal(false, cls.string(2))
-  end
-
-  def test_static_import
-    cls, = compile(<<-EOF)
-      import java.util.Arrays
-      include Arrays
-      def list(x:Object[])
-        asList(x)
-      end
-    EOF
-
-    o = ["1", "2", "3"].to_java(:object)
-    list = cls.list(o)
-    assert_kind_of(Java::JavaUtil::List, list)
-    assert_equal(["1", "2", "3"], list.to_a)
-
-    cls, = compile(<<-EOF)
-      import java.util.Arrays
-      class StaticImports
-        include Arrays
-        def list(x:Object[])
-          asList(x)
-        end
-      end
-    EOF
-
-    list = cls.new.list(o)
-    assert_kind_of(Java::JavaUtil::List, list)
-    assert_equal(["1", "2", "3"], list.to_a)
   end
 
   # TODO: need a writable field somewhere...
@@ -1748,23 +1452,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
 
     assert_equal('Static Hello', output)
-  end
-
-  def test_loop_in_ensure
-    cls, = compile(<<-EOF)
-    begin
-      System.out.println "a"
-      begin
-        System.out.println "b"
-        break
-      end while false
-      System.out.println "c"
-    ensure
-      System.out.println "ensure"
-    end
-    EOF
-
-    assert_output("a\nb\nc\nensure\n") { cls.main(nil) }
   end
 
   def test_return_type

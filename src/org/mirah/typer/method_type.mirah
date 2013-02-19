@@ -58,19 +58,28 @@ class MethodType
     return self if other == self
     raise IllegalArgumentException
   end
+
   def assignableFrom(other:ResolvedType):boolean
     other == self
   end
+
   def isMeta:boolean
     false
   end
+
   def isInterface:boolean
     false
   end
+
   def isError:boolean
     false
   end
+
   def matchesAnything:boolean
     false
+  end
+
+  def toString:string
+    "<MethodType: name=#{@name} #{@parameterTypes} : #{@returnType}"
   end
 end

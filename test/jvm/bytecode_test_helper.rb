@@ -35,7 +35,7 @@ module JVMCompiler
 
   def clean_tmp_files
     return unless @tmp_classes
-    File.unlink(*@tmp_classes)
+    File.unlink(*@tmp_classes.uniq)
   end
 
   def compiler_type
@@ -70,7 +70,7 @@ module JVMCompiler
 
     compiler_results.each do |result|
       bytes = result.bytes
-      filename = "#{TEST_DEST}/#{result.filename}"
+      filename = "#{TEST_DEST}#{result.filename}"
       FileUtils.mkdir_p(File.dirname(filename))
       File.open(filename, 'wb') { |f| f.write(bytes) }
       @tmp_classes << filename
@@ -133,6 +133,20 @@ module CommonAssertions
     assert_equal(expected, capture_output(&block))
   end
 
+  def assert_raise_java(type, message=nil)
+    begin
+      yield
+    rescue Exception => e
+      ex = e
+    end
+    assert_equal type, ex.class
+    if message
+      assert_equal message,
+                   ex.message.to_s,
+                  "expected error message to be '#{message}' but was '#{ex.message}'"
+    end
+    ex
+  end
 end
 
 class Test::Unit::TestCase

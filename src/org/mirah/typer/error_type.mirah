@@ -28,21 +28,27 @@ class ErrorType < SpecialType
     super(":error")
     @message = checkMessage(message)
   end
+
   def message:List
     @message
   end
+
   def matchesAnything; true; end
+
   def toString:String
     "<Error: #{message}>"
   end
+
   def equals(other:Object)
     other.kind_of?(ErrorType) && message.equals(ErrorType(other).message)
   end
+
   def hashCode
     message.hashCode
   end
 
   private
+
   def checkMessage(message:List)
     new_message = ArrayList.new(message.size)
     message.each do |_pair|

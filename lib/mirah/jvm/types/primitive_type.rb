@@ -35,6 +35,7 @@ module Mirah
 
         def convertible_to?(type)
           return true if type == self
+          return false if type.array?
           widening_conversions = WIDENING_CONVERSIONS[self.name]
           widening_conversions && widening_conversions.include?(type.name)
         end

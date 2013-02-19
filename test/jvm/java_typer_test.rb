@@ -212,6 +212,14 @@ class JavaTyperTest < Test::Unit::TestCase
     assert_equal(@types.type(nil, 'byte'), method_type(ary, "[]", [int]).resolve)
   end
 
+
+  def test_primitive_not_convertible_to_array_with_same_component_type
+    ary = @types.type(nil, 'byte', true)
+    byte = @types.type(nil, 'byte')
+
+    assert !primitive_convertible?(byte, ary)
+  end
+
   def test_int
     ast = parse("#{1 << 16}")
     assert_equal(@types.type(nil, 'int'), inferred_type(ast))

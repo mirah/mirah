@@ -32,8 +32,7 @@ class TyperTest < Test::Unit::TestCase
 
   def setup
     @scopes = SimpleScoper.new
-    @types = SimpleTypes.new('bar')
-    new_typer('bar')
+    new_typer('Bar')
   end
 
   def parse(text)
@@ -220,7 +219,7 @@ class TyperTest < Test::Unit::TestCase
     assert_equal(@types.getFloatType(1.0), inferred_type(ast.body))
     assert_equal(@types.getFloatType(1.0), inferred_type(ast.elseBody))
 
-    typer = new_typer(:bar)
+    typer = new_typer(:Bar)
 
     ast = parse("if foo; bar; else; baz; end").body.get(0)
     typer.infer(ast.parent.parent, true)
@@ -239,7 +238,7 @@ class TyperTest < Test::Unit::TestCase
     ast2 = parse("def baz; 2.0; end")
     typer.infer(ast2, true)
 
-    assert_equal(@types.getFloatType(1.0), inferred_type(ast2.body))
+    assert_equal(@types.getFloatType(1.0), inferred_type(ast2.body).returnType)
 
     assert_equal(@types.getFloatType(1.0), inferred_type(ast))
     assert_equal(@types.getFloatType(1.0), inferred_type(ast.elseBody))
@@ -282,7 +281,7 @@ class TyperTest < Test::Unit::TestCase
   end
 
   def test_vcall
-    ast = parse("foo = 1; def bar; end; foo; bar")
+    ast = parse("foo = 1; def squeak; nil; end; foo; squeak")
     assert_kind_of(VCall, ast.body(2))
     assert_kind_of(VCall, ast.body(3))
     infer(ast)
