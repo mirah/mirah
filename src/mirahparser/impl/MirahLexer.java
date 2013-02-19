@@ -180,6 +180,8 @@ public class MirahLexer {
           if (i + 1 < end && (chars[i + 1] == '{' || chars[i + 1] == '@')) {
             break;
           }
+        } else if (c == '\\') {
+          break;
         }
       }
       pos = i;

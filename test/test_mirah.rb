@@ -243,6 +243,7 @@ EOF
     assert_fails('"\"')
     assert_fails('"#@"')
     assert_fails('"#{"')
+    assert_parse("[Script, [[SimpleString, \e[1m\e[31mERROR\e[0m: ]]]", '"\e[1m\e[31mERROR\e[0m: "')
   end
 
   def test_heredocs
