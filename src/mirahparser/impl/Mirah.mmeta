@@ -709,12 +709,12 @@ parser MirahParser {
   $Returns[Identifier]
   cname: c=constant -> ^(Constant c)
        | unquote
-       | &identifier !"class/module name must be CONSTANT" ?{false};
+       | i=identifier -> ^(Constant i);
 
   # JRuby allows primary_value in cpath. Do we want that?
   $Returns[TypeName]
   cpath: colon3 n=cname -> ^(Colon3 n)
-       | n=cname {a=TypeName(n)} (colons b=cname a=->^(Colon2 a b))* {a}
+       | n=cname {a=TypeName(n)} (dot_or_colon b=cname a=->^(Colon2 a b))* {a}
        ;
 
   $Returns[TypeName]

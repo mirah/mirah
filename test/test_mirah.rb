@@ -71,7 +71,7 @@ class TestParsing < Test::Unit::TestCase
 
   def parse(text)
     @count ||= 0
-    filename = "#{name}-#{@count += 1}"
+    filename = "#{self.class.name}-#{@count += 1}"
     MirahParser.new.parse(StringCodeSource.new(filename, text))
   end
 
@@ -195,8 +195,6 @@ EOF
     assert_parse("[Script, [[CharLiteral, 97]]]", "?a")
     assert_parse("[Script, [[CharLiteral, 65]]]", "?A")
     assert_parse("[Script, [[CharLiteral, 63]]]", "??")
-    assert_parse("[Script, [[CharLiteral, 8364]]]", "?â‚¬")
-    assert_parse("[Script, [[CharLiteral, 119648]]]", "?í ´í½ ")
     assert_parse("[Script, [[CharLiteral, 10]]]", "?\\n")
     assert_parse("[Script, [[CharLiteral, 32]]]", "?\\s")
     assert_parse("[Script, [[CharLiteral, 13]]]", "?\\r")
@@ -339,7 +337,7 @@ EOF
     assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, null, [[VCall, [SimpleString, x]]]]]]]", "foo do;x;end")
     assert_parse("[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, null, [[VCall, [SimpleString, y]]]]]]]", "foo {y}")
     assert_parse("[Script, [[FunctionalCall, [SimpleString, foo?], [], [Block, null, [[VCall, [SimpleString, z]]]]]]]", "foo? {z}")
-    assert_fails('class a;1;end')
+    assert_parse("[Script, [[ClassDefinition, [Constant, [SimpleString, a]], null, [[Fixnum, 1]], [TypeNameList], [AnnotationList]]]]", 'class a;1;end')
   end
 
   def test_if
@@ -623,6 +621,8 @@ EOF
      assert_parse("[Script, [[FieldAssign, [SimpleString, a], [Fixnum, 1], [AnnotationList, [Annotation, [Constant, [SimpleString, Foo]], [HashEntryList]]]]]]", "$Foo @a = 1")
      assert_parse("[Script, [[FieldAssign, [SimpleString, a], [Fixnum, 1], [AnnotationList, [Annotation, [Constant, [SimpleString, Foo]], [HashEntryList, [HashEntry, [SimpleString, value], [Constant, [SimpleString, Bar]]]]]]]]]", "$Foo[Bar] @a = 1")
      assert_parse("[Script, [[FieldAssign, [SimpleString, a], [Fixnum, 1], [AnnotationList, [Annotation, [Constant, [SimpleString, Foo]], [HashEntryList, [HashEntry, [SimpleString, foo], [Constant, [SimpleString, Bar]]]]]]]]]", "$Foo[foo: Bar] @a = 1")
+     assert_parse("[Script, [[FieldAssign, [SimpleString, a], [Fixnum, 1], [AnnotationList, [Annotation, [Colon2, [Constant, [SimpleString, foo]], [Constant, [SimpleString, Bar]]], [HashEntryList]]]]]]", "$foo.Bar @a = 1")
+     assert_parse("[Script, [[FieldAssign, [SimpleString, a], [Fixnum, 1], [AnnotationList, [Annotation, [Colon2, [Constant, [SimpleString, foo]], [Constant, [SimpleString, Bar]]], [HashEntryList]]]]]]", "$foo::Bar @a = 1")
    end
 
    def test_return
@@ -778,7 +778,6 @@ EOF
      args = unquote.arguments
      assert_equal('foo', args.required(0).name.identifier)
    end
-   
 
    def test_implements
      assert_parse("[Script, [[ClassDefinition, [Constant, [SimpleString, A]], [Constant, [SimpleString, B]], [[Fixnum, 1]], [TypeNameList, [Constant, [SimpleString, Bar]]], [AnnotationList]]]]",
