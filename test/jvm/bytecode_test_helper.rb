@@ -35,7 +35,7 @@ module JVMCompiler
 
   def clean_tmp_files
     return unless @tmp_classes
-    File.unlink(*@tmp_classes.uniq)
+    File.unlink(*@tmp_classes)
   end
 
   def compiler_type
