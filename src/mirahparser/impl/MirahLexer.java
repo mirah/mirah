@@ -22,8 +22,8 @@ import java.util.LinkedList;
 import java.util.ListIterator;
 import java.util.logging.Logger;
 
-import org.mirah.mmeta.BaseParser;
-import org.mirah.mmeta.BaseParser.Token;
+import mmeta.BaseParser;
+import mmeta.BaseParser.Token;
 
 public class MirahLexer {
 
@@ -66,10 +66,13 @@ public class MirahLexer {
 
   private class SStringLexer extends BaseLexer {
     private boolean isEscape() {
-      if (pos == end) {
+      return isEscape(pos);
+    }
+    private boolean isEscape(int i) {
+      if (i >= end) {
         return false;
       }
-      switch (chars[pos]) {
+      switch (chars[i]) {
         case '\\': case '\'':
           return true;
       }
@@ -99,7 +102,7 @@ public class MirahLexer {
         char c = chars[i];
         if (c == '\'') {
           break;
-        } else if (c == '\\' && isEscape()) {
+        } else if (c == '\\' && isEscape(i)) {
           break;
         }
       }

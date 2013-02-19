@@ -219,6 +219,10 @@ EOF
     assert_fails("'\\'")
   end
 
+  def test_squote_strings
+    assert_parse("[Script, [[SimpleString, a'b]]]", "'a\\'b'")
+  end
+
   def test_dquote_strings
     assert_parse("[Script, [[SimpleString, ]]]", '""')
     assert_parse("[Script, [[SimpleString, a]]]", '"a"')
