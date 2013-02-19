@@ -109,21 +109,22 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   end
   
   def visitFieldDeclaration(node, expression)
-    flags = calculateFlagsFromAnnotations(node.annotations)
+    flags = calculateFlagsFromAnnotations(Opcodes.ACC_PRIVATE, node.annotations)
     fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, nil)
     context[AnnotationCompiler].compile(node.annotations, fv)
     fv.visitEnd
   end
   
   def flags
-    Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER
+    calculateFlagsFromAnnotations(Opcodes.ACC_PUBLIC, @classdef.annotations) | Opcodes.ACC_SUPER
   end
   
   def methodFlags(mdef:MethodDefinition, isStatic:boolean)
+    flags = calculateFlagsFromAnnotations(Opcodes.ACC_PUBLIC, mdef.annotations)
     if isStatic
-      Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC
+      flags | Opcodes.ACC_STATIC
     else
-      Opcodes.ACC_PUBLIC
+      flags
     end
   end
   

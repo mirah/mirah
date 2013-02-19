@@ -195,8 +195,8 @@ class BaseCompiler < SimpleNodeVisitor
     # ignore. It was already compiled
   end
   
-  def calculateFlagsFromAnnotations(annotations:AnnotationList):int
-    access = -1
+  def calculateFlagsFromAnnotations(defaultAccess:int, annotations:AnnotationList):int
+    access = defaultAccess
     flags = 0
     annotations.size.times do |i|
       anno = annotations.get(i)
