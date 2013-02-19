@@ -101,6 +101,8 @@ end
 file 'build/mirahparser/impl/MirahLexer.class' => Dir['src/mirahparser/impl/*.java'] do
   ant.javac :srcDir => 'src',
       :destDir => 'build',
+      :source => '1.6',
+      :target => '1.6',
       :debug => true do
     include :name => 'mirahparser/impl/Tokens.java'
     include :name => 'mirahparser/impl/MirahLexer.java'
