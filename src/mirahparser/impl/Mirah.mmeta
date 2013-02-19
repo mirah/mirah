@@ -667,6 +667,7 @@ parser MirahParser {
   annotation: $Dollar nosp n=cpath
               arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl $RBrack -> [^(HashEntry ^(SimpleString "value") e)]
                                               | a=listOf(:assoc) trailer opt_nl $RBrack {a}
+                                              | i=args trailer opt_nl $RBrack -> [^(HashEntry ^(SimpleString "value") ^(Array i+))]
                                               | $RBrack {nil}
                                               )
                   | {nil} )
