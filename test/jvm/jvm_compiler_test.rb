@@ -1456,7 +1456,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_return_type
-    assert_raise Mirah::MirahError do
+    assert_raise_kind_of Mirah::MirahError do
       compile(<<-EOF)
         class ReturnsA
           def a:int
@@ -1466,7 +1466,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       EOF
     end
 
-    assert_raise Mirah::MirahError do
+    assert_raise_kind_of Mirah::MirahError do
       compile(<<-EOF)
         class ReturnsB
           def self.a:String

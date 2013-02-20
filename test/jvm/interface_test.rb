@@ -56,7 +56,7 @@ class InterfaceTest < Test::Unit::TestCase
   end
 
   def test_interface_override_return_type
-    assert_raise Mirah::MirahError do
+    assert_raise_kind_of Mirah::MirahError do
       compile(<<-EOF)
         interface AnInterface
           def a:int; end

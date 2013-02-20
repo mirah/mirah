@@ -241,7 +241,15 @@ module Mirah
 
             prepare_binding(node) do
               expression = return_type.name != 'void'
-              visit(body, expression) if body
+              if body
+                if expression
+                  body_type = inferred_type(body)
+                  unless return_type.assignableFrom(body_type)
+                    error("Invalid return type #{body_type.name}, expected #{return_type.name}", body)
+                  end
+                end
+                visit(body, expression)
+              end
             end
 
             return_type.return(@method)
