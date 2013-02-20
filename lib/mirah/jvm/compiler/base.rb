@@ -193,8 +193,10 @@ module Mirah
         # arg_types must be an Array
         def create_method_builder(name, node, static, exceptions, return_type, arg_types)
           visibility = :public  # TODO
-          @class.build_method(name.to_s, visibility, static,
-          exceptions, return_type, *arg_types)
+          flags = BiteScript::ASM::Opcodes::ACC_PUBLIC
+          flags |= BiteScript::ASM::Opcodes::ACC_STATIC if static
+          flags |= BiteScript::ASM::Opcodes::ACC_ABSTRACT if node.annotated_abstract?
+          @class.method(flags, name.to_s, [return_type, *arg_types], exceptions)
         end
 
         def base_define_method(node)
