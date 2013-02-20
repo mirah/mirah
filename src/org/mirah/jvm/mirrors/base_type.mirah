@@ -16,13 +16,16 @@
 package org.mirah.jvm.mirrors
 
 import java.util.Collection
+import java.util.Collections
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.typer.TypeFuture
 
 # package_private
 class BaseType implements JVMType
@@ -88,6 +91,10 @@ class BaseType implements JVMType
       end
     end
     nil
+  end
+  
+  def interfaces:TypeFuture[]
+    TypeFuture[0]
   end
   
   def getDeclaredFields:JVMMethod[]

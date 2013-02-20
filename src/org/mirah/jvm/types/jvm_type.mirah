@@ -1,8 +1,10 @@
 package org.mirah.jvm.types
 
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.TypeFuture
 import org.jruby.org.objectweb.asm.Type
 import java.util.List
+import java.util.Set
 
 interface JVMMethod
   def declaringClass:JVMType; end
@@ -19,6 +21,9 @@ interface JVMType < ResolvedType
   def internal_name:String; end
   def class_id:String; end
   def getAsmType:Type; end
+  def flags:int; end
+
+  def interfaces:TypeFuture[]; end
 
   def isPrimitive:boolean; end
   def isEnum:boolean; end
@@ -39,4 +44,7 @@ interface JVMType < ResolvedType
   
   def getDeclaredFields:JVMMethod[]; end
   def getDeclaredField(name:String):JVMMethod; end
+  
+  # Set contains descriptors for primitives, internal names for Objects
+  def getSuperTypes(supertypes:Set):void; end
 end
