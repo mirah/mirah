@@ -27,6 +27,7 @@ interface Scope do
   def parent=(scope:Scope):void; end
   def shadow(name:String):void; end
   def import(fullname:String, shortname:String); end
+  def staticImport(type:TypeFuture):void; end
   def package:String; end
   def package=(package:String):void; end
   def resetDefaultSelfNode:void; end

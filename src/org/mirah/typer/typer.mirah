@@ -782,9 +782,15 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(node)
     fullName = node.fullName.identifier
     simpleName = node.simpleName.identifier
-    scope.import(fullName, simpleName)
-    unless '*'.equals(simpleName)
-      @types.get(scope, TypeName(node.fullName).typeref)
+    if ".*".equals(simpleName)
+      # TODO support static importing a single method
+      type = @types.getMetaType(@types.get(scope, TypeName(node.fullName).typeref))
+      scope.staticImport(type)
+    else
+      scope.import(fullName, simpleName)
+      unless '*'.equals(simpleName)
+        @types.get(scope, TypeName(node.fullName).typeref)
+      end
     end
     @types.getVoidType()
   end
