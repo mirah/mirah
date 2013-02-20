@@ -19,6 +19,7 @@ module Mirah
       java_import 'java.util.LinkedHashMap'
       java_import 'org.mirah.typer.Scope'
       java_import 'org.mirah.typer.AssignableTypeFuture'
+      java_import 'org.mirah.typer.BaseTypeFuture'
       java_import 'org.mirah.typer.LocalFuture'
       java_import 'org.mirah.typer.ErrorType'
       include Scope
@@ -212,6 +213,13 @@ module Mirah
 
       def search_packages
         @cached_packages ||= fetch_packages([])
+      end
+
+      def staticImport(type)
+        future = BaseTypeFuture.new(self_type.position)
+        extended = self_type.resolve.include(type.resolve)
+        future.resolved(extended)
+        self.self_type = future
       end
 
       def import(full_name, short_name)
