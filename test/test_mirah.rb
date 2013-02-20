@@ -692,6 +692,10 @@ EOF
 
    def test_import
      assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, ArrayList]]]]", 'import java.util.ArrayList')
+
+     assert_parse("[Script, [[Import, [SimpleString, java.util.Arrays.asList], [SimpleString, .asList]]]]", 'import static java.util.Arrays.asList')
+     assert_parse("[Script, [[Import, [SimpleString, java.util.Arrays], [SimpleString, .*]]]]", 'import static java.util.Arrays.*')
+
      assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, AL]]]]", 'import java.util.ArrayList as AL')
      assert_parse("[Script, [[Import, [SimpleString, java.util], [SimpleString, *]]]]", 'import java.util.*')
      assert_parse("[Script, [[Import, [SimpleString, java.util.ArrayList], [SimpleString, ArrayList]]]]", "import 'java.util.ArrayList'")
