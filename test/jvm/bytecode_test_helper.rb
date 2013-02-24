@@ -88,6 +88,10 @@ module JVMCompiler
     name ||= tmp_script_name
 
     state = new_state
+    java_version = options.delete :java_version
+    if java_version
+      state.set_jvm_version java_version
+    end
 
     generator = Mirah::Generator.new(state, compiler_type, false, false)
     transformer = Mirah::Transform::Transformer.new(state, generator.typer)

@@ -42,7 +42,7 @@ module Mirah
           end
         end
 
-        def initialize(scoper, typer)
+        def initialize(config, scoper, typer)
           super
           @jump_scope = []
         end
@@ -259,7 +259,7 @@ module Mirah
         end
 
         def visitClosureDefinition(class_def, expression)
-          compiler = ClosureCompiler.new(@file, @type, self, @scoper, @typer)
+          compiler = ClosureCompiler.new(@config, @file, @type, self, @scoper, @typer)
           compiler.visitClassDefinition(class_def, expression)
         end
 
@@ -1125,8 +1125,8 @@ module Mirah
         end
 
         class ClosureCompiler < JVMBytecode
-          def initialize(file, type, parent, scoper, typer)
-            super(scoper, typer)
+          def initialize(config, file, type, parent, scoper, typer)
+            super(config, scoper, typer)
             @file = file
             @type = type
             @jump_scope = []

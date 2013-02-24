@@ -34,8 +34,8 @@ module Mirah
 
       @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
       @parser = Mirah::Parser.new(state, @typer, logging)
-      @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
-      @extension_compiler = Mirah::Compiler::ASTCompiler.new(Mirah::JVM::Compiler::JVMBytecode, logging)
+      @compiler = Mirah::Compiler::ASTCompiler.new(state, compiler_class, logging)
+      @extension_compiler = Mirah::Compiler::ASTCompiler.new(state, Mirah::JVM::Compiler::JVMBytecode, logging)
       type_system.maybe_initialize_builtins(@typer.macro_compiler)
       @logging = logging
       @verbose = verbose

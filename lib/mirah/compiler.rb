@@ -16,7 +16,8 @@
 module Mirah
   module Compiler
     class ASTCompiler
-      def initialize(compiler_class, logging)
+      def initialize(config, compiler_class, logging)
+        @config = config
         @compiler_class = compiler_class
         @logging = logging
       end
@@ -36,7 +37,7 @@ module Mirah
       end
 
       def compile_ast(ast, scoper, typer, &block)
-        @compiler = compiler_class.new(scoper, typer)
+        @compiler = compiler_class.new(@config, scoper, typer)
         compiler.visit(ast, nil)
         compiler.generate(&block)
       end

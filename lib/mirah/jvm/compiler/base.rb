@@ -32,14 +32,23 @@ module Mirah
           "org.mirah.ruby.JVM.Compiler.Base"
         end
 
-        def initialize(scoper, typer)
+        def initialize(config, scoper, typer)
           super()
+          @config = config
           @jump_scope = []
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
           @scoper = scoper
           @typer = typer
+        end
+
+        def target_jvm_version
+          @config.target_jvm_version
+        end
+
+        def supports_invokedynamic?
+          @config.supports_invokedynamic?
         end
 
         def defaultNode(node, expression)
