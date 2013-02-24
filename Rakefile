@@ -106,6 +106,7 @@ task :clean do
   rm_f 'javalib/mirah-bootstrap.jar'
   rm_f 'javalib/mirah-builtins.jar'
   rm_f 'javalib/mirah-util.jar'
+  rm_rf 'tmp'
 end
 
 task :compile => [:init, :bootstrap, :util]
