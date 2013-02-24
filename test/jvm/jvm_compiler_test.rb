@@ -265,12 +265,12 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_class_name_from_file_with_underscore
-    foo, = compile("System.out.println 'blah'", 'class_name_test.mirah')
+    foo, = compile("System.out.println 'blah'", :name => 'class_name_test.mirah')
     assert_equal('ClassNameTest', foo.java_class.name)
   end
 
   def test_class_name_from_file_with_dash
-    foo, = compile("System.out.println 'blah'", 'class-dash-test.mirah')
+    foo, = compile("System.out.println 'blah'", :name => 'class-dash-test.mirah')
     assert_equal('ClassDashTest', foo.java_class.name)
   end
 

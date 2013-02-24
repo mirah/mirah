@@ -83,7 +83,10 @@ module JVMCompiler
     end
   end
 
-  def compile(code, name = tmp_script_name)
+  def compile(code, options = {})
+    name = options.delete :name
+    name ||= tmp_script_name
+
     state = new_state
 
     generator = Mirah::Generator.new(state, compiler_type, false, false)
@@ -98,7 +101,7 @@ module JVMCompiler
   end
 
   def tmp_script_name
-    "script" + System.nano_time.to_s
+    "script#{name.gsub(/\)|\(/,'_').capitalize}#{System.nano_time}"
   end
 end
 
