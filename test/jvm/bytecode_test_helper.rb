@@ -45,24 +45,23 @@ module JVMCompiler
     AST.parse(code, name, true, transformer)
   end
 
- def infer_and_resolve_types ast, generator
-   scoper, typer = generator.infer_asts(ast, true)
-   ast
- end
+  def infer_and_resolve_types ast, generator
+    scoper, typer = generator.infer_asts(ast, true)
+    ast
+  end
 
- def parse_and_resolve_types name, code
-   state = new_state
+  def parse_and_resolve_types name, code
+    state = new_state
 
-   generator = Mirah::Generator.new(state, compiler_type, false, false)
-   transformer = Mirah::Transform::Transformer.new(state, generator.typer)
+    generator = Mirah::Generator.new(state, compiler_type, false, false)
+    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
 
-   ast = [AST.parse(code, name, true, transformer)]
+    ast = [AST.parse(code, name, true, transformer)]
 
-   infer_and_resolve_types ast, generator
+    infer_and_resolve_types ast, generator
 
-   ast
- end
-
+    ast
+  end
 
   def generate_classes compiler_results
     classes = {}
