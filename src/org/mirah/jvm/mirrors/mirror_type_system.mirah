@@ -16,6 +16,8 @@
 package org.mirah.jvm.mirrors
 
 import java.util.ArrayList
+import java.util.LinkedList
+import java.util.List
 import java.util.logging.Logger
 
 import org.jruby.org.objectweb.asm.Opcodes
@@ -142,5 +144,36 @@ class MirrorTypeSystem implements TypeSystem
       jvmtype = BaseType.new(type, Opcodes.ACC_PUBLIC, @object)
       BaseTypeFuture.new.resolved(jvmtype)
     end)
+  end
+end
+
+class FakeMember < Member
+  def self.create(types:MirrorTypeSystem, description:String)
+    m = /^(@)?([^.]+)\.(.+)$/.matcher(description)
+    raise IllegalArgumentException, "Invalid method specification #{description}" unless m.matches
+    abstract = !m.group(1).nil?
+    klass = wrap(types, Type.getType(m.group(2)))
+    method = Type.getType(m.group(3))
+    returnType = wrap(types, method.getReturnType)
+    args = LinkedList.new
+    method.getArgumentTypes.each do |arg|
+      args.add(wrap(types, arg))
+    end
+    flags = Opcodes.ACC_PUBLIC
+    flags |= Opcodes.ACC_ABSTRACT if abstract
+    FakeMember.new(description, flags, klass, returnType, args)
+  end
+
+  def self.wrap(types:MirrorTypeSystem, type:Type)
+    JVMType(types.wrap(type).resolve)
+  end
+
+  def initialize(description:String, flags:int, klass:JVMType, returnType:JVMType, args:List)
+    super(flags, klass, 'foobar', args, returnType, MemberKind.METHOD)
+    @description = description
+  end
+
+  def toString
+    @description
   end
 end

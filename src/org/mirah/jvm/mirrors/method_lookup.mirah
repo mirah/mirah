@@ -15,12 +15,22 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.Collections
 import java.util.HashSet
 import java.util.LinkedList
+import java.util.List
+import java.util.logging.Logger
+import java.util.logging.Level
+import org.mirah.MirahLogFormatter
 import org.mirah.typer.ResolvedType
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMMethod
 
 class MethodLookup
+  def self.initialize:void
+    @@log = Logger.getLogger(MethodLookup.class.getName)
+  end
+
   class << self
     def isSubType(subtype:ResolvedType, supertype:ResolvedType):boolean
       return true if subtype == supertype
@@ -65,6 +75,129 @@ class MethodLookup
       else
         return order.indexOf(super_desc) >= order.indexOf(sub_desc)
       end
+    end
+
+    # Returns 0, 1, -1 or NaN if a & b are the same type,
+    # a < b, a > b, or neither is a subtype.
+    def subtypeComparison(a:JVMType, b:JVMType):double
+      return 0.0 if a.class_id.equals(b.class_id)
+      if isJvmSubType(b, a)
+        return -1.0
+      elsif isJvmSubType(a, b)
+        return 1.0
+      else
+        return Double.NaN
+      end
+    end
+
+    # Returns the most specific method if one exists, or the maximally
+    # specific methods if the given methods are ambiguous.
+    # Implements the rules in JLS 2nd edition, 15.12.2.2.
+    # Notably, it does not support varargs or generic methods.
+    def findMaximallySpecific(methods:List):List
+      maximal = LinkedList.new
+      ambiguous = false
+      methods.each do |m|
+        method = JVMMethod(m)
+        
+        # Compare 'method' with each of the maximally specific methods.
+        # If it is strictly more specific than all of them, it is the
+        # new most specific method.
+        # If any maximally specific method is strictly more specefic than
+        # 'method', it is not maximally specific.
+        most_specific = true
+        more_specific = true
+        method_ambiguous = false
+        maximal.each do |x|
+          item = JVMMethod(x)
+          comparison = compareSpecificity(method, item)
+          @@log.finest("compareSpecificity('#{method}', '#{item}') = #{comparison}")
+          if comparison < 0
+            more_specific = false
+            most_specific = false
+            break
+          elsif comparison == 0
+            most_specific = false
+          elsif Double.isNaN(comparison)
+            most_specific = false
+            method_ambiguous = true
+          end
+        end
+        if most_specific
+          maximal.clear()
+          maximal.add(method)
+          ambiguous = false
+        elsif more_specific
+          maximal.add(method)
+          ambiguous = true if method_ambiguous
+        end
+      end
+      if maximal.size > 1 && !ambiguous
+        return Collections.singletonList(pickMostSpecific(maximal))
+      end
+      maximal
+    end
+
+    # Returns:
+    #  -  < 0 if b is strictly more specific than a, including the target
+    #  -  > 0 if a is strictly more specific than b, including the target
+    #  -  0 if both are more specific (same override, ignoring the target)
+    #  - NaN if neither is more specific (arguments are ambiguous, ignoring the target)
+    # Note that methods with the same signature but from unrelated classes return 0.
+    # This should only happen when at least one of the methods comes from an interface,
+    # so pickMostSpecific will break the tie.
+    def compareSpecificity(a:JVMMethod, b:JVMMethod):double
+      raise IllegalArgumentException if a.argumentTypes.size != b.argumentTypes.size
+      comparison = 0.0
+      a.argumentTypes.size.times do |i|
+        a_arg = JVMType(a.argumentTypes.get(i))
+        b_arg = JVMType(b.argumentTypes.get(i))
+        arg_comparison = subtypeComparison(a_arg, b_arg)
+        return arg_comparison if Double.isNaN(arg_comparison)
+        if arg_comparison != 0.0
+          if comparison == 0.0
+            comparison = arg_comparison
+          elsif comparison != arg_comparison
+            return Double.NaN
+          end
+        end
+      end
+      target_comparison = subtypeComparison(a.declaringClass, b.declaringClass)
+      if comparison == target_comparison || target_comparison == 0.0
+        return comparison
+      elsif comparison == 0.0
+        if Double.isNaN(target_comparison)
+          # Return equal so pickMostSpecific gets to decide
+          return comparison
+        else
+          return target_comparison
+        end
+      else
+        return Double.NaN
+      end
+    end
+
+    # Breaks specificity ties according the the JLS 2nd edition rules:
+    #   'methods' must be a list of JVMMethods with the same signature.
+    #   If one is not abstract it is returned, otherwise one is arbitrarily chosen.
+    def pickMostSpecific(methods:List):JVMMethod
+      method = nil
+      methods.each do |m|
+        method = JVMMethod(m)
+        return method unless method.isAbstract
+      end
+      method
+    end
+
+    def main(args:String[]):void
+      logger = MirahLogFormatter.new(true).install
+      @@log.setLevel(Level.ALL)
+      types = MirrorTypeSystem.new
+      methods = LinkedList.new
+      args.each do |arg|
+        methods.add(FakeMember.create(types, arg))
+      end
+      puts findMaximallySpecific(methods)
     end
   end
 end

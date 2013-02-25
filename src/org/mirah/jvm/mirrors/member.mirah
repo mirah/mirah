@@ -78,4 +78,8 @@ class Member implements JVMMethod
   def isVararg:boolean
     false
   end
+
+  def isAbstract
+    0 != (@flags & Opcodes.ACC_ABSTRACT)
+  end
 end

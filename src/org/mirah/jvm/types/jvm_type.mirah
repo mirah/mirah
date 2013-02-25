@@ -14,6 +14,7 @@ interface JVMMethod
   def accept(visitor:MemberVisitor, expression:boolean):void; end
   def kind:MemberKind; end
   def isVararg:boolean; end
+  def isAbstract:boolean; end
 end
 
 interface JVMType < ResolvedType
