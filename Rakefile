@@ -253,26 +253,30 @@ file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/
   rm_rf 'build/builtins'
 end
 
-require 'bitescript'
-class Annotater < BiteScript::ASM::ClassVisitor
-  def initialize(filename, &block)
-    cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
-    cw = BiteScript::ASM::ClassWriter.new(0)
-    super(BiteScript::ASM::Opcodes::ASM4, cw)
-    @block = block
-    cr.accept(self, 0)
-    f = java.io.FileOutputStream.new(filename)
-    f.write(cw.toByteArray)
-    f.close
-  end
-  def visitSource(*args); end
-  def visit(version, access, name, sig, superclass, interfaces)
-    super
-    @block.call(self)
+
+if Float(JRUBY_VERSION[0..2]) >= 1.7
+  require 'bitescript'
+  class Annotater < BiteScript::ASM::ClassVisitor
+    def initialize(filename, &block)
+      cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
+      cw = BiteScript::ASM::ClassWriter.new(0)
+      super(BiteScript::ASM::Opcodes::ASM4, cw)
+      @block = block
+      cr.accept(self, 0)
+      f = java.io.FileOutputStream.new(filename)
+      f.write(cw.toByteArray)
+      f.close
+    end
+    def visitSource(*args); end
+    def visit(version, access, name, sig, superclass, interfaces)
+      super
+      @block.call(self)
+    end
   end
 end
 
 def add_quote_macro
+  raise "Can't compile on JRuby less than 1.7" unless defined?(Annotater)
   Annotater.new('build/bootstrap/org/mirah/macros/QuoteMacro.class') do |klass|
     av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', true)
     av.visit("name", "quote")
