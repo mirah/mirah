@@ -2009,4 +2009,14 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("OK") { cls.main(nil) }
   end
 
+  def test_assign_int_to_double
+    cls, = compile(<<-EOF)
+      def foo
+        a = 1.0
+        a = 0
+      end
+    EOF
+    
+    assert_equal(0.0, cls.foo)
+  end
 end

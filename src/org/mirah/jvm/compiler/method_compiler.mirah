@@ -273,7 +273,9 @@ class MethodCompiler < BaseCompiler
     end
     
     recordPosition(local.position)
+    valueType = getInferredType(local.value)
     type = JVMType(typer.type_system.getLocalType(getScope(local), name, local.position).resolve)
+    @builder.convertValue(valueType, type)
 
     if isCaptured
       @builder.putField(@bindingType.getAsmType, name, type.getAsmType)
