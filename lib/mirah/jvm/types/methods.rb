@@ -409,6 +409,9 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression, parameters=nil)
+      unless compiler.respond_to?(:supports_invokedynamic?) && compiler.supports_invokedynamic?
+        raise Mirah::MirahError, "Target JVM version: #{compiler.target_jvm_version} doesn't support invoke dynamic"
+      end
       target = compiler.inferred_type(ast.target)
       compiler.visit(ast.target, true)
 
@@ -416,7 +419,7 @@ module Mirah::JVM::Types
       parameters.each do |param|
         compiler.visit(param, true)
       end
-      handle = compiler.method.mh_invokestatic(
+      handle = compiler.method.h_invokestatic(
         org.dynalang.dynalink.DefaultBootstrapper,
         "bootstrap",
         java.lang.invoke.CallSite,
@@ -768,13 +771,14 @@ module Mirah::JVM::Types
 
     def inner_class_getter(name)
       full_name = "#{self.name}$#{name}"
-      inner_class = nil  # @type_system.type(nil, full_name) rescue nil
+      inner_class = @type_system.type(nil, full_name) rescue nil
       return unless inner_class
+
       inner_class.inner_class = true
-      add_macro(name) do |transformer, call|
-        Mirah::AST::Constant.new(call.parent, call.position, full_name)
+      macro = Macro.new(self, name, []) do |call, typer|
+        Mirah::AST::Constant.new(call.position, Mirah::AST::SimpleString.new(call.position, full_name))
       end
-      intrinsics[name][[]]
+      intrinsics[name][[]] = macro
     end
     
     def getDeclaredFields

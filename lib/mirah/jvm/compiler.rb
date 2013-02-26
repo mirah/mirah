@@ -37,7 +37,11 @@ module Mirah
   module JVM
     module Compiler
       begin
-        java_import 'org.mirah.jvm.compiler.Backend'
+        class Backend < Java::OrgMirahJvmCompiler::Backend
+          def initialize(config, scoper, typer)
+            super(typer)
+          end
+        end
       rescue NameError
         puts "Unable to load new Backend"
       end

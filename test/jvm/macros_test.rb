@@ -27,7 +27,7 @@ class MacrosTest < Test::Unit::TestCase
     assert(!cls.respond_to?(:foo))
   end
 
-  def test_import
+  def test_imported_constants_available_in_macros
     cls, = compile(<<-EOF)
       import java.util.LinkedList
       macro def foo
@@ -83,7 +83,6 @@ class MacrosTest < Test::Unit::TestCase
     assert(!cls.respond_to?(:bar))
   end
 
-
   def test_instance_macro_call
     script, cls = compile(<<-EOF)
       class InstanceMacros
@@ -128,8 +127,54 @@ class MacrosTest < Test::Unit::TestCase
     assert_equal("foobar", script.function)
   end
 
-  def test_unquote_method_definitions_with_main
+
+  def test_static_macro_call
     script, cls = compile(<<-EOF)
+      class StaticMacros
+        def self.foobar
+          "foobar"
+        end
+
+        macro def self.macro_foobar
+          quote {`@call.target`.foobar}
+        end
+      end
+
+      def macro
+        StaticMacros.macro_foobar
+      end
+    EOF
+
+    assert_equal("foobar", script.macro)
+  end
+
+  def test_static_macro_vcall
+    script, cls = compile(<<-EOF)
+      class StaticMacros2
+        def foobar
+          "foobar"
+        end
+
+        macro def self.macro_foobar
+          quote {`@call.target`.new.foobar}
+        end
+
+        def self.call_foobar
+          macro_foobar
+        end
+      end
+
+      def function
+        StaticMacros2.call_foobar
+      end
+    EOF
+
+    assert_equal("foobar", script.function)
+  end
+
+
+  def test_unquote_method_definitions_with_main
+    script, cls = compile(<<-'EOF')
       class UnquoteMacros
         macro def self.make_attr(name_node:Identifier, type:TypeName)
           name = name_node.identifier

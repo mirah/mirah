@@ -32,14 +32,23 @@ module Mirah
           "org.mirah.ruby.JVM.Compiler.Base"
         end
 
-        def initialize(typer)
+        def initialize(config, scoper, typer)
           super()
+          @config = config
           @jump_scope = []
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
           @scoper = typer.scoper
           @typer = typer
+        end
+
+        def target_jvm_version
+          @config.target_jvm_version
+        end
+
+        def supports_invokedynamic?
+          @config.supports_invokedynamic?
         end
 
         def defaultNode(node, expression)
@@ -193,8 +202,10 @@ module Mirah
         # arg_types must be an Array
         def create_method_builder(name, node, static, exceptions, return_type, arg_types)
           visibility = :public  # TODO
-          @class.build_method(name.to_s, visibility, static,
-          exceptions, return_type, *arg_types)
+          flags = BiteScript::ASM::Opcodes::ACC_PUBLIC
+          flags |= BiteScript::ASM::Opcodes::ACC_STATIC if static
+          flags |= BiteScript::ASM::Opcodes::ACC_ABSTRACT if node.annotated_abstract?
+          @class.method(flags, name.to_s, [return_type, *arg_types], exceptions)
         end
 
         def base_define_method(node)

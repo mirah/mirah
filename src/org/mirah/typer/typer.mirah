@@ -152,7 +152,11 @@ class Typer < SimpleNodeVisitor
     primitive.setParent(call.parent)
     local = LocalAccess.new(call.position, call.name)
     local.setParent(call.parent)
-    options = [infer(primitive, true), primitive, infer(local, true), local, methodType, fcall]
+    options = [
+               infer(local, true), local,
+               methodType, fcall,
+               infer(primitive, true), primitive
+              ]
     current_node = Node(call)
     typer = self
     future = DelegateFuture.new
@@ -780,9 +784,15 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.getScope(node)
     fullName = node.fullName.identifier
     simpleName = node.simpleName.identifier
-    scope.import(fullName, simpleName)
-    unless '*'.equals(simpleName)
-      @types.get(scope, TypeName(node.fullName).typeref)
+    if ".*".equals(simpleName)
+      # TODO support static importing a single method
+      type = @types.getMetaType(@types.get(scope, TypeName(node.fullName).typeref))
+      scope.staticImport(type)
+    else
+      scope.import(fullName, simpleName)
+      unless '*'.equals(simpleName)
+        @types.get(scope, TypeName(node.fullName).typeref)
+      end
     end
     @types.getVoidType()
   end

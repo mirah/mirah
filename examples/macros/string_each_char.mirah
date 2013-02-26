@@ -13,6 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module Mirah
-  VERSION = "0.1.0"
+
+macro def eachChar(value, block:Block)
+    quote {
+        `value`.toCharArray.each do |`block.arguments` |
+            `block.body`
+        end
+    }
 end
+
+eachChar('laat de leeeuw niet in zijn hempie staan') do | my_char |
+    puts my_char
+end
+

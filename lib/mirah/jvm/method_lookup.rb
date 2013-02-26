@@ -126,7 +126,12 @@ module Mirah
 
         if phase1_methods.size > 1
           method_list = phase1_methods.map do |m|
-            "#{m.name}(#{m.argument_types.map(&:name).join(', ')})"
+            case m.member
+            when BiteScript::ASM::MethodMirror
+              m.member.inspect
+            else
+              "#{m.name}(#{m.parameter_types.map(&:name).join(', ')})"
+            end
           end.join("\n")
           raise "Ambiguous targets invoking #{mapped_type}.#{name}:\n#{method_list}"
         end
@@ -157,7 +162,7 @@ module Mirah
           # Picking the first method means we prefer methods from the child class,
           # which is important if the parent class is not accessible (like AbstractStringBuilder).
           if each_is_exact_or_subtype_or_convertible(mapped_params, method_params)
-            if currents.size > 0
+            if !currents.empty?
               if is_more_specific?(currents[0].argument_types, potential.argument_types)
                 # currents are better, try next potential
                 #next
@@ -256,7 +261,7 @@ module Mirah
       end
 
       def inner_class(params, type, meta, name)
-        return unless params.size == 0 && meta
+        return unless params.empty? && meta
         log("Attempting inner class lookup for '#{name}' on #{type}")
         type.inner_class_getter(name)
       end
@@ -274,6 +279,7 @@ module Mirah
           unless target_type.respond_to?(:primitive?) && in_type.respond_to?(:primitive?)
             puts "Huh?"
           end
+
           # primitive is safely convertible
           if target_type.primitive?
             if in_type.primitive?

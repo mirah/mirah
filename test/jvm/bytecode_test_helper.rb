@@ -46,31 +46,30 @@ module JVMCompiler
     AST.parse(code, name, true, transformer)
   end
 
- def infer_and_resolve_types ast, generator
-   scoper, typer = generator.infer_asts(ast, true)
-   ast
- end
+  def infer_and_resolve_types ast, generator
+    scoper, typer = generator.infer_asts(ast, true)
+    ast
+  end
 
- def parse_and_resolve_types name, code
-   state = new_state
+  def parse_and_resolve_types name, code
+    state = new_state
 
-   generator = Mirah::Generator.new(state, compiler_type, false, false)
-   transformer = Mirah::Transform::Transformer.new(state, generator.typer)
+    generator = Mirah::Generator.new(state, compiler_type, false, false)
+    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
 
-   ast = [AST.parse(code, name, true, transformer)]
+    ast = [AST.parse(code, name, true, transformer)]
 
-   infer_and_resolve_types ast, generator
+    infer_and_resolve_types ast, generator
 
-   ast
- end
-
+    ast
+  end
 
   def generate_classes compiler_results
     classes = {}
 
     compiler_results.each do |result|
       bytes = result.bytes
-      filename = "#{TEST_DEST}/#{result.filename}"
+      filename = "#{TEST_DEST}#{result.filename}"
       FileUtils.mkdir_p(File.dirname(filename))
       File.open(filename, 'wb') { |f| f.write(bytes) }
       @tmp_classes << filename
@@ -85,8 +84,15 @@ module JVMCompiler
     end
   end
 
-  def compile(code, name = tmp_script_name)
+  def compile(code, options = {})
+    name = options.delete :name
+    name ||= tmp_script_name
+
     state = new_state
+    java_version = options.delete :java_version
+    if java_version
+      state.set_jvm_version java_version
+    end
 
     generator = Mirah::Generator.new(state, compiler_type, false, false)
     transformer = Mirah::Transform::Transformer.new(state, generator.typer)
@@ -100,7 +106,7 @@ module JVMCompiler
   end
 
   def tmp_script_name
-    "script" + System.nano_time.to_s
+    "script#{name.gsub(/\)|\(/,'_').capitalize}#{System.nano_time}"
   end
 end
 
@@ -133,6 +139,21 @@ module CommonAssertions
     assert_equal(expected, capture_output(&block))
   end
 
+  def assert_raise_java(type, message=nil)
+    begin
+      yield
+    rescue Exception => e
+      ex = e
+    end
+    ex = ex.cause if ex.is_a? NativeException
+    assert_equal type, ex.class
+    if message
+      assert_equal message,
+                   ex.message.to_s,
+                  "expected error message to be '#{message}' but was '#{ex.message}'"
+    end
+    ex
+  end
 end
 
 class Test::Unit::TestCase

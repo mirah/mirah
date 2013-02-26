@@ -16,11 +16,13 @@ class ClassLoaderTest < Test::Unit::TestCase
   def test_mirah_class_loader_w_missing_class_raises_class_not_found
     class_loader = Mirah::Util::ClassLoader.new nil, {}
 
-    ex = assert_raise java.lang.ClassNotFoundException do
-      class_loader.find_class 'org.doesnt.exist.Class'
+    begin
+      klass = class_loader.find_class 'org.doesnt.exist.Class'
+      fail 'Expected ClassNotFoundException'
+    rescue java.lang.ClassNotFoundException
+      # expected
     end
   end
-
 
   def test_isolated_resource_loader_only_finds_resources_given_to_it
     loader = Mirah::Util::IsolatedResourceLoader.new [java.net.URL.new("file:#{FIXTURES}")]

@@ -212,6 +212,14 @@ class JavaTyperTest < Test::Unit::TestCase
     assert_equal(@types.type(nil, 'byte'), method_type(ary, "[]", [int]).resolve)
   end
 
+
+  def test_primitive_not_convertible_to_array_with_same_component_type
+    ary = @types.type(nil, 'byte', true)
+    byte = @types.type(nil, 'byte')
+
+    assert !primitive_convertible?(byte, ary)
+  end
+
   def test_int
     ast = parse("#{1 << 16}")
     assert_equal(@types.type(nil, 'int'), inferred_type(ast))
@@ -225,14 +233,6 @@ class JavaTyperTest < Test::Unit::TestCase
   def test_char
     ast = parse("?a")
     assert_equal(@types.type(nil, 'char'), inferred_type(ast))
-  end
-
-  def test_dynamic_assignability
-    ast = parse("a = 1; a = dynamic('foo')")
-    assert_equal true, inferred_type(ast).isError
-
-    ast = parse("a = Object.new; a = dynamic('foo')")
-    assert_equal 'java.lang.Object', inferred_type(ast).name
   end
 
   def test_static_method

@@ -13,17 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
-macro def eachChar(value, &block)
-
-    quote {
-        `value`.toCharArray.each do | my_char |
-            `block.body`
+class Java::MirahLangAst::NodeImpl
+  def annotated_abstract?
+    annotations.each do |anno|
+      if anno.type.typeref.name == 'org.mirah.jvm.types.Modifiers'
+        anno.values.each do |entry|
+          if entry.key.identifier == 'flags'
+            entry.value.values.each do |value|
+              return true if value.identifier == 'ABSTRACT'
+            end
+          end
         end
-    }
+      end
+    end
+    false
+  end
 end
-
-eachChar('laat de leeeuw niet in zijn hempie staan') do | my_char |
-    puts my_char
-end
-

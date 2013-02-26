@@ -1,3 +1,114 @@
+=== 0.1.0 Steamboating / 2013-02-24
+
+db38a8d make tests 1.6.8 compatible
+57835f1 raise an error attempting to compile mirah using jruby before 1.7
+ea04a51 stop using turn gem
+46f603e when the source mirror doesn't work (1.6.8 on java 7), continue
+9bb9f29 bump version to 0.1.0 from 0.1.0.pre / 0.1.0-SNAPSHOT
+06dff98 bump bitescript version required to 0.1.2 or higher
+e74bc53 reenable dynamic, raise nice errors when on jvm < 1.7
+8bb7728 rename generator's extension compiler to @extension_compiler
+4936c8c remove dynamic type assignment test
+c44c78e use the test name as part of the class name of anon Mirah classes in tests
+56a10ef fix some whitespace in test/jvm/bytecode_test_helper.rb
+0471e49 clean tmp directory as it's used in building distribution artifacts
+3824dcc add mirah-util.jar to bootstrap task
+c78cd1b also rm the mirah-util jar on clean
+76bc6ef don't blow up if the source mirror can't work. (Java 7-15 appears to have removed an internal class)
+5ee433f fix java version of class files compiled for 7 instead of 6
+400b718 Recompile mmeta.BaseParser for Java 6
+91f4974 Add missing file
+76facfc Fix DynamicType.superclass. This fixes the tests, but I still think dynamic is generally broken.
+9057240 Closes #206
+79c400c Merge https://github.com/mirah/mirah into fix
+586bfc3 Fix abstract Closes #207
+d90563f merge
+9164bf2 Implement static imports with new syntax.
+09c4a4b Rebuild lexer for Java 6
+91d3a6a Really update the parser jar this time
+53fccff Update the parser.
+1595e89 start a test suite for the examples
+6d61273 fix string_each_char to work with new ast
+cec675b clean up import related tests
+cd17b50 add tests for static macros
+c9f8bcd fix lower case inner class lookup.
+69085e8 add lowercase inner class test that fails, add java test fixture for it
+400d549 don't use Ruby string interpolation on test that uses Mirah interpolation
+36a5a84 add whitespace to ErrorType
+d62cfda bump cast_test copyright year to 2013
+dd9048a fix raise assertion in rescue tests
+7135761 fix java exception assertion method
+cacd537 move interface tests into own test case
+7247dde ensure we don't try cleaning up a class file twice it tests
+2dc065e move casting tests to their own file
+23712cb add toString to LocalFuture
+652179b add to string to CallFuture
+f968291 primitives shouldn't be convertible to arrays of that primitive
+5e55644 fix whitespace in factory/ note possibly dead code
+84262c2 remove array_type if statement that had both sides commented out
+1fcd805 clean up method_lookup.rb a little, fix printing bitescript mirrors on ambiguity errors
+f0765f4 move jvm ensure tests to rescue_test
+884645e add check to make sure gem build fails when generated jars not present
+6241541 Access RubyGems via SSL so it'll stop whining.
+9541f01 Bundler uses `vendor` for gems. Ignore it.
+1a1a68d Fix class_loader_test
+5414ac3 Fix typer_test.
+332f4a9 pick primitives last in typer to avoid assuming things are meta as much
+fe73423 Revert "make typer vcall test pass again." Turns out the test is pointing out a real bug
+ea265ee make typer vcall test pass again.
+6fe3c28 add toString to MethodType
+28e184b Merge pull request #204 from tychobrailleur/maven-fix
+dd0cba1 Clean up Maven poms.
+fbbcdb8 Ignore backup files.
+b11dcfe give super test class better name
+2fe9b84 don't include minitest, as we don't use it, clean up .class file cleanup
+0d5691f first pass at doing autoboxing
+c1a070e rename some block test classes to ensure they don't conflict
+8479db5 fix dash e, add regression test
+cb33c59 if a varargs method is passed a matching array, use that as the varargs array
+9e35eac test cleanup: remove unnecessary clear, add/remove whitespace
+dcbb4fb missed a varargs method definition
+c1886fc add varargs support
+f56c38d add support for referring to macros that have already been compiled.
+0d866a4 clean up byte code test helper a bit
+01b6c3b Merge remote-tracking branch 'tychobrailleur/fix_compile'
+4ad6a4d Ensure resolve return type is ResolvedType.
+f0fd6b0 Really fix the parser jar this time.
+f856785 Merge from master
+3182a90 Recompile some parser classes for java 6.
+931f041 note that you need jruby 1.7.0 to compile mirah
+d7bd6a1 Fix bootstrap under jruby 1.7.0
+9967d48 Fix some tests.
+af0a9ee Try to get rid of a warning about ambiguos methods
+aedab51 Fix bootstrap under jruby 1.7.0
+fadf3c8 Fix widening for stack frames.
+1b16915 Fix macro loading in 1.7.0
+5d5ce53 More jruby 1.7.0 fixes (but these break 1.6.x)
+83a5ce9 Fix interface ambiguity
+a7283f3 Merge in better parser error handling
+3a2bbfa Fix for classes which change package.
+1bd8200 Support declaring a method before the parameter types are resolved.
+636fe73 Lookup return type for overrides with no declared return type
+c5a02e1 Fix infinite recursion in AssignableTypeFuture
+c9e8433 Better error message when method args are missing the type declaration.
+9438dfc More fixes for better error messages.
+2631f2c Fix typo
+c7c8559 Fix error propagation to better show the source of errors.
+765e50a Fix bug where a local variable foo loads class Foo
+e4fb346 Remove reference to AST.type_factory
+978611b don't remove the build dir after finishing the build.
+02da6ed remove unused constant
+2c50acb remove references in README to java source generation as it is no longer supported
+bebcfa4 fix class path for generating ant task
+1a54f0c add util jar containing ant task, add it to classpath for gem
+645253b consolidate classpath munging into mirah.rb
+15483bf some 1.9 fixes: each_with_index => each.with_index / each_line.with_index / zip
+6a2bd1b Merge pull request #193 from SaberUK/patch-1
+0a9d165 Merge branch 'master' of https://github.com/mirah/mirah
+d7f39b8 Compile the ant task.
+fd25564 rm_f so we can clean even if the file is already missing.
+90ac5b9 Fix small typo in help message.
+
 === 0.1.0.pre RubyConf newast preview release / 2012-11-02
 
 a104440 change version to 0.1.0.pre

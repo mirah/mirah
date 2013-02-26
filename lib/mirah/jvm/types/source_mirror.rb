@@ -27,10 +27,11 @@ module Mirah::JVM::Types
       java_import 'javax.lang.model.element.Element'
       java_import 'javax.lang.model.type.TypeKind'
       java_import 'javax.lang.model.type.TypeMirror'
-      java_import 'com.sun.tools.javac.model.JavacElements'
       java_import 'javax.lang.model.util.ElementScanner6'
       java_import 'javax.lang.model.element.AnnotationValueVisitor'
+      java_import 'com.sun.tools.javac.model.JavacElements'
     rescue
+      # must be after Java 7-15
     end
 
     if defined?(JavacElements)
@@ -262,8 +263,12 @@ module Mirah::JVM::Types
     end
 
     def self.load(file, factory)
-      parser = JavaSourceParser.new(file, factory)
-      parser.parse
+      if defined? JavacElements
+        parser = JavaSourceParser.new(file, factory)
+        parser.parse
+      end
+    rescue TypeError
+      # 1.6.8 on Java 7, don't use source mirror
     end
   end
 end

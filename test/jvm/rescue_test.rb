@@ -126,10 +126,9 @@ class RescueTest < Test::Unit::TestCase
     EOF
 
     assert_equal "x", cls.foo(true)
-    ex = assert_raise java.lang.Exception do
+    assert_raise_java java.lang.Exception, "!x" do
       cls.foo(false)
     end
-    assert_equal "!x", ex.message
 
     cls, = compile(<<-EOF)
       def foo:long
@@ -179,5 +178,63 @@ class RescueTest < Test::Unit::TestCase
         ""
       end
     EOF
+  end
+
+
+  def test_ensure
+    cls, = compile(<<-EOF)
+      def foo
+        1
+      ensure
+        System.out.println "Hi"
+      end
+    EOF
+    output = capture_output do
+      assert_equal(1, cls.foo)
+    end
+    assert_equal "Hi\n", output
+
+    cls, = compile(<<-EOF)
+      def foo
+        return 1
+      ensure
+        System.out.println "Hi"
+      end
+    EOF
+    output = capture_output do
+      assert_equal(1, cls.foo)
+    end
+    assert_equal "Hi\n", output
+
+    cls, = compile(<<-EOF)
+      def foo
+        begin
+          break
+        ensure
+          System.out.println "Hi"
+        end while false
+      end
+    EOF
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal "Hi\n", output
+  end
+
+  def test_loop_in_ensure
+    cls, = compile(<<-EOF)
+    begin
+      System.out.println "a"
+      begin
+        System.out.println "b"
+        break
+      end while false
+      System.out.println "c"
+    ensure
+      System.out.println "ensure"
+    end
+    EOF
+
+    assert_output("a\nb\nc\nensure\n") { cls.main(nil) }
   end
 end

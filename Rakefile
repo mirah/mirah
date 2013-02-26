@@ -30,7 +30,7 @@ end
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :gem => 'jar:bootstrap'
-task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar']
+task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar', 'javalib/mirah-util.jar']
 task :default => :'test:jvm:bytecode'
 def run_tests tests
   results = tests.map do |name|
@@ -76,7 +76,7 @@ namespace :test do
 
   namespace :jvm do
     desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode => [:bootstrap, :clean_tmp_test_directory] do |t|
+    Rake::TestTask.new :bytecode => [:bootstrap, :clean_tmp_test_directory, :build_test_fixtures] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
@@ -100,6 +100,11 @@ task :clean_tmp_test_directory do
   FileUtils.mkdir_p "tmp_test"
 end
 
+task :build_test_fixtures do
+  ant.javac :destdir => "tmp_test", :srcdir => 'test/fixtures',
+    :includeantruntime => false, :debug => true, :listfiles => true
+end
+
 task :init do
   mkdir_p 'dist'
   mkdir_p 'build'
@@ -111,6 +116,8 @@ task :clean do
   ant.delete :quiet => true, :dir => 'dist'
   rm_f 'javalib/mirah-bootstrap.jar'
   rm_f 'javalib/mirah-builtins.jar'
+  rm_f 'javalib/mirah-util.jar'
+  rm_rf 'tmp'
 end
 
 task :compile => [:init, :bootstrap, :util, :jvm_backend]
@@ -126,6 +133,7 @@ task :jar => :compile do
     fileset :dir => bitescript_lib_dir
     zipfileset :src => 'javalib/mirah-bootstrap.jar'
     zipfileset :src => 'javalib/mirah-builtins.jar'
+    zipfileset :src => 'javalib/mirah-util.jar'
     zipfileset :src => 'javalib/mirah-compiler.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
@@ -296,26 +304,29 @@ file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/or
   rm_rf 'build/mirrors'
 end
 
-require 'bitescript'
-class Annotater < BiteScript::ASM::ClassVisitor
-  def initialize(filename, &block)
-    cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
-    cw = BiteScript::ASM::ClassWriter.new(0)
-    super(BiteScript::ASM::Opcodes::ASM4, cw)
-    @block = block
-    cr.accept(self, 0)
-    f = java.io.FileOutputStream.new(filename)
-    f.write(cw.toByteArray)
-    f.close
-  end
-  def visitSource(*args); end
-  def visit(version, access, name, sig, superclass, interfaces)
-    super
-    @block.call(self)
+if Float(JRUBY_VERSION[0..2]) >= 1.7
+  require 'bitescript'
+  class Annotater < BiteScript::ASM::ClassVisitor
+    def initialize(filename, &block)
+      cr = BiteScript::ASM::ClassReader.new(java.io.FileInputStream.new(filename))
+      cw = BiteScript::ASM::ClassWriter.new(0)
+      super(BiteScript::ASM::Opcodes::ASM4, cw)
+      @block = block
+      cr.accept(self, 0)
+      f = java.io.FileOutputStream.new(filename)
+      f.write(cw.toByteArray)
+      f.close
+    end
+    def visitSource(*args); end
+    def visit(version, access, name, sig, superclass, interfaces)
+      super
+      @block.call(self)
+    end
   end
 end
 
 def add_quote_macro
+  raise "Can't compile on JRuby less than 1.7" unless defined?(Annotater)
   Annotater.new('build/bootstrap/org/mirah/macros/QuoteMacro.class') do |klass|
     av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', true)
     av.visit("name", "quote")
