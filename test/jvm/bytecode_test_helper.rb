@@ -145,6 +145,7 @@ module CommonAssertions
     rescue Exception => e
       ex = e
     end
+    ex = ex.cause if ex.is_a? NativeException
     assert_equal type, ex.class
     if message
       assert_equal message,

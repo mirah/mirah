@@ -755,7 +755,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       primitive, full = types.first, types.last
       begin
         cls, = compile(<<-EOF)
-        def to_#{primitive}(a:#{full.capitalize}):void
+        def to_#{primitive}(a:#{full.to_s.capitalize}):void
           puts a
         end
         to_#{primitive} #{primitive}(1)
@@ -768,7 +768,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     %w[float double].each do |type|
       begin
       cls, = compile(<<-EOF)
-        def to_#{type}(a:#{type.capitalize}):void
+        def to_#{type}(a:#{type.to_s.capitalize}):void
           puts a
         end
         to_#{type} #{type}(1)

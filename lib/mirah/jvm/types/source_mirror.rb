@@ -267,6 +267,8 @@ module Mirah::JVM::Types
         parser = JavaSourceParser.new(file, factory)
         parser.parse
       end
+    rescue TypeError
+      # 1.6.8 on Java 7, don't use source mirror
     end
   end
 end

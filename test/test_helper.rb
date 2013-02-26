@@ -16,7 +16,6 @@ require 'bundler/setup'
 require 'test/unit'
 require 'mirah'
 require 'jruby'
-require 'turn'
 
 module CommonAssertions
   import java.lang.System
