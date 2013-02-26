@@ -409,6 +409,9 @@ module Mirah::JVM::Types
     end
 
     def call(compiler, ast, expression, parameters=nil)
+      unless compiler.respond_to?(:supports_invokedynamic?) && compiler.supports_invokedynamic?
+        raise Mirah::MirahError, "Target JVM version: #{compiler.target_jvm_version} doesn't support invoke dynamic"
+      end
       target = compiler.inferred_type(ast.target)
       compiler.visit(ast.target, true)
 
@@ -416,7 +419,7 @@ module Mirah::JVM::Types
       parameters.each do |param|
         compiler.visit(param, true)
       end
-      handle = compiler.method.mh_invokestatic(
+      handle = compiler.method.h_invokestatic(
         org.dynalang.dynalink.DefaultBootstrapper,
         "bootstrap",
         java.lang.invoke.CallSite,

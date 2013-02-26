@@ -20,8 +20,7 @@ module Mirah
     class CompilationState
       def initialize
         @save_extensions = true
-        # We're still not generating stack frames correctly, so default to 1.6.
-        set_jvm_version('1.6')
+        set_jvm_version ENV_JAVA['java.specification.version']
       end
 
       attr_accessor :verbose, :destination
@@ -36,20 +35,23 @@ module Mirah
       attr_accessor :loggers
 
       attr_accessor :classpath, :bootclasspath
+      attr_reader :target_jvm_version
 
       def set_jvm_version(ver_str)
-        case ver_str
-        when '1.4'
-          BiteScript.bytecode_version = BiteScript::JAVA1_4
-        when '1.5'
-          BiteScript.bytecode_version = BiteScript::JAVA1_5
-        when '1.6'
-          BiteScript.bytecode_version = BiteScript::JAVA1_6
-        when '1.7'
-          BiteScript.bytecode_version = BiteScript::JAVA1_7
+        @target_jvm_version = ver_str
+        @bytecode_version = case ver_str
+        when '1.4' then BiteScript::JAVA1_4
+        when '1.5' then BiteScript::JAVA1_5
+        when '1.6' then BiteScript::JAVA1_6
+        when '1.7' then BiteScript::JAVA1_7
         else
           $stderr.puts "invalid bytecode version specified: #{ver_str}"
         end
+        BiteScript.bytecode_version = @bytecode_version
+      end
+
+      def supports_invokedynamic?
+        @bytecode_version == BiteScript::JAVA1_7
       end
     end
   end
