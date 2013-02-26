@@ -235,14 +235,6 @@ class JavaTyperTest < Test::Unit::TestCase
     assert_equal(@types.type(nil, 'char'), inferred_type(ast))
   end
 
-  def test_dynamic_assignability
-    ast = parse("a = 1; a = dynamic('foo')")
-    assert_equal true, inferred_type(ast).isError
-
-    ast = parse("a = Object.new; a = dynamic('foo')")
-    assert_equal 'java.lang.Object', inferred_type(ast).name
-  end
-
   def test_static_method
     ast = parse("class Foo;def self.bar; 1; end; end; Foo.bar")
     assert_equal(@types.type(nil, 'int'), inferred_type(ast))

@@ -44,14 +44,18 @@ module Mirah
           end
         end
 
+        def abstract?
+          node && (node.kind_of?(InterfaceDeclaration) || node.annotated_abstract?)
+        end
+
         def define(builder)
           class_name = name.tr('.', '/')
-          abstract = node && node.kind_of?(InterfaceDeclaration)  #node.abstract
+          is_interface = node && node.kind_of?(InterfaceDeclaration)
           @type ||= builder.define_class(
               class_name,
               :visibility => :public,
-              :abstract => abstract,
-              :interface => abstract,
+              :abstract => abstract?,
+              :interface => is_interface,
               :superclass => superclass,
               :interfaces => interfaces)
         end

@@ -50,10 +50,9 @@ class ImportTest < Test::Unit::TestCase
     assert_equal java.util.ArrayList.java_class, cls.foo.java_class
   end
 
-  def test_static_import_via_include
+  def test_static_import
     cls, = compile(<<-EOF)
-      import java.util.Arrays
-      include Arrays
+      import static java.util.Arrays.*
       def list(x:Object[])
         asList(x)
       end
@@ -67,7 +66,7 @@ class ImportTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.util.Arrays
       class StaticImports
-        include Arrays
+        import static Arrays.*
         def list(x:Object[])
           asList(x)
         end

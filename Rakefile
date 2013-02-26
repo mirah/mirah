@@ -30,7 +30,7 @@ end
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :gem => 'jar:bootstrap'
-task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar']
+task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar', 'javalib/mirah-util.jar']
 task :default => :'test:jvm:bytecode'
 def run_tests tests
   results = tests.map do |name|
@@ -110,6 +110,8 @@ task :clean do
   ant.delete :quiet => true, :dir => 'dist'
   rm_f 'javalib/mirah-bootstrap.jar'
   rm_f 'javalib/mirah-builtins.jar'
+  rm_f 'javalib/mirah-util.jar'
+  rm_rf 'tmp'
 end
 
 task :compile => [:init, :bootstrap, :util, :jvm_backend]

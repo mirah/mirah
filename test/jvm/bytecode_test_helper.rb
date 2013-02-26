@@ -46,24 +46,23 @@ module JVMCompiler
     AST.parse(code, name, true, transformer)
   end
 
- def infer_and_resolve_types ast, generator
-   scoper, typer = generator.infer_asts(ast, true)
-   ast
- end
+  def infer_and_resolve_types ast, generator
+    scoper, typer = generator.infer_asts(ast, true)
+    ast
+  end
 
- def parse_and_resolve_types name, code
-   state = new_state
+  def parse_and_resolve_types name, code
+    state = new_state
 
-   generator = Mirah::Generator.new(state, compiler_type, false, false)
-   transformer = Mirah::Transform::Transformer.new(state, generator.typer)
+    generator = Mirah::Generator.new(state, compiler_type, false, false)
+    transformer = Mirah::Transform::Transformer.new(state, generator.typer)
 
-   ast = [AST.parse(code, name, true, transformer)]
+    ast = [AST.parse(code, name, true, transformer)]
 
-   infer_and_resolve_types ast, generator
+    infer_and_resolve_types ast, generator
 
-   ast
- end
-
+    ast
+  end
 
   def generate_classes compiler_results
     classes = {}
@@ -85,7 +84,10 @@ module JVMCompiler
     end
   end
 
-  def compile(code, name = tmp_script_name)
+  def compile(code, options = {})
+    name = options.delete :name
+    name ||= tmp_script_name
+
     state = new_state
 
     generator = Mirah::Generator.new(state, compiler_type, false, false)
@@ -100,7 +102,7 @@ module JVMCompiler
   end
 
   def tmp_script_name
-    "script" + System.nano_time.to_s
+    "script#{name.gsub(/\)|\(/,'_').capitalize}#{System.nano_time}"
   end
 end
 

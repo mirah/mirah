@@ -35,7 +35,7 @@ module Mirah
       @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
       @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(compiler_class, logging)
-      @jvm_compiler = Mirah::Compiler::ASTCompiler.new(Mirah::JVM::Compiler::JVMBytecode, logging)
+      @extension_compiler = Mirah::Compiler::ASTCompiler.new(Mirah::JVM::Compiler::JVMBytecode, logging)
       type_system.maybe_initialize_builtins(@typer.macro_compiler)
       @logging = logging
       @verbose = verbose
@@ -93,7 +93,7 @@ module Mirah
     def compileAndLoadExtension(ast)
       log_types([ast])
       process_inference_errors(@typer, [ast])
-      results = @jvm_compiler.compile_asts([ast], @scoper, @typer)
+      results = @extension_compiler.compile_asts([ast], @scoper, @typer)
       class_map = {}
       first_class_name = nil
       results.each do |result|

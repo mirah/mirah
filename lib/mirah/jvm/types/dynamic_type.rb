@@ -33,7 +33,7 @@ module Mirah
         end
 
         def superclass
-          @object_type.superclass
+          @object_type
         end
 
         def interfaces(include_parent=true)

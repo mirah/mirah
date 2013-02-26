@@ -1,3 +1,5 @@
+require 'mirah/jvm/types/ast_ext'
+
 module Mirah
   module JVM
     module Compiler
@@ -145,7 +147,7 @@ module Mirah
         def visitMethodDefinition(node, expression)
           push_jump_scope(node) do
             base_define_method(node) do |method, arg_types|
-              return if @class.interface?
+              return if @class.interface? || node.annotated_abstract?
               is_static = self.static || node.kind_of?(StaticMethodDefinition)
 
               log "Starting new #{is_static ? 'static ' : ''}method #{node.name.identifier}(#{arg_types})"
@@ -239,7 +241,15 @@ module Mirah
 
             prepare_binding(node) do
               expression = return_type.name != 'void'
-              visit(body, expression) if body
+              if body
+                if expression
+                  body_type = inferred_type(body)
+                  unless return_type.assignableFrom(body_type)
+                    error("Invalid return type #{body_type.name}, expected #{return_type.name}", body)
+                  end
+                end
+                visit(body, expression)
+              end
             end
 
             return_type.return(@method)
@@ -583,6 +593,7 @@ module Mirah
 
         def annotate(builder, annotations)
           annotations.each do |annotation|
+            next if annotation.type.typeref.name.start_with?('org.mirah.jvm.')
             type = inferred_type(annotation)
             mirror = type.jvm_type
             if mirror.respond_to?(:getDeclaredAnnotation)
