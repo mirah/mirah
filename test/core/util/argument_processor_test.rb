@@ -38,18 +38,6 @@ class ArgumentProcessorTest < Test::Unit::TestCase
 #    assert_equal path, Mirah::AST.type_factory.bootclasspath
 #  end
 
-  def test_dash_j_fails_when_not_compiling
-    state = Mirah::Util::CompilationState.new
-    processor = Mirah::Util::ArgumentProcessor.new state, ["-j"]
-
-    assert_output "-j/--java flag only applies to \"compile\" mode.\n" do
-      processor.process
-    end
-
-    assert processor.exit?
-    assert_equal 1, processor.exit_status_code
-  end
-
   def test_dash_h_prints_help_and_exits
     state = Mirah::Util::CompilationState.new
     processor = Mirah::Util::ArgumentProcessor.new state, ["-h"]
