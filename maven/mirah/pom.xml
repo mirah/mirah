@@ -42,7 +42,7 @@
               <arguments>
                 <argument>-c</argument>
                 <argument>
-                  jruby -S rake jar
+                  jruby -S bundle exec rake jar
                   rm -rf dist/classes
                   mkdir dist/classes
                   unzip dist/mirah.jar -d dist/classes &gt; /dev/null
