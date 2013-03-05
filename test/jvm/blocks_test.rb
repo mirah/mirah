@@ -296,20 +296,24 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closure_in_closure_doesnt_raise_error
-    parse_and_type(<<-CODE)
-        interface Bar do;def run:void;end;end
+    cls, = compile(<<-CODE)
+        interface BarRunner do;def run:void;end;end
 
-        class Foo
-          def foo(a:Bar)
-            1
+        class Nestable
+          def foo(a:BarRunner)
+            a.run
           end
         end
-        Foo.new.foo do
-          Foo.new.foo do
-            1
+        Nestable.new.foo do
+          puts "first closure"
+          Nestable.new.foo do
+            puts "second closure"
           end
         end
       CODE
+    assert_output "first closure\nsecond closure\n" do
+      cls.main(nil)
+    end
   end
 
   def test_method_requiring_subclass_of_abstract_class_finds_abstract_method
