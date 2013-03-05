@@ -39,7 +39,7 @@ module Mirah
           @bindings = Hash.new {|h, type| h[type] = type.define(@file)}
           @captured_locals = Hash.new {|h, binding| h[binding] = {}}
           @self_scope = nil
-          @scoper = scoper
+          @scoper = typer.scoper
           @typer = typer
         end
 
@@ -352,6 +352,13 @@ module Mirah
             inferred_type(node).literal(method, node.value)
           end
         end
+        
+        def visitCharLiteral(node, expression)
+          if expression
+            inferred_type(node).literal(method, node.value)
+          end
+        end
+        
         alias visitFloat visitFixnum
 
         def visitSelf(node, expression)

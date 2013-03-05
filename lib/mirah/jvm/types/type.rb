@@ -16,6 +16,18 @@ module Mirah
         include Mirah::Logging::Logged
 
         include ResolvedType
+        begin
+          java_import 'org.mirah.jvm.types.JVMType'
+          include JVMType
+        rescue NameError
+          $CLASSPATH << File.dirname(__FILE__) + '/../../../../javalib/mirah-compiler.jar'
+          begin
+            java_import 'org.mirah.jvm.types.JVMType'
+            include JVMType
+          rescue
+  	        puts "Unable to load new type interface"
+          end
+        end
 
         attr_reader :name, :type_system
         attr_writer :inner_class
@@ -35,6 +47,30 @@ module Mirah
         def full_name
           desc = BiteScript::Signature.class_id(self)
           BiteScript::ASM::Type.get_type(desc).class_name
+        end
+        
+        def internal_name
+          full_name.tr('.', '/')
+        end
+        def class_id
+          BiteScript::Signature.class_id(self)
+        end
+        def getAsmType
+          BiteScript::ASM::Type.get_type(class_id)
+        end
+        def isAnnotation
+          jvm_type ? jvm_type.annotation? : false
+        end
+        def isEnum
+          jvm_type ? jvm_type.enum? : false
+        end
+        def retention
+          if jvm_type.respond_to?(:getDeclaredAnnotation)
+            retention = jvm_type.getDeclaredAnnotation('java.lang.annotation.Retention')
+            retention.value.name
+          else
+            nil
+          end
         end
 
         def jvm_type
@@ -73,6 +109,9 @@ module Mirah
 
         def primitive?
           false
+        end
+        def isPrimitive
+          self.primitive?
         end
 
         def interface?

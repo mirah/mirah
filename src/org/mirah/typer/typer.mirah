@@ -135,13 +135,14 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     scope = @scopes.getScope(call)
-    targetType = scope.selfType
+    call.target.setParent(call)  # FIXME: workaround AST bug
+    targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     methodType = CallFuture.new(@types, scope, targetType, Collections.emptyList, call)
     fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
     fcall.setParent(call.parent)
     @futures[fcall] = methodType
-
+    @futures[fcall.target] = targetType
 
     # This might actually be a local or primitive access instead of a method call,
     # so try them all.
@@ -187,7 +188,8 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     delegate = DelegateFuture.new
-    targetType = scope.selfType
+    call.target.setParent(call)  # FIXME: workaround AST bug
+    targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     methodType = CallFuture.new(@types, scope, targetType, parameters, call)
     delegate.type = methodType

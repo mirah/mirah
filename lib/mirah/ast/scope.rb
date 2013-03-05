@@ -86,6 +86,10 @@ module Mirah
       def locals
         @vars.keys
       end
+      
+      def capturedLocals
+        locals.select {|name| self.captured?(name)}
+      end
 
       def temp(name="tmp")
         "$#{name}$#{@temps[name] += 1}"
@@ -116,6 +120,10 @@ module Mirah
         else
           return children.any? {|child| child.include?(name, false)}
         end
+      end
+
+      def isCaptured(name)
+        self.captured?(name)
       end
 
       def children

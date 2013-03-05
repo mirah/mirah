@@ -1,0 +1,20 @@
+package org.mirah.jvm.types;
+
+public enum Flags {
+  STATIC,
+  FINAL,
+  SUPER,
+  SYNCHRONIZED,
+  VOLATILE,
+  BRIDGE,
+  VARARGS,
+  TRANSIENT,
+  NATIVE,
+  INTERFACE,
+  ABSTRACT,
+  STRICT,
+  SYNTHETIC,
+  ANNOTATION,
+  ENUM,
+  DEPRECATED
+}

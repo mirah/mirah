@@ -1029,7 +1029,7 @@ module Mirah
 
         def set_position(position)
           # TODO support positions from multiple files
-          @method.line(position.start_line - 1) if @method && position
+          @method.line(position.start_line) if @method && position
         end
 
         def print(print_node)

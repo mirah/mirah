@@ -30,7 +30,15 @@ module Mirah
         nodes.each do |ast|
           puts "  #{ast.position.source.name}" if logging
           compile_ast(ast, scoper, typer) do |filename, builder|
-            results << CompilerResult.new(filename, builder.class_name, builder.generate)
+            if builder.respond_to?(:class_name)
+              class_name = builder.class_name
+              bytes = builder.generate
+            else
+              class_name = filename
+              bytes = String.from_java_bytes(builder)
+              filename = class_name.tr('.', '/') + ".class"
+            end
+            results << CompilerResult.new(filename, class_name, bytes)
           end
         end
         results
@@ -40,6 +48,11 @@ module Mirah
         @compiler = compiler_class.new(@config, scoper, typer)
         compiler.visit(ast, nil)
         compiler.generate(&block)
+      rescue java.lang.UnsupportedOperationException => ex
+        raise MirahError.new(ex.message)
+      rescue java.lang.Throwable => ex
+        ex.cause.printStackTrace if ex.cause
+        raise ex
       end
     end
 

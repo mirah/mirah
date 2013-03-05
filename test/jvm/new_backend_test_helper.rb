@@ -12,39 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'bytecode_test_helper'
+require 'stringio'
+require 'fileutils'
 
-require 'mirah'
-require 'mirah/jvm/compiler/base'
-require 'mirah/jvm/method_lookup'
-require 'mirah/jvm/types'
-require 'bitescript'
-require 'mirah/jvm/compiler/jvm_bytecode'
-require 'mirah/transform/ast_ext'
-
-module Mirah
-  module AST
-    class FunctionalCall
-      attr_accessor :target
-    end
-
-    class Super
-      attr_accessor :target
-    end
-  end
-end
-
-module Mirah
-  module JVM
-    module Compiler
-      begin
-        class Backend < Java::OrgMirahJvmCompiler::Backend
-          def initialize(config, scoper, typer)
-            super(typer)
-          end
-        end
-      rescue NameError
-        puts "Unable to load new Backend"
-      end
-    end
+module JVMCompiler
+  def compiler_type
+    Mirah::JVM::Compiler::Backend
   end
 end

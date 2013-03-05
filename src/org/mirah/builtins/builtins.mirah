@@ -25,6 +25,7 @@ class Builtins
     mirah.type_system.extendClass('java.lang.Object', ObjectExtensions.class)
     mirah.type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
     mirah.type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
+    mirah.type_system.extendClass('java.lang.String', StringExtensions.class)
     mirah.type_system.extendClass('int', IntExtensions.class)
 
     mirah.type_system.extendClass('byte', NumberExtensions.class)

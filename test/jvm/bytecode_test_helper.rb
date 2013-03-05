@@ -15,6 +15,7 @@
 require 'test_helper'
 require 'stringio'
 require 'fileutils'
+require 'set'
 
 module JVMCompiler
   TEST_DEST = File.expand_path(File.dirname(__FILE__)+'/../../tmp_test/') + "/"
@@ -34,7 +35,7 @@ module JVMCompiler
 
   def clean_tmp_files
     return unless @tmp_classes
-    File.unlink(*@tmp_classes.uniq)
+    File.unlink(*@tmp_classes)
   end
 
   def compiler_type
@@ -96,10 +97,10 @@ module JVMCompiler
     generator = Mirah::Generator.new(state, compiler_type, false, false)
     transformer = Mirah::Transform::Transformer.new(state, generator.typer)
 
-    ast = AST.parse(code, name, true, transformer)
+    ast = [AST.parse_ruby(nil, code, name)]
 
-    scoper, typer = generator.infer_asts([ast], true)
-    compiler_results = generator.compiler.compile_asts([ast], scoper, typer)
+    scoper, typer = generator.infer_asts(ast, true)
+    compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
 
     generate_classes compiler_results
   end
@@ -159,7 +160,7 @@ class Test::Unit::TestCase
   include JVMCompiler
 
   def setup
-    @tmp_classes = []
+    @tmp_classes = Set.new
   end
 
   def cleanup

@@ -35,6 +35,26 @@ module Mirah::JVM::Types
     def jump_if_not(compiler, call, label)
       @type.compile_boolean_operator(compiler, @op, true, call, label)
     end
+    
+    def accept(visitor, expression)
+      visitor.visitComparison(self, expression)
+    end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::COMPARISON_OP
+    end
+  end
+  
+  class MathIntrinsic < Intrinsic
+    java_import 'org.jruby.org.objectweb.asm.commons.GeneratorAdapter'
+    
+    def accept(visitor, expression)
+      visitor.visitMath(self, expression)
+    end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::MATH_OP
+    end
   end
 
   class Number < PrimitiveType
@@ -56,6 +76,13 @@ module Mirah::JVM::Types
       delegate = type.intrinsics[name][args]
       if delegate.kind_of?(ComparisonIntrinsic)
         add_method(name, args, ComparisonIntrinsic.new(type, name, delegate.op, args))
+      elsif delegate.kind_of?(MathIntrinsic)
+        method = MathIntrinsic.new(self, name, args, return_type) do |compiler, call, expression|
+          if expression
+            delegate.call(compiler, call, expression)
+          end
+        end
+        add_method(name, args, method)
       else
         add_method(name, args, return_type) do |compiler, call, expression|
           if expression
@@ -117,7 +144,8 @@ module Mirah::JVM::Types
     end
 
     def math_operator(name, op)
-      add_method(name, [math_type], math_type) do |compiler, call, expression|
+      args = [math_type]
+      method = MathIntrinsic.new(self, name, args, math_type) do |compiler, call, expression|
         if expression
           # Promote the target or the argument if necessary
           convert_args(compiler,
@@ -126,6 +154,7 @@ module Mirah::JVM::Types
           compiler.method.send "#{prefix}#{op}"
         end
       end
+      add_method(name, args, method)
       add_delegates(name)
     end
 
