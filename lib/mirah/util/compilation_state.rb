@@ -35,7 +35,7 @@ module Mirah
       attr_accessor :loggers
 
       attr_accessor :classpath, :bootclasspath
-      attr_reader :target_jvm_version
+      attr_reader :target_jvm_version, :bytecode_version
 
       def set_jvm_version(ver_str)
         @target_jvm_version = ver_str
@@ -44,6 +44,7 @@ module Mirah
         when '1.5' then BiteScript::JAVA1_5
         when '1.6' then BiteScript::JAVA1_6
         when '1.7' then BiteScript::JAVA1_7
+        when '1.8' then BiteScript::JAVA1_8
         else
           $stderr.puts "invalid bytecode version specified: #{ver_str}"
         end
