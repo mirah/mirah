@@ -194,7 +194,7 @@ module Mirah
       end
 
       def phase3(mapped_params, potentials)
-        potential_varargs = potentials.select{|m| m.varargs? }
+        potential_varargs = potentials.select{|m| m.respond_to?(:varargs?) && m.varargs? }
         methods = potential_varargs.inject([]) do |currents, potential|
           method_params = potential.argument_types
           # match n-1 params of potential
