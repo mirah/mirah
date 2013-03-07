@@ -36,11 +36,22 @@ import org.mirah.jvm.types.MemberKind
 
 class MirrorTypeSystem implements TypeSystem
   def initialize
-    @futures = {}
+    @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(PrimitiveLoader.new))
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
     @object.add(Member.new(Opcodes.ACC_PUBLIC, @object, "<init>", [], JVMType(getVoidType.resolve), MemberKind.CONSTRUCTOR))
     @main_type = wrap(Type.getType('LFooBar;'))
+    @primitives = {
+      boolean: 'Z',
+      byte: 'B',
+      char: 'C',
+      short: 'S',
+      int: 'I',
+      long: 'J',
+      float: 'F',
+      double: 'D',
+      void: 'V',
+    }
   end
 
   def self.initialize:void
@@ -122,28 +133,35 @@ class MirrorTypeSystem implements TypeSystem
     future = BaseTypeFuture.new(node.position)
     type = Type.getObjectType(name.replace(?., ?/))
     object_type = @object
-    TypeFuture(@futures[type.getClassName] ||= begin
-      superclass ||= @object_future
-      isDefined = false
-      superclass.onUpdate do |x, resolved|
-        unless isDefined
-          jvm_superclass = resolved.isError ? object_type : JVMType(resolved)
-          future.resolved(BaseType.new(type, Opcodes.ACC_PUBLIC, jvm_superclass))
-        end
+    @loader.defineMirror(type, future)
+    superclass ||= @object_future
+    isDefined = false
+    superclass.onUpdate do |x, resolved|
+      unless isDefined
+        jvm_superclass = resolved.isError ? object_type : JVMType(resolved)
+        future.resolved(BaseType.new(type, Opcodes.ACC_PUBLIC, jvm_superclass))
       end
-      future
-    end)
+    end
+    future
   end
 
   def get(scope, typeref)
-    TypeFuture(@futures[typeref.name])
+    desc = @primitives[typeref.name]
+    type = if desc
+      Type.getType(String(desc))
+    else
+      Type.getObjectType(typeref.name)
+    end
+    @loader.loadMirrorAsync(type)
   end
 
   def wrap(type:Type):TypeFuture
-    TypeFuture(@futures[type.getClassName] ||= begin
+    future = @loader.loadMirrorAsync(type)
+    if (!future.isResolved) || future.resolve.isError
       jvmtype = BaseType.new(type, Opcodes.ACC_PUBLIC, @object)
-      BaseTypeFuture.new.resolved(jvmtype)
-    end)
+      @loader.defineMirror(type, BaseTypeFuture.new.resolved(jvmtype))
+    end
+    future
   end
 end
 
