@@ -28,7 +28,13 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.typer.TypeFuture
 
 # package_private
-class BaseType implements JVMType
+interface MirrorType < JVMType
+  def notifyOfIncompatibleChange:void; end
+  def onIncompatibleChange(listener:Runnable):void; end
+end
+
+# package_private
+class BaseType implements MirrorType
 
   def initialize(type:Type, flags:int, superclass:JVMType)
     initialize(type.getClassName, type, flags, superclass)
@@ -40,9 +46,20 @@ class BaseType implements JVMType
     @flags = flags
     @superclass = superclass
     @members = {}
+    @compatibility_listeners = []
   end
 
   attr_reader superclass:JVMType, name:String, type:Type, flags:int
+
+  def notifyOfIncompatibleChange:void
+    @compatibility_listeners.each do |l|
+      l.run()
+    end
+  end
+
+  def onIncompatibleChange(listener:Runnable)
+    @compatibility_listeners.add(listener)
+  end
 
   def assignableFrom(other)
     other.matchesAnything || (other.kind_of?(JVMType) && class_id.equals(JVMType(other).class_id))
