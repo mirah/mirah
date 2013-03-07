@@ -53,7 +53,7 @@ class BaseType implements MirrorType
 
   def notifyOfIncompatibleChange:void
     @compatibility_listeners.each do |l|
-      l.run()
+      Runnable(l).run()
     end
   end
 
