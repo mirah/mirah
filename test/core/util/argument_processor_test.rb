@@ -1,3 +1,17 @@
+# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 require 'test_helper'
 
 class ArgumentProcessorTest < Test::Unit::TestCase
@@ -37,18 +51,6 @@ class ArgumentProcessorTest < Test::Unit::TestCase
 #
 #    assert_equal path, Mirah::AST.type_factory.bootclasspath
 #  end
-
-  def test_dash_j_fails_when_not_compiling
-    state = Mirah::Util::CompilationState.new
-    processor = Mirah::Util::ArgumentProcessor.new state, ["-j"]
-
-    assert_output "-j/--java flag only applies to \"compile\" mode.\n" do
-      processor.process
-    end
-
-    assert processor.exit?
-    assert_equal 1, processor.exit_status_code
-  end
 
   def test_dash_h_prints_help_and_exits
     state = Mirah::Util::CompilationState.new

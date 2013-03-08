@@ -12,7 +12,7 @@
   <groupId>org.mirah</groupId>
   <artifactId>mirah</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.0</version>
+  <version>0.1.1-SNAPSHOT</version>
   <name>Mirah</name>
 
   <dependencies>
@@ -42,7 +42,7 @@
               <arguments>
                 <argument>-c</argument>
                 <argument>
-                  jruby -S rake jar
+                  jruby -S bundle exec rake jar
                   rm -rf dist/classes
                   mkdir dist/classes
                   unzip dist/mirah.jar -d dist/classes &gt; /dev/null

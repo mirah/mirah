@@ -59,7 +59,6 @@ class Compile < Task
            '--cd', dir,
            '-c', classpath,
            src])
-      args.add(0, '--java') unless bytecode
       args.add(0, '-V') if verbose
 
       # scoping hack
