@@ -25,10 +25,9 @@ import java.util.logging.Logger
 import java.util.logging.Level
 import mirah.lang.ast.Position
 import org.mirah.MirahLogFormatter
-import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
-import org.mirah.typer.MethodFuture
+import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.jvm.types.JVMType
@@ -204,11 +203,9 @@ class MethodLookup
       methods = findMatchingMethod(potentials, params)
       if methods && methods.size > 0
         if methods.size == 1
-          method = JVMMethod(methods[0])
-          returnFuture = BaseTypeFuture.new.resolved(method.returnType)
-          returnType = AssignableTypeFuture.new(position)
-          returnType.declare(returnFuture, position)
-          MethodFuture.new(name, params, returnType, method.isVararg, position)
+          method = Member(methods[0])
+          type = MethodType.new(name, params, method.returnType, method.isVararg)
+          BaseTypeFuture.new.resolved(type)
         else
           ErrorType.new([["Ambiguous methods #{methods}", position]])
         end
