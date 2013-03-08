@@ -199,7 +199,7 @@ class MethodLookup
 
     def findMethod(scope:Scope, target:MirrorType, name:String, params:List, position:Position)
       potentials = gatherMethods(target, name)
-      inaccessible = removeInaccessible(potentials, scope)
+      inaccessible = removeInaccessible(potentials, scope, target)
       methods = findMatchingMethod(potentials, params)
       if methods && methods.size > 0
         if methods.size == 1
@@ -213,7 +213,7 @@ class MethodLookup
         methods = findMatchingMethod(inaccessible, params)
         if methods && methods.size > 0
           method = JVMMethod(methods[0])
-          ErrorType.new([["Cannot access #{method} from #{scope.selfType}", position]])
+          ErrorType.new([["Cannot access #{method} from #{scope.selfType.resolve}", position]])
         else
           nil
         end
@@ -279,7 +279,7 @@ class MethodLookup
       nil
     end
 
-    def isAccessible(type:JVMType, access:int, scope:Scope)
+    def isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
       selfType = MirrorType(scope.selfType.resolve)
       if (0 != (access & Opcodes.ACC_PUBLIC) ||
           type.class_id.equals(selfType.class_id))
@@ -288,8 +288,13 @@ class MethodLookup
         return false
       elsif getPackage(type).equals(getPackage(selfType))
         return true
+      elsif (0 != (access & Opcodes.ACC_PROTECTED) &&
+             isJvmSubType(selfType, type))
+        # A subclass may call protected methods from the superclass,
+        # but only on instances of the subclass.
+        return target.nil? || isJvmSubType(target, selfType)
       else
-        return (0 != (access & Opcodes.ACC_PROTECTED) && isJvmSubType(selfType, type))
+        return false
       end
     end
 
@@ -303,14 +308,14 @@ class MethodLookup
       end
     end
 
-    def removeInaccessible(methods:List, scope:Scope):List
+    def removeInaccessible(methods:List, scope:Scope, target:JVMType):List
       inaccessible = LinkedList.new
       it = methods.iterator
       while it.hasNext
         method = Member(it.next)
         # The declaring class and the method must be visible for the method to be applicable.
         unless (isAccessible(method.declaringClass, method.declaringClass.flags, scope) &&
-                isAccessible(method.declaringClass, method.flags, scope))
+                isAccessible(method.declaringClass, method.flags, scope, target))
           it.remove
           inaccessible.add(method)
         end

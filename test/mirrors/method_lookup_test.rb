@@ -170,7 +170,7 @@ class MethodLookupTest < BaseMethodLookupTest
   def accessibility_assertion(a, flags, b, expected)
     assert_block "Expected #{visibility_string(flags)} #{a} #{expected ? '' : ' not '} visible from #{b}" do
       set_self_type(b)
-      actual = MethodLookup.isAccessible(a, flags, @scope)
+      actual = MethodLookup.isAccessible(a, flags, @scope, nil)
       actual == expected
     end
   end
@@ -193,9 +193,10 @@ class MethodLookupTest < BaseMethodLookupTest
     methods_desc = methods.inspect
     expected_invisible = methods - expected_visible
     set_self_type(type)
-    invisible = MethodLookup.removeInaccessible(methods, @scope)
+    invisible = MethodLookup.removeInaccessible(methods, @scope, nil)
     assert_equal(expected_invisible.map {|m| m.toString}, invisible.map {|m| m.toString})
     assert_equal(expected_visible.map {|m| m.toString}, methods.map {|m| m.toString})
+    # TODO: fix protected usage. e.g. Foo can call Object.clone() through a foo instance, but not any Object.
   end
 
   def test_removeInaccessible
@@ -220,10 +221,14 @@ class MethodLookupTest < BaseMethodLookupTest
     type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil).resolve
     assert(!type.isError)
     assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil))
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil).resolve
+    assert(type.isError)
+    assert_equal('Cannot access java.lang.Object.registerNatives() from Foo', type.message[0][0])
     type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.clone() from Foo', type.message[0][0])
     # TODO test ambiguous
+    # TODO check calling instance method from static scope.
   end
 end
 
