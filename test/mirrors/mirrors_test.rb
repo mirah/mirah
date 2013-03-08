@@ -31,54 +31,53 @@ class MirrorsTest < Test::Unit::TestCase
     @types = MirrorTypeSystem.new
     @scope = SimpleScope.new
   end
-  
+
   def test_add_default_imports
     # Just make sure it doesn't raise an exception
     @types.addDefaultImports(@scope)
   end
-  
+
   def assert_descriptor(descriptor, type)
     assert(type.isResolved)
     assert_resolved_to(descriptor, type.resolve)
   end
-  
+
   def assert_resolved_to(descriptor, resolved)
     assert_kind_of(JVMType, resolved)
     assert_equal(descriptor, resolved.getAsmType.descriptor)
   end
-  
+
   def assert_error(type)
     assert(type.resolve.isError)
   end
-  
+
   def test_fixnum
     type = @types.getFixnumType(0)
     assert_descriptor("I", type)
   end
-  
+
   def test_void
     type = @types.getVoidType
     assert_descriptor("V", type)
   end
-  
-  
+
   def test_nil
     type = @types.getImplicitNilType
     assert_not_nil(type)
   end
-  
+
   def main_type
     @types.getMainType(nil, nil)
   end
-  
+
   def test_main_type
     assert_descriptor("LFooBar;", main_type)
   end
-  
+
   def test_superclass
     assert_descriptor("Ljava/lang/Object;", @types.getSuperClass(main_type))
   end
-  
+
   def test_method_def
     type = @types.getMethodDefType(main_type, 'foobar', [], nil, nil)
     assert_error(type.returnType)
@@ -87,23 +86,30 @@ class MirrorsTest < Test::Unit::TestCase
   end
 
   def test_method_type
+    @scope.selfType_set(main_type)
     @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
     type = @types.getMethodType(CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
     assert_resolved_to('V', type.resolve.returnType)
+
+    @types.getMethodDefType(main_type, 'foo', [], @types.getFixnumType(1), nil)
+    type = @types.getMethodType(CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
+    assert_resolved_to('V', type.resolve.returnType)
+    type = @types.getMethodType(CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+    assert_resolved_to('I', type.resolve.returnType)
   end
-  
+
   def test_meta_resolved
     type = main_type.resolve
     assert_false(type.isMeta)
     assert(@types.getMetaType(type).isMeta)
   end
-  
+
   def test_meta_future
     type = main_type
     assert_false(type.resolve.isMeta)
     assert(@types.getMetaType(type).resolve.isMeta)
   end
-  
+
   def test_local
     type1 = @types.getLocalType(@scope, "ARGV", nil)
     type2 = @types.getLocalType(@scope, "ARGV", nil)
@@ -111,18 +117,18 @@ class MirrorsTest < Test::Unit::TestCase
     assert_descriptor("I", type1)
     assert_descriptor("I", type2)
   end
-  
+
   def test_define_type
     type = @types.defineType(@scope, ClassDefinition.new, "Subclass", main_type, [])
     assert_descriptor("LSubclass;", type)
     assert_descriptor("LFooBar;", @types.getSuperClass(type))
   end
-  
+
   def test_redefine_main_type
     type = @types.defineType(@scope, ClassDefinition.new, "FooBar", nil, [])
     assert_descriptor("LFooBar;", type)
   end
-  
+
   def test_default_constructor
     object = @types.getSuperClass(main_type).resolve
     constructor = object.getMethod('<init>', [])
@@ -130,7 +136,7 @@ class MirrorsTest < Test::Unit::TestCase
     assert_equal('CONSTRUCTOR', constructor.kind.name)
     assert_not_equal(0, constructor.flags & Opcodes.ACC_PUBLIC)
   end
-  
+
   def test_get
     type = @types.get(@scope, TypeRefImpl.new('void', false, false, nil))
     assert_descriptor('V', type)

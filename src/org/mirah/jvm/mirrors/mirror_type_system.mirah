@@ -23,6 +23,8 @@ import java.util.logging.Logger
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 
+import mirah.lang.ast.Position
+
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
@@ -93,14 +95,12 @@ class MirrorTypeSystem implements TypeSystem
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
     resolvedArgs = ArrayList.new
     argTypes.each {|arg| resolvedArgs.add(TypeFuture(arg).resolve)}
-    returnType = AssignableTypeFuture.new(position).resolved(ErrorType.new([
-      ["Cannot determine return type for method #{target}.#{name}#{argTypes}", position]]))
-    returnType.declare(declaredReturnType, position) if declaredReturnType
-    @method = MethodFuture.new(name, resolvedArgs, returnType, false, position)
+    createMember(BaseType(target.resolve), name, resolvedArgs, declaredReturnType, position)
   end
 
   def getMethodType(call)
-    @method || BaseTypeFuture.new(call.position)
+    future = MethodLookup.findMethod(call.scope, MirrorType(call.resolved_target), call.name, call.resolved_parameters, call.position)
+    future || BaseTypeFuture.new(call.position)
   end
 
   def getMetaType(type:ResolvedType):ResolvedType
@@ -162,6 +162,23 @@ class MirrorTypeSystem implements TypeSystem
       @loader.defineMirror(type, BaseTypeFuture.new.resolved(jvmtype))
     end
     future
+  end
+
+  def createMember(target:BaseType, name:String, arguments:List, returnType:TypeFuture, position:Position):MethodFuture
+    flags = Opcodes.ACC_PUBLIC
+    kind = MemberKind.METHOD
+    if target.isMeta
+      target = BaseType(MetaType(target).unmeta)
+      flags |= Opcodes.ACC_STATIC
+      kind = MemberKind.STATIC_METHOD
+    end
+    member = Member.new(flags, target, name, arguments, MirrorType(returnType && returnType.resolve), kind)
+    target.add(member)
+
+    returnFuture = AssignableTypeFuture.new(position).resolved(ErrorType.new([
+      ["Cannot determine return type for method #{member}", position]]))
+    returnFuture.declare(returnType, position) if returnType
+    MethodFuture.new(name, arguments, returnFuture, false, position)
   end
 end
 
