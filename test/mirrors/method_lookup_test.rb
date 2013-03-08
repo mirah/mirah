@@ -18,10 +18,12 @@ require 'mirah'
 
 class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
+  java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.MethodLookup'
   java_import 'org.mirah.jvm.mirrors.FakeMember'
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.simple.SimpleScope'
+  java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
   java_import 'org.jruby.org.objectweb.asm.Opcodes'
   java_import 'org.jruby.org.objectweb.asm.Type'
@@ -29,6 +31,10 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   def setup
     @types = MirrorTypeSystem.new
     @scope = SimpleScope.new
+  end
+
+  def jvmtype(internal_name, flags=0, superclass=nil)
+    BaseType.new(Type.getObjectType(internal_name), flags, superclass || wrap('Ljava/lang/Object;'))
   end
 
   def wrap(descriptor)
@@ -39,8 +45,8 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
     @types.wrap(type).resolve
   end
 
-  def make_method(tag)
-    FakeMember.create(@types, tag)
+  def make_method(tag, flags=-1)
+    FakeMember.create(@types, tag, flags)
   end
 end
 
@@ -126,6 +132,98 @@ class MethodLookupTest < BaseMethodLookupTest
     expected = make_method('Z.()V')
     methods = [expected, make_method('@I.()V'), make_method('@S.()V')].shuffle
     assert_same(expected, MethodLookup.pickMostSpecific(methods))
+  end
+
+  def test_getPackage
+    assert_equal("", MethodLookup.getPackage(jvmtype('Foo')))
+    assert_equal("java/lang", MethodLookup.getPackage(wrap('Ljava/lang/String;')))
+    assert_equal("java/util", MethodLookup.getPackage(wrap('Ljava/util/Map$Entry;')))
+  end
+
+  def visibility_string(flags)
+    if 0 != (flags & Opcodes.ACC_PUBLIC)
+      return :public
+    elsif 0 != (flags & Opcodes.ACC_PROTECTED)
+      return :protected
+    elsif 0 != (flags & Opcodes.ACC_PRIVATE)
+      return :private
+    else
+      return :'package private'
+    end
+  end
+
+  def assert_visible(type, flags, visible, invisible=[])
+    visible.each do |t|
+      accessibility_assertion(type, flags, t, true)
+    end
+    invisible.each do |t|
+      accessibility_assertion(type, flags, t, false)
+    end
+  end
+
+  def set_self_type(type)
+    future = BaseTypeFuture.new
+    future.resolved(type)
+    @scope.selfType_set(future)
+  end
+
+  def accessibility_assertion(a, flags, b, expected)
+    assert_block "Expected #{visibility_string(flags)} #{a} #{expected ? '' : ' not '} visible from #{b}" do
+      set_self_type(b)
+      actual = MethodLookup.isAccessible(a, flags, @scope)
+      actual == expected
+    end
+  end
+
+  def test_isAccessible
+    object = wrap('Ljava/lang/Object;')
+    string = wrap('Ljava/lang/String;')
+    foo = jvmtype('Foo')
+    assert_visible(object, Opcodes.ACC_PUBLIC, [object, string, foo])
+    assert_visible(object, Opcodes.ACC_PROTECTED, [object, string, foo])
+    assert_visible(object, Opcodes.ACC_PRIVATE, [object], [string, foo])
+    assert_visible(object, 0, [object, string], [foo])
+    assert_visible(foo, Opcodes.ACC_PRIVATE, [foo], [object, string])
+    assert_visible(foo, Opcodes.ACC_PROTECTED, [foo], [object, string])
+    assert_visible(string, Opcodes.ACC_PROTECTED, [string, object], [foo])  # visible to same package
+    assert_visible(string, 0, [string, object], [foo])
+  end
+
+  def assert_methods_visible(methods, type, expected_visible)
+    methods_desc = methods.inspect
+    expected_invisible = methods - expected_visible
+    set_self_type(type)
+    invisible = MethodLookup.removeInaccessible(methods, @scope)
+    assert_equal(expected_invisible.map {|m| m.toString}, invisible.map {|m| m.toString})
+    assert_equal(expected_visible.map {|m| m.toString}, methods.map {|m| m.toString})
+  end
+
+  def test_removeInaccessible
+    # test method from an inaccessible class
+    methods = [make_method("Ljava/lang/AbstractStringBuilder;.(I)V"), make_method("Ljava/lang/StringBuilder;.(I)V")]
+    assert_methods_visible(methods, wrap('Ljava/util/Map;'), [methods[1]])
+
+    # test inaccessible method
+    methods = [make_method("Ljava/lang/Object;.()V", Opcodes.ACC_PRIVATE), make_method("Ljava/lang/String;.()V")]
+  end
+
+  def test_gatherMethods
+    methods = MethodLookup.gatherMethods(wrap('Ljava/lang/String;'), 'toString')
+    assert_equal(2, methods.size)
+
+    declaring_classes = Set.new(methods.map {|m| m.declaringClass})
+    assert_equal(Set.new([wrap('Ljava/lang/Object;'), wrap('Ljava/lang/String;')]), declaring_classes)
+  end
+
+  def test_findMethod
+    set_self_type(jvmtype('Foo'))
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil).resolve
+    assert(!type.isError)
+    assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil))
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil).resolve
+    assert(type.isError)
+    assert_equal('Cannot access java.lang.Object.clone() from Foo', type.message[0][0])
+    # TODO test ambiguous
   end
 end
 
@@ -270,5 +368,34 @@ class FindMaximallySpecificTest < BaseMethodLookupTest
     b = '@I.(SI)V'
     c = '@Z.(SI)V'
     assert_most_specific(a, [a, b, c])
+  end
+end
+
+class Phase1Test < BaseMethodLookupTest
+  def phase1(methods, params)
+    methods = MethodLookup.phase1(methods.map{|m| make_method(m)}, params.map{|p| wrap(p)})
+    methods.map {|m| m.toString } if methods
+  end
+
+  def test_no_match
+    assert_nil(phase1([], ['I']))
+  end
+
+  def test_simpe_match
+    assert_equal(['I.()V'], phase1(['I.()V'], []))
+    assert_equal(['I.(I)V'], phase1(['I.(I)V'], ['I']))
+  end
+
+  def test_arity
+    assert_equal(['I.(SI)V'], phase1(['I.(S)V', 'I.(SI)V', 'I.(SII)V'], ['S','I']))
+  end
+
+  def test_ambiguous
+    assert_equal(Set.new(%w(I.(SI)V I.(IS)V)),
+                 Set.new(phase1(%w(I.(SI)V I.(IS)V), %w(S S))))
+  end
+
+  def test_ambiguity_resolution
+    assert_equal(['I.()V'], phase1(%w(@Z.()V I.()V), []))
   end
 end

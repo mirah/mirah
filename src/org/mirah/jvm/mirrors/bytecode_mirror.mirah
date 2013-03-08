@@ -89,14 +89,21 @@ class BytecodeMirror < BaseType
     @interfaces
   end
 
-  def getMethod(name, params)
-    @methods_loaded ||= begin
-      @methods.each do |m|
-        addMethod(MethodNode(m))
-      end
-      @methods = nil
-      true
+  def load_methods:boolean
+    @methods.each do |m|
+      addMethod(MethodNode(m))
     end
+    @methods = nil
+    true
+  end
+
+  def getMethod(name, params)
+    @methods_loaded ||= load_methods
+    super
+  end
+  
+  def getDeclaredMethods(name)
+    @methods_loaded ||= load_methods
     super
   end
 

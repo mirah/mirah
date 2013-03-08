@@ -15,8 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
-import java.util.Collection
 import java.util.Collections
+import java.util.ArrayList
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
@@ -31,6 +31,7 @@ import org.mirah.typer.TypeFuture
 interface MirrorType < JVMType
   def notifyOfIncompatibleChange:void; end
   def onIncompatibleChange(listener:Runnable):void; end
+  def getDeclaredMethods(name:String):List; end  # List<Member>
 end
 
 # package_private
@@ -98,7 +99,7 @@ class BaseType implements MirrorType
   def hasStaticField(name:String):boolean; false;end
   
   def getMethod(name:String, params:List):JVMMethod
-    members = Collection(@members[name])
+    members = List(@members[name])
     if members
       members.each do |m|
         member = Member(m)
@@ -109,7 +110,12 @@ class BaseType implements MirrorType
     end
     nil
   end
-  
+
+  def getDeclaredMethods(name:String)
+    # TODO: should this filter out fields?
+    List(@members[name]) || Collections.emptyList
+  end
+
   def interfaces:TypeFuture[]
     TypeFuture[0]
   end
@@ -120,7 +126,7 @@ class BaseType implements MirrorType
   def getDeclaredField(name:String):JVMMethod; nil; end
 
   def add(member:JVMMethod):void
-    members = Collection(@members[member.name] ||= LinkedList.new)
+    members = List(@members[member.name] ||= LinkedList.new)
     members.add(Member(member))
   end
 

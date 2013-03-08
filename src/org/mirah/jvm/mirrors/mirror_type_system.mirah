@@ -94,7 +94,7 @@ class MirrorTypeSystem implements TypeSystem
     resolvedArgs = ArrayList.new
     argTypes.each {|arg| resolvedArgs.add(TypeFuture(arg).resolve)}
     returnType = AssignableTypeFuture.new(position).resolved(ErrorType.new([
-      ["Cannot determing return type for method #{target}.#{name}#{argTypes}", position]]))
+      ["Cannot determine return type for method #{target}.#{name}#{argTypes}", position]]))
     returnType.declare(declaredReturnType, position) if declaredReturnType
     @method = MethodFuture.new(name, resolvedArgs, returnType, false, position)
   end
@@ -166,7 +166,7 @@ class MirrorTypeSystem implements TypeSystem
 end
 
 class FakeMember < Member
-  def self.create(types:MirrorTypeSystem, description:String)
+  def self.create(types:MirrorTypeSystem, description:String, flags:int=-1)
     m = /^(@)?([^.]+)\.(.+)$/.matcher(description)
     raise IllegalArgumentException, "Invalid method specification #{description}" unless m.matches
     abstract = !m.group(1).nil?
@@ -177,7 +177,7 @@ class FakeMember < Member
     method.getArgumentTypes.each do |arg|
       args.add(wrap(types, arg))
     end
-    flags = Opcodes.ACC_PUBLIC
+    flags = Opcodes.ACC_PUBLIC if flags == -1
     flags |= Opcodes.ACC_ABSTRACT if abstract
     FakeMember.new(description, flags, klass, returnType, args)
   end

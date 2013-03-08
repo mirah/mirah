@@ -82,4 +82,20 @@ class Member implements JVMMethod
   def isAbstract
     0 != (@flags & Opcodes.ACC_ABSTRACT)
   end
+
+  def toString
+    result = StringBuilder.new
+    result.append(declaringClass)
+    result.append('.')
+    result.append(name)
+    result.append('(')
+    first = true
+    argumentTypes.each do |t|
+      result.append(', ') unless first
+      first = false
+      result.append(t)
+    end
+    result.append(')')
+    result.toString
+  end
 end

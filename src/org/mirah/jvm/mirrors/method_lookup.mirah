@@ -15,16 +15,25 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.Arrays
 import java.util.Collections
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Set
 import java.util.logging.Logger
 import java.util.logging.Level
+import mirah.lang.ast.Position
 import org.mirah.MirahLogFormatter
+import org.mirah.typer.AssignableTypeFuture
+import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.ErrorType
+import org.mirah.typer.MethodFuture
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.Scope
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.jruby.org.objectweb.asm.Opcodes
 
 class MethodLookup
   def self.initialize:void
@@ -187,6 +196,129 @@ class MethodLookup
         return method unless method.isAbstract
       end
       method
+    end
+
+    def findMethod(scope:Scope, target:MirrorType, name:String, params:List, position:Position)
+      potentials = gatherMethods(target, name)
+      inaccessible = removeInaccessible(potentials, scope)
+      methods = findMatchingMethod(potentials, params)
+      if methods && methods.size > 0
+        if methods.size == 1
+          method = JVMMethod(methods[0])
+          returnFuture = BaseTypeFuture.new.resolved(method.returnType)
+          returnType = AssignableTypeFuture.new(position)
+          returnType.declare(returnFuture, position)
+          MethodFuture.new(name, params, returnType, method.isVararg, position)
+        else
+          ErrorType.new([["Ambiguous methods #{methods}", position]])
+        end
+      else
+        methods = findMatchingMethod(inaccessible, params)
+        if methods && methods.size > 0
+          method = JVMMethod(methods[0])
+          ErrorType.new([["Cannot access #{method} from #{scope.selfType}", position]])
+        else
+          nil
+        end
+      end
+    end
+
+    def gatherMethods(target:MirrorType, name:String):List
+      methods = LinkedList.new
+      types = HashSet.new
+      isAbstract = (0 != (target.flags & Opcodes.ACC_ABSTRACT))
+      gatherMethodsInternal(target, name, isAbstract, methods, types)
+    end
+
+    def gatherMethodsInternal(target:MirrorType, name:String, includeInterfaces:boolean, methods:List, visited:Set):List
+      unless target.nil? || target.isError || visited.contains(target)
+        visited.add(target)
+        methods.addAll(target.getDeclaredMethods(name))
+        gatherMethodsInternal(MirrorType(target.superclass), name, includeInterfaces, methods, visited)
+        if includeInterfaces
+          target.interfaces.each do |i|
+            iface = MirrorType(i.resolve)
+            gatherMethodsInternal(iface, name, includeInterfaces, methods, visited)
+          end
+        end
+      end
+      methods
+    end
+
+    def findMatchingMethod(potentials:List, params:List):List
+      phase1(potentials, params) || phase2(potentials, params) || phase3(potentials, params)
+    end
+
+    def phase1(potentials:List, params:List):List
+      arity = params.size
+      phase1_methods = LinkedList.new
+      potentials.each do |m|
+        member = Member(m)
+        args = member.argumentTypes
+        next unless args.size == arity
+        match = true
+        arity.times do |i|
+          unless isJvmSubType(MirrorType(params[i]), MirrorType(args[i]))
+            match = false
+            break
+          end
+        end
+        phase1_methods.add(member) if match
+      end
+      if phase1_methods.size == 0
+        nil
+      elsif phase1_methods.size > 1
+        findMaximallySpecific(phase1_methods)
+      else
+        phase1_methods
+      end
+    end
+
+    def phase2(potentials:List, params:List):List
+      nil
+    end
+
+    def phase3(potentials:List, params:List):List
+      nil
+    end
+
+    def isAccessible(type:JVMType, access:int, scope:Scope)
+      selfType = MirrorType(scope.selfType.resolve)
+      if (0 != (access & Opcodes.ACC_PUBLIC) ||
+          type.class_id.equals(selfType.class_id))
+        return true
+      elsif 0 != (access & Opcodes.ACC_PRIVATE)
+        return false
+      elsif getPackage(type).equals(getPackage(selfType))
+        return true
+      else
+        return (0 != (access & Opcodes.ACC_PROTECTED) && isJvmSubType(selfType, type))
+      end
+    end
+
+    def getPackage(type:JVMType):String
+      name = type.internal_name
+      lastslash = name.lastIndexOf(?/)
+      if lastslash == -1
+        ""
+      else
+        name.substring(0, lastslash)
+      end
+    end
+
+    def removeInaccessible(methods:List, scope:Scope):List
+      inaccessible = LinkedList.new
+      it = methods.iterator
+      while it.hasNext
+        method = Member(it.next)
+        # The declaring class and the method must be visible for the method to be applicable.
+        unless (isAccessible(method.declaringClass, method.declaringClass.flags, scope) &&
+                isAccessible(method.declaringClass, method.flags, scope))
+          it.remove
+          inaccessible.add(method)
+        end
+      end
+      inaccessible
     end
 
     def main(args:String[]):void
