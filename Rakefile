@@ -50,7 +50,7 @@ end
 
 desc "run full test suite"
 task :test do
-  run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
+  run_tests [ 'test:core', 'test:plugins', 'test:jvm', 'test:jvm:new' ]
 end
 
 namespace :test do
@@ -81,6 +81,11 @@ namespace :test do
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
+    Rake::TestTask.new :new => [:bootstrap, "javalib/mirah-compiler.jar"] do |t|
+      t.libs << 'test' << 'test/jvm'
+      t.ruby_opts.concat ["-r", "new_backend_test_helper"]
+      t.test_files = FileList["test/jvm/**/*test.rb"]
+    end
   end
 end
 
@@ -109,8 +114,9 @@ task :clean do
   rm_rf 'tmp'
 end
 
-task :compile => [:init, :bootstrap, :util]
+task :compile => [:init, :bootstrap, :util, :jvm_backend]
 task :util => 'javalib/mirah-util.jar'
+task :jvm_backend => 'javalib/mirah-compiler.jar'
 
 desc "build basic jar for distribution"
 task :jar => :compile do
@@ -122,6 +128,7 @@ task :jar => :compile do
     zipfileset :src => 'javalib/mirah-bootstrap.jar'
     zipfileset :src => 'javalib/mirah-builtins.jar'
     zipfileset :src => 'javalib/mirah-util.jar'
+    zipfileset :src => 'javalib/mirah-compiler.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
@@ -253,6 +260,30 @@ file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/
   rm_rf 'build/builtins'
 end
 
+file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/org/mirah/{util,jvm/types,jvm/compiler}/*.mirah'] do
+  rm_f 'javalib/mirah-compiler.jar'
+  rm_rf 'build/compiler'
+  mkdir_p 'build/compiler'
+  phase3_files = Dir['src/org/mirah/jvm/compiler/{class,interface,script}_compiler.mirah'] + ['src/org/mirah/jvm/compiler/backend.mirah']
+  phase2_files = Dir['src/org/mirah/jvm/compiler/{condition,method,string}_compiler.mirah']
+  phase1_files = Dir['src/org/mirah/jvm/compiler/*.mirah'] - phase2_files - phase3_files
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar) +
+       %w(src/org/mirah/util src/org/mirah/jvm/types src/org/mirah/jvm/compiler/base_compiler.mirah))
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
+       %w(src/org/mirah/util/context.mirah) + phase1_files)
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
+       %w(src/org/mirah/util/context.mirah) + phase2_files)
+  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
+       %w(src/org/mirah/util/context.mirah) + phase3_files)
+  ant.jar :jarfile => 'javalib/mirah-compiler.jar' do
+    fileset :dir => 'build/compiler'
+  end
+  rm_rf 'build/compiler'
+end
 
 if Float(JRUBY_VERSION[0..2]) >= 1.7
   require 'bitescript'
@@ -287,10 +318,27 @@ def add_quote_macro
     args.visitEnd
     av.visitEnd
   end
+  Annotater.new('build/bootstrap/org/mirah/macros/CompilerQuoteMacro.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/MacroDef;', true)
+    av.visit("name", "quote")
+    args = av.visitAnnotation('arguments', 'Lorg/mirah/macros/anno/MacroArgs;')
+    req = args.visitArray('required')
+    req.visit(nil, 'mirah.lang.ast.Block')
+    req.visitEnd
+    args.visitEnd
+    av.visitEnd
+  end
   Annotater.new('build/bootstrap/org/mirah/macros/Macro.class') do |klass|
     av = klass.visitAnnotation('Lorg/mirah/macros/anno/Extensions;', false)
     macros = av.visitArray('macros')
     macros.visit(nil, 'org.mirah.macros.QuoteMacro')
+    macros.visitEnd
+    av.visitEnd
+  end
+  Annotater.new('build/bootstrap/org/mirah/macros/Compiler.class') do |klass|
+    av = klass.visitAnnotation('Lorg/mirah/macros/anno/Extensions;', false)
+    macros = av.visitArray('macros')
+    macros.visit(nil, 'org.mirah.macros.CompilerQuoteMacro')
     macros.visitEnd
     av.visitEnd
   end

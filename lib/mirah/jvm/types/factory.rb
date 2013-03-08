@@ -62,6 +62,7 @@ module Mirah::JVM::Types
       @declarations = []
       @mirrors = {}
       @futures = {}
+      @fields = {}
       create_basic_types
     end
 
@@ -72,6 +73,7 @@ module Mirah::JVM::Types
       end
       @declarations = []
       @futures = {}
+      @fields = {}
     end
 
     def maybe_initialize_builtins(compiler)
@@ -474,6 +476,19 @@ module Mirah::JVM::Types
       end      
     end
 
+    def getFieldType(target, name, position)
+      # This is currently only used for fields in the current class
+      klass = target.resolve
+      key = [klass, name]
+      t = @fields[key]
+      unless t
+        t = AssignableTypeFuture.new(position)
+        @fields[key] = t
+        t.on_update {|x, resolved| klass.unmeta.declare_field(name, resolved, klass.meta?)}
+      end
+      t
+    end
+
     def getMainType(scope, script)
       filename = File.basename(script.position.source.name || 'DashE')
       classname = Mirah::JVM::Compiler::JVMBytecode.classname_from_filename(filename)
@@ -772,7 +787,7 @@ module Mirah::JVM::Types
           url = resource_loader.getResource(classname + ".java")
           if url
             file = java.io.File.new(url.toURI)
-            mirrors = JavaSourceMirror.load(file, self)
+            mirrors = JavaSourceMirror.load(file, self) rescue []
             mirrors.each do |mirror|
               @mirrors[mirror.type.class_name] = mirror
             end if mirrors

@@ -25,6 +25,12 @@ class Java::JavaMethod
   end
 end
 
+class BiteScript::ASM::FieldMirror
+  def returnType
+    self.type
+  end
+end
+
 module Mirah::JVM::Types
   AST ||= Mirah::AST
 
@@ -70,13 +76,23 @@ module Mirah::JVM::Types
     include ArgumentConversion
     attr_reader :name, :argument_types, :return_type
 
-    def initialize(klass, name, args, type, &block)
+    def initialize(klass, name, args, type, kind=nil, &block)
       raise ArgumentError, "Block required" unless block_given?
       @class = klass
       @name = name
       @argument_types = args
       @return_type = type
       @block = block
+      @kind = kind
+    end
+
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind.const_get(@kind)
+    end
+    
+    def accept(visitor, expression)
+      name = "visit_#{@kind.downcase}".sub(/_op$/,"")
+      visitor.send(name, self, expression)
     end
 
     def call(builder, ast, expression, *args)
@@ -105,6 +121,10 @@ module Mirah::JVM::Types
 
     def varargs?
       false
+    end
+    
+    def isVararg
+      varargs?
     end
   end
 
@@ -150,6 +170,10 @@ module Mirah::JVM::Types
 
     def parameter_types
       @member.parameter_types
+    end
+    
+    def synthetic?
+      @member.synthetic?
     end
   end
 
@@ -208,6 +232,17 @@ module Mirah::JVM::Types
       @member.varargs?
     end
 
+    def isVararg
+      varargs?
+    end
+
+    def accept(visitor, expression)
+      visitor.visitConstructor(self, expression)
+    end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::CONSTRUCTOR
+    end
   end
 
   class JavaMethod < JavaConstructor
@@ -244,6 +279,22 @@ module Mirah::JVM::Types
 
     def constructor?
       false
+    end
+
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticMethodCall(self, expression)
+      else
+        visitor.visitMethodCall(self, expression)
+      end
+    end
+    
+    def kind
+      if self.static?
+        Java::OrgMirahJvmTypes::MemberKind::STATIC_METHOD
+      else
+        Java::OrgMirahJvmTypes::MemberKind::METHOD
+      end
     end
 
     def call(compiler, ast, expression, parameters=nil)
@@ -327,6 +378,14 @@ module Mirah::JVM::Types
       # but actual type is null object
       compiler.method.aconst_null if expression && void?
       return_type.pop(compiler.method) unless expression || void?
+    end
+
+    def accept(visitor, expression)
+      visitor.visitStaticMethodCall(self, expression)
+    end
+    
+    def kind
+      Java::OrgMirahJvmTypes::MemberKind::STATIC_METHOD
     end
   end
 
@@ -415,6 +474,22 @@ module Mirah::JVM::Types
         end
       end
     end
+
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticFieldAccess(self, expression)
+      else
+        visitor.visitFieldAccess(self, expression)
+      end
+    end
+    
+    def kind
+      if self.static?
+        Java::OrgMirahJvmTypes::MemberKind::STATIC_FIELD_ACCESS
+      else
+        Java::OrgMirahJvmTypes::MemberKind::FIELD_ACCESS
+      end
+    end
   end
 
   class JavaFieldSetter < JavaFieldAccessor
@@ -441,6 +516,22 @@ module Mirah::JVM::Types
         convert_args(compiler, parameters)
         compiler.method.dup_x2 if expression
         compiler.method.putfield(target, name, @member.type)
+      end
+    end
+
+    def accept(visitor, expression)
+      if self.static?
+        visitor.visitStaticFieldAssign(self, expression)
+      else
+        visitor.visitFieldAssign(self, expression)
+      end
+    end
+    
+    def kind
+      if self.static?
+        Java::OrgMirahJvmTypes::MemberKind::STATIC_FIELD_ASSIGN
+      else
+        Java::OrgMirahJvmTypes::MemberKind::FIELD_ASSIGN
       end
     end
   end
@@ -472,9 +563,15 @@ module Mirah::JVM::Types
     def varargs?
       false
     end
+    
+    def isVararg
+      varargs?
+    end
   end
 
   class Type
+    java_import "org.mirah.jvm.types.JVMMethod" rescue nil
+
     def method_listeners
       if meta?
         unmeta.method_listeners
@@ -632,7 +729,7 @@ module Mirah::JVM::Types
       methods = []
       if jvm_type && !array?
         jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaMethod.new(@type_system, method) unless method.static?
+          methods << JavaMethod.new(@type_system, method) unless (method.static? || method.synthetic?)
         end
       end
       methods.concat((meta? ? unmeta : self).declared_intrinsics(name))
@@ -642,7 +739,7 @@ module Mirah::JVM::Types
       methods = []
       if jvm_type && !unmeta.array?
         jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaStaticMethod.new(@type_system, method) if method.static?
+          methods << JavaStaticMethod.new(@type_system, method) if (method.static? && !method.synthetic?)
         end
       end
       methods.concat(meta.declared_intrinsics(name))
@@ -683,9 +780,24 @@ module Mirah::JVM::Types
       end
       intrinsics[name][[]] = macro
     end
+    
+    def getDeclaredFields
+      @member.getDeclaredFields.to_java(JVMMethod)
+    end
+    
+    def getDeclaredField(name)
+      @member.getDeclaredField(name)
+    end
+    
+    def hasStaticField(name)
+      f = getDeclaredField(name)
+      f && f.static?
+    end
   end
 
   class TypeDefinition
+    java_import "org.mirah.jvm.types.JVMMethod" rescue nil
+
     def java_method(name, *types)
       method = instance_methods[name].find {|m| m.argument_types == types}
       return method if method
@@ -743,6 +855,27 @@ module Mirah::JVM::Types
 
     def static_methods
       @static_methods ||= Hash.new {|h, k| h[k] = []}
+    end
+    
+    def getDeclaredFields
+      @fields.values.to_java(JVMMethod)
+    end
+    
+    def getDeclaredField(name)
+      @fields[name]
+    end
+    
+    def hasStaticField(name)
+      f = getDeclaredField(name)
+      f && f.static?
+    end
+    
+    def declared_fields
+      @fields ||= {}
+    end
+
+    def declare_field(name, type, static)
+      declared_fields[name] ||= MirahMember.new(self, name, [], type, static, [])
     end
 
     def declare_method(name, arguments, type, exceptions)

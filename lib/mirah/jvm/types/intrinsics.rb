@@ -48,10 +48,10 @@ module Mirah::JVM::Types
       @macros ||= Hash.new {|h, k| h[k] = {}}
     end
 
-    def add_method(name, args, method_or_type=nil, &block)
+    def add_method(name, args, method_or_type=nil, kind=nil, &block)
       if block_given?
         method_or_type = Intrinsic.new(self, name, args,
-                                       method_or_type, &block)
+                                       method_or_type, kind, &block)
       end
       intrinsics[name][args] = method_or_type
     end
@@ -194,7 +194,7 @@ module Mirah::JVM::Types
       object_type = @type_system.type(nil, 'java.lang.Object')
       class_type = @type_system.type(nil, 'java.lang.Class')
 
-      add_method('nil?', [], boolean) do |compiler, call, expression|
+      add_method('nil?', [], boolean, 'IS_NULL') do |compiler, call, expression|
         if expression
           compiler.visit(call.target, true)
           compiler.method.op_to_bool do |target|
@@ -203,7 +203,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('==', [object_type], boolean) do |compiler, call, expression|
+      add_method('==', [object_type], boolean, 'COMPARISON_OP') do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
           compiler.visit(call.target, true)
@@ -214,7 +214,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('!=', [object_type], boolean) do |compiler, call, expression|
+      add_method('!=', [object_type], boolean, 'COMPARISON_OP') do |compiler, call, expression|
         # Should this call Object.equals for consistency with Ruby?
         if expression
           compiler.visit(call.target, true)
@@ -225,7 +225,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('kind_of?', [object_type.meta], boolean) do |compiler, call, expression|
+      add_method('kind_of?', [object_type.meta], boolean, "INSTANCEOF") do |compiler, call, expression|
         compiler.visit(call.target, expression)
         if expression
           klass = compiler.inferred_type(call.parameters(0))
@@ -262,7 +262,7 @@ module Mirah::JVM::Types
       load_extensions(ArrayExtensions.java_class) if ArrayExtensions
       int_type = @type_system.type(nil, 'int')
       add_method(
-          '[]', [int_type], component_type) do |compiler, call, expression|
+          '[]', [int_type], component_type, "ARRAY_ACCESS") do |compiler, call, expression|
         if expression
           compiler.visit(call.target, true)
           compiler.visit(call.parameters(0), true)
@@ -272,7 +272,7 @@ module Mirah::JVM::Types
 
       add_method('[]=',
                  [int_type, component_type],
-                 component_type) do |compiler, call, expression|
+                 component_type, "ARRAY_ASSIGN") do |compiler, call, expression|
         compiler.visit(call.target, true)
         convert_args(compiler, call.parameters, [@type_system.type(nil, 'int'), component_type])
         component_type.astore(compiler.method)
@@ -281,7 +281,7 @@ module Mirah::JVM::Types
         end
       end
 
-      add_method('length', [], int_type) do |compiler, call, expression|
+      add_method('length', [], int_type, "ARRAY_LENGTH") do |compiler, call, expression|
         compiler.visit(call.target, true)
         compiler.method.arraylength
       end
@@ -290,7 +290,7 @@ module Mirah::JVM::Types
 
   class MetaType
     def add_intrinsics
-      add_method('class', [], @type_system.type(nil, 'java.lang.Class')) do |compiler, call, expression|
+      add_method('class', [], @type_system.type(nil, 'java.lang.Class'), "CLASS_LITERAL") do |compiler, call, expression|
         if expression
           compiler.method.ldc_class(unmeta)
         end
@@ -323,59 +323,6 @@ module Mirah::JVM::Types
       char_type = @type_system.type(nil, 'char')
       float_type = @type_system.type(nil, 'float')
       double_type = @type_system.type(nil, 'double')
-      add_method('+', [string_type], string_type) do |compiler, call, expression|
-        if expression
-          java_method('concat', string_type).call(compiler, call, expression)
-        end
-      end
-      add_method('+', [bool_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, bool_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [char_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, char_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [int_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, int_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [long_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, long_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [float_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, float_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
-      add_method('+', [double_type], string_type) do |compiler, call, expression|
-        if expression
-          compiler.visit(call.target, true)
-          compiler.visit(call.parameters(0), true)
-          compiler.method.invokestatic string_type, "valueOf", [string_type, double_type]
-          compiler.method.invokevirtual string_type, "concat", [string_type, string_type]
-        end
-      end
       add_method('[]', [int_type], char_type) do |compiler, call, expression|
         if expression
           compiler.visit(call.target, true)

@@ -12,6 +12,7 @@ module Mirah
           @scope = scope
           @name = name
           @node = node
+          @fields = {}
           raise ArgumentError, "Bad type #{name}" if self.name =~ /Java::/
         end
 
@@ -49,11 +50,12 @@ module Mirah
 
         def define(builder)
           class_name = name.tr('.', '/')
-          abstract = node && node.kind_of?(InterfaceDeclaration)  #node.abstract
+          is_interface = node && node.kind_of?(InterfaceDeclaration)
           @type ||= builder.define_class(
               class_name,
               :visibility => :public,
               :abstract => abstract?,
+              :interface => is_interface,
               :superclass => superclass,
               :interfaces => interfaces)
         end
