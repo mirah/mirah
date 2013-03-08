@@ -45,7 +45,4 @@ interface JVMType < ResolvedType
   
   def getDeclaredFields:JVMMethod[]; end
   def getDeclaredField(name:String):JVMMethod; end
-  
-  # Set contains descriptors for primitives, internal names for Objects
-  def getSuperTypes(supertypes:Set):void; end
 end
