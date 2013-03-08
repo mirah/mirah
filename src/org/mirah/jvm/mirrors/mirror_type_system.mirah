@@ -35,11 +35,11 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
 
 class MirrorTypeSystem implements TypeSystem
-  def initialize
-    @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(PrimitiveLoader.new))
+  def initialize(classloader:ClassLoader = MirrorTypeSystem.class.getClassLoader)
+    @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(
+        BytecodeMirrorLoader.new(classloader, PrimitiveLoader.new)))
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
-    @object.add(Member.new(Opcodes.ACC_PUBLIC, @object, "<init>", [], JVMType(getVoidType.resolve), MemberKind.CONSTRUCTOR))
     @main_type = wrap(Type.getType('LFooBar;'))
     @primitives = {
       boolean: 'Z',

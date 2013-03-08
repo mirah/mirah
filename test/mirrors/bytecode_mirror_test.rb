@@ -59,7 +59,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     field = mirror.getDeclaredField('hash')
     assert_equal(mirror, field.declaringClass)
     assert_equal('hash', field.name)
-    assert_equal([], field.argumentTypes)
+    assert_equal([], field.argumentTypes.to_a)
     assert_equal('I', field.returnType.class_id)
     assert(!field.isVararg)
     assert(!field.isAbstract)

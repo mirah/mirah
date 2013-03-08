@@ -17,9 +17,11 @@ package org.mirah.jvm.mirrors
 
 import java.util.ArrayList
 import java.util.LinkedList
+import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.tree.ClassNode
 import org.jruby.org.objectweb.asm.tree.FieldNode
+import org.jruby.org.objectweb.asm.tree.MethodNode
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
@@ -42,13 +44,14 @@ class BytecodeMirror < BaseType
     super(Type.getObjectType(klass.name), klass.access, BytecodeMirror.lookupType(loader, klass.superName))
     @loader = loader
     @fields = klass.fields
+    @methods = klass.methods
     @interfaces = TypeFuture[klass.interfaces.size]
     it = klass.interfaces.iterator
     @interfaces.length.times do |i|
       @interfaces[i] = BaseTypeFuture.new.resolved(lookupType(String(it.next)))
     end
   end
-  
+
   def self.lookupType(loader:MirrorLoader, internalName:String)
     if internalName
       return loader.loadMirror(Type.getType("L#{internalName};"))
@@ -62,9 +65,39 @@ class BytecodeMirror < BaseType
   def lookup(type:Type):MirrorType
     @loader.loadMirror(type)
   end
-  
+
+  def addMethod(method:MethodNode):void
+    kind = if "<clinit>".equals(method.name)
+      MemberKind.STATIC_INITIALIZER
+    elsif "<init>".equals(method.name)
+      MemberKind.CONSTRUCTOR
+    elsif 0 != (method.access & Opcodes.ACC_STATIC)
+      MemberKind.STATIC_METHOD
+    else
+      MemberKind.METHOD
+    end
+    method_type = Type.getType(method.desc)
+    argument_mirrors = LinkedList.new
+    argument_types = method_type.getArgumentTypes
+    argument_types.each do |t|
+      argument_mirrors.add(lookup(t))
+    end
+    add(Member.new(method.access, self, method.name, argument_mirrors, lookup(method_type.getReturnType), kind))
+  end
+
   def interfaces:TypeFuture[]
     @interfaces
+  end
+
+  def getMethod(name, params)
+    @methods_loaded ||= begin
+      @methods.each do |m|
+        addMethod(MethodNode(m))
+      end
+      @methods = nil
+      true
+    end
+    super
   end
 
   def getDeclaredFields:JVMMethod[]
@@ -82,7 +115,7 @@ class BytecodeMirror < BaseType
   end
   
   def getDeclaredField(name:String)
-    @field_mirrors.each do |field|
+    getDeclaredFields.each do |field|
       if field.name.equals(name)
         return field
       end
