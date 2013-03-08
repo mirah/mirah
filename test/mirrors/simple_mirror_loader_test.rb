@@ -82,3 +82,23 @@ class PrimitiveLoaderTest < Test::Unit::TestCase
     assert_equal(1, parent.callcount)
   end
 end
+
+class OrErrorLoaderTest < Test::Unit::TestCase
+  java_import 'org.mirah.jvm.mirrors.OrErrorLoader'
+  java_import 'org.jruby.org.objectweb.asm.Type'
+
+  def test_loader
+    loader = OrErrorLoader.new(nil)
+    mirror = loader.loadMirror(Type.getType("J"))
+    assert_equal("J", mirror.class_id)
+    assert(mirror.isError)
+  end
+
+  def test_parent
+    parent = ParentLoader.new
+    loader = OrErrorLoader.new(parent)
+    mirror = loader.loadMirror(Type.getType("V"))
+    assert_equal(1, parent.callcount)
+    assert(!mirror.isError)
+  end
+end

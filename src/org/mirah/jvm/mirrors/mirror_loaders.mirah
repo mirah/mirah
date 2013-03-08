@@ -17,6 +17,9 @@ package org.mirah.jvm.mirrors
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.jruby.org.objectweb.asm.ClassReader
+import org.jruby.org.objectweb.asm.tree.ClassNode
+
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.DelegateFuture
 import org.mirah.typer.TypeFuture
@@ -117,5 +120,41 @@ class AsyncLoaderAdapter < SimpleAsyncMirrorLoader
     else
       super
     end
+  end
+end
+
+class OrErrorLoader < SimpleMirrorLoader
+  def initialize(parent:MirrorLoader)
+    super(parent)
+  end
+  def findMirror(type)
+    super || JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type)
+  end
+end
+
+class BytecodeMirrorLoader < SimpleMirrorLoader
+  def initialize(resourceLoader:ClassLoader, parent:MirrorLoader=nil)
+    super(parent)
+    @loader = resourceLoader
+    @ancestorLoader = OrErrorLoader.new(self)
+  end
+
+  def findMirror(type)
+    super || begin
+      bytecode = @loader.getResourceAsStream(type.getInternalName + ".class")
+      if bytecode
+        node = ClassNode.new
+        reader = ClassReader.new(bytecode)
+        reader.accept(node, ClassReader.SKIP_CODE)
+        BytecodeMirror.new(node, @ancestorLoader)
+      end
+    end
+  end
+  
+  def self.main(args:String[]):void
+    loader = BytecodeMirrorLoader.new(BytecodeMirrorLoader.class.getClassLoader)
+    string = loader.loadMirror(Type.getType("Ljava/lang/String;"))
+    object = string.superclass
+    puts object
   end
 end

@@ -66,9 +66,9 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     child = SimpleAsyncMirrorLoader.new(parent)
     
     defineType(parent, Type.getType("LA;"),
-               BaseType.new(Type.getType("Lparent.A;"), 0, nil))
+               BaseType.new(Type.getType("Lparent/A;"), 0, nil))
     defineType(child, Type.getType("LA;"),
-               BaseType.new(Type.getType("Lchild.A;"), 0, nil))
+               BaseType.new(Type.getType("Lchild/A;"), 0, nil))
     
     future = child.loadMirrorAsync(Type.getType("LA;"))
     assert_equal("child.A", future.resolve.name)
@@ -77,10 +77,10 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     assert(future.resolve.isError)
     
     defineType(parent, Type.getType("LB;"),
-               BaseType.new(Type.getType("Lparent.B;"), 0, nil))
+               BaseType.new(Type.getType("Lparent/B;"), 0, nil))
     assert_equal("parent.B", future.resolve.name)
     defineType(child, Type.getType("LB;"),
-               BaseType.new(Type.getType("Lchild.B;"), 0, nil))
+               BaseType.new(Type.getType("Lchild/B;"), 0, nil))
     assert_equal("child.B", future.resolve.name)
   end
 
