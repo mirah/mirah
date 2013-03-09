@@ -16,7 +16,7 @@
 require 'test/unit'
 require 'mirah'
 
-class MirrorsTest < Test::Unit::TestCase
+class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.types.JVMType'
   java_import 'org.mirah.typer.BaseTypeFuture'
@@ -32,11 +32,6 @@ class MirrorsTest < Test::Unit::TestCase
     @scope = SimpleScope.new
   end
 
-  def test_add_default_imports
-    # Just make sure it doesn't raise an exception
-    @types.addDefaultImports(@scope)
-  end
-
   def assert_descriptor(descriptor, type)
     assert(type.isResolved)
     assert_resolved_to(descriptor, type.resolve)
@@ -48,7 +43,25 @@ class MirrorsTest < Test::Unit::TestCase
   end
 
   def assert_error(type)
-    assert(type.resolve.isError)
+    assert_block("Excpected #{type.resolve} to be an error") {
+      type.resolve.isError
+    }
+  end
+
+  def assert_not_error(type)
+    assert(!type.resolve.isError)
+  end
+
+  def main_type
+    @types.getMainType(nil, nil)
+  end
+end
+
+class MirrorsTest < BaseMirrorsTest
+
+  def test_add_default_imports
+    # Just make sure it doesn't raise an exception
+    @types.addDefaultImports(@scope)
   end
 
   def test_fixnum
@@ -66,10 +79,6 @@ class MirrorsTest < Test::Unit::TestCase
     assert_not_nil(type)
   end
 
-  def main_type
-    @types.getMainType(nil, nil)
-  end
-
   def test_main_type
     assert_descriptor("LFooBar;", main_type)
   end
@@ -81,21 +90,9 @@ class MirrorsTest < Test::Unit::TestCase
   def test_method_def
     type = @types.getMethodDefType(main_type, 'foobar', [], nil, nil)
     assert_error(type.returnType)
-    type = @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
+    type = @types.getMethodDefType(
+        main_type, 'foobar', [], @types.getVoidType, nil)
     assert_descriptor('V', type.returnType)
-  end
-
-  def test_method_type
-    @scope.selfType_set(main_type)
-    @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
-    type = @types.getMethodType(CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
-    assert_resolved_to('V', type.resolve.returnType)
-
-    @types.getMethodDefType(main_type, 'foo', [], @types.getFixnumType(1), nil)
-    type = @types.getMethodType(CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
-    assert_resolved_to('V', type.resolve.returnType)
-    type = @types.getMethodType(CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
-    assert_resolved_to('I', type.resolve.returnType)
   end
 
   def test_meta_resolved
@@ -119,7 +116,8 @@ class MirrorsTest < Test::Unit::TestCase
   end
 
   def test_define_type
-    type = @types.defineType(@scope, ClassDefinition.new, "Subclass", main_type, [])
+    type = @types.defineType(
+        @scope, ClassDefinition.new, "Subclass", main_type, [])
     assert_descriptor("LSubclass;", type)
     assert_descriptor("LFooBar;", @types.getSuperClass(type))
   end
@@ -140,5 +138,54 @@ class MirrorsTest < Test::Unit::TestCase
   def test_get
     type = @types.get(@scope, TypeRefImpl.new('void', false, false, nil))
     assert_descriptor('V', type)
+  end
+end
+
+class MTS_MethodLookupTest < BaseMirrorsTest
+  def setup
+    super
+    @scope.selfType_set(main_type)
+  end
+
+
+  def test_simple_method_def
+    @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
+    assert_resolved_to('V', type.resolve.returnType)
+  end
+
+  def test_multiple_method_defs
+    @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
+    @types.getMethodDefType(main_type, 'foo', [], @types.getFixnumType(1), nil)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
+    assert_not_error(type)
+    assert_resolved_to('V', type.resolve.returnType)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+    assert_not_error(type)
+    assert_resolved_to('I', type.resolve.returnType)
+  end
+
+  def test_async_return_type
+    future = BaseTypeFuture.new
+    @types.getMethodDefType(main_type, 'foo', [], future, nil)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+    assert_error(type)
+    future.resolved(@types.getFixnumType(1).resolve)
+    assert_not_error(type)
+    assert_resolved_to('I', type.resolve.returnType)
+  end
+
+  def test_infer_return_type_from_body
+    future = @types.getMethodDefType(main_type, 'foo', [], nil, nil)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+    assert_error(type)
+    future.returnType.assign(@types.getFixnumType(1), nil)
+    assert_not_error(type)
+    assert_resolved_to('I', type.resolve.returnType)
   end
 end

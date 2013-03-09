@@ -187,7 +187,8 @@ class MethodLookup
 
     # Breaks specificity ties according the the JLS 2nd edition rules:
     #   'methods' must be a list of JVMMethods with the same signature.
-    #   If one is not abstract it is returned, otherwise one is arbitrarily chosen.
+    #   If one is not abstract it is returned, otherwise one is arbitrarily
+    #   chosen.
     def pickMostSpecific(methods:List):JVMMethod
       method = nil
       methods.each do |m|
@@ -197,23 +198,38 @@ class MethodLookup
       method
     end
 
-    def findMethod(scope:Scope, target:MirrorType, name:String, params:List, position:Position)
+    def findMethod(scope:Scope,
+                   target:MirrorType,
+                   name:String,
+                   params:List,
+                   position:Position)
       potentials = gatherMethods(target, name)
       inaccessible = removeInaccessible(potentials, scope, target)
       methods = findMatchingMethod(potentials, params)
       if methods && methods.size > 0
         if methods.size == 1
           method = Member(methods[0])
-          type = MethodType.new(name, params, method.returnType, method.isVararg)
-          BaseTypeFuture.new.resolved(type)
+          future = BaseTypeFuture.new
+          future.error_message = "Cannot determine return type of #{method}"
+          method.asyncReturnType.onUpdate do |x, resolvedReturnType|
+            if resolvedReturnType.isError
+              future.resolved(resolvedReturnType)
+            else
+              future.resolved(MethodType.new(
+                  name, params, resolvedReturnType, method.isVararg))
+            end
+          end
+          future
         else
           ErrorType.new([["Ambiguous methods #{methods}", position]])
         end
       else
         methods = findMatchingMethod(inaccessible, params)
         if methods && methods.size > 0
-          method = JVMMethod(methods[0])
-          ErrorType.new([["Cannot access #{method} from #{scope.selfType.resolve}", position]])
+          method = Member(methods[0])
+          ErrorType.new(
+              [["Cannot access #{method} from #{scope.selfType.resolve}",
+                position]])
         else
           nil
         end
@@ -313,9 +329,12 @@ class MethodLookup
       it = methods.iterator
       while it.hasNext
         method = Member(it.next)
-        # The declaring class and the method must be visible for the method to be applicable.
-        unless (isAccessible(method.declaringClass, method.declaringClass.flags, scope) &&
-                isAccessible(method.declaringClass, method.flags, scope, target))
+        # The declaring class and the method must be visible for the method
+        # to be applicable.
+        unless (isAccessible(method.declaringClass, 
+                             method.declaringClass.flags, scope) &&
+                isAccessible(method.declaringClass, method.flags,
+                             scope, target))
           it.remove
           inaccessible.add(method)
         end

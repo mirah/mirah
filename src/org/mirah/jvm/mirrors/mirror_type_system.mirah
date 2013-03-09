@@ -95,11 +95,15 @@ class MirrorTypeSystem implements TypeSystem
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
     resolvedArgs = ArrayList.new
     argTypes.each {|arg| resolvedArgs.add(TypeFuture(arg).resolve)}
-    createMember(BaseType(target.resolve), name, resolvedArgs, declaredReturnType, position)
+    createMember(
+        BaseType(target.resolve), name, resolvedArgs, declaredReturnType,
+        position)
   end
 
   def getMethodType(call)
-    future = MethodLookup.findMethod(call.scope, MirrorType(call.resolved_target), call.name, call.resolved_parameters, call.position)
+    future = MethodLookup.findMethod(
+        call.scope, MirrorType(call.resolved_target), call.name,
+        call.resolved_parameters, call.position)
     future || BaseTypeFuture.new(call.position)
   end
 
@@ -164,7 +168,10 @@ class MirrorTypeSystem implements TypeSystem
     future
   end
 
-  def createMember(target:BaseType, name:String, arguments:List, returnType:TypeFuture, position:Position):MethodFuture
+  def createMember(target:BaseType, name:String, arguments:List,
+                   returnType:TypeFuture, position:Position):MethodFuture
+    returnFuture = AssignableTypeFuture.new(position)
+
     flags = Opcodes.ACC_PUBLIC
     kind = MemberKind.METHOD
     if target.isMeta
@@ -172,12 +179,14 @@ class MirrorTypeSystem implements TypeSystem
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
     end
-    member = Member.new(flags, target, name, arguments, MirrorType(returnType && returnType.resolve), kind)
+    member = AsyncMember.new(flags, target, name, arguments, returnFuture, kind)
+    returnFuture.resolved(
+        ErrorType.new([["Cannot determine return type for method #{member}",
+                        position]]))
+    returnFuture.declare(returnType, position) if returnType
+    
     target.add(member)
 
-    returnFuture = AssignableTypeFuture.new(position).resolved(ErrorType.new([
-      ["Cannot determine return type for method #{member}", position]]))
-    returnFuture.declare(returnType, position) if returnType
     MethodFuture.new(name, arguments, returnFuture, false, position)
   end
 end
@@ -185,7 +194,9 @@ end
 class FakeMember < Member
   def self.create(types:MirrorTypeSystem, description:String, flags:int=-1)
     m = /^(@)?([^.]+)\.(.+)$/.matcher(description)
-    raise IllegalArgumentException, "Invalid method specification #{description}" unless m.matches
+    unless m.matches
+      raise IllegalArgumentException, "Invalid method specification #{description}"
+    end
     abstract = !m.group(1).nil?
     klass = wrap(types, Type.getType(m.group(2)))
     method = Type.getType(m.group(3))
@@ -203,7 +214,8 @@ class FakeMember < Member
     JVMType(types.wrap(type).resolve)
   end
 
-  def initialize(description:String, flags:int, klass:JVMType, returnType:JVMType, args:List)
+  def initialize(description:String, flags:int,
+                 klass:JVMType, returnType:JVMType, args:List)
     super(flags, klass, 'foobar', args, returnType, MemberKind.METHOD)
     @description = description
   end

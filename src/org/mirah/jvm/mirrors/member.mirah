@@ -22,6 +22,8 @@ import org.jruby.org.objectweb.asm.Opcodes
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
+import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.TypeFuture
 
 class Member implements JVMMethod
   def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List, returnType:JVMType, kind:MemberKind)
@@ -35,6 +37,10 @@ class Member implements JVMMethod
   
   attr_reader declaringClass:JVMType, name:String, argumentTypes:List
   attr_reader returnType:JVMType, kind:MemberKind, flags:int
+
+  def asyncReturnType:TypeFuture
+    @returnFuture ||= BaseTypeFuture.new.resolved(@returnType)
+  end
 
   def accept(visitor, expression):void
     kind = @kind.name.intern
@@ -97,5 +103,21 @@ class Member implements JVMMethod
     end
     result.append(')')
     result.toString
+  end
+end
+
+class AsyncMember < Member
+  def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List, returnType:TypeFuture, kind:MemberKind)
+    super(flags, klass, name, argumentTypes, nil, kind)
+    @returnType = returnType
+  end
+
+  def returnType
+    # TODO: Should this convert errors?
+    JVMType(@returnType.resolve)
+  end
+
+  def asyncReturnType
+    @returnType
   end
 end
