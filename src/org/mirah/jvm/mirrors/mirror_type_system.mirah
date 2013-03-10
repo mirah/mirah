@@ -101,10 +101,14 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMethodType(call)
-    future = MethodLookup.findMethod(
-        call.scope, MirrorType(call.resolved_target), call.name,
-        call.resolved_parameters, call.position)
-    future || BaseTypeFuture.new(call.position)
+    if call.resolved_parameters.all?
+      future = MethodLookup.findMethod(
+          call.scope, MirrorType(call.resolved_target), call.name,
+          call.resolved_parameters, call.position)
+      future || BaseTypeFuture.new(call.position)
+    else
+      BaseTypeFuture.new(call.position)
+    end
   end
 
   def getMetaType(type:ResolvedType):ResolvedType

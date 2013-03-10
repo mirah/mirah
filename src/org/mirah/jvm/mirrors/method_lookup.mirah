@@ -87,11 +87,23 @@ class MethodLookup
 
     # Returns 0, 1, -1 or NaN if a & b are the same type,
     # a < b, a > b, or neither is a subtype.
-    def subtypeComparison(a:JVMType, b:JVMType):double
-      return 0.0 if a.class_id.equals(b.class_id)
-      if isJvmSubType(b, a)
+    def subtypeComparison(a:ResolvedType, b:ResolvedType):double
+      if a.isError
+        if b.isError
+          return 0.0
+        else
+          return -1.0
+        end
+      elsif b.isError
+        return 1.0
+      end
+      jvm_a = JVMType(a)
+      jvm_b = JVMType(b)
+          
+      return 0.0 if jvm_a.class_id.equals(jvm_b.class_id)
+      if isJvmSubType(jvm_b, jvm_a)
         return -1.0
-      elsif isJvmSubType(a, b)
+      elsif isJvmSubType(jvm_a, jvm_b)
         return 1.0
       else
         return Double.NaN
@@ -158,8 +170,8 @@ class MethodLookup
       raise IllegalArgumentException if a.argumentTypes.size != b.argumentTypes.size
       comparison = 0.0
       a.argumentTypes.size.times do |i|
-        a_arg = JVMType(a.argumentTypes.get(i))
-        b_arg = JVMType(b.argumentTypes.get(i))
+        a_arg = ResolvedType(a.argumentTypes.get(i))
+        b_arg = ResolvedType(b.argumentTypes.get(i))
         arg_comparison = subtypeComparison(a_arg, b_arg)
         return arg_comparison if Double.isNaN(arg_comparison)
         if arg_comparison != 0.0
@@ -271,7 +283,7 @@ class MethodLookup
         next unless args.size == arity
         match = true
         arity.times do |i|
-          unless isJvmSubType(MirrorType(params[i]), MirrorType(args[i]))
+          unless isSubType(ResolvedType(params[i]), ResolvedType(args[i]))
             match = false
             break
           end

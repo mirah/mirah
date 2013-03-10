@@ -21,6 +21,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.MethodLookup'
   java_import 'org.mirah.jvm.mirrors.FakeMember'
+  java_import 'org.mirah.jvm.mirrors.Member'
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.simple.SimpleScope'
   java_import 'org.mirah.typer.BaseTypeFuture'
@@ -402,5 +403,18 @@ class Phase1Test < BaseMethodLookupTest
 
   def test_ambiguity_resolution
     assert_equal(['I.()V'], phase1(%w(@Z.()V I.()V), []))
+  end
+
+  def test_error_least_specific
+    error_member = Member.new(
+        Opcodes.ACC_PUBLIC, wrap('I'), 'foo', [ErrorType.new([['Error']])], wrap('I'),
+        MemberKind::METHOD)
+    # The method should match
+    assert_equal([error_member],
+                 MethodLookup.phase1([error_member], [wrap('I')]).to_a)
+    # And be least specific
+    ok_member = make_method('I.(I)S')
+    assert_equal([ok_member],
+                 MethodLookup.phase1([error_member, ok_member], [wrap('I')]).to_a)
   end
 end
