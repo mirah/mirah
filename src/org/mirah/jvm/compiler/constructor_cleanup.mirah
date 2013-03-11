@@ -56,7 +56,7 @@ class ConstructorCleanup < SimpleNodeVisitor
     node.size.times do |i|
       child = node.get(i)
       unless child.kind_of?(ClassDefinition)
-        return node.get(0).accept(self, arg)
+        return child.accept(self, arg)
       end
     end
   end
