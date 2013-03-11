@@ -172,12 +172,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def wrap(type:Type):TypeFuture
-    future = @loader.loadMirrorAsync(type)
-    if (!future.isResolved) || future.resolve.isError
-      jvmtype = BaseType.new(type, Opcodes.ACC_PUBLIC, @object)
-      @loader.defineMirror(type, BaseTypeFuture.new.resolved(jvmtype))
-    end
-    future
+    @loader.loadMirrorAsync(type)
   end
 
   def createMember(target:BaseType, name:String, arguments:List,
