@@ -27,6 +27,7 @@ import mirah.lang.ast.Position
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.DelegateFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodFuture
 import org.mirah.typer.ResolvedType
@@ -62,7 +63,9 @@ class MirrorTypeSystem implements TypeSystem
 
   def getSuperClass(type)
     future = BaseTypeFuture.new
-    future.position = BaseTypeFuture(type).position if type.kind_of?(BaseTypeFuture)
+    if type.kind_of?(BaseTypeFuture)
+      future.position = BaseTypeFuture(type).position 
+    end
     type.onUpdate do |x, resolved|
       if resolved.isError
         future.resolved(resolved)
@@ -93,22 +96,27 @@ class MirrorTypeSystem implements TypeSystem
   end
   
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
-    resolvedArgs = ArrayList.new
-    argTypes.each {|arg| resolvedArgs.add(TypeFuture(arg).resolve)}
     createMember(
-        BaseType(target.resolve), name, resolvedArgs, declaredReturnType,
+        BaseType(target.resolve), name, argTypes, declaredReturnType,
         position)
   end
 
   def getMethodType(call)
+    future = DelegateFuture.new()
     if call.resolved_parameters.all?
-      future = MethodLookup.findMethod(
-          call.scope, MirrorType(call.resolved_target), call.name,
+      target = MirrorType(call.resolved_target)
+      future.type = MethodLookup.findMethod(
+          call.scope, target, call.name,
           call.resolved_parameters, call.position)
-      future || BaseTypeFuture.new(call.position)
-    else
-      BaseTypeFuture.new(call.position)
+      target.addMethodListener(call.name) do |klass, name|
+        if klass == target
+          future.type = MethodLookup.findMethod(
+              call.scope, target, call.name,
+              call.resolved_parameters, call.position)
+        end
+      end
     end
+    future
   end
 
   def getMetaType(type:ResolvedType):ResolvedType
@@ -184,14 +192,14 @@ class MirrorTypeSystem implements TypeSystem
       kind = MemberKind.STATIC_METHOD
     end
     member = AsyncMember.new(flags, target, name, arguments, returnFuture, kind)
-    returnFuture.resolved(
-        ErrorType.new([["Cannot determine return type for method #{member}",
-                        position]]))
+
+    returnFuture.error_message =
+        "Cannot determine return type for method #{member}"
     returnFuture.declare(returnType, position) if returnType
     
     target.add(member)
 
-    MethodFuture.new(name, arguments, returnFuture, false, position)
+    MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
   end
 end
 

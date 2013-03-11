@@ -26,7 +26,8 @@ import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 
 class Member implements JVMMethod
-  def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List, returnType:JVMType, kind:MemberKind)
+  def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List,
+                 returnType:JVMType, kind:MemberKind)
     @flags = flags
     @declaringClass = klass
     @name = name
@@ -34,7 +35,7 @@ class Member implements JVMMethod
     @returnType = returnType
     @kind = kind
   end
-  
+
   attr_reader declaringClass:JVMType, name:String, argumentTypes:List
   attr_reader returnType:JVMType, kind:MemberKind, flags:int
 
@@ -107,9 +108,17 @@ class Member implements JVMMethod
 end
 
 class AsyncMember < Member
-  def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List, returnType:TypeFuture, kind:MemberKind)
-    super(flags, klass, name, argumentTypes, nil, kind)
+  def initialize(flags:int, klass:BaseType, name:String,
+                 argumentTypes:List /* of TypeFuture */,
+                 returnType:TypeFuture, kind:MemberKind)
+    super(flags, klass, name, Collections.emptyList, nil, kind)
+    @resolvedArguments = ArrayList.new(argumentTypes.size)
     @returnType = returnType
+    argumentTypes.each {|a| setupArgumentListener(TypeFuture(a)) }
+  end
+
+  def argumentTypes
+    Collections.unmodifiableList(@resolvedArguments)
   end
 
   def returnType
@@ -119,5 +128,22 @@ class AsyncMember < Member
 
   def asyncReturnType
     @returnType
+  end
+
+  def setupArgumentListener(argument:TypeFuture):void
+    resolvedArgs = @resolvedArguments
+    index = @resolvedArguments.size
+    member = self
+    @resolvedArguments.add(argument.resolve)
+    argument.onUpdate do |x, resolved|
+      if resolved != resolvedArgs.get(index)
+        resolvedArgs.set(index, resolved)
+        member.invalidate
+      end
+    end
+  end
+
+  def invalidate:void
+    BaseType(self.declaringClass).invalidateMethod(self.name)
   end
 end

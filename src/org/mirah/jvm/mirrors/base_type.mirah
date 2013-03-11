@@ -27,11 +27,16 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.typer.TypeFuture
 
+interface MethodListener
+  def methodChanged(klass:JVMType, name:String):void; end
+end
+
 # package_private
 interface MirrorType < JVMType
   def notifyOfIncompatibleChange:void; end
   def onIncompatibleChange(listener:Runnable):void; end
   def getDeclaredMethods(name:String):List; end  # List<Member>
+  def addMethodListener(name:String, listener:MethodListener):void; end
 end
 
 # package_private
@@ -47,6 +52,7 @@ class BaseType implements MirrorType
     @flags = flags
     @superclass = superclass
     @members = {}
+    @method_listeners = {}
     @compatibility_listeners = []
   end
 
@@ -63,9 +69,10 @@ class BaseType implements MirrorType
   end
 
   def assignableFrom(other)
-    other.matchesAnything || (other.kind_of?(JVMType) && class_id.equals(JVMType(other).class_id))
+    other.matchesAnything ||
+        (other.kind_of?(JVMType) && class_id.equals(JVMType(other).class_id))
   end
-  
+
   def isMeta:boolean; false; end
   def isBlock:boolean; false; end
   def isError:boolean; false; end
@@ -79,7 +86,7 @@ class BaseType implements MirrorType
     sort = @type.getSort
     sort != Type.OBJECT && sort != Type.ARRAY
   end
-  
+
   def isEnum:boolean
     0 != (@flags & Opcodes.ACC_ENUM)
   end
@@ -90,14 +97,14 @@ class BaseType implements MirrorType
     0 != (@flags & Opcodes.ACC_ANNOTATION)
   end
   def retention:String; nil; end
-  
+
   def isArray:boolean
     @type.getSort == Type.ARRAY
   end
   def getComponentType:JVMType; nil; end
-  
+
   def hasStaticField(name:String):boolean; false;end
-  
+
   def getMethod(name:String, params:List):JVMMethod
     members = List(@members[name])
     if members
@@ -119,7 +126,7 @@ class BaseType implements MirrorType
   def interfaces:TypeFuture[]
     TypeFuture[0]
   end
-  
+
   def getDeclaredFields:JVMMethod[]
     return JVMMethod[0]
   end
@@ -128,6 +135,21 @@ class BaseType implements MirrorType
   def add(member:JVMMethod):void
     members = List(@members[member.name] ||= LinkedList.new)
     members.add(Member(member))
+    invalidateMethod(member.name)
+  end
+
+  def addMethodListener(name:String, listener:MethodListener)
+    listeners = List(@method_listeners[name] ||= LinkedList.new)
+    listeners.add(listener)
+  end
+
+  def invalidateMethod(name:String)
+    listeners = List(@method_listeners[name])
+    if listeners
+      listeners.each do |l|
+        MethodListener(l).methodChanged(self, name)
+      end
+    end
   end
 
   def toString

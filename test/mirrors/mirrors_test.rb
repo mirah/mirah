@@ -26,6 +26,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'mirah.lang.ast.ClassDefinition'
   java_import 'mirah.lang.ast.TypeRefImpl'
   java_import 'org.jruby.org.objectweb.asm.Opcodes'
+  java_import 'org.jruby.org.objectweb.asm.Type'
 
   def setup
     @types = MirrorTypeSystem.new
@@ -187,5 +188,22 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     future.returnType.assign(@types.getFixnumType(1), nil)
     assert_not_error(type)
     assert_resolved_to('I', type.resolve.returnType)
+  end
+
+  def test_async_arguments
+    int = @types.wrap(Type.getType("I"))
+    short = @types.wrap(Type.getType("S"))
+    @types.getMethodDefType(main_type, 'foo', [int], int, nil)
+    argument_future = BaseTypeFuture.new
+    @types.getMethodDefType(main_type, 'foo', [argument_future], short, nil)
+
+    call_future = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, 'foo', [short], [], nil))
+    assert_not_error(call_future)
+    assert_resolved_to('I', call_future.resolve.returnType)
+
+    # Now make the other one more specific
+    argument_future.resolved(short.resolve)
+    assert_resolved_to('S', call_future.resolve.returnType)
   end
 end
