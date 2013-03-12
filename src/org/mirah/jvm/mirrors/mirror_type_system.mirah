@@ -68,7 +68,7 @@ class MirrorTypeSystem implements TypeSystem
   def getSuperClass(type)
     future = BaseTypeFuture.new
     if type.kind_of?(BaseTypeFuture)
-      future.position = BaseTypeFuture(type).position 
+      future.position = BaseTypeFuture(type).position
     end
     type.onUpdate do |x, resolved|
       if resolved.isError
@@ -86,23 +86,59 @@ class MirrorTypeSystem implements TypeSystem
 
   def addDefaultImports(scope)
   end
-  
+
   def getFixnumType(value)
     wrap(Type.getType("I"))
   end
-  
+
+  def getFloatType(value)
+    wrap(Type.getType("D"))
+  end
+
   def getVoidType
     @void ||= wrap(Type.getType("V"))
   end
-  
+
+  def getBooleanType
+    wrap(Type.getType("Z"))
+  end
+
   def getImplicitNilType
     getVoidType
   end
-  
+
+  def getStringType
+    wrap(Type.getType("Ljava/lang/String;"))
+  end
+
+  def getRegexType
+    wrap(Type.getType("Ljava/util/regex/Pattern;"))
+  end
+
+  def getBaseExceptionType
+    wrap(Type.getType("Ljava/lang/Throwable;"))
+  end
+
+  def getDefaultExceptionType
+    wrap(Type.getType("Ljava/lang/Exception;"))
+  end
+
+  def getArrayLiteralType(valueType, position)
+    wrap(Type.getType("Ljava/util/List;"))
+  end
+
+  def getHashLiteralType(keyType, valueType, position)
+    wrap(Type.getType("Ljava/util/HashMap;"))
+  end
+
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
     createMember(
         MirrorType(target.resolve), name, argTypes, declaredReturnType,
         position)
+  end
+
+  def getNullType
+    @nullType ||= BaseTypeFuture.new.resolved(NullType.new)
   end
 
   def getMethodType(call)
@@ -144,7 +180,7 @@ class MirrorTypeSystem implements TypeSystem
     end
     future
   end
-  
+
   def getLocalType(scope, name, position)
     @local ||= AssignableTypeFuture.new(position)
   end
@@ -192,18 +228,18 @@ class MirrorTypeSystem implements TypeSystem
     returnFuture.error_message =
         "Cannot determine return type for method #{member}"
     returnFuture.declare(returnType, position) if returnType
-    
+
     target.add(member)
 
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
   end
-  
+
   def self.main(args:String[]):void
     types = MirrorTypeSystem.new
     scope = SimpleScope.new
     main_type = types.getMainType(nil, nil)
     scope.selfType_set(main_type)
-    
+
     super_future = BaseTypeFuture.new
     b = types.defineType(scope, ClassDefinition.new, "B", super_future, [])
     c = types.defineType(scope, ClassDefinition.new, "C", nil, [])

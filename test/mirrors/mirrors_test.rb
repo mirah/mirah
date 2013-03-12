@@ -36,6 +36,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   def assert_descriptor(descriptor, type)
     assert(type.isResolved)
     assert_resolved_to(descriptor, type.resolve)
+    assert_not_error(type)
   end
 
   def assert_resolved_to(descriptor, resolved)
@@ -70,6 +71,10 @@ class MirrorsTest < BaseMirrorsTest
     assert_descriptor("I", type)
   end
 
+  def test_string
+    assert_descriptor("Ljava/lang/String;", @types.getStringType)
+  end
+
   def test_void
     type = @types.getVoidType
     assert_descriptor("V", type)
@@ -80,8 +85,42 @@ class MirrorsTest < BaseMirrorsTest
     assert_not_nil(type)
   end
 
+  def test_null
+    type = @types.getNullType.resolve
+    assert_equal("null", type.name)
+    assert_resolved_to("Ljava/lang/Object;", type)
+  end
+
   def test_main_type
     assert_descriptor("LFooBar;", main_type)
+  end
+
+  def test_regex
+    assert_descriptor("Ljava/util/regex/Pattern;", @types.getRegexType)
+  end
+
+  def test_hash
+    assert_descriptor("Ljava/util/HashMap;", @types.getHashLiteralType(nil, nil, nil))
+  end
+
+  def test_float
+    assert_descriptor("D", @types.getFloatType(0))
+  end
+
+  def test_exception
+    assert_descriptor("Ljava/lang/Exception;", @types.getDefaultExceptionType)
+  end
+
+  def test_throwable
+    assert_descriptor("Ljava/lang/Throwable;", @types.getBaseExceptionType)
+  end
+
+  def test_boolean
+    assert_descriptor("Z", @types.getBooleanType)
+  end
+
+  def test_list
+    assert_descriptor("Ljava/util/List;", @types.getArrayLiteralType(nil, nil))
   end
 
   def test_superclass
@@ -214,7 +253,8 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     a = @types.defineType(@scope, ClassDefinition.new, "A", b, [])
     c = @types.defineType(@scope, ClassDefinition.new, "C", nil, [])
     
-    @types.getMethodDefType(main_type, 'foobar', [c], @types.getFixnumType(0), nil)
+    @types.getMethodDefType(main_type, 'foobar', [c],
+                            @types.getFixnumType(0), nil)
     type1 = CallFuture.new(@types, @scope, main_type, 'foobar', [b], [], nil)
     assert_error(type1)
     type2 = CallFuture.new(@types, @scope, main_type, 'foobar', [b], [], nil)
