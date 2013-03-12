@@ -41,7 +41,9 @@ end
 
 class BytecodeMirror < BaseType
   def initialize(klass:ClassNode, loader:MirrorLoader)
-    super(Type.getObjectType(klass.name), klass.access, BytecodeMirror.lookupType(loader, klass.superName))
+    super(Type.getObjectType(klass.name),
+          klass.access,
+          BytecodeMirror.lookupType(loader, klass.superName))
     @loader = loader
     @fields = klass.fields
     @methods = klass.methods

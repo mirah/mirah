@@ -15,22 +15,37 @@
 
 package org.mirah.jvm.mirrors
 
-import java.util.List
-
-import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
-import org.mirah.jvm.types.JVMMethod
+import org.mirah.typer.TypeFuture
 
-# package_private
-class MetaType < BaseType
-  def initialize(type:MirrorType)
-    super(type.name, type.getAsmType, type.flags | Opcodes.ACC_STATIC,
-          type.superclass)
-    @unmeta = type
+
+# Mirror for a type being loaded from a .mirah file.
+class MirahMirror < BaseType
+  def initialize(type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
+    super(type, flags, nil)
+    mirror = self
+    @interfaces = interfaces
+    superclass.onUpdate do |x, resolved|
+      mirror.resolveSuperclass(JVMType(resolved))
+    end
+    @interfaces.each do |i|
+      i.onUpdate do |x, resolved|
+        mirror.notifyOfIncompatibleChange
+      end
+    end
   end
 
-  attr_reader unmeta: MirrorType
+  def resolveSuperclass(resolved:JVMType)
+    @superclass = resolved
+    notifyOfIncompatibleChange
+  end
 
-  def isMeta:boolean; true; end
+  def superclass
+    @superclass
+  end
+
+  def interfaces:TypeFuture[]
+    @interfaces
+  end
 end

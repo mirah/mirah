@@ -24,15 +24,19 @@ import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 
 import mirah.lang.ast.Position
+import mirah.lang.ast.ClassDefinition
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.CallFuture
 import org.mirah.typer.DelegateFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodFuture
+import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.TypeSystem
+import org.mirah.typer.simple.SimpleScope
 
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
@@ -43,7 +47,7 @@ class MirrorTypeSystem implements TypeSystem
         BytecodeMirrorLoader.new(classloader, PrimitiveLoader.new)))
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
-    @main_type = wrap(Type.getType('LFooBar;'))
+    @main_type = TypeFuture(nil)
     @primitives = {
       boolean: 'Z',
       byte: 'B',
@@ -77,7 +81,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    @main_type
+    @main_type ||= defineType(scope, script, "FooBar", nil, [])
   end
 
   def addDefaultImports(scope)
@@ -97,7 +101,7 @@ class MirrorTypeSystem implements TypeSystem
   
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
     createMember(
-        BaseType(target.resolve), name, argTypes, declaredReturnType,
+        MirrorType(target.resolve), name, argTypes, declaredReturnType,
         position)
   end
 
@@ -107,12 +111,12 @@ class MirrorTypeSystem implements TypeSystem
       target = MirrorType(call.resolved_target)
       future.type = MethodLookup.findMethod(
           call.scope, target, call.name,
-          call.resolved_parameters, call.position)
+          call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
       target.addMethodListener(call.name) do |klass, name|
         if klass == target
           future.type = MethodLookup.findMethod(
               call.scope, target, call.name,
-              call.resolved_parameters, call.position)
+              call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
         end
       end
     end
@@ -123,7 +127,7 @@ class MirrorTypeSystem implements TypeSystem
     if type.isError
       type
     else
-      jvmType = BaseType(type)
+      jvmType = MirrorType(type)
       if jvmType.isMeta
         jvmType
       else
@@ -146,18 +150,15 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def defineType(scope, node, name, superclass, interfaces)
-    future = BaseTypeFuture.new(node.position)
+    position = node ? node.position : nil
     type = Type.getObjectType(name.replace(?., ?/))
-    object_type = @object
-    @loader.defineMirror(type, future)
     superclass ||= @object_future
-    isDefined = false
-    superclass.onUpdate do |x, resolved|
-      unless isDefined
-        jvm_superclass = resolved.isError ? object_type : JVMType(resolved)
-        future.resolved(BaseType.new(type, Opcodes.ACC_PUBLIC, jvm_superclass))
-      end
-    end
+    interfaceArray = TypeFuture[interfaces.size]
+    interfaces.toArray(interfaceArray)
+    mirror = MirahMirror.new(type, Opcodes.ACC_PUBLIC,
+                             superclass, interfaceArray)
+    future = MirrorFuture.new(mirror, position)
+    @loader.defineMirror(type, future)
     future
   end
 
@@ -175,14 +176,14 @@ class MirrorTypeSystem implements TypeSystem
     @loader.loadMirrorAsync(type)
   end
 
-  def createMember(target:BaseType, name:String, arguments:List,
+  def createMember(target:MirrorType, name:String, arguments:List,
                    returnType:TypeFuture, position:Position):MethodFuture
     returnFuture = AssignableTypeFuture.new(position)
 
     flags = Opcodes.ACC_PUBLIC
     kind = MemberKind.METHOD
     if target.isMeta
-      target = BaseType(MetaType(target).unmeta)
+      target = MirrorType(MetaType(target).unmeta)
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
     end
@@ -195,6 +196,22 @@ class MirrorTypeSystem implements TypeSystem
     target.add(member)
 
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
+  end
+  
+  def self.main(args:String[]):void
+    types = MirrorTypeSystem.new
+    scope = SimpleScope.new
+    main_type = types.getMainType(nil, nil)
+    scope.selfType_set(main_type)
+    
+    super_future = BaseTypeFuture.new
+    b = types.defineType(scope, ClassDefinition.new, "B", super_future, [])
+    c = types.defineType(scope, ClassDefinition.new, "C", nil, [])
+    types.getMethodDefType(main_type, 'foobar', [c], types.getVoidType, nil)
+    type = CallFuture.new(types, scope, main_type, 'foobar', [b], [], nil)
+    puts type.resolve
+    super_future.resolved(c.resolve)
+    puts type.resolve
   end
 end
 

@@ -37,6 +37,8 @@ interface MirrorType < JVMType
   def onIncompatibleChange(listener:Runnable):void; end
   def getDeclaredMethods(name:String):List; end  # List<Member>
   def addMethodListener(name:String, listener:MethodListener):void; end
+  def invalidateMethod(name:String):void; end
+  def add(member:JVMMethod):void; end
 end
 
 # package_private
@@ -61,6 +63,9 @@ class BaseType implements MirrorType
   def notifyOfIncompatibleChange:void
     @compatibility_listeners.each do |l|
       Runnable(l).run()
+    end
+    @method_listeners.keySet.each do |n|
+      invalidateMethod(String(n))
     end
   end
 

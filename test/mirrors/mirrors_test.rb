@@ -206,4 +206,21 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     argument_future.resolved(short.resolve)
     assert_resolved_to('S', call_future.resolve.returnType)
   end
+
+  def test_async_param_superclass
+    assert_not_error(main_type)
+    super_future = BaseTypeFuture.new
+    b = @types.defineType(@scope, ClassDefinition.new, "B", super_future, [])
+    a = @types.defineType(@scope, ClassDefinition.new, "A", b, [])
+    c = @types.defineType(@scope, ClassDefinition.new, "C", nil, [])
+    
+    @types.getMethodDefType(main_type, 'foobar', [c], @types.getFixnumType(0), nil)
+    type1 = CallFuture.new(@types, @scope, main_type, 'foobar', [b], [], nil)
+    assert_error(type1)
+    type2 = CallFuture.new(@types, @scope, main_type, 'foobar', [b], [], nil)
+    assert_error(type2)
+    super_future.resolved(c.resolve)
+    assert_descriptor("I", type1)
+    assert_descriptor("I", type2)
+  end
 end

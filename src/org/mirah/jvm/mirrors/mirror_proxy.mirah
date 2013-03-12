@@ -1,0 +1,134 @@
+# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+package org.mirah.jvm.mirrors
+
+import mirah.lang.ast.Position
+import org.mirah.jvm.types.JVMMethod
+import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.TypeFuture
+
+# Simple proxy for a MirrorType.
+# The typer compares types using ==, but sometimes we need to
+# change a Mirror in an incompatible way. We can return a new
+# proxy for the same Mirror, and the typer will treat this as
+# a new type.
+class MirrorProxy implements MirrorType
+  def initialize(type:MirrorType)
+    @target = type
+  end
+
+  def notifyOfIncompatibleChange:void
+    @target.notifyOfIncompatibleChange
+  end
+  def onIncompatibleChange(listener):void
+    @target.onIncompatibleChange(listener)
+  end
+  def getDeclaredMethods(name)
+    @target.getDeclaredMethods(name)
+  end
+  def addMethodListener(name, listener):void
+    @target.addMethodListener(name, listener)
+  end
+  def invalidateMethod(name):void
+    @target.invalidateMethod(name)
+  end
+  def add(member):void
+    @target.add(member)
+  end
+  def superclass
+    @target.superclass
+  end
+  def internal_name
+    @target.internal_name
+  end
+  def class_id
+    @target.class_id
+  end
+  def getAsmType
+    @target.getAsmType
+  end
+  def flags
+    @target.flags
+  end
+  def interfaces:TypeFuture[]
+    @target.interfaces
+  end
+  def isPrimitive
+    @target.isPrimitive
+  end
+  def isEnum
+    @target.isEnum
+  end
+  def isInterface
+    @target.isInterface
+  end
+  def isAnnotation
+    @target.isAnnotation
+  end
+  def retention
+    @target.retention
+  end
+  def isArray
+    @target.isArray
+  end
+  def getComponentType
+    @target.getComponentType
+  end
+  def hasStaticField(name)
+    @target.hasStaticField(name)
+  end
+  def getMethod(name, params)
+    @target.getMethod(name, params)
+  end
+  def getDeclaredFields:JVMMethod[]
+    @target.getDeclaredFields
+  end
+  def getDeclaredField(name)
+    @target.getDeclaredField(name)
+  end
+  def widen(other)
+    @target.widen(other)
+  end
+  def assignableFrom(other)
+    @target.assignableFrom(other)
+  end
+  def name
+    @target.name
+  end
+  def isMeta
+    @target.isMeta
+  end
+  def isBlock
+    @target.isBlock
+  end
+  def isError
+    @target.isError
+  end
+  def matchesAnything
+    @target.matchesAnything
+  end
+end
+
+class MirrorFuture < BaseTypeFuture
+  def initialize(type:MirrorType, position:Position=nil)
+    super(position)
+    resolved(type)
+    future = self
+    type.onIncompatibleChange do
+      future.resolved(MirrorProxy.new(type))
+    end
+  end
+end

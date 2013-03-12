@@ -89,7 +89,7 @@ interface TypeSystem do
   def getSuperClass(type:TypeFuture):TypeFuture; end
 
   # Called by the Typer to inform the TypeSystem of a newly defined class.
-  def defineType(scope:Scope, node:ClassDefinition, name:String, superclass:TypeFuture, interfaces:List):TypeFuture; end
+  def defineType(scope:Scope, node:Node, name:String, superclass:TypeFuture, interfaces:List):TypeFuture; end
 
   # Initializes the imports for a Script node.
   def addDefaultImports(scope:Scope):void; end

@@ -59,4 +59,7 @@ class JvmErrorType < ErrorType implements MirrorType
   def notifyOfIncompatibleChange; end
   def onIncompatibleChange(listener:Runnable):void; end
   def removeChangeListener(listener:Runnable):void; end
+  
+  def addMethodListener(name:String, listener:MethodListener):void; end
+  def invalidateMethod(name:String):void; end
 end

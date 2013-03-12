@@ -108,7 +108,7 @@ class Member implements JVMMethod
 end
 
 class AsyncMember < Member
-  def initialize(flags:int, klass:BaseType, name:String,
+  def initialize(flags:int, klass:MirrorType, name:String,
                  argumentTypes:List /* of TypeFuture */,
                  returnType:TypeFuture, kind:MemberKind)
     super(flags, klass, name, Collections.emptyList, nil, kind)
@@ -144,6 +144,6 @@ class AsyncMember < Member
   end
 
   def invalidate:void
-    BaseType(self.declaringClass).invalidateMethod(self.name)
+    MirrorType(self.declaringClass).invalidateMethod(self.name)
   end
 end
