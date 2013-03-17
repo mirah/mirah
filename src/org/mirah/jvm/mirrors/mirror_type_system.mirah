@@ -188,6 +188,12 @@ class MirrorTypeSystem implements TypeSystem
   def defineType(scope, node, name, superclass, interfaces)
     position = node ? node.position : nil
     type = Type.getObjectType(name.replace(?., ?/))
+    fullname = if scope && scope.package && !scope.package.isEmpty
+      "#{scope.package}.#{name}"
+    else
+      name
+    end
+    type = Type.getObjectType(fullname.replace(?., ?/))
     superclass ||= @object_future
     interfaceArray = TypeFuture[interfaces.size]
     interfaces.toArray(interfaceArray)

@@ -57,6 +57,11 @@ class BaseMirrorsTest < Test::Unit::TestCase
   def main_type
     @types.getMainType(nil, nil)
   end
+
+  def define_type(name, superclass=nil, interfaces=[])
+    @types.defineType(
+        @scope, ClassDefinition.new, name, superclass, interfaces)
+  end
 end
 
 class MirrorsTest < BaseMirrorsTest
@@ -156,8 +161,7 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_define_type
-    type = @types.defineType(
-        @scope, ClassDefinition.new, "Subclass", main_type, [])
+    type = define_type("Subclass", main_type)
     assert_descriptor("LSubclass;", type)
     assert_descriptor("LFooBar;", @types.getSuperClass(type))
   end
@@ -178,6 +182,15 @@ class MirrorsTest < BaseMirrorsTest
   def test_get
     type = @types.get(@scope, TypeRefImpl.new('void', false, false, nil))
     assert_descriptor('V', type)
+  end
+
+  def test_package
+    @scope.package_set('foo')
+    type = define_type('Bar')
+    assert_descriptor("Lfoo/Bar;", type)
+    
+    @scope.package_set('foo.bar')
+    assert_descriptor("Lfoo/bar/Baz;", define_type('Baz'))
   end
 end
 
