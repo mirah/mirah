@@ -32,6 +32,8 @@ import java.io.PrintStream
 class SimpleScope; implements Scope
   def initialize
     @nextTemp = -1
+    @imports = HashMap.new
+    @search_packages = ArrayList.new
   end
   def context:Node
     @node
@@ -52,6 +54,17 @@ class SimpleScope; implements Scope
     @parent = scope
   end
   def import(fullname:String, shortname:String)
+    if "*".equals(shortname)
+      @search_packages.add(fullname.substring(0, fullname.length - 2))
+    else
+      @imports[shortname] = fullname
+    end
+  end
+  def imports
+    @imports
+  end
+  def search_packages
+    @search_packages
   end
   def package:String
     @package

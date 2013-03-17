@@ -15,6 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.logging.Logger
+
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.ClassReader
@@ -133,6 +135,10 @@ class OrErrorLoader < SimpleMirrorLoader
 end
 
 class BytecodeMirrorLoader < SimpleMirrorLoader
+  def self.initialize:void
+    @@log = Logger.getLogger(BytecodeMirrorLoader.class.getName)
+  end
+
   def initialize(resourceLoader:ClassLoader, parent:MirrorLoader=nil)
     super(parent)
     @loader = resourceLoader
@@ -141,12 +147,17 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
 
   def findMirror(type)
     super || begin
-      bytecode = @loader.getResourceAsStream(type.getInternalName + ".class")
+      classfile = type.getInternalName + ".class"
+      bytecode = @loader.getResourceAsStream(classfile)
       if bytecode
+        @@log.fine("Found #{classfile}")
         node = ClassNode.new
         reader = ClassReader.new(bytecode)
         reader.accept(node, ClassReader.SKIP_CODE)
         BytecodeMirror.new(node, @ancestorLoader)
+      else
+        @@log.finer("Cannot find #{classfile}")
+        nil
       end
     end
   end

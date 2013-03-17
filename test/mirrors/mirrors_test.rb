@@ -58,6 +58,10 @@ class BaseMirrorsTest < Test::Unit::TestCase
     @types.getMainType(nil, nil)
   end
 
+  def typeref(name)
+    TypeRefImpl.new(name, false, false, nil)
+  end
+
   def define_type(name, superclass=nil, interfaces=[])
     @types.defineType(
         @scope, ClassDefinition.new, name, superclass, interfaces)
@@ -67,8 +71,9 @@ end
 class MirrorsTest < BaseMirrorsTest
 
   def test_add_default_imports
-    # Just make sure it doesn't raise an exception
     @types.addDefaultImports(@scope)
+    type = @types.get(@scope, typeref("StackTraceElement"))
+    assert_descriptor("Ljava/lang/StackTraceElement;", type)
   end
 
   def test_fixnum
@@ -180,7 +185,7 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_get
-    type = @types.get(@scope, TypeRefImpl.new('void', false, false, nil))
+    type = @types.get(@scope, typeref('void'))
     assert_descriptor('V', type)
   end
 
@@ -191,6 +196,36 @@ class MirrorsTest < BaseMirrorsTest
     
     @scope.package_set('foo.bar')
     assert_descriptor("Lfoo/bar/Baz;", define_type('Baz'))
+  end
+
+  def test_search_packages
+    define_type("A")
+    define_type("B")
+    @scope.package_set('foo')
+    define_type("A")
+    @scope.package_set('bar')
+    define_type("A")
+    
+    @scope.import("bar.*", "*")
+    @scope.package_set(nil)
+    ref = typeref('A')
+    assert_descriptor("LA;", @types.get(@scope, ref))
+
+    @scope.package_set("foo")
+    assert_descriptor("Lfoo/A;", @types.get(@scope, ref))
+
+    @scope.package_set("baz")
+    assert_descriptor("Lbar/A;", @types.get(@scope, ref))
+
+    # This isn't quite right. Primitive types should be visible,
+    # but other classes in the default package shouldn't be accessible
+    # to other packages.
+    assert_descriptor("LB;", @types.get(@scope, typeref('B')))
+  end
+
+  def test_import
+    @scope.import('java.util.Map', 'JavaMap')
+    assert_descriptor("Ljava/util/Map;", @types.get(@scope, typeref('JavaMap')))
   end
 end
 

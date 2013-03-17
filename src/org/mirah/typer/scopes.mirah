@@ -28,7 +28,7 @@ interface Scope do
   def shadow(name:String):void; end
   def isCaptured(name:String):boolean; end
   def capturedLocals:List; end  # List of captured local variable names
-  def import(fullname:String, shortname:String); end
+  def import(fullname:String, shortname:String):void; end
   def staticImport(type:TypeFuture):void; end
   def package:String; end
   def package=(package:String):void; end

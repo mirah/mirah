@@ -33,7 +33,9 @@ import org.mirah.typer.DelegateFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodFuture
 import org.mirah.typer.MethodType
+import org.mirah.typer.PickFirst
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.TypeSystem
 import org.mirah.typer.simple.SimpleScope
@@ -85,6 +87,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def addDefaultImports(scope)
+    scope.import('java.lang.*', '*')
   end
 
   def getFixnumType(value)
@@ -187,7 +190,6 @@ class MirrorTypeSystem implements TypeSystem
 
   def defineType(scope, node, name, superclass, interfaces)
     position = node ? node.position : nil
-    type = Type.getObjectType(name.replace(?., ?/))
     fullname = if scope && scope.package && !scope.package.isEmpty
       "#{scope.package}.#{name}"
     else
@@ -205,13 +207,54 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def get(scope, typeref)
-    desc = @primitives[typeref.name]
+    name = resolveName(scope, typeref.name)
+    if scope.nil? || isAbsoluteName(name)
+      loadNamedType(name)
+    else
+      loadWithScope(scope, name, typeref.position)
+    end
+  end
+
+  def resolveName(scope:Scope, name:String):String
+    imports = scope.imports
+    String(imports[name]) || name
+  end
+
+  def isAbsoluteName(name:String)
+    name.indexOf(".") != -1
+  end
+
+  def loadNamedType(name:String)
+    desc = @primitives[name]
     type = if desc
       Type.getType(String(desc))
     else
-      Type.getObjectType(typeref.name)
+      Type.getObjectType(name.replace(?., ?/))
     end
     @loader.loadMirrorAsync(type)
+  end
+
+  def loadWithScope(scope:Scope, name:String, position:Position):TypeFuture
+    packageName = scope.package
+    default_package = (packageName.nil? || packageName.isEmpty)
+    types = LinkedList.new
+    scope.search_packages.each do |p|
+      fullname = "#{p}.#{name}"
+      types.add(loadNamedType(fullname))
+      types.add(nil)
+    end
+    types.addFirst(nil)
+    if default_package
+      types.addFirst(loadNamedType(name))
+    else
+      types.addFirst(loadNamedType("#{packageName}.#{name}"))
+      types.addLast(loadNamedType(name))
+      types.addLast(nil)
+    end
+    future = PickFirst.new(types, nil)
+    future.position = position
+    future.error_message = "Cannot find class #{name}"
+    future
   end
 
   def wrap(type:Type):TypeFuture
