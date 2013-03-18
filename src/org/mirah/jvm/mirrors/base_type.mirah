@@ -25,6 +25,8 @@ import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.typer.ErrorType
+import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
 interface MethodListener
@@ -74,8 +76,17 @@ class BaseType implements MirrorType
   end
 
   def assignableFrom(other)
-    other.matchesAnything ||
-        (other.kind_of?(JVMType) && class_id.equals(JVMType(other).class_id))
+    MethodLookup.isSubType(other, self)
+  end
+
+  def widen(other)
+    if assignableFrom(other)
+      self
+    elsif other.assignableFrom(self)
+      other
+    else
+      ErrorType.new([["Incompatible types #{self} and #{other}."]])
+    end
   end
 
   def isMeta:boolean; false; end

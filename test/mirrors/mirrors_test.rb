@@ -24,6 +24,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.typer.TypeFuture'
   java_import 'org.mirah.typer.simple.SimpleScope'
   java_import 'mirah.lang.ast.ClassDefinition'
+  java_import 'mirah.lang.ast.ConstructorDefinition'
   java_import 'mirah.lang.ast.TypeRefImpl'
   java_import 'org.jruby.org.objectweb.asm.Opcodes'
   java_import 'org.jruby.org.objectweb.asm.Type'
@@ -310,5 +311,14 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     super_future.resolved(c.resolve)
     assert_descriptor("I", type1)
     assert_descriptor("I", type2)
+  end
+
+  def test_super_in_constructor
+    @scope.selfType_set(main_type)
+    @scope.context_set(ConstructorDefinition.new)
+    future = CallFuture.new(
+        @types, @scope,
+        @types.getSuperClass(main_type), 'initialize', [], [], nil)
+    assert_descriptor("Ljava/lang/Object;", future)
   end
 end

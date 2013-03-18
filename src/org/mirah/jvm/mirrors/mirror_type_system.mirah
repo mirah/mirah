@@ -25,6 +25,7 @@ import org.jruby.org.objectweb.asm.Type
 
 import mirah.lang.ast.Position
 import mirah.lang.ast.ClassDefinition
+import mirah.lang.ast.ConstructorDefinition
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
@@ -146,10 +147,11 @@ class MirrorTypeSystem implements TypeSystem
 
   def getMethodType(call)
     future = DelegateFuture.new()
+    name = resolveMethodName(call.scope, call.name)
     if call.resolved_parameters.all?
       target = MirrorType(call.resolved_target)
       future.type = MethodLookup.findMethod(
-          call.scope, target, call.name,
+          call.scope, target, name,
           call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
       target.addMethodListener(call.name) do |klass, name|
         if klass == target
@@ -160,6 +162,22 @@ class MirrorTypeSystem implements TypeSystem
       end
     end
     future
+  end
+
+  def resolveMethodName(scope:Scope, name:String)
+    if "initialize".equals(name) && isConstructor(scope)
+      "<init>"
+    else
+      name
+    end
+  end
+
+  def isConstructor(scope:Scope):boolean
+    return false unless scope
+    context = scope.context
+    return false unless context
+    return true if context.kind_of?(ConstructorDefinition)
+    !context.findAncestor(ConstructorDefinition.class).nil?
   end
 
   def getMetaType(type:ResolvedType):ResolvedType
@@ -216,8 +234,11 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def resolveName(scope:Scope, name:String):String
-    imports = scope.imports
-    String(imports[name]) || name
+    if scope
+      String(scope.imports[name]) || name
+    else
+      name
+    end
   end
 
   def isAbsoluteName(name:String)

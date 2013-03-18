@@ -70,6 +70,9 @@ class MethodLookupTest < BaseMethodLookupTest
       assert_block("Expected #{type} < #{supertype}") do
         MethodLookup.isSubType(type, supertype)
       end
+      assert_block("Expected #{type}.assignableFrom(#{supertype})") do
+        supertype.assignableFrom(type)
+      end
     end
   end
   
@@ -77,6 +80,9 @@ class MethodLookupTest < BaseMethodLookupTest
     supertypes.each do |supertype|
       assert_block("Expected !(#{type} < #{supertype})") do
         !MethodLookup.isSubType(type, supertype)
+      end
+      assert_block("Expected #{type}.assignableFrom(#{supertype}) = false") do
+        !supertype.assignableFrom(type)
       end
     end
   end

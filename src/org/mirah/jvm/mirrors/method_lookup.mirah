@@ -218,6 +218,7 @@ class MethodLookup
       potentials = gatherMethods(target, name)
       inaccessible = removeInaccessible(potentials, scope, target)
       methods = findMatchingMethod(potentials, params)
+      @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{methods ? methods.size : 0}")
       if methods && methods.size > 0
         if methods.size == 1
           method = Member(methods[0])
