@@ -99,16 +99,6 @@ class BytecodeMirror < BaseType
     true
   end
 
-  def getMethod(name, params)
-    @methods_loaded ||= load_methods
-    super
-  end
-  
-  def getDeclaredMethods(name)
-    @methods_loaded ||= load_methods
-    super
-  end
-
   def getDeclaredFields:JVMMethod[]
     @field_mirrors ||= begin
       mirrors = JVMMethod[@fields.size]

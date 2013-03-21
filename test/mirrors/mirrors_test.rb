@@ -64,12 +64,34 @@ class BaseMirrorsTest < Test::Unit::TestCase
     assert(!type.resolve.isError)
   end
 
+  def assert_subtype_of(supertype, subtype)
+    converted_supertype = convert_to_type(supertype)
+    assert_block("Invalid supertype #{supertype}") {
+      !converted_supertype.isError
+    }
+    assert_block("Expected #{supertype} > #{subtype}") {
+      converted_supertype.assignableFrom(convert_to_type(subtype))
+    }
+  end
+
+  def convert_to_type(x)
+    if x.kind_of?(JVMType)
+      x
+    elsif x.respond_to?(:resolve)
+      x.resolve
+    elsif x.kind_of?(TypeRefImpl)
+      @types.get(@scope, x).resolve
+    else
+      @types.get(@scope, typeref(x)).resolve
+    end
+  end
+
   def main_type
     @types.getMainType(@scope, @script)
   end
 
-  def typeref(name)
-    TypeRefImpl.new(name, false, false, nil)
+  def typeref(name, array=false)
+    TypeRefImpl.new(name, array, false, nil)
   end
 
   def define_type(name, superclass=nil, interfaces=[])
@@ -261,6 +283,18 @@ class MirrorsTest < BaseMirrorsTest
         "SomeClass",
         MirrorTypeSystem.classnameFromFilename("foo/bar/some_class.mirah"))
   end
+
+  def test_primitive_array
+    array_type = @types.get(@scope, typeref('int', true)).resolve
+    assert_resolved_to('[I', array_type)
+    assert(array_type.isArray)
+    assert_resolved_to('Ljava/lang/Object;', array_type.superclass)
+    assert_subtype_of('java.lang.Cloneable', array_type)
+    assert_subtype_of('java.io.Serializable', array_type)
+    assert_resolved_to('I', array_type.component_type)
+    assert_descriptor(
+        '[S', @types.getArrayType(@types.get(@scope, typeref('short'))))
+  end
 end
 
 class MTS_MethodLookupTest < BaseMirrorsTest
@@ -353,5 +387,22 @@ class MTS_MethodLookupTest < BaseMirrorsTest
         @types, @scope,
         @types.getSuperClass(main_type), 'initialize', [], [], nil)
     assert_descriptor("Ljava/lang/Object;", future)
+  end
+
+  def test_array_methods
+    index_type = @types.get(@scope, typeref('int'))
+    component_type = @types.get(@scope, typeref('short'))
+    array_type = @types.get(@scope, typeref('short', true))
+    
+    method = @types.getMethodType(CallFuture.new(
+        @types, @scope, array_type, 'length', [], [], nil))
+    assert_resolved_to('I', method.resolve.returnType)
+    method = @types.getMethodType(CallFuture.new(
+        @types, @scope, array_type, '[]', [index_type], [], nil))
+    assert_resolved_to('S', method.resolve.returnType)
+    method = @types.getMethodType(CallFuture.new(
+        @types, @scope, array_type,
+        '[]=', [index_type, component_type], [], nil))
+    assert_resolved_to('S', method.resolve.returnType)
   end
 end

@@ -236,10 +236,15 @@ class MirrorTypeSystem implements TypeSystem
 
   def get(scope, typeref)
     name = resolveName(scope, typeref.name)
-    if scope.nil? || isAbsoluteName(name)
+    type = if scope.nil? || isAbsoluteName(name)
       loadNamedType(name)
     else
       loadWithScope(scope, name, typeref.position)
+    end
+    if typeref.isArray
+      getArrayType(type)
+    else
+      type
     end
   end
 
@@ -288,8 +293,34 @@ class MirrorTypeSystem implements TypeSystem
     future
   end
 
+  def getResolvedArrayType(componentType:ResolvedType):ResolvedType
+    ArrayType.new(cast(componentType), @object, @loader)
+  end
+
+  def getArrayType(componentType:ResolvedType):ResolvedType
+    getResolvedArrayType(componentType)
+  end
+
+  def getArrayType(componentType:TypeFuture):TypeFuture
+    types = self
+    future = BaseTypeFuture.new
+    componentType.onUpdate do |x, resolved|
+      future.resolved(types.getResolvedArrayType(resolved))
+    end
+    future
+  end
+
   def wrap(type:Type):TypeFuture
     @loader.loadMirrorAsync(type)
+  end
+
+  def cast(type:ResolvedType)
+    if type.kind_of?(MirrorType)
+      MirrorType(type)
+    else
+      JvmErrorType.new(
+          ErrorType(type).message, Type.getType("Ljava/lang/Object;"))
+    end
   end
 
   def createMember(target:MirrorType, name:String, arguments:List,

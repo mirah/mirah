@@ -114,6 +114,34 @@ class MethodLookupTest < BaseMethodLookupTest
     check_not_supertypes(bool, double, float, long, int, short, char, byte)
   end
 
+  def array(desc)
+    @types.getArrayType(wrap(desc))
+  end
+
+  def test_array_supertypes
+    check_supertypes(array("I"),
+                     array("I"),
+                     wrap("Ljava/lang/Object;"),
+                     wrap("Ljava/lang/Cloneable;"),
+                     wrap("Ljava/io/Serializable;"))
+    check_not_supertypes(array("I"), array("J"), array("S"), array("D"),
+                         array("Ljava/lang/Object;"))
+    check_supertypes(array("Ljava/util/Map;"),
+                     wrap("Ljava/lang/Object;"),
+                     wrap("Ljava/lang/Cloneable;"),
+                     wrap("Ljava/io/Serializable;"),
+                     array("Ljava/lang/Object;"),
+                     array("Ljava/util/Map;"))
+    check_supertypes(array("Ljava/util/HashMap;"),
+                     wrap("Ljava/lang/Object;"),
+                     wrap("Ljava/lang/Cloneable;"),
+                     wrap("Ljava/io/Serializable;"),
+                     array("Ljava/lang/Object;"),
+                     array("Ljava/util/Map;"),
+                     array("Ljava/io/Serializable;"),
+                     array("Ljava/util/AbstractMap;"))
+  end
+
   def test_subtype_comparison
     double = wrap('D')
     int = wrap('I')

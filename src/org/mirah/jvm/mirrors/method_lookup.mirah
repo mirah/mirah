@@ -53,6 +53,9 @@ class MethodLookup
       if subtype.isPrimitive
         return supertype.isPrimitive && isPrimitiveSubType(subtype, supertype)
       end
+      if subtype.isArray && supertype.isArray
+        return isArraySubType(subtype, supertype)
+      end
       super_desc = supertype.class_id
       explored = HashSet.new
       to_explore = LinkedList.new
@@ -83,6 +86,16 @@ class MethodLookup
       else
         return order.indexOf(super_desc) >= order.indexOf(sub_desc)
       end
+    end
+
+    def isArraySubType(subtype:JVMType, supertype:JVMType):boolean
+      return true if subtype.class_id.equals(supertype.class_id)
+      return false unless subtype.getAsmType.getDimensions == supertype.getAsmType.getDimensions
+      component_a = subtype.getComponentType
+      component_b = supertype.getComponentType
+      return false if component_a.isPrimitive
+      return false if component_b.isPrimitive
+      isSubType(component_a, component_b)
     end
 
     # Returns 0, 1, -1 or NaN if a & b are the same type,

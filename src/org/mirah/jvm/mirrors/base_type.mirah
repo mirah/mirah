@@ -122,6 +122,7 @@ class BaseType implements MirrorType
   def hasStaticField(name:String):boolean; false;end
 
   def getMethod(name:String, params:List):JVMMethod
+    @methods_loaded ||= load_methods
     members = List(@members[name])
     if members
       members.each do |m|
@@ -135,6 +136,7 @@ class BaseType implements MirrorType
   end
 
   def getDeclaredMethods(name:String)
+    @methods_loaded ||= load_methods
     # TODO: should this filter out fields?
     List(@members[name]) || Collections.emptyList
   end
@@ -166,6 +168,11 @@ class BaseType implements MirrorType
         MethodListener(l).methodChanged(self, name)
       end
     end
+  end
+
+  # Subclasses can override to add methods after construction.
+  def load_methods:boolean
+    true
   end
 
   def toString
