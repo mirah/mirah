@@ -25,7 +25,7 @@ import java.util.logging.Logger
 import java.util.logging.Level
 import mirah.lang.ast.Position
 import org.mirah.MirahLogFormatter
-import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
@@ -235,17 +235,9 @@ class MethodLookup
       if methods && methods.size > 0
         if methods.size == 1
           method = Member(methods[0])
-          future = BaseTypeFuture.new
-          future.error_message = "Cannot determine return type of #{method}"
-          method.asyncReturnType.onUpdate do |x, resolvedReturnType|
-            if resolvedReturnType.isError
-              future.resolved(resolvedReturnType)
-            else
-              future.resolved(MethodType.new(
-                  name, params, resolvedReturnType, method.isVararg))
-            end
+          DerivedFuture.new(method.asyncReturnType) do |resolved|
+            MethodType.new(name, params, resolved, method.isVararg)
           end
-          future
         else
           ErrorType.new([["Ambiguous methods #{methods}", position]])
         end

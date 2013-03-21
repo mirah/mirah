@@ -34,6 +34,7 @@ import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.CallFuture
 import org.mirah.typer.DelegateFuture
+import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodFuture
 import org.mirah.typer.MethodType
@@ -72,18 +73,11 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getSuperClass(type)
-    future = BaseTypeFuture.new
-    if type.kind_of?(BaseTypeFuture)
       future.position = BaseTypeFuture(type).position
+    DerivedFuture.new(type) do |resolved|
     end
-    type.onUpdate do |x, resolved|
       if resolved.isError
-        future.resolved(resolved)
       else
-        future.resolved(JVMType(resolved).superclass)
-      end
-    end
-    future
   end
 
   def getMainType(scope, script)
@@ -204,12 +198,10 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMetaType(type:TypeFuture):TypeFuture
-    future = BaseTypeFuture.new
     types = TypeSystem(self)
-    type.onUpdate do |x, resolved|
-      future.resolved(types.getMetaType(resolved))
+    DerivedFuture.new(type) do |resolved|
+      types.getMetaType(resolved)
     end
-    future
   end
 
   def getLocalType(scope, name, position)
@@ -303,11 +295,9 @@ class MirrorTypeSystem implements TypeSystem
 
   def getArrayType(componentType:TypeFuture):TypeFuture
     types = self
-    future = BaseTypeFuture.new
-    componentType.onUpdate do |x, resolved|
-      future.resolved(types.getResolvedArrayType(resolved))
+    DerivedFuture.new(componentType) do |resolved|
+      types.getResolvedArrayType(resolved)
     end
-    future
   end
 
   def wrap(type:Type):TypeFuture
