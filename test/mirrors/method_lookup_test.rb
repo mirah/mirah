@@ -18,12 +18,12 @@ require 'mirah'
 
 class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
+  java_import 'org.mirah.jvm.mirrors.JVMScope'
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.MethodLookup'
   java_import 'org.mirah.jvm.mirrors.FakeMember'
   java_import 'org.mirah.jvm.mirrors.Member'
   java_import 'org.mirah.jvm.types.MemberKind'
-  java_import 'org.mirah.typer.simple.SimpleScope'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
   java_import 'org.jruby.org.objectweb.asm.Opcodes'
@@ -31,7 +31,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
 
   def setup
     @types = MirrorTypeSystem.new
-    @scope = SimpleScope.new
+    @scope = JVMScope.new
   end
 
   def jvmtype(internal_name, flags=0, superclass=nil)

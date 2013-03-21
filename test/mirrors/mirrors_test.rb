@@ -18,11 +18,11 @@ require 'mirah'
 
 class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
+  java_import 'org.mirah.jvm.mirrors.JVMScope'
   java_import 'org.mirah.jvm.types.JVMType'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.CallFuture'
   java_import 'org.mirah.typer.TypeFuture'
-  java_import 'org.mirah.typer.simple.SimpleScope'
   java_import 'mirah.lang.ast.ClassDefinition'
   java_import 'mirah.lang.ast.ConstructorDefinition'
   java_import 'mirah.lang.ast.PositionImpl'
@@ -34,7 +34,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
 
   def setup
     @types = MirrorTypeSystem.new
-    @scope = SimpleScope.new
+    @scope = JVMScope.new
     set_filename('foo-bar.mirah')
   end
 
@@ -205,6 +205,32 @@ class MirrorsTest < BaseMirrorsTest
     type2.assign(@types.getFixnumType(0), nil)
     assert_descriptor("I", type1)
     assert_descriptor("I", type2)
+  end
+
+  def test_multiple_locals
+    type1 = @types.getLocalType(@scope, "a", nil)
+    type2 = @types.getLocalType(@scope, "b", nil)
+    assert_error(type1)
+    assert_error(type2)
+    type1.assign(@types.getFixnumType(0), nil)
+    assert_descriptor("I", type1)
+    assert_error(type2)
+    type2.assign(@types.getStringType, nil)
+    assert_descriptor("I", type1)
+    assert_descriptor("Ljava/lang/String;", type2)
+  end
+
+  def test_multiple_scopes
+    type1 = @types.getLocalType(@scope, "a", nil)
+    type2 = @types.getLocalType(JVMScope.new, "a", nil)
+    assert_error(type1)
+    assert_error(type2)
+    type1.assign(@types.getFixnumType(0), nil)
+    assert_descriptor("I", type1)
+    assert_error(type2)
+    type2.assign(@types.getStringType, nil)
+    assert_descriptor("I", type1)
+    assert_descriptor("Ljava/lang/String;", type2)
   end
 
   def test_define_type

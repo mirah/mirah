@@ -203,7 +203,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getLocalType(scope, name, position)
-    @local ||= AssignableTypeFuture.new(position)
+    JVMScope(scope).getLocalType(name, position)
   end
 
   def defineType(scope, node, name, superclass, interfaces)

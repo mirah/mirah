@@ -25,14 +25,21 @@ module Mirah
 
     def initialize(state, compiler_class, logging, verbose)
       @state = state
-      @scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
 
       # TODO untie this from the jvm backend (nh)
-      type_system = state.type_system || begin
-        java_types = Mirah::JVM::Types::TypeFactory.new
-        java_types.classpath = state.classpath if state.classpath
-        java_types.bootclasspath = state.bootclasspath
-        java_types
+      if state.type_system
+        # Using new type system
+        @scoper = SimpleScoper.new do |scoper, node|
+          scope = Java::OrgMirahJvmMirrors::JVMScope.new
+          scope.context_set(node)
+          scope
+        end
+        type_system = state.type_system
+      else
+        @scoper = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
+        type_system = Mirah::JVM::Types::TypeFactory.new
+        type_system.classpath = state.classpath if state.classpath
+        type_system.bootclasspath = state.bootclasspath
       end
 
       @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
