@@ -58,18 +58,23 @@ class PrimitiveLoader < SimpleMirrorLoader
     @mirrors = {}
     defineType("V")
     defineType("Z")
-    defineType("B")
-    defineType("C")
-    defineType("S")
-    defineType("I")
-    defineType("J")
-    defineType("F")
-    defineType("D")
+    defineNumber("B")
+    defineNumber("C")
+    defineNumber("S")
+    defineNumber("I")
+    defineNumber("J")
+    defineNumber("F")
+    defineNumber("D")
   end
 
   def defineType(desc:String)
     type = Type.getType(desc)
     @mirrors[type] = BaseType.new(type, Opcodes.ACC_PUBLIC, nil)
+  end
+
+  def defineNumber(desc:String)
+    type = Type.getType(desc)
+    @mirrors[type] = Number.new(type, self)
   end
 
   def findMirror(type:Type)

@@ -30,7 +30,12 @@ module JVMCompiler
     state.save_extensions = true
     state.destination = TEST_DEST
     state.classpath =  TEST_DEST
+    state.type_system = type_system if type_system
     state
+  end
+
+  def type_system
+    nil
   end
 
   def clean_tmp_files

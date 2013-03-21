@@ -92,6 +92,11 @@ namespace :test do
       t.libs << 'test'
       t.test_files = FileList["test/mirrors/**/*test.rb"]
     end
+    Rake::TestTask.new :mirror_compilation  => "javalib/mirah-mirrors.jar" do |t|
+      t.libs << 'test' << 'test/jvm'
+      t.ruby_opts.concat ["-r", "mirror_compilation_test_helper"]
+      t.test_files = FileList["test/jvm/**/*test.rb"]
+    end
   end
 end
 
