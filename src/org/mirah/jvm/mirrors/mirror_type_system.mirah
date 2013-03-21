@@ -73,11 +73,9 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getSuperClass(type)
-      future.position = BaseTypeFuture(type).position
     DerivedFuture.new(type) do |resolved|
+      JVMType(resolved).superclass
     end
-      if resolved.isError
-      else
   end
 
   def getMainType(scope, script)
@@ -286,7 +284,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getResolvedArrayType(componentType:ResolvedType):ResolvedType
-    ArrayType.new(cast(componentType), @object, @loader)
+    ArrayType.new(cast(componentType), @loader)
   end
 
   def getArrayType(componentType:ResolvedType):ResolvedType

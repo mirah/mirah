@@ -19,23 +19,37 @@ import java.util.List
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
+import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
 
 class ArrayType < BaseType
-  def initialize(component:MirrorType,
-                 superclass:MirrorType,
-                 loader:AsyncMirrorLoader)
+  def initialize(component:MirrorType, loader:AsyncMirrorLoader)
     super(Type.getType("[#{component.class_id}"),
           Opcodes.ACC_PUBLIC,
-          superclass)
+          JVMType(loader.loadMirrorAsync(
+              Type.getType('Ljava/lang/Object;')).resolve))
     @interfaces = TypeFuture[2]
     @interfaces[0] =
          loader.loadMirrorAsync(Type.getType('Ljava/lang/Cloneable;'))
     @interfaces[1] =
          loader.loadMirrorAsync(Type.getType('Ljava/io/Serializable;'))
-    @loader = loader
+    @int_type = loader.loadMirrorAsync(Type.getType('I')).resolve
+    @componentType = component
+  end
+
+  def initialize(component:MirrorType, loader:MirrorLoader)
+    super(Type.getType("[#{component.class_id}"),
+          Opcodes.ACC_PUBLIC,
+          loader.loadMirror(Type.getType('Ljava/lang/Object;')))
+    @interfaces = TypeFuture[2]
+    @interfaces[0] = BaseTypeFuture.new.resolved(
+         loader.loadMirror(Type.getType('Ljava/lang/Cloneable;')))
+    @interfaces[1] = BaseTypeFuture.new.resolved(
+         loader.loadMirror(Type.getType('Ljava/io/Serializable;')))
+    @int_type = loader.loadMirror(Type.getType('I'))
     @componentType = component
   end
 
@@ -52,10 +66,9 @@ class ArrayType < BaseType
   end
 
   def load_methods
-    int_type = @loader.loadMirrorAsync(Type.getType('I')).resolve
-    add_method("length", [], int_type, MemberKind.ARRAY_LENGTH)
-    add_method("[]", [int_type], @componentType, MemberKind.ARRAY_ACCESS)
-    add_method("[]=", [int_type, @componentType],
+    add_method("length", [], @int_type, MemberKind.ARRAY_LENGTH)
+    add_method("[]", [@int_type], @componentType, MemberKind.ARRAY_ACCESS)
+    add_method("[]=", [@int_type, @componentType],
                 @componentType, MemberKind.ARRAY_ASSIGN)
     true
   end

@@ -89,4 +89,14 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     future = loader.loadMirrorAsync(Type.getType("I"))
     assert_equal('int', future.resolve.name)
   end
+
+  def test_array
+    loader = SimpleAsyncMirrorLoader.new
+    future = loader.loadMirrorAsync(Type.getType("[LA;"))
+    defineType(loader, Type.getType("LA;"),
+               BaseType.new(Type.getType("LA;"), 0, nil))
+    assert(future.resolve.isArray)
+    assert_equal('LA;', future.resolve.getComponentType.class_id)
+    assert(!future.resolve.getComponentType.isError)
+  end
 end

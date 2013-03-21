@@ -24,6 +24,7 @@ import org.jruby.org.objectweb.asm.tree.ClassNode
 
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.DelegateFuture
+import org.mirah.typer.DerivedFuture
 import org.mirah.typer.TypeFuture
 
 class SimpleMirrorLoader implements MirrorLoader
@@ -91,6 +92,9 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
   end
 
   def findMirrorAsync(type:Type):TypeFuture
+    if type.getSort == Type.ARRAY
+      return findArrayMirrorAsync(Type.getType(type.getDescriptor.substring(1)))
+    end
     future = DelegateFuture.new
     future.type = if parent
       @parent.loadMirrorAsync(type)
@@ -99,7 +103,14 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
     end
     future
   end
-  
+
+  def findArrayMirrorAsync(type:Type):TypeFuture
+    loader = self
+    DerivedFuture.new(loadMirrorAsync(type)) do |resolved|
+      ArrayType.new(MirrorType(resolved), loader)
+    end
+  end
+
   def defineMirror(type:Type, mirror:TypeFuture):TypeFuture
     delegate = DelegateFuture(@futures[type] ||= DelegateFuture.new)
     delegate.type = mirror
@@ -147,6 +158,9 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
 
   def findMirror(type)
     super || begin
+      if type.getSort == Type.ARRAY
+        return findArrayMirror(Type.getType(type.getDescriptor.substring(1)))
+      end
       classfile = type.getInternalName + ".class"
       bytecode = @loader.getResourceAsStream(classfile)
       if bytecode
@@ -161,7 +175,14 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
       end
     end
   end
-  
+
+  def findArrayMirror(type:Type):MirrorType
+    component = loadMirror(type)
+    if component
+      ArrayType.new(component, self)
+    end
+  end
+
   def self.main(args:String[]):void
     loader = BytecodeMirrorLoader.new(BytecodeMirrorLoader.class.getClassLoader)
     string = loader.loadMirror(Type.getType("Ljava/lang/String;"))

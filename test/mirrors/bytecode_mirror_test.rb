@@ -65,4 +65,10 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert(!field.isAbstract)
     assert_equal('FIELD_ACCESS', field.kind.name)
   end
+
+  def test_array
+    mirror = @loader.loadMirror(Type.getType("[Ljava/lang/Object;"))
+    assert(mirror.isArray)
+    assert_equal("Ljava/lang/Object;", mirror.getComponentType.class_id)
+  end
 end
