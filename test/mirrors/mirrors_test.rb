@@ -25,6 +25,9 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.typer.simple.SimpleScope'
   java_import 'mirah.lang.ast.ClassDefinition'
   java_import 'mirah.lang.ast.ConstructorDefinition'
+  java_import 'mirah.lang.ast.PositionImpl'
+  java_import 'mirah.lang.ast.Script'
+  java_import 'mirah.lang.ast.StringCodeSource'
   java_import 'mirah.lang.ast.TypeRefImpl'
   java_import 'org.jruby.org.objectweb.asm.Opcodes'
   java_import 'org.jruby.org.objectweb.asm.Type'
@@ -32,6 +35,12 @@ class BaseMirrorsTest < Test::Unit::TestCase
   def setup
     @types = MirrorTypeSystem.new
     @scope = SimpleScope.new
+    set_filename('foo-bar.mirah')
+  end
+
+  def set_filename(filename)
+    @script = Script.new(PositionImpl.new(StringCodeSource.new(filename, ""),
+                         0, 0, 0, 0, 0, 0))
   end
 
   def assert_descriptor(descriptor, type)
@@ -56,7 +65,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   end
 
   def main_type
-    @types.getMainType(nil, nil)
+    @types.getMainType(@scope, @script)
   end
 
   def typeref(name)
@@ -104,6 +113,16 @@ class MirrorsTest < BaseMirrorsTest
 
   def test_main_type
     assert_descriptor("LFooBar;", main_type)
+  end
+  
+  def test_main_type2
+    set_filename("some_class.mirah")
+    assert_descriptor("LSomeClass;", main_type)
+  end
+
+  def test_main_type_with_package
+    @scope.package_set("foo.bar")
+    assert_descriptor("Lfoo/bar/FooBar;", main_type)
   end
 
   def test_regex
@@ -227,6 +246,20 @@ class MirrorsTest < BaseMirrorsTest
   def test_import
     @scope.import('java.util.Map', 'JavaMap')
     assert_descriptor("Ljava/util/Map;", @types.get(@scope, typeref('JavaMap')))
+  end
+
+  def test_classname_from_filename
+    assert_equal("SomeClass",
+                 MirrorTypeSystem.classnameFromFilename("SomeClass.mirah"))
+    assert_equal("FooBar",
+                 MirrorTypeSystem.classnameFromFilename("FooBar.mirah"))
+    assert_equal("SomeClass",
+                 MirrorTypeSystem.classnameFromFilename("some_class.mirah"))
+    assert_equal("FooBar",
+                 MirrorTypeSystem.classnameFromFilename("foo-bar.mirah"))
+    assert_equal(
+        "SomeClass",
+        MirrorTypeSystem.classnameFromFilename("foo/bar/some_class.mirah"))
   end
 end
 

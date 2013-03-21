@@ -15,6 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
+import java.io.File
+
 import java.util.ArrayList
 import java.util.LinkedList
 import java.util.List
@@ -23,9 +25,10 @@ import java.util.logging.Logger
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 
-import mirah.lang.ast.Position
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.ConstructorDefinition
+import mirah.lang.ast.Position
+import mirah.lang.ast.Script
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
@@ -84,7 +87,14 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    @main_type ||= defineType(scope, script, "FooBar", nil, [])
+    @main_type ||= defineType(scope, script, getMainClassName(script), nil, [])
+  end
+
+  def getMainClassName(script:Script):String
+    (script && script.position && script.position.source &&
+         script.position.source.name &&
+         MirrorTypeSystem.classnameFromFilename(script.position.source.name)) ||
+        "DashE"
   end
 
   def addDefaultImports(scope)
@@ -302,6 +312,23 @@ class MirrorTypeSystem implements TypeSystem
     target.add(member)
 
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
+  end
+
+  def self.classnameFromFilename(name:String)
+    basename = File.new(name).getName()
+    if basename.endsWith(".mirah")
+      basename = basename.substring(0, basename.length - 6)
+    end
+    sb = StringBuilder.new
+    basename.split('[-_.]+').each do |s|
+      if s.length > 0
+        sb.append(s.substring(0, 1).toUpperCase)
+      end
+      if s.length > 1
+        sb.append(s.substring(1, s.length))
+      end
+    end
+    sb.toString
   end
 
   def self.main(args:String[]):void
