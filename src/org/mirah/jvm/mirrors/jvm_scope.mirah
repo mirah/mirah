@@ -25,7 +25,7 @@ import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scoper
 
 class JVMScope < SimpleScope
-  def initialize(scoper:Scoper)
+  def initialize(scoper:Scoper=nil)
     @locals = {}
     @scoper = scoper
     @search_packages = []
@@ -45,7 +45,7 @@ class JVMScope < SimpleScope
 
   def outer_scope:JVMScope
     node = self.context
-    return nil if node.nil? || node.parent.nil?
+    return nil if @scoper.nil? || node.nil? || node.parent.nil?
     JVMScope(@scoper.getScope(node))
   end
 
