@@ -23,11 +23,33 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MethodLookup'
   java_import 'org.mirah.jvm.mirrors.FakeMember'
   java_import 'org.mirah.jvm.mirrors.Member'
+  java_import 'org.mirah.jvm.mirrors.MetaType'
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
   java_import 'org.jruby.org.objectweb.asm.Opcodes'
   java_import 'org.jruby.org.objectweb.asm.Type'
+
+  class FakeMirror < BaseType
+    def initialize(desc, superclass=nil, flags=Opcodes.ACC_PUBLIC)
+      super(Type.getType(desc), flags, superclass)
+      @fields = {}
+    end
+
+    def add_field(name, flags=Opcodes.ACC_PUBLIC)
+      
+      kind = if (flags & Opcodes.ACC_STATIC) == 0
+        MemberKind::FIELD_ACCESS
+      else
+        MemberKind::STATIC_FIELD_ACCESS
+      end
+      @fields[name] = Member.new(flags, self, name, [], self, kind)
+    end
+
+    def getDeclaredField(name)
+      @fields[name]
+    end
+  end
 
   def setup
     @types = MirrorTypeSystem.new
@@ -187,12 +209,12 @@ class MethodLookupTest < BaseMethodLookupTest
     end
   end
 
-  def assert_visible(type, flags, visible, invisible=[])
+  def assert_visible(type, flags, visible, invisible=[], target=nil)
     visible.each do |t|
-      accessibility_assertion(type, flags, t, true)
+      accessibility_assertion(type, flags, t, true, target)
     end
     invisible.each do |t|
-      accessibility_assertion(type, flags, t, false)
+      accessibility_assertion(type, flags, t, false, target)
     end
   end
 
@@ -202,10 +224,10 @@ class MethodLookupTest < BaseMethodLookupTest
     @scope.selfType_set(future)
   end
 
-  def accessibility_assertion(a, flags, b, expected)
+  def accessibility_assertion(a, flags, b, expected, target=nil)
     assert_block "Expected #{visibility_string(flags)} #{a} #{expected ? '' : ' not '} visible from #{b}" do
       set_self_type(b)
-      actual = MethodLookup.isAccessible(a, flags, @scope, nil)
+      actual = MethodLookup.isAccessible(a, flags, @scope, target)
       actual == expected
     end
   end
@@ -222,6 +244,10 @@ class MethodLookupTest < BaseMethodLookupTest
     assert_visible(foo, Opcodes.ACC_PROTECTED, [foo], [object, string])
     assert_visible(string, Opcodes.ACC_PROTECTED, [string, object], [foo])  # visible to same package
     assert_visible(string, 0, [string, object], [foo])
+    
+    # instance method from static scope
+    assert_visible(object, Opcodes.ACC_PUBLIC, [], [object, foo],
+                   MetaType.new(object))
   end
 
   def assert_methods_visible(methods, type, expected_visible)
@@ -450,5 +476,55 @@ class Phase1Test < BaseMethodLookupTest
     ok_member = make_method('I.(I)S')
     assert_equal([ok_member],
                  MethodLookup.phase1([error_member, ok_member], [wrap('I')]).to_a)
+  end
+end
+
+class FieldTest < BaseMethodLookupTest
+  def setup
+    @a = FakeMirror.new('LA;')
+    @b = FakeMirror.new('LB;', @a)
+    @scope = JVMScope.new
+    @selfType = BaseTypeFuture.new
+    @selfType.resolved(@b)
+    @scope.selfType_set(@selfType)
+  end
+
+  def test_gather_fields
+    a_foo = @a.add_field("foo")
+    a_bar = @a.add_field("bar")
+    b_foo = @b.add_field("foo")
+    foos = MethodLookup.gatherFields(@b, 'foo').to_a
+    assert_equal([b_foo, a_foo], foos)
+    
+    assert_equal([a_bar], MethodLookup.gatherFields(@b, 'bar').to_a)
+  end
+
+  def test_find_super_field
+    @a.add_field("foo")
+    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    assert_equal("LA;", future.resolve.returnType.class_id)    
+  end
+
+  def test_field_override
+    @a.add_field("foo")
+    @b.add_field("foo")
+
+    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    assert_equal("LB;", future.resolve.returnType.class_id)
+  end
+
+  def test_inaccessible_overrides_accessible
+    @selfType.resolved(@a)
+    @a.add_field("foo", Opcodes.ACC_PUBLIC)
+    @b.add_field("foo", Opcodes.ACC_PRIVATE)
+    
+    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    assert_equal("LA;", future.resolve.returnType.class_id)
+  end
+
+  def test_inaccessible
+    @a.add_field("foo", Opcodes.ACC_PRIVATE)
+    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    assert(future.resolve.isError, "Expected error, got #{future.resolve}")
   end
 end

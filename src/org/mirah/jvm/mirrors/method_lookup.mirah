@@ -29,6 +29,7 @@ import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.TypeFuture
 import org.mirah.typer.Scope
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
@@ -223,35 +224,56 @@ class MethodLookup
       method
     end
 
+    def findField(scope:Scope,
+                  target:MirrorType,
+                  name:String,
+                  position:Position):TypeFuture
+      potentials = gatherFields(target, name)
+      inaccessible = removeInaccessible(potentials, scope, target)
+      if potentials.size > 0
+        make_future(Member(potentials[0]), Collections.emptyList, position)
+      elsif inaccessible.size > 0
+        inaccessible(scope, Member(inaccessible[0]), position)
+      else
+        nil
+      end
+    end
+
     def findMethod(scope:Scope,
                    target:MirrorType,
                    name:String,
                    params:List,
-                   position:Position)
+                   position:Position):TypeFuture
       potentials = gatherMethods(target, name)
       inaccessible = removeInaccessible(potentials, scope, target)
       methods = findMatchingMethod(potentials, params)
       @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{methods ? methods.size : 0}")
       if methods && methods.size > 0
         if methods.size == 1
-          method = Member(methods[0])
-          DerivedFuture.new(method.asyncReturnType) do |resolved|
-            MethodType.new(name, params, resolved, method.isVararg)
-          end
+          make_future(Member(methods[0]), params, position)
         else
           ErrorType.new([["Ambiguous methods #{methods}", position]])
         end
       else
         methods = findMatchingMethod(inaccessible, params)
         if methods && methods.size > 0
-          method = Member(methods[0])
-          ErrorType.new(
-              [["Cannot access #{method} from #{scope.selfType.resolve}",
-                position]])
+          inaccessible(scope, Member(methods[0]), position)
         else
           nil
         end
       end
+    end
+
+    def make_future(method:Member, params:List, position:Position):TypeFuture
+      DerivedFuture.new(method.asyncReturnType) do |resolved|
+        MethodType.new(method.name, params, resolved, method.isVararg)
+      end
+    end
+
+    def inaccessible(scope:Scope, method:Member, position:Position):TypeFuture
+      ErrorType.new(
+          [["Cannot access #{method} from #{scope.selfType.resolve}",
+            position]])
     end
 
     def gatherMethods(target:MirrorType, name:String):List
@@ -274,6 +296,17 @@ class MethodLookup
         end
       end
       methods
+    end
+
+    def gatherFields(target:MirrorType, name:String):List
+      fields = LinkedList.new
+      mirror = target.unmeta
+      while mirror
+        field = mirror.getDeclaredField(name)
+        fields.add(field) if field
+        mirror = mirror.superclass
+      end
+      fields
     end
 
     def findMatchingMethod(potentials:List, params:List):List
@@ -315,7 +348,9 @@ class MethodLookup
 
     def isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
       selfType = MirrorType(scope.selfType.resolve)
-      if (0 != (access & Opcodes.ACC_PUBLIC) ||
+      if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
+        return false
+      elsif (0 != (access & Opcodes.ACC_PUBLIC) ||
           type.class_id.equals(selfType.class_id))
         return true
       elsif 0 != (access & Opcodes.ACC_PRIVATE)
@@ -349,10 +384,13 @@ class MethodLookup
         method = Member(it.next)
         # The declaring class and the method must be visible for the method
         # to be applicable.
-        unless (isAccessible(method.declaringClass, 
-                             method.declaringClass.flags, scope) &&
-                isAccessible(method.declaringClass, method.flags,
-                             scope, target))
+        accessible = true
+        accessible = false unless isAccessible(method.declaringClass, 
+                                               method.declaringClass.flags,
+                                               scope)
+        accessible = false unless isAccessible(method.declaringClass,
+                                               method.flags, scope, target)
+        unless accessible
           it.remove
           inaccessible.add(method)
         end

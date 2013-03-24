@@ -431,4 +431,12 @@ class MTS_MethodLookupTest < BaseMirrorsTest
         '[]=', [index_type, component_type], [], nil))
     assert_resolved_to('S', method.resolve.returnType)
   end
+
+  def test_field_access_via_call
+    system = @types.get(@scope, typeref('java.lang.System'))
+    method = @types.getMethodType(CallFuture.new(
+        @types, @scope, system, 'out', [], [], nil))
+    assert_not_error(method)
+    assert_resolved_to("Ljava/io/PrintStream;", method.resolve.returnType)
+  end
 end

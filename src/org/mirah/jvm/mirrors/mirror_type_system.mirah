@@ -150,11 +150,13 @@ class MirrorTypeSystem implements TypeSystem
   def getMethodType(call)
     future = DelegateFuture.new()
     name = resolveMethodName(call.scope, call.name)
-    if call.resolved_parameters.all?
+    if call.resolved_parameters.all? && call.resolved_target
       target = MirrorType(call.resolved_target)
-      future.type = MethodLookup.findMethod(
+      method = MethodLookup.findMethod(
           call.scope, target, name,
-          call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
+          call.resolved_parameters, call.position)
+      method ||= MethodLookup.findField(call.scope, target, name, call.position)
+      future.type = method || BaseTypeFuture.new(call.position)
       target.addMethodListener(call.name) do |klass, name|
         if klass == target
           future.type = MethodLookup.findMethod(

@@ -112,7 +112,7 @@ class BytecodeMirror < BaseType
       mirrors
     end
   end
-  
+
   def getDeclaredField(name:String)
     getDeclaredFields.each do |field|
       if field.name.equals(name)

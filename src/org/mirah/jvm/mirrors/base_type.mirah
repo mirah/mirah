@@ -41,6 +41,7 @@ interface MirrorType < JVMType
   def addMethodListener(name:String, listener:MethodListener):void; end
   def invalidateMethod(name:String):void; end
   def add(member:JVMMethod):void; end
+  def unmeta:MirrorType; end
 end
 
 # package_private
@@ -168,6 +169,10 @@ class BaseType implements MirrorType
         MethodListener(l).methodChanged(self, name)
       end
     end
+  end
+
+  def unmeta
+    self
   end
 
   # Subclasses can override to add methods after construction.
