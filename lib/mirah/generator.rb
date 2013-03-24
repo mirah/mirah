@@ -30,7 +30,7 @@ module Mirah
       if state.type_system
         # Using new type system
         @scoper = SimpleScoper.new do |scoper, node|
-          scope = Java::OrgMirahJvmMirrors::JVMScope.new
+          scope = Java::OrgMirahJvmMirrors::JVMScope.new(scoper)
           scope.context_set(node)
           scope
         end

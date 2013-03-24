@@ -15,14 +15,21 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.List
+import java.util.Map
+
 import mirah.lang.ast.Position
 import org.mirah.typer.simple.SimpleScope
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.Scoper
 
 class JVMScope < SimpleScope
-  def initialize
+  def initialize(scoper:Scoper)
     @locals = {}
+    @scoper = scoper
+    @search_packages = []
+    @imports = {}
   end
 
   attr_accessor binding_type:ResolvedType
@@ -34,5 +41,46 @@ class JVMScope < SimpleScope
       @locals[name] = type
     end
     type
+  end
+
+  def outer_scope:JVMScope
+    node = self.context
+    return nil if node.nil? || node.parent.nil?
+    JVMScope(@scoper.getScope(node))
+  end
+
+  def package
+    outer = outer_scope()
+    super || (outer && outer.package)
+  end
+
+  def fetch_imports(map:Map)
+    parent_scope = outer_scope
+    parent_scope.fetch_imports(map) if parent_scope
+
+    map.putAll(@imports)
+  end
+
+  def fetch_packages(list:List)
+    parent_scope = outer_scope
+    parent_scope.fetch_packages(list) if parent_scope
+    list.addAll(@search_packages)
+    list
+  end
+
+  def imports
+    @cached_imports ||= fetch_imports({})
+  end
+
+  def search_packages
+    @cached_packages ||= fetch_packages([])
+  end
+
+  def import(fullname:String, shortname:String)
+    if "*".equals(shortname)
+      @search_packages.add(fullname.substring(0, fullname.length - 2))
+    else
+      @imports[shortname] = fullname
+    end
   end
 end
