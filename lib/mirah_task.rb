@@ -109,13 +109,6 @@ def mirahc(*files)
   end
 end
 
-rule '.java' => [proc {|n| Mirah.dest_to_source_path(n)}] do |t|
-  mirahc(t.source,
-         :dir=>Mirah.find_source(t.source),
-         :dest=>Mirah.find_dest(t.name),
-         :options=>['-java'])
-end
-
 rule '.class' => [proc {|n| Mirah.dest_to_source_path(n)}] do |t|
   mirahc(t.source,
          :dir=>Mirah.find_source(t.source),
