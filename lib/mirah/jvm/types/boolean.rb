@@ -24,7 +24,6 @@ module Mirah::JVM::Types
     end
 
     def box(builder)
-      box_type = Mirah::AST::type(nil, 'java.lang.Boolean')
       builder.invokestatic box_type, "valueOf", [box_type, self]
     end
 
