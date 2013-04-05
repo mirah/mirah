@@ -683,8 +683,7 @@ module Mirah::JVM::Types
 
     def constructor(*types)
       begin
-        descriptors = bitescript_signatures types
-        constructor = jvm_type.getConstructor(*descriptors)
+        constructor = jvm_type.getConstructor(*bitescript_signatures(types))
         return JavaConstructor.new(@type_system, constructor) if constructor
       rescue => ex
         log("#{ex.message}\n#{ex.backtrace.join("\n")}")
@@ -700,8 +699,7 @@ module Mirah::JVM::Types
       return JavaDynamicMethod.new(@type_system, name, *jvm_types) if dynamic?
 
       begin
-        descriptors = bitescript_signatures types
-        method = jvm_type.getDeclaredMethod(name, *descriptors) if jvm_type
+        method = jvm_type.getDeclaredMethod(name, *bitescript_signatures(types)) if jvm_type
 
         if method.nil? && superclass
           method = superclass.java_method(name, *types) rescue nil
