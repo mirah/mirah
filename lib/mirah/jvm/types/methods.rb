@@ -714,8 +714,7 @@ module Mirah::JVM::Types
 
         return method if method.kind_of?(JavaCallable)
         if method && method.static? == meta?
-          return JavaStaticMethod.new(@type_system, method) if method.static?
-          return JavaMethod.new(@type_system, method)
+          return wrap_jvm_method method
         end
       rescue   => ex
         log("#{ex.message}\n#{ex.backtrace.join("\n")}")
@@ -783,12 +782,14 @@ module Mirah::JVM::Types
     def all_declared_jvm_methods(name=nil)
       return [] if !jvm_type || (meta? ? unmeta : self).array?
 
-      jvm_type.getDeclaredMethods(name).map do |method|
-         if (method.static? && !method.synthetic?)
-           JavaStaticMethod.new(@type_system, method)
-         else
-           JavaMethod.new(@type_system, method)
-         end
+      jvm_type.getDeclaredMethods(name).map { |method| wrap_jvm_method method }
+    end
+
+    def wrap_jvm_method method
+      if (method.static? && !method.synthetic?)
+        JavaStaticMethod.new(@type_system, method)
+      else
+        JavaMethod.new(@type_system, method)
       end
     end
 
