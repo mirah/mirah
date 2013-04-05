@@ -829,19 +829,11 @@ module Mirah::JVM::Types
     end
 
     def declared_instance_methods(name=nil)
-      declared_intrinsics(name) + if name.nil?
-        instance_methods.values.flatten
-      else
-        instance_methods[name]
-      end
+      declared_methods self, instance_methods, name
     end
 
     def declared_class_methods(name=nil)
-      meta.declared_intrinsics(name) + if name.nil?
-        static_methods.values.flatten
-      else
-        static_methods[name]
-      end
+      declared_methods meta, static_methods, name
     end
 
     def constructors
@@ -927,6 +919,18 @@ module Mirah::JVM::Types
 
     def field_setter(name)
       nil
+    end
+
+    private
+
+    def declared_methods target, method_hash, name
+      # should the declared intrinsics be first here? nh
+      target.declared_intrinsics(name) +
+        if name.nil?
+          method_hash.values.flatten
+        else
+          method_hash[name]
+        end
     end
   end
 
