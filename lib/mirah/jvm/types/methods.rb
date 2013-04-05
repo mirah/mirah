@@ -807,7 +807,7 @@ module Mirah::JVM::Types
     java_import "org.mirah.jvm.types.JVMMethod" rescue nil
 
     def java_method(name, *types)
-      method = instance_methods[name].find {|m| m.argument_types == types}
+      method = first_matching instance_methods[name], types
       return method if method
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
@@ -815,7 +815,7 @@ module Mirah::JVM::Types
     end
 
     def java_static_method(name, *types)
-      method = static_methods[name].find {|m| m.argument_types == types}
+      method = first_matching static_methods[name], types
       return method if method
       intrinsic = meta.intrinsics[name][types]
       return intrinsic if intrinsic
@@ -823,7 +823,7 @@ module Mirah::JVM::Types
     end
 
     def constructor(*types)
-      constructor = constructors.find {|c| c.argument_types == types}
+      constructor = first_matching constructors, types
       return constructor if constructor
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
@@ -931,6 +931,10 @@ module Mirah::JVM::Types
         else
           method_hash[name]
         end
+    end
+
+    def first_matching method_list, types
+      method_list.find {|m| m.argument_types == types}
     end
   end
 
