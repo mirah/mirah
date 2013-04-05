@@ -726,23 +726,13 @@ module Mirah::JVM::Types
     end
 
     def declared_instance_methods(name=nil)
-      methods = []
-      if jvm_type && !array?
-        jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaMethod.new(@type_system, method) unless (method.static? || method.synthetic?)
-        end
-      end
-      methods.concat((meta? ? unmeta : self).declared_intrinsics(name))
+      all_declared_jvm_methods(name).reject{ |method| method.static? && !method.synthetic? } +
+      (meta? ? unmeta : self).declared_intrinsics(name)
     end
 
     def declared_class_methods(name=nil)
-      methods = []
-      if jvm_type && !unmeta.array?
-        jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaStaticMethod.new(@type_system, method) if (method.static? && !method.synthetic?)
-        end
-      end
-      methods.concat(meta.declared_intrinsics(name))
+      all_declared_jvm_methods(name).select{ |method| method.static? && !method.synthetic? } +
+      meta.declared_intrinsics(name)
     end
 
     def declared_constructors
@@ -792,6 +782,20 @@ module Mirah::JVM::Types
     def hasStaticField(name)
       f = getDeclaredField(name)
       f && f.static?
+    end
+
+    private
+
+    def all_declared_jvm_methods(name=nil)
+      return [] if !jvm_type || (meta? ? unmeta : self).array?
+
+      jvm_type.getDeclaredMethods(name).map do |method|
+         if (method.static? && !method.synthetic?)
+           JavaStaticMethod.new(@type_system, method)
+         else
+           JavaMethod.new(@type_system, method)
+         end
+      end
     end
   end
 
