@@ -683,7 +683,7 @@ module Mirah::JVM::Types
 
     def constructor(*types)
       begin
-        descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
+        descriptors = bitescript_signatures types
         constructor = jvm_type.getConstructor(*descriptors)
         return JavaConstructor.new(@type_system, constructor) if constructor
       rescue => ex
@@ -700,7 +700,7 @@ module Mirah::JVM::Types
       return JavaDynamicMethod.new(@type_system, name, *jvm_types) if dynamic?
 
       begin
-        descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
+        descriptors = bitescript_signatures types
         method = jvm_type.getDeclaredMethod(name, *descriptors) if jvm_type
 
         if method.nil? && superclass
@@ -797,6 +797,10 @@ module Mirah::JVM::Types
     def jvm_field(name)
       return nil unless jvm_type
       jvm_type.getField(name)
+    end
+
+    def bitescript_signatures types
+      types.map {|type| BiteScript::Signature.class_id(type)}
     end
   end
 
