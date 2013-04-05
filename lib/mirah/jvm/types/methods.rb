@@ -844,10 +844,6 @@ module Mirah::JVM::Types
       end
     end
 
-    def declared_constructors
-      constructors
-    end
-
     def constructors
       if @constructors.nil?
         @constructors = []
@@ -856,6 +852,7 @@ module Mirah::JVM::Types
       end
       @constructors
     end
+    alias :declared_constructors :constructors
 
     def instance_methods
       @instance_methods ||= Hash.new {|h, k| h[k] = []}
