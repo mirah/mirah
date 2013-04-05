@@ -742,21 +742,17 @@ module Mirah::JVM::Types
     end
 
     def field_getter(name)
-      if jvm_type
-        field = jvm_type.getField(name)
-        JavaFieldGetter.new(@type_system, field) if field
-      else
-        nil
-      end
+      field = jvm_field(name)
+      return nil unless field
+
+      JavaFieldGetter.new(@type_system, field)
     end
 
     def field_setter(name)
-      if jvm_type
-        field = jvm_type.getField(name)
-        JavaFieldSetter.new(@type_system, field) if field
-      else
-        nil
-      end
+      field = jvm_field(name)
+      return nil unless field
+
+      JavaFieldSetter.new(@type_system, field)
     end
 
     def inner_class_getter(name)
@@ -796,6 +792,11 @@ module Mirah::JVM::Types
            JavaMethod.new(@type_system, method)
          end
       end
+    end
+
+    def jvm_field(name)
+      return nil unless jvm_type
+      jvm_type.getField(name)
     end
   end
 
