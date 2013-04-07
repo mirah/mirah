@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 require 'bytecode_test_helper'
-require 'stringio'
-require 'fileutils'
 
 module JVMCompiler
   def compiler_type
