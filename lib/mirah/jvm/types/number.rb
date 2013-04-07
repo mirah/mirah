@@ -182,7 +182,7 @@ module Mirah::JVM::Types
     end
 
     def box(builder)
-      builder.invokestatic box_type, "valueOf", [box_type, math_type]
+      builder.invokestatic box_type, "valueOf", [box_type, self]
     end
   end
 end
