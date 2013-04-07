@@ -39,7 +39,7 @@ module Mirah::JVM::Types
         builder.i2f
       when 'double'
         builder.i2d
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from #{name} to #{type}"
@@ -55,7 +55,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      @type_system.type(nil, 'java.lang.Integer')
+      @type_system.type(nil, wrapper_name)
     end
 
     def jump_if(builder, op, label)
@@ -84,7 +84,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      @type_system.type(nil, 'java.lang.Long')
+      @type_system.type(nil, wrapper_name)
     end
 
     def literal(builder, value)
@@ -107,7 +107,7 @@ module Mirah::JVM::Types
         builder.l2f
       when 'double'
         builder.l2d
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from Int to #{type}"

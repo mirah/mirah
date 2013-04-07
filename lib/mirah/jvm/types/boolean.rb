@@ -28,7 +28,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      @type_system.type(nil, 'java.lang.Boolean')
+      @type_system.type(nil, wrapper_name)
     end
 
     def add_intrinsics

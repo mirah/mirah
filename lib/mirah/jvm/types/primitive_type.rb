@@ -43,6 +43,10 @@ module Mirah
         def superclass
           nil
         end
+
+        def wrapper_name
+          @wrapper.java_class.name
+        end
       end
     end
   end

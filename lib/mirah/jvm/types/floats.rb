@@ -24,7 +24,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      @type_system.type(nil, 'java.lang.Float')
+      @type_system.type(nil, wrapper_name)
     end
 
     def suffix
@@ -54,7 +54,7 @@ module Mirah::JVM::Types
         # Do nothing
       when 'double'
         builder.f2d
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from float to #{type}"
@@ -72,7 +72,7 @@ module Mirah::JVM::Types
     end
 
     def box_type
-      @type_system.type(nil, 'java.lang.Double')
+      @type_system.type(nil, wrapper_name)
     end
 
     def wide?
@@ -97,7 +97,7 @@ module Mirah::JVM::Types
     def compile_widen(builder, type)
       case type.name
       when 'double'
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from double to #{type}"
