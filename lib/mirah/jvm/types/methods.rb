@@ -149,13 +149,11 @@ module Mirah::JVM::Types
 
   class JavaCallable
     include ArgumentConversion
-    java_import 'org.mirah.typer.ResolvedType'
-    java_import 'org.mirah.typer.TypeSystem'
 
     attr_accessor :member
 
     def initialize(types, member)
-      raise ArgumentError unless types.kind_of?(TypeSystem)
+      raise ArgumentError unless types.kind_of?(Mirah::Typer::TypeSystem)
       @types = types
       @member = member
     end
@@ -194,7 +192,7 @@ module Mirah::JVM::Types
 
     def exceptions
       @member.exception_types.map do |exception|
-        if exception.kind_of?(ResolvedType)
+        if exception.kind_of?(Mirah::Typer::ResolvedType)
           exception
         else
           @types.type(nil, exception.class_name)
