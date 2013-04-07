@@ -25,13 +25,13 @@ class BlocksTest < Test::Unit::TestCase
       parse_and_type(<<-CODE)
         interface Bar do;def run:void;end;end
 
-        class Foo
+        class BarOner
           def initialize; end
           def foo(a:Bar)
             1
           end
         end
-        Foo.new.foo do
+        BarOner.new.foo do
         end
       CODE
     end
@@ -44,13 +44,13 @@ class BlocksTest < Test::Unit::TestCase
           def run:void; end
         end
 
-        class Foo
+        class NotEmptyAccepter
           def initialize; end
           def foo(a:Bar)
             1
           end
         end
-        Foo.new.foo do
+        NotEmptyAccepter.new.foo do
           1
         end
       CODE
@@ -239,17 +239,17 @@ class BlocksTest < Test::Unit::TestCase
   def test_block_impling_interface_w_multiple_methods
     assert_jraise java.lang.UnsupportedOperationException do
       parse_and_type(<<-CODE)
-        interface Bar do
+        interface RunOrRun2 do
           def run:void;end
           def run2:void;end;
         end
 
-        class Foo
-          def foo(a:Bar)
+        class RunOrRun2Fooer
+          def foo(a:RunOrRun2)
             1
           end
         end
-        Foo.new.foo do
+        RunOrRun2Fooer.new.foo do
           1
         end
         CODE
