@@ -1,3 +1,5 @@
 language: ruby
 rvm:
   - jruby-19mode
+notifications:
+  irc: "irc.freenode.org#mirah"
