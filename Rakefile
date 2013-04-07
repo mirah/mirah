@@ -75,13 +75,21 @@ namespace :test do
   end
 
   namespace :jvm do
+    task :test_setup =>  [:clean_tmp_test_directory, :build_test_fixtures]
+
     desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode => [:bootstrap, :clean_tmp_test_directory, :build_test_fixtures] do |t|
+    Rake::TestTask.new :bytecode => [:bootstrap, :test_setup] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
-    Rake::TestTask.new :new => [:bootstrap, "javalib/mirah-compiler.jar"] do |t|
+
+    desc "run jvm tests using the new self hosted backend"
+    task :new do
+      run_tests ["test:jvm:new_backend", "test:jvm:mirror"]
+    end
+
+    Rake::TestTask.new :new_backend => [:bootstrap, "javalib/mirah-compiler.jar", :test_setup] do |t|
       t.libs << 'test' << 'test/jvm'
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
