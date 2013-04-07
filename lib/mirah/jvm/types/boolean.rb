@@ -23,10 +23,6 @@ module Mirah::JVM::Types
       'i'
     end
 
-    def box(builder)
-      builder.invokestatic box_type, "valueOf", [box_type, self]
-    end
-
     def box_type
       @type_system.type(nil, wrapper_name)
     end

@@ -180,9 +180,5 @@ module Mirah::JVM::Types
       unary_operator('-@', :neg)
       unary_operator('+@', nil)
     end
-
-    def box(builder)
-      builder.invokestatic box_type, "valueOf", [box_type, self]
-    end
   end
 end

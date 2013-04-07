@@ -62,6 +62,10 @@ module Mirah
         def wrapper_name
           @wrapper.java_class.name
         end
+
+        def box(builder)
+          builder.invokestatic box_type, "valueOf", [box_type, self]
+        end
       end
     end
   end
