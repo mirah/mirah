@@ -23,10 +23,6 @@ module Mirah::JVM::Types
       @type_system.type(nil, 'float')
     end
 
-    def box_type
-      @type_system.type(nil, wrapper_name)
-    end
-
     def suffix
       'g'
     end
@@ -69,10 +65,6 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'double')
-    end
-
-    def box_type
-      @type_system.type(nil, wrapper_name)
     end
 
     def wide?

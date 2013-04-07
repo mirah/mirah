@@ -23,10 +23,6 @@ module Mirah::JVM::Types
       'i'
     end
 
-    def box_type
-      @type_system.type(nil, wrapper_name)
-    end
-
     def add_intrinsics
       args = [math_type]
       add_method('==', args, ComparisonIntrinsic.new(self, '==', :eq, args))

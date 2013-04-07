@@ -54,10 +54,6 @@ module Mirah::JVM::Types
       @type_system.type(nil, 'int')
     end
 
-    def box_type
-      @type_system.type(nil, wrapper_name)
-    end
-
     def jump_if(builder, op, label)
       builder.send "if_icmp#{op}", label
     end
@@ -81,10 +77,6 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'long')
-    end
-
-    def box_type
-      @type_system.type(nil, wrapper_name)
     end
 
     def literal(builder, value)
