@@ -198,29 +198,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal([nil, nil], cls.foo.to_a)
   end
 
-  def test_string_concat
-    cls, = compile("
-      def str_str; a = 'a'; b = 'b'; a + b; end
-      def str_boolean; a = 'a'; b = false; a + b; end
-      def str_float; a = 'a'; b = float(1.0); a + b; end
-      def str_double; a = 'a'; b = 1.0; a + b; end
-      def str_byte; a = 'a'; b = byte(1); a + b; end
-      def str_short; a = 'a'; b = short(1); a + b; end
-      def str_char; a = 'a'; b = char(123); a + b; end
-      def str_int; a = 'a'; b = 1; a + b; end
-      def str_long; a = 'a'; b = long(1); a + b; end
-    ")
-    assert_equal("ab", cls.str_str)
-    assert_equal("afalse", cls.str_boolean)
-    assert_equal("a1.0", cls.str_float)
-    assert_equal("a1.0", cls.str_double)
-    assert_equal("a1", cls.str_byte)
-    assert_equal("a1", cls.str_short)
-    assert_equal("a{", cls.str_char)
-    assert_equal("a1", cls.str_int)
-    assert_equal("a1", cls.str_long)
-  end
-
   def test_void_selfcall
     cls, = compile("import 'System', 'java.lang.System'; def foo; System.gc; end; foo")
     assert_nothing_raised {cls.foo}
