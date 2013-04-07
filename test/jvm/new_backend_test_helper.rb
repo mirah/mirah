@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
