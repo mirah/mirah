@@ -46,8 +46,6 @@ module Mirah::JVM::Types
   end
   
   class MathIntrinsic < Intrinsic
-    java_import 'org.jruby.org.objectweb.asm.commons.GeneratorAdapter'
-    
     def accept(visitor, expression)
       visitor.visitMath(self, expression)
     end
