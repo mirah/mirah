@@ -762,7 +762,14 @@ module Mirah
           convert_value inferred_type(local.value), type
 
           # if expression, dup the value we're assigning
-          @method.dup if expression
+          if expression
+            if type.primitive? && type.wide?
+              @method.dup2
+            else
+              @method.dup
+            end
+          end
+
           set_position(local.position)
           type.store(@method, @method.local(scoped_local_name(name, scope), type))
         end
