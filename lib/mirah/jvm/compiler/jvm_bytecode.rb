@@ -775,7 +775,7 @@ module Mirah
         end
 
         def convert_value in_type, out_type
-          in_type.compile_widen(@method, out_type) if out_type.primitive?
+          in_type.compile_widen(@method, out_type) if in_type.primitive?
         end
 
         def captured_local_assign(node, expression)
