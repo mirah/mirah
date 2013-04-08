@@ -27,8 +27,8 @@ import mirah.lang.ast.*
 class AssignableTypeFuture < BaseTypeFuture
   def initialize(position:Position)
     super(position)
-    @assignments = HashMap.new
-    @declarations = HashMap.new
+    @assignments = LinkedHashMap.new
+    @declarations = LinkedHashMap.new
     @lock = ReentrantLock.new
   end
 

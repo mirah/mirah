@@ -54,7 +54,7 @@ class LocalFuture < AssignableTypeFuture
 
   def assignedValues(includeParent, includeChildren)
     if includeParent || includeChildren
-      assignments = HashSet.new(super)
+      assignments = LinkedHashSet.new(super)
       if @parent && includeParent
         assignments.addAll(@parent.assignedValues(true, false))
       end
