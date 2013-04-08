@@ -762,11 +762,16 @@ module Mirah
           declare_local(scope, name, type)
 
           visit(local.value, true)
+          convert_value inferred_type(local.value), type
 
           # if expression, dup the value we're assigning
           @method.dup if expression
           set_position(local.position)
           type.store(@method, @method.local(scoped_local_name(name, scope), type))
+        end
+
+        def convert_value in_type, out_type
+          in_type.compile_widen(@method, out_type) if out_type.primitive?
         end
 
         def captured_local_assign(node, expression)

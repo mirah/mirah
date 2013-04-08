@@ -33,6 +33,16 @@ module Mirah::JVM::Types
       @type_system.type(nil, 'boolean')
     end
 
+    def compile_widen(builder, type)
+      case type.name
+      when 'boolean'
+      when wrapper_name, 'java.lang.Object'
+        builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
+      else
+        raise ArgumentError, "Invalid widening conversion from #{name} to #{type}"
+      end
+    end
+
     # same as NumberType's
     def compile_boolean_operator(compiler, op, negated, call, label)
       # Promote the target or the argument if necessary
