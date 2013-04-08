@@ -70,6 +70,17 @@ module Mirah::JVM::Types
     end
   end
 
+  class CharacterType < IntegerType
+    def compile_widen(builder, type)
+      case type.name
+      when 'char'
+        # do nothing
+      else
+        super
+      end
+    end
+  end
+
   class LongType < Number
     def prefix
       'l'

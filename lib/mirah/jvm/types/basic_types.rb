@@ -19,7 +19,7 @@ module Mirah::JVM::Types
       @known_types.update(
         'boolean' => BooleanType.new(self, 'boolean', java.lang.Boolean),
         'byte' => IntegerType.new(self, 'byte', java.lang.Byte),
-        'char' => IntegerType.new(self, 'char', java.lang.Character),
+        'char' => CharacterType.new(self, 'char', java.lang.Character),
         'short' => IntegerType.new(self, 'short', java.lang.Short),
         'int' => IntegerType.new(self, 'int', java.lang.Integer),
         'long' => LongType.new(self, 'long', java.lang.Long),
