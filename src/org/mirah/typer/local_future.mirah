@@ -53,24 +53,22 @@ class LocalFuture < AssignableTypeFuture
   end
 
   def assignedValues(includeParent, includeChildren)
-    if includeParent || includeChildren
-      assignments = LinkedHashSet.new()
-      if @parent && includeParent
-        assignments.addAll(@parent.assignedValues(true, false))
-      end
+    return super unless includeParent || includeChildren
 
-      assignments.addAll super
-
-      if assignments.size > 0 && includeChildren
-        @children.each do |child|
-          assignments.addAll(LocalFuture(child).assignedValues(false, true))
-        end
-      end
-
-      Collection(assignments)
-    else
-      super
+    assignments = LinkedHashSet.new()
+    if @parent && includeParent
+      assignments.addAll(@parent.assignedValues(true, false))
     end
+
+    assignments.addAll super
+
+    if assignments.size > 0 && includeChildren
+      @children.each do |child|
+        assignments.addAll(LocalFuture(child).assignedValues(false, true))
+      end
+    end
+
+    Collection(assignments)
   end
 
   def toString
