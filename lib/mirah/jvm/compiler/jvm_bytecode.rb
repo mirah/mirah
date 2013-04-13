@@ -770,26 +770,6 @@ module Mirah
           type.store(@method, @method.local(scoped_local_name(name, scope), type))
         end
 
-        def convert_value in_type, out_type
-          in_type.compile_widen(@method, out_type) if in_type.primitive?
-        end
-
-        def dup_value type
-          if type.primitive? && type.wide?
-            @method.dup2
-          else
-            @method.dup
-          end
-        end
-
-        def dup_x2_value type
-          if type.primitive? && type.wide?
-            @method.dup2_x2
-          else
-            @method.dup_x2
-          end
-        end
-
         def captured_local_assign(node, expression)
           scope, name, type = containing_scope(node), node.name.identifier, inferred_type(node)
           captured_local_declare(scope, name, type)
@@ -1147,6 +1127,28 @@ module Mirah
             visit(node.size, true)
             type = @typer.type_system.get(@scoper.getScope(node), node.type).resolve
             type.newarray(@method)
+          end
+        end
+
+        private
+
+        def convert_value in_type, out_type
+          in_type.compile_widen(@method, out_type) if in_type.primitive?
+        end
+
+        def dup_value type
+          if type.primitive? && type.wide?
+            @method.dup2
+          else
+            @method.dup
+          end
+        end
+
+        def dup_x2_value type
+          if type.primitive? && type.wide?
+            @method.dup2_x2
+          else
+            @method.dup_x2
           end
         end
 
