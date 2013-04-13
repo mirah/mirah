@@ -1711,4 +1711,20 @@ class JVMCompilerTest < Test::Unit::TestCase
     
     assert_equal(0.0, cls.foo)
   end
+
+  def test_assign_int_to_double_in_closure
+    cls, = compile(<<-EOF)
+      def bar(r:Runnable); r.run; end
+
+      def foo
+        a = 1.0
+        bar do
+          a = 0
+        end
+        a
+      end
+    EOF
+
+    assert_equal(0.0, cls.foo)
+  end
 end

@@ -763,11 +763,7 @@ module Mirah
 
           # if expression, dup the value we're assigning
           if expression
-            if type.primitive? && type.wide?
-              @method.dup2
-            else
-              @method.dup
-            end
+            dup_value type
           end
 
           set_position(local.position)
@@ -778,12 +774,33 @@ module Mirah
           in_type.compile_widen(@method, out_type) if in_type.primitive?
         end
 
+        def dup_value type
+          if type.primitive? && type.wide?
+            @method.dup2
+          else
+            @method.dup
+          end
+        end
+
+        def dup_x2_value type
+          if type.primitive? && type.wide?
+            @method.dup2_x2
+          else
+            @method.dup_x2
+          end
+        end
+
         def captured_local_assign(node, expression)
           scope, name, type = containing_scope(node), node.name.identifier, inferred_type(node)
           captured_local_declare(scope, name, type)
           binding_reference
           visit(node.value, true)
-          @method.dup_x2 if expression
+          convert_value(inferred_type(node.value), type)
+
+          # if expression, dup the value we're assigning
+          if expression
+            dup_x2_value type
+          end
           set_position(node.position)
           @method.putfield(scope.binding_type, name, type)
         end
