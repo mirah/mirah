@@ -1701,6 +1701,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
     assert_equal "Target JVM version: 1.6 doesn't support invoke dynamic", ex.message
   end
+
   def test_assign_int_to_double
     cls, = compile(<<-EOF)
       def foo
