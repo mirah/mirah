@@ -61,7 +61,7 @@ class LocalFuture < AssignableTypeFuture
 
       assignments.addAll super
 
-      if !assignments.isEmpty && includeChildren
+      if assignments.size > 0 && includeChildren
         @children.each do |child|
           assignments.addAll(LocalFuture(child).assignedValues(false, true))
         end
