@@ -189,15 +189,17 @@ class RescueTest < Test::Unit::TestCase
     assert_equal 2, cls.foo
   end
 
-  def test_empty_rescues
-    cls, = compile(<<-EOF)
+  def test_empty_rescue_body_compiles
+    compile(<<-EOF)
       begin
       rescue
         nil
       end
     EOF
+  end
 
-    cls, = compile(<<-EOF)
+  def test_rescue_thats_not_an_expression_compiles
+    compile(<<-EOF)
       begin
         ""
       rescue
@@ -205,7 +207,9 @@ class RescueTest < Test::Unit::TestCase
       end
       nil
     EOF
+  end
 
+  def test_rescue_containing_while_with_ensure_runs_ensure
     cls, = compile(<<-EOF)
       def empty_with_ensure
         begin
@@ -220,6 +224,9 @@ class RescueTest < Test::Unit::TestCase
         ""
       end
     EOF
+    assert_output "ensuring\n" do
+      cls.empty_with_ensure
+    end
   end
 
   def test_ensure
