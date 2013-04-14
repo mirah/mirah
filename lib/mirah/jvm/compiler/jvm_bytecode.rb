@@ -944,9 +944,6 @@ module Mirah
               @method.invokeinterface java::util::List, "add", [@method.boolean, @method.object]
               @method.pop
             end
-
-            # make it unmodifiable
-            @method.invokestatic java::util::Collections, "unmodifiableList", [java::util::List, java::util::List]
           else
             # elements, as non-expressions
             # TODO: ensure they're all reference types!

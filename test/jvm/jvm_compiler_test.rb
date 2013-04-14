@@ -1728,4 +1728,16 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     assert_equal(0.0, cls.foo)
   end
+
+  def test_array_literals_are_modifiable
+    cls, = compile(<<-EOF)
+      def foo
+        arr = [1,2]
+        arr.add(3)
+        arr[2]
+      end
+    EOF
+
+    assert_equal(3, cls.foo)
+  end
 end
