@@ -15,7 +15,7 @@
 
 class RescueTest < Test::Unit::TestCase
 
-  def test_rescue
+  def test_rescue_with_no_raise_runs_begin_and_not_rescue
     cls, = compile(<<-EOF)
       def foo
         begin
@@ -30,7 +30,9 @@ class RescueTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("body\n", output)
+  end
 
+  def test_rescue_with_raise_after_begin_runs_rescue
     cls, = compile(<<-EOF)
       def foo
         begin
@@ -46,7 +48,9 @@ class RescueTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("body\nrescue\n", output)
+  end
 
+  def test_rescue_with_type_clause_and_untyped_clause
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
@@ -69,7 +73,10 @@ class RescueTest < Test::Unit::TestCase
       cls.foo(0)
     end
     assert_equal("body\nrescue\nbody\nIllegalArgumentException\n", output)
+  end
 
+
+  def test_rescue_with_multiple_types_or_throwable
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
@@ -95,7 +102,9 @@ class RescueTest < Test::Unit::TestCase
       cls.foo(2)
     end
     assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
+  end
 
+  def test_rescue_without_type_with_argument
     cls, = compile(<<-EOF)
       def foo
         begin
@@ -110,8 +119,9 @@ class RescueTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("foo\n", output)
+  end
 
-
+  def test_implicit_begin_on_method_with_rescue_and_else
     cls, = compile(<<-EOF)
       def foo(x:boolean)
         # throws Exception
@@ -129,7 +139,9 @@ class RescueTest < Test::Unit::TestCase
     assert_raise_java java.lang.Exception, "!x" do
       cls.foo(false)
     end
+  end
 
+  def test_rescue_with_return_types_correctly
     cls, = compile(<<-EOF)
       def foo:long
         begin
