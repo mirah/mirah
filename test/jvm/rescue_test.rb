@@ -159,6 +159,20 @@ class RescueTest < Test::Unit::TestCase
     assert_equal 1, cls.foo
   end
 
+  def test_rescue_with_return_returns_value
+    cls, = compile(<<-EOF)
+      def foo:long
+        begin
+          raise "some error"
+        rescue Exception => e
+          return long(0)
+        end
+      end
+    EOF
+
+    assert_equal 0, cls.foo
+  end
+
   def test_empty_rescues
     cls, = compile(<<-EOF)
       begin
