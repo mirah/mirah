@@ -19,9 +19,9 @@ class RescueTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo
         begin
-          System.out.println "body"
+          puts "body"
         rescue
-          System.out.println "rescue"
+          puts "rescue"
         end
       end
     EOF
@@ -34,10 +34,10 @@ class RescueTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo
         begin
-          System.out.println "body"
+          puts "body"
           raise
         rescue
-          System.out.println "rescue"
+          puts "rescue"
         end
       end
     EOF
@@ -50,16 +50,16 @@ class RescueTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
-          System.out.println "body"
+          puts "body"
           if a == 0
             raise IllegalArgumentException
           else
             raise
           end
         rescue IllegalArgumentException
-          System.out.println "IllegalArgumentException"
+          puts "IllegalArgumentException"
         rescue
-          System.out.println "rescue"
+          puts "rescue"
         end
       end
     EOF
@@ -73,7 +73,7 @@ class RescueTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
-          System.out.println "body"
+          puts "body"
           if a == 0
             raise IllegalArgumentException
           elsif a == 1
@@ -82,9 +82,9 @@ class RescueTest < Test::Unit::TestCase
             raise
           end
         rescue IllegalArgumentException, Exception
-          System.out.println "multi"
+          puts "multi"
         rescue Throwable
-          System.out.println "other"
+          puts "other"
         end
       end
     EOF
@@ -101,7 +101,7 @@ class RescueTest < Test::Unit::TestCase
         begin
           raise "foo"
         rescue => ex
-          System.out.println ex.getMessage
+          puts ex.getMessage
         end
       end
     EOF
@@ -173,20 +173,19 @@ class RescueTest < Test::Unit::TestCase
           end
         rescue
         ensure
-          System.out.println 'ensuring'
+          puts 'ensuring'
         end
         ""
       end
     EOF
   end
 
-
   def test_ensure
     cls, = compile(<<-EOF)
       def foo
         1
       ensure
-        System.out.println "Hi"
+        puts "Hi"
       end
     EOF
     output = capture_output do
@@ -198,7 +197,7 @@ class RescueTest < Test::Unit::TestCase
       def foo
         return 1
       ensure
-        System.out.println "Hi"
+        puts "Hi"
       end
     EOF
     output = capture_output do
@@ -211,7 +210,7 @@ class RescueTest < Test::Unit::TestCase
         begin
           break
         ensure
-          System.out.println "Hi"
+          puts "Hi"
         end while false
       end
     EOF
@@ -224,14 +223,14 @@ class RescueTest < Test::Unit::TestCase
   def test_loop_in_ensure
     cls, = compile(<<-EOF)
     begin
-      System.out.println "a"
+      puts "a"
       begin
-        System.out.println "b"
+        puts "b"
         break
       end while false
-      System.out.println "c"
+      puts "c"
     ensure
-      System.out.println "ensure"
+      puts "ensure"
     end
     EOF
 
