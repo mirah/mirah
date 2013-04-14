@@ -189,6 +189,22 @@ class RescueTest < Test::Unit::TestCase
     assert_equal 2, cls.foo
   end
 
+  def test_rescue_with_else_clause_returns_from_rescue_when_exception_raised
+    cls, = compile(<<-EOF)
+      def foo:long
+        begin
+          raise "oh, my"
+        rescue
+          long(1)
+        else
+          long(2)
+        end
+      end
+    EOF
+
+    assert_equal 1, cls.foo
+  end
+
   def test_empty_rescue_body_compiles
     compile(<<-EOF)
       begin
