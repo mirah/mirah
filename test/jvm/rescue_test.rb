@@ -245,6 +245,20 @@ class RescueTest < Test::Unit::TestCase
     end
   end
 
+  def test_empty_rescue_body_with_else_runs_else
+    cls, = compile(<<-EOF)
+      begin
+      rescue
+        nil
+      else
+        puts "else"
+      end
+    EOF
+    assert_output "else\n" do
+      cls.main nil
+    end
+  end
+
   def test_ensure
     cls, = compile(<<-EOF)
       def foo
