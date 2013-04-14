@@ -1069,10 +1069,14 @@ module Mirah
           start = @method.label.set!
           body_end = @method.label
           done = @method.label
-          visit(rescue_node.body, expression && rescue_node.else_clause.size == 0)
+          no_else_clauses = rescue_node.else_clause.size == 0
+
+          visit(rescue_node.body, expression && no_else_clauses)
           body_end.set!
-          visit(rescue_node.else_clause, expression) if rescue_node.else_clause.size > 0
+
+          visit(rescue_node.else_clause, expression) unless no_else_clauses
           return if start.label.offset == body_end.label.offset
+
           @method.goto(done)
           rescue_node.clauses.each do |clause|
             target = @method.label.set!
