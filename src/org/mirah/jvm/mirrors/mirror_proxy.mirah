@@ -16,7 +16,9 @@
 package org.mirah.jvm.mirrors
 
 import mirah.lang.ast.Position
+import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.JVMType
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 
@@ -131,4 +133,21 @@ class MirrorFuture < BaseTypeFuture
       future.resolved(MirrorProxy.new(type))
     end
   end
+end
+
+class ResolvedCall < MirrorProxy implements CallType
+  def initialize(target:MirrorType, method:JVMMethod)
+    super(ResolvedCall.expressionType(target, method))
+    @member = method
+  end
+
+  def self.expressionType(target:MirrorType, method:JVMMethod):MirrorType
+    if "V".equals(method.returnType.class_id)
+      target
+    else
+      MirrorType(method.returnType)
+    end
+  end
+
+  attr_reader member:JVMMethod
 end

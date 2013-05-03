@@ -231,7 +231,7 @@ class MethodLookup
       potentials = gatherFields(target, name)
       inaccessible = removeInaccessible(potentials, scope, target)
       if potentials.size > 0
-        make_future(Member(potentials[0]), Collections.emptyList, position)
+        make_future(target, Member(potentials[0]), Collections.emptyList, position)
       elsif inaccessible.size > 0
         inaccessible(scope, Member(inaccessible[0]), position)
       else
@@ -250,7 +250,7 @@ class MethodLookup
       @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{methods ? methods.size : 0}")
       if methods && methods.size > 0
         if methods.size == 1
-          make_future(Member(methods[0]), params, position)
+          make_future(target, Member(methods[0]), params, position)
         else
           ErrorType.new([["Ambiguous methods #{methods}", position]])
         end
@@ -264,9 +264,10 @@ class MethodLookup
       end
     end
 
-    def make_future(method:Member, params:List, position:Position):TypeFuture
+    def make_future(target:MirrorType, method:Member, params:List, position:Position):TypeFuture
       DerivedFuture.new(method.asyncReturnType) do |resolved|
-        MethodType.new(method.name, params, resolved, method.isVararg)
+        type = ResolvedCall.new(target, method)
+        MethodType.new(method.name, params, type, method.isVararg)
       end
     end
 

@@ -334,7 +334,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
-    assert_resolved_to('V', type.resolve.returnType)
+    assert_resolved_to('LFooBar;', type.resolve.returnType)
   end
 
   def test_multiple_method_defs
@@ -343,7 +343,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
     assert_not_error(type)
-    assert_resolved_to('V', type.resolve.returnType)
+    assert_resolved_to('LFooBar;', type.resolve.returnType)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
     assert_not_error(type)

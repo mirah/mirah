@@ -19,6 +19,7 @@ import java.util.Arrays
 import java.util.List
 import java.util.logging.Logger
 import mirah.lang.ast.*
+import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberVisitor
@@ -63,11 +64,15 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   
   def getMethod
     @member ||= begin
-      argTypes = JVMType[@args.length]
-      @args.length.times do |i|
-        argTypes[i] = getInferredType(@args[i])
+      if @returnType.kind_of?(CallType)
+        CallType(@returnType).member
+      else
+        argTypes = JVMType[@args.length]
+        @args.length.times do |i|
+          argTypes[i] = getInferredType(@args[i])
+        end
+        getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
       end
-      getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
     end
   end
   

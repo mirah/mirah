@@ -46,3 +46,7 @@ interface JVMType < ResolvedType
   def getDeclaredFields:JVMMethod[]; end
   def getDeclaredField(name:String):JVMMethod; end
 end
+
+interface CallType < JVMType
+  def member:JVMMethod; end
+end
