@@ -438,5 +438,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
         @types, @scope, system, 'out', [], [], nil))
     assert_not_error(method)
     assert_resolved_to("Ljava/io/PrintStream;", method.resolve.returnType)
+    member = method.resolve.returnType.member
+    assert_equal('STATIC_FIELD_ACCESS', member.kind.name)
   end
 end

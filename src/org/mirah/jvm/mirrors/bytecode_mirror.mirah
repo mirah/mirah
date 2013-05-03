@@ -106,7 +106,12 @@ class BytecodeMirror < BaseType
       @fields.size.times do |i|
         field = FieldNode(it.next)
         type = lookup(Type.getType(field.desc))
-        mirrors[i] = Member.new(field.access, self, field.name, [], type, MemberKind.FIELD_ACCESS)
+        kind = if Opcodes.ACC_STATIC == (field.access & Opcodes.ACC_STATIC)
+          MemberKind.STATIC_FIELD_ACCESS
+        else
+          MemberKind.FIELD_ACCESS
+        end
+        mirrors[i] = Member.new(field.access, self, field.name, [], type, kind)
       end
       @fields = nil
       mirrors
