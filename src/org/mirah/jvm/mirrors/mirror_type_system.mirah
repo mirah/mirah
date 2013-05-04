@@ -168,6 +168,18 @@ class MirrorTypeSystem implements TypeSystem
     future
   end
 
+  def getFieldType(target, name, position)
+    resolved = MirrorType(target.resolve)
+    klass = MirahMirror(resolved.unmeta)
+    member = klass.getDeclaredField(name)
+    future = if member
+      AsyncMember(member).asyncReturnType
+    else
+      createField(klass, name, resolved.isMeta, position)
+    end
+    AssignableTypeFuture(future)
+  end
+
   def resolveMethodName(scope:Scope, name:String)
     if "initialize".equals(name) && isConstructor(scope)
       "<init>"
@@ -216,8 +228,11 @@ class MirrorTypeSystem implements TypeSystem
       name
     end
     type = Type.getObjectType(fullname.replace(?., ?/))
+    existing = wrap(type)
     if existing.isResolved && existing.resolve.kind_of?(MirahMirror)
+      existing
     else
+      superclass ||= @object_future
       interfaceArray = TypeFuture[interfaces.size]
       interfaces.toArray(interfaceArray)
       mirror = MirahMirror.new(type, Opcodes.ACC_PUBLIC,
@@ -341,6 +356,28 @@ class MirrorTypeSystem implements TypeSystem
 
     target.add(member)
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
+  end
+
+  def createField(target:MirahMirror, name:String,
+                  isStatic:boolean, position:Position):TypeFuture
+    flags = Opcodes.ACC_PRIVATE
+    if isStatic
+      kind = MemberKind.STATIC_FIELD_ACCESS
+      flags |= Opcodes.ACC_STATIC
+      access = "static"
+    else
+      kind = MemberKind.FIELD_ACCESS
+      access = "instance"
+    end
+    future = AssignableTypeFuture.new(position)
+    log = @@log
+    future.onUpdate do |x, resolved|
+      log.fine("Learned #{access} field #{target}.#{name} = #{resolved}")
+    end
+    member = AsyncMember.new(
+        flags, target, name, [], future, kind)
+    target.declareField(member)
+    future
   end
 
   def self.classnameFromFilename(name:String)

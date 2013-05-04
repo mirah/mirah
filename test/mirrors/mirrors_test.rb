@@ -327,6 +327,21 @@ class MirrorsTest < BaseMirrorsTest
     assert_descriptor(
         '[S', @types.getArrayType(@types.get(@scope, typeref('short'))))
   end
+
+  def test_field
+    # TODO use instance field from static method
+    a = @types.getFieldType(main_type, 'a', nil)
+    b = @types.getFieldType(main_type, 'b', nil)
+    assert_not_same(a, b)
+    assert_same(a, @types.getFieldType(main_type, 'a', nil))
+    
+    field = main_type.resolve.getDeclaredField('a')
+    assert_not_nil(field)
+    assert_same(a, field.async_return_type)
+    assert_equal("STATIC_FIELD_ACCESS", field.kind.name)
+    
+    assert_same(field, main_type.resolve.unmeta.getDeclaredField('a'))
+  end
 end
 
 class MTS_MethodLookupTest < BaseMirrorsTest

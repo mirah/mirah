@@ -120,7 +120,10 @@ class BaseType implements MirrorType
   end
   def getComponentType:JVMType; nil; end
 
-  def hasStaticField(name:String):boolean; false;end
+  def hasStaticField(name:String):boolean
+    field = getDeclaredField(name)
+    field && field.kind.name.startsWith("STATIC_")
+  end
 
   def getMethod(name:String, params:List):JVMMethod
     @methods_loaded ||= load_methods

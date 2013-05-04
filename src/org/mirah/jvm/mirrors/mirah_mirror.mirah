@@ -16,6 +16,7 @@
 package org.mirah.jvm.mirrors
 
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.TypeFuture
 
@@ -34,6 +35,7 @@ class MirahMirror < BaseType
         mirror.notifyOfIncompatibleChange
       end
     end
+    @fields = {}
   end
 
   def resolveSuperclass(resolved:JVMType)
@@ -47,5 +49,18 @@ class MirahMirror < BaseType
 
   def interfaces:TypeFuture[]
     @interfaces
+  end
+
+  def declareField(field:JVMMethod)
+    @fields[field.name] = field
+  end
+
+  def getDeclaredFields:JVMMethod[]
+    fields = JVMMethod[@fields.size]
+    @fields.values.toArray(fields)
+    fields
+  end
+  def getDeclaredField(name:String):JVMMethod
+    JVMMethod(@fields[name])
   end
 end

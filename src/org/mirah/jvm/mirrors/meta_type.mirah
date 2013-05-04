@@ -41,4 +41,13 @@ class MetaType < BaseType
   def addMethodListener(name, listener)
     unmeta.addMethodListener(name, listener)
   end
+
+  def getDeclaredField(name)
+    field = unmeta.getDeclaredField(name)
+    if field && Opcodes.ACC_STATIC == (Member(field).flags & Opcodes.ACC_STATIC)
+      field
+    else
+      nil
+    end
+  end
 end
