@@ -38,6 +38,7 @@ import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodFuture
 import org.mirah.typer.MethodType
+import org.mirah.typer.NarrowingTypeFuture
 import org.mirah.typer.PickFirst
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
@@ -94,11 +95,31 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getFixnumType(value)
-    wrap(Type.getType("I"))
+    box = Long.valueOf(value)
+    if box.intValue != value
+      wrap(Type.getType("J"))
+    elsif box.shortValue != value
+      wrap(Type.getType("I"))
+    else
+      wide = wrap(Type.getType('I'))
+      narrow = if box.byteValue == value
+        wrap(Type.getType('B'))
+      else
+        wrap(Type.getType('S'))
+      end
+      NarrowingTypeFuture.new(nil, wide.resolve, narrow.resolve)
+    end
   end
 
   def getFloatType(value)
-    wrap(Type.getType("D"))
+    box = Double.valueOf(value)
+    wide = wrap(Type.getType("D"))
+    if value == box.floatValue
+      narrow = wrap(Type.getType("F"))
+      NarrowingTypeFuture.new(nil, wide.resolve, narrow.resolve)
+    else
+      wide
+    end
   end
 
   def getVoidType

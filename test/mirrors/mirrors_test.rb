@@ -111,6 +111,19 @@ class MirrorsTest < BaseMirrorsTest
   def test_fixnum
     type = @types.getFixnumType(0)
     assert_descriptor("I", type)
+    assert_descriptor("J", @types.getFixnumType(1 << 33))
+  end
+
+  def test_fixnum_narrowing
+    type = @types.getFixnumType(0)
+    assert_descriptor("I", type)
+    type.narrow
+    assert_descriptor("B", type)
+
+    type = @types.getFixnumType(1 << 8)
+    assert_descriptor("I", type)
+    type.narrow
+    assert_descriptor("S", type)
   end
 
   def test_string
@@ -161,6 +174,13 @@ class MirrorsTest < BaseMirrorsTest
 
   def test_float
     assert_descriptor("D", @types.getFloatType(0))
+  end
+
+  def test_float_narrowing
+    type = @types.getFloatType(0.0)
+    assert_descriptor("D", type)
+    type.narrow
+    assert_descriptor("F", type)
   end
 
   def test_exception
