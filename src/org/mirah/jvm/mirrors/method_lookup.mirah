@@ -285,6 +285,9 @@ class MethodLookup
     end
 
     def gatherMethodsInternal(target:MirrorType, name:String, includeInterfaces:boolean, methods:List, visited:Set):List
+      if target
+        target = target.unmeta
+      end
       unless target.nil? || target.isError || visited.contains(target)
         visited.add(target)
         methods.addAll(target.getDeclaredMethods(name))
