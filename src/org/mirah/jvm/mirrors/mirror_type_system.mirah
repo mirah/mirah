@@ -319,7 +319,8 @@ class MirrorTypeSystem implements TypeSystem
 
     flags = Opcodes.ACC_PUBLIC
     kind = MemberKind.METHOD
-    if target.isMeta
+    isMeta = target.isMeta
+    if isMeta
       target = MirrorType(MetaType(target).unmeta)
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
@@ -330,8 +331,11 @@ class MirrorTypeSystem implements TypeSystem
         "Cannot determine return type for method #{member}"
     returnFuture.declare(returnType, position) if returnType
 
-    target.add(member)
+    log = @@log
+    returnFuture.onUpdate do |x, resolved|
+      log.fine("Learned #{type} method #{target}.#{name}#{arguments} = #{resolved}")
 
+    target.add(member)
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
   end
 
