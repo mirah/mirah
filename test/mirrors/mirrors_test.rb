@@ -499,4 +499,12 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     member = method.resolve.returnType.member
     assert_equal('STATIC_FIELD_ACCESS', member.kind.name)
   end
+
+  def test_constructor
+    object = @types.get(@scope, typeref('java.lang.Object'))
+    object_meta = @types.getMetaType(object)
+    method = CallFuture.new(
+        @types, @scope, object_meta, 'new', [], [], nil)
+    assert_descriptor('Ljava/lang/Object;', method)
+  end
 end

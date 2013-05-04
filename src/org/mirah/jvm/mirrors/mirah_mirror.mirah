@@ -15,9 +15,11 @@
 
 package org.mirah.jvm.mirrors
 
+import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.TypeFuture
 
 
@@ -35,6 +37,7 @@ class MirahMirror < BaseType
         mirror.notifyOfIncompatibleChange
       end
     end
+    @default_constructor = Member.new(Opcodes.ACC_PUBLIC, self, '<init>', [], self, MemberKind.CONSTRUCTOR)
     @fields = {}
   end
 
@@ -62,5 +65,14 @@ class MirahMirror < BaseType
   end
   def getDeclaredField(name:String):JVMMethod
     JVMMethod(@fields[name])
+  end
+
+  def getDeclaredMethods(name)
+    result = super
+    if result.isEmpty && "<init>".equals(name)
+      [@default_constructor]
+    else
+      result
+    end
   end
 end

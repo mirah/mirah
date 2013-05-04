@@ -174,20 +174,25 @@ class MirrorTypeSystem implements TypeSystem
 
   def getMethodType(call)
     future = DelegateFuture.new()
-    name = resolveMethodName(call.scope, call.name)
     if call.resolved_parameters.all? && call.resolved_target
       target = MirrorType(call.resolved_target)
+      name = resolveMethodName(call.scope, target, call.name)
+      if "<init>".equals(name)
+        target = target.unmeta
+      end
+      error = JvmErrorType.new([
+        ["Can't find method #{format(target, call.name, call.resolved_parameters)}",
+         call.position]], Type.getType("V"))
       method = MethodLookup.findMethod(
           call.scope, target, name,
           call.resolved_parameters, call.position)
       method ||= MethodLookup.findField(call.scope, target, name, call.position)
-      future.type = method || BaseTypeFuture.new(call.position)
+      future.type = method || error
       log = @@log
       target.addMethodListener(call.name) do |klass, name|
         future.type = MethodLookup.findMethod(
             call.scope, target, call.name,
-            call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
-        log.fine("Found method #{target}.name#{call.resolved_parameters} = #{future.type}")
+            call.resolved_parameters, call.position) || error
       end
     end
     future
@@ -205,8 +210,10 @@ class MirrorTypeSystem implements TypeSystem
     AssignableTypeFuture(future)
   end
 
-  def resolveMethodName(scope:Scope, name:String)
+  def resolveMethodName(scope:Scope, target:ResolvedType, name:String)
     if "initialize".equals(name) && isConstructor(scope)
+      "<init>"
+    elsif "new".equals(name) && target.isMeta
       "<init>"
     else
       name
@@ -374,9 +381,10 @@ class MirrorTypeSystem implements TypeSystem
     returnFuture.declare(returnType, position) if returnType
 
     log = @@log
+    me = self
     returnFuture.onUpdate do |x, resolved|
       type = isMeta ? "static" : "instance"
-      log.fine("Learned #{type} method #{target}.#{name}#{arguments} = #{resolved}")
+      log.fine("Learned #{type} method #{me.format(target, name, arguments)} = #{resolved}")
     end
 
     target.add(member)
@@ -403,6 +411,18 @@ class MirrorTypeSystem implements TypeSystem
         flags, target, name, [], future, kind)
     target.declareField(member)
     future
+  end
+
+  def format(target:ResolvedType, name:String, args:List)
+    sb = StringBuilder.new
+    sb.append(target)
+    sb.append('.')
+    sb.append(name)
+    sb.append('(')
+    formatted_args = args.toString
+    sb.append(formatted_args, 1, formatted_args.length - 1)
+    sb.append(')')
+    sb.toString
   end
 
   def self.classnameFromFilename(name:String)

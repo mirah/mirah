@@ -18,6 +18,7 @@ package org.mirah.jvm.compiler
 import java.util.LinkedList
 import java.util.logging.Logger
 import mirah.lang.ast.*
+import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
 import org.jruby.org.objectweb.asm.*
@@ -110,10 +111,13 @@ class MethodCompiler < BaseCompiler
 
   def createBuilder(cv:ClassVisitor, mdef:MethodDefinition)
     type = getInferredType(mdef)
-    @returnType = JVMType(type.returnType)
-    if @name.endsWith("init>")
+
+    if @name.endsWith("init>") || ":unreachable".equals(type.returnType.name)
       @returnType = JVMType(typer.type_system.getVoidType.resolve)
+    else
+      @returnType = JVMType(type.returnType)
     end
+
     @descriptor = methodDescriptor(@name, @returnType, type.parameterTypes)
     @selfType = JVMType(getScope(mdef).selfType.resolve)
     superclass = @selfType.superclass
@@ -235,7 +239,12 @@ class MethodCompiler < BaseCompiler
       paramTypes.add(getInferredType(param))
     end
     recordPosition(node.position)
-    method = @superclass.getMethod(@name, paramTypes)
+    result = getInferredType(node)
+    method = if result.kind_of?(CallType)
+      CallType(result).member
+    else
+      @superclass.getMethod(@name, paramTypes)
+    end
     @builder.invokeSpecial(@superclass.getAsmType, methodDescriptor(method))
     if expression && isVoid
       @builder.loadThis
