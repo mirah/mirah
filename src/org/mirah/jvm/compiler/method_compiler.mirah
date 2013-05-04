@@ -84,6 +84,9 @@ class MethodCompiler < BaseCompiler
 
   def collectArgNames(mdef:MethodDefinition, bytecode:Bytecode):void
     args = mdef.arguments
+    unless isStatic
+      bytecode.declareArg('this', @selfType)
+    end
     args.required_size.times do |a|
       arg = args.required(a)
       type = getInferredType(arg)

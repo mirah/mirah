@@ -56,7 +56,7 @@ class Bytecode < GeneratorAdapter
           flags, method.getName, method.getDescriptor)
     @endLabel = newLabel
     @locals = LinkedHashMap.new
-    @nextLocal = (flags & Opcodes.ACC_STATIC == Opcodes.ACC_STATIC) ? 0 : 1
+    @nextLocal = 0
     @firstLocal = @nextLocal
     @codesource = codesource
   end
