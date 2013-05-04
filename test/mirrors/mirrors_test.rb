@@ -376,6 +376,24 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   end
 
   def test_async_arguments
+    type = @types.wrap(Type.getType("LFooBar;"))
+    @scope.selfType_set(type)
+    int = @types.wrap(Type.getType("I"))
+    short = @types.wrap(Type.getType("S"))
+    @types.getMethodDefType(type, 'foo', [int], int, nil)
+    argument_future = BaseTypeFuture.new
+    @types.getMethodDefType(type, 'foo', [argument_future], short, nil)
+
+    call_future = CallFuture.new(@types, @scope, type, 'foo', [short], [], nil)
+    assert_not_error(call_future)
+    assert_resolved_to('I', call_future.resolve)
+
+    # Now make the other one more specific
+    argument_future.resolved(short.resolve)
+    assert_resolved_to('S', call_future.resolve)
+  end
+
+  def test_async_arguments_meta
     int = @types.wrap(Type.getType("I"))
     short = @types.wrap(Type.getType("S"))
     @types.getMethodDefType(main_type, 'foo', [int], int, nil)

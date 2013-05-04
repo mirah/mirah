@@ -18,6 +18,7 @@ package org.mirah.jvm.mirrors
 import java.util.ArrayList
 import java.util.Collections
 import java.util.List
+import java.util.logging.Logger
 import org.jruby.org.objectweb.asm.Opcodes
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
@@ -108,6 +109,10 @@ class Member implements JVMMethod
 end
 
 class AsyncMember < Member
+  def self.initialize:void
+    @@log = Logger.getLogger(AsyncMember.class.getName)
+  end
+
   def initialize(flags:int, klass:MirrorType, name:String,
                  argumentTypes:List /* of TypeFuture */,
                  returnType:TypeFuture, kind:MemberKind)
@@ -134,9 +139,11 @@ class AsyncMember < Member
     resolvedArgs = @resolvedArguments
     index = @resolvedArguments.size
     member = self
+    log = @@log
     @resolvedArguments.add(argument.resolve)
     argument.onUpdate do |x, resolved|
       if resolved != resolvedArgs.get(index)
+        log.fine("Argument #{index} changed from #{resolvedArgs.get(index)} to #{resolved}")
         resolvedArgs.set(index, resolved)
         member.invalidate
       end

@@ -33,4 +33,12 @@ class MetaType < BaseType
   attr_reader unmeta: MirrorType
 
   def isMeta:boolean; true; end
+
+  def invalidateMethod(name)
+    unmeta.invalidateMethod(name)
+  end
+
+  def addMethodListener(name, listener)
+    unmeta.addMethodListener(name, listener)
+  end
 end

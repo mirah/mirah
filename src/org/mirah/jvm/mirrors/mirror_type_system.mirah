@@ -157,12 +157,12 @@ class MirrorTypeSystem implements TypeSystem
           call.resolved_parameters, call.position)
       method ||= MethodLookup.findField(call.scope, target, name, call.position)
       future.type = method || BaseTypeFuture.new(call.position)
+      log = @@log
       target.addMethodListener(call.name) do |klass, name|
-        if klass == target
-          future.type = MethodLookup.findMethod(
-              call.scope, target, call.name,
-              call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
-        end
+        future.type = MethodLookup.findMethod(
+            call.scope, target, call.name,
+            call.resolved_parameters, call.position) || BaseTypeFuture.new(call.position)
+        log.fine("Found method #{target}.name#{call.resolved_parameters} = #{future.type}")
       end
     end
     future
