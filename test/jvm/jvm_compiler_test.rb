@@ -300,7 +300,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_unless_fixnum
     cls, = compile(<<-EOF)
-      def foo(a:fixnum)
+      def foo(a:int)
         values = boolean[5]
         values[0] = true unless a < 0
         values[1] = true unless a <= 0
@@ -334,7 +334,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_if_fixnum
     cls, = compile(<<-EOF)
-      def foo(a:fixnum)
+      def foo(a:int)
         if a < -5
           -6
         elsif a <= 0
@@ -411,7 +411,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_trailing_conditions
     cls, = compile(<<-EOF)
-      def foo(a:fixnum)
+      def foo(a:int)
         return '+' if a > 0
         return '0' unless a < 0
         '-'
@@ -438,25 +438,25 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_loop
     cls, = compile(
-        'def foo(a:fixnum);while a > 0; a -= 1; System.out.println ".";end;end')
+        'def foo(a:int);while a > 0; a -= 1; System.out.println ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a:fixnum);begin;a -= 1; System.out.println ".";end while a > 0;end')
+        'def foo(a:int);begin;a -= 1; System.out.println ".";end while a > 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a:fixnum);until a <= 0; a -= 1; System.out.println ".";end;end')
+        'def foo(a:int);until a <= 0; a -= 1; System.out.println ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a:fixnum);begin;a -= 1; System.out.println ".";end until a <= 0;end')
+        'def foo(a:int);begin;a -= 1; System.out.println ".";end until a <= 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
@@ -467,7 +467,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     # TODO: loop doesn't work unless you're explicitly in a class
     # cls, = compile(<<-EOF)
-    #   def bar(a:fixnum)
+    #   def bar(a:int)
     #     loop do
     #       a += 1
     #       break if a > 2
@@ -479,7 +479,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     loopy, = compile(<<-EOF)
     class Loopy
-      def bar(a:fixnum)
+      def bar(a:int)
         loop do
           a += 1
           break if a > 2
@@ -650,7 +650,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_fields
     cls, = compile(<<-EOF)
       class FieldTest
-        def initialize(a:fixnum)
+        def initialize(a:int)
           @a = a
         end
 
@@ -658,7 +658,7 @@ class JVMCompilerTest < Test::Unit::TestCase
           @a
         end
 
-        def self.set_b(b:fixnum)
+        def self.set_b(b:int)
           @@b = b
         end
 
