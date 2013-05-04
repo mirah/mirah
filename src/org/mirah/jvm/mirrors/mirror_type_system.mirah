@@ -79,7 +79,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    @main_type ||= defineType(scope, script, getMainClassName(script), nil, [])
+    @main_type ||= getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
   end
 
   def getMainClassName(script:Script):String
@@ -333,7 +333,9 @@ class MirrorTypeSystem implements TypeSystem
 
     log = @@log
     returnFuture.onUpdate do |x, resolved|
+      type = isMeta ? "static" : "instance"
       log.fine("Learned #{type} method #{target}.#{name}#{arguments} = #{resolved}")
+    end
 
     target.add(member)
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)

@@ -142,6 +142,10 @@ class MirrorsTest < BaseMirrorsTest
     assert_descriptor("LSomeClass;", main_type)
   end
 
+  def test_main_type_is_meta
+    assert(main_type.resolve.isMeta)
+  end
+
   def test_main_type_with_package
     @scope.package_set("foo.bar")
     assert_descriptor("Lfoo/bar/FooBar;", main_type)
@@ -188,13 +192,13 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_meta_resolved
-    type = main_type.resolve
+    type = @types.getStringType.resolve
     assert_false(type.isMeta)
     assert(@types.getMetaType(type).isMeta)
   end
 
   def test_meta_future
-    type = main_type
+    type = @types.getStringType
     assert_false(type.resolve.isMeta)
     assert(@types.getMetaType(type).resolve.isMeta)
   end
@@ -378,14 +382,13 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     argument_future = BaseTypeFuture.new
     @types.getMethodDefType(main_type, 'foo', [argument_future], short, nil)
 
-    call_future = @types.getMethodType(
-        CallFuture.new(@types, @scope, main_type, 'foo', [short], [], nil))
+    call_future = CallFuture.new(@types, @scope, main_type, 'foo', [short], [], nil)
     assert_not_error(call_future)
-    assert_resolved_to('I', call_future.resolve.returnType)
+    assert_resolved_to('I', call_future.resolve)
 
     # Now make the other one more specific
     argument_future.resolved(short.resolve)
-    assert_resolved_to('S', call_future.resolve.returnType)
+    assert_resolved_to('S', call_future.resolve)
   end
 
   def test_async_param_superclass
