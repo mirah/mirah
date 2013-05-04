@@ -105,6 +105,10 @@ class MirrorTypeSystem implements TypeSystem
     @void ||= wrap(Type.getType("V"))
   end
 
+  def getBlockType
+    @block ||= BlockType.new
+  end
+
   def getBooleanType
     wrap(Type.getType("Z"))
   end
