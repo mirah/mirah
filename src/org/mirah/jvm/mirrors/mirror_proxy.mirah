@@ -122,6 +122,16 @@ class MirrorProxy implements MirrorType
   def matchesAnything
     @target.matchesAnything
   end
+  def toString
+    @target.toString
+  end
+  def unmeta
+    if @target.isMeta
+      @target.unmeta
+    else
+      self
+    end
+  end
 end
 
 class MirrorFuture < BaseTypeFuture
