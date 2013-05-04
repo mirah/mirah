@@ -57,7 +57,7 @@ class PrimitiveLoader < SimpleMirrorLoader
     super(parent)
     @mirrors = {}
     defineType("V")
-    defineType("Z")
+    defineBoolean
     defineNumber("B")
     defineNumber("C")
     defineNumber("S")
@@ -75,6 +75,11 @@ class PrimitiveLoader < SimpleMirrorLoader
   def defineNumber(desc:String)
     type = Type.getType(desc)
     @mirrors[type] = Number.new(type, self)
+  end
+
+  def defineBoolean
+    type = Type.getType('Z')
+    @mirrors[type] = BooleanType.new(self)
   end
 
   def findMirror(type:Type)
