@@ -300,7 +300,7 @@ class MirrorsTest < BaseMirrorsTest
     @scope.package_set('bar')
     define_type("A")
     
-    @scope.import("bar.*", "*")
+    @scope.import("bar", "*")
     @scope.package_set(nil)
     ref = typeref('A')
     assert_descriptor("LA;", @types.get(@scope, ref))

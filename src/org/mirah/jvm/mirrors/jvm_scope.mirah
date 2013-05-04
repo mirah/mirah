@@ -78,7 +78,7 @@ class JVMScope < SimpleScope
 
   def import(fullname:String, shortname:String)
     if "*".equals(shortname)
-      @search_packages.add(fullname.substring(0, fullname.length - 2))
+      @search_packages.add(fullname)
     else
       @imports[shortname] = fullname
     end

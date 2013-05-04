@@ -91,7 +91,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def addDefaultImports(scope)
-    scope.import('java.lang.*', '*')
+    scope.import('java.lang', '*')
   end
 
   def getFixnumType(value)
