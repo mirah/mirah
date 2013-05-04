@@ -244,8 +244,10 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_redefine_main_type
+    existing = main_type.resolve.unmeta
     type = @types.defineType(@scope, ClassDefinition.new, "FooBar", nil, [])
     assert_descriptor("LFooBar;", type)
+    assert_same(existing, type.resolve)
   end
 
   def test_default_constructor

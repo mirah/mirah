@@ -216,14 +216,16 @@ class MirrorTypeSystem implements TypeSystem
       name
     end
     type = Type.getObjectType(fullname.replace(?., ?/))
-    superclass ||= @object_future
-    interfaceArray = TypeFuture[interfaces.size]
-    interfaces.toArray(interfaceArray)
-    mirror = MirahMirror.new(type, Opcodes.ACC_PUBLIC,
-                             superclass, interfaceArray)
-    future = MirrorFuture.new(mirror, position)
-    @loader.defineMirror(type, future)
-    future
+    if existing.isResolved && existing.resolve.kind_of?(MirahMirror)
+    else
+      interfaceArray = TypeFuture[interfaces.size]
+      interfaces.toArray(interfaceArray)
+      mirror = MirahMirror.new(type, Opcodes.ACC_PUBLIC,
+                               superclass, interfaceArray)
+      future = MirrorFuture.new(mirror, position)
+      @loader.defineMirror(type, future)
+      future
+    end
   end
 
   def get(scope, typeref)
