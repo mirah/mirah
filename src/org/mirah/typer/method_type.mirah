@@ -80,6 +80,6 @@ class MethodType
   end
 
   def toString:string
-    "<MethodType: name=#{@name} #{@parameterTypes} : #{@returnType}"
+    "<MethodType: name=#{@name} #{@parameterTypes} : #{@returnType}>"
   end
 end
