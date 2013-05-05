@@ -86,7 +86,7 @@ namespace :test do
 
     desc "run jvm tests using the new self hosted backend"
     task :new do
-      run_tests ["test:jvm:new_backend", "test:jvm:mirror"]
+      run_tests ["test:jvm:new_backend", "test:jvm:mirrors"]
     end
 
     Rake::TestTask.new :new_backend => [:bootstrap, "javalib/mirah-compiler.jar", :test_setup] do |t|
