@@ -109,8 +109,8 @@ task :clean_tmp_test_directory do
 end
 
 task :build_test_fixtures do
-  ant.javac :destdir => "tmp_test", :srcdir => 'test/fixtures',
-    :includeantruntime => false, :debug => true, :listfiles => true
+  ant.javac 'destdir' => "tmp_test", 'srcdir' => 'test/fixtures',
+    'includeantruntime' => false, 'debug' => true, 'listfiles' => true
 end
 
 task :init do
@@ -120,8 +120,8 @@ end
 
 desc "clean up build artifacts"
 task :clean do
-  ant.delete :quiet => true, :dir => 'build'
-  ant.delete :quiet => true, :dir => 'dist'
+  ant.delete 'quiet' => true, 'dir' => 'build'
+  ant.delete 'quiet' => true, 'dir' => 'dist'
   rm_f 'javalib/mirah-bootstrap.jar'
   rm_f 'javalib/mirah-builtins.jar'
   rm_f 'javalib/mirah-util.jar'
@@ -134,17 +134,17 @@ task :jvm_backend => 'javalib/mirah-compiler.jar'
 
 desc "build basic jar for distribution"
 task :jar => :compile do
-  ant.jar :jarfile => 'dist/mirah.jar' do
-    fileset :dir => 'lib'
-    fileset :dir => 'build'
-    fileset :dir => '.', :includes => 'bin/*'
-    fileset :dir => bitescript_lib_dir
-    zipfileset :src => 'javalib/mirah-bootstrap.jar'
-    zipfileset :src => 'javalib/mirah-builtins.jar'
-    zipfileset :src => 'javalib/mirah-util.jar'
-    zipfileset :src => 'javalib/mirah-compiler.jar'
+  ant.jar 'jarfile' => 'dist/mirah.jar' do
+    fileset 'dir' => 'lib'
+    fileset 'dir' => 'build'
+    fileset 'dir' => '.', 'includes' => 'bin/*'
+    fileset 'dir' => bitescript_lib_dir
+    zipfileset 'src' => 'javalib/mirah-bootstrap.jar'
+    zipfileset 'src' => 'javalib/mirah-builtins.jar'
+    zipfileset 'src' => 'javalib/mirah-util.jar'
+    zipfileset 'src' => 'javalib/mirah-compiler.jar'
     manifest do
-      attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
+      attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
     end
   end
 end
@@ -152,13 +152,13 @@ end
 namespace :jar do
   desc "build self-contained, complete jar"
   task :complete => :jar do
-    ant.jar :jarfile => 'dist/mirah-complete.jar' do
-      zipfileset :src => 'dist/mirah.jar'
-      zipfileset :src => 'javalib/jruby-complete.jar'
-      zipfileset :src => 'javalib/mirah-parser.jar'
-      zipfileset :src => 'javalib/dynalink-0.2.jar'
+    ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
+      zipfileset 'src' => 'dist/mirah.jar'
+      zipfileset 'src' => 'javalib/jruby-complete.jar'
+      zipfileset 'src' => 'javalib/mirah-parser.jar'
+      zipfileset 'src' => 'javalib/dynalink-0.2.jar'
       manifest do
-        attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
+        attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
     end
   end
@@ -212,8 +212,8 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
   mkdir_p build_dir
 
   # Compile annotations and class loader
-  ant.javac :destdir => build_dir, :srcdir => 'src',
-    :includeantruntime => false, :debug => true, :listfiles => true
+  ant.javac 'destdir' => build_dir, 'srcdir' => 'src',
+    'includeantruntime' => false, 'debug' => true, 'listfiles' => true
 
   # Compile the Typer and Macro compiler
   bootstrap_mirahc('src/org/mirah/macros', 'src/org/mirah/MirahLogFormatter.mirah', 'src/org/mirah/typer',
@@ -226,8 +226,8 @@ file 'javalib/mirah-bootstrap.jar' => ['javalib/mirah-newast-transitional.jar',
   cp Dir['src/org/mirah/macros/*.tpl'], "#{build_dir}/org/mirah/macros"
 
   # Build the jar                    
-  ant.jar :jarfile => 'javalib/mirah-bootstrap.jar' do
-    fileset :dir => build_dir
+  ant.jar 'jarfile' => 'javalib/mirah-bootstrap.jar' do
+    fileset 'dir' => build_dir
   end
 end
 
@@ -251,14 +251,14 @@ file 'javalib/mirah-util.jar' do
   sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:#{build_dir} --dest #{build_dir} src/org/mirah/ant)
 
   # compile invokedynamic stuff
-  ant.javac :destdir => build_dir, :srcdir => 'src',
-    :includes => 'org/mirah/DynalangBootstrap.java',
-    :classpath => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar',
-    :includeantruntime => false
+  ant.javac 'destdir' => build_dir, 'srcdir' => 'src',
+    'includes' => 'org/mirah/DynalangBootstrap.java',
+    'classpath' => 'javalib/dynalink-0.1.jar:javalib/jsr292-mock.jar',
+    'includeantruntime' => false
 
   # Build the jar
-  ant.jar :jarfile => 'javalib/mirah-util.jar' do
-    fileset :dir => build_dir
+  ant.jar 'jarfile' => 'javalib/mirah-util.jar' do
+    fileset 'dir' => build_dir
   end
 end
 
@@ -268,8 +268,8 @@ file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/
   rm_rf 'build/builtins'
   mkdir_p 'build/builtins'
   sh *%w(jruby -Ilib bin/mirahc --dest build/builtins src/org/mirah/builtins)
-  ant.jar :jarfile => 'javalib/mirah-builtins.jar' do
-    fileset :dir => 'build/builtins'
+  ant.jar 'jarfile' => 'javalib/mirah-builtins.jar' do
+    fileset 'dir' => 'build/builtins'
   end
   rm_rf 'build/builtins'
 end
@@ -293,8 +293,8 @@ file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/o
   sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
        %w(src/org/mirah/util/context.mirah) + phase3_files)
-  ant.jar :jarfile => 'javalib/mirah-compiler.jar' do
-    fileset :dir => 'build/compiler'
+  ant.jar 'jarfile' => 'javalib/mirah-compiler.jar' do
+    fileset 'dir' => 'build/compiler'
   end
   rm_rf 'build/compiler'
 end
@@ -306,8 +306,8 @@ file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/or
   sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirrors ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar) +
        %w(src/org/mirah/jvm/mirrors/))
-  ant.jar :jarfile => 'javalib/mirah-mirrors.jar' do
-    fileset :dir => 'build/mirrors'
+  ant.jar 'jarfile' => 'javalib/mirah-mirrors.jar' do
+    fileset 'dir' => 'build/mirrors'
   end
   rm_rf 'build/mirrors'
 end
