@@ -21,6 +21,7 @@ import java.util.ArrayList
 import java.util.LinkedList
 import java.util.List
 import java.util.logging.Logger
+import java.util.logging.Level
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
@@ -29,6 +30,8 @@ import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.ConstructorDefinition
 import mirah.lang.ast.Position
 import mirah.lang.ast.Script
+
+import org.mirah.MirahLogFormatter
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
@@ -50,9 +53,17 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
 
 class MirrorTypeSystem implements TypeSystem
-  def initialize(classloader:ClassLoader = MirrorTypeSystem.class.getClassLoader)
+  def initialize(
+      classloader:ClassLoader=MirrorTypeSystem.class.getClassLoader,
+      macroloader:ClassLoader=nil)
+    bytecode_loader = BytecodeMirrorLoader.new(classloader, PrimitiveLoader.new)
     @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(
-        BytecodeMirrorLoader.new(classloader, PrimitiveLoader.new)))
+        bytecode_loader))
+    if macroloader
+      @macroloader = BytecodeMirrorLoader.new(macroloader, bytecode_loader)
+    else
+      @macro_loader = bytecode_loader
+    end
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
     @main_type = TypeFuture(nil)
@@ -174,7 +185,10 @@ class MirrorTypeSystem implements TypeSystem
 
   def getMethodType(call)
     future = DelegateFuture.new()
-    if call.resolved_parameters.all? && call.resolved_target
+    if call.resolved_target
+      if call.resolved_target.isError
+        return BaseTypeFuture.new().resolved(call.resolved_target)
+      end
       target = MirrorType(call.resolved_target)
       name = resolveMethodName(call.scope, target, call.name)
       if "<init>".equals(name)
@@ -183,16 +197,21 @@ class MirrorTypeSystem implements TypeSystem
       error = JvmErrorType.new([
         ["Can't find method #{format(target, call.name, call.resolved_parameters)}",
          call.position]], Type.getType("V"))
+      macro_params = LinkedList.new
+      call.parameterNodes.each do |n|
+        type = Type.getType(n.getClass())
+        macro_params.add(@macro_loader.loadMirror(type))
+      end
       method = MethodLookup.findMethod(
           call.scope, target, name,
-          call.resolved_parameters, call.position)
+          call.resolved_parameters, macro_params, call.position)
       method ||= MethodLookup.findField(call.scope, target, name, call.position)
       future.type = method || error
       log = @@log
       target.addMethodListener(call.name) do |klass, name|
         future.type = MethodLookup.findMethod(
             call.scope, target, call.name,
-            call.resolved_parameters, call.position) || error
+            call.resolved_parameters, macro_params, call.position) || error
       end
     end
     future
@@ -443,18 +462,15 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def self.main(args:String[]):void
+    logger = MirahLogFormatter.new(true).install
+    logger.setLevel(Level.ALL)
     types = MirrorTypeSystem.new
-    scope = SimpleScope.new
+    scope = JVMScope.new
     main_type = types.getMainType(nil, nil)
     scope.selfType_set(main_type)
 
-    super_future = BaseTypeFuture.new
-    b = types.defineType(scope, ClassDefinition.new, "B", super_future, [])
-    c = types.defineType(scope, ClassDefinition.new, "C", nil, [])
-    types.getMethodDefType(main_type, 'foobar', [c], types.getVoidType, nil)
-    type = CallFuture.new(types, scope, main_type, 'foobar', [b], [], nil)
-    puts type.resolve
-    super_future.resolved(c.resolve)
+    string = MirrorType(types.getStringType.resolve)
+    type = MethodLookup.findMethod(scope, string, 'toString', [], nil, nil)
     puts type.resolve
   end
 end

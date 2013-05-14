@@ -24,7 +24,7 @@ end
 
 # The return type of a Macro invocation.
 class InlineCode < SpecialType
-  def initialize(node:Node)
+  def initialize(node:NodeImpl)
     super(':inline')
     @node = node
   end

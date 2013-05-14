@@ -229,42 +229,26 @@ class MethodLookup
                   name:String,
                   position:Position):TypeFuture
       potentials = gatherFields(target, name)
-      inaccessible = removeInaccessible(potentials, scope, target)
-      if potentials.size > 0
-        make_future(target, Member(potentials[0]), Collections.emptyList, position)
-      elsif inaccessible.size > 0
-        inaccessible(scope, Member(inaccessible[0]), position)
-      else
-        nil
-      end
+      state = MethodLookup.new(scope, target, potentials, position)
+      state.search(Collections.emptyList, nil)
+      state.future(true)
     end
 
     def findMethod(scope:Scope,
                    target:MirrorType,
                    name:String,
                    params:List,
+                   macro_params:List,
                    position:Position):TypeFuture
       potentials = gatherMethods(target, name)
-      inaccessible = removeInaccessible(potentials, scope, target)
-      methods = findMatchingMethod(potentials, params)
-      @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{methods ? methods.size : 0}")
-      if methods && methods.size > 0
-        if methods.size == 1
-          make_future(target, Member(methods[0]), params, position)
-        else
-          ErrorType.new([["Ambiguous methods #{methods}", position]])
-        end
-      else
-        methods = findMatchingMethod(inaccessible, params)
-        if methods && methods.size > 0
-          inaccessible(scope, Member(methods[0]), position)
-        else
-          nil
-        end
-      end
+      state = MethodLookup.new(scope, target, potentials, position)
+      state.search(params, macro_params)
+      @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{state}")
+      state.future(false)
     end
 
-    def make_future(target:MirrorType, method:Member, params:List, position:Position):TypeFuture
+    def makeFuture(target:MirrorType, method:Member, params:List,
+                   position:Position):TypeFuture
       DerivedFuture.new(method.asyncReturnType) do |resolved|
         type = ResolvedCall.new(target, method)
         MethodType.new(method.name, params, type, method.isVararg)
@@ -314,7 +298,9 @@ class MethodLookup
     end
 
     def findMatchingMethod(potentials:List, params:List):List
-      phase1(potentials, params) || phase2(potentials, params) || phase3(potentials, params)
+      if params && params.all?
+        phase1(potentials, params) || phase2(potentials, params) || phase3(potentials, params)
+      end
     end
 
     def phase1(potentials:List, params:List):List
@@ -411,6 +397,120 @@ class MethodLookup
         methods.add(FakeMember.create(types, arg))
       end
       puts findMaximallySpecific(methods)
+    end
+  end
+
+  def initialize(scope:Scope,
+                 target:MirrorType,
+                 potentials:List,
+                 position:Position)
+    @scope = scope
+    @target = target
+    @position = position
+    @methods = LinkedList.new
+    @macros = LinkedList.new
+    @inaccessible_methods = LinkedList.new
+    @inaccessible_macros = LinkedList.new
+    
+    potentials.each do |p|
+      method = Member(p)
+      # The declaring class and the method must be visible for the method
+      # to be applicable.
+      accessible = true
+      unless MethodLookup.isAccessible(method.declaringClass, 
+                                       method.declaringClass.flags,
+                                       scope)
+        accessible = false
+      end
+      unless MethodLookup.isAccessible(method.declaringClass,
+                                       method.flags, scope, target)
+        accessible = false
+      end
+      
+      is_macro = method.kind_of?(MacroMember)
+      list = if accessible && is_macro
+        @macros
+      elsif accessible
+        @methods
+      elsif is_macro
+        @inaccessible_macros
+      else
+        @inaccessible_methods
+      end
+      list.add(method)
+    end
+  end
+
+  def search(params:List, macro_params:List):void
+    @params = params
+    @macro_params = macro_params
+    @matches = MethodLookup.findMatchingMethod(@methods, params)
+    @macro_matches = MethodLookup.findMatchingMethod(@macros, macro_params)
+    if matches + macro_matches == 0
+      @inaccessible = MethodLookup.findMatchingMethod(
+          @inaccessible_methods, params)
+      if @inaccessible.nil? || @inaccessible.isEmpty
+        @inaccessible = MethodLookup.findMatchingMethod(
+            @inaccessible_macros, macro_params)
+      end
+    end
+  end
+
+  def matches:int
+    if @matches.nil?
+      0
+    else
+      @matches.size
+    end
+  end
+
+  def macro_matches:int
+    if @macro_matches.nil?
+      0
+    else
+      @macro_matches.size
+    end
+  end
+
+  def inaccessible:int
+    if @inaccessible.nil?
+      0
+    else
+      @inaccessible.size
+    end
+  end
+
+  def future(isField:boolean)
+    if matches + macro_matches == 0
+      if inaccessible
+        MethodLookup.inaccessible(@scope,
+                                  Member(@inaccessible.get(0)),
+                                  @position)
+      else
+        nil
+      end
+    elsif matches > 0
+      pickOne(@matches, @params, isField)
+    else
+      pickOne(@macro_matches, @macro_params, isField)
+    end
+  end
+
+  def pickOne(methods:List, params:List, isField:boolean)
+    if methods.size == 0
+      nil
+    elsif isField || methods.size == 1
+      MethodLookup.makeFuture(@target, Member(methods[0]), params, @position)
+    else
+      ErrorType.new([["Ambiguous methods #{methods}", @position]])
+    end
+  end
+
+  def toString
+    if matches + macro_matches + inaccessible == 0
+      "{potentials: #{@methods.size} #{@macros.size} inaccessible: #{@inaccessible_methods.size} #{@inaccessible_macros.size}}"
+    else
+      "{#{matches} methods #{macro_matches} macros #{inaccessible} inaccessible}"
     end
   end
 end

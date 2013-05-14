@@ -267,6 +267,7 @@ class MethodLookupTest < BaseMethodLookupTest
 
     # test inaccessible method
     methods = [make_method("Ljava/lang/Object;.()V", Opcodes.ACC_PRIVATE), make_method("Ljava/lang/String;.()V")]
+    assert_methods_visible(methods, wrap('Ljava/util/Map;'), [methods[1]])
   end
 
   def test_gatherMethods
@@ -277,15 +278,35 @@ class MethodLookupTest < BaseMethodLookupTest
     assert_equal(Set.new([wrap('Ljava/lang/Object;'), wrap('Ljava/lang/String;')]), declaring_classes)
   end
 
+  def test_method_splitting
+    set_self_type(jvmtype('Foo'))
+    methods = [make_method("Ljava/lang/Object;.()V", Opcodes.ACC_PRIVATE), make_method("Ljava/lang/String;.()V")]
+    state = MethodLookup.new(@scope, wrap('Ljava/lang/String;'), methods, nil)
+    assert_equal("{potentials: 1 0 inaccessible: 1 0}", state.toString)
+  end
+
+  def test_search
+    set_self_type(jvmtype('Foo'))
+    methods = [make_method("Ljava/lang/Object;.()V")]
+    state = MethodLookup.new(@scope, wrap('Ljava/lang/String;'), methods, nil)
+    state.search([], nil)
+    assert_equal("{1 methods 0 macros 0 inaccessible}", state.toString)
+    future = state.future(false)
+    assert_not_nil(future)
+    type = future.resolve
+    assert(!type.isError)
+    assert_equal("Ljava/lang/String;", type.returnType.class_id)
+  end
+
   def test_findMethod
     set_self_type(jvmtype('Foo'))
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil).resolve
-    assert(!type.isError)
-    assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil))
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil).resolve
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil, nil).resolve
+    assert(!type.isError, type.toString)
+    assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil, nil))
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil, nil).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.registerNatives() from Foo', type.message[0][0])
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil).resolve
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil, nil).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.clone() from Foo', type.message[0][0])
     # TODO test ambiguous
