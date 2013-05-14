@@ -607,9 +607,8 @@ module Mirah::JVM::Types
 
     # TODO take a scope and check visibility
     def find_callable_macros(name)
-      interfaces = find_interfaces
       macros = find_callable_macros2 name
-      macros.concat collect_up_interface_tree(interfaces) {|interface| interface.declared_macros(name) }
+      macros.concat collect_up_interface_tree(find_interfaces) {|interface| interface.declared_macros(name) }
       macros
     end
 
@@ -632,15 +631,11 @@ module Mirah::JVM::Types
         proc.call(find_callable_methods(name))
         return
       end
-      interfaces = if self.interface? || include_interfaces # TODO || self.abstract?
-        find_interfaces
-      else
-        nil
-      end
+
       methods = find_callable_methods2 name
 
-      if interfaces
-        methods.concat collect_up_interface_tree(interfaces) { |interface| interface.declared_instance_methods(name) }
+      if self.interface? || include_interfaces # TODO || self.abstract?
+        methods.concat collect_up_interface_tree(find_interfaces) { |interface| interface.declared_instance_methods(name) }
       end
       methods
     end
