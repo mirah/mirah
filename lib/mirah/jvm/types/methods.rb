@@ -609,14 +609,7 @@ module Mirah::JVM::Types
     def find_callable_macros(name)
       interfaces = find_interfaces
       macros = find_callable_macros2 name
-      seen = {}
-      until interfaces.empty?
-        interface = interfaces.pop
-        next if seen[interface] || interface.isError
-        seen[interface] = true
-        interfaces.concat(interface.interfaces)
-        macros.concat(interface.declared_macros(name))
-      end
+      macros.concat collect_up_interface_tree(interfaces) {|interface| interface.declared_macros(name) }
       macros
     end
 
@@ -647,14 +640,7 @@ module Mirah::JVM::Types
       methods = find_callable_methods2 name
 
       if interfaces
-        seen = {}
-        until interfaces.empty?
-          interface = interfaces.pop
-          next if seen[interface]
-          seen[interface] = true
-          interfaces.concat(interface.interfaces)
-          methods.concat(interface.declared_instance_methods(name))
-        end
+        methods.concat collect_up_interface_tree(interfaces) { |interface| interface.declared_instance_methods(name) }
       end
       methods
     end
@@ -773,6 +759,20 @@ module Mirah::JVM::Types
     end
 
     protected
+
+    def collect_up_interface_tree interfaces, &block
+      things = []
+      seen = {}
+      until interfaces.empty?
+        interface = interfaces.pop
+        next if seen[interface]
+        seen[interface] = true
+        interfaces.concat(interface.interfaces)
+        new_things = block.call interface
+        things.concat new_things if new_things
+      end
+      things
+    end
 
     def collect_up_inheritance_tree(&block)
       things = []
