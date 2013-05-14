@@ -630,6 +630,15 @@ module Mirah::JVM::Types
       macros
     end
 
+    def find_callable_static_methods(name)
+      methods = []
+      methods.concat(declared_class_methods(name))
+      if superclass && !superclass.error?
+        methods.concat(superclass.find_callable_static_methods(name))
+      end
+      methods
+    end
+
     # TODO take a scope and check visibility
     def find_callable_methods(name, include_interfaces=false, &proc)
       if block_given?

@@ -1740,4 +1740,23 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     assert_equal(3, cls.foo)
   end
+
+  def test_static_method_inheritance
+    cls, = compile(<<-EOF)
+      class Parent
+        def self.my_method
+          'ran my method'
+        end
+      end
+
+      class Child < Parent
+      end
+
+      puts Child.my_method
+    EOF
+
+    assert_output "ran my method\n" do
+      cls.main(nil)
+    end
+  end
 end

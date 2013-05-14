@@ -99,7 +99,7 @@ module Mirah
         by_name = if constructor
           mapped_type.unmeta.declared_constructors
         elsif meta
-          mapped_type.declared_class_methods(name)
+          mapped_type.find_callable_static_methods(name)
         else
           mapped_type.find_callable_methods(name)
         end
