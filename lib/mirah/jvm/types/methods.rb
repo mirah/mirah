@@ -621,22 +621,16 @@ module Mirah::JVM::Types
     end
 
     def find_callable_macros2(name, interfaces)
-      macros = []
-      interfaces.concat(self.interfaces)
-      macros.concat(declared_macros(name))
-      if superclass && !superclass.error?
-        macros.concat(superclass.find_callable_macros2(name, interfaces))
-      end
-      macros
+      interfaces.concat find_interfaces
+      collect_up_inheritance_tree {|type| type.declared_macros name }
     end
 
     def find_callable_static_methods(name)
-      methods = []
-      methods.concat(declared_class_methods(name))
-      if superclass && !superclass.error?
-        methods.concat(superclass.find_callable_static_methods(name))
-      end
-      methods
+      collect_up_inheritance_tree { |type| type.declared_class_methods(name) }
+    end
+
+    def find_interfaces
+      collect_up_inheritance_tree {|type| type.interfaces }
     end
 
     # TODO take a scope and check visibility
@@ -652,6 +646,7 @@ module Mirah::JVM::Types
         nil
       end
       methods = find_callable_methods2(name, interfaces)
+
       if interfaces
         seen = {}
         until interfaces.empty?
@@ -666,13 +661,8 @@ module Mirah::JVM::Types
     end
 
     def find_callable_methods2(name, interfaces)
-      methods = []
-      interfaces.concat(self.interfaces) if interfaces
-      methods.concat(declared_instance_methods(name))
-      if superclass && !superclass.error?
-        methods.concat(superclass.find_callable_methods2(name, interfaces))
-      end
-      methods
+      interfaces.concat find_interfaces if interfaces
+      collect_up_inheritance_tree { |type| type.declared_instance_methods(name) }
     end
 
     def get_method(name, args)
@@ -782,6 +772,18 @@ module Mirah::JVM::Types
     def hasStaticField(name)
       f = getDeclaredField(name)
       f && f.static?
+    end
+
+    protected
+
+    def collect_up_inheritance_tree(&block)
+      things = []
+      new_things = block.call(self)
+      things.concat new_things if new_things
+      if superclass && !superclass.error?
+        things.concat superclass.collect_up_inheritance_tree(&block)
+      end
+      things
     end
 
     private
