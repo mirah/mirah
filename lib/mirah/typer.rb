@@ -18,5 +18,8 @@ require 'mirah/errors'
 module Mirah
   module Typer
     java_import 'org.mirah.typer.Typer'
+
+    java_import 'org.mirah.typer.ResolvedType'
+    java_import 'org.mirah.typer.TypeSystem'
   end
 end

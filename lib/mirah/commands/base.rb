@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#require 'mirah/jvm/types'
 require 'mirah/util/compilation_state'
 require 'mirah/util/argument_processor'
 require 'mirah/errors'
@@ -23,7 +22,6 @@ module Mirah
     class Base
       include Mirah::Logging::Logged
       def initialize(args)
-        #Mirah::AST.type_factory = Mirah::JVM::Types::TypeFactory.new
         @state = Mirah::Util::CompilationState.new
         @state.command = command_name
         @args = args

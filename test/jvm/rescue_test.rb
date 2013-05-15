@@ -15,13 +15,13 @@
 
 class RescueTest < Test::Unit::TestCase
 
-  def test_rescue
+  def test_rescue_with_no_raise_runs_begin_and_not_rescue
     cls, = compile(<<-EOF)
       def foo
         begin
-          System.out.println "body"
+          puts "body"
         rescue
-          System.out.println "rescue"
+          puts "rescue"
         end
       end
     EOF
@@ -30,14 +30,16 @@ class RescueTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("body\n", output)
+  end
 
+  def test_rescue_with_raise_after_begin_runs_rescue
     cls, = compile(<<-EOF)
       def foo
         begin
-          System.out.println "body"
+          puts "body"
           raise
         rescue
-          System.out.println "rescue"
+          puts "rescue"
         end
       end
     EOF
@@ -46,20 +48,22 @@ class RescueTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("body\nrescue\n", output)
+  end
 
+  def test_rescue_with_type_clause_and_untyped_clause
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
-          System.out.println "body"
+          puts "body"
           if a == 0
             raise IllegalArgumentException
           else
             raise
           end
         rescue IllegalArgumentException
-          System.out.println "IllegalArgumentException"
+          puts "IllegalArgumentException"
         rescue
-          System.out.println "rescue"
+          puts "rescue"
         end
       end
     EOF
@@ -69,11 +73,14 @@ class RescueTest < Test::Unit::TestCase
       cls.foo(0)
     end
     assert_equal("body\nrescue\nbody\nIllegalArgumentException\n", output)
+  end
 
+
+  def test_rescue_with_multiple_types_or_throwable
     cls, = compile(<<-EOF)
       def foo(a:int)
         begin
-          System.out.println "body"
+          puts "body"
           if a == 0
             raise IllegalArgumentException
           elsif a == 1
@@ -82,9 +89,9 @@ class RescueTest < Test::Unit::TestCase
             raise
           end
         rescue IllegalArgumentException, Exception
-          System.out.println "multi"
+          puts "multi"
         rescue Throwable
-          System.out.println "other"
+          puts "other"
         end
       end
     EOF
@@ -95,13 +102,15 @@ class RescueTest < Test::Unit::TestCase
       cls.foo(2)
     end
     assert_equal("body\nmulti\nbody\nother\nbody\nmulti\n", output)
+  end
 
+  def test_rescue_without_type_with_argument
     cls, = compile(<<-EOF)
       def foo
         begin
           raise "foo"
         rescue => ex
-          System.out.println ex.getMessage
+          puts ex.getMessage
         end
       end
     EOF
@@ -110,8 +119,9 @@ class RescueTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("foo\n", output)
+  end
 
-
+  def test_implicit_begin_on_method_with_rescue_and_else
     cls, = compile(<<-EOF)
       def foo(x:boolean)
         # throws Exception
@@ -129,7 +139,9 @@ class RescueTest < Test::Unit::TestCase
     assert_raise_java java.lang.Exception, "!x" do
       cls.foo(false)
     end
+  end
 
+  def test_rescue_with_return_types_correctly
     cls, = compile(<<-EOF)
       def foo:long
         begin
@@ -147,15 +159,63 @@ class RescueTest < Test::Unit::TestCase
     assert_equal 1, cls.foo
   end
 
-  def test_empty_rescues
+  def test_rescue_with_return_returns_value
     cls, = compile(<<-EOF)
+      def foo:long
+        begin
+          raise "some error"
+        rescue Exception => e
+          return long(0)
+        end
+      end
+    EOF
+
+    assert_equal 0, cls.foo
+  end
+
+  def test_rescue_with_else_clause_returns_from_else_when_no_exception
+    cls, = compile(<<-EOF)
+      def foo:long
+        begin
+          long(0)
+        rescue
+          long(1)
+        else
+          long(2)
+        end
+      end
+    EOF
+
+    assert_equal 2, cls.foo
+  end
+
+  def test_rescue_with_else_clause_returns_from_rescue_when_exception_raised
+    cls, = compile(<<-EOF)
+      def foo:long
+        begin
+          raise "oh, my"
+        rescue
+          long(1)
+        else
+          long(2)
+        end
+      end
+    EOF
+
+    assert_equal 1, cls.foo
+  end
+
+  def test_empty_rescue_body_compiles
+    compile(<<-EOF)
       begin
       rescue
         nil
       end
     EOF
+  end
 
-    cls, = compile(<<-EOF)
+  def test_rescue_thats_not_an_expression_compiles
+    compile(<<-EOF)
       begin
         ""
       rescue
@@ -163,7 +223,9 @@ class RescueTest < Test::Unit::TestCase
       end
       nil
     EOF
+  end
 
+  def test_rescue_containing_while_with_ensure_runs_ensure
     cls, = compile(<<-EOF)
       def empty_with_ensure
         begin
@@ -173,20 +235,36 @@ class RescueTest < Test::Unit::TestCase
           end
         rescue
         ensure
-          System.out.println 'ensuring'
+          puts 'ensuring'
         end
         ""
       end
     EOF
+    assert_output "ensuring\n" do
+      cls.empty_with_ensure
+    end
   end
 
+  def test_empty_rescue_body_with_else_runs_else
+    cls, = compile(<<-EOF)
+      begin
+      rescue
+        nil
+      else
+        puts "else"
+      end
+    EOF
+    assert_output "else\n" do
+      cls.main nil
+    end
+  end
 
   def test_ensure
     cls, = compile(<<-EOF)
       def foo
         1
       ensure
-        System.out.println "Hi"
+        puts "Hi"
       end
     EOF
     output = capture_output do
@@ -198,7 +276,7 @@ class RescueTest < Test::Unit::TestCase
       def foo
         return 1
       ensure
-        System.out.println "Hi"
+        puts "Hi"
       end
     EOF
     output = capture_output do
@@ -211,7 +289,7 @@ class RescueTest < Test::Unit::TestCase
         begin
           break
         ensure
-          System.out.println "Hi"
+          puts "Hi"
         end while false
       end
     EOF
@@ -224,14 +302,14 @@ class RescueTest < Test::Unit::TestCase
   def test_loop_in_ensure
     cls, = compile(<<-EOF)
     begin
-      System.out.println "a"
+      puts "a"
       begin
-        System.out.println "b"
+        puts "b"
         break
       end while false
-      System.out.println "c"
+      puts "c"
     ensure
-      System.out.println "ensure"
+      puts "ensure"
     end
     EOF
 

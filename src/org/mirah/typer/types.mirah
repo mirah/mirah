@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ interface TypeSystem do
   #  - else, create an exception of getDefaultExceptionType.
   def getBaseExceptionType:TypeFuture; end
 
-  # The default exceptiont type caught by rescue statements and raised by raise statements.
+  # The default exception type caught by rescue statements and raised by raise statements.
   def getDefaultExceptionType:TypeFuture; end
 
   def getRegexType:TypeFuture; end

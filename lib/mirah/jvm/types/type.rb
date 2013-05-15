@@ -166,6 +166,7 @@ module Mirah
           assignable_from?(other.superclass) ||
               other.interfaces.any? {|i| assignable_from?(i)}
         end
+
         def assignableFrom(other)
           assignable_from?(other)
         end

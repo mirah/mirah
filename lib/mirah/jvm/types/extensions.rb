@@ -73,6 +73,10 @@ module Mirah::JVM::Types
       __combine_methods(__getobj__.find_callable_methods(name, include_interfaces), name)
     end
 
+    def find_callable_static_methods(name)
+      __combine_methods(__getobj__.find_callable_static_methods(name), name)
+    end
+
     def __combine_methods(basic_methods, name)
       methods = {}
       basic_methods.each do |method|

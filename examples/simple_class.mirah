@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class Foo
+class SimpleClass
   def initialize
     puts 'constructor'
     @hello = 'Hello, '
@@ -24,4 +24,4 @@ class Foo
   end
 end
 
-Foo.new.hello('Mirah')
+SimpleClass.new.hello('Mirah')

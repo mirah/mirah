@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -46,8 +46,6 @@ module Mirah::JVM::Types
   end
   
   class MathIntrinsic < Intrinsic
-    java_import 'org.jruby.org.objectweb.asm.commons.GeneratorAdapter'
-    
     def accept(visitor, expression)
       visitor.visitMath(self, expression)
     end
@@ -181,10 +179,6 @@ module Mirah::JVM::Types
       math_operator('%', :rem)
       unary_operator('-@', :neg)
       unary_operator('+@', nil)
-    end
-
-    def box(builder)
-      builder.invokestatic box_type, "valueOf", [box_type, math_type]
     end
   end
 end

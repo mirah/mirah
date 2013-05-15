@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -196,29 +196,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     cls, = compile("import java.lang.Object;def foo; a = Object[2];end")
     assert_equal(Java::JavaLang::Object[].java_class, cls.foo.class.java_class)
     assert_equal([nil, nil], cls.foo.to_a)
-  end
-
-  def test_string_concat
-    cls, = compile("
-      def str_str; a = 'a'; b = 'b'; a + b; end
-      def str_boolean; a = 'a'; b = false; a + b; end
-      def str_float; a = 'a'; b = float(1.0); a + b; end
-      def str_double; a = 'a'; b = 1.0; a + b; end
-      def str_byte; a = 'a'; b = byte(1); a + b; end
-      def str_short; a = 'a'; b = short(1); a + b; end
-      def str_char; a = 'a'; b = char(123); a + b; end
-      def str_int; a = 'a'; b = 1; a + b; end
-      def str_long; a = 'a'; b = long(1); a + b; end
-    ")
-    assert_equal("ab", cls.str_str)
-    assert_equal("afalse", cls.str_boolean)
-    assert_equal("a1.0", cls.str_float)
-    assert_equal("a1.0", cls.str_double)
-    assert_equal("a1", cls.str_byte)
-    assert_equal("a1", cls.str_short)
-    assert_equal("a{", cls.str_char)
-    assert_equal("a1", cls.str_int)
-    assert_equal("a1", cls.str_long)
   end
 
   def test_void_selfcall
@@ -1724,6 +1701,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
     assert_equal "Target JVM version: 1.6 doesn't support invoke dynamic", ex.message
   end
+
   def test_assign_int_to_double
     cls, = compile(<<-EOF)
       def foo
@@ -1733,5 +1711,52 @@ class JVMCompilerTest < Test::Unit::TestCase
     EOF
     
     assert_equal(0.0, cls.foo)
+  end
+
+  def test_assign_int_to_double_in_closure
+    cls, = compile(<<-EOF)
+      def bar(r:Runnable); r.run; end
+
+      def foo
+        a = 1.0
+        bar do
+          a = 0
+        end
+        a
+      end
+    EOF
+
+    assert_equal(0.0, cls.foo)
+  end
+
+  def test_array_literals_are_modifiable
+    cls, = compile(<<-EOF)
+      def foo
+        arr = [1,2]
+        arr.add(3)
+        arr[2]
+      end
+    EOF
+
+    assert_equal(3, cls.foo)
+  end
+
+  def test_static_method_inheritance
+    cls, = compile(<<-EOF)
+      class Parent
+        def self.my_method
+          'ran my method'
+        end
+      end
+
+      class Child < Parent
+      end
+
+      puts Child.my_method
+    EOF
+
+    assert_output "ran my method\n" do
+      cls.main(nil)
+    end
   end
 end

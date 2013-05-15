@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,6 @@ class InterfaceTest < Test::Unit::TestCase
     assert_equal 0, result
     m = cls.java_class.java_method 'foo', java.util.concurrent.Callable
   end
-
 
   def test_interface_declaration
     interface = compile('interface A; end').first
@@ -69,5 +68,46 @@ class InterfaceTest < Test::Unit::TestCase
         end
       EOF
     end
+  end
+
+  def test_interface_implementation_with_non_array_params_doesnt_require_type_information
+    interface, a_impl = compile(<<-EOF)
+        interface InterfaceWithStrings
+          def arr(message:String):int; end
+        end
+
+        class StringImpl implements InterfaceWithStrings
+          def blah(s:String) s.length ; end
+          def arr(message) blah message ; end
+        end
+      EOF
+  end
+
+  def test_interface_implementation_with_array_params_requires_type_information
+    interface, a_impl = compile(<<-EOF)
+        interface InterfaceWithArrays
+          def arr(messages:String[]):int; end
+        end
+
+        class ExplicitArrImpl implements InterfaceWithArrays
+          def blah(s:String[]) s.length ; end
+          def arr(messages:String[]) blah messages ; end
+        end
+      EOF
+    
+    # this is the current behavior. I think we should fix it. nh
+    error = assert_raises Mirah::MirahError do
+      interface, a_impl = compile(<<-EOF)
+        interface InterfaceWithArrays
+          def arr(messages:String[]):int; end
+        end
+
+        class ImplicitArrImpl implements InterfaceWithArrays
+          def blah(s:String[]) s.length ; end
+          def arr(messages) blah messages ; end
+        end
+      EOF
+    end
+    assert_equal "Cannot find instance method blah(java.lang.String) on ImplicitArrImpl", error.message
   end
 end

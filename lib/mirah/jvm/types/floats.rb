@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,6 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'float')
-    end
-
-    def box_type
-      @type_system.type(nil, 'java.lang.Float')
     end
 
     def suffix
@@ -54,7 +50,7 @@ module Mirah::JVM::Types
         # Do nothing
       when 'double'
         builder.f2d
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from float to #{type}"
@@ -69,10 +65,6 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'double')
-    end
-
-    def box_type
-      @type_system.type(nil, 'java.lang.Double')
     end
 
     def wide?
@@ -97,7 +89,7 @@ module Mirah::JVM::Types
     def compile_widen(builder, type)
       case type.name
       when 'double'
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from double to #{type}"

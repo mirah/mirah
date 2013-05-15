@@ -16,6 +16,8 @@ require 'bundler/setup'
 require 'test/unit'
 require 'mirah'
 require 'jruby'
+require 'stringio'
+require 'fileutils'
 
 module CommonAssertions
   import java.lang.System

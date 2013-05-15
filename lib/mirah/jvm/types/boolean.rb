@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,15 +23,6 @@ module Mirah::JVM::Types
       'i'
     end
 
-    def box(builder)
-      box_type = Mirah::AST::type(nil, 'java.lang.Boolean')
-      builder.invokestatic box_type, "valueOf", [box_type, self]
-    end
-
-    def box_type
-      @type_system.type(nil, 'java.lang.Boolean')
-    end
-
     def add_intrinsics
       args = [math_type]
       add_method('==', args, ComparisonIntrinsic.new(self, '==', :eq, args))
@@ -40,6 +31,16 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'boolean')
+    end
+
+    def compile_widen(builder, type)
+      case type.name
+      when 'boolean'
+      when wrapper_name, 'java.lang.Object'
+        builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
+      else
+        raise ArgumentError, "Invalid widening conversion from #{name} to #{type}"
+      end
     end
 
     # same as NumberType's

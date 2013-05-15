@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +39,7 @@ module Mirah::JVM::Types
         builder.i2f
       when 'double'
         builder.i2d
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from #{name} to #{type}"
@@ -52,10 +52,6 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'int')
-    end
-
-    def box_type
-      @type_system.type(nil, 'java.lang.Integer')
     end
 
     def jump_if(builder, op, label)
@@ -74,6 +70,17 @@ module Mirah::JVM::Types
     end
   end
 
+  class CharacterType < IntegerType
+    def compile_widen(builder, type)
+      case type.name
+      when 'char'
+        # do nothing
+      else
+        super
+      end
+    end
+  end
+
   class LongType < Number
     def prefix
       'l'
@@ -81,10 +88,6 @@ module Mirah::JVM::Types
 
     def math_type
       @type_system.type(nil, 'long')
-    end
-
-    def box_type
-      @type_system.type(nil, 'java.lang.Long')
     end
 
     def literal(builder, value)
@@ -107,7 +110,7 @@ module Mirah::JVM::Types
         builder.l2f
       when 'double'
         builder.l2d
-      when @wrapper.java_class.name, 'java.lang.Object'
+      when wrapper_name, 'java.lang.Object'
         builder.invokestatic @wrapper, "valueOf", [@wrapper, builder.send(name)]
       else
         raise ArgumentError, "Invalid widening conversion from Int to #{type}"

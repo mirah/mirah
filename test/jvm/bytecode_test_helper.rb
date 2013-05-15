@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 require 'test_helper'
-require 'stringio'
-require 'fileutils'
 require 'set'
 
 module JVMCompiler
@@ -161,8 +159,18 @@ module CommonAssertions
   end
 end
 
+module DebuggingHelp
+  def with_finest_logging
+    Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::FINEST
+    yield
+  ensure
+    Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::INFO
+  end
+end
+
 class Test::Unit::TestCase
   include JVMCompiler
+  include DebuggingHelp
 
   def setup
     @tmp_classes = Set.new

@@ -463,10 +463,7 @@ module Mirah
             @method.dup
             @method.push_int i
             visit(value, true)
-            in_type = inferred_type(value)
-            if in_type.primitive? && in_type != type.component_type
-              in_type.compile_widen(@method, type.component_type)
-            end
+            convert_value inferred_type(value), type.component_type
             @method.aastore
           end
         end
@@ -762,9 +759,13 @@ module Mirah
           declare_local(scope, name, type)
 
           visit(local.value, true)
+          convert_value inferred_type(local.value), type
 
           # if expression, dup the value we're assigning
-          @method.dup if expression
+          if expression
+            dup_value type
+          end
+
           set_position(local.position)
           type.store(@method, @method.local(scoped_local_name(name, scope), type))
         end
@@ -774,7 +775,12 @@ module Mirah
           captured_local_declare(scope, name, type)
           binding_reference
           visit(node.value, true)
-          @method.dup_x2 if expression
+          convert_value(inferred_type(node.value), type)
+
+          # if expression, dup the value we're assigning
+          if expression
+            dup_x2_value type
+          end
           set_position(node.position)
           @method.putfield(scope.binding_type, name, type)
         end
@@ -938,9 +944,6 @@ module Mirah
               @method.invokeinterface java::util::List, "add", [@method.boolean, @method.object]
               @method.pop
             end
-
-            # make it unmodifiable
-            @method.invokestatic java::util::Collections, "unmodifiableList", [java::util::List, java::util::List]
           else
             # elements, as non-expressions
             # TODO: ensure they're all reference types!
@@ -1066,10 +1069,14 @@ module Mirah
           start = @method.label.set!
           body_end = @method.label
           done = @method.label
-          visit(rescue_node.body, expression && rescue_node.else_clause.size == 0)
+          no_else_clauses = rescue_node.else_clause.size == 0
+
+          visit(rescue_node.body, expression && no_else_clauses)
           body_end.set!
-          visit(rescue_node.else_clause, expression) if rescue_node.else_clause.size > 0
+
+          visit(rescue_node.else_clause, expression) unless no_else_clauses
           return if start.label.offset == body_end.label.offset
+
           @method.goto(done)
           rescue_node.clauses.each do |clause|
             target = @method.label.set!
@@ -1121,6 +1128,28 @@ module Mirah
             visit(node.size, true)
             type = @typer.type_system.get(@scoper.getScope(node), node.type).resolve
             type.newarray(@method)
+          end
+        end
+
+        private
+
+        def convert_value in_type, out_type
+          in_type.compile_widen(@method, out_type) if in_type.primitive?
+        end
+
+        def dup_value type
+          if type.primitive? && type.wide?
+            @method.dup2
+          else
+            @method.dup
+          end
+        end
+
+        def dup_x2_value type
+          if type.primitive? && type.wide?
+            @method.dup2_x2
+          else
+            @method.dup_x2
           end
         end
 

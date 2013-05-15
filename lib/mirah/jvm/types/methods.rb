@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -149,13 +149,11 @@ module Mirah::JVM::Types
 
   class JavaCallable
     include ArgumentConversion
-    java_import 'org.mirah.typer.ResolvedType'
-    java_import 'org.mirah.typer.TypeSystem'
 
     attr_accessor :member
 
     def initialize(types, member)
-      raise ArgumentError unless types.kind_of?(TypeSystem)
+      raise ArgumentError unless types.kind_of?(Mirah::Typer::TypeSystem)
       @types = types
       @member = member
     end
@@ -194,7 +192,7 @@ module Mirah::JVM::Types
 
     def exceptions
       @member.exception_types.map do |exception|
-        if exception.kind_of?(ResolvedType)
+        if exception.kind_of?(Mirah::Typer::ResolvedType)
           exception
         else
           @types.type(nil, exception.class_name)
@@ -609,27 +607,17 @@ module Mirah::JVM::Types
 
     # TODO take a scope and check visibility
     def find_callable_macros(name)
-      interfaces = []
-      macros = find_callable_macros2(name, interfaces)
-      seen = {}
-      until interfaces.empty?
-        interface = interfaces.pop
-        next if seen[interface] || interface.isError
-        seen[interface] = true
-        interfaces.concat(interface.interfaces)
-        macros.concat(interface.declared_macros(name))
-      end
+      macros = find_callable_macros2 name
+      macros.concat collect_up_interface_tree {|interface| interface.declared_macros(name) }
       macros
     end
 
-    def find_callable_macros2(name, interfaces)
-      macros = []
-      interfaces.concat(self.interfaces)
-      macros.concat(declared_macros(name))
-      if superclass && !superclass.error?
-        macros.concat(superclass.find_callable_macros2(name, interfaces))
-      end
-      macros
+    def find_callable_macros2(name)
+      collect_up_inheritance_tree {|type| type.declared_macros name }
+    end
+
+    def find_callable_static_methods(name)
+      collect_up_inheritance_tree { |type| type.declared_class_methods(name) }
     end
 
     # TODO take a scope and check visibility
@@ -639,33 +627,17 @@ module Mirah::JVM::Types
         proc.call(find_callable_methods(name))
         return
       end
-      interfaces = if self.interface? || include_interfaces # TODO || self.abstract?
-        []
-      else
-        nil
-      end
-      methods = find_callable_methods2(name, interfaces)
-      if interfaces
-        seen = {}
-        until interfaces.empty?
-          interface = interfaces.pop
-          next if seen[interface]
-          seen[interface] = true
-          interfaces.concat(interface.interfaces)
-          methods.concat(interface.declared_instance_methods(name))
-        end
+
+      methods = find_callable_methods2 name
+
+      if self.interface? || include_interfaces # TODO || self.abstract?
+        methods.concat collect_up_interface_tree { |interface| interface.declared_instance_methods(name) }
       end
       methods
     end
 
-    def find_callable_methods2(name, interfaces)
-      methods = []
-      interfaces.concat(self.interfaces) if interfaces
-      methods.concat(declared_instance_methods(name))
-      if superclass && !superclass.error?
-        methods.concat(superclass.find_callable_methods2(name, interfaces))
-      end
-      methods
+    def find_callable_methods2(name)
+      collect_up_inheritance_tree { |type| type.declared_instance_methods(name) }
     end
 
     def get_method(name, args)
@@ -683,8 +655,7 @@ module Mirah::JVM::Types
 
     def constructor(*types)
       begin
-        descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
-        constructor = jvm_type.getConstructor(*descriptors)
+        constructor = jvm_type.getConstructor(*bitescript_signatures(types))
         return JavaConstructor.new(@type_system, constructor) if constructor
       rescue => ex
         log("#{ex.message}\n#{ex.backtrace.join("\n")}")
@@ -700,8 +671,7 @@ module Mirah::JVM::Types
       return JavaDynamicMethod.new(@type_system, name, *jvm_types) if dynamic?
 
       begin
-        descriptors = types.map {|type| BiteScript::Signature.class_id(type)}
-        method = jvm_type.getDeclaredMethod(name, *descriptors) if jvm_type
+        method = jvm_type.getDeclaredMethod(name, *bitescript_signatures(types)) if jvm_type
 
         if method.nil? && superclass
           method = superclass.java_method(name, *types) rescue nil
@@ -716,8 +686,7 @@ module Mirah::JVM::Types
 
         return method if method.kind_of?(JavaCallable)
         if method && method.static? == meta?
-          return JavaStaticMethod.new(@type_system, method) if method.static?
-          return JavaMethod.new(@type_system, method)
+          return wrap_jvm_method method
         end
       rescue   => ex
         log("#{ex.message}\n#{ex.backtrace.join("\n")}")
@@ -726,23 +695,13 @@ module Mirah::JVM::Types
     end
 
     def declared_instance_methods(name=nil)
-      methods = []
-      if jvm_type && !array?
-        jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaMethod.new(@type_system, method) unless (method.static? || method.synthetic?)
-        end
-      end
-      methods.concat((meta? ? unmeta : self).declared_intrinsics(name))
+      all_declared_jvm_methods(name).reject{ |method| method.static? && !method.synthetic? } +
+      (meta? ? unmeta : self).declared_intrinsics(name)
     end
 
     def declared_class_methods(name=nil)
-      methods = []
-      if jvm_type && !unmeta.array?
-        jvm_type.getDeclaredMethods(name).each do |method|
-          methods << JavaStaticMethod.new(@type_system, method) if (method.static? && !method.synthetic?)
-        end
-      end
-      methods.concat(meta.declared_intrinsics(name))
+      all_declared_jvm_methods(name).select{ |method| method.static? && !method.synthetic? } +
+      meta.declared_intrinsics(name)
     end
 
     def declared_constructors
@@ -752,21 +711,17 @@ module Mirah::JVM::Types
     end
 
     def field_getter(name)
-      if jvm_type
-        field = jvm_type.getField(name)
-        JavaFieldGetter.new(@type_system, field) if field
-      else
-        nil
-      end
+      field = jvm_field(name)
+      return nil unless field
+
+      JavaFieldGetter.new(@type_system, field)
     end
 
     def field_setter(name)
-      if jvm_type
-        field = jvm_type.getField(name)
-        JavaFieldSetter.new(@type_system, field) if field
-      else
-        nil
-      end
+      field = jvm_field(name)
+      return nil unless field
+
+      JavaFieldSetter.new(@type_system, field)
     end
 
     def inner_class_getter(name)
@@ -793,13 +748,69 @@ module Mirah::JVM::Types
       f = getDeclaredField(name)
       f && f.static?
     end
+
+    protected
+
+    def find_interfaces
+      collect_up_inheritance_tree {|type| type.interfaces }
+    end
+
+    def collect_up_interface_tree &block
+      interfaces = find_interfaces
+      things = []
+      seen = {}
+      until interfaces.empty?
+        interface = interfaces.pop
+        next if seen[interface]
+        seen[interface] = true
+        interfaces.concat(interface.interfaces)
+        new_things = block.call interface
+        things.concat new_things if new_things
+      end
+      things
+    end
+
+    def collect_up_inheritance_tree(&block)
+      things = []
+      new_things = block.call(self)
+      things.concat new_things if new_things
+      if superclass && !superclass.error?
+        things.concat superclass.collect_up_inheritance_tree(&block)
+      end
+      things
+    end
+
+    private
+
+    def all_declared_jvm_methods(name=nil)
+      return [] if !jvm_type || (meta? ? unmeta : self).array?
+
+      jvm_type.getDeclaredMethods(name).map { |method| wrap_jvm_method method }
+    end
+
+    def wrap_jvm_method method
+      if (method.static? && !method.synthetic?)
+        JavaStaticMethod.new(@type_system, method)
+      else
+        JavaMethod.new(@type_system, method)
+      end
+    end
+
+    def jvm_field(name)
+      return nil unless jvm_type
+      jvm_type.getField(name)
+    end
+
+    def bitescript_signatures types
+      types.map {|type| BiteScript::Signature.class_id(type)}
+    end
   end
 
   class TypeDefinition
     java_import "org.mirah.jvm.types.JVMMethod" rescue nil
 
     def java_method(name, *types)
-      method = instance_methods[name].find {|m| m.argument_types == types}
+      method = first_matching instance_methods[name], types
       return method if method
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
@@ -807,7 +818,7 @@ module Mirah::JVM::Types
     end
 
     def java_static_method(name, *types)
-      method = static_methods[name].find {|m| m.argument_types == types}
+      method = first_matching static_methods[name], types
       return method if method
       intrinsic = meta.intrinsics[name][types]
       return intrinsic if intrinsic
@@ -815,29 +826,17 @@ module Mirah::JVM::Types
     end
 
     def constructor(*types)
-      constructor = constructors.find {|c| c.argument_types == types}
+      constructor = first_matching constructors, types
       return constructor if constructor
       raise NameError, "No constructor #{name}(#{types.join ', '})"
     end
 
     def declared_instance_methods(name=nil)
-      declared_intrinsics(name) + if name.nil?
-        instance_methods.values.flatten
-      else
-        instance_methods[name]
-      end
+      declared_methods self, instance_methods, name
     end
 
     def declared_class_methods(name=nil)
-      meta.declared_intrinsics(name) + if name.nil?
-        static_methods.values.flatten
-      else
-        static_methods[name]
-      end
-    end
-
-    def declared_constructors
-      constructors
+      declared_methods meta, static_methods, name
     end
 
     def constructors
@@ -848,6 +847,7 @@ module Mirah::JVM::Types
       end
       @constructors
     end
+    alias :declared_constructors :constructors
 
     def instance_methods
       @instance_methods ||= Hash.new {|h, k| h[k] = []}
@@ -922,6 +922,22 @@ module Mirah::JVM::Types
 
     def field_setter(name)
       nil
+    end
+
+    private
+
+    def declared_methods target, method_hash, name
+      # should the declared intrinsics be first here? nh
+      target.declared_intrinsics(name) +
+        if name.nil?
+          method_hash.values.flatten
+        else
+          method_hash[name]
+        end
+    end
+
+    def first_matching method_list, types
+      method_list.find {|m| m.argument_types == types}
     end
   end
 
