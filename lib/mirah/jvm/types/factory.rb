@@ -79,7 +79,7 @@ module Mirah::JVM::Types
     def maybe_initialize_builtins(compiler)
       if Builtins
         begin
-          Builtins.initialize_builtins(compiler)
+          Builtins.initialize_builtins(compiler.type_system)
         rescue NativeException => ex
           error("Error initializing builtins", ex.cause)
         rescue => ex

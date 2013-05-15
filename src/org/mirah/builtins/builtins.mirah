@@ -15,25 +15,25 @@
 
 package org.mirah.builtins
 
-import org.mirah.macros.Compiler
+import org.mirah.typer.TypeSystem
 import java.util.Collections
 
 class Builtins
-  def self.initialize_builtins(mirah:Compiler)
-    mirah.type_system.extendClass('java.util.Map', MapExtensions.class)
-    mirah.type_system.extendClass('java.util.List', ListExtensions.class)
-    mirah.type_system.extendClass('java.lang.Object', ObjectExtensions.class)
-    mirah.type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
-    mirah.type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
-    mirah.type_system.extendClass('java.lang.String', StringExtensions.class)
-    mirah.type_system.extendClass('int', IntExtensions.class)
-
-    mirah.type_system.extendClass('byte', NumberExtensions.class)
-    mirah.type_system.extendClass('short', NumberExtensions.class)
-    mirah.type_system.extendClass('int', NumberExtensions.class)
-    mirah.type_system.extendClass('long', NumberExtensions.class)
-    mirah.type_system.extendClass('float', NumberExtensions.class)
-    mirah.type_system.extendClass('double', NumberExtensions.class)
+  def self.initialize_builtins(type_system:TypeSystem)
+    type_system.extendClass('java.util.Map', MapExtensions.class)
+    type_system.extendClass('java.util.List', ListExtensions.class)
+    type_system.extendClass('java.lang.Object', ObjectExtensions.class)
+    type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
+    type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
+    type_system.extendClass('java.lang.String', StringExtensions.class)
+    type_system.extendClass('int', IntExtensions.class)
+    
+    type_system.extendClass('byte', NumberExtensions.class)
+    type_system.extendClass('short', NumberExtensions.class)
+    type_system.extendClass('int', NumberExtensions.class)
+    type_system.extendClass('long', NumberExtensions.class)
+    type_system.extendClass('float', NumberExtensions.class)
+    type_system.extendClass('double', NumberExtensions.class)
   end
 
   macro def newHash(hash:Hash)

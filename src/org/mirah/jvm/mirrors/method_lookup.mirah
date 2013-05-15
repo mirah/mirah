@@ -27,6 +27,7 @@ import mirah.lang.ast.Position
 import org.mirah.MirahLogFormatter
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
+import org.mirah.typer.InlineCode
 import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
@@ -250,7 +251,11 @@ class MethodLookup
     def makeFuture(target:MirrorType, method:Member, params:List,
                    position:Position):TypeFuture
       DerivedFuture.new(method.asyncReturnType) do |resolved|
-        type = ResolvedCall.new(target, method)
+        type = if resolved.kind_of?(InlineCode)
+          resolved
+        else
+          ResolvedCall.new(target, method)
+        end
         MethodType.new(method.name, params, type, method.isVararg)
       end
     end

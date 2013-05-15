@@ -15,11 +15,14 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.Collections
+import java.util.List
 import java.util.logging.Logger
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.ClassReader
+import org.jruby.org.objectweb.asm.tree.AnnotationNode
 import org.jruby.org.objectweb.asm.tree.ClassNode
 
 import org.mirah.typer.BaseTypeFuture
@@ -178,7 +181,11 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
         node = ClassNode.new
         reader = ClassReader.new(bytecode)
         reader.accept(node, ClassReader.SKIP_CODE)
-        BytecodeMirror.new(node, @ancestorLoader)
+        mirror = BytecodeMirror.new(node, @ancestorLoader)
+        BytecodeMirrorLoader.findMacros(node).each do |name|
+          BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
+        end
+        mirror
       else
         @@log.finer("Cannot find #{classfile}")
         nil
@@ -191,6 +198,34 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     if component
       ArrayType.new(component, self)
     end
+  end
+
+  def self.addMacro(type:BaseType, name:String, loader:MirrorLoader)
+    klass = Class.forName(name)
+    member = MacroMember.create(klass, type, loader)
+    type.add(member)
+    @@log.fine("Loaded macro #{member}")
+  end
+
+  def self.extendClass(type:BaseType, extensions:Class, loader:MirrorLoader)
+    path = "/#{extensions.getName.replace(?., ?/)}.class"
+    stream = extensions.getResourceAsStream(path)
+    node = ClassNode.new
+    ClassReader.new(stream).accept(node, ClassReader.SKIP_CODE)
+    macros = findMacros(node)
+    macros.each do |name|
+      addMacro(type, String(name), loader)
+    end
+  end
+
+  def self.findMacros(klass:ClassNode)
+    klass.invisibleAnnotations.each do |a|
+      annotation = AnnotationNode(a)
+      if "Lorg/mirah/macros/anno/Extensions;".equals(annotation.desc)
+        return List(annotation.values.get(1))
+      end
+    end if klass.invisibleAnnotations
+    return Collections.emptyList
   end
 
   def self.main(args:String[]):void

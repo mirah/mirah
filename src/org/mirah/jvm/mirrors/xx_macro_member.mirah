@@ -16,6 +16,8 @@
 package org.mirah.jvm.mirrors
 
 import java.util.List
+import java.util.logging.Logger
+
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.macros.anno.MacroDef
@@ -26,8 +28,8 @@ import org.mirah.jvm.types.MemberKind
 
 class MacroMember < Member
   def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List,
-                 returnType:InlineCode)
-    super(flags, klass, name, argumentTypes, nil, MemberKind.METHOD)
+                 returnType:InlineCode, kind:MemberKind)
+    super(flags, klass, name, argumentTypes, nil, kind)
     @returnType = returnType
   end
 
@@ -55,7 +57,13 @@ class MacroMember < Member
       argumentTypes.add(loader.loadMirror(Type.getType(descriptor)))
     end
     
+    kind = if macrodef.isStatic
+      MemberKind.STATIC_METHOD
+    else
+      MemberKind.METHOD
+    end
+    
     MacroMember.new(flags, declaringClass, macrodef.name, argumentTypes,
-                    makeReturnType(klass))
+                    makeReturnType(klass), kind)
   end
 end

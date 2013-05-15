@@ -32,6 +32,7 @@ import mirah.lang.ast.Position
 import mirah.lang.ast.Script
 
 import org.mirah.MirahLogFormatter
+import org.mirah.builtins.Builtins
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
@@ -78,6 +79,7 @@ class MirrorTypeSystem implements TypeSystem
       double: 'D',
       void: 'V',
     }
+    Builtins.initialize_builtins(self)
   end
 
   def self.initialize:void
@@ -198,9 +200,12 @@ class MirrorTypeSystem implements TypeSystem
         ["Can't find method #{format(target, call.name, call.resolved_parameters)}",
          call.position]], Type.getType("V"))
       macro_params = LinkedList.new
-      call.parameterNodes.each do |n|
-        type = Type.getType(n.getClass())
-        macro_params.add(@macro_loader.loadMirror(type))
+      nodes = call.parameterNodes
+      unless nodes.nil?
+        nodes.each do |n|
+          type = Type.getType(n.getClass())
+          macro_params.add(@macro_loader.loadMirror(type))
+        end
       end
       method = MethodLookup.findMethod(
           call.scope, target, name,
@@ -366,6 +371,17 @@ class MirrorTypeSystem implements TypeSystem
     DerivedFuture.new(componentType) do |resolved|
       types.getResolvedArrayType(resolved)
     end
+  end
+
+  def addMacro(klass:ResolvedType, macro_impl:Class)
+    type = BaseType(klass)
+    member = MacroMember.create(macro_impl, type, @macro_loader)
+    type.add(member)
+  end
+
+  def extendClass(classname:String, extensions:Class)
+    type = BaseType(loadNamedType(classname).resolve)
+    BytecodeMirrorLoader.extendClass(type, extensions, @macro_loader)
   end
 
   def wrap(type:Type):TypeFuture
