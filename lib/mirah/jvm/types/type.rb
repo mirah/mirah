@@ -153,7 +153,7 @@ module Mirah
           return true if !primitive? && other.kind_of?(NullType)
           return true if other == self
           return true if other.matchesAnything
-          return false if other.kind_of?(InlineCode)
+          return true if other.kind_of?(InlineCode)
 
           return interface? || abstract? if other.isBlock
 
