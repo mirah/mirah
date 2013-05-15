@@ -298,7 +298,7 @@ end
 
 file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/org/mirah/jvm/mirrors/*.mirah'] do
   rm_f 'javalib/mirah-mirrors.jar'
-  rm_rf 'build/mirros'
+  rm_rf 'build/mirrors'
   mkdir_p 'build/mirrors'
   sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirrors ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar) +
@@ -307,6 +307,38 @@ file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/or
     fileset :dir => 'build/mirrors'
   end
   rm_rf 'build/mirrors'
+end
+
+def find_jruby_jar
+  require 'java'
+  java_import 'org.jruby.Ruby'
+  path = Ruby.java_class.resource('Ruby.class').toString
+  path =~ %r{^jar:file:(.+)!/org/jruby/Ruby.class}
+  $1
+end
+
+file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
+                              'src/org/mirah/tool/mirahc.mirah',
+                              ] do
+  rm_f 'javalib/mirahc.jar'
+  rm_rf 'build/mirahc'
+  mkdir_p 'build/mirahc'
+  sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirahc ) +
+       %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar:javalib/mirah-mirrors.jar) +
+       %w(src/org/mirah/tool/mirahc.mirah))
+  ant.jar :jarfile => 'javalib/mirahc.jar' do
+    fileset :dir => 'build/mirahc'
+    zipfileset :src => 'javalib/mirah-bootstrap.jar'
+    zipfileset :src => 'javalib/mirah-builtins.jar'
+    zipfileset :src => 'javalib/mirah-util.jar'
+    zipfileset :src => 'javalib/mirah-compiler.jar'
+    zipfileset :src => 'javalib/mirah-mirrors.jar'
+    zipfileset :src => find_jruby_jar, :includes => 'org/jruby/org/objectweb/**/*'
+    zipfileset :src => 'javalib/mirah-parser.jar'
+    manifest do
+      attribute :name => 'Main-Class', :value => 'org.mirah.tool.Mirahc'
+    end
+  end
 end
 
 if Float(JRUBY_VERSION[0..2]) >= 1.7
