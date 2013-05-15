@@ -25,7 +25,9 @@ import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
+import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
@@ -125,6 +127,9 @@ class BaseType implements MirrorType
     field && field.kind.name.startsWith("STATIC_")
   end
 
+  # This should only used by StringCompiler to lookup
+  # StringBuilder.append(). This really should happen
+  # during type inference :-(
   def getMethod(name:String, params:List):JVMMethod
     @methods_loaded ||= load_methods
     members = List(@members[name])
@@ -136,7 +141,8 @@ class BaseType implements MirrorType
         end
       end
     end
-    nil
+    t = MethodLookup.findMethod(nil, self, name, params, nil, nil).resolve
+    ResolvedCall(MethodType(t).returnType).member
   end
 
   def getDeclaredMethods(name:String)

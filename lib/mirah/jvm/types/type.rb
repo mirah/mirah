@@ -4,6 +4,7 @@ module Mirah
       class Type
         java_import 'org.mirah.typer.ErrorType'
         java_import 'org.mirah.typer.SpecialType'
+        java_import 'org.mirah.typer.InlineCode'
         java_import 'org.mirah.typer.ResolvedType'
 
         class SpecialType
@@ -152,6 +153,7 @@ module Mirah
           return true if !primitive? && other.kind_of?(NullType)
           return true if other == self
           return true if other.matchesAnything
+          return false if other.kind_of?(InlineCode)
 
           return interface? || abstract? if other.isBlock
 

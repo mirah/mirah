@@ -342,6 +342,7 @@ class MethodLookup
     end
 
     def isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
+      return true if scope.nil?
       selfType = MirrorType(scope.selfType.resolve)
       if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
         return false
