@@ -1625,7 +1625,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       a = nil
-      System.out.println a
+      System.out.println Object(a)
     EOF
 
     assert_output("null\n") do
