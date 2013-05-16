@@ -138,6 +138,8 @@ class MirrorsTest < BaseMirrorsTest
   def test_nil
     type = @types.getImplicitNilType
     assert_not_nil(type)
+    assert(type.resolve.matchesAnything)
+    assert_descriptor("V", type)
   end
 
   def test_null

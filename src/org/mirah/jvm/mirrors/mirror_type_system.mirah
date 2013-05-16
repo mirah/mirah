@@ -153,7 +153,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getImplicitNilType
-    getVoidType
+    @implicit_nil ||= BaseTypeFuture.new.resolved(ImplicitNil.new)
   end
 
   def getStringType
