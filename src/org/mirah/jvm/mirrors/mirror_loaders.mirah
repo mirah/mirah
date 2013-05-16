@@ -175,19 +175,24 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
         return findArrayMirror(Type.getType(type.getDescriptor.substring(1)))
       end
       classfile = type.getInternalName + ".class"
-      bytecode = @loader.getResourceAsStream(classfile)
-      if bytecode
-        @@log.fine("Found #{classfile}")
-        node = ClassNode.new
-        reader = ClassReader.new(bytecode)
-        reader.accept(node, ClassReader.SKIP_CODE)
-        if node.name.equals(type.getInternalName)
-          mirror = BytecodeMirror.new(node, @ancestorLoader)
-          BytecodeMirrorLoader.findMacros(node).each do |name|
-            BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
+      while true
+        bytecode = @loader.getResourceAsStream(classfile)
+        if bytecode
+          node = ClassNode.new
+          reader = ClassReader.new(bytecode)
+          reader.accept(node, ClassReader.SKIP_CODE)
+          if "#{node.name}.class".equals(classfile)
+            @@log.fine("Found #{classfile}")
+            mirror = BytecodeMirror.new(node, @ancestorLoader)
+            BytecodeMirrorLoader.findMacros(node).each do |name|
+              BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
+            end
+            return mirror
           end
-          return mirror
         end
+        lastSlash = classfile.lastIndexOf(?/)
+        break if lastSlash == -1
+        classfile = classfile.substring(0, lastSlash) + "$" + classfile.substring(lastSlash + 1)
       end
       @@log.finer("Cannot find #{classfile}")
       nil

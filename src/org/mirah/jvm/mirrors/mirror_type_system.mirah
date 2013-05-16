@@ -306,7 +306,7 @@ class MirrorTypeSystem implements TypeSystem
 
   def get(scope, typeref)
     name = resolveName(scope, typeref.name)
-    type = if scope.nil? || isAbsoluteName(name)
+    type = if scope.nil?
       loadNamedType(name)
     else
       loadWithScope(scope, name, typeref.position)
@@ -324,10 +324,6 @@ class MirrorTypeSystem implements TypeSystem
     else
       name
     end
-  end
-
-  def isAbsoluteName(name:String)
-    name.indexOf(".") != -1
   end
 
   def loadNamedType(name:String)

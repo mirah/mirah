@@ -37,6 +37,12 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert_equal("java.lang.Object", mirror.name)
   end
 
+  def test_inner_class
+    mirror = @loader.loadMirror(Type.getType("Ljava/util/Map/Entry;"))
+    assert(!mirror.isError)
+    assert_equal("java.util.Map$Entry", mirror.name)
+  end
+
   def test_superclass
     mirror = @loader.loadMirror(Type.getType("Ljava/lang/String;"))
     assert(!mirror.isError)
