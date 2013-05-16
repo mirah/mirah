@@ -124,6 +124,10 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
+  def getCharType(value)
+    wrap(Type.getType('C'))
+  end
+
   def getFloatType(value)
     box = Double.valueOf(value)
     wide = wrap(Type.getType("D"))
