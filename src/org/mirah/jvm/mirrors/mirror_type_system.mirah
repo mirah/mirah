@@ -216,7 +216,6 @@ class MirrorTypeSystem implements TypeSystem
       method = MethodLookup.findMethod(
           call.scope, target, name,
           call.resolved_parameters, macro_params, call.position)
-      method ||= MethodLookup.findField(call.scope, target, name, call.position)
       future.type = method || error
       log = @@log
       target.addMethodListener(call.name) do |klass, name|

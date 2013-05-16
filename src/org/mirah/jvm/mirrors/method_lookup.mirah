@@ -34,6 +34,7 @@ import org.mirah.typer.TypeFuture
 import org.mirah.typer.Scope
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.MemberKind
 import org.jruby.org.objectweb.asm.Opcodes
 
 class MethodLookup
@@ -54,6 +55,9 @@ class MethodLookup
     def isJvmSubType(subtype:JVMType, supertype:JVMType):boolean
       if subtype.isPrimitive
         return supertype.isPrimitive && isPrimitiveSubType(subtype, supertype)
+      end
+      if subtype.kind_of?(NullType)
+        return !supertype.isPrimitive
       end
       if subtype.isArray && supertype.isArray
         return isArraySubType(subtype, supertype)
@@ -225,16 +229,6 @@ class MethodLookup
       method
     end
 
-    def findField(scope:Scope,
-                  target:MirrorType,
-                  name:String,
-                  position:Position):TypeFuture
-      potentials = gatherFields(target, name)
-      state = MethodLookup.new(scope, target, potentials, position)
-      state.search(Collections.emptyList, nil)
-      state.future(true)
-    end
-
     def findMethod(scope:Scope,
                    target:MirrorType,
                    name:String,
@@ -244,6 +238,7 @@ class MethodLookup
       potentials = gatherMethods(target, name)
       state = MethodLookup.new(scope, target, potentials, position)
       state.search(params, macro_params)
+      state.searchFields(name)
       @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{state}")
       state.future(false)
     end
@@ -292,14 +287,36 @@ class MethodLookup
     end
 
     def gatherFields(target:MirrorType, name:String):List
+      setter = false
+      if name.endsWith('_set')
+        name = name.substring(0, name.length - 4)
+        setter = true
+      end
       fields = LinkedList.new
       mirror = target.unmeta
       while mirror
         field = mirror.getDeclaredField(name)
-        fields.add(field) if field
+        if field
+          field = makeSetter(Member(field)) if setter
+          fields.add(field)
+        end
         mirror = mirror.superclass
       end
       fields
+    end
+
+    def makeSetter(field:Member)
+      kind = if field.kind == MemberKind.FIELD_ACCESS
+        MemberKind.FIELD_ASSIGN
+      else
+        MemberKind.STATIC_FIELD_ASSIGN
+      end
+      AsyncMember.new(field.flags,
+                      MirrorType(field.declaringClass),
+                      "#{field.name}=",
+                      [field.asyncReturnType],
+                      field.asyncReturnType,
+                      kind)
     end
 
     def findMatchingMethod(potentials:List, params:List):List
@@ -413,6 +430,10 @@ class MethodLookup
     @scope = scope
     @target = target
     @position = position
+    setPotentials(potentials)
+  end
+
+  def setPotentials(potentials:List)
     @methods = LinkedList.new
     @macros = LinkedList.new
     @inaccessible_methods = LinkedList.new
@@ -425,11 +446,11 @@ class MethodLookup
       accessible = true
       unless MethodLookup.isAccessible(method.declaringClass, 
                                        method.declaringClass.flags,
-                                       scope)
+                                       @scope)
         accessible = false
       end
       unless MethodLookup.isAccessible(method.declaringClass,
-                                       method.flags, scope, target)
+                                       method.flags, @scope, @target)
         accessible = false
       end
       
@@ -458,6 +479,15 @@ class MethodLookup
       if @inaccessible.nil? || @inaccessible.isEmpty
         @inaccessible = MethodLookup.findMatchingMethod(
             @inaccessible_macros, macro_params)
+      end
+    end
+  end
+
+  def searchFields(name:String):void
+    if matches + macro_matches + inaccessible == 0
+      if @params.size == 0 || (name.endsWith('_set') && @params.size == 1)
+        setPotentials(MethodLookup.gatherFields(@target, name))
+        search(@params, nil)
       end
     end
   end

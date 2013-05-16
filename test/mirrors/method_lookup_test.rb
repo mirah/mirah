@@ -522,7 +522,7 @@ class FieldTest < BaseMethodLookupTest
 
   def test_find_super_field
     @a.add_field("foo")
-    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
     assert_equal("LA;", future.resolve.returnType.class_id)    
   end
 
@@ -530,7 +530,7 @@ class FieldTest < BaseMethodLookupTest
     @a.add_field("foo")
     @b.add_field("foo")
 
-    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
     assert_equal("LB;", future.resolve.returnType.class_id)
   end
 
@@ -539,13 +539,18 @@ class FieldTest < BaseMethodLookupTest
     @a.add_field("foo", Opcodes.ACC_PUBLIC)
     @b.add_field("foo", Opcodes.ACC_PRIVATE)
     
-    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
     assert_equal("LA;", future.resolve.returnType.class_id)
   end
 
   def test_inaccessible
     @a.add_field("foo", Opcodes.ACC_PRIVATE)
-    future = MethodLookup.findField(@scope, @b, 'foo', nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
     assert(future.resolve.isError, "Expected error, got #{future.resolve}")
+  end
+
+  def test_field_setter
+    @a.add_field("foo")
+    future = MethodLookup.findMethod(@scope, @a, 'foo_set', [@a], nil, nil)
   end
 end
