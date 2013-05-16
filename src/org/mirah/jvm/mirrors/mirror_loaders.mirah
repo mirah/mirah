@@ -181,15 +181,16 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
         node = ClassNode.new
         reader = ClassReader.new(bytecode)
         reader.accept(node, ClassReader.SKIP_CODE)
-        mirror = BytecodeMirror.new(node, @ancestorLoader)
-        BytecodeMirrorLoader.findMacros(node).each do |name|
-          BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
+        if node.name.equals(type.getInternalName)
+          mirror = BytecodeMirror.new(node, @ancestorLoader)
+          BytecodeMirrorLoader.findMacros(node).each do |name|
+            BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
+          end
+          return mirror
         end
-        mirror
-      else
-        @@log.finer("Cannot find #{classfile}")
-        nil
       end
+      @@log.finer("Cannot find #{classfile}")
+      nil
     end
   end
 
