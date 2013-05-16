@@ -488,7 +488,18 @@ class Typer < SimpleNodeVisitor
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     methodType = infer(method)
     if methodType.kind_of?(MethodFuture)
-      MethodFuture(methodType).returnType.assign(type, node.position)
+      returnType = MethodFuture(methodType).returnType
+      assignment = returnType.assign(type, node.position)
+      future = DelegateFuture.new
+      future.type = returnType
+      assignment.onUpdate do |x, resolved|
+        if resolved.isError
+          future.type = assignment
+        else
+          future.type = returnType
+        end
+      end
+      future
     end
   end
 
@@ -584,7 +595,7 @@ class Typer < SimpleNodeVisitor
     myType = BaseTypeFuture.new(node.position)
     unreachable = UnreachableType.new
     assignment.onUpdate do |x, resolved|
-      if resolved.name == ':error'
+      if resolved.isError
         myType.resolved(resolved)
       else
         myType.resolved(unreachable)

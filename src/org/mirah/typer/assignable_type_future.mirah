@@ -56,8 +56,8 @@ class AssignableTypeFuture < BaseTypeFuture
     @lock.unlock
   end
 
-  # Adds an assigment. The returned future will resolve to the widened type of
-  # all assignments, or an error if this assignment is incompatible.
+  # Adds an assigment. The returned future will resolve to 'value',
+  # or an error if this assignment is incompatible.
   def assign(value:TypeFuture, position:Position):TypeFuture
     @lock.lock
     if @assignments.containsKey(value)
@@ -72,7 +72,7 @@ class AssignableTypeFuture < BaseTypeFuture
           assignment.resolved(resolved)
         elsif variable.isResolved
           if variable.resolve.assignableFrom(resolved)
-            assignment.resolved(variable.resolve)
+            assignment.resolved(resolved)
           else
             assignment.resolved(variable.incompatibleWith(value.resolve, position))
           end
