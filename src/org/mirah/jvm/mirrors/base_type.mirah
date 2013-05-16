@@ -141,8 +141,10 @@ class BaseType implements MirrorType
         end
       end
     end
-    t = MethodLookup.findMethod(nil, self, name, params, nil, nil).resolve
-    ResolvedCall(MethodType(t).returnType).member
+    t = MethodLookup.findMethod(nil, self, name, params, nil, nil)
+    if t
+      return ResolvedCall(MethodType(t.resolve).returnType).member
+    end
   end
 
   def getDeclaredMethods(name:String)

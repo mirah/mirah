@@ -80,6 +80,7 @@ class MirrorTypeSystem implements TypeSystem
       void: 'V',
     }
     Builtins.initialize_builtins(self)
+    addObjectIntrinsics
   end
 
   def self.initialize:void
@@ -386,6 +387,27 @@ class MirrorTypeSystem implements TypeSystem
   def extendClass(classname:String, extensions:Class)
     type = BaseType(loadNamedType(classname).resolve)
     BytecodeMirrorLoader.extendClass(type, extensions, @macro_loader)
+  end
+
+  def addObjectIntrinsics
+    bool = JVMType(getBooleanType.resolve)
+    @object.add(Member.new(
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, @object, 'class', [],
+        JVMType(loadNamedType('java.lang.Class').resolve),
+        MemberKind.CLASS_LITERAL))
+    @object.add(Member.new(
+        Opcodes.ACC_PUBLIC, @object, 'nil?', [],
+        bool, MemberKind.IS_NULL))
+    object_meta = getMetaType(@object_future).resolve
+    @object.add(Member.new(
+        Opcodes.ACC_PUBLIC, @object, 'kind_of?', [object_meta],
+        bool, MemberKind.INSTANCEOF))
+    @object.add(Member.new(
+        Opcodes.ACC_PUBLIC, @object, '==', [@object],
+        bool, MemberKind.COMPARISON_OP))
+    @object.add(Member.new(
+        Opcodes.ACC_PUBLIC, @object, '!=', [@object],
+        bool, MemberKind.COMPARISON_OP))
   end
 
   def wrap(type:Type):TypeFuture
