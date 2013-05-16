@@ -181,6 +181,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
+    name = name.replaceAll('=$', '_set')
     createMember(
         MirrorType(target.resolve), name, argTypes, declaredReturnType,
         position)
