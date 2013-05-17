@@ -431,6 +431,15 @@ class MirrorTypeSystem implements TypeSystem
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
     end
+    if "initialize".equals(name)
+      if isMeta
+        name = "<clinit>"
+        kind = MemberKind.STATIC_INITIALIZER
+      else
+        name = "<init>"
+        kind = MemberKind.CONSTRUCTOR
+      end
+    end
     member = AsyncMember.new(flags, target, name, arguments, returnFuture, kind)
 
     returnFuture.error_message =
@@ -440,8 +449,9 @@ class MirrorTypeSystem implements TypeSystem
     log = @@log
     me = self
     returnFuture.onUpdate do |x, resolved|
-      type = isMeta ? "static" : "instance"
-      log.fine("Learned #{type} method #{me.format(target, name, arguments)} = #{resolved}")
+      type = isMeta ? "static " : ""
+      formatted = me.format(target, name, arguments)
+      log.fine("Learned #{type}#{formatted}:#{resolved}")
     end
 
     target.add(member)
@@ -476,8 +486,18 @@ class MirrorTypeSystem implements TypeSystem
     sb.append('.')
     sb.append(name)
     sb.append('(')
-    formatted_args = args.toString
-    sb.append(formatted_args, 1, formatted_args.length - 1)
+    i = 0
+    args.each do |arg|
+      if arg.kind_of?(TypeFuture)
+        future = TypeFuture(arg)
+        if future.isResolved
+          arg = future.resolve
+        end
+      end
+      sb.append(", ") if i > 0
+      sb.append(arg)
+      i += 1
+    end
     sb.append(')')
     sb.toString
   end
