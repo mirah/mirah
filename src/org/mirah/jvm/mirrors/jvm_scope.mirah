@@ -15,32 +15,99 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.ArrayList
+import java.util.HashSet
 import java.util.List
 import java.util.Map
 
 import mirah.lang.ast.Position
 import org.mirah.typer.simple.SimpleScope
-import org.mirah.typer.AssignableTypeFuture
+import org.mirah.typer.LocalFuture
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
 
 class JVMScope < SimpleScope
   def initialize(scoper:Scoper=nil)
-    @locals = {}
+    @defined_locals = HashSet.new
+    @local_types = {}
     @scoper = scoper
     @search_packages = []
     @imports = {}
+    @children = HashSet.new
   end
 
-  attr_accessor binding_type:ResolvedType
+  def binding_type:ResolvedType
+    if parent
+      parent.binding_type
+    else
+      @binding_type
+    end
+  end
+
+  def binding_type=(type:ResolvedType):void
+    if parent
+      parent.binding_type = type
+    else
+      @binding_type = type
+    end
+  end
 
   def getLocalType(name:String, position:Position)
-    type = AssignableTypeFuture(@locals[name])
+    type = LocalFuture(@local_types[name])
     if type.nil?
-      type = AssignableTypeFuture.new(position)
-      @locals[name] = type
+      type = LocalFuture.new(name, position)
+      locals = @defined_locals
+      type.onUpdate do |x, resolved|
+        if resolved.isError
+          locals.remove(name)
+        else
+          locals.add(name)
+        end
+      end
+      if @parent
+        type.parent = @parent.getLocalType(name, position)
+      end
+      @local_types[name] = type
     end
     type
+  end
+
+  def hasLocal(name:String, includeParent:boolean=true)
+    @defined_locals.contains(name) ||
+        (includeParent && @parent && @parent.hasLocal(name))
+  end
+
+  def isCaptured(name)
+    if !@defined_locals.contains(name)
+      return false
+    elsif @parent && @parent.hasLocal(name)
+      return true
+    else
+      return @children.any? {|child| JVMScope(child).hasLocal(name, false)}
+    end
+  end
+
+  def capturedLocals
+    captured = ArrayList.new(@defined_locals.size)
+    @defined_locals.each {|name| captured.add(name) if isCaptured(String(name))}
+    captured
+  end
+
+  def addChild(scope:JVMScope)
+    @children.add(scope)
+  end
+
+  def removeChild(scope:JVMScope)
+    @children.remove(scope)
+  end
+
+  def parent; @parent; end
+
+  def parent=(parent:Scope):void
+    @parent.removeChild(self) if @parent
+    JVMScope(parent).addChild(self)
+    @parent = JVMScope(parent)
   end
 
   def outer_scope:JVMScope

@@ -18,6 +18,7 @@ package org.mirah.jvm.mirrors
 import java.io.File
 
 import java.util.ArrayList
+import java.util.Collections
 import java.util.LinkedList
 import java.util.List
 import java.util.logging.Logger
@@ -28,8 +29,10 @@ import org.jruby.org.objectweb.asm.Type
 
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.ConstructorDefinition
+import mirah.lang.ast.Node
 import mirah.lang.ast.Position
 import mirah.lang.ast.Script
+import mirah.lang.ast.SimpleString
 
 import org.mirah.MirahLogFormatter
 import org.mirah.builtins.Builtins
@@ -79,6 +82,7 @@ class MirrorTypeSystem implements TypeSystem
       double: 'D',
       void: 'V',
     }
+    @anonymousClasses = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
   end
@@ -281,13 +285,37 @@ class MirrorTypeSystem implements TypeSystem
     JVMScope(scope).getLocalType(name, position)
   end
 
-  def defineType(scope, node, name, superclass, interfaces)
-    position = node ? node.position : nil
-    fullname = if scope && scope.package && !scope.package.isEmpty
+  def getAbstractMethods(type)
+    if type.kind_of?(MirrorType)
+      MethodLookup.gatherAbstractMethods(MirrorType(type))
+    else
+      Collections.emptyList
+    end
+  end
+
+  def calculateName(scope:Scope, node:Node, name:String)
+    if name.nil?
+      outerName = scope.selfType.resolve.name
+      id = 1
+      if @anonymousClasses.containsKey(outerName)
+        id = Integer(@anonymousClasses[outerName]).intValue + 1
+      end
+      @anonymousClasses[outerName] = id
+      name = "#{outerName}$#{id}"
+      if node
+        ClassDefinition(node).name = SimpleString.new(name)
+      end
+      name
+    elsif scope && scope.package && !scope.package.isEmpty
       "#{scope.package}.#{name}"
     else
       name
     end
+  end
+
+  def defineType(scope, node, name, superclass, interfaces)
+    position = node ? node.position : nil
+    fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
     existing = wrap(type)
     if existing.isResolved && existing.resolve.kind_of?(MirahMirror)

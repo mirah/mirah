@@ -15,14 +15,16 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.ArrayList
 import java.util.Arrays
 import java.util.Collections
 import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import java.util.Set
-import java.util.logging.Logger
 import java.util.logging.Level
+import java.util.logging.Logger
 import mirah.lang.ast.Position
 import org.mirah.MirahLogFormatter
 import org.mirah.typer.DerivedFuture
@@ -63,6 +65,8 @@ class MethodLookup
       if subtype.isArray && supertype.isArray
         return isArraySubType(subtype, supertype)
       end
+      return supertype.isInterface if subtype.isBlock
+
       super_desc = supertype.class_id
       explored = HashSet.new
       to_explore = LinkedList.new
@@ -252,7 +256,7 @@ class MethodLookup
         else
           ResolvedCall.new(target, method)
         end
-        MethodType.new(method.name, params, type, method.isVararg)
+        MethodType.new(method.name, method.argumentTypes, type, method.isVararg)
       end
     end
 
@@ -286,6 +290,38 @@ class MethodLookup
         end
       end
       methods
+    end
+
+    def gatherAbstractMethods(target:MirrorType):List
+      defined_methods = HashSet.new
+      abstract_methods = { }
+      visited = HashSet.new
+      gatherAbstractMethodsInternal(target, defined_methods, abstract_methods, visited)
+      abstract_methods.keySet.removeAll(defined_methods)
+      ArrayList.new(abstract_methods.values)
+    end
+
+    def gatherAbstractMethodsInternal(target:MirrorType, defined_methods:Set, abstract_methods:Map, visited:Set):void
+      if target
+        target = target.unmeta
+      end
+      unless target.nil? || target.isError || visited.contains(target)
+        visited.add(target)
+        target.getAllDeclaredMethods.each do |m|
+          member = JVMMethod(m)
+          if member.isAbstract
+            type = MethodType.new(member.name, member.argumentTypes, member.returnType, member.isVararg)
+            abstract_methods[[member.name, member.argumentTypes]] = type
+          else
+            defined_methods.add([member.name, member.argumentTypes])
+          end
+        end
+        gatherAbstractMethodsInternal(MirrorType(target.superclass), defined_methods, abstract_methods, visited)
+        target.interfaces.each do |future|
+          iface = MirrorType(future.resolve)
+          gatherAbstractMethodsInternal(iface, defined_methods, abstract_methods, visited)
+        end
+      end
     end
 
     def gatherFields(target:MirrorType, name:String):List

@@ -40,6 +40,7 @@ interface MirrorType < JVMType
   def notifyOfIncompatibleChange:void; end
   def onIncompatibleChange(listener:Runnable):void; end
   def getDeclaredMethods(name:String):List; end  # List<Member>
+  def getAllDeclaredMethods:List; end
   def addMethodListener(name:String, listener:MethodListener):void; end
   def invalidateMethod(name:String):void; end
   def add(member:JVMMethod):void; end
@@ -156,6 +157,17 @@ class BaseType implements MirrorType
     @methods_loaded ||= load_methods
     # TODO: should this filter out fields?
     List(@members[name]) || Collections.emptyList
+  end
+
+  def getAllDeclaredMethods
+    @methods_loaded ||= load_methods
+    methods = ArrayList.new
+    @members.values.each do |list|
+      List(list).each do |m|
+        methods.add(m)
+      end
+    end
+    methods
   end
 
   def interfaces:TypeFuture[]

@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.Collections
 import java.util.List
 import org.mirah.typer.ErrorType
 import org.mirah.typer.TypeFuture
@@ -54,6 +55,7 @@ class JvmErrorType < ErrorType implements MirrorType
   def getMethod(name:String, params:List):JVMMethod; nil; end
 
   def getDeclaredFields:JVMMethod[]; JVMMethod[0]; end
+  def getAllDeclaredMethods; Collections.emptyList; end
   def getDeclaredField(name:String):JVMMethod; nil; end
   
   def notifyOfIncompatibleChange; end

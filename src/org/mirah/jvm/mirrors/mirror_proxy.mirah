@@ -41,6 +41,9 @@ class MirrorProxy implements MirrorType
   def getDeclaredMethods(name)
     @target.getDeclaredMethods(name)
   end
+  def getAllDeclaredMethods
+    @target.getAllDeclaredMethods
+  end
   def addMethodListener(name, listener):void
     @target.addMethodListener(name, listener)
   end
