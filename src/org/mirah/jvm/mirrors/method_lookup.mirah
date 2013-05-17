@@ -275,6 +275,7 @@ class MethodLookup
       unless target.nil? || target.isError || visited.contains(target)
         visited.add(target)
         methods.addAll(target.getDeclaredMethods(name))
+        return methods if "<init>".equals(name)
         gatherMethodsInternal(MirrorType(target.superclass), name, includeInterfaces, methods, visited)
         if includeInterfaces
           target.interfaces.each do |i|
