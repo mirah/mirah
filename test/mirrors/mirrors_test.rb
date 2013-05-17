@@ -509,4 +509,20 @@ class MTS_MethodLookupTest < BaseMirrorsTest
         @types, @scope, object_meta, 'new', [], [], nil)
     assert_descriptor('Ljava/lang/Object;', method)
   end
+
+  def test_implicit_nil_widen
+    a = @types.getStringType.resolve
+    b = @types.getImplicitNilType.resolve
+    c = a.widen(b)
+    assert_resolved_to('Ljava/lang/String;', c)
+  end
+
+  def test_object_widen
+    a = @types.getStringType.resolve
+    b = @types.getRegexType.resolve
+    c = a.widen(b)
+    # Note that we currently don't include interfaces, so we miss
+    # Serializable.
+    assert_resolved_to('Ljava/lang/Object;', c)
+  end
 end

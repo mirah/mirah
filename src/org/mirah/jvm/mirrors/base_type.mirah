@@ -88,6 +88,11 @@ class BaseType implements MirrorType
     elsif other.assignableFrom(self)
       other
     else
+      a = self
+      while a.superclass
+        a = a.superclass
+        return a if a.assignableFrom(other)
+      end
       ErrorType.new([["Incompatible types #{self} and #{other}."]])
     end
   end

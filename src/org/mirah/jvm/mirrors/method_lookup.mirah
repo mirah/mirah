@@ -53,6 +53,7 @@ class MethodLookup
     end
   
     def isJvmSubType(subtype:JVMType, supertype:JVMType):boolean
+      return true if (subtype.matchesAnything || supertype.matchesAnything)
       if subtype.isPrimitive
         return supertype.isPrimitive && isPrimitiveSubType(subtype, supertype)
       end
