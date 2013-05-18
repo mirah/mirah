@@ -141,6 +141,9 @@ class MirrorProxy implements MirrorType
   def unbox
     @target.unbox
   end
+  def declareField(field)
+    @target.declareField(field)
+  end
 end
 
 class MirrorFuture < BaseTypeFuture

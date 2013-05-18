@@ -64,4 +64,6 @@ class JvmErrorType < ErrorType implements MirrorType
   
   def addMethodListener(name:String, listener:MethodListener):void; end
   def invalidateMethod(name:String):void; end
+  
+  def unmeta; self; end
 end

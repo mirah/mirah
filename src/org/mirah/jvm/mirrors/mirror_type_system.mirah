@@ -234,7 +234,7 @@ class MirrorTypeSystem implements TypeSystem
 
   def getFieldType(target, name, position)
     resolved = MirrorType(target.resolve)
-    klass = MirahMirror(resolved.unmeta)
+    klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     future = if member
       AsyncMember(member).asyncReturnType
@@ -488,7 +488,7 @@ class MirrorTypeSystem implements TypeSystem
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
   end
 
-  def createField(target:MirahMirror, name:String,
+  def createField(target:MirrorType, name:String,
                   isStatic:boolean, position:Position):TypeFuture
     flags = Opcodes.ACC_PRIVATE
     if isStatic

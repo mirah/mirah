@@ -44,6 +44,7 @@ interface MirrorType < JVMType
   def addMethodListener(name:String, listener:MethodListener):void; end
   def invalidateMethod(name:String):void; end
   def add(member:JVMMethod):void; end
+  def declareField(field:JVMMethod):void; end
   def unmeta:MirrorType; end
 end
 
@@ -199,6 +200,10 @@ class BaseType implements MirrorType
         MethodListener(l).methodChanged(self, name)
       end
     end
+  end
+
+  def declareField(field:JVMMethod):void
+    raise IllegalArgumentException, "Cannot add fields to #{self}"
   end
 
   def unmeta
