@@ -26,6 +26,7 @@ import org.mirah.typer.LocalFuture
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
+import org.mirah.typer.TypeFuture
 
 class JVMScope < SimpleScope
   def initialize(scoper:Scoper=nil)
@@ -149,5 +150,15 @@ class JVMScope < SimpleScope
     else
       @imports[shortname] = fullname
     end
+  end
+
+  def selfType:TypeFuture
+    if @selfType.nil? && parent
+      @selfType = parent.selfType
+    end
+    @selfType
+  end
+  def selfType=(type:TypeFuture):void
+    @selfType = type
   end
 end
