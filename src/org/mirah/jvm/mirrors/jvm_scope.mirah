@@ -109,6 +109,8 @@ class JVMScope < SimpleScope
     @parent.removeChild(self) if @parent
     JVMScope(parent).addChild(self)
     @parent = JVMScope(parent)
+    @cached_imports = Map(nil)
+    @cached_packages = List(nil)
   end
 
   def outer_scope:JVMScope
@@ -145,6 +147,8 @@ class JVMScope < SimpleScope
   end
 
   def import(fullname:String, shortname:String)
+    @cached_imports = Map(nil)
+    @cached_packages = List(nil)
     if "*".equals(shortname)
       @search_packages.add(fullname)
     else
