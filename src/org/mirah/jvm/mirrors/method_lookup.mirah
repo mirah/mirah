@@ -302,6 +302,22 @@ class MethodLookup
       state.future(false)
     end
 
+    def findOverride(target:MirrorType, name:String, arity:int):JVMMethod
+      match = nil
+      gatherMethods(target, name).each do |m|
+        member = JVMMethod(m)
+        next if member.declaringClass == target
+        if member.argumentTypes.size == arity
+          if match.nil?
+            match = member
+          else
+            return nil
+          end
+        end
+      end
+      match
+    end
+
     def makeFuture(target:MirrorType, method:Member, params:List,
                    position:Position):TypeFuture
       DerivedFuture.new(method.asyncReturnType) do |resolved|

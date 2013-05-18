@@ -479,6 +479,8 @@ class MirrorTypeSystem implements TypeSystem
       end
     end
     member = AsyncMember.new(flags, target, name, arguments, returnFuture, kind)
+    overriden_return = inferOverride(target, name, arguments)
+    returnType ||= overriden_return
 
     returnFuture.error_message =
         "Cannot determine return type for method #{member}"
@@ -494,6 +496,19 @@ class MirrorTypeSystem implements TypeSystem
 
     target.add(member)
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
+  end
+
+  def inferOverride(target:MirrorType, name:String, arguments:List):TypeFuture
+    override = Member(MethodLookup.findOverride(target, name, arguments.size))
+    if override
+      arguments.size.times do |i|
+        arg = AssignableTypeFuture(arguments.get(i))
+        unless arg.hasDeclaration
+          arg.declare(override.asyncArgument(i), nil)
+        end
+      end
+      override.asyncReturnType
+    end
   end
 
   def createField(target:MirrorType, name:String,

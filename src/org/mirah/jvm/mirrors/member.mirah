@@ -24,6 +24,7 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
 class Member implements JVMMethod
@@ -39,6 +40,10 @@ class Member implements JVMMethod
 
   attr_reader declaringClass:JVMType, name:String, argumentTypes:List
   attr_reader returnType:JVMType, kind:MemberKind, flags:int
+
+  def asyncArgument(index:int):TypeFuture
+    BaseTypeFuture.new(nil).resolved(ResolvedType(argumentTypes.get(index)))
+  end
 
   def asyncReturnType:TypeFuture
     @returnFuture ||= BaseTypeFuture.new.resolved(@returnType)
@@ -117,6 +122,7 @@ class AsyncMember < Member
                  argumentTypes:List /* of TypeFuture */,
                  returnType:TypeFuture, kind:MemberKind)
     super(flags, klass, name, Collections.emptyList, nil, kind)
+    @futures = argumentTypes
     @resolvedArguments = ArrayList.new(argumentTypes.size)
     @returnType = returnType
     argumentTypes.each {|a| setupArgumentListener(TypeFuture(a)) }
@@ -129,6 +135,10 @@ class AsyncMember < Member
   def returnType
     # TODO: Should this convert errors?
     JVMType(@returnType.resolve)
+  end
+
+  def asyncArgument(index)
+    TypeFuture(@futures.get(index))
   end
 
   def asyncReturnType
