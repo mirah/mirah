@@ -229,11 +229,13 @@ class MethodLookup
     # This should only happen when at least one of the methods comes from an interface,
     # so pickMostSpecific will break the tie.
     def compareSpecificity(a:JVMMethod, b:JVMMethod):double
-      raise IllegalArgumentException if a.argumentTypes.size != b.argumentTypes.size
+      last_a = a.argumentTypes.size - 1
+      last_b = b.argumentTypes.size - 1
+      raise IllegalArgumentException if (last_a != last_b && !(a.isVararg && b.isVararg) )
       comparison = 0.0
-      a.argumentTypes.size.times do |i|
-        a_arg = ResolvedType(a.argumentTypes.get(i))
-        b_arg = ResolvedType(b.argumentTypes.get(i))
+      Math.max(a.argumentTypes.size, b.argumentTypes.size).times do |i|
+        a_arg = getMethodArgument(a.argumentTypes, i, a.isVararg)
+        b_arg = getMethodArgument(b.argumentTypes, i, b.isVararg)
         arg_comparison = subtypeComparison(a_arg, b_arg)
         return arg_comparison if Double.isNaN(arg_comparison)
         if arg_comparison != 0.0
@@ -256,6 +258,20 @@ class MethodLookup
         end
       else
         return Double.NaN
+      end
+    end
+
+    def getMethodArgument(arguments:List, index:int, isVararg:boolean)
+      last_index = arguments.size - 1
+      if isVararg && index >= last_index
+        type = ResolvedType(arguments.get(last_index))
+        if type.isError
+          type
+        else
+          JVMType(type).getComponentType
+        end
+      else
+        ResolvedType(arguments.get(index))
       end
     end
 
@@ -437,7 +453,32 @@ class MethodLookup
     end
 
     def phase3(potentials:List, params:List):List
-      nil
+      arity = params.size
+      phase3_methods = LinkedList.new
+      potentials.each do |m|
+        member = Member(m)
+        next unless member.isVararg
+        args = member.argumentTypes
+        required_count = args.size - 1
+        next unless required_count <= arity
+        match = true
+        arity.times do |i|
+          param = ResolvedType(params[i])
+          arg = getMethodArgument(args, i, true)
+          unless isSubTypeWithConversion(param, arg)
+            match = false
+            break
+          end
+        end
+        phase3_methods.add(member) if match
+      end
+      if phase3_methods.size == 0
+        nil
+      elsif phase3_methods.size > 1
+        findMaximallySpecific(phase3_methods)
+      else
+        phase3_methods
+      end
     end
 
     def isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
