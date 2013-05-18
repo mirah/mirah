@@ -92,10 +92,17 @@ class BaseTypeTest < Test::Unit::TestCase
     # TODO: test more complex widening, eg LinkedList.widen(ArrayList)
   end
 
-  def test_widen_error
+  def test_box_widen
+    object = type('java.lang.Object')
     int = type('int')
     map = type('java.util.Map')
-    assert(int.widen(map).isError)
-    assert(map.widen(int).isError)
+    assert_equal(object, int.widen(map))
+    assert_equal(object, map.widen(int))
+  end
+
+  def test_widen_error
+    map = type('java.util.Map')
+    assert(@void.widen(map).isError)
+    assert(map.widen(@void).isError)
   end
 end

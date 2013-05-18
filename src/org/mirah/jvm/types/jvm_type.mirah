@@ -38,6 +38,9 @@ interface JVMType < ResolvedType
   
   def hasStaticField(name:String):boolean; end
   
+  def box:JVMType; end
+  def unbox:JVMType; end
+  
   # Find the JVMMethod for a method call.
   # TODO: We've already looked this up during inference, it'd be better if
   # we could save that instead of doing the full search again.

@@ -85,6 +85,7 @@ class MirrorTypeSystem implements TypeSystem
     @anonymousClasses = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
+    initBoxes
   end
 
   def self.initialize:void
@@ -506,6 +507,24 @@ class MirrorTypeSystem implements TypeSystem
         flags, target, name, [], future, kind)
     target.declareField(member)
     future
+  end
+
+  def initBoxes
+    setBox('Z', 'Boolean')
+    setBox('B', 'Byte')
+    setBox('C', 'Character')
+    setBox('S', 'Short')
+    setBox('I', 'Integer')
+    setBox('J', 'Long')
+    setBox('F', 'Float')
+    setBox('D', 'Double')
+  end
+
+  def setBox(a:String, b:String)
+    primitive = BaseType(wrap(Type.getType(a)).resolve)
+    boxed = BaseType(loadNamedType("java.lang.#{b}").resolve)
+    primitive.boxed = boxed
+    boxed.unboxed = primitive
   end
 
   def format(target:ResolvedType, name:String, args:List)

@@ -525,4 +525,11 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     # Serializable.
     assert_resolved_to('Ljava/lang/Object;', c)
   end
+
+  def test_boxed_assignment
+    a = @types.wrap(Type.getType("Ljava/lang/Boolean;")).resolve
+    b = @types.getBooleanType.resolve
+    assert(a.assignableFrom(b))
+    assert(b.assignableFrom(a))
+  end
 end

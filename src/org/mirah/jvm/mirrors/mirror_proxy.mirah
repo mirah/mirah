@@ -135,6 +135,12 @@ class MirrorProxy implements MirrorType
       self
     end
   end
+  def box
+    @target.box
+  end
+  def unbox
+    @target.unbox
+  end
 end
 
 class MirrorFuture < BaseTypeFuture

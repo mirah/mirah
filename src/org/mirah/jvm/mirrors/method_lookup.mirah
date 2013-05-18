@@ -39,6 +39,22 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
 import org.jruby.org.objectweb.asm.Opcodes
 
+interface SubtypeChecker
+  def isSubType(subtype:ResolvedType, supertype:ResolvedType):boolean; end
+end
+
+class Phase1Checker implements SubtypeChecker
+  def isSubType(subtype, supertype)
+    MethodLookup.isSubType(subtype, supertype)
+  end
+end
+
+class Phase2Checker implements SubtypeChecker
+  def isSubType(subtype, supertype)
+    MethodLookup.isSubTypeWithConversion(subtype, supertype)
+  end
+end
+
 class MethodLookup
   def self.initialize:void
     @@log = Logger.getLogger(MethodLookup.class.getName)
@@ -107,6 +123,28 @@ class MethodLookup
       return false if component_a.isPrimitive
       return false if component_b.isPrimitive
       isSubType(component_a, component_b)
+    end
+
+    def isSubTypeWithConversion(subtype:ResolvedType,
+                                supertype:ResolvedType):boolean
+      if isSubType(subtype, supertype)
+        true
+      elsif subtype.kind_of?(JVMType) && supertype.kind_of?(JVMType)
+        isSubTypeViaBoxing(JVMType(subtype), JVMType(supertype))
+      else
+        false
+      end
+    end
+
+    def isSubTypeViaBoxing(subtype:JVMType, supertype:JVMType)
+      if subtype.isPrimitive
+        if subtype.box
+          return isJvmSubType(subtype.box, supertype)
+        end
+      elsif subtype.unbox
+        return isJvmSubType(subtype.unbox, supertype)
+      end
+      false
     end
 
     # Returns 0, 1, -1 or NaN if a & b are the same type,
@@ -364,32 +402,38 @@ class MethodLookup
     end
 
     def phase1(potentials:List, params:List):List
+      findMatchingArityMethod(Phase1Checker.new, potentials, params)
+    end
+    
+    def findMatchingArityMethod(phase:SubtypeChecker,
+                                potentials:List,
+                                params:List)
       arity = params.size
-      phase1_methods = LinkedList.new
+      phase_methods = LinkedList.new
       potentials.each do |m|
         member = Member(m)
         args = member.argumentTypes
         next unless args.size == arity
         match = true
         arity.times do |i|
-          unless isSubType(ResolvedType(params[i]), ResolvedType(args[i]))
+          unless phase.isSubType(ResolvedType(params[i]), ResolvedType(args[i]))
             match = false
             break
           end
         end
-        phase1_methods.add(member) if match
+        phase_methods.add(member) if match
       end
-      if phase1_methods.size == 0
+      if phase_methods.size == 0
         nil
-      elsif phase1_methods.size > 1
-        findMaximallySpecific(phase1_methods)
+      elsif phase_methods.size > 1
+        findMaximallySpecific(phase_methods)
       else
-        phase1_methods
+        phase_methods
       end
     end
 
     def phase2(potentials:List, params:List):List
-      nil
+      findMatchingArityMethod(Phase2Checker.new, potentials, params)
     end
 
     def phase3(potentials:List, params:List):List

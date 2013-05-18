@@ -181,6 +181,18 @@ class MethodLookupTest < BaseMethodLookupTest
     assert(MethodLookup.subtypeComparison(main, int).nan?)
   end
 
+  def test_boxing
+    a = @types.getBooleanType.resolve
+    b = @types.wrap(Type.getType('Ljava/lang/Boolean;')).resolve
+    c = @types.getFixnumType(1).resolve
+    assert(!MethodLookup.isSubType(a, b))
+    assert(!MethodLookup.isSubType(b, a))
+    assert(MethodLookup.isSubTypeWithConversion(a, b))
+    assert(MethodLookup.isSubTypeWithConversion(b, a))
+    assert(!MethodLookup.isSubTypeWithConversion(c, b))
+    assert(!MethodLookup.isSubTypeWithConversion(b, c))
+  end
+
   def test_pickMostSpecific
     m = MethodLookup.pickMostSpecific([make_method('@I.()V'), make_method('@Z.()V')])
     # Both ambiguous, one should be picked but it doesn't matter which

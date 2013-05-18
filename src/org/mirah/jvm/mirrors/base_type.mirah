@@ -80,7 +80,7 @@ class BaseType implements MirrorType
   end
 
   def assignableFrom(other)
-    MethodLookup.isSubType(other, self)
+    MethodLookup.isSubTypeWithConversion(other, self)
   end
 
   def widen(other)
@@ -88,6 +88,8 @@ class BaseType implements MirrorType
       self
     elsif other.assignableFrom(self)
       other
+    elsif self.box
+      self.box.widen(other)
     else
       a = self
       while a.superclass
@@ -211,4 +213,16 @@ class BaseType implements MirrorType
   def toString
     @name
   end
+
+  def box:JVMType
+    @boxed
+  end
+
+  attr_writer boxed: JVMType
+
+  def unbox:JVMType
+    @unboxed
+  end
+
+  attr_writer unboxed: JVMType
 end
