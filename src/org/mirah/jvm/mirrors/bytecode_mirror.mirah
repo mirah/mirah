@@ -19,6 +19,7 @@ import java.util.ArrayList
 import java.util.LinkedList
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.jruby.org.objectweb.asm.tree.AnnotationNode
 import org.jruby.org.objectweb.asm.tree.ClassNode
 import org.jruby.org.objectweb.asm.tree.FieldNode
 import org.jruby.org.objectweb.asm.tree.MethodNode
@@ -52,6 +53,7 @@ class BytecodeMirror < BaseType
     @interfaces.length.times do |i|
       @interfaces[i] = BaseTypeFuture.new.resolved(lookupType(String(it.next)))
     end
+    @annotations = klass.visibleAnnotations
   end
 
   def self.lookupType(loader:MirrorLoader, internalName:String)
@@ -85,6 +87,20 @@ class BytecodeMirror < BaseType
       argument_mirrors.add(lookup(t))
     end
     add(Member.new(method.access, self, method.name, argument_mirrors, lookup(method_type.getReturnType), kind))
+  end
+
+  def retention
+    if @annotations
+      @annotations.each do |n|
+        anno = AnnotationNode(n)
+        if "Ljava/lang/annotation/Retention;".equals(anno.desc)
+          # anno.values should be
+          # ["value", ["Ljava/lang/annotation/RetentionPolicy;", policy]]
+          value = String[].cast(anno.values.get(1))
+          return value[1]
+        end
+      end
+    end
   end
 
   def interfaces:TypeFuture[]

@@ -77,4 +77,9 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert(mirror.isArray)
     assert_equal("Ljava/lang/Object;", mirror.getComponentType.class_id)
   end
+
+  def test_retention
+    mirror = @loader.loadMirror(Type.getType("Ljava/lang/annotation/Retention;"))
+    assert_equal("RUNTIME", mirror.retention)
+  end
 end
