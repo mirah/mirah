@@ -29,6 +29,7 @@ import org.jruby.org.objectweb.asm.Type
 
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.ConstructorDefinition
+import mirah.lang.ast.InterfaceDeclaration
 import mirah.lang.ast.Node
 import mirah.lang.ast.Position
 import mirah.lang.ast.Script
@@ -325,7 +326,11 @@ class MirrorTypeSystem implements TypeSystem
       superclass ||= @object_future
       interfaceArray = TypeFuture[interfaces.size]
       interfaces.toArray(interfaceArray)
-      mirror = MirahMirror.new(type, Opcodes.ACC_PUBLIC,
+      flags = Opcodes.ACC_PUBLIC
+      if node.kind_of?(InterfaceDeclaration)
+        flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
+      end
+      mirror = MirahMirror.new(type, flags,
                                superclass, interfaceArray)
       future = MirrorFuture.new(mirror, position)
       @loader.defineMirror(type, future)
@@ -460,6 +465,9 @@ class MirrorTypeSystem implements TypeSystem
       target = MirrorType(MetaType(target).unmeta)
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
+    end
+    if target.isInterface
+      flags |= Opcodes.ACC_ABSTRACT
     end
     if "initialize".equals(name)
       if isMeta

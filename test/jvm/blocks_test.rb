@@ -259,7 +259,7 @@ class BlocksTest < Test::Unit::TestCase
   def test_block_with_missing_params
     cls, = compile(<<-CODE)
         interface Bar do
-          def run(a:string):void;end
+          def run(a:String):void;end
         end
 
         class TakesABar
@@ -280,7 +280,7 @@ class BlocksTest < Test::Unit::TestCase
     assert_raises Mirah::MirahError do
       parse_and_type(<<-CODE)
         interface SingleArgMethod do
-          def run(a:string):void;end
+          def run(a:String):void;end
         end
 
         class ExpectsSingleArgMethod

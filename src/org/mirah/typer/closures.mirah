@@ -104,7 +104,7 @@ class ClosureBuilder
   def build_method(klass:ClassDefinition, block:Block, iface:ResolvedType)
     methods = @types.getAbstractMethods(iface)
     if methods.size != 1
-      raise UnsupportedOperationException, "Multiple abstract methods in #{iface}"
+      raise UnsupportedOperationException, "Multiple abstract methods in #{iface}: #{methods}"
     end
     methods.each do |_m|
       mtype = MethodType(_m)
