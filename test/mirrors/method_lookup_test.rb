@@ -284,10 +284,13 @@ class MethodLookupTest < BaseMethodLookupTest
 
   def test_gatherMethods
     methods = MethodLookup.gatherMethods(wrap('Ljava/lang/String;'), 'toString')
-    assert_equal(2, methods.size)
+    assert_equal(3, methods.size)
 
     declaring_classes = Set.new(methods.map {|m| m.declaringClass})
-    assert_equal(Set.new([wrap('Ljava/lang/Object;'), wrap('Ljava/lang/String;')]), declaring_classes)
+    assert_equal(Set.new([wrap('Ljava/lang/Object;'),
+                          wrap('Ljava/lang/String;'),
+                          wrap('Ljava/lang/CharSequence;')]),
+                 declaring_classes)
   end
 
   def test_method_splitting

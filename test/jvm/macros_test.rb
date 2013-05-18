@@ -48,7 +48,7 @@ class MacrosTest < Test::Unit::TestCase
         mirah::lang::ast::Null.new
       end
 
-      System.out.println(foo())
+      System.out.println(Object(foo()))
     EOF
 
     assert_output("null\n") {cls.main(nil)}
@@ -61,7 +61,7 @@ class MacrosTest < Test::Unit::TestCase
         quote { nil }
       end
 
-      System.out.println(foo)
+      System.out.println(Object(foo))
     EOF
 
     assert_output("null\n") {cls.main(nil)}

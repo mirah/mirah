@@ -323,11 +323,10 @@ class MethodLookup
     def gatherMethods(target:MirrorType, name:String):List
       methods = LinkedList.new
       types = HashSet.new
-      isAbstract = (0 != (target.flags & Opcodes.ACC_ABSTRACT))
-      gatherMethodsInternal(target, name, isAbstract, methods, types)
+      gatherMethodsInternal(target, name, methods, types)
     end
 
-    def gatherMethodsInternal(target:MirrorType, name:String, includeInterfaces:boolean, methods:List, visited:Set):List
+    def gatherMethodsInternal(target:MirrorType, name:String, methods:List, visited:Set):List
       if target
         target = target.unmeta
       end
@@ -335,12 +334,10 @@ class MethodLookup
         visited.add(target)
         methods.addAll(target.getDeclaredMethods(name))
         return methods if "<init>".equals(name)
-        gatherMethodsInternal(MirrorType(target.superclass), name, includeInterfaces, methods, visited)
-        if includeInterfaces
-          target.interfaces.each do |i|
-            iface = MirrorType(i.resolve)
-            gatherMethodsInternal(iface, name, includeInterfaces, methods, visited)
-          end
+        gatherMethodsInternal(MirrorType(target.superclass), name, methods, visited)
+        target.interfaces.each do |i|
+          iface = MirrorType(i.resolve)
+          gatherMethodsInternal(iface, name, methods, visited)
         end
       end
       methods
@@ -412,7 +409,7 @@ class MethodLookup
     end
 
     def findMatchingMethod(potentials:List, params:List):List
-      if params && params.all?
+      if  params && !potentials.isEmpty && params.all?
         phase1(potentials, params) || phase2(potentials, params) || phase3(potentials, params)
       end
     end
