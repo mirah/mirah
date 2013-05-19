@@ -15,35 +15,14 @@
 
 package org.mirah.builtins
 
-class ArrayExtensions
-  macro def each(block:Block)
-    if block.arguments && block.arguments.required_size() > 0
-      arg = block.arguments.required(0)
-      x = arg.name.identifier
-      type = arg.type if arg.type
-    else
-      x = gensym
-      type = TypeName(nil)
-    end
-    array = gensym
-    i = gensym
+import mirah.lang.ast.*
 
-    getter = quote { `array`[`i`] }
-    if type
-      getter = Cast.new(type.position, type, getter)
-    end
+class MirrorObjectExtensions
 
-    quote do
-      while `i` < `array`.length
-        init {`array` = `@call.target`; `i` = 0}
-        pre {`x` = `getter`}
-        post {`i` = `i` + 1}
-        `block.body`
-      end
-    end
-  end
-
-  macro def self.cast(array)
-    Cast.new(@call.position, TypeName(@call.target), array)
+  # This is needed by the Mirror type system,
+  # but it breaks the ruby type system.
+  macro def self.[]
+    TypeRefImpl.new(TypeName(@call.target).typeref.name,
+                    true, true, @call.position)
   end
 end

@@ -421,6 +421,8 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def addObjectIntrinsics
+    BytecodeMirrorLoader.extendClass(
+        @object, MirrorObjectExtensions.class, @macro_loader)
     bool = JVMType(getBooleanType.resolve)
     @object.add(Member.new(
         Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, @object, 'class', [],

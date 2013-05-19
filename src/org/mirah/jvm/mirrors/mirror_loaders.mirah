@@ -158,6 +158,18 @@ class OrErrorLoader < SimpleMirrorLoader
   end
 end
 
+class SyncLoaderAdapter implements MirrorLoader
+  def initialize(loader:AsyncMirrorLoader)
+    @loader = loader
+  end
+  def loadMirror(type:Type):MirrorType
+    resolved = @loader.loadMirrorAsync(type).resolve
+    unless resolved.isError
+      MirrorType(resolved)
+    end
+  end
+end
+
 class BytecodeMirrorLoader < SimpleMirrorLoader
   def self.initialize:void
     @@log = Logger.getLogger(BytecodeMirrorLoader.class.getName)

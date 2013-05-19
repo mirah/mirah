@@ -19,6 +19,8 @@ import java.util.List
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.builtins.ArrayExtensions
+import org.mirah.builtins.EnumerableExtensions
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
@@ -38,6 +40,9 @@ class ArrayType < BaseType
          loader.loadMirrorAsync(Type.getType('Ljava/io/Serializable;'))
     @int_type = loader.loadMirrorAsync(Type.getType('I')).resolve
     @componentType = component
+    sync_loader = SyncLoaderAdapter.new(loader)
+    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, sync_loader)
+    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, sync_loader)
   end
 
   def initialize(component:MirrorType, loader:MirrorLoader)
@@ -51,6 +56,8 @@ class ArrayType < BaseType
          loader.loadMirror(Type.getType('Ljava/io/Serializable;')))
     @int_type = loader.loadMirror(Type.getType('I'))
     @componentType = component
+    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, loader)
+    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, loader)
   end
 
   def interfaces:TypeFuture[]
