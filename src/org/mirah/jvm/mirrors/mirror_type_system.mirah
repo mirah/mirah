@@ -479,6 +479,7 @@ class MirrorTypeSystem implements TypeSystem
         name = "<init>"
         kind = MemberKind.CONSTRUCTOR
       end
+      returnType = getVoidType
     end
     member = AsyncMember.new(flags, target, name, arguments, returnFuture, kind)
     overriden_return = inferOverride(target, name, arguments)
