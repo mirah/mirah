@@ -204,8 +204,8 @@ class MirrorTypeSystem implements TypeSystem
         return BaseTypeFuture.new().resolved(call.resolved_target)
       end
       target = MirrorType(call.resolved_target)
-      name = resolveMethodName(call.scope, target, call.name)
-      if "<init>".equals(name)
+      method_name = resolveMethodName(call.scope, target, call.name)
+      if "<init>".equals(method_name)
         target = target.unmeta
       end
       error = JvmErrorType.new([
@@ -220,13 +220,13 @@ class MirrorTypeSystem implements TypeSystem
         end
       end
       method = MethodLookup.findMethod(
-          call.scope, target, name,
+          call.scope, target, method_name,
           call.resolved_parameters, macro_params, call.position)
       future.type = method || error
       log = @@log
-      target.addMethodListener(call.name) do |klass, name|
+      target.addMethodListener(method_name) do |klass, name|
         future.type = MethodLookup.findMethod(
-            call.scope, target, call.name,
+            call.scope, target, method_name,
             call.resolved_parameters, macro_params, call.position) || error
       end
     end
