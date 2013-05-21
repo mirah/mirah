@@ -38,6 +38,8 @@ class Number < BaseType
         add_operators(@loader.loadMirror(Type.INT_TYPE), boolean)
       end
     end
+    BytecodeMirrorLoader.extendClass(
+        self, MirrorObjectExtensions.class, @loader)
     true
   end
 
