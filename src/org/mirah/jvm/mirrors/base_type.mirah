@@ -121,6 +121,9 @@ class BaseType implements MirrorType
   def isInterface:boolean
     0 != (@flags & Opcodes.ACC_INTERFACE)
   end
+  def isAbstract:boolean
+    0 != (@flags & Opcodes.ACC_ABSTRACT)
+  end
   def isAnnotation:boolean
     0 != (@flags & Opcodes.ACC_ANNOTATION)
   end

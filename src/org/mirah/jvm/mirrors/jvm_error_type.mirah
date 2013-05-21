@@ -39,6 +39,7 @@ class JvmErrorType < ErrorType implements MirrorType
   def isPrimitive:boolean; false; end
   def isEnum:boolean; false; end
   def isInterface:boolean; false; end
+  def isAbstract:boolean; false; end
 
   def isAnnotation:boolean; false; end
   def retention:String; nil; end

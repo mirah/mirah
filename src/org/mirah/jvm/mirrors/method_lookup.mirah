@@ -81,7 +81,7 @@ class MethodLookup
       if subtype.isArray && supertype.isArray
         return isArraySubType(subtype, supertype)
       end
-      return supertype.isInterface if subtype.isBlock
+      return (supertype.isInterface || supertype.isAbstract) if subtype.isBlock
 
       super_desc = supertype.class_id
       explored = HashSet.new

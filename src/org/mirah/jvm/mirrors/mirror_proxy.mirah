@@ -80,6 +80,9 @@ class MirrorProxy implements MirrorType
   def isInterface
     @target.isInterface
   end
+  def isAbstract
+    @target.isAbstract
+  end
   def isAnnotation
     @target.isAnnotation
   end
