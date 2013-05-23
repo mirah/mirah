@@ -138,7 +138,7 @@ class Typer < SimpleNodeVisitor
     call.target.setParent(call)  # FIXME: workaround AST bug
     targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
-    methodType = CallFuture.new(@types, scope, targetType, Collections.emptyList, call)
+    methodType = CallFuture.new(@types, scope, targetType, false, Collections.emptyList, call)
     fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
     fcall.setParent(call.parent)
     @futures[fcall] = methodType
@@ -191,7 +191,7 @@ class Typer < SimpleNodeVisitor
     call.target.setParent(call)  # FIXME: workaround AST bug
     targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
-    methodType = CallFuture.new(@types, scope, targetType, parameters, call)
+    methodType = CallFuture.new(@types, scope, targetType, false, parameters, call)
     delegate.type = methodType
     typer = self
     methodType.onUpdate do |x, resolvedType|
@@ -262,7 +262,7 @@ class Typer < SimpleNodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
-    methodType = CallFuture.new(@types, @scopes.getScope(call), target, parameters, call)
+    methodType = CallFuture.new(@types, @scopes.getScope(call), target, true, parameters, call)
     delegate = DelegateFuture.new
     delegate.type = methodType
     typer = self
@@ -328,7 +328,7 @@ class Typer < SimpleNodeVisitor
     if (value.kind_of?(NarrowingTypeFuture))
       narrowingCall(scope, target, setter, Collections.emptyList, NarrowingTypeFuture(value), call.position)
     end
-    CallFuture.new(@types, scope, target, setter, [value], nil, call.position)
+    CallFuture.new(@types, scope, target, true, setter, [value], nil, call.position)
   end
 
   def narrowingCall(scope:Scope,
@@ -340,11 +340,11 @@ class Typer < SimpleNodeVisitor
     # Try looking up both the wide type and the narrow type.
     wide_params = LinkedList.new(param_types)
     wide_params.add(value.wide_future)
-    wide_call = CallFuture.new(@types, scope, target, name, wide_params, nil, position)
+    wide_call = CallFuture.new(@types, scope, target, true, name, wide_params, nil, position)
 
     narrow_params = LinkedList.new(param_types)
     narrow_params.add(value.narrow_future)
-    narrow_call = CallFuture.new(@types, scope, target, name, narrow_params, nil, position)
+    narrow_call = CallFuture.new(@types, scope, target, true, name, narrow_params, nil, position)
 
     # If there's a match for the wide type (or both are errors) we always use
     # the wider one.
@@ -384,7 +384,7 @@ class Typer < SimpleNodeVisitor
     target = @types.getSuperClass(scope.selfType)
     parameters = inferAll(node.parameters)
     parameters.add(infer(node.block, true)) if node.block
-    CallFuture.new(@types, scope, target, method.name.identifier, parameters, nil, node.position)
+    CallFuture.new(@types, scope, target, true, method.name.identifier, parameters, nil, node.position)
   end
 
   def visitZSuper(node, expression)

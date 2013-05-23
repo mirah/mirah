@@ -32,15 +32,15 @@ class CallFuture < BaseTypeFuture
     @@log
   end
 
-  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, paramTypes:List, call:CallSite)
-    initialize(types, scope, target, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
+  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, explicitTarget:boolean, paramTypes:List, call:CallSite)
+    initialize(types, scope, target, explicitTarget, call.name.identifier, paramTypes, CallFuture.getNodes(call), call.position)
   end
 
-  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, name:String, paramTypes:List, call:CallSite)
-    initialize(types, scope, target, name, paramTypes, CallFuture.getNodes(call), call.position)
+  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, explicitTarget:boolean, name:String, paramTypes:List, call:CallSite)
+    initialize(types, scope, target, explicitTarget, name, paramTypes, CallFuture.getNodes(call), call.position)
   end
 
-  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, name:String, paramTypes:List, paramNodes:List, position:Position)
+  def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, explicitTarget:boolean, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
     unless target
       raise IllegalArgumentException, "No target for #{name}"
@@ -48,6 +48,7 @@ class CallFuture < BaseTypeFuture
     @scope = scope
     @types = types
     @target = target
+    @explicitTarget = explicitTarget
     @name = name
     @paramTypes = paramTypes
     @params = paramNodes
@@ -78,6 +79,10 @@ class CallFuture < BaseTypeFuture
 
   def parameterNodes:List
     @params
+  end
+
+  def explicitTarget:boolean
+    @explicitTarget
   end
 
   def resolved_target=(type:ResolvedType):void

@@ -376,7 +376,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   def test_simple_method_def
     @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
     type = @types.getMethodType(
-        CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
+        CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
     assert_resolved_to('LFooBar;', type.resolve.returnType)
   end
 
@@ -384,11 +384,11 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
     @types.getMethodDefType(main_type, 'foo', [], @types.getFixnumType(1), nil)
     type = @types.getMethodType(
-        CallFuture.new(@types, @scope, main_type, 'foobar', [], [], nil))
+        CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
     assert_not_error(type)
     assert_resolved_to('LFooBar;', type.resolve.returnType)
     type = @types.getMethodType(
-        CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+        CallFuture.new(@types, @scope, main_type, true, 'foo', [], [], nil))
     assert_not_error(type)
     assert_resolved_to('I', type.resolve.returnType)
   end
@@ -397,7 +397,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     future = BaseTypeFuture.new
     @types.getMethodDefType(main_type, 'foo', [], future, nil)
     type = @types.getMethodType(
-        CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+        CallFuture.new(@types, @scope, main_type, true, 'foo', [], [], nil))
     assert_error(type)
     future.resolved(@types.getFixnumType(1).resolve)
     assert_not_error(type)
@@ -407,7 +407,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   def test_infer_return_type_from_body
     future = @types.getMethodDefType(main_type, 'foo', [], nil, nil)
     type = @types.getMethodType(
-        CallFuture.new(@types, @scope, main_type, 'foo', [], [], nil))
+        CallFuture.new(@types, @scope, main_type, true, 'foo', [], [], nil))
     assert_error(type)
     future.returnType.assign(@types.getFixnumType(1), nil)
     assert_not_error(type)
@@ -423,7 +423,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     argument_future = BaseTypeFuture.new
     @types.getMethodDefType(type, 'foo', [argument_future], short, nil)
 
-    call_future = CallFuture.new(@types, @scope, type, 'foo', [short], [], nil)
+    call_future = CallFuture.new(@types, @scope, type, true, 'foo', [short], [], nil)
     assert_not_error(call_future)
     assert_resolved_to('I', call_future.resolve)
 
@@ -439,7 +439,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     argument_future = BaseTypeFuture.new
     @types.getMethodDefType(main_type, 'foo', [argument_future], short, nil)
 
-    call_future = CallFuture.new(@types, @scope, main_type, 'foo', [short], [], nil)
+    call_future = CallFuture.new(@types, @scope, main_type, true, 'foo', [short], [], nil)
     assert_not_error(call_future)
     assert_resolved_to('I', call_future.resolve)
 
@@ -457,9 +457,9 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     
     @types.getMethodDefType(main_type, 'foobar', [c],
                             @types.getFixnumType(0), nil)
-    type1 = CallFuture.new(@types, @scope, main_type, 'foobar', [b], [], nil)
+    type1 = CallFuture.new(@types, @scope, main_type, true, 'foobar', [b], [], nil)
     assert_error(type1)
-    type2 = CallFuture.new(@types, @scope, main_type, 'foobar', [b], [], nil)
+    type2 = CallFuture.new(@types, @scope, main_type, true, 'foobar', [b], [], nil)
     assert_error(type2)
     super_future.resolved(c.resolve)
     assert_descriptor("I", type1)
@@ -471,7 +471,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     @scope.context_set(ConstructorDefinition.new)
     future = CallFuture.new(
         @types, @scope,
-        @types.getSuperClass(main_type), 'initialize', [], [], nil)
+        @types.getSuperClass(main_type), true, 'initialize', [], [], nil)
     assert_descriptor("Ljava/lang/Object;", future)
   end
 
@@ -481,13 +481,13 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     array_type = @types.get(@scope, typeref('short', true))
     
     method = @types.getMethodType(CallFuture.new(
-        @types, @scope, array_type, 'length', [], [], nil))
+        @types, @scope, array_type, true, 'length', [], [], nil))
     assert_resolved_to('I', method.resolve.returnType)
     method = @types.getMethodType(CallFuture.new(
-        @types, @scope, array_type, '[]', [index_type], [], nil))
+        @types, @scope, array_type, true, '[]', [index_type], [], nil))
     assert_resolved_to('S', method.resolve.returnType)
     method = @types.getMethodType(CallFuture.new(
-        @types, @scope, array_type,
+        @types, @scope, array_type, true,
         '[]=', [index_type, component_type], [], nil))
     assert_resolved_to('S', method.resolve.returnType)
   end
@@ -495,7 +495,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   def test_field_access_via_call
     system = @types.get(@scope, typeref('java.lang.System'))
     method = @types.getMethodType(CallFuture.new(
-        @types, @scope, system, 'out', [], [], nil))
+        @types, @scope, system, true, 'out', [], [], nil))
     assert_not_error(method)
     assert_resolved_to("Ljava/io/PrintStream;", method.resolve.returnType)
     member = method.resolve.returnType.member
@@ -506,7 +506,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     object = @types.get(@scope, typeref('java.lang.Object'))
     object_meta = @types.getMetaType(object)
     method = CallFuture.new(
-        @types, @scope, object_meta, 'new', [], [], nil)
+        @types, @scope, object_meta, true, 'new', [], [], nil)
     assert_descriptor('Ljava/lang/Object;', method)
   end
 

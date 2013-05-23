@@ -293,8 +293,12 @@ class MethodLookup
                    name:String,
                    params:List,
                    macro_params:List,
-                   position:Position):TypeFuture
+                   position:Position,
+                   includeStaticImports:boolean):TypeFuture
       potentials = gatherMethods(target, name)
+      if includeStaticImports && potentials.isEmpty && target == scope.selfType.resolve
+        potentials = gatherStaticImports(JVMScope(scope), name)
+      end
       state = MethodLookup.new(scope, target, potentials, position)
       state.search(params, macro_params)
       state.searchFields(name)
@@ -340,6 +344,18 @@ class MethodLookup
       methods = LinkedList.new
       types = HashSet.new
       gatherMethodsInternal(target, name, methods, types)
+    end
+
+    def gatherStaticImports(scope:JVMScope, name:String):List
+      methods = LinkedList.new
+      types = HashSet.new
+      scope.staticImports.each do |type|
+        resolved = TypeFuture(type).resolve
+        if resolved.kind_of?(MirrorType)
+          gatherMethodsInternal(MirrorType(resolved), name, methods, types)
+        end
+      end
+      methods
     end
 
     def gatherMethodsInternal(target:MirrorType, name:String, methods:List, visited:Set):List

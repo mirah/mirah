@@ -192,6 +192,10 @@ class ClassCleanup < NodeScanner
     enterClassDefinition(node, arg)
     false
   end
+  def enterImport(node, arg)
+    # ignore
+    false
+  end
   def enterNodeList(node, arg)
     # Scan the children
     true

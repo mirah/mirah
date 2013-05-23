@@ -221,13 +221,15 @@ class MirrorTypeSystem implements TypeSystem
       end
       method = MethodLookup.findMethod(
           call.scope, target, method_name,
-          call.resolved_parameters, macro_params, call.position)
+          call.resolved_parameters, macro_params,
+          call.position, !call.explicitTarget)
       future.type = method || error
       log = @@log
       target.addMethodListener(method_name) do |klass, name|
         future.type = MethodLookup.findMethod(
             call.scope, target, method_name,
-            call.resolved_parameters, macro_params, call.position) || error
+            call.resolved_parameters, macro_params,
+            call.position, !call.explicitTarget) || error
       end
     end
     future
@@ -602,7 +604,7 @@ class MirrorTypeSystem implements TypeSystem
     scope.selfType_set(main_type)
 
     string = MirrorType(types.getStringType.resolve)
-    type = MethodLookup.findMethod(scope, string, 'toString', [], nil, nil)
+    type = MethodLookup.findMethod(scope, string, 'toString', [], nil, nil, false)
     puts type.resolve
   end
 end

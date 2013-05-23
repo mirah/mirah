@@ -19,6 +19,7 @@ import java.util.ArrayList
 import java.util.HashSet
 import java.util.List
 import java.util.Map
+import java.util.Set
 
 import mirah.lang.ast.Position
 import org.mirah.typer.simple.SimpleScope
@@ -35,6 +36,7 @@ class JVMScope < SimpleScope
     @scoper = scoper
     @search_packages = []
     @imports = {}
+    @staticImports = HashSet.new
     @children = HashSet.new
   end
 
@@ -109,8 +111,7 @@ class JVMScope < SimpleScope
     @parent.removeChild(self) if @parent
     JVMScope(parent).addChild(self)
     @parent = JVMScope(parent)
-    @cached_imports = Map(nil)
-    @cached_packages = List(nil)
+    flush
   end
 
   def outer_scope:JVMScope
@@ -138,6 +139,13 @@ class JVMScope < SimpleScope
     list
   end
 
+  def fetch_static_imports(set:Set)
+    parent_scope = outer_scope
+    parent_scope.fetch_static_imports(set) if parent_scope
+    set.addAll(@staticImports)
+    set
+  end
+
   def imports
     @cached_imports ||= fetch_imports({})
   end
@@ -147,8 +155,7 @@ class JVMScope < SimpleScope
   end
 
   def import(fullname:String, shortname:String)
-    @cached_imports = Map(nil)
-    @cached_packages = List(nil)
+    flush
     if "*".equals(shortname)
       @search_packages.add(fullname)
     else
@@ -164,5 +171,20 @@ class JVMScope < SimpleScope
   end
   def selfType=(type:TypeFuture):void
     @selfType = type
+  end
+
+  def staticImport(type)
+    flush
+    @staticImports.add(type)
+  end
+  
+  def staticImports:Set
+    @cached_static_imports ||= fetch_static_imports(HashSet.new)
+  end
+
+  def flush
+    @cached_imports = Map(nil)
+    @cached_packages = List(nil)
+    @cached_static_imports = Set(nil)
   end
 end
