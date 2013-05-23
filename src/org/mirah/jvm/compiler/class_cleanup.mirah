@@ -56,8 +56,8 @@ class ClassCleanup < NodeScanner
     unless @static_init_nodes.isEmpty
       if @cinit.nil?
         @cinit = @parser.quote { def self.initialize:void; end }
-        @typer.infer(@cinit, false)
         @klass.body.add(@cinit)
+        @typer.infer(@cinit, false)
       end
       nodes = NodeList.new
       @static_init_nodes.each do |n|
@@ -66,24 +66,25 @@ class ClassCleanup < NodeScanner
         node.setParent(nil)  # TODO: ast bug
         nodes.add(node)
       end
-      @typer.infer(nodes, false)
       old_body = @cinit.body
       @cinit.body = nodes
       @cinit.body.add(old_body)
+      @typer.infer(nodes, false)
     end
     if @constructors.isEmpty 
       add_default_constructor unless @klass.kind_of?(InterfaceDeclaration)
-    else
-      cleanup = ConstructorCleanup.new(@context)
-      init = if @init_nodes.nil?
-        nil
-      else
-        NodeList.new(@init_nodes)
-      end
-      @constructors.each do |n|
-        cleanup.clean(ConstructorDefinition(n), init)
-      end
     end
+
+    init = if @init_nodes.nil?
+      nil
+    else
+      NodeList.new(@init_nodes)
+    end
+    cleanup = ConstructorCleanup.new(@context)
+    @constructors.each do |n|
+      cleanup.clean(ConstructorDefinition(n), init)
+    end
+
     declareFields
     @methods.each do |m|
       addOptionalMethods(MethodDefinition(m))
@@ -148,7 +149,7 @@ class ClassCleanup < NodeScanner
     @context[DiagnosticListener].report(MirahDiagnostic.note(position, message))
   end
   def enterDefault(node, arg)
-    error("Statement not enclosed in a method", node.position)
+    error("Statement (#{node.getClass}) not enclosed in a method", node.position)
     false
   end
   def enterMethodDefinition(node, arg)
@@ -214,7 +215,9 @@ class ClassCleanup < NodeScanner
       @static_init_nodes.add(node)
     else
       @init_nodes.add(node)
+      node.parent.removeChild(node)
     end
+    false
   end
   def enterFieldDeclaration(node, arg)
     # We've already cleaned this class, don't add more field decls.
