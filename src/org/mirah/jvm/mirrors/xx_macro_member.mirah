@@ -18,6 +18,8 @@ package org.mirah.jvm.mirrors
 import java.util.List
 import java.util.logging.Logger
 
+import mirah.lang.ast.Noop
+
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.macros.anno.MacroDef
@@ -41,7 +43,7 @@ class MacroMember < Member
     InlineCode.new do |node, typer|
       constructor = klass.getDeclaredConstructors[0]
       macroimpl = Macro(constructor.newInstance(typer.macro_compiler, node))
-      macroimpl.expand
+      macroimpl.expand || Noop.new(node.position)
     end
   end
 
