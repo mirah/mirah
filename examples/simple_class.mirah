@@ -19,7 +19,7 @@ class SimpleClass
     @hello = 'Hello, '
   end
 
-  def hello(a:string)
+  def hello(a:String)
     puts @hello; puts a
   end
 end
