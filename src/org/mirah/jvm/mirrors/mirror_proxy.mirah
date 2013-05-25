@@ -32,6 +32,8 @@ class MirrorProxy implements MirrorType
     @target = type
   end
 
+  attr_accessor target:MirrorType
+
   def notifyOfIncompatibleChange:void
     @target.notifyOfIncompatibleChange
   end

@@ -111,7 +111,7 @@ class ScriptCleanup < NodeScanner
   end
   def enterClassDefinition(node, arg)
     type = @typer.infer(node).resolve
-    @classes[type] = node
+    @classes[type.name] = node
     ClassCleanup.new(@context, node).clean
     false
   end
@@ -136,7 +136,7 @@ class ScriptCleanup < NodeScanner
   def getOrCreateClass(script:Script)
     scope = @typer.scoper.getIntroducedScope(script)
     type = @typer.type_system.getMainType(scope, script).resolve
-    klass = ClassDefinition(@classes[type])
+    klass = ClassDefinition(@classes[type.name])
     if klass.nil?
       klass = @parser.quote do
         class `type.name`

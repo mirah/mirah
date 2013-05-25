@@ -317,12 +317,23 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
+  def isTypeDefinition(future:TypeFuture):boolean
+    return false unless future.isResolved
+    resolved = future.resolve
+    if resolved.kind_of?(MirahMirror)
+      return true
+    end
+    if resolved.kind_of?(MirrorProxy)
+      MirrorProxy(resolved).target.kind_of?(MirahMirror)
+    end
+  end
+
   def defineType(scope, node, name, superclass, interfaces)
     position = node ? node.position : nil
     fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
-    existing = wrap(type)
-    if existing.isResolved && existing.resolve.kind_of?(MirahMirror)
+    existing = wrap(type)      
+    if isTypeDefinition(existing)
       existing
     else
       superclass ||= @object_future
