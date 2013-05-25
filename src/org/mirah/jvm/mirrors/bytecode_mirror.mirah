@@ -16,12 +16,14 @@
 package org.mirah.jvm.mirrors
 
 import java.util.ArrayList
+import java.util.Collections
 import java.util.LinkedList
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.tree.AnnotationNode
 import org.jruby.org.objectweb.asm.tree.ClassNode
 import org.jruby.org.objectweb.asm.tree.FieldNode
+import org.jruby.org.objectweb.asm.tree.InnerClassNode
 import org.jruby.org.objectweb.asm.tree.MethodNode
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
@@ -54,6 +56,7 @@ class BytecodeMirror < BaseType
       @interfaces[i] = BaseTypeFuture.new.resolved(lookupType(String(it.next)))
     end
     @annotations = klass.visibleAnnotations
+    @innerClassNodes = klass.innerClasses
   end
 
   def self.lookupType(loader:MirrorLoader, internalName:String)
@@ -89,6 +92,15 @@ class BytecodeMirror < BaseType
     add(Member.new(method.access, self, method.name, argument_mirrors, lookup(method_type.getReturnType), kind))
   end
 
+  def addInnerClass(node:InnerClassNode):void
+    flags = node.access | Opcodes.ACC_STATIC
+    name = node.innerName
+    args = Collections.emptyList
+    result = MetaType.new(lookupType(node.name))
+    kind = MemberKind.CLASS_LITERAL
+    add(Member.new(flags, self, name, args, result, kind))
+  end
+
   def retention
     if @annotations
       @annotations.each do |n|
@@ -112,6 +124,9 @@ class BytecodeMirror < BaseType
       addMethod(MethodNode(m))
     end
     @methods = nil
+    @innerClassNodes.each do |n|
+      addInnerClass(InnerClassNode(n))
+    end
     true
   end
 
