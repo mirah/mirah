@@ -599,7 +599,7 @@ module Mirah::JVM::Types
       else
         listeners[block] = block
       end
-      if !self.meta? && jvm_type && superclass && !superclass.isError
+      if !self.meta? && jvm_type && super_class_valid?
         superclass.add_method_listener(name, self)
       end
       interfaces.each {|i| i.add_method_listener(name, self) unless i.isError}
@@ -774,13 +774,17 @@ module Mirah::JVM::Types
       things = []
       new_things = block.call(self)
       things.concat new_things if new_things
-      if superclass && !superclass.error?
+      if super_class_valid?
         things.concat superclass.collect_up_inheritance_tree(&block)
       end
       things
     end
 
     private
+
+    def super_class_valid?
+      superclass && !superclass.error?
+    end
 
     def all_declared_jvm_methods(name=nil)
       return [] if !jvm_type || (meta? ? unmeta : self).array?
