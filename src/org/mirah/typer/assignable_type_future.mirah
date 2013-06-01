@@ -23,7 +23,7 @@ import mirah.lang.ast.*
 
 # A TypeFuture that can be assigned to several times, and widens to a type
 # that will hold all the assignments. It may also have a declared type, in
-# which case all asignments must be compatible with the declared type.
+# which case all assignments must be compatible with the declared type.
 class AssignableTypeFuture < BaseTypeFuture
   def initialize(position:Position)
     super(position)
