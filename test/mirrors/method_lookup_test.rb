@@ -315,13 +315,13 @@ class MethodLookupTest < BaseMethodLookupTest
 
   def test_findMethod
     set_self_type(jvmtype('Foo'))
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil, nil).resolve
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil, nil, false).resolve
     assert(!type.isError, type.toString)
-    assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil, nil))
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil, nil).resolve
+    assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil, nil, false))
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil, nil, false).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.registerNatives() from Foo', type.message[0][0])
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil, nil).resolve
+    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil, nil, false).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.clone() from Foo', type.message[0][0])
     # TODO test ambiguous
@@ -537,7 +537,7 @@ class FieldTest < BaseMethodLookupTest
 
   def test_find_super_field
     @a.add_field("foo")
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert_equal("LA;", future.resolve.returnType.class_id)    
   end
 
@@ -545,7 +545,7 @@ class FieldTest < BaseMethodLookupTest
     @a.add_field("foo")
     @b.add_field("foo")
 
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert_equal("LB;", future.resolve.returnType.class_id)
   end
 
@@ -554,18 +554,18 @@ class FieldTest < BaseMethodLookupTest
     @a.add_field("foo", Opcodes.ACC_PUBLIC)
     @b.add_field("foo", Opcodes.ACC_PRIVATE)
     
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert_equal("LA;", future.resolve.returnType.class_id)
   end
 
   def test_inaccessible
     @a.add_field("foo", Opcodes.ACC_PRIVATE)
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil)
+    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert(future.resolve.isError, "Expected error, got #{future.resolve}")
   end
 
   def test_field_setter
     @a.add_field("foo")
-    future = MethodLookup.findMethod(@scope, @a, 'foo_set', [@a], nil, nil)
+    future = MethodLookup.findMethod(@scope, @a, 'foo_set', [@a], nil, nil, false)
   end
 end
