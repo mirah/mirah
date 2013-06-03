@@ -771,7 +771,8 @@ module Mirah
         end
 
         def captured_local_assign(node, expression)
-          scope, name, type = containing_scope(node), node.name.identifier, inferred_type(node)
+          scope, name = containing_scope(node), node.name.identifier
+          type = get_scope(node).local_type(name).resolve
           captured_local_declare(scope, name, type)
           binding_reference
           visit(node.value, true)
