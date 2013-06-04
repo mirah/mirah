@@ -45,6 +45,10 @@ module JVMCompiler
     JVM::Compiler::JVMBytecode
   end
 
+  def compiler_name
+    "original"
+  end
+
   def parse name, code, transformer
     AST.parse(code, name, true, transformer)
   end

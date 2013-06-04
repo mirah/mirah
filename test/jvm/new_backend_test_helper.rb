@@ -18,4 +18,8 @@ module JVMCompiler
   def compiler_type
     Mirah::JVM::Compiler::Backend
   end
+
+  def compiler_name
+    "new"
+  end
 end

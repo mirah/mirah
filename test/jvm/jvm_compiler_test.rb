@@ -1688,7 +1688,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_dynamic_where_invokedynamic_required_fails_reasonably_on_pre_1_7_target
     # the new backend doesn't support invokedynamic based dynamic (yet?) : nh
-    pend if compiler_type == Mirah::JVM::Compiler::Backend
+    pend if compiler_name == "new"
 
     ex = assert_raises MirahError do
       compile(<<-EOF, :java_version => '1.6')
