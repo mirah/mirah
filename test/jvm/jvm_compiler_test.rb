@@ -1686,8 +1686,10 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("1\nhello\n[im, an, array]\n") { cls.main(nil) }
   end
 
+  def test_dynamic_where_invokedynamic_required_fails_reasonably_on_pre_1_7_target
+    # the new backend doesn't support invokedynamic based dynamic (yet?) : nh
+    pend if compiler_type == Mirah::JVM::Compiler::Backend
 
-  def test_dynamic_fails_reasonably_on_pre_1_7_target
     ex = assert_raises MirahError do
       compile(<<-EOF, :java_version => '1.6')
         def dyno qux:dynamic
