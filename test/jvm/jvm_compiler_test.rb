@@ -1715,6 +1715,42 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(0.0, cls.foo)
   end
 
+  def test_assign_int_to_double_with_additional_assign_is_int
+    cls, = compile(<<-EOF)
+      def foo
+        a = 1.0
+        b = a = 0
+      end
+    EOF
+    assert(cls.foo.is_a? Fixnum)
+    assert_equal(0, cls.foo)
+  end
+
+  def test_assign_int_to_double_with_additional_assign_and_specified_return_as_double_is_double
+    pend "currently generates wrong bytecode" do
+      cls, = compile(<<-EOF)
+      def foo : double
+        a = 1.0
+        b = a = 0
+      end
+      EOF
+      assert(cls.foo.is_a? Float)
+      assert_equal(0, cls.foo)
+    end
+  end
+
+  def test_return_int_when_specified_return_as_double_is_double
+    pend "currently generates wrong bytecode" do
+      cls, = compile(<<-EOF)
+      def foo : double
+        0
+      end
+      EOF
+      assert(cls.foo.is_a? Float)
+      assert_equal(0, cls.foo)
+    end
+  end
+
   def test_assign_int_to_double_in_closure
     cls, = compile(<<-EOF)
       def bar(r:Runnable); r.run; end
