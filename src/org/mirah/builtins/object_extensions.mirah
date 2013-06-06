@@ -16,6 +16,7 @@
 package org.mirah.builtins
 
 import mirah.lang.ast.*
+import org.mirah.typer.ClosureBuilder
 
 class ObjectExtensions
   macro def puts(node)
@@ -95,5 +96,21 @@ class ObjectExtensions
       methods.add(method)
     end
     methods
+  end
+
+  macro def lambda(type:TypeName, block:Block)
+    builder = ClosureBuilder.new(@mirah.typer)
+    scope = @mirah.typer.scoper.getScope(@call)
+    # TODO: what if this is an error
+    resolved = @mirah.type_system.get(scope, type.typeref).resolve
+    builder.prepare(block, resolved)
+  end
+
+  macro def self.lambda(type:TypeName, block:Block)
+    builder = ClosureBuilder.new(@mirah.typer)
+    scope = @mirah.typer.scoper.getScope(@call)
+    # TODO: what if this is an error
+    resolved = @mirah.type_system.get(scope, type.typeref).resolve
+    builder.prepare(block, resolved)
   end
 end
