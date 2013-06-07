@@ -15,6 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
+import javax.lang.model.type.TypeKind
+import javax.lang.model.type.ErrorType as ErrorTypeModel
 import java.util.Collections
 import java.util.List
 import org.mirah.typer.ErrorType
@@ -24,7 +26,7 @@ import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 
-class JvmErrorType < ErrorType implements MirrorType
+class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
   def initialize(message:List, type:Type)
     super(message)
     @type = type
@@ -67,4 +69,7 @@ class JvmErrorType < ErrorType implements MirrorType
   def invalidateMethod(name:String):void; end
   
   def unmeta; self; end
+
+  def getKind; TypeKind.ERROR; end
+  def accept(v, p); v.visitError(self, p); end
 end

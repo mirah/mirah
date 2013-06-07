@@ -30,6 +30,7 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
+import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodType
 import org.mirah.typer.Typer
 import org.mirah.typer.Scope
@@ -122,7 +123,14 @@ class BaseCompiler < SimpleNodeVisitor
   def methodDescriptor(name:String, returnType:JVMType, argTypes:List):Method
     args = Type[argTypes.size]
     args.length.times do |i|
-      args[i] = JVMType(argTypes[i]).getAsmType
+      begin
+        args[i] = JVMType(argTypes[i]).getAsmType
+      rescue ClassCastException
+        error = ErrorType(argTypes[i])
+        e = List(error.message.get(0))
+        ex = IllegalArgumentException.new(String(e.get(0)))
+        raise reportICE(ex, Position(e.get(1)))
+      end
     end
     Method.new(name, returnType.getAsmType, args)
   end

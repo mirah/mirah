@@ -20,6 +20,11 @@ import java.util.ArrayList
 import java.util.LinkedList
 import java.util.List
 import java.util.Set
+import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.NoType
+import javax.lang.model.type.PrimitiveType
+import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
@@ -36,7 +41,7 @@ interface MethodListener
 end
 
 # package_private
-interface MirrorType < JVMType
+interface MirrorType < JVMType, TypeMirror
   def notifyOfIncompatibleChange:void; end
   def onIncompatibleChange(listener:Runnable):void; end
   def getDeclaredMethods(name:String):List; end  # List<Member>
@@ -49,7 +54,21 @@ interface MirrorType < JVMType
 end
 
 # package_private
-class BaseType implements MirrorType
+class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
+
+  def self.initialize:void
+    @@kind_map = {
+      Z: TypeKind.BOOLEAN,
+      B: TypeKind.BYTE,
+      C: TypeKind.CHAR,
+      D: TypeKind.DOUBLE,
+      F: TypeKind.FLOAT,
+      I: TypeKind.INT,
+      J: TypeKind.LONG,
+      S: TypeKind.SHORT,
+      V: TypeKind.VOID,
+    }
+  end
 
   def initialize(type:Type, flags:int, superclass:JVMType)
     initialize(type.getClassName, type, flags, superclass)
@@ -128,6 +147,24 @@ class BaseType implements MirrorType
     0 != (@flags & Opcodes.ACC_ANNOTATION)
   end
   def retention:String; nil; end
+
+  def getKind
+    if isPrimitive
+      TypeKind(@@kind_map[class_id])
+    else
+      TypeKind.DECLARED
+    end
+  end
+
+  def accept(v, p)
+    if getKind == TypeKind.VOID
+      v.visitNoType(self, p)
+    elsif isPrimitive
+      v.visitPrimitive(self, p)
+    else
+      v.visitDeclared(self, p)
+    end
+  end
 
   def isArray:boolean
     @type.getSort == Type.ARRAY

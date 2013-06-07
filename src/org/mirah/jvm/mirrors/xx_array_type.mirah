@@ -17,6 +17,9 @@ package org.mirah.jvm.mirrors
 
 import java.util.List
 
+import javax.lang.model.type.ArrayType as ArrayModel
+import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.builtins.ArrayExtensions
@@ -27,7 +30,7 @@ import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
 
-class ArrayType < BaseType
+class ArrayType < BaseType implements ArrayModel
   def initialize(component:MirrorType, loader:AsyncMirrorLoader)
     super(Type.getType("[#{component.class_id}"),
           Opcodes.ACC_PUBLIC,
@@ -80,7 +83,17 @@ class ArrayType < BaseType
     true
   end
   
-  def getComponentType
+  def getComponentType:MirrorType
     @componentType
   end
+  # FIXME: Manual bridge methods
+  def getComponentType:TypeMirror
+    @componentType
+  end
+  def getComponentType:JVMType
+    @componentType
+  end
+
+  def getKind; TypeKind.ARRAY; end
+  def accept(v, p); v.visitArray(self, p); end
 end

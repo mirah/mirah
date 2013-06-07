@@ -13,36 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.jvm.mirrors
+package org.mirah.jvm.model
 
+import javax.lang.model.type.ArrayType as ArrayModel
 import javax.lang.model.type.TypeKind
-import javax.lang.model.type.NoType
+import javax.lang.model.type.TypeMirror
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
-import org.mirah.jvm.types.JVMType
-import org.mirah.typer.ResolvedType
-
-class NullType < BaseType implements NoType
-  def initialize
-    super('null', Type.getType('Ljava/lang/Object;'), Opcodes.ACC_PUBLIC, nil)
+class ArrayType implements ArrayModel
+  def initialize(component:TypeMirror)
+    @component = component
   end
-  def widen(other:ResolvedType):ResolvedType
-    if other.matchesAnything
-      self
-    else
-      other
-    end
+  def getComponentType
+    @component
   end
-  def assignableFrom(other:ResolvedType):boolean
-    other.matchesAnything || (other.kind_of?(JVMType) && !JVMType(other).isPrimitive)
-  end
-
   def getKind
-    TypeKind.NULL
+    TypeKind.ARRAY
   end
-
   def accept(v, p)
-    v.visitNoType(self, p)
+    v.visitArray(self, p)
   end
 end

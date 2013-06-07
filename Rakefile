@@ -304,13 +304,13 @@ file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/o
   rm_rf 'build/compiler'
 end
 
-file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/org/mirah/jvm/mirrors/*.mirah'] do
+file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/org/mirah/jvm/mirrors/**/*.mirah','src/org/mirah/jvm/model/**/*.mirah'] do
   rm_f 'javalib/mirah-mirrors.jar'
   rm_rf 'build/mirrors'
   mkdir_p 'build/mirrors'
   sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirrors ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar) +
-       %w(src/org/mirah/jvm/mirrors/))
+       %w(src/org/mirah/jvm/mirrors/ src/org/mirah/jvm/model/))
   ant.jar 'jarfile' => 'javalib/mirah-mirrors.jar' do
     fileset 'dir' => 'build/mirrors'
   end
