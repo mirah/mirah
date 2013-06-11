@@ -1,5 +1,8 @@
 language: ruby
 rvm:
   - jruby-19mode
+jdk:
+  - openjdk6
+  - oraclejdk7
 notifications:
   irc: "irc.freenode.org#mirah"
