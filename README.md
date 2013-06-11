@@ -25,10 +25,10 @@ FEATURES
 SYNOPSIS
 -----------------
 
-mirah <script.mirah>
-mirah -e "inline script"
-mirahc <script.mirah>
-mirahc -e "inline script" # produces DashE.class
+    mirah <script.mirah>
+    mirah -e "inline script"
+    mirahc <script.mirah>
+    mirahc -e "inline script" # produces DashE.class
 
 REQUIREMENTS
 -----------------
@@ -42,9 +42,9 @@ INSTALL
 RUBY
 -----------------
 
-If your gem and rake are not from from JRuby, prefix the commands with jruby -S
+If your gem and rake are not from from JRuby, prefix the commands with `jruby -S`
 
-$ gem install mirah
+    $ gem install mirah
 
 ZIP
 -----------------
@@ -59,13 +59,13 @@ SOURCE
 To build and install from source, you'll need jruby 1.7.0 or
 higher. Then just follow these commands.
 
-$ git clone http://github.com/mirah/mirah.git
-$ cd mirah
-$ bundle install
-$ rake gem
-$ gem install pkg/mirah-*.gem
+    $ git clone http://github.com/mirah/mirah.git
+    $ cd mirah
+    $ bundle install
+    $ rake gem
+    $ gem install pkg/mirah-*.gem
 
 For Java tools
 -----------------
 
-To build the Mirah jar from source run "rake jar" in the mirah directory.
+To build the Mirah jar from source run `rake jar` in the mirah directory.
