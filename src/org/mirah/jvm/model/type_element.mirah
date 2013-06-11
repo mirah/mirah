@@ -15,24 +15,25 @@
 
 package org.mirah.jvm.model
 
-import javax.lang.model.type.ArrayType as ArrayModel
-import javax.lang.model.type.TypeKind
-import javax.lang.model.type.TypeMirror
+import java.util.ArrayList
+import javax.lang.model.element.TypeElement as TypeElementModel
+import org.mirah.jvm.mirrors.MirrorType
 
-class ArrayType implements ArrayModel
-  def initialize(component:TypeMirror)
-    @component = component
+class TypeElement implements TypeElementModel
+  def initialize(type:MirrorType)
+    @type = type
   end
-  def getComponentType
-    @component
+
+  def descriptor
+    @type.class_id
   end
-  def getKind
-    TypeKind.ARRAY
+
+  def equals(other)
+    other.kind_of?(TypeElement) &&
+        descriptor.equals(TypeElement(other).descriptor)
   end
-  def accept(v, p)
-    v.visitArray(self, p)
-  end
-  def toString
-    "#{@component}[]"
+
+  def hashCode
+    descriptor.hashCode
   end
 end

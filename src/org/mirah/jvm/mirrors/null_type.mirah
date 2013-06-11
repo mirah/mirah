@@ -16,14 +16,14 @@
 package org.mirah.jvm.mirrors
 
 import javax.lang.model.type.TypeKind
-import javax.lang.model.type.NoType
+import javax.lang.model.type.NullType as NullTypeModel
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.ResolvedType
 
-class NullType < BaseType implements NoType
+class NullType < BaseType implements NullTypeModel
   def initialize
     super('null', Type.getType('Ljava/lang/Object;'), Opcodes.ACC_PUBLIC, nil)
   end

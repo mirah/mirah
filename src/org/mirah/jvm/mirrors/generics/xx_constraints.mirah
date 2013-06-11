@@ -51,4 +51,26 @@ class Constraints
   def size
     @super_constraints.size + @extends_constraints.size + @equal_constraints.size
   end
+
+  def toString
+    sb = StringBuilder.new
+    sb.append("<")
+    unless @super_constraints.isEmpty
+      sb.append("super: ")
+      sb.append(@super_constraints)
+      sb.append(" ")
+    end
+    unless @extends_constraints.isEmpty
+      sb.append("extends: ")
+      sb.append(@extends_constraints)
+      sb.append(" ")
+    end
+    unless @equal_constraints.isEmpty
+      sb.append("equal: ")
+      sb.append(@equal_constraints)
+      sb.append(" ")
+    end
+    sb.append(">")
+    sb.toString
+  end
 end

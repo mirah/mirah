@@ -15,6 +15,10 @@
 
 package org.mirah.jvm.mirrors
 
+import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.NoType
+import javax.lang.model.type.PrimitiveType
+import javax.lang.model.type.TypeKind
 import mirah.lang.ast.Position
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMMethod
@@ -27,7 +31,7 @@ import org.mirah.typer.TypeFuture
 # change a Mirror in an incompatible way. We can return a new
 # proxy for the same Mirror, and the typer will treat this as
 # a new type.
-class MirrorProxy implements MirrorType
+class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
   def initialize(type:MirrorType)
     @target = type
   end
@@ -148,6 +152,22 @@ class MirrorProxy implements MirrorType
   end
   def declareField(field)
     @target.declareField(field)
+  end
+
+  # TypeMirror methods
+  def getKind
+    @target.getKind
+  end
+  def accept(v, p)
+    k = getKind
+    if k == TypeKind.DECLARED
+      v.visitDeclared(self, p)
+    else
+      v.visitPrimitive(self, p)
+    end
+  end
+  def getTypeArguments
+    DeclaredType(@target).getTypeArguments
   end
 end
 

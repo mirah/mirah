@@ -166,6 +166,10 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
     end
   end
 
+  def getTypeArguments
+    Collections.emptyList
+  end
+
   def isArray:boolean
     @type.getSort == Type.ARRAY
   end

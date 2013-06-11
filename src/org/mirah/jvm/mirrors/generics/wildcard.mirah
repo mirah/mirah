@@ -14,30 +14,39 @@ package org.mirah.jvm.mirrors.generics
 
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
-import javax.lang.model.util.Types
-import javax.lang.model.type.TypeVariable as TypeVariableModel
-import org.mirah.jvm.mirrors.NullType
+import javax.lang.model.type.WildcardType
 
-# A declared type parameter.
-class TypeVariable implements TypeVariableModel
-  def initialize(types:Types, name:String, ancestor:TypeMirror=nil)
-    @name = name
-    @extendsBound = ancestor
-    @lowerBound = types.getNullType
+class Wildcard implements WildcardType
+  def initialize(extendsBound:TypeMirror=nil, superBound:TypeMirror=nil)
+    raise IllegalArgumentException unless (extendsBound.nil? || superBound.nil?)
+    @extendsBound = extendsBound
+    @superBound = superBound
   end
-  def getLowerBound
-    @lowerBound
-  end
-  def getUpperBound
+
+  def getExtendsBound
     @extendsBound
   end
-  def toString
-    @name
+
+  def getSuperBound
+    @superBound
   end
+  
   def getKind
-    TypeKind.TYPEVAR
+    TypeKind.WILDCARD
   end
+
   def accept(v, p)
-    v.visitTypeVariable(self, p)
+    v.visitWildcard(self, p)
+  end
+  
+  def toString
+    if @extendsBound
+      "? extends #{@extendsBound}"
+    elsif
+      @superBound
+      "? super #{@superBound}"
+    else
+      "?"
+    end
   end
 end
