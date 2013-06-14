@@ -40,4 +40,48 @@ class IterableExtensions
       end
     end
   end
+
+  macro def zip(other:Node, block:Block)
+    if block.arguments && block.arguments.required_size() > 0
+      arg = block.arguments.required(0)
+      a = arg.name.identifier
+      a_type = arg.type if arg.type
+    else
+      a = gensym
+      a_type = TypeName(nil)
+    end
+    if block.arguments && block.arguments.required_size() > 1
+      arg = block.arguments.required(1)
+      b = arg.name.identifier
+      b_type = arg.type if arg.type
+    else
+      b = gensym
+      b_type = TypeName(nil)
+    end    
+    ait = gensym
+    bit = gensym
+
+    a_getter = quote { `ait`.next }
+    if a_type
+      a_getter = Cast.new(a_type.position, a_type, a_getter)
+    end
+    b_getter = quote { `bit`.next rescue () }
+    if b_type
+      b_getter = Cast.new(b_type.position, b_type, b_getter)
+    end
+
+    quote do
+      while `ait`.hasNext
+        init do
+          `ait` = `@call.target`.iterator
+          `bit` = `other`.iterator
+        end
+        pre do
+          `a` = `a_getter`
+          `b` = `b_getter`
+        end
+        `block.body`
+      end
+    end
+  end
 end

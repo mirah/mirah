@@ -298,6 +298,115 @@ class EnumerableTest < Test::Unit::TestCase
     end
   end
 
+  def test_map
+    cls, = compile(<<-EOF)
+      def foo
+        System.out.println [1,2,3].map {|x:Integer| x.intValue + 1}
+        System.out.println [1,2,3].map {|x| x}
+        System.out.println [1].map { 'a' }
+        System.out.println [].map { 'b' }
+      end
+    EOF
+    assert_output("[2, 3, 4]\n[1, 2, 3]\n[a]\n[]\n") do
+      cls.foo
+    end
+  end
+
+  def test_zip
+    cls, = compile(<<-'EOF')
+      def bar
+        [1,2,3].zip([4]) {|x, y| puts "#{x}, #{y}"}
+      end
+    EOF
+    assert_output("1, 4\n2, null\n3, null\n") do
+      cls.bar
+    end
+
+    cls, = compile(<<-'EOF')
+      def foo
+        [1,2,3].zip([4, 5, 6]) do |x:Integer, y:Integer|
+          puts "#{x} + #{y} = #{x.intValue + y.intValue}"
+        end
+      end
+    EOF
+    assert_output("1 + 4 = 5\n2 + 5 = 7\n3 + 6 = 9\n") do
+      cls.foo
+    end
+  end
+
+  def test_reduce
+    cls, = compile(<<-'EOF')
+      def foo
+        puts ["a", "b", "c"].reduce {|a, b| "#{a}#{b}"}
+      end
+    EOF
+    assert_output("abc\n") do
+      cls.foo
+    end
+
+    cls, = compile(<<-'EOF')
+      def foo
+        puts [1, 2, 3].reduce {|a:Integer, b:Integer| Integer.new(a.intValue + b.intValue)}
+      end
+    EOF
+    assert_output("6\n") do
+      cls.foo
+    end
+
+    cls, = compile(<<-'EOF')
+      def foo
+        puts ["a", "b", "c"].reduce {|a:Integer| "#{a}a"}
+      end
+    EOF
+    assert_output("aaa\n") do
+      cls.foo
+    end
+
+
+
+    cls, = compile(<<-'EOF')
+      def foo
+        ["a", "b", "c"].reduce {puts "x"}
+      end
+    EOF
+    assert_output("x\nx\n") do
+      cls.foo
+    end
+
+   cls, = compile(<<-'EOF')
+      def foo
+        puts ["a"].reduce { puts "x"}
+      end
+    EOF
+    assert_output("a\n") do
+      cls.foo
+    end
+
+    cls, = compile(<<-'EOF')
+      def foo
+        a = "foo"
+        [].reduce {|a| "#{a}a"}
+        puts a
+      end
+    EOF
+    assert_output("foo\n") do
+      cls.foo
+    end
+
+    cls, = compile(<<-'EOF')
+      def baz
+        a = int[3]
+        a[0] = 1
+        a[1] = 2
+        a[2] = 4
+        puts a.reduce {|x, y| x * y}
+      end
+    EOF
+    assert_output("8\n") do
+      cls.baz
+    end
+  end
+
   def test_mirah_iterable
     cls, = compile(<<-EOF)
       import java.util.Iterator

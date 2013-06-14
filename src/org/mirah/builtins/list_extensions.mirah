@@ -25,4 +25,16 @@ class ListExtensions
     quote { `@call.target`.add `index`, `value` }
   end
 
+  macro def map(block:Block)
+    list = gensym
+    result = gensym
+    quote do
+      `list` = `@call.target`
+      `result` = java::util::ArrayList.new(`list`.size)
+      `list`.each do |`block.arguments`|
+        `result`.add(`block.body`)
+      end
+      `result`
+    end
+  end
 end

@@ -71,4 +71,31 @@ class EnumerableExtensions
       `@call.target`.any? {|`x`| `x`}
     end
   end
+
+  macro def reduce(block:Block)
+    memo = if block.arguments && block.arguments.required_size > 0
+      block.arguments.required(0).name.identifier
+    else
+      gensym
+    end
+    if block.arguments && block.arguments.required_size > 1
+      x = block.arguments.required(1).name.identifier
+      arg = block.arguments.required(1)
+    else
+      arg = x = gensym
+    end
+    isFirst = gensym
+    quote do
+      `isFirst` = true
+      `@call.target`.each do |`arg`|
+        if `isFirst`
+          `isFirst` = false
+          `memo` = `x`
+        else
+          `memo` = `block.body`
+        end
+      end
+      `memo`
+    end
+  end
 end
