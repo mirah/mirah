@@ -20,6 +20,7 @@ import java.util.Collections
 
 class Builtins
   def self.initialize_builtins(type_system:TypeSystem)
+    type_system.extendClass('java.util.Collection', CollectionExtensions.class)
     type_system.extendClass('java.util.Map', MapExtensions.class)
     type_system.extendClass('java.util.List', ListExtensions.class)
     type_system.extendClass('java.lang.Object', ObjectExtensions.class)

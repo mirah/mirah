@@ -15,12 +15,18 @@
 
 package org.mirah.builtins
 
-class ListExtensions
-  macro def [](index)
-    quote { `@call.target`.get `index` }
-  end
 
-  macro def []=(index, value)
-    quote { `@call.target`.add `index`, `value` }
+class CollectionExtensions
+  macro def map(block:Block)
+    list = gensym
+    result = gensym
+    quote do
+      `list` = `@call.target`
+      `result` = java::util::ArrayList.new(`list`.size)
+      `list`.each do |`block.arguments`|
+        `result`.add(`block.body`)
+      end
+      `result`
+    end
   end
 end
