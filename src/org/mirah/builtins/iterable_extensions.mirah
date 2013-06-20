@@ -65,7 +65,7 @@ class IterableExtensions
     if a_type
       a_getter = Cast.new(a_type.position, a_type, a_getter)
     end
-    b_getter = quote { `bit`.next rescue () }
+    b_getter = quote { `bit`.next if `bit`.hasNext }
     if b_type
       b_getter = Cast.new(b_type.position, b_type, b_getter)
     end

@@ -274,7 +274,15 @@ class MethodCompiler < BaseCompiler
       @builder.loadLocal(@binding)
     end
 
-    visit(local.value, Boolean.TRUE)
+    type = JVMType(typer.type_system.getLocalType(
+        getScope(local), name, local.position).resolve)
+    valueType = getInferredType(local.value)
+    if local.value.kind_of?(NodeList)
+      compileBody(NodeList(local.value), Boolean.TRUE, type)
+      valueType = type
+    else
+      visit(local.value, Boolean.TRUE)
+    end
 
     if expression
       if isCaptured
@@ -285,8 +293,6 @@ class MethodCompiler < BaseCompiler
     end
     
     recordPosition(local.position)
-    valueType = getInferredType(local.value)
-    type = JVMType(typer.type_system.getLocalType(getScope(local), name, local.position).resolve)
     @builder.convertValue(valueType, type)
 
     if isCaptured

@@ -87,6 +87,7 @@ class EnumerableExtensions
     isFirst = gensym
     quote do
       `isFirst` = true
+      `memo` = ()
       `@call.target`.each do |`arg`|
         if `isFirst`
           `isFirst` = false
