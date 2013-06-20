@@ -20,6 +20,7 @@ require 'mirah'
 class GenericsTest < Test::Unit::TestCase
   java_import 'java.util.HashSet'
   java_import 'org.mirah.jvm.mirrors.generics.Constraints'
+  java_import 'org.mirah.jvm.mirrors.generics.LubFinder'
   java_import 'org.mirah.jvm.mirrors.generics.TypeParameterInference'
   java_import 'org.mirah.jvm.mirrors.generics.TypeVariable'
   java_import 'org.mirah.jvm.mirrors.generics.TypeInvocation'
@@ -28,6 +29,8 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.NullType'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.model.ArrayType'
+  java_import 'org.mirah.jvm.model.Cycle'
+  java_import 'org.mirah.jvm.model.IntersectionType'
   java_import 'org.jruby.org.objectweb.asm.Type'
 
   def setup
@@ -39,6 +42,17 @@ class GenericsTest < Test::Unit::TestCase
   def set(param)
     klass = @types.loadNamedType('java.util.Set').resolve
     TypeInvocation.new(klass, klass.superclass, klass.interfaces, [param])
+  end
+
+  def type(name)
+    @types.loadNamedType(name).resolve
+  end
+
+  def typevar(name, bounds="java.lang.Object")
+    if bounds.kind_of?(String)
+      bounds = type(bounds)
+    end
+    TypeVariable.new(@type_utils, name, bounds)
   end
 
   def assert_constraints(constraints, expected={})
@@ -57,7 +71,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_null
     a = NullType.new
-    f = TypeVariable.new(@type_utils, 'S')
+    f = typevar('S')
     constraints = Constraints.new
     map = {f => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -70,7 +84,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_extends_variable
     a = @types.getStringType.resolve
-    f = TypeVariable.new(@type_utils, 'S')
+    f = typevar('S')
     constraints = Constraints.new
     map = {f => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -80,7 +94,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_extends_primitive
     a = @types.getFixnumType(1).resolve
-    f = TypeVariable.new(@type_utils, 'S')
+    f = typevar('S')
     constraints = Constraints.new
     map = {f => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -91,7 +105,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_extends_array
     a = @types.getArrayType(@types.getStringType.resolve)
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     f = ArrayType.new(s)
     constraints = Constraints.new
     map = {s => constraints}
@@ -102,8 +116,8 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_extends_array_variable
-    a = TypeVariable.new(@type_utils, 'T', @types.getArrayType(@types.getStringType.resolve))
-    s = TypeVariable.new(@type_utils, 'S')
+    a = typevar('T', @types.getArrayType(@types.getStringType.resolve))
+    s = typevar('S')
     f = ArrayType.new(s)
     constraints = Constraints.new
     map = {s => constraints}
@@ -118,7 +132,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getArrayType(@types.getStringType.resolve))
 
     # F = Set<S[]>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
@@ -137,7 +151,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getStringType.resolve)
 
     # F = Set<? extends S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(s))
@@ -189,7 +203,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(Wildcard.new(@types.getStringType.resolve))
 
     # F = Set<? extends S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(s))
@@ -206,7 +220,7 @@ class GenericsTest < Test::Unit::TestCase
     string = @types.getStringType.resolve
     a = BaseType.new(Type.getType('LFooBar;'), 0, set(string))
 
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
@@ -223,7 +237,7 @@ class GenericsTest < Test::Unit::TestCase
     string = @types.getStringType.resolve
     a = BaseType.new(Type.getType('LFooBar;'), 0, set(Wildcard.new(string)))
 
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
@@ -240,7 +254,7 @@ class GenericsTest < Test::Unit::TestCase
     string = @types.getStringType.resolve
     a = BaseType.new(Type.getType('LFooBar;'), 0, set(Wildcard.new(nil, string)))
 
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
@@ -283,7 +297,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_equal_variable
     a = @types.getStringType.resolve
-    f = TypeVariable.new(@type_utils, 'S')
+    f = typevar('S')
     constraints = Constraints.new
     map = {f => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -294,7 +308,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_equal_array
     a = @types.getArrayType(@types.getStringType.resolve)
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     f = ArrayType.new(s)
     constraints = Constraints.new
     map = {s => constraints}
@@ -305,8 +319,8 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_equal_array_variable
-    a = TypeVariable.new(@type_utils, 'T', @types.getArrayType(@types.getStringType.resolve))
-    s = TypeVariable.new(@type_utils, 'S')
+    a = typevar('T', @types.getArrayType(@types.getStringType.resolve))
+    s = typevar('S')
     f = ArrayType.new(s)
     constraints = Constraints.new
     map = {s => constraints}
@@ -321,7 +335,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getArrayType(@types.getStringType.resolve))
 
     # F = Set<S[]>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
@@ -341,7 +355,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(Wildcard.new(string))
 
     # F = Set<? extends S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(s))
@@ -389,7 +403,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getStringType.resolve)
 
     # F = Set<? extends S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(s))
@@ -404,7 +418,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getStringType.resolve)
 
     # F = Set<? super S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(nil, s))
@@ -425,7 +439,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_super_variable
     a = @types.getStringType.resolve
-    f = TypeVariable.new(@type_utils, 'S')
+    f = typevar('S')
     constraints = Constraints.new
     map = {f => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -435,7 +449,7 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_super_array
     a = @types.getArrayType(@types.getStringType.resolve)
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     f = ArrayType.new(s)
     constraints = Constraints.new
     map = {s => constraints}
@@ -445,8 +459,8 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_super_array_variable
     string = @types.getStringType.resolve
-    a = TypeVariable.new(@type_utils, 'T', @types.getArrayType(string))
-    s = TypeVariable.new(@type_utils, 'S')
+    a = typevar('T', @types.getArrayType(string))
+    s = typevar('S')
     f = ArrayType.new(s)
     constraints = Constraints.new
     map = {s => constraints}
@@ -460,7 +474,7 @@ class GenericsTest < Test::Unit::TestCase
     str_array = a = set(@types.getArrayType(string))
 
     # F = Set<S[]>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
@@ -495,7 +509,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(Wildcard.new(string))
 
     # F = Set<? extends S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(s))
@@ -530,7 +544,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getStringType.resolve)
 
     # F = Set<? extends S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(s))
@@ -545,7 +559,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getStringType.resolve)
 
     # F = Set<? super S>
-    s = TypeVariable.new(@type_utils, 'S')
+    s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
     f = set(Wildcard.new(nil, s))
@@ -569,9 +583,9 @@ class GenericsTest < Test::Unit::TestCase
     a = TypeInvocation.new(klass, klass.superclass, klass.interfaces,
         [string, string, string])
     
-    r = TypeVariable.new(@type_utils, 'R')
-    s = TypeVariable.new(@type_utils, 'S')
-    t = TypeVariable.new(@type_utils, 'T')
+    r = typevar('R')
+    s = typevar('S')
+    t = typevar('T')
     
     f = TypeInvocation.new(klass, klass.superclass, klass.interfaces,
         [r, Wildcard.new(s), Wildcard.new(nil, t)])
@@ -583,5 +597,46 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(rc, :equal => [string])
     assert_constraints(sc, :super => [string])
     assert_constraints(tc, :extends => [string])
+  end
+
+  def test_cycle
+    klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
+    cycle = Cycle.new
+    a = TypeInvocation.new(klass, klass.superclass, klass.interfaces, [cycle])
+    cycle.target_set(a)
+    assert_equal("FooBar<FooBar<FooBar<...>>>", a.toString)
+  end
+
+  def test_erasure
+    t = @types.getFixnumType(0).resolve
+    assert_same(t, @type_utils.erasure(t))
+    t = @types.getStringType.resolve
+    assert_same(t, @type_utils.erasure(t))
+    t = @types.getArrayType(t)
+    assert_equal(t.toString, @type_utils.erasure(t).toString)
+    t = set(t)
+    assert_equal("java.util.Set<java.lang.String[]>", t.toString)
+    e = @type_utils.erasure(t)
+    assert_not_same(t, e)
+    assert_equal([], e.type_arguments.to_a)
+    assert_equal("java.util.Set", e.toString)
+    t = @type_utils.getArrayType(t)
+    assert_equal("java.util.Set<java.lang.String[]>[]", t.toString)
+    e = @type_utils.erasure(t)
+    assert_equal("java.util.Set[]", e.toString)
+    t = IntersectionType.new([type('java.io.Serializable'),
+                              type('java.lang.CharSequence')])
+    e = @type_utils.erasure(t)
+    assert_equal(type('java.io.Serializable'), e, e.toString)
+    t = IntersectionType.new([type('java.io.Serializable'),
+                              type('java.util.AbstractMap')])
+    e = @type_utils.erasure(t)
+    assert_equal(type('java.util.AbstractMap'), e)
+    t = typevar("S")
+    e = @type_utils.erasure(t)
+    assert_equal(type('java.lang.Object'), e, e.toString)
+    t = typevar("S", 'java.lang.Iterable')
+    e = @type_utils.erasure(t)
+    assert_equal(type('java.lang.Iterable'), e, e.toString)
   end
 end

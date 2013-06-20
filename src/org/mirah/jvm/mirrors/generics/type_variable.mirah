@@ -20,8 +20,9 @@ import org.mirah.jvm.mirrors.NullType
 
 # A declared type parameter.
 class TypeVariable implements TypeVariableModel
-  def initialize(types:Types, name:String, ancestor:TypeMirror=nil)
+  def initialize(types:Types, name:String, ancestor:TypeMirror)
     @name = name
+    raise IllegalArgumentException if ancestor.nil?
     @extendsBound = ancestor
     @lowerBound = types.getNullType
   end

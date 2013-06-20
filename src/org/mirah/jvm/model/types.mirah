@@ -17,15 +17,19 @@ package org.mirah.jvm.model
 
 import java.util.ArrayList
 import java.util.EnumMap
+import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.NullType
 import javax.lang.model.type.PrimitiveType
 import javax.lang.model.type.TypeVariable as TypeVariableModel
 import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.WildcardType
+import javax.lang.model.util.SimpleTypeVisitor6
 import javax.lang.model.util.Types as TypesModel
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.jvm.model.IntersectionType
 
 class Types implements TypesModel
   def initialize(types:MirrorTypeSystem)
@@ -75,6 +79,8 @@ class Types implements TypesModel
       m.interfaces.each do |i|
         supertypes.add(i.resolve)
       end
+    elsif t.kind_of?(IntersectionType)
+      supertypes.addAll(IntersectionType(t).types)
     elsif t.getKind == TypeKind.WILDCARD
       w = WildcardType(t)
       if w.getExtendsBound
@@ -88,5 +94,34 @@ class Types implements TypesModel
 
   def asElement(t)
     TypeElement.new(MirrorType(t))
+  end
+
+  def erasure(x)
+    types = self
+    visitor = lambda(SimpleTypeVisitor6) do
+      def defaultAction(t, p)
+        t
+      end
+
+      def visitArray(t, p)
+        component = TypeMirror(visit(t.getComponentType))
+        ArrayType.new(component)
+      end
+
+      def visitDeclared(t, p)
+        if t.kind_of?(IntersectionType)
+          return visit(TypeMirror(types.directSupertypes(t)[0]))
+        end
+        until t.getTypeArguments.isEmpty
+          t = DeclaredType(MirrorProxy(t).target)
+        end
+        t
+      end
+      
+      def visitTypeVariable(t, p)
+        visit(t.getUpperBound)
+      end
+    end
+    TypeMirror(x.accept(visitor, nil))
   end
 end
