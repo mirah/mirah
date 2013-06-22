@@ -62,12 +62,6 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
   def superclass
     @target.superclass
   end
-  def internal_name
-    @target.internal_name
-  end
-  def class_id
-    @target.class_id
-  end
   def getAsmType
     @target.getAsmType
   end
@@ -189,7 +183,7 @@ class ResolvedCall < MirrorProxy implements CallType
   end
 
   def self.expressionType(target:MirrorType, method:JVMMethod):MirrorType
-    if "V".equals(method.returnType.class_id)
+    if "V".equals(method.returnType.getAsmType.getDescriptor)
       target
     else
       MirrorType(method.returnType)

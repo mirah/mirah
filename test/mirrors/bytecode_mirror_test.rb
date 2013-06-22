@@ -28,7 +28,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
   
   def test_parent
     mirror = @loader.loadMirror(Type.getType("I"))
-    assert_equal("I", mirror.class_id)
+    assert_equal("I", mirror.asm_type.descriptor)
   end
 
   def test_classloading
@@ -66,7 +66,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert_equal(mirror, field.declaringClass)
     assert_equal('hash', field.name)
     assert_equal([], field.argumentTypes.to_a)
-    assert_equal('I', field.returnType.class_id)
+    assert_equal('I', field.returnType.asm_type.descriptor)
     assert(!field.isVararg)
     assert(!field.isAbstract)
     assert_equal('FIELD_ACCESS', field.kind.name)
@@ -75,7 +75,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
   def test_array
     mirror = @loader.loadMirror(Type.getType("[Ljava/lang/Object;"))
     assert(mirror.isArray)
-    assert_equal("Ljava/lang/Object;", mirror.getComponentType.class_id)
+    assert_equal("Ljava/lang/Object;", mirror.getComponentType.asm_type.descriptor)
   end
 
   def test_retention

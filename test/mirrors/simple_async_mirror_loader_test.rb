@@ -96,7 +96,7 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     defineType(loader, Type.getType("LA;"),
                BaseType.new(Type.getType("LA;"), 0, nil))
     assert(future.resolve.isArray)
-    assert_equal('LA;', future.resolve.getComponentType.class_id)
+    assert_equal('LA;', future.resolve.getComponentType.asm_type.descriptor)
     assert(!future.resolve.getComponentType.isError)
   end
 end

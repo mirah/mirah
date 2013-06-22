@@ -125,8 +125,6 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
   def isError:boolean; false; end
   def matchesAnything:boolean; false; end
 
-  def internal_name:String; @type.getInternalName; end
-  def class_id:String; @type.getDescriptor; end
   def getAsmType:Type; @type; end
 
   def isPrimitive:boolean
@@ -150,7 +148,7 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
 
   def getKind
     if isPrimitive
-      TypeKind(@@kind_map[class_id])
+      TypeKind(@@kind_map[getAsmType.getDescriptor])
     else
       TypeKind.DECLARED
     end

@@ -19,8 +19,6 @@ end
 
 interface JVMType < ResolvedType
   def superclass:JVMType; end
-  def internal_name:String; end
-  def class_id:String; end
   def getAsmType:Type; end
   def flags:int; end
 

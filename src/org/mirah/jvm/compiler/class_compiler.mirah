@@ -51,7 +51,11 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
     @classwriter.visitEnd
     @@log.fine "Finished class #{@classdef.name.identifier}"
   end
-  
+
+  def getInternalName(type:JVMType)
+    type.getAsmType.getInternalName
+  end
+
   def visitClassAppendSelf(node, expression)
     saved = @static
     @static = true
@@ -103,7 +107,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
     if @outerClass
       method = @enclosingMethod.getName if @enclosingMethod
       desc = @enclosingMethod.getDescriptor if @enclosingMethod
-      @classwriter.visitOuterClass(@outerClass.internal_name, method, desc)
+      @classwriter.visitOuterClass(getInternalName(@outerClass), method, desc)
     end
     context[AnnotationCompiler].compile(@classdef.annotations, @classwriter)
   end
@@ -129,7 +133,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   end
   
   def internal_name
-    @type.internal_name
+    getInternalName(@type)
   end
   
   def filename
@@ -146,7 +150,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   end
   
   def superclass
-    @type.superclass.internal_name if @type.superclass
+    getInternalName(@type.superclass) if @type.superclass
   end
   
   def interfaces
@@ -155,7 +159,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
     i = 0
     size.times do |i|
       node = @classdef.interfaces.get(i)
-      array[i] = getInferredType(node).internal_name
+      array[i] = getInternalName(getInferredType(node))
     end
     array
   end

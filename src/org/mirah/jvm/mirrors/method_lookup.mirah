@@ -83,13 +83,13 @@ class MethodLookup
       end
       return (supertype.isInterface || supertype.isAbstract) if subtype.isBlock
 
-      super_desc = supertype.class_id
+      super_desc = supertype.getAsmType.getDescriptor
       explored = HashSet.new
       to_explore = LinkedList.new
       to_explore.add(subtype)
       until to_explore.isEmpty
         next_type = to_explore.removeFirst
-        descriptor = next_type.class_id
+        descriptor = next_type.getAsmType.getDescriptor
         return true if descriptor.equals(super_desc)
         unless explored.contains(descriptor)
           explored.add(descriptor)
@@ -101,8 +101,8 @@ class MethodLookup
     end
   
     def isPrimitiveSubType(subtype:JVMType, supertype:JVMType):boolean
-      sub_desc = subtype.class_id.charAt(0)
-      super_desc = supertype.class_id.charAt(0)
+      sub_desc = subtype.getAsmType.getDescriptor.charAt(0)
+      super_desc = supertype.getAsmType.getDescriptor.charAt(0)
       order = "BSIJFD"
       if sub_desc == super_desc
         return true
@@ -116,7 +116,8 @@ class MethodLookup
     end
 
     def isArraySubType(subtype:JVMType, supertype:JVMType):boolean
-      return true if subtype.class_id.equals(supertype.class_id)
+      return true if subtype.getAsmType.getDescriptor.equals(
+          supertype.getAsmType.getDescriptor)
       return false unless subtype.getAsmType.getDimensions == supertype.getAsmType.getDimensions
       component_a = subtype.getComponentType
       component_b = supertype.getComponentType
@@ -162,7 +163,8 @@ class MethodLookup
       jvm_a = JVMType(a)
       jvm_b = JVMType(b)
           
-      return 0.0 if jvm_a.class_id.equals(jvm_b.class_id)
+      return 0.0 if jvm_a.getAsmType.getDescriptor.equals(
+          jvm_b.getAsmType.getDescriptor)
       if isJvmSubType(jvm_b, jvm_a)
         return -1.0
       elsif isJvmSubType(jvm_a, jvm_b)
@@ -516,7 +518,8 @@ class MethodLookup
       if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
         return false
       elsif (0 != (access & Opcodes.ACC_PUBLIC) ||
-          type.class_id.equals(selfType.class_id))
+          type.getAsmType.getDescriptor.equals(
+              selfType.getAsmType.getDescriptor))
         return true
       elsif 0 != (access & Opcodes.ACC_PRIVATE)
         return false
@@ -533,7 +536,7 @@ class MethodLookup
     end
 
     def getPackage(type:JVMType):String
-      name = type.internal_name
+      name = type.getAsmType.getInternalName
       lastslash = name.lastIndexOf(?/)
       if lastslash == -1
         ""

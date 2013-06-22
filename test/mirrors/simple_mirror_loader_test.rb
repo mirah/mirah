@@ -71,7 +71,7 @@ class PrimitiveLoaderTest < Test::Unit::TestCase
       type = Type.getType(desc)
       mirror = loader.loadMirror(type)
       assert_equal(type.getClassName, mirror.name)
-      assert_equal(desc, mirror.class_id)
+      assert_equal(desc, mirror.asm_type.descriptor)
     end
   end
 
@@ -90,7 +90,7 @@ class OrErrorLoaderTest < Test::Unit::TestCase
   def test_loader
     loader = OrErrorLoader.new(nil)
     mirror = loader.loadMirror(Type.getType("J"))
-    assert_equal("J", mirror.class_id)
+    assert_equal("J", mirror.asm_type.descriptor)
     assert(mirror.isError)
   end
 

@@ -25,7 +25,7 @@ class TypeElement implements TypeElementModel
   end
 
   def descriptor
-    @type.class_id
+    @type.getAsmType.getDescriptor
   end
 
   def equals(other)

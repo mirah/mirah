@@ -96,7 +96,8 @@ class AnnotationCompiler < BaseCompiler
         next
       end
       @@log.fine("Compiling #{retention} annotation #{type.name}")
-      visitor = factory.create(type.class_id, "RUNTIME".equals(retention))
+      visitor = factory.create(type.getAsmType.getDescriptor,
+                               "RUNTIME".equals(retention))
       compileValues(anno, visitor)
       visitor.visitEnd
     end
@@ -162,7 +163,7 @@ class AnnotationCompiler < BaseCompiler
       reportError("Cannot find enum value #{type.name}.#{value_name}", value.position)
       return
     end
-    visitor.visitEnum(name, type.class_id, value_name)
+    visitor.visitEnum(name, type.getAsmType.getDescriptor, value_name)
   end
   
   def compileAnnotation(visitor:AnnotationVisitor, name:String, value:Node, type:JVMType):void
@@ -175,7 +176,7 @@ class AnnotationCompiler < BaseCompiler
     end
     subtype = getInferredType(value)
     # TODO(ribrdb): check compatibility
-    child = visitor.visitAnnotation(name, subtype.class_id)
+    child = visitor.visitAnnotation(name, subtype.getAsmType.getDescriptor)
     compileValues(Annotation(value), child)
     child.visitEnd
   end

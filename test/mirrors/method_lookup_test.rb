@@ -310,7 +310,7 @@ class MethodLookupTest < BaseMethodLookupTest
     assert_not_nil(future)
     type = future.resolve
     assert(!type.isError)
-    assert_equal("Ljava/lang/String;", type.returnType.class_id)
+    assert_equal("Ljava/lang/String;", type.returnType.asm_type.descriptor)
   end
 
   def test_findMethod
@@ -538,7 +538,7 @@ class FieldTest < BaseMethodLookupTest
   def test_find_super_field
     @a.add_field("foo")
     future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
-    assert_equal("LA;", future.resolve.returnType.class_id)    
+    assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)    
   end
 
   def test_field_override
@@ -546,7 +546,7 @@ class FieldTest < BaseMethodLookupTest
     @b.add_field("foo")
 
     future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
-    assert_equal("LB;", future.resolve.returnType.class_id)
+    assert_equal("LB;", future.resolve.returnType.asm_type.descriptor)
   end
 
   def test_inaccessible_overrides_accessible
@@ -555,7 +555,7 @@ class FieldTest < BaseMethodLookupTest
     @b.add_field("foo", Opcodes.ACC_PRIVATE)
     
     future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
-    assert_equal("LA;", future.resolve.returnType.class_id)
+    assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)
   end
 
   def test_inaccessible

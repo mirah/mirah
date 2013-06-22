@@ -32,7 +32,7 @@ import org.mirah.typer.ResolvedType
 
 class ArrayType < BaseType implements ArrayModel
   def initialize(component:MirrorType, loader:AsyncMirrorLoader)
-    super(Type.getType("[#{component.class_id}"),
+    super(Type.getType("[#{component.getAsmType.getDescriptor}"),
           Opcodes.ACC_PUBLIC,
           JVMType(loader.loadMirrorAsync(
               Type.getType('Ljava/lang/Object;')).resolve))
@@ -49,7 +49,7 @@ class ArrayType < BaseType implements ArrayModel
   end
 
   def initialize(component:MirrorType, loader:MirrorLoader)
-    super(Type.getType("[#{component.class_id}"),
+    super(Type.getType("[#{component.getAsmType.getDescriptor}"),
           Opcodes.ACC_PUBLIC,
           loader.loadMirror(Type.getType('Ljava/lang/Object;')))
     @interfaces = TypeFuture[2]

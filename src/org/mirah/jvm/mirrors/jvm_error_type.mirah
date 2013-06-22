@@ -33,8 +33,6 @@ class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
   end
 
   def superclass:JVMType; nil; end
-  def internal_name:String; @type.getInternalName; end
-  def class_id:String; @type.getDescriptor; end
   def getAsmType:Type; @type; end
   def flags:int; Opcodes.ACC_PUBLIC; end
 
