@@ -30,6 +30,7 @@ import javax.lang.model.util.Types as TypesModel
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.model.IntersectionType
+import org.mirah.jvm.types.JVMTypeUtils
 
 class Types implements TypesModel
   def initialize(types:MirrorTypeSystem)
@@ -72,7 +73,7 @@ class Types implements TypesModel
     supertypes = ArrayList.new
     if t.kind_of?(MirrorType)
       m = MirrorType(t)
-      unless m.isPrimitive || m.isInterface
+      unless JVMTypeUtils.isPrimitive(m) || JVMTypeUtils.isInterface(m)
         parent = m.superclass
         supertypes.add(parent) if parent
       end

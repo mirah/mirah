@@ -21,6 +21,7 @@ import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.*
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.Typer
 import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.Context
@@ -114,7 +115,7 @@ class ClassCleanup < NodeScanner
   
   def makeTypeRef(type:JVMType):TypeRef
     # FIXME: there's no way to represent multi-dimensional arrays in a TypeRef
-    TypeRefImpl.new(type.name, type.isArray, false, nil)
+    TypeRefImpl.new(type.name, JVMTypeUtils.isArray(type), false, nil)
   end
   
   def declareFields:void

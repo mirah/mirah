@@ -24,6 +24,8 @@ import mirah.lang.ast.Node
 import org.mirah.jvm.types.MemberKind
 
 class ConditionCompiler < BaseCompiler
+  import static org.mirah.jvm.types.JVMTypeUtils.*
+
   def self.initialize:void
     @@log = Logger.getLogger(ConditionCompiler.class.getName)
     @@NEGATED_OPS = {
@@ -56,7 +58,7 @@ class ConditionCompiler < BaseCompiler
   end
 
   def doJump(label:Label)
-    if @type.isPrimitive
+    if isPrimitive(@type)
       if "float".equals(@type.name)
         @bytecode.push(float(0))
         @op = "=="

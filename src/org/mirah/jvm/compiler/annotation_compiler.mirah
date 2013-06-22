@@ -57,6 +57,8 @@ class FieldAnnotationFactory implements AnnotationVisitorFactory
 end
 
 class AnnotationCompiler < BaseCompiler
+  import static org.mirah.jvm.types.JVMTypeUtils.*
+
   def initialize(context:Context)
     super(context)
   end
@@ -86,7 +88,7 @@ class AnnotationCompiler < BaseCompiler
       next if anno.type.typeref.name.startsWith("org.mirah.jvm.")
       
       type = getInferredType(anno)
-      unless type.isAnnotation
+      unless isAnnotation(type)
         reportError("#{type.name} is not an annotation", anno.position)
         next
       end
@@ -120,13 +122,13 @@ class AnnotationCompiler < BaseCompiler
   end
   
   def compileValue(visitor:AnnotationVisitor, name:String, value:Node, type:JVMType):void
-    if type.isArray
+    if isArray(type)
       compileArray(visitor, name, value, type.getComponentType)
-    elsif type.isEnum
+    elsif isEnum(type)
       compileEnum(visitor, name, value, type)
-    elsif type.isAnnotation
+    elsif isAnnotation(type)
       compileAnnotation(visitor, name, value, type)
-    elsif type.isPrimitive
+    elsif isPrimitive(type)
       compilePrimitive(visitor, name, value, type)
     elsif "java.lang.String".equals(type.name)
       compileString(visitor, name, value)

@@ -21,6 +21,7 @@ import javax.lang.model.type.NullType as NullTypeModel
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.ResolvedType
 
 class NullType < BaseType implements NullTypeModel
@@ -35,7 +36,8 @@ class NullType < BaseType implements NullTypeModel
     end
   end
   def assignableFrom(other:ResolvedType):boolean
-    other.matchesAnything || (other.kind_of?(JVMType) && !JVMType(other).isPrimitive)
+    return true if other.matchesAnything
+    return other.kind_of?(JVMType) && !JVMTypeUtils.isPrimitive(JVMType(other))
   end
 
   def getKind

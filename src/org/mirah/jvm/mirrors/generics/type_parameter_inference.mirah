@@ -28,8 +28,11 @@ import javax.lang.model.util.Types
 import org.mirah.jvm.mirrors.MirrorType
 import org.jruby.org.objectweb.asm.Type
 
+import org.mirah.jvm.types.JVMTypeUtils
+
 # Implements JLS7 15.12.2.7 Inferring Type Arguments Based on Actual Arguments
 class TypeParameterInference
+
   def initialize(types:Types)
     @types = types
   end
@@ -55,7 +58,8 @@ class TypeParameterInference
   def processExtendsConstraint(argument:TypeMirror,
                                formalParameter:TypeMirror,
                                typeParameters:Map):void
-    if argument.kind_of?(MirrorType) && MirrorType(argument).isPrimitive
+    if argument.kind_of?(MirrorType) &&
+        JVMTypeUtils.isPrimitive(MirrorType(argument))
       argument = TypeMirror(MirrorType(argument).box)
     end
     tpi = self

@@ -24,27 +24,20 @@ interface JVMType < ResolvedType
 
   def interfaces:TypeFuture[]; end
 
-  def isPrimitive:boolean; end
-  def isEnum:boolean; end
-  def isInterface:boolean; end
-  def isAbstract:boolean; end
-
-  def isAnnotation:boolean; end
   def retention:String; end
-  
-  def isArray:boolean; end
+
   def getComponentType:JVMType; end
-  
+
   def hasStaticField(name:String):boolean; end
-  
+
   def box:JVMType; end
   def unbox:JVMType; end
-  
+
   # Find the JVMMethod for a method call.
   # TODO: We've already looked this up during inference, it'd be better if
   # we could save that instead of doing the full search again.
   def getMethod(name:String, params:List):JVMMethod; end
-  
+
   def getDeclaredFields:JVMMethod[]; end
   def getDeclaredField(name:String):JVMMethod; end
 end

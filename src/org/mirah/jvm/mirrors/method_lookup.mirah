@@ -34,10 +34,12 @@ import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.Scope
-import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 import org.jruby.org.objectweb.asm.Opcodes
+
 
 interface SubtypeChecker
   def isSubType(subtype:ResolvedType, supertype:ResolvedType):boolean; end
@@ -61,6 +63,14 @@ class MethodLookup
   end
 
   class << self
+    def isPrimitive(type:JVMType)
+      JVMTypeUtils.isPrimitive(type)
+    end
+
+    def isArray(type:JVMType)
+      JVMTypeUtils.isArray(type)
+    end
+
     def isSubType(subtype:ResolvedType, supertype:ResolvedType):boolean
       return true if subtype == supertype
       if subtype.kind_of?(JVMType) && supertype.kind_of?(JVMType)
@@ -72,16 +82,19 @@ class MethodLookup
   
     def isJvmSubType(subtype:JVMType, supertype:JVMType):boolean
       return true if (subtype.matchesAnything || supertype.matchesAnything)
-      if subtype.isPrimitive
-        return supertype.isPrimitive && isPrimitiveSubType(subtype, supertype)
+      if isPrimitive(subtype)
+        return isPrimitive(supertype) && isPrimitiveSubType(subtype, supertype)
       end
       if subtype.kind_of?(NullType)
-        return !supertype.isPrimitive
+        return !isPrimitive(supertype)
       end
-      if subtype.isArray && supertype.isArray
+      if isArray(subtype) && isArray(supertype)
         return isArraySubType(subtype, supertype)
       end
-      return (supertype.isInterface || supertype.isAbstract) if subtype.isBlock
+      if subtype.isBlock
+        return true if JVMTypeUtils.isInterface(supertype)
+        return true if JVMTypeUtils.isAbstract(supertype)
+      end
 
       super_desc = supertype.getAsmType.getDescriptor
       explored = HashSet.new
@@ -121,8 +134,8 @@ class MethodLookup
       return false unless subtype.getAsmType.getDimensions == supertype.getAsmType.getDimensions
       component_a = subtype.getComponentType
       component_b = supertype.getComponentType
-      return false if component_a.isPrimitive
-      return false if component_b.isPrimitive
+      return false if isPrimitive(component_a)
+      return false if isPrimitive(component_b)
       isSubType(component_a, component_b)
     end
 
@@ -138,7 +151,7 @@ class MethodLookup
     end
 
     def isSubTypeViaBoxing(subtype:JVMType, supertype:JVMType)
-      if subtype.isPrimitive
+      if isPrimitive(subtype)
         if subtype.box
           return isJvmSubType(subtype.box, supertype)
         end

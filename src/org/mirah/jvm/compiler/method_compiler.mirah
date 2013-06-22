@@ -26,6 +26,8 @@ import org.jruby.org.objectweb.asm.Type as AsmType
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
 import org.jruby.org.objectweb.asm.commons.Method as AsmMethod
 
+import org.mirah.jvm.types.JVMTypeUtils
+
 import java.util.List
 
 interface InnerClassCompiler
@@ -166,7 +168,7 @@ class MethodCompiler < BaseCompiler
   end
   
   def defaultValue(type:JVMType)
-    if type.isPrimitive
+    if JVMTypeUtils.isPrimitive(type)
       if 'long'.equals(type.name)
         @builder.push(long(0))
       elsif 'double'.equals(type.name)
@@ -372,7 +374,7 @@ class MethodCompiler < BaseCompiler
     compile(node.value)
     from = getInferredType(node.value)
     to = getInferredType(node)
-    if from.isPrimitive
+    if JVMTypeUtils.isPrimitive(from)
       @builder.cast(from.getAsmType, to.getAsmType)
     else
       @builder.checkCast(to.getAsmType)
@@ -472,7 +474,7 @@ class MethodCompiler < BaseCompiler
       done = @builder.newLabel
       elseLabel = @builder.newLabel
       type = getInferredType(node.value)
-      if type.isPrimitive
+      if JVMTypeUtils.isPrimitive(type)
         @builder.ifZCmp(GeneratorAdapter.EQ, elseLabel)
       else
         @builder.ifNull(elseLabel)

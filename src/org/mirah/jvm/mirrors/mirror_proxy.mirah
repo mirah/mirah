@@ -71,26 +71,8 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
   def interfaces:TypeFuture[]
     @target.interfaces
   end
-  def isPrimitive
-    @target.isPrimitive
-  end
-  def isEnum
-    @target.isEnum
-  end
-  def isInterface
-    @target.isInterface
-  end
-  def isAbstract
-    @target.isAbstract
-  end
-  def isAnnotation
-    @target.isAnnotation
-  end
   def retention
     @target.retention
-  end
-  def isArray
-    @target.isArray
   end
   def getComponentType
     @target.getComponentType

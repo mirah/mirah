@@ -29,6 +29,7 @@ import javax.lang.model.type.TypeMirror
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
@@ -127,11 +128,6 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
 
   def getAsmType:Type; @type; end
 
-  def isPrimitive:boolean
-    sort = @type.getSort
-    sort != Type.OBJECT && sort != Type.ARRAY
-  end
-
   def isEnum:boolean
     0 != (@flags & Opcodes.ACC_ENUM)
   end
@@ -147,7 +143,7 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
   def retention:String; nil; end
 
   def getKind
-    if isPrimitive
+    if JVMTypeUtils.isPrimitive(self)
       TypeKind(@@kind_map[getAsmType.getDescriptor])
     else
       TypeKind.DECLARED
@@ -157,7 +153,7 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
   def accept(v, p)
     if getKind == TypeKind.VOID
       v.visitNoType(self, p)
-    elsif isPrimitive
+    elsif JVMTypeUtils.isPrimitive(self)
       v.visitPrimitive(self, p)
     else
       v.visitDeclared(self, p)
@@ -168,9 +164,6 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
     Collections.emptyList
   end
 
-  def isArray:boolean
-    @type.getSort == Type.ARRAY
-  end
   def getComponentType:JVMType; nil; end
 
   def hasStaticField(name:String):boolean

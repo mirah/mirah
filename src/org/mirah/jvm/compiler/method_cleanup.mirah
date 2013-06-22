@@ -19,6 +19,7 @@ import mirah.lang.ast.*
 import org.mirah.util.Context
 import org.mirah.typer.Typer
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 
 # Runs class cleanup on any enclosed classes.
 class MethodCleanup < NodeScanner
@@ -46,7 +47,7 @@ class MethodCleanup < NodeScanner
     if @typer.getInferredType(node).resolve.equals(@scope.binding_type) && node.body_size == 0
       @scope.capturedLocals.each do |name|
         type = JVMType(@typer.type_system.getLocalType(@scope, String(name), node.position).resolve)
-        typeref = TypeRefImpl.new(type.name, type.isArray, false, node.position)
+        typeref = TypeRefImpl.new(type.name, JVMTypeUtils.isArray(type), false, node.position)
         decl = FieldDeclaration.new(SimpleString.new(String(name)), typeref, [
           Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
             HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED')),

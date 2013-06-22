@@ -65,6 +65,14 @@ module Mirah
         def isEnum
           jvm_type ? jvm_type.enum? : false
         end
+        def flags
+          flags = BiteScript::ASM::Opcodes::ACC_PUBLIC
+          flags |= BiteScript::ASM::Opcodes::ACC_ANNOTATION if isAnnotation
+          flags |= BiteScript::ASM::Opcodes::ACC_ENUM if isEnum
+          flags |= BiteScript::ASM::Opcodes::ACC_INTERFACE if self.interface?
+          flags |= BiteScript::ASM::Opcodes::ACC_ABSTRACT if self.abstract?
+          flags
+        end
         def retention
           if jvm_type.respond_to?(:getDeclaredAnnotation)
             retention = jvm_type.getDeclaredAnnotation('java.lang.annotation.Retention')

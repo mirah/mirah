@@ -33,6 +33,8 @@ import org.mirah.jvm.types.JVMType
 
 # Helper class for generating jvm bytecode.
 class Bytecode < GeneratorAdapter
+  import static org.mirah.jvm.types.JVMTypeUtils.*
+
   class LocalInfo
     def initialize(name:String, index:int, type:Type, scopeStart:Label, scopeEnd:Label)
       @name = name
@@ -158,12 +160,12 @@ class Bytecode < GeneratorAdapter
 
   def convertValue(currentType:JVMType, wantedType:JVMType):void
     unless currentType.equals(wantedType)
-      if currentType.isPrimitive && wantedType.isPrimitive
+      if isPrimitive(currentType) && isPrimitive(wantedType)
         cast(currentType.getAsmType, wantedType.getAsmType)
-      elsif currentType.isPrimitive
+      elsif isPrimitive(currentType)
         # TODO make sure types match
         box(currentType.getAsmType)
-      elsif wantedType.isPrimitive
+      elsif isPrimitive(wantedType)
         # TODO make sure types match
         unbox(currentType.getAsmType)
       elsif !wantedType.assignableFrom(currentType)
