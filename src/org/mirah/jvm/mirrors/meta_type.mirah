@@ -34,6 +34,14 @@ class MetaType < BaseType
 
   def isMeta:boolean; true; end
 
+  def notifyOfIncompatibleChange
+    unmeta.notifyOfIncompatibleChange
+  end
+
+  def onIncompatibleChange(listener:Runnable)
+    unmeta.onIncompatibleChange(listener)
+  end
+
   def invalidateMethod(name)
     unmeta.invalidateMethod(name)
   end

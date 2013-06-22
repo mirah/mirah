@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,21 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.jvm.mirrors
+package org.mirah.jvm.model
 
-import org.jruby.org.objectweb.asm.Type
+import java.util.List
+import javax.lang.model.type.TypeMirror
 
-class BooleanType < Number
-  def initialize(loader:MirrorLoader)
-    super(Type.getType('Z'), nil, loader)
-  end
-
-  def load_methods
-    add_comparison('==', self, self)
-    add_comparison('!=', self, self)
-    add_math("|", self)
-    add_math("&", self)
-    add_math("^", self)
-    true
-  end
+interface IType < TypeMirror
+  def isSameType(other:TypeMirror):boolean; end
+  def isSupertypeOf(other:TypeMirror):boolean; end
+  def directSupertypes:List; end
 end

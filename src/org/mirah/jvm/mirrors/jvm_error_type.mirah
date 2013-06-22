@@ -27,12 +27,13 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 
 class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
-  def initialize(message:List, type:Type)
+  def initialize(message:List, type:Type, supertype:MirrorType)
     super(message)
+    @supertype = supertype
     @type = type
   end
 
-  def superclass:JVMType; nil; end
+  def superclass:JVMType; @supertype; end
   def getAsmType:Type; @type; end
   def flags:int; Opcodes.ACC_PUBLIC; end
 
@@ -70,4 +71,17 @@ class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
 
   def getKind; TypeKind.ERROR; end
   def accept(v, p); v.visitError(self, p); end
+  def isSameType(other)
+    other == self
+  end
+  def isSupertypeOf(other)
+    true
+  end
+  def directSupertypes
+    if @supertype
+      [@supertype]
+    else
+      Collections.emptyList
+    end
+  end
 end

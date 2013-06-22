@@ -45,6 +45,18 @@ class NullType < BaseType implements NullTypeModel
   end
 
   def accept(v, p)
-    v.visitNoType(self, p)
+    v.visitNull(self, p)
+  end
+
+  def hashCode
+    TypeKind.NULL.hashCode
+  end
+
+  def isSameType(other)
+    other.getKind == TypeKind.NULL
+  end
+
+  def isSupertypeOf(other)
+    isSameType(other)
   end
 end

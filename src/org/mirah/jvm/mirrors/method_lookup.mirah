@@ -82,61 +82,22 @@ class MethodLookup
   
     def isJvmSubType(subtype:JVMType, supertype:JVMType):boolean
       return true if (subtype.matchesAnything || supertype.matchesAnything)
-      if isPrimitive(subtype)
-        return isPrimitive(supertype) && isPrimitiveSubType(subtype, supertype)
-      end
       if subtype.kind_of?(NullType)
         return !isPrimitive(supertype)
-      end
-      if isArray(subtype) && isArray(supertype)
-        return isArraySubType(subtype, supertype)
       end
       if subtype.isBlock
         return true if JVMTypeUtils.isInterface(supertype)
         return true if JVMTypeUtils.isAbstract(supertype)
       end
-
-      super_desc = supertype.getAsmType.getDescriptor
-      explored = HashSet.new
-      to_explore = LinkedList.new
-      to_explore.add(subtype)
-      until to_explore.isEmpty
-        next_type = to_explore.removeFirst
-        descriptor = next_type.getAsmType.getDescriptor
-        return true if descriptor.equals(super_desc)
-        unless explored.contains(descriptor)
-          explored.add(descriptor)
-          to_explore.add(next_type.superclass) if next_type.superclass
-          next_type.interfaces.each {|i| to_explore.add(JVMType(i.resolve))}
-        end
-      end
-      return false
+      MirrorType(supertype).isSupertypeOf(MirrorType(subtype))
     end
   
     def isPrimitiveSubType(subtype:JVMType, supertype:JVMType):boolean
-      sub_desc = subtype.getAsmType.getDescriptor.charAt(0)
-      super_desc = supertype.getAsmType.getDescriptor.charAt(0)
-      order = "BSIJFD"
-      if sub_desc == super_desc
-        return true
-      elsif sub_desc == ?Z
-        return false
-      elsif sub_desc == ?C
-        return order.indexOf(super_desc) > 1
-      else
-        return order.indexOf(super_desc) >= order.indexOf(sub_desc)
-      end
+      MirrorType(supertype).isSupertypeOf(MirrorType(subtype))
     end
 
     def isArraySubType(subtype:JVMType, supertype:JVMType):boolean
-      return true if subtype.getAsmType.getDescriptor.equals(
-          supertype.getAsmType.getDescriptor)
-      return false unless subtype.getAsmType.getDimensions == supertype.getAsmType.getDimensions
-      component_a = subtype.getComponentType
-      component_b = supertype.getComponentType
-      return false if isPrimitive(component_a)
-      return false if isPrimitive(component_b)
-      isSubType(component_a, component_b)
+      MirrorType(supertype).isSupertypeOf(MirrorType(subtype))
     end
 
     def isSubTypeWithConversion(subtype:ResolvedType,
@@ -173,11 +134,11 @@ class MethodLookup
       elsif b.isError
         return 1.0
       end
-      jvm_a = JVMType(a)
-      jvm_b = JVMType(b)
+      jvm_a = MirrorType(a)
+      jvm_b = MirrorType(b)
           
-      return 0.0 if jvm_a.getAsmType.getDescriptor.equals(
-          jvm_b.getAsmType.getDescriptor)
+      return 0.0 if jvm_a.isSameType(jvm_b)
+
       if isJvmSubType(jvm_b, jvm_a)
         return -1.0
       elsif isJvmSubType(jvm_a, jvm_b)
@@ -381,10 +342,8 @@ class MethodLookup
         visited.add(target)
         methods.addAll(target.getDeclaredMethods(name))
         return methods if "<init>".equals(name)
-        gatherMethodsInternal(MirrorType(target.superclass), name, methods, visited)
-        target.interfaces.each do |i|
-          iface = MirrorType(i.resolve)
-          gatherMethodsInternal(iface, name, methods, visited)
+        target.directSupertypes.each do |t|
+          gatherMethodsInternal(MirrorType(t), name, methods, visited)
         end
       end
       methods
@@ -414,10 +373,8 @@ class MethodLookup
             defined_methods.add([member.name, member.argumentTypes])
           end
         end
-        gatherAbstractMethodsInternal(MirrorType(target.superclass), defined_methods, abstract_methods, visited)
-        target.interfaces.each do |future|
-          iface = MirrorType(future.resolve)
-          gatherAbstractMethodsInternal(iface, defined_methods, abstract_methods, visited)
+        target.directSupertypes.each do |t|
+          gatherAbstractMethodsInternal(MirrorType(t), defined_methods, abstract_methods, visited)
         end
       end
     end
@@ -430,15 +387,23 @@ class MethodLookup
       end
       fields = LinkedList.new
       mirror = target.unmeta
-      while mirror
-        field = mirror.getDeclaredField(name)
+      gatherFieldsInternal(target, name, setter, fields, HashSet.new)
+      fields
+    end
+
+    def gatherFieldsInternal(target:MirrorType, name:String,
+                             isSetter:boolean, fields:List, visited:Set):void
+      unless target.nil? || target.isError || visited.contains(target)
+        visited.add(target)
+        field = target.getDeclaredField(name)
         if field
-          field = makeSetter(Member(field)) if setter
+          field = makeSetter(Member(field)) if isSetter
           fields.add(field)
         end
-        mirror = mirror.superclass
+        target.directSupertypes.each do |t|
+          gatherFieldsInternal(MirrorType(t), name, isSetter, fields, visited)
+        end
       end
-      fields
     end
 
     def makeSetter(field:Member)

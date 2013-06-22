@@ -18,10 +18,26 @@ package org.mirah.jvm.mirrors
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.MemberKind
+import javax.lang.model.type.PrimitiveType
+import javax.lang.model.type.TypeKind
 
-class Number < BaseType
-  def initialize(type:Type, loader:MirrorLoader)
-    super(type, Opcodes.ACC_PUBLIC, nil)
+class Number < BaseType implements PrimitiveType
+  def self.initialize:void
+    @@kind_map = {
+      Z: TypeKind.BOOLEAN,
+      B: TypeKind.BYTE,
+      C: TypeKind.CHAR,
+      D: TypeKind.DOUBLE,
+      F: TypeKind.FLOAT,
+      I: TypeKind.INT,
+      J: TypeKind.LONG,
+      S: TypeKind.SHORT,
+    }
+  end
+
+  def initialize(type:Type, supertype:MirrorType, loader:MirrorLoader)
+    super(type, Opcodes.ACC_PUBLIC, supertype)
+    @kind = TypeKind(@@kind_map[type.getDescriptor])
     @loader = loader
   end
 
@@ -79,5 +95,21 @@ class Number < BaseType
     add(Member.new(
         Opcodes.ACC_PUBLIC, type, name, [type], boolean,
         MemberKind.COMPARISON_OP))
+  end
+
+  def getKind
+    @kind
+  end
+
+  def accept(v, p)
+    v.visitPrimitive(self, p)
+  end
+
+  def isSameType(other)
+    @kind.equals(other.getKind)
+  end
+
+  def hashCode
+    @kind.hashCode
   end
 end

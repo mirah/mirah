@@ -15,19 +15,30 @@
 
 package org.mirah.jvm.mirrors
 
+import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.jvm.types.MemberKind
+import javax.lang.model.type.NoType
+import javax.lang.model.type.TypeKind
 
-class BooleanType < Number
-  def initialize(loader:MirrorLoader)
-    super(Type.getType('Z'), nil, loader)
+class VoidType < BaseType implements NoType
+  def initialize
+    super(Type.getType("V"), Opcodes.ACC_PUBLIC, nil)
   end
 
-  def load_methods
-    add_comparison('==', self, self)
-    add_comparison('!=', self, self)
-    add_math("|", self)
-    add_math("&", self)
-    add_math("^", self)
-    true
+  def getKind
+    TypeKind.VOID
+  end
+
+  def accept(v, p)
+    v.visitNoType(self, p)
+  end
+
+  def isSameType(other)
+    TypeKind.VOID == other.getKind
+  end
+
+  def hashCode
+    TypeKind.VOID.hashCode
   end
 end

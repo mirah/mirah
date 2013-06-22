@@ -15,10 +15,16 @@
 
 package org.mirah.jvm.mirrors
 
+import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.ErrorType
 import javax.lang.model.type.NoType
+import javax.lang.model.type.NullType
 import javax.lang.model.type.PrimitiveType
 import javax.lang.model.type.TypeKind
+import javax.lang.model.type.TypeMirror
+import javax.lang.model.type.TypeVariable
+import javax.lang.model.type.WildcardType
 import mirah.lang.ast.Position
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMMethod
@@ -31,7 +37,7 @@ import org.mirah.typer.TypeFuture
 # change a Mirror in an incompatible way. We can return a new
 # proxy for the same Mirror, and the typer will treat this as
 # a new type.
-class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
+class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType, NoType, ErrorType, NullType, TypeVariable, WildcardType
   def initialize(type:MirrorType)
     @target = type
   end
@@ -74,7 +80,14 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
   def retention
     @target.retention
   end
-  def getComponentType
+  def getComponentType:MirrorType
+    MirrorType(@target.getComponentType)
+  end
+  # FIXME: Manual bridge methods
+  def getComponentType:TypeMirror
+    TypeMirror(@target.getComponentType)
+  end
+  def getComponentType:JVMType
     @target.getComponentType
   end
   def hasStaticField(name)
@@ -130,6 +143,18 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
     @target.declareField(field)
   end
 
+  def isSameType(other)
+    @target.isSameType(other)
+  end
+
+  def directSupertypes
+    @target.directSupertypes
+  end
+
+  def isSupertypeOf(other)
+    @target.isSupertypeOf(other)
+  end
+
   # TypeMirror methods
   def getKind
     @target.getKind
@@ -144,6 +169,18 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType
   end
   def getTypeArguments
     DeclaredType(@target).getTypeArguments
+  end
+  def getLowerBound
+    TypeVariable(@target).getLowerBound
+  end
+  def getUpperBound
+    TypeVariable(@target).getUpperBound
+  end
+  def getExtendsBound
+    WildcardType(@target).getExtendsBound
+  end
+  def getSuperBound
+    WildcardType(@target).getSuperBound
   end
 end
 

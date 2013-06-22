@@ -59,25 +59,24 @@ class PrimitiveLoader < SimpleMirrorLoader
   def initialize(parent:MirrorLoader=nil)
     super(parent)
     @mirrors = {}
-    defineType("V")
+    defineVoidType
     defineBoolean
-    defineNumber("B")
-    defineNumber("C")
-    defineNumber("S")
-    defineNumber("I")
-    defineNumber("J")
-    defineNumber("F")
-    defineNumber("D")
+    d = defineNumber("D", nil)
+    f = defineNumber("F", d)
+    l = defineNumber("J", f)
+    i = defineNumber("I", l)
+    defineNumber("C", i)
+    s = defineNumber("S", i)
+    defineNumber("B", s)
   end
 
-  def defineType(desc:String)
-    type = Type.getType(desc)
-    @mirrors[type] = BaseType.new(type, Opcodes.ACC_PUBLIC, nil)
+  def defineVoidType
+    @mirrors[Type.getType("V")] = VoidType.new
   end
 
-  def defineNumber(desc:String)
+  def defineNumber(desc:String, supertype:MirrorType)
     type = Type.getType(desc)
-    @mirrors[type] = Number.new(type, self)
+    @mirrors[type] = Number.new(type, supertype, self)
   end
 
   def defineBoolean
@@ -112,9 +111,19 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
     future.type = if parent
       @parent.loadMirrorAsync(type)
     else
-      JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type)
+      makeError(type)
     end
     future
+  end
+
+  def makeError(type:Type)
+    object =  if type.getDescriptor.equals("Ljava/lang/Object;")
+      nil
+    else
+      MirrorType(loadMirrorAsync(
+        Type.getType("Ljava/lang/Object;")).resolve) rescue nil
+    end
+    JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type, object)
   end
 
   def findArrayMirrorAsync(type:Type):TypeFuture
@@ -154,7 +163,16 @@ class OrErrorLoader < SimpleMirrorLoader
     super(parent)
   end
   def findMirror(type)
-    super || JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type)
+    super || makeError(type)
+  end
+
+  def makeError(type:Type)
+    object = if type.getDescriptor.equals("Ljava/lang/Object;")
+      nil
+    else
+      loadMirror(Type.getType("Ljava/lang/Object;"))
+    end
+    JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type, object)
   end
 end
 

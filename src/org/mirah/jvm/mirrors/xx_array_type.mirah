@@ -16,6 +16,7 @@
 package org.mirah.jvm.mirrors
 
 import java.util.List
+import java.util.logging.Logger
 
 import javax.lang.model.type.ArrayType as ArrayModel
 import javax.lang.model.type.TypeKind
@@ -25,22 +26,33 @@ import org.jruby.org.objectweb.asm.Type
 import org.mirah.builtins.ArrayExtensions
 import org.mirah.builtins.EnumerableExtensions
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
 
 class ArrayType < BaseType implements ArrayModel
+  def self.initialize:void
+    @@log = Logger.getLogger(ArrayType.class.getName)
+  end
+
+  def self.getSupertype(component:MirrorType)
+    use_object = JVMTypeUtils.isPrimitive(component)
+    if "Ljava/lang/Object;".equals(component.getAsmType.getDescriptor)
+      use_object = true 
+    end
+    if use_object || component.superclass.nil?
+      Type.getType("Ljava/lang/Object;")
+    else
+      Type.getType("[#{component.superclass.getAsmType.getDescriptor}")
+    end
+  end
+
   def initialize(component:MirrorType, loader:AsyncMirrorLoader)
     super(Type.getType("[#{component.getAsmType.getDescriptor}"),
-          Opcodes.ACC_PUBLIC,
-          JVMType(loader.loadMirrorAsync(
-              Type.getType('Ljava/lang/Object;')).resolve))
-    @interfaces = TypeFuture[2]
-    @interfaces[0] =
-         loader.loadMirrorAsync(Type.getType('Ljava/lang/Cloneable;'))
-    @interfaces[1] =
-         loader.loadMirrorAsync(Type.getType('Ljava/io/Serializable;'))
+          Opcodes.ACC_PUBLIC, nil)
+    @loader = loader
     @int_type = loader.loadMirrorAsync(Type.getType('I')).resolve
     @componentType = component
     sync_loader = SyncLoaderAdapter.new(loader)
@@ -50,13 +62,8 @@ class ArrayType < BaseType implements ArrayModel
 
   def initialize(component:MirrorType, loader:MirrorLoader)
     super(Type.getType("[#{component.getAsmType.getDescriptor}"),
-          Opcodes.ACC_PUBLIC,
-          loader.loadMirror(Type.getType('Ljava/lang/Object;')))
-    @interfaces = TypeFuture[2]
-    @interfaces[0] = BaseTypeFuture.new.resolved(
-         loader.loadMirror(Type.getType('Ljava/lang/Cloneable;')))
-    @interfaces[1] = BaseTypeFuture.new.resolved(
-         loader.loadMirror(Type.getType('Ljava/io/Serializable;')))
+          Opcodes.ACC_PUBLIC, nil)
+    @loader = AsyncLoaderAdapter.new(loader)
     @int_type = loader.loadMirror(Type.getType('I'))
     @componentType = component
     BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, loader)
@@ -64,7 +71,25 @@ class ArrayType < BaseType implements ArrayModel
   end
 
   def interfaces:TypeFuture[]
-    @interfaces
+    if JVMTypeUtils.isPrimitive(@componentType) ||
+        "Ljava/lang/Object;".equals(@componentType.getAsmType.getDescriptor)
+      interfaces = TypeFuture[3]
+      interfaces[0] = @loader.loadMirrorAsync(
+          Type.getType('Ljava/lang/Object;'))
+      interfaces[1] = @loader.loadMirrorAsync(
+          Type.getType('Ljava/lang/Cloneable;'))
+      interfaces[2] = @loader.loadMirrorAsync(
+          Type.getType('Ljava/io/Serializable;'))
+      interfaces
+    else
+      supertypes = @componentType.directSupertypes
+      interfaces = TypeFuture[supertypes.size]
+      supertypes.map do |x|
+         @loader.loadMirrorAsync(
+          Type.getType("[#{MirrorType(x).getAsmType.getDescriptor}"))
+      end.toArray(interfaces)
+      interfaces
+    end
   end
 
   def add_method(name:String,
@@ -96,4 +121,30 @@ class ArrayType < BaseType implements ArrayModel
 
   def getKind; TypeKind.ARRAY; end
   def accept(v, p); v.visitArray(self, p); end
+
+  def hashCode
+    @componentType.hashCode
+  end
+
+  def isSameType(other)
+    result = if other.getKind == TypeKind.ARRAY
+      @componentType.isSameType(MirrorType(ArrayModel(other).getComponentType))
+    else
+      false
+    end
+    @@log.finer("#{self} #{result ? '=' : '!='} #{other}")
+    result
+  end
+
+  def isSupertypeOf(other)
+    result = if JVMTypeUtils.isPrimitive(@componentType)
+      isSameType(other)
+    elsif other.getKind != TypeKind.ARRAY
+      false
+    else
+      super
+    end
+    @@log.finer("#{self} #{result ? '>' : '!>'} #{other}")
+    result
+  end
 end

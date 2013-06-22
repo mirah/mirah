@@ -210,7 +210,7 @@ class MirrorTypeSystem implements TypeSystem
       end
       error = JvmErrorType.new([
         ["Can't find method #{format(target, call.name, call.resolved_parameters)}",
-         call.position]], Type.getType("V"))
+         call.position]], Type.getType("V"), nil)
       macro_params = LinkedList.new
       nodes = call.parameterNodes
       unless nodes.nil?
@@ -225,6 +225,7 @@ class MirrorTypeSystem implements TypeSystem
           call.position, !call.explicitTarget)
       future.type = method || error
       log = @@log
+      log.finer("Adding listener for #{target}.#{method_name} (#{target.getClass})")
       target.addMethodListener(method_name) do |klass, name|
         future.type = MethodLookup.findMethod(
             call.scope, target, method_name,
@@ -465,7 +466,7 @@ class MirrorTypeSystem implements TypeSystem
       MirrorType(type)
     else
       JvmErrorType.new(
-          ErrorType(type).message, Type.getType("Ljava/lang/Object;"))
+          ErrorType(type).message, Type.getType("Ljava/lang/Object;"), @object)
     end
   end
 

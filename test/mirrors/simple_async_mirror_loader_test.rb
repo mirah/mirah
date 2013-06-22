@@ -23,6 +23,7 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.SimpleAsyncMirrorLoader'
   java_import 'org.mirah.jvm.mirrors.AsyncLoaderAdapter'
   java_import 'org.mirah.jvm.mirrors.PrimitiveLoader'
+  java_import 'org.mirah.jvm.types.JVMTypeUtils'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
 
@@ -95,7 +96,7 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     future = loader.loadMirrorAsync(Type.getType("[LA;"))
     defineType(loader, Type.getType("LA;"),
                BaseType.new(Type.getType("LA;"), 0, nil))
-    assert(future.resolve.isArray)
+    assert(JVMTypeUtils.isArray(future.resolve))
     assert_equal('LA;', future.resolve.getComponentType.asm_type.descriptor)
     assert(!future.resolve.getComponentType.isError)
   end

@@ -22,7 +22,6 @@ import java.util.List
 import java.util.Set
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
-import javax.lang.model.type.PrimitiveType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 
@@ -52,10 +51,13 @@ interface MirrorType < JVMType, TypeMirror
   def add(member:JVMMethod):void; end
   def declareField(field:JVMMethod):void; end
   def unmeta:MirrorType; end
+  def isSameType(other:MirrorType):boolean; end
+  def isSupertypeOf(other:MirrorType):boolean; end
+  def directSupertypes:List; end
 end
 
 # package_private
-class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
+class BaseType implements MirrorType, DeclaredType
 
   def self.initialize:void
     @@kind_map = {
@@ -88,6 +90,7 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
   attr_reader superclass:JVMType, name:String, type:Type, flags:int
 
   def notifyOfIncompatibleChange:void
+    @cached_supertypes = List(nil)
     @compatibility_listeners.each do |l|
       Runnable(l).run()
     end
@@ -143,21 +146,11 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
   def retention:String; nil; end
 
   def getKind
-    if JVMTypeUtils.isPrimitive(self)
-      TypeKind(@@kind_map[getAsmType.getDescriptor])
-    else
-      TypeKind.DECLARED
-    end
+    TypeKind.DECLARED
   end
 
   def accept(v, p)
-    if getKind == TypeKind.VOID
-      v.visitNoType(self, p)
-    elsif JVMTypeUtils.isPrimitive(self)
-      v.visitPrimitive(self, p)
-    else
-      v.visitDeclared(self, p)
-    end
+    v.visitDeclared(self, p)
   end
 
   def getTypeArguments
@@ -265,4 +258,42 @@ class BaseType implements MirrorType, PrimitiveType, DeclaredType, NoType
   end
 
   attr_writer unboxed: JVMType
+
+  def equals(other)
+    return true if other == self
+    other.kind_of?(MirrorType) && isSameType(MirrorType(other))
+  end
+
+  def hashCode:int
+    hash = 23 + 37 * (getTypeArguments.hashCode)
+    37 * hash + getAsmType.hashCode
+  end
+
+  def isSameType(other)
+    return false if other.getKind != TypeKind.DECLARED
+    return false unless getTypeArguments.equals(
+        DeclaredType(other).getTypeArguments)
+    getAsmType().equals(other.getAsmType)
+  end
+
+  def directSupertypes
+    @cached_supertypes ||= begin
+      supertypes = LinkedList.new
+      skip_super = JVMTypeUtils.isInterface(self) && interfaces.length > 0
+      unless superclass.nil? || skip_super
+        supertypes.add(superclass)
+      end
+      interfaces.each do |i|
+        resolved = i.resolve
+        # Skip error supertypes
+        supertypes.add(resolved) if resolved.kind_of?(MirrorType)
+      end
+      supertypes
+    end
+  end
+
+  def isSupertypeOf(other)
+    return true if getAsmType.equals(other.getAsmType)
+    other.directSupertypes.any? {|x| isSupertypeOf(MirrorType(x))}
+  end
 end

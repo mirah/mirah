@@ -20,6 +20,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.mirrors.JVMScope'
   java_import 'org.mirah.jvm.types.JVMType'
+  java_import 'org.mirah.jvm.types.JVMTypeUtils'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.CallFuture'
   java_import 'org.mirah.typer.TypeFuture'
@@ -341,8 +342,8 @@ class MirrorsTest < BaseMirrorsTest
   def test_primitive_array
     array_type = @types.get(@scope, typeref('int', true)).resolve
     assert_resolved_to('[I', array_type)
-    assert(array_type.isArray)
-    assert_resolved_to('Ljava/lang/Object;', array_type.superclass)
+    assert(JVMTypeUtils.isArray(array_type))
+    assert_subtype_of('java.lang.Object', array_type)
     assert_subtype_of('java.lang.Cloneable', array_type)
     assert_subtype_of('java.io.Serializable', array_type)
     assert_resolved_to('I', array_type.component_type)
@@ -531,5 +532,10 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     b = @types.getBooleanType.resolve
     assert(a.assignableFrom(b))
     assert(b.assignableFrom(a))
+  end
+
+  def test_same_type
+    a = @types.getStringType.resolve
+    assert(a.isSameType(a))
   end
 end

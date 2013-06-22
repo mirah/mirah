@@ -20,6 +20,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
   java_import 'org.jruby.org.objectweb.asm.Type'
   java_import 'org.mirah.jvm.mirrors.BytecodeMirrorLoader'
   java_import 'org.mirah.jvm.mirrors.PrimitiveLoader'
+  java_import 'org.mirah.jvm.types.JVMTypeUtils'
 
   def setup
     classloader = BytecodeMirrorLoader.java_class.class_loader
@@ -74,7 +75,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
 
   def test_array
     mirror = @loader.loadMirror(Type.getType("[Ljava/lang/Object;"))
-    assert(mirror.isArray)
+    assert(JVMTypeUtils.isArray(mirror))
     assert_equal("Ljava/lang/Object;", mirror.getComponentType.asm_type.descriptor)
   end
 
