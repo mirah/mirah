@@ -131,18 +131,10 @@ class BaseType implements MirrorType, DeclaredType
 
   def getAsmType:Type; @type; end
 
-  def isEnum:boolean
-    0 != (@flags & Opcodes.ACC_ENUM)
-  end
   def isInterface:boolean
     0 != (@flags & Opcodes.ACC_INTERFACE)
   end
-  def isAbstract:boolean
-    0 != (@flags & Opcodes.ACC_ABSTRACT)
-  end
-  def isAnnotation:boolean
-    0 != (@flags & Opcodes.ACC_ANNOTATION)
-  end
+
   def retention:String; nil; end
 
   def getKind

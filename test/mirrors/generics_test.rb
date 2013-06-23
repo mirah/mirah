@@ -31,6 +31,7 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.model.ArrayType'
   java_import 'org.mirah.jvm.model.Cycle'
   java_import 'org.mirah.jvm.model.IntersectionType'
+  java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.jruby.org.objectweb.asm.Type'
 
   def setup
@@ -40,12 +41,32 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def set(param)
-    klass = @types.loadNamedType('java.util.Set').resolve
-    TypeInvocation.new(klass, klass.superclass, klass.interfaces, [param])
+    iterable = g('java.lang.Iterable', [param])
+    collection = g('java.util.Collection', [param], nil, [iterable])
+    g('java.util.Set', [param], nil, [collection])
   end
 
   def type(name)
-    @types.loadNamedType(name).resolve
+    if name.kind_of?(String)
+      @types.loadNamedType(name).resolve
+    else
+      name
+    end
+  end
+
+  def g(name, params, superclass=nil, interfaces=nil)
+    klass = type(name)
+    superclass ||= klass.superclass
+    if interfaces
+      interfaces = interfaces.map do |x|
+        future = BaseTypeFuture.new
+        future.resolved(type(x))
+        future
+      end
+    else
+      interfaces = klass.interfaces
+    end
+    TypeInvocation.new(klass, superclass, interfaces, params)
   end
 
   def typevar(name, bounds="java.lang.Object")
@@ -638,5 +659,28 @@ class GenericsTest < Test::Unit::TestCase
     t = typevar("S", 'java.lang.Iterable')
     e = @type_utils.erasure(t)
     assert_equal(type('java.lang.Iterable'), e, e.toString)
+  end
+
+  def test_type_invocation
+    a = set(type('java.lang.String'))
+    b = type('java.util.Set')
+    assert(b.isSupertypeOf(a))
+    assert(!a.isSupertypeOf(b))
+    assert(b.isSupertypeOf(b))
+    assert(b.isSameType(b))
+    assert(!b.isSameType(a))
+    assert(!a.isSameType(b))
+    
+    c = set(type('java.lang.CharSequence'))
+    assert(c.isSupertypeOf(a))
+    assert(!a.isSupertypeOf(c))
+    assert(!c.isSameType(a))
+    
+    d = g('java.lang.Iterable', [type('java.lang.CharSequence')])
+    puts "Go go gadget test!"
+    assert(d.isSupertypeOf(a))
+    assert(d.isSupertypeOf(c))
+    assert(!c.isSupertypeOf(d))
+    assert(!a.isSupertypeOf(d))
   end
 end
