@@ -524,53 +524,18 @@ class Typer < SimpleNodeVisitor
     # args with a single exception node.
 
     # Start by saving the old args and creating a new, empty arg list
-    exceptions = ArrayList.new
     old_args = node.args
     node.args = NodeList.new(node.args.position)
 
-    # Create a node for syntax 1 if possible.
+    exceptions = ArrayList.new
     if old_args.size == 1
-      new_node = Node(Node(old_args.get(0)).clone)
-      @scopes.copyScopeFrom(node, new_node)
-      new_type = BaseTypeFuture.new(new_node.position)
-      error = ErrorType.new([["Not an expression", new_node.position]])
-      infer(new_node).onUpdate do |x, resolvedType|
-        # We need to make sure they passed an object, not just a class name
-        if resolvedType.isMeta
-          new_type.resolved(error)
-        else
-          new_type.resolved(resolvedType)
-        end
-      end
-      # Now we need to make sure the object is an exception, otherwise we
-      # need to use a different syntax.
-      exceptionType = AssignableTypeFuture.new(new_node.position)
-      exceptionType.declare(@types.getBaseExceptionType(), node.position)
-      assignment = exceptionType.assign(new_type, node.position)
-      exceptions.add(assignment)
-      exceptions.add(new_node)
+      exceptions.addAll buildNodeAndTypeForRaiseTypeOne(old_args, node)
     end
 
-    # Create a node for syntax 2 if possible.
     if old_args.size > 0
-      targetNode = Node(Node(old_args.get(0)).clone)
-      params = ArrayList.new
-      1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
-      call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
-      @scopes.copyScopeFrom(node, call)
-      exceptions.add(infer(call))
-      exceptions.add(call)
+      exceptions.addAll buildNodeAndTypeForRaiseTypeTwo(old_args, node)
     end
-
-    # Create a node for syntax 3.
-    class_name = @types.getDefaultExceptionType().resolve.name
-    targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
-    params = ArrayList.new
-    old_args.each {|a| params.add(Node(a).clone)}
-    call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
-    @scopes.copyScopeFrom(node, call)
-    exceptions.add(infer(call))
-    exceptions.add(call)
+    exceptions.addAll buildNodeAndTypeForRaiseTypeThree(old_args, node)
 
     # Now we'll try all of these, ignoring any that cause an inference error.
     # Then we'll take the first that succeeds, in the order listed above.
@@ -1088,5 +1053,45 @@ class Typer < SimpleNodeVisitor
         nil
       end
     end
+  end
+
+  def buildNodeAndTypeForRaiseTypeOne(old_args: NodeList, node: Node)
+    new_node = Node(Node(old_args.get(0)).clone)
+    @scopes.copyScopeFrom(node, new_node)
+    new_type = BaseTypeFuture.new(new_node.position)
+    error = ErrorType.new([["Not an expression", new_node.position]])
+    infer(new_node).onUpdate do |x, resolvedType|
+      # We need to make sure they passed an object, not just a class name
+      if resolvedType.isMeta
+        new_type.resolved(error)
+      else
+        new_type.resolved(resolvedType)
+      end
+    end
+    # Now we need to make sure the object is an exception, otherwise we
+    # need to use a different syntax.
+    exceptionType = AssignableTypeFuture.new(new_node.position)
+    exceptionType.declare(@types.getBaseExceptionType(), node.position)
+    assignment = exceptionType.assign(new_type, node.position)
+    [assignment, new_node]
+  end
+
+  def buildNodeAndTypeForRaiseTypeTwo(old_args: NodeList, node: Node)
+    targetNode = Node(Node(old_args.get(0)).clone)
+    params = ArrayList.new
+    1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
+    call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
+    @scopes.copyScopeFrom(node, call)
+    [infer(call), call]
+  end
+
+  def buildNodeAndTypeForRaiseTypeThree(old_args: NodeList, node: Node)
+    class_name = @types.getDefaultExceptionType().resolve.name
+    targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
+    params = ArrayList.new
+    old_args.each {|a| params.add(Node(a).clone)}
+    call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
+    @scopes.copyScopeFrom(node, call)
+    [infer(call), call]
   end
 end
