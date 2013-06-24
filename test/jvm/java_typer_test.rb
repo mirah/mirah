@@ -32,8 +32,8 @@ class JavaTyperTest < Test::Unit::TestCase
     @mirah = Mirah::Transform::Transformer.new(Mirah::Util::CompilationState.new, @typer)
   end
 
-  def inferred_type(node)
-    type = @typer.infer(node, false).resolve
+  def inferred_type(node, expression=false)
+    type = @typer.infer(node, expression).resolve
     if type.name == ':error'
       catch(:exit) do
         process_errors([type])
@@ -237,6 +237,21 @@ class JavaTyperTest < Test::Unit::TestCase
 
   def test_static_method
     ast = parse("class Foo;def self.bar; 1; end; end; Foo.bar")
+    assert_equal(@types.type(nil, 'int'), inferred_type(ast))
+  end
+
+  def test_if_with_raise_has_non_raise_type
+    ast = parse("if true; 1; else; raise 'error'; end")
+    assert_equal(@types.type(nil, 'int'), inferred_type(ast))
+  end
+
+  def test_rescue_with_raise_in_rescue_has_body_type
+    ast = parse("1 + begin; 1; rescue; raise 'error'; end")
+    assert_equal(@types.type(nil, 'int'), inferred_type(ast))
+  end
+
+  def test_rescue_with_else_and_raise_in_rescue_has_else_type
+    ast = parse("1 + begin; ''; rescue; raise 'error'; else 1 end")
     assert_equal(@types.type(nil, 'int'), inferred_type(ast))
   end
 end

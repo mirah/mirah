@@ -596,7 +596,9 @@ class Typer < SimpleNodeVisitor
     elseType = infer(node.elseClause, expression != nil) if node.elseClause
     if expression
       myType = AssignableTypeFuture.new(node.position)
-      if node.elseClause
+      # AST contains an empty else clause even if there isn't one
+      # in the source. Once, the parser's compiling, we should fix it.
+      if node.elseClause && node.elseClause.size > 0
         myType.assign(elseType, node.elseClause.position)
       else
         myType.assign(bodyType, node.body.position)
@@ -606,6 +608,7 @@ class Typer < SimpleNodeVisitor
       clauseType = infer(clause, expression != nil)
       myType.assign(clauseType, Node(clause).position) if expression
     end
+
     TypeFuture(myType) || @types.getNullType
   end
 
