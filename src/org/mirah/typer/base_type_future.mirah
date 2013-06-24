@@ -127,4 +127,8 @@ class BaseTypeFuture; implements TypeFuture
     end
     @notifying = false
   end
+
+  def toString
+    "<#{getClass.getSimpleName}: resolved=#{@resolved}, listenerCt=#{@listeners.size}>"
+  end
 end
