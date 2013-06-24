@@ -85,8 +85,7 @@ class ArrayType < BaseType implements ArrayModel
       supertypes = @componentType.directSupertypes
       interfaces = TypeFuture[supertypes.size]
       supertypes.map do |x|
-         @loader.loadMirrorAsync(
-          Type.getType("[#{MirrorType(x).getAsmType.getDescriptor}"))
+         BaseTypeFuture.new.resolved(ArrayType.new(MirrorType(x), @loader))
       end.toArray(interfaces)
       interfaces
     end
@@ -146,5 +145,9 @@ class ArrayType < BaseType implements ArrayModel
     end
     @@log.finer("#{self} #{result ? '>' : '!>'} #{other}")
     result
+  end
+
+  def toString
+    "#{@componentType}[]"
   end
 end

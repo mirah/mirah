@@ -661,6 +661,16 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal(type('java.lang.Iterable'), e, e.toString)
   end
 
+  def test_generic_array_supertype
+    s = set(type('java.lang.String'))
+    a = @types.getArrayType(s)
+    assert_equal('java.util.Set<java.lang.String>[]', a.toString)
+    supertypes = a.directSupertypes
+    assert_equal('[java.util.Set[], java.util.Collection<java.lang.String>[]]',
+                 supertypes.toString)
+
+  end
+
   def test_type_invocation
     a = set(type('java.lang.String'))
     b = type('java.util.Set')
@@ -677,7 +687,6 @@ class GenericsTest < Test::Unit::TestCase
     assert(!c.isSameType(a))
     
     d = g('java.lang.Iterable', [type('java.lang.CharSequence')])
-    puts "Go go gadget test!"
     assert(d.isSupertypeOf(a))
     assert(d.isSupertypeOf(c))
     assert(!c.isSupertypeOf(d))
