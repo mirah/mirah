@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -34,23 +34,24 @@ module Mirah
     end
 
     def node=(node)
-      @position = node ? node.position : nil
-      @node = node
+      @position = node.position if node
+      @node     = node
     end
 
     def self.wrap(ex, node)
-      if ex.kind_of?(NodeError)
+      case ex
+      when NodeError
         ex.node ||= node
-        return ex
-      elsif ex.kind_of?(MirahError)
+        ex
+      when MirahError
         ex.position ||= node.position
-        return ex
+        ex
       else
         new_ex = new(ex.message, node)
-        new_ex.cause = ex
+        new_ex.cause      = ex
         new_ex.position ||= ex.position if ex.respond_to?(:position)
         new_ex.set_backtrace(ex.backtrace)
-        return new_ex
+        new_ex
       end
     end
 
@@ -65,7 +66,6 @@ module Mirah
 
   class SyntaxError < NodeError
   end
-
 
   class InferenceError < NodeError
   end
