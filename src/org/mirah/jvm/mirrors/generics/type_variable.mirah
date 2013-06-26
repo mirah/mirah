@@ -16,15 +16,20 @@ import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
 import javax.lang.model.type.TypeVariable as TypeVariableModel
+import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.NullType
 
 # A declared type parameter.
-class TypeVariable implements TypeVariableModel
-  def initialize(types:Types, name:String, ancestor:TypeMirror)
+class TypeVariable < BaseType implements TypeVariableModel
+  def initialize(types:Types, name:String, ancestor:MirrorType)
+    super(name, nil, 0, ancestor)
     @name = name
     raise IllegalArgumentException if ancestor.nil?
     @extendsBound = ancestor
     @lowerBound = types.getNullType
+  end
+  def getAsmType
+    @extendsBound.getAsmType
   end
   def getLowerBound
     @lowerBound
@@ -40,5 +45,20 @@ class TypeVariable implements TypeVariableModel
   end
   def accept(v, p)
     v.visitTypeVariable(self, p)
+  end
+  def isSameType(other)
+    other == self
+  end
+  def isSupertypeOf(other)
+    @extendsBound.isSupertypeOf(other)
+  end
+  def erasure
+    @extendsBound.erasure
+  end
+  def equals(other)
+    other == self
+  end
+  def hashCode
+    System.identityHashCode(self)
   end
 end

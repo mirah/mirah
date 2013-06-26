@@ -28,7 +28,6 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.NullType'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
-  java_import 'org.mirah.jvm.model.ArrayType'
   java_import 'org.mirah.jvm.model.Cycle'
   java_import 'org.mirah.jvm.model.IntersectionType'
   java_import 'org.mirah.typer.BaseTypeFuture'
@@ -127,7 +126,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_array
     a = @types.getArrayType(@types.getStringType.resolve)
     s = typevar('S')
-    f = ArrayType.new(s)
+    f = @types.getArrayType(s)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -139,7 +138,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_array_variable
     a = typevar('T', @types.getArrayType(@types.getStringType.resolve))
     s = typevar('S')
-    f = ArrayType.new(s)
+    f = @types.getArrayType(s)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -157,7 +156,7 @@ class GenericsTest < Test::Unit::TestCase
     constraints = Constraints.new
     map = {s => constraints}
 
-    f = set(ArrayType.new(s))
+    f = set(@types.getArrayType(s))
 
     @tpi.processArgument(a, ?<.ord, f, map)
 
@@ -197,7 +196,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal 'java.util.regex.Pattern[]', c.name, c.java_class
 
     # F = Set<? extends S[]>
-    f = set(Wildcard.new(ArrayType.new(s)))
+    f = set(Wildcard.new(@types.getArrayType(s)))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -330,7 +329,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_equal_array
     a = @types.getArrayType(@types.getStringType.resolve)
     s = typevar('S')
-    f = ArrayType.new(s)
+    f = @types.getArrayType(s)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -342,7 +341,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_equal_array_variable
     a = typevar('T', @types.getArrayType(@types.getStringType.resolve))
     s = typevar('S')
-    f = ArrayType.new(s)
+    f = @types.getArrayType(s)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -360,7 +359,7 @@ class GenericsTest < Test::Unit::TestCase
     constraints = Constraints.new
     map = {s => constraints}
 
-    f = set(ArrayType.new(s))
+    f = set(@types.getArrayType(s))
 
     @tpi.processArgument(a, ?=.ord, f, map)
 
@@ -401,7 +400,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :equal => [re_array])
 
     # F = Set<? extends S[]>
-    f = set(Wildcard.new(ArrayType.new(s)))
+    f = set(Wildcard.new(@types.getArrayType(s)))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -471,7 +470,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_super_array
     a = @types.getArrayType(@types.getStringType.resolve)
     s = typevar('S')
-    f = ArrayType.new(s)
+    f = @types.getArrayType(s)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -482,7 +481,7 @@ class GenericsTest < Test::Unit::TestCase
     string = @types.getStringType.resolve
     a = typevar('T', @types.getArrayType(string))
     s = typevar('S')
-    f = ArrayType.new(s)
+    f = @types.getArrayType(s)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -499,7 +498,7 @@ class GenericsTest < Test::Unit::TestCase
     constraints = Constraints.new
     map = {s => constraints}
 
-    f = set(ArrayType.new(s))
+    f = set(@types.getArrayType(s))
 
     @tpi.processArgument(a, ?>.ord, f, map)
 
@@ -551,7 +550,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :extends => [re_array])
 
     # F = Set<? extends S[]>
-    f = set(Wildcard.new(ArrayType.new(s)))
+    f = set(Wildcard.new(@types.getArrayType(s)))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)

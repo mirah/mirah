@@ -20,40 +20,11 @@ import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
 import org.mirah.jvm.mirrors.MirrorProxy
 
-class Cycle implements DeclaredType
-  attr_accessor target:DeclaredType
-
+class Cycle < MirrorProxy
   def initialize
+    super(nil)
     @lock = ReentrantLock.new
     @depth = 0
-  end
-
-  def asElement
-    @target.asElement
-  end
-
-  def getEnclosingType
-    @target.getEnclosingType
-  end
-
-  def getTypeArguments
-    @target.getTypeArguments
-  end
-
-  def getKind
-    @target.getKind
-  end
-
-  def accept(v, p)
-    @target.accept(v, p)
-  end
-
-  def hashCode
-    @target.hashCode
-  end
-
-  def equals(other)
-    @target.equals(other)
   end
 
   def toString
@@ -63,7 +34,7 @@ class Cycle implements DeclaredType
       if @depth > 2
         "..."
       else
-        @target.toString
+        target.toString
       end
     ensure
       @depth -= 1

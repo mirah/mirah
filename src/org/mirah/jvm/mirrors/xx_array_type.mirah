@@ -147,6 +147,17 @@ class ArrayType < BaseType implements ArrayModel
     result
   end
 
+  def erasure
+    @erasure ||= begin
+      component = @componentType.erasure
+      if @componentType == component
+        self
+      else
+        ArrayType.new(MirrorType(component), @loader)
+      end
+    end
+  end
+
   def toString
     "#{@componentType}[]"
   end

@@ -21,10 +21,12 @@ import java.util.List
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
+import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
 
-class IntersectionType implements DeclaredType
+class IntersectionType < BaseType implements DeclaredType
   def initialize(types:List)
+    super(nil, nil, 0, nil)
     @types = ArrayList.new(types)
     Collections.sort(@types) do |a, b|
       # Move the interfaces after the superclass
@@ -44,7 +46,17 @@ class IntersectionType implements DeclaredType
     end
   end
 
-  attr_accessor types:List
+  def getAsmType
+    MirrorType(erasure).getAsmType
+  end
+
+  def directSupertypes
+    @types
+  end
+
+  def erasure
+    TypeMirror(@types.get(0))
+  end
 
   def getKind
     TypeKind.DECLARED
@@ -56,7 +68,15 @@ class IntersectionType implements DeclaredType
 
   def equals(other)
     other.kind_of?(IntersectionType) &&
-        @types.equals(IntersectionType(other).types)
+        @types.equals(IntersectionType(other).directSupertypes)
+  end
+
+  def isSameType(other)
+    equals(other)
+  end
+
+  def isSupertypeOf(other)
+    @types.any? {|t:MirrorType| t.isSupertypeOf(other)}
   end
 
   def hashCode

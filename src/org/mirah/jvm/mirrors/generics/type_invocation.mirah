@@ -22,20 +22,16 @@ import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.TypeFuture
 
-class TypeInvocation < MirrorProxy implements DeclaredType
+class TypeInvocation < BaseType
   def initialize(raw:MirrorType, superclass:MirrorType, interfaces:TypeFuture[], args:List)
-    super(raw)
-    @superclass = superclass
+    super(raw.getAsmType, raw.flags, superclass)
+    @raw = raw
     @interfaces = interfaces
     @typeArguments = args
   end
 
   def self.initialize:void
     @@log = Logger.getLogger(TypeInvocation.class.getName)
-  end
-
-  def superclass
-    @superclass
   end
 
   def interfaces:TypeFuture[]
@@ -47,7 +43,7 @@ class TypeInvocation < MirrorProxy implements DeclaredType
   end
 
   def toString
-    sb = StringBuilder.new(target.toString)
+    sb = StringBuilder.new(@raw.toString)
     sb.append('<')
     first = true
     @typeArguments.each do |arg|
@@ -98,24 +94,12 @@ class TypeInvocation < MirrorProxy implements DeclaredType
   end
 
   def directSupertypes
-    @cached_supertypes ||= begin
-      supertypes = LinkedList.new
-      skip_super = JVMTypeUtils.isInterface(target) && interfaces.length > 0
-      unless superclass.nil? || skip_super
-        supertypes.add(superclass)
-      end
-      supertypes.add(target)
-      interfaces.each do |i|
-        resolved = i.resolve
-        # Skip error supertypes
-        supertypes.add(resolved) if resolved.kind_of?(MirrorType)
-      end
-      # The direct supertypes of C<T1, ..., Tn> is includes C<S1, ..., Sn>,
-      # where Si contains Ti (1 <= i <= n). But I don't know what "contains"
-      # means. It appears to have something to do with wildcards, but returning
-      # A wildcard here seems crazy.
-      
-      supertypes
-    end
+    types = LinkedList.new(super)
+    types.addFirst(@raw)
+    types
+  end
+
+  def erasure
+    @raw
   end
 end

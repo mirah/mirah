@@ -17,6 +17,7 @@ package org.mirah.jvm.model
 
 import java.util.ArrayList
 import java.util.EnumMap
+import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.NullType
@@ -52,7 +53,7 @@ class Types implements TypesModel
   end
 
   def getArrayType(component)
-    ArrayType.new(component)
+    ArrayType(@types.getResolvedArrayType(MirrorType(component)))
   end
 
   def getNoType(kind)
@@ -70,27 +71,7 @@ class Types implements TypesModel
   end
 
   def directSupertypes(t)
-    supertypes = ArrayList.new
-    if t.kind_of?(MirrorType)
-      m = MirrorType(t)
-      unless JVMTypeUtils.isPrimitive(m) || JVMTypeUtils.isInterface(m)
-        parent = m.superclass
-        supertypes.add(parent) if parent
-      end
-      m.interfaces.each do |i|
-        supertypes.add(i.resolve)
-      end
-    elsif t.kind_of?(IntersectionType)
-      supertypes.addAll(IntersectionType(t).types)
-    elsif t.getKind == TypeKind.WILDCARD
-      w = WildcardType(t)
-      if w.getExtendsBound
-        supertypes.add(w.getExtendsBound)
-      end
-    elsif t.getKind == TypeKind.TYPEVAR
-      supertypes.add(TypeVariableModel(t).getUpperBound)
-    end
-    supertypes
+    MirrorType(t).directSupertypes
   end
 
   def asElement(t)
@@ -98,31 +79,6 @@ class Types implements TypesModel
   end
 
   def erasure(x)
-    types = self
-    visitor = lambda(SimpleTypeVisitor6) do
-      def defaultAction(t, p)
-        t
-      end
-
-      def visitArray(t, p)
-        component = TypeMirror(visit(t.getComponentType))
-        ArrayType.new(component)
-      end
-
-      def visitDeclared(t, p)
-        if t.kind_of?(IntersectionType)
-          return visit(TypeMirror(types.directSupertypes(t)[0]))
-        end
-        until t.getTypeArguments.isEmpty
-          t = DeclaredType(MirrorProxy(t).target)
-        end
-        t
-      end
-      
-      def visitTypeVariable(t, p)
-        visit(t.getUpperBound)
-      end
-    end
-    TypeMirror(x.accept(visitor, nil))
+    MirrorType(x).erasure
   end
 end

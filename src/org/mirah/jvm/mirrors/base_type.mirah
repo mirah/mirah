@@ -54,6 +54,7 @@ interface MirrorType < JVMType, TypeMirror
   def isSameType(other:MirrorType):boolean; end
   def isSupertypeOf(other:MirrorType):boolean; end
   def directSupertypes:List; end
+  def erasure:TypeMirror; end
 end
 
 # package_private
@@ -262,6 +263,7 @@ class BaseType implements MirrorType, DeclaredType
   end
 
   def isSameType(other)
+    return true if other == self
     return false if other.getKind != TypeKind.DECLARED
     return false unless getTypeArguments.equals(
         DeclaredType(other).getTypeArguments)
@@ -287,5 +289,9 @@ class BaseType implements MirrorType, DeclaredType
   def isSupertypeOf(other)
     return true if getAsmType.equals(other.getAsmType)
     other.directSupertypes.any? {|x| isSupertypeOf(MirrorType(x))}
+  end
+
+  def erasure
+    self
   end
 end
