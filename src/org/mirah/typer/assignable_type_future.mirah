@@ -108,27 +108,64 @@ class AssignableTypeFuture < BaseTypeFuture
     if hasDeclaration
       return
     end
-    type = ResolvedType(nil)
-    error = ResolvedType(nil)
-    assignedValues(true, true).each do |_value|
-      value = TypeFuture(_value)
-      if value.isResolved
-        resolved = value.resolve
-        if resolved.isError
-          @@log.finest("#{self}: found error #{resolved}")
-          error ||= resolved
-        else
-          @@log.finest("#{self}: adding type #{resolved}")
-          if type
-            type = type.widen(value.resolve)
+    if @checking
+      return
+    end
+    begin
+      @checking = true
+      type = ResolvedType(nil)
+      error = ResolvedType(nil)
+      values = LinkedHashSet.new(assignedValues(true, true))
+      errors = HashSet.new
+
+      saved_type = if isResolved
+        self.resolve
+      else
+        nil
+      end
+
+      # Loop through the assigned values and widen
+      values.each do |_value|
+        value = TypeFuture(_value)
+        if value.isResolved
+          resolved = value.resolve
+          if resolved.isError
+            @@log.finest("#{self}: found error #{resolved}")
+            errors.add(value)
+            error ||= resolved
           else
-            type = resolved
+            @@log.finest("#{self}: adding type #{resolved}")
+            if type
+              type = type.widen(value.resolve)
+            else
+              type = resolved
+            end
+          end
+        else
+          errors.add(value)
+        end
+        nil
+      end
+      # Try committing the type
+      @@log.finer("#{self}: checkAssignments: resolving as #{type || error}")
+      resolved(type || error)
+      @@log.finest("#{self}: checkAssignments: checking for conflicts #{saved_type} #{type}")
+    
+      # Now check if that broke anything. Revert to our previous value
+      if saved_type && type
+        values.each do |_value|
+          value = TypeFuture(value)
+          is_resolved = value.isResolved && !value.resolve.isError
+          unless is_resolved || errors.contains(value)
+            @@log.fine("#{self}: checkAssignments: conflict found, reverting to #{saved_type}")
+            resolved(saved_type)
+            return
           end
         end
       end
+    ensure
+      @checking = false
     end
-    @@log.finer("#{self}: checkAssignments: resolving as #{type || error}")
-    resolved(type || error)
   end
 
   def resolve

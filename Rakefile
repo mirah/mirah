@@ -418,7 +418,7 @@ def bootstrap_mirahc(*paths)
   if options[:classpath]
     args << '--classpath' << options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
   end
-  args << '-d' << File.expand_path(options[:dest])
+  args << '-d' << File.expand_path(options[:dest]) << '--jvm' << '1.5'
   jarfile = File.expand_path('javalib/mirah-newast-transitional.jar')
   Dir.chdir(options[:dir] || '.') do
     runjava(jarfile, 'compile', *(args + paths))

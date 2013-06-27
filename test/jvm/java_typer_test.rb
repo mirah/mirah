@@ -42,6 +42,17 @@ class JavaTyperTest < Test::Unit::TestCase
     type
   end
 
+  def assert_errors_including(message, ast)
+    @typer.infer(ast, false)
+    actual_errors = []
+    process_inference_errors(@typer, [ast]) do |errors|
+      actual_errors += errors.map {|e| e.message.map{|m| m[0]}.join("\n")}
+    end
+    fail("no errors") if actual_errors.empty?
+    assert actual_errors.any?{|error| error =~ message },
+           "no errors with message \"#{message}\" in #{actual_errors}"
+  end
+
   def method_type(target, name, args)
     target = @types.cache_and_wrap(target)
     args = args.map {|arg| @types.cache_and_wrap(arg) }
@@ -238,5 +249,17 @@ class JavaTyperTest < Test::Unit::TestCase
   def test_static_method
     ast = parse("class Foo;def self.bar; 1; end; end; Foo.bar")
     assert_equal(@types.type(nil, 'int'), inferred_type(ast))
+  end
+
+  def test_type_cycle
+    ast = parse(<<-EOF)
+      def foo(a:String):Object
+        nil
+      end
+
+      a = "x"
+      a = foo(a)
+    EOF
+    assert_errors_including(/Cannot assign .*Object.* to .*String/, ast)
   end
 end

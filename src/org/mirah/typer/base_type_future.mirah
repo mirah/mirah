@@ -16,6 +16,7 @@
 package org.mirah.typer
 
 import java.util.*
+import java.util.concurrent.locks.ReentrantLock
 import java.util.logging.Logger
 import java.util.logging.Level
 import mirah.lang.ast.*
@@ -28,9 +29,12 @@ class BaseTypeFuture; implements TypeFuture
     @position = position
     @listeners = ArrayList.new
     @new_listeners = ArrayList(nil)
+    @notify_depth = 0
+    @lock = ReentrantLock.new
   end
   def initialize
     @listeners = ArrayList.new
+    @lock = ReentrantLock.new
   end
 
   def self.initialize:void
@@ -72,28 +76,37 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def onUpdate(listener:TypeListener):TypeListener
-    if @notifying
-      @new_listeners ||= ArrayList.new(@listeners)
-      @new_listeners.add(listener)
-    else
-      @listeners.add(listener)
+    begin
+      @lock.lock
+      if @notify_depth > 0
+        @new_listeners ||= ArrayList.new(@listeners)
+        @new_listeners.add(listener)
+      else
+        @listeners.add(listener)
+      end
+    ensure
+      @lock.unlock
     end
     listener.updated(self, inferredType) if isResolved
     listener
   end
 
   def removeListener(listener:TypeListener):void
-    if @notifying
+    @lock.lock
+    if @notify_depth > 0
       @new_listeners ||= ArrayList.new(@listeners)
       @new_listeners.remove(listener)
     else
       @listeners.remove(listener)
     end
+  ensure
+    @lock.unlock
   end
 
   # Resolves this future to the specified type.
   # Notifies the listeners if the resolved type has changed.
   def resolved(type:ResolvedType):void
+    @lock.lock
     if type.nil?
       if type == @resolved
         return
@@ -105,26 +118,30 @@ class BaseTypeFuture; implements TypeFuture
       @resolved = type
       notifyListeners
     end
+  ensure
+    @lock.unlock
   end
 
   def notifyListeners:void
-    if @notifying
-      @notify_again = true
-      return
+    @lock.lock
+    @notify_depth += 1
+    if @notify_depth > 100
+      raise IllegalStateException, "Type inference loop"
+    elsif @notify_depth == 90
+      @@log.severe("Type cycle detected, enabling debug logging.")
+      Logger.getLogger('org.mirah').setLevel(Level.ALL)
     end
-    @notifying = true
-    begin
-      @notify_again = false
-      type = @resolved
-      @listeners.each do |l|
-        break if @notify_again
-        TypeListener(l).updated(self, type)
+
+    @listeners.each do |l|
+      TypeListener(l).updated(self, @resolved)
+    end
+  ensure
+    if 0 == (@notify_depth -= 1)
+      if @new_listeners
+        @listeners = @new_listeners
+        @new_listeners = nil
       end
-    end while @notify_again
-    if @new_listeners
-      @listeners = @new_listeners
-      @new_listeners = nil
     end
-    @notifying = false
+    @lock.unlock
   end
 end
