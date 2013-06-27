@@ -17,6 +17,7 @@ package org.mirah.jvm.model
 
 import java.util.concurrent.locks.ReentrantLock
 import javax.lang.model.type.DeclaredType
+import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import org.mirah.jvm.mirrors.MirrorProxy
 
@@ -31,7 +32,7 @@ class Cycle < MirrorProxy
     @lock.lock
     begin
       @depth += 1
-      if @depth > 2
+      if target.nil? || @depth > 2
         "..."
       else
         target.toString

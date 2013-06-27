@@ -144,7 +144,7 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
   end
 
   def isSameType(other)
-    @target.isSameType(other)
+    @target && @target.isSameType(other)
   end
 
   def directSupertypes

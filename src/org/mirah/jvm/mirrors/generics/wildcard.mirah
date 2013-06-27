@@ -15,16 +15,24 @@ package org.mirah.jvm.mirrors.generics
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.WildcardType
+import org.mirah.jvm.mirrors.BaseType
+import org.mirah.jvm.mirrors.MirrorType
 
-class Wildcard implements WildcardType
-  def initialize(extendsBound:TypeMirror=nil, superBound:TypeMirror=nil)
+class Wildcard < BaseType implements WildcardType
+  def initialize(object:MirrorType, extendsBound:TypeMirror=nil, superBound:TypeMirror=nil)
+    super(nil, nil, 0, nil)
     raise IllegalArgumentException unless (extendsBound.nil? || superBound.nil?)
+    @object = object
     @extendsBound = extendsBound
     @superBound = superBound
   end
 
   def getExtendsBound
-    @extendsBound
+    if @extendsBound && MirrorType(@extendsBound).isSameType(@object)
+      nil
+    else
+      @extendsBound
+    end
   end
 
   def getSuperBound
@@ -35,12 +43,49 @@ class Wildcard implements WildcardType
     TypeKind.WILDCARD
   end
 
+  def equals(other)
+    other == self
+  end
+
+  def hashCode
+    System.identityHashCode(self)
+  end
+
+  def isSameType(other)
+    other == self
+  end
+
+  def directSupertypes
+    if @extendsBound
+      [@extendsBound]
+    else
+      [@object]
+    end
+  end
+
+  def isSupertypeOf(other)
+    return false if @superBound.nil?
+    MirrorType(@superBound).isSupertypeOf(other)
+  end
+
   def accept(v, p)
     v.visitWildcard(self, p)
   end
-  
-  def toString
+
+  def erasure
     if @extendsBound
+      MirrorType(@extendsBound).erasure
+    else
+      @object
+    end
+  end
+
+  def getAsmType
+    MirrorType(erasure).getAsmType
+  end
+
+  def toString
+    if getExtendsBound
       "? extends #{@extendsBound}"
     elsif
       @superBound

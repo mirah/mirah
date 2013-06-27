@@ -15,8 +15,10 @@
 
 package org.mirah.jvm.model
 
+import java.util.Arrays
 import java.util.ArrayList
 import java.util.EnumMap
+import javax.lang.model.element.TypeElement as ITypeElement
 import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
@@ -28,8 +30,11 @@ import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.WildcardType
 import javax.lang.model.util.SimpleTypeVisitor6
 import javax.lang.model.util.Types as TypesModel
+import org.jruby.org.objectweb.asm.Type
+import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.jvm.mirrors.generics.TypeInvocation
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMTypeUtils
 
@@ -80,5 +85,20 @@ class Types implements TypesModel
 
   def erasure(x)
     MirrorType(x).erasure
+  end
+
+  def isSameType(a, b)
+    MirrorType(a).isSameType(MirrorType(b))
+  end
+
+  def isSubtype(a, b)
+    MirrorType(b).isSupertypeOf(MirrorType(a))
+  end
+
+  def getDeclaredType(element:ITypeElement, args:TypeMirror[]):DeclaredType
+    t = Type.getType(TypeElement(element).descriptor)
+    type = BaseType(@types.wrap(t).resolve)
+    TypeInvocation.new(type, MirrorType(type.superclass), type.interfaces,
+                       Arrays.asList(args))
   end
 end

@@ -37,6 +37,7 @@ class GenericsTest < Test::Unit::TestCase
     @types = MirrorTypeSystem.new
     @type_utils = Java::OrgMirahJvmModel::Types.new(@types)
     @tpi = TypeParameterInference.new(@type_utils)
+    @object = type('java.lang.Object')
   end
 
   def set(param)
@@ -174,7 +175,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(s))
+    f = set(Wildcard.new(@object, s))
     
     @tpi.processArgument(a, ?<.ord, f, map)
     # S <: String
@@ -196,7 +197,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal 'java.util.regex.Pattern[]', c.name, c.java_class
 
     # F = Set<? extends S[]>
-    f = set(Wildcard.new(@types.getArrayType(s)))
+    f = set(Wildcard.new(@object, @types.getArrayType(s)))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -220,13 +221,13 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_extends_f_and_a_are_generic_with_extends_wildcard
     # A = Set<? extends String>
-    a = set(Wildcard.new(@types.getStringType.resolve))
+    a = set(Wildcard.new(@object, @types.getStringType.resolve))
 
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(s))
+    f = set(Wildcard.new(@object, s))
     
     @tpi.processArgument(a, ?<.ord, f, map)
     # S <: String
@@ -245,7 +246,7 @@ class GenericsTest < Test::Unit::TestCase
     map = {s => constraints}
 
     # F = Set<? super S>
-    f = set(Wildcard.new(nil, s))
+    f = set(Wildcard.new(@object, nil, s))
     @tpi.processArgument(a, ?<.ord, f, map)
 
     # S >: String
@@ -255,14 +256,14 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_f_has_super_a_has_extends
     # A has a supertype Set<? extends String>
     string = @types.getStringType.resolve
-    a = BaseType.new(Type.getType('LFooBar;'), 0, set(Wildcard.new(string)))
+    a = BaseType.new(Type.getType('LFooBar;'), 0, set(Wildcard.new(@object, string)))
 
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
     # F = Set<? super S>
-    f = set(Wildcard.new(nil, s))
+    f = set(Wildcard.new(@object, nil, s))
     @tpi.processArgument(a, ?<.ord, f, map)
 
     # no constraints
@@ -272,14 +273,14 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_f_and_a_have_super
     # A has a supertype Set<? super String>
     string = @types.getStringType.resolve
-    a = BaseType.new(Type.getType('LFooBar;'), 0, set(Wildcard.new(nil, string)))
+    a = BaseType.new(Type.getType('LFooBar;'), 0, set(Wildcard.new(@object, nil, string)))
 
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
 
     # F = Set<? super S>
-    f = set(Wildcard.new(nil, s))
+    f = set(Wildcard.new(@object, nil, s))
     @tpi.processArgument(a, ?<.ord, f, map)
 
     # S >: String
@@ -372,13 +373,13 @@ class GenericsTest < Test::Unit::TestCase
   def test_equal_f_and_a_are_generic_with_extends_wildcard
     # A = Set<? extends String>
     string = @types.getStringType.resolve
-    a = set(Wildcard.new(string))
+    a = set(Wildcard.new(@object, string))
 
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(s))
+    f = set(Wildcard.new(@object, s))
     
     @tpi.processArgument(a, ?=.ord, f, map)
     assert_constraints(constraints, :equal => [string])
@@ -390,7 +391,7 @@ class GenericsTest < Test::Unit::TestCase
     # A = Set<Regex[]>
     re = @types.getRegexType.resolve
     re_array = @types.getArrayType(re)
-    a = set(Wildcard.new(re_array))
+    a = set(Wildcard.new(@object, re_array))
 
     constraints = Constraints.new
     map = {s => constraints}
@@ -400,7 +401,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :equal => [re_array])
 
     # F = Set<? extends S[]>
-    f = set(Wildcard.new(@types.getArrayType(s)))
+    f = set(Wildcard.new(@object, @types.getArrayType(s)))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -426,7 +427,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(s))
+    f = set(Wildcard.new(@object, s))
     
     @tpi.processArgument(a, ?=.ord, f, map)
     # No constraints
@@ -441,7 +442,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(nil, s))
+    f = set(Wildcard.new(@object, nil, s))
     
     @tpi.processArgument(a, ?=.ord, f, map)
     # No constraints
@@ -449,7 +450,7 @@ class GenericsTest < Test::Unit::TestCase
 
     # A = Set<? super String>
     string = @types.getStringType.resolve
-    a = set(Wildcard.new(nil, string))
+    a = set(Wildcard.new(@object, nil, string))
     @tpi.processArgument(a, ?=.ord, f, map)
 
     # S = String
@@ -506,7 +507,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :equal => [string])
 
     # A = Set<? extends String>
-    a = set(Wildcard.new(string))
+    a = set(Wildcard.new(@object, string))
 
     # F has supertype Set<String>
     f = BaseType.new(Type.getType("LFooBar;"), 0, set(s))
@@ -516,7 +517,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :extends => [string])
 
     # A = Set<? super String>
-    a = set(Wildcard.new(nil, string))
+    a = set(Wildcard.new(@object, nil, string))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -526,13 +527,13 @@ class GenericsTest < Test::Unit::TestCase
   def test_super_f_and_a_are_generic_with_extends_wildcard
     # A = Set<? extends String>
     string = @types.getStringType.resolve
-    a = set(Wildcard.new(string))
+    a = set(Wildcard.new(@object, string))
 
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(s))
+    f = set(Wildcard.new(@object, s))
 
     @tpi.processArgument(a, ?>.ord, f, map)
     assert_constraints(constraints, :extends => [string])
@@ -540,7 +541,7 @@ class GenericsTest < Test::Unit::TestCase
     # A = Set<Regex[]>
     re = @types.getRegexType.resolve
     re_array = @types.getArrayType(re)
-    a = set(Wildcard.new(re_array))
+    a = set(Wildcard.new(@object, re_array))
 
     constraints = Constraints.new
     map = {s => constraints}
@@ -550,7 +551,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :extends => [re_array])
 
     # F = Set<? extends S[]>
-    f = set(Wildcard.new(@types.getArrayType(s)))
+    f = set(Wildcard.new(@object, @types.getArrayType(s)))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -567,7 +568,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(s))
+    f = set(Wildcard.new(@object, s))
 
     @tpi.processArgument(a, ?>.ord, f, map)
     # No constraints
@@ -582,7 +583,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     constraints = Constraints.new
     map = {s => constraints}
-    f = set(Wildcard.new(nil, s))
+    f = set(Wildcard.new(@object, nil, s))
 
     @tpi.processArgument(a, ?>.ord, f, map)
     # No constraints
@@ -590,7 +591,7 @@ class GenericsTest < Test::Unit::TestCase
 
     # A = Set<? super String>
     string = @types.getStringType.resolve
-    a = set(Wildcard.new(nil, string))
+    a = set(Wildcard.new(@object, nil, string))
     @tpi.processArgument(a, ?>.ord, f, map)
 
     # S = String
@@ -608,7 +609,7 @@ class GenericsTest < Test::Unit::TestCase
     t = typevar('T')
     
     f = TypeInvocation.new(klass, klass.superclass, klass.interfaces,
-        [r, Wildcard.new(s), Wildcard.new(nil, t)])
+        [r, Wildcard.new(@object, s), Wildcard.new(@object, nil, t)])
     rc = Constraints.new
     sc = Constraints.new
     tc = Constraints.new
@@ -690,5 +691,82 @@ class GenericsTest < Test::Unit::TestCase
     assert(d.isSupertypeOf(c))
     assert(!c.isSupertypeOf(d))
     assert(!a.isSupertypeOf(d))
+  end
+
+  def test_erased_supertypes
+    lub = LubFinder.new(type('java.lang.Object'), @type_utils)
+    t = @types.getStringType.resolve
+    m = lub.erasedSupertypes(t)
+    assert_equal(
+      ['java.lang.String', 'java.lang.Object',
+       'java.io.Serializable', 'java.lang.Comparable',
+       'java.lang.CharSequence'
+      ], m.key_set.map{|x| x.toString})
+    
+    t = set(t)
+    m = lub.erasedSupertypes(t)
+    assert_equal(
+      ['java.util.Set', 'java.util.Collection',
+       'java.lang.Iterable', 'java.lang.Object'
+      ], m.key_set.map{|x| x.toString})
+    assert_equal(
+      ['[java.util.Set<java.lang.String>]',
+       '[java.util.Collection<java.lang.String>]',
+       '[java.lang.Iterable<java.lang.String>]',
+       '[java.lang.Object]'
+      ], m.values.map{|x| x.toString})
+  end
+
+  def test_minimizeErasedCandidates
+    lub = LubFinder.new(type('java.lang.Object'), @type_utils)
+    t = set(@types.getStringType.resolve)
+    s = g('java.util.Collection', [type('java.lang.CharSequence')])
+    candidates = lub.erasedCandidateSet([t, s])
+    assert_equal(['java.util.Collection', 'java.lang.Iterable', 'java.lang.Object'],
+                 candidates.key_set.map{|x| x.toString})
+    lub.minimizeErasedCandidates(candidates.key_set)
+    assert_equal(['java.util.Collection'],
+                 candidates.key_set.map{|x| x.toString})
+    assert_equal([
+      '[java.util.Collection<java.lang.String>, java.util.Collection<java.lang.CharSequence>]'
+      ], candidates.values.map{|x| x.toString})
+  end
+
+  def test_lub
+    finder = LubFinder.new(type('java.lang.Object'), @type_utils)
+    string = type('java.lang.String')
+    lub = finder.leastUpperBound([string])
+    assert_equal(string, lub, lub.toString)
+
+    cs = type('java.lang.CharSequence')
+    lub = finder.leastUpperBound([string, cs])
+    assert_equal(cs, lub, lub.toString)
+
+    a = set(string)
+    lub = finder.leastUpperBound([a, a])
+    assert_equal(a, lub, lub.toString)
+
+    b = g('java.lang.Iterable', [type('java.io.Serializable')])
+    lub = finder.leastUpperBound([a, b])
+    assert_equal('java.lang.Iterable<? extends java.io.Serializable>',
+                 lub.toString)
+
+    c = set(a)
+    lub = finder.leastUpperBound([a, c])
+    assert_equal('java.util.Set<?>', lub.toString)
+  end
+
+  def test_lub_cycle
+    finder = LubFinder.new(type('java.lang.Object'), @type_utils)
+    cycle = Cycle.new
+    comparable = g('java.lang.Comparable', [cycle])
+    string = g('java.lang.String', [], nil, [comparable])
+    cycle.target_set(string)
+    cycle = Cycle.new
+    comparable = g('java.lang.Comparable', [cycle])
+    integer = g('java.lang.Integer', [], nil, [comparable])
+    cycle.target_set(integer)
+    lub = finder.leastUpperBound([string, integer])
+    assert_equal("java.lang.Comparable<? extends java.lang.Comparable<? extends java.lang.Comparable<? extends java.lang.Comparable<? extends ...>>>>", lub.toString)
   end
 end
