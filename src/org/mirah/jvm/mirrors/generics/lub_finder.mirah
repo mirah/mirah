@@ -36,9 +36,8 @@ import org.mirah.jvm.mirrors.MirrorType
 
 # This class is not threadsafe
 class LubFinder
-  def initialize(object:MirrorType, types:Types)
+  def initialize(types:Types)
     @types = types
-    @object = object
     @cycles = HashMap.new
   end
 
@@ -180,31 +179,31 @@ class LubFinder
           a
         else
           # otherwise ? extends lub(U, V)
-          Wildcard.new(@object, leastUpperBound([a, b]))
+          @types.getWildcardType(leastUpperBound([a, b]), nil)
         end
       elsif bw.getExtendsBound
         # lcta(U, ? extends V) = ? extends lub(U, V)
-        Wildcard.new(@object, leastUpperBound([a, bw.getExtendsBound]))
+        @types.getWildcardType(leastUpperBound([a, bw.getExtendsBound]), nil)
       else
         # lcta(U, ? super V) = ? super glb(U, V)
-        Wildcard.new(@object, nil, IntersectionType.new([a, bw.getSuperBound]))
+        @types.getWildcardType(nil, IntersectionType.new([a, bw.getSuperBound]))
       end
     elsif aw.getExtendsBound && bw.getExtendsBound
       # lcta(? extends U, ? extends V) = ? extends lub(U, V)
-      Wildcard.new(@object,
-                   leastUpperBound([aw.getExtendsBound, bw.getExtendsBound]))
+      @types.getWildcardType(
+          leastUpperBound([aw.getExtendsBound, bw.getExtendsBound]), nil)
     elsif aw.getExtendsBound && bw.getSuperBound
       # lcta(? extends U, ? super V) = U if U = V
       if @types.isSameType(aw.getExtendsBound, bw.getSuperBound)
         aw.getExtendsBound
       else
         # otherwise ?
-        Wildcard.new(@object, nil, nil)
+        @types.getWildcardType(nil, nil)
       end
     elsif aw.getSuperBound && bw.getSuperBound
       # lcta(? super U, ? super V) = ? super glb(U, V)
-      Wildcard.new(@object, nil,
-                   leastUpperBound([aw.getSuperBound, bw.getSuperBound]))
+      @types.getWildcardType(
+          nil, leastUpperBound([aw.getSuperBound, bw.getSuperBound]))
     else
       raise IllegalArgumentException, "lcta(#{a}, #{b})"
     end

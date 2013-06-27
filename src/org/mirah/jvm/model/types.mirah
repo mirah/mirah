@@ -35,12 +35,14 @@ import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.generics.TypeInvocation
+import org.mirah.jvm.mirrors.generics.Wildcard
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMTypeUtils
 
 class Types implements TypesModel
   def initialize(types:MirrorTypeSystem)
     @types = types
+    @object = MirrorType(types.loadNamedType('java.lang.Object').resolve)
     @primitives = EnumMap.new(
       TypeKind.BOOLEAN => types.loadNamedType('boolean').resolve,
       TypeKind.BYTE => types.loadNamedType('byte').resolve,
@@ -100,5 +102,9 @@ class Types implements TypesModel
     type = BaseType(@types.wrap(t).resolve)
     TypeInvocation.new(type, MirrorType(type.superclass), type.interfaces,
                        Arrays.asList(args))
+  end
+
+  def getWildcardType(extendsBound, superBound)
+    Wildcard.new(@object, extendsBound, superBound)
   end
 end
