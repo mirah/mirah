@@ -24,6 +24,8 @@ import java.util.List
 import java.util.logging.Logger
 import java.util.logging.Level
 
+import javax.lang.model.util.Types as JavaxTypes
+
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 
@@ -53,22 +55,46 @@ import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.TypeSystem
 import org.mirah.typer.simple.SimpleScope
+import org.mirah.util.Context
 
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
+import org.mirah.jvm.model.Types
+
+class ClassPath
+  attr_accessor classpath:ClassLoader, macro_classpath:ClassLoader
+  attr_accessor loader:AsyncMirrorLoader
+  attr_accessor bytecode_loader:MirrorLoader
+  attr_accessor macro_loader:MirrorLoader
+end
 
 class MirrorTypeSystem implements TypeSystem
   def initialize(
+      context:Context=nil,
       classloader:ClassLoader=MirrorTypeSystem.class.getClassLoader,
       macroloader:ClassLoader=nil)
-    bytecode_loader = BytecodeMirrorLoader.new(classloader, PrimitiveLoader.new)
+    context ||= Context.new
+    @context = context
+    context[MirrorTypeSystem] = self
+    context[JavaxTypes] = Types.new(context)
+    bytecode_loader = BytecodeMirrorLoader.new(
+        context, classloader, PrimitiveLoader.new)
     @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(
         bytecode_loader))
     if macroloader
-      @macroloader = BytecodeMirrorLoader.new(macroloader, bytecode_loader)
+      @macroloader = BytecodeMirrorLoader.new(
+          context, macroloader, bytecode_loader)
     else
       @macro_loader = bytecode_loader
     end
+
+    context[ClassPath] = classpath = ClassPath.new
+    classpath.classpath = classloader
+    classpath.macro_classpath = macroloader
+    classpath.loader = @loader
+    classpath.bytecode_loader = bytecode_loader
+    classpath.macro_loader = @macro_loader
+
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
     @main_type = TypeFuture(nil)
@@ -88,6 +114,8 @@ class MirrorTypeSystem implements TypeSystem
     addObjectIntrinsics
     initBoxes
   end
+
+  attr_reader context:Context
 
   def self.initialize:void
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)

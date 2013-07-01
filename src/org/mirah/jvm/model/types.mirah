@@ -38,20 +38,21 @@ import org.mirah.jvm.mirrors.generics.TypeInvocation
 import org.mirah.jvm.mirrors.generics.Wildcard
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMTypeUtils
+import org.mirah.util.Context
 
 class Types implements TypesModel
-  def initialize(types:MirrorTypeSystem)
-    @types = types
-    @object = MirrorType(types.loadNamedType('java.lang.Object').resolve)
+  def initialize(context:Context)
+    @types = context[MirrorTypeSystem]
+    @object = MirrorType(@types.loadNamedType('java.lang.Object').resolve)
     @primitives = EnumMap.new(
-      TypeKind.BOOLEAN => types.loadNamedType('boolean').resolve,
-      TypeKind.BYTE => types.loadNamedType('byte').resolve,
-      TypeKind.CHAR => types.loadNamedType('char').resolve,
-      TypeKind.DOUBLE => types.loadNamedType('double').resolve,
-      TypeKind.FLOAT => types.loadNamedType('float').resolve,
-      TypeKind.INT => types.loadNamedType('int').resolve,
-      TypeKind.LONG => types.loadNamedType('long').resolve,
-      TypeKind.SHORT => types.loadNamedType('short').resolve
+      TypeKind.BOOLEAN => @types.loadNamedType('boolean').resolve,
+      TypeKind.BYTE => @types.loadNamedType('byte').resolve,
+      TypeKind.CHAR => @types.loadNamedType('char').resolve,
+      TypeKind.DOUBLE => @types.loadNamedType('double').resolve,
+      TypeKind.FLOAT => @types.loadNamedType('float').resolve,
+      TypeKind.INT => @types.loadNamedType('int').resolve,
+      TypeKind.LONG => @types.loadNamedType('long').resolve,
+      TypeKind.SHORT => @types.loadNamedType('short').resolve
     )
   end
 

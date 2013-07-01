@@ -31,6 +31,7 @@ import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
+import org.mirah.util.Context
 
 class ArrayType < BaseType implements ArrayModel
   def self.initialize:void
@@ -47,6 +48,18 @@ class ArrayType < BaseType implements ArrayModel
     else
       Type.getType("[#{component.superclass.getAsmType.getDescriptor}")
     end
+  end
+
+  def initialize(context:Context, component:MirrorType)
+    super(Type.getType("[#{component.getAsmType.getDescriptor}"),
+          Opcodes.ACC_PUBLIC, nil)
+    @loader = context[ClassPath].loader
+    @int_type = context[ClassPath].bytecode_loader.loadMirror(Type.getType('I'))
+    @componentType = component
+    sync_loader = context[ClassPath].macro_loader
+    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, sync_loader)
+    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, sync_loader)
+    
   end
 
   def initialize(component:MirrorType, loader:AsyncMirrorLoader)

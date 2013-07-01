@@ -30,6 +30,8 @@ import org.mirah.typer.DelegateFuture
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.TypeFuture
 
+import org.mirah.util.Context
+
 class SimpleMirrorLoader implements MirrorLoader
   def initialize(parent:MirrorLoader=nil)
     @parent = parent
@@ -193,8 +195,11 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     @@log = Logger.getLogger(BytecodeMirrorLoader.class.getName)
   end
 
-  def initialize(resourceLoader:ClassLoader, parent:MirrorLoader=nil)
+  def initialize(context:Context,
+                 resourceLoader:ClassLoader,
+                 parent:MirrorLoader=nil)
     super(parent)
+    @context = context
     @loader = resourceLoader
     @ancestorLoader = OrErrorLoader.new(self)
   end
@@ -232,7 +237,7 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
   def findArrayMirror(type:Type):MirrorType
     component = loadMirror(type)
     if component
-      ArrayType.new(component, self)
+      ArrayType.new(@context, component)
     end
   end
 
@@ -263,11 +268,17 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     end if klass.invisibleAnnotations
     return Collections.emptyList
   end
+end
 
-  def self.main(args:String[]):void
-    loader = BytecodeMirrorLoader.new(BytecodeMirrorLoader.class.getClassLoader)
-    string = loader.loadMirror(Type.getType("Ljava/lang/String;"))
-    object = string.superclass
-    puts object
+class SelfMirrorLoader < SimpleMirrorLoader
+  def initialize(mirror:MirrorType)
+    @mirror = mirror
+  end
+
+  def findMirror(type)
+    if type.equals(@mirror.getAsmType)
+      return @mirror
+    end
+    super
   end
 end
