@@ -82,6 +82,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
       end
       setSupertypes(superclass, interfaces)
     end
+    types.addClassIntrinsic(self)
   end
 
   def lookupType(internalName:String):MirrorType

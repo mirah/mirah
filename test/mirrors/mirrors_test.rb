@@ -538,4 +538,16 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     a = @types.getStringType.resolve
     assert(a.isSameType(a))
   end
+
+  def test_class_literal
+    object = @types.get(@scope, typeref('java.lang.Object'))
+    object_meta = @types.getMetaType(object)
+    method = CallFuture.new(
+        @types, @scope, object_meta, true, 'class', [], [], nil)
+    assert_equal('java.lang.Class<java.lang.Object>', method.resolve.toString)
+
+    method = CallFuture.new(
+        @types, @scope, main_type, true, 'class', [], [], nil)
+    assert_equal('java.lang.Class<FooBar>', method.resolve.toString)
+  end
 end

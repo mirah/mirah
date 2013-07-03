@@ -74,6 +74,18 @@ class MirrorTypeSystem implements TypeSystem
       context:Context=nil,
       classloader:ClassLoader=MirrorTypeSystem.class.getClassLoader,
       macroloader:ClassLoader=nil)
+    @primitives = {
+      boolean: 'Z',
+      byte: 'B',
+      char: 'C',
+      short: 'S',
+      int: 'I',
+      long: 'J',
+      float: 'F',
+      double: 'D',
+      void: 'V',
+    }
+
     context ||= Context.new
     @context = context
     context[MirrorTypeSystem] = self
@@ -98,17 +110,6 @@ class MirrorTypeSystem implements TypeSystem
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
     @main_type = TypeFuture(nil)
-    @primitives = {
-      boolean: 'Z',
-      byte: 'B',
-      char: 'C',
-      short: 'S',
-      int: 'I',
-      long: 'J',
-      float: 'F',
-      double: 'D',
-      void: 'V',
-    }
     @anonymousClasses = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
@@ -388,6 +389,7 @@ class MirrorTypeSystem implements TypeSystem
       end
       mirror = MirahMirror.new(type, flags,
                                superclass, interfaceArray)
+      addClassIntrinsic(mirror)
       future = MirrorFuture.new(mirror, position)
       @loader.defineMirror(type, future)
       future
@@ -476,14 +478,19 @@ class MirrorTypeSystem implements TypeSystem
     BytecodeMirrorLoader.extendClass(type, extensions, @macro_loader)
   end
 
+  def addClassIntrinsic(type:BaseType)
+    future = BaseTypeFuture.new.resolved(type)
+    klass = loadNamedType('java.lang.Class')
+    generic_class = JVMType(parameterize(klass, [future]).resolve)
+    type.add(Member.new(
+        Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, type, 'class', [],
+        generic_class, MemberKind.CLASS_LITERAL))
+  end
+
   def addObjectIntrinsics
     BytecodeMirrorLoader.extendClass(
         @object, MirrorObjectExtensions.class, @macro_loader)
     bool = JVMType(getBooleanType.resolve)
-    @object.add(Member.new(
-        Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, @object, 'class', [],
-        JVMType(loadNamedType('java.lang.Class').resolve),
-        MemberKind.CLASS_LITERAL))
     @object.add(Member.new(
         Opcodes.ACC_PUBLIC, @object, 'nil?', [],
         bool, MemberKind.IS_NULL))
