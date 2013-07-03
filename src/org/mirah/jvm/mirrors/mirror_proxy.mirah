@@ -37,7 +37,7 @@ import org.mirah.typer.TypeFuture
 # change a Mirror in an incompatible way. We can return a new
 # proxy for the same Mirror, and the typer will treat this as
 # a new type.
-class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType, NoType, ErrorType, NullType, TypeVariable, WildcardType
+class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType, NoType, ErrorType, NullType, TypeVariable, WildcardType, DeclaredMirrorType
   def initialize(type:MirrorType)
     @target = type
   end
@@ -184,6 +184,16 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
   end
   def erasure
     @target.erasure
+  end
+
+  def signature
+    DeclaredMirrorType(@target).signature
+  end
+
+  def link
+    if @target.kind_of?(DeclaredMirrorType)
+      DeclaredMirrorType(@target).link
+    end
   end
 end
 

@@ -32,18 +32,17 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.model.IntersectionType'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.jruby.org.objectweb.asm.Type'
+  java_import 'javax.lang.model.util.Types'
 
   def setup
     @types = MirrorTypeSystem.new
-    @type_utils = Java::OrgMirahJvmModel::Types.new(@types)
+    @type_utils = @types.context.get(Types.java_class)
     @tpi = TypeParameterInference.new(@type_utils)
     @object = type('java.lang.Object')
   end
 
   def set(param)
-    iterable = g('java.lang.Iterable', [param])
-    collection = g('java.util.Collection', [param], nil, [iterable])
-    g('java.util.Set', [param], nil, [collection])
+    g('java.util.Set', [param])
   end
 
   def type(name)
@@ -54,19 +53,16 @@ class GenericsTest < Test::Unit::TestCase
     end
   end
 
-  def g(name, params, superclass=nil, interfaces=nil)
-    klass = type(name)
-    superclass ||= klass.superclass
-    if interfaces
-      interfaces = interfaces.map do |x|
-        future = BaseTypeFuture.new
-        future.resolved(type(x))
-        future
-      end
-    else
-      interfaces = klass.interfaces
-    end
-    TypeInvocation.new(klass, superclass, interfaces, params)
+  def g(name, params)
+    klass = future(name)
+    params = params.map {|x| future(x)}
+    @types.parameterize(klass, params).resolve
+  end
+
+  def future(x)
+    future = BaseTypeFuture.new
+    future.resolved(type(x))
+    future
   end
 
   def typevar(name, bounds="java.lang.Object")
@@ -600,21 +596,22 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_multi_generic
     klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
-    string = @types.getStringType.resolve
-    a = TypeInvocation.new(klass, klass.superclass, klass.interfaces,
+    string = @types.getStringType
+    a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces,
         [string, string, string])
     
     r = typevar('R')
     s = typevar('S')
     t = typevar('T')
     
-    f = TypeInvocation.new(klass, klass.superclass, klass.interfaces,
-        [r, @type_utils.getWildcardType(s, nil), @type_utils.getWildcardType(nil, t)])
+    f = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces,
+        [future(r), future(@type_utils.getWildcardType(s, nil)), future(@type_utils.getWildcardType(nil, t))])
     rc = Constraints.new
     sc = Constraints.new
     tc = Constraints.new
     map = {r => rc, s => sc, t => tc}
     @tpi.processArgument(a, ?<.ord, f, map)
+    string = string.resolve
     assert_constraints(rc, :equal => [string])
     assert_constraints(sc, :super => [string])
     assert_constraints(tc, :extends => [string])
@@ -623,7 +620,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_cycle
     klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
     cycle = Cycle.new
-    a = TypeInvocation.new(klass, klass.superclass, klass.interfaces, [cycle])
+    a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces, [future(cycle)])
     cycle.target_set(a)
     assert_equal("FooBar<FooBar<FooBar<...>>>", a.toString)
   end
@@ -727,9 +724,11 @@ class GenericsTest < Test::Unit::TestCase
     lub.minimizeErasedCandidates(candidates.key_set)
     assert_equal(['java.util.Collection'],
                  candidates.key_set.map{|x| x.toString})
-    assert_equal([
-      '[java.util.Collection<java.lang.String>, java.util.Collection<java.lang.CharSequence>]'
-      ], candidates.values.map{|x| x.toString})
+    candidates = HashSet.new(candidates.values.iterator.next.map {|x| x.toString})
+    assert_equal(HashSet.new(
+    ["java.util.Collection<java.lang.String>",
+      "java.util.Collection<java.lang.CharSequence>"
+    ]), candidates)
   end
 
   def test_lub
@@ -758,15 +757,17 @@ class GenericsTest < Test::Unit::TestCase
 
   def test_lub_cycle
     finder = LubFinder.new(@type_utils)
-    cycle = Cycle.new
-    comparable = g('java.lang.Comparable', [cycle])
-    string = g('java.lang.String', [], nil, [comparable])
-    cycle.target_set(string)
-    cycle = Cycle.new
-    comparable = g('java.lang.Comparable', [cycle])
-    integer = g('java.lang.Integer', [], nil, [comparable])
-    cycle.target_set(integer)
+    string = type('java.lang.String')
+    integer = type('java.lang.Integer')
     lub = finder.leastUpperBound([string, integer])
-    assert_equal("java.lang.Comparable<? extends java.lang.Comparable<? extends java.lang.Comparable<? extends java.lang.Comparable<? extends ...>>>>", lub.toString)
+    assert_match(/\? extends java\.lang\.Comparable<\? extends ...>/,
+                 lub.toString)
+  end
+
+  def test_non_generic_type_with_generic_superclass
+    string = @types.getStringType.resolve
+    interfaces = string.interfaces.map {|x| x.resolve.toString}
+    assert_equal(["java.lang.Comparable<java.lang.String>"],
+                 interfaces.grep(/Comparable/))
   end
 end

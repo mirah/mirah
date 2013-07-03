@@ -57,9 +57,10 @@ import org.mirah.typer.TypeSystem
 import org.mirah.typer.simple.SimpleScope
 import org.mirah.util.Context
 
+import org.mirah.jvm.mirrors.generics.TypeInvoker
+import org.mirah.jvm.model.Types
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
-import org.mirah.jvm.model.Types
 
 class ClassPath
   attr_accessor classpath:ClassLoader, macro_classpath:ClassLoader
@@ -76,7 +77,6 @@ class MirrorTypeSystem implements TypeSystem
     context ||= Context.new
     @context = context
     context[MirrorTypeSystem] = self
-    context[JavaxTypes] = Types.new(context)
     bytecode_loader = BytecodeMirrorLoader.new(
         context, classloader, PrimitiveLoader.new)
     @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(
@@ -113,12 +113,26 @@ class MirrorTypeSystem implements TypeSystem
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
     initBoxes
+    context[JavaxTypes] = Types.new(context)
   end
 
   attr_reader context:Context
 
   def self.initialize:void
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)
+  end
+
+  def parameterize(type:TypeFuture, args:List)
+    last_resolved = nil
+    context = @context
+    invocation = nil
+    future = DelegateFuture.new
+    future.type = type
+    type.onUpdate do |x, resolved|
+      future.type = MirrorFuture.new(
+          TypeInvoker.invoke(context, MirrorType(resolved), args, nil))
+    end
+    future
   end
 
   def getSuperClass(type)
@@ -639,13 +653,10 @@ class MirrorTypeSystem implements TypeSystem
     logger = MirahLogFormatter.new(true).install
     logger.setLevel(Level.ALL)
     types = MirrorTypeSystem.new
-    scope = JVMScope.new
-    main_type = types.getMainType(nil, nil)
-    scope.selfType_set(main_type)
-
-    string = MirrorType(types.getStringType.resolve)
-    type = MethodLookup.findMethod(scope, string, 'toString', [], nil, nil, false)
-    puts type.resolve
+    a = types.getStringType.resolve
+    b = types.getRegexType.resolve
+    c = a.widen(b)
+    puts c
   end
 end
 

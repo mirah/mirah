@@ -38,6 +38,8 @@ import org.mirah.jvm.mirrors.generics.TypeInvocation
 import org.mirah.jvm.mirrors.generics.Wildcard
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMTypeUtils
+import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
 
 class Types implements TypesModel
@@ -100,9 +102,12 @@ class Types implements TypesModel
 
   def getDeclaredType(element:ITypeElement, args:TypeMirror[]):DeclaredType
     t = Type.getType(TypeElement(element).descriptor)
-    type = BaseType(@types.wrap(t).resolve)
-    TypeInvocation.new(type, MirrorType(type.superclass), type.interfaces,
-                       Arrays.asList(args))
+    type = @types.wrap(t)
+    arg_futures = ArrayList.new(args.length)
+    args.each do |arg|
+      arg_futures.add(BaseTypeFuture.new.resolved(MirrorType(arg)))
+    end
+    DeclaredType(@types.parameterize(type, arg_futures).resolve)
   end
 
   def getWildcardType(extendsBound, superBound)

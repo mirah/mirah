@@ -24,34 +24,11 @@ import org.mirah.typer.TypeFuture
 
 
 # Mirror for a type being loaded from a .mirah file.
-class MirahMirror < BaseType
+class MirahMirror < AsyncMirror
   def initialize(type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
-    super(type, flags, nil)
-    mirror = self
-    @interfaces = interfaces
-    superclass.onUpdate do |x, resolved|
-      mirror.resolveSuperclass(JVMType(resolved))
-    end
-    @interfaces.each do |i|
-      i.onUpdate do |x, resolved|
-        mirror.notifyOfIncompatibleChange
-      end
-    end
+    super
     @default_constructor = Member.new(Opcodes.ACC_PUBLIC, self, '<init>', [], self, MemberKind.CONSTRUCTOR)
     @fields = {}
-  end
-
-  def resolveSuperclass(resolved:JVMType)
-    @superclass = resolved
-    notifyOfIncompatibleChange
-  end
-
-  def superclass
-    @superclass
-  end
-
-  def interfaces:TypeFuture[]
-    @interfaces
   end
 
   def declareField(field:JVMMethod)

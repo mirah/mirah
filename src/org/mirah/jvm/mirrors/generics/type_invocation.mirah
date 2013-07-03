@@ -17,17 +17,24 @@ import java.util.List
 import java.util.LinkedList
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
+import org.mirah.jvm.mirrors.AsyncMirror
 import org.mirah.jvm.mirrors.MirrorProxy
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.TypeFuture
 
-class TypeInvocation < BaseType
-  def initialize(raw:MirrorType, superclass:MirrorType, interfaces:TypeFuture[], args:List)
-    super(raw.getAsmType, raw.flags, superclass)
+class TypeInvocation < AsyncMirror
+  def initialize(raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List)
+    super(raw.getAsmType, raw.flags, superclass, interfaces)
     @raw = raw
     @interfaces = interfaces
     @typeArguments = args
+    mirror = self
+    @typeArguments.each do |a:TypeFuture|
+      a.onUpdate do |x, resolved|
+        mirror.notifyOfIncompatibleChange
+      end
+    end
   end
 
   def self.initialize:void
@@ -39,14 +46,14 @@ class TypeInvocation < BaseType
   end
 
   def getTypeArguments
-    @typeArguments
+    @typeArguments.map {|a:TypeFuture| a.resolve}
   end
 
   def toString
     sb = StringBuilder.new(@raw.toString)
     sb.append('<')
     first = true
-    @typeArguments.each do |arg|
+    getTypeArguments.each do |arg|
       if first
         first = false
       else

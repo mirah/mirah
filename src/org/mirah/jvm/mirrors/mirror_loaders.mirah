@@ -47,7 +47,12 @@ class SimpleMirrorLoader implements MirrorLoader
     existing = MirrorType(@mirrors[type])
     return existing if existing
     mirror = findMirror(type)
-    @mirrors[type] = mirror if mirror
+    if mirror
+      @mirrors[type] = mirror
+      if mirror.kind_of?(DeclaredMirrorType)
+        DeclaredMirrorType(mirror).link
+      end
+    end
     return mirror
   end
 
@@ -218,7 +223,7 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
           reader.accept(node, ClassReader.SKIP_CODE)
           if "#{node.name}.class".equals(classfile)
             @@log.fine("Found #{classfile}")
-            mirror = BytecodeMirror.new(node, @ancestorLoader)
+            mirror = BytecodeMirror.new(@context, node, @ancestorLoader)
             BytecodeMirrorLoader.findMacros(node).each do |name|
               BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
             end
@@ -267,18 +272,5 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
       end
     end if klass.invisibleAnnotations
     return Collections.emptyList
-  end
-end
-
-class SelfMirrorLoader < SimpleMirrorLoader
-  def initialize(mirror:MirrorType)
-    @mirror = mirror
-  end
-
-  def findMirror(type)
-    if type.equals(@mirror.getAsmType)
-      return @mirror
-    end
-    super
   end
 end

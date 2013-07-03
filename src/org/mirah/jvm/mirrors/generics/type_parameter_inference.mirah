@@ -303,6 +303,7 @@ class TypeParameterInference
       end
       types.addAll(@types.directSupertypes(t))
     end
+    nil
   end
 
   def findMatchingGenericSupertypes(arg:TypeMirror,

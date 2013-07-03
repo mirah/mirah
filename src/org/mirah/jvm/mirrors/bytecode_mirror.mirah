@@ -25,11 +25,13 @@ import org.jruby.org.objectweb.asm.tree.ClassNode
 import org.jruby.org.objectweb.asm.tree.FieldNode
 import org.jruby.org.objectweb.asm.tree.InnerClassNode
 import org.jruby.org.objectweb.asm.tree.MethodNode
+import org.mirah.jvm.mirrors.generics.TypeInvoker
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
+import org.mirah.util.Context
 import mirah.lang.ast.TypeRefImpl
 
 
@@ -42,19 +44,16 @@ interface AsyncMirrorLoader
   def loadMirrorAsync(type:Type):TypeFuture; end
 end
 
-class BytecodeMirror < BaseType
-  def initialize(klass:ClassNode, loader:MirrorLoader)
-    super(Type.getObjectType(klass.name),
-          klass.access,
-          BytecodeMirror.lookupType(loader, klass.superName))
+class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
+  def initialize(context:Context, klass:ClassNode, loader:MirrorLoader)
+    super(Type.getObjectType(klass.name), klass.access)
+    @context = context
     @loader = loader
     @fields = klass.fields
     @methods = klass.methods
-    @interfaces = TypeFuture[klass.interfaces.size]
-    it = klass.interfaces.iterator
-    @interfaces.length.times do |i|
-      @interfaces[i] = BaseTypeFuture.new.resolved(lookupType(String(it.next)))
-    end
+    @superName = klass.superName
+    @signature = klass.signature
+    @interface_names = klass.interfaces
     @annotations = klass.visibleAnnotations
     @innerClassNodes = klass.innerClasses
   end
@@ -65,7 +64,26 @@ class BytecodeMirror < BaseType
     end
     nil
   end
-  
+
+  def link:void
+    types = @context[MirrorTypeSystem]
+    if @signature
+      invoker = TypeInvoker.new(@context, nil, [])
+      invoker.read(@signature)
+      setSupertypes(invoker.superclass, invoker.interfaces)
+    else
+      superclass = @superName ? types.wrap(Type.getType("L#{@superName};")) : nil
+      interfaces = TypeFuture[@interface_names ? @interface_names.size : 0]
+      if @interface_names
+        it = @interface_names.iterator
+        interfaces.length.times do |i|
+          interfaces[i] = types.wrap(Type.getType("L#{it.next};"))
+        end
+      end
+      setSupertypes(superclass, interfaces)
+    end
+  end
+
   def lookupType(internalName:String):MirrorType
     return BytecodeMirror.lookupType(@loader, internalName)
   end
@@ -115,9 +133,7 @@ class BytecodeMirror < BaseType
     end
   end
 
-  def interfaces:TypeFuture[]
-    @interfaces
-  end
+  attr_reader signature:String
 
   def load_methods:boolean
     @methods.each do |m|

@@ -18,13 +18,13 @@ require 'mirah'
 
 class BytecodeMirrorTest < Test::Unit::TestCase
   java_import 'org.jruby.org.objectweb.asm.Type'
-  java_import 'org.mirah.jvm.mirrors.BytecodeMirrorLoader'
-  java_import 'org.mirah.jvm.mirrors.PrimitiveLoader'
+  java_import 'org.mirah.jvm.mirrors.ClassPath'
+  java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
 
   def setup
-    classloader = BytecodeMirrorLoader.java_class.class_loader
-    @loader = BytecodeMirrorLoader.new(classloader, PrimitiveLoader.new)
+    types = MirrorTypeSystem.new
+    @loader = types.context.get(ClassPath).bytecode_loader
   end
   
   def test_parent

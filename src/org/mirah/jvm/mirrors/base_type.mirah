@@ -40,7 +40,6 @@ interface MethodListener
   def methodChanged(klass:JVMType, name:String):void; end
 end
 
-# package_private
 interface MirrorType < JVMType, TypeMirror
   def notifyOfIncompatibleChange:void; end
   def onIncompatibleChange(listener:Runnable):void; end
@@ -55,6 +54,11 @@ interface MirrorType < JVMType, TypeMirror
   def isSupertypeOf(other:MirrorType):boolean; end
   def directSupertypes:List; end
   def erasure:TypeMirror; end
+end
+
+interface DeclaredMirrorType < MirrorType, DeclaredType
+  def link:void; end
+  def signature:String; end
 end
 
 # package_private
@@ -293,5 +297,44 @@ class BaseType implements MirrorType, DeclaredType
 
   def erasure
     self
+  end
+end
+
+class AsyncMirror < BaseType
+  def initialize(type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
+    super(type, flags, nil)
+    setSupertypes(superclass, interfaces)
+  end
+
+  def initialize(type:Type, flags:int)
+    super(type, flags, nil)
+  end
+
+  def setSupertypes(superclass:TypeFuture, interfaces:TypeFuture[]):void
+    mirror = self
+    @interfaces = interfaces
+    if superclass
+      superclass.onUpdate do |x, resolved|
+        mirror.resolveSuperclass(JVMType(resolved))
+      end
+    end
+    @interfaces.each do |i|
+      i.onUpdate do |x, resolved|
+        mirror.notifyOfIncompatibleChange
+      end
+    end
+  end
+
+  def resolveSuperclass(resolved:JVMType)
+    @superclass = resolved
+    notifyOfIncompatibleChange
+  end
+
+  def superclass
+    @superclass
+  end
+
+  def interfaces:TypeFuture[]
+    @interfaces
   end
 end

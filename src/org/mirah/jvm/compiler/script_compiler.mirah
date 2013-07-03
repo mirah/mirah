@@ -17,6 +17,8 @@ package org.mirah.jvm.compiler
 
 import java.util.LinkedList
 import java.util.logging.Logger
+import org.mirah.typer.Typer
+import org.mirah.typer.simple.TypePrinter
 import org.mirah.util.Context
 
 class ScriptCompiler < BaseCompiler
@@ -25,11 +27,15 @@ class ScriptCompiler < BaseCompiler
   end
   def initialize(context:Context)
     super(context)
+    @typer = context[Typer]
     @classes = LinkedList.new
   end
   
   def visitScript(script, expression)
     visit(script.body, expression)
+  rescue Exception => ex
+    TypePrinter.new(@typer, System.out).scan(script, nil)
+    raise ex
   end
     
   def visitClassDefinition(class_def, expression)
