@@ -387,54 +387,6 @@ module Mirah::JVM::Types
     end
   end
 
-  class JavaDynamicMethod < JavaMethod
-    def initialize(type_system, name, *argument_types)
-      super(type_system, nil)
-      @name = name
-      @argument_types = argument_types
-    end
-
-    def return_type
-      @types.type(nil, 'dynamic')
-    end
-
-    def declaring_class
-      java.lang.Object
-    end
-
-    def argument_types
-      @argument_types
-    end
-
-    def call(compiler, ast, expression, parameters=nil)
-      unless compiler.respond_to?(:supports_invokedynamic?) && compiler.supports_invokedynamic?
-        raise Mirah::MirahError, "Target JVM version: #{compiler.target_jvm_version} doesn't support invoke dynamic"
-      end
-      target = compiler.inferred_type(ast.target)
-      compiler.visit(ast.target, true)
-
-      parameters ||= ast.parameters
-      parameters.each do |param|
-        compiler.visit(param, true)
-      end
-      handle = compiler.method.h_invokestatic(
-        org.dynalang.dynalink.DefaultBootstrapper,
-        "bootstrap",
-        java.lang.invoke.CallSite,
-        java.lang.invoke.MethodHandles::Lookup,
-        java.lang.String,
-        java.lang.invoke.MethodType)
-      compiler.method.invokedynamic(
-        "dyn:callPropWithThis:#{name}",
-        [return_type, target, *@argument_types],
-        handle)
-
-      unless expression
-        return_type.pop(compiler.method)
-      end
-    end
-  end
-
   class JavaFieldAccessor < JavaMethod
     def field?
       true
@@ -666,9 +618,8 @@ module Mirah::JVM::Types
     def java_method(name, *types)
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
-      jvm_types = types.map {|type| type.jvm_type}
 
-      return JavaDynamicMethod.new(@type_system, name, *jvm_types) if dynamic?
+      jvm_types = types.map {|type| type.jvm_type}
 
       begin
         method = jvm_type.getDeclaredMethod(name, *bitescript_signatures(types)) if jvm_type

@@ -1673,37 +1673,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("OK") { cls.main(nil) }
   end
 
-
-  def test_dynamic_works_ok_for_types_widenable_to_object
-    cls, = compile(<<-EOF)
-      def dyno qux:dynamic
-        puts qux
-      end
-      dyno 1
-      dyno "hello"
-      dyno ["im","an","array"]
-    EOF
-    assert_output("1\nhello\n[im, an, array]\n") { cls.main(nil) }
-  end
-
-  def test_dynamic_where_invokedynamic_required_fails_reasonably_on_pre_1_7_target
-    # the new backend doesn't support invokedynamic based dynamic (yet?) : nh
-    pend if compiler_name == "new"
-
-    ex = assert_raises MirahError do
-      compile(<<-EOF, :java_version => '1.6')
-        def dyno qux:dynamic
-          puts qux
-          qux.toString
-        end
-        dyno 1
-        dyno "hello"
-        dyno ["im","an","array"]
-      EOF
-    end
-    assert_equal "Target JVM version: 1.6 doesn't support invoke dynamic", ex.message
-  end
-
   def test_assign_int_to_double
     cls, = compile(<<-EOF)
       def foo

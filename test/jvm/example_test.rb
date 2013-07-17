@@ -36,18 +36,4 @@ class ExampleTest < Test::Unit::TestCase
       example_test example, output
     end
   end
-
-if Float(ENV_JAVA['java.specification.version']) >= 1.7
-  def test_dynamic
-    example_test 'dynamic', "I got a java.util.ArrayList of size 3\nI got a SizeThing of size 12\n"
-  end
-else
-  def test_dynamic
-    ex = assert_raise Mirah::MirahError do
-      example_test 'dynamic', nil
-    end
-    assert_equal "Target JVM version: 1.6 doesn't support invoke dynamic", ex.message
-  end
-end
-
 end
