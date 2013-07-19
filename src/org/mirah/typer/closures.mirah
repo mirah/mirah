@@ -44,7 +44,9 @@ class ClosureBuilder
     parent_scope = @scoper.getScope(block)
     build_constructor(enclosing_body, klass, parent_scope)
 
-    unless add_methods(klass, block)
+    if contains_methods(block)
+      copy_methods(klass, block)
+    else
       build_method(klass, block, parent_type)
     end
 
@@ -84,9 +86,7 @@ class ClosureBuilder
   end
 
   # Copies MethodDefinition nodes from block to klass.
-  # Returns true if any MethodDefinitions were found.
-  def add_methods(klass: ClassDefinition, block: Block): boolean
-    found_methods = false
+  def copy_methods(klass: ClassDefinition, block: Block): void
     block.body_size.times do |i|
       node = block.body(i)
       # TODO warn if there are non method definition nodes
@@ -94,10 +94,17 @@ class ClosureBuilder
       if node.kind_of?(MethodDefinition)
         cloned = MethodDefinition(node.clone)
         klass.body.add(cloned)
-        found_methods = true
       end
     end
-    return found_methods
+  end
+
+  # Returns true if any MethodDefinitions were found.
+  def contains_methods(block: Block): boolean
+    block.body_size.times do |i|
+      node = block.body(i)
+      return true if node.kind_of?(MethodDefinition)
+    end
+    return false
   end
 
   # Builds MethodDefinitions in klass for the abstrace methods in iface.
