@@ -619,8 +619,6 @@ module Mirah::JVM::Types
       intrinsic = intrinsics[name][types]
       return intrinsic if intrinsic
 
-      jvm_types = types.map {|type| type.jvm_type}
-
       begin
         method = jvm_type.getDeclaredMethod(name, *bitescript_signatures(types)) if jvm_type
 
