@@ -24,13 +24,13 @@ import java.util.Collections
 # Note: This is ugly. It depends on the internals of the JVM scope and jvm_bytecode classes,
 # and the BindingReference node is a hack. This should really all be cleaned up.
 class ClosureBuilder
-  def initialize(typer:Typer)
+  def initialize(typer: Typer)
     @typer = typer
     @types = typer.type_system
     @scoper = typer.scoper
   end
 
-  def prepare(block:Block, parent_type:ResolvedType)
+  def prepare(block: Block, parent_type: ResolvedType)
     enclosing_node = block.findAncestor {|node| node.kind_of?(MethodDefinition) || node.kind_of?(Script)}
     enclosing_body = if enclosing_node.kind_of?(MethodDefinition)
       MethodDefinition(enclosing_node).body
@@ -65,7 +65,7 @@ class ClosureBuilder
   end
 
   # Builds an anonymous class.
-  def build_class(position:Position, parent_type:ResolvedType)
+  def build_class(position: Position, parent_type: ResolvedType)
     interfaces = if (parent_type && parent_type.isInterface)
       [makeTypeName(position, parent_type)]
     else
@@ -79,13 +79,13 @@ class ClosureBuilder
     ClosureDefinition.new(position, nil, superclass, Collections.emptyList, interfaces, nil)
   end
 
-  def makeTypeName(position:Position, type:ResolvedType)
+  def makeTypeName(position: Position, type: ResolvedType)
     Constant.new(position, SimpleString.new(position, type.name))
   end
 
   # Copies MethodDefinition nodes from block to klass.
   # Returns true if any MethodDefinitions were found.
-  def add_methods(klass:ClassDefinition, block:Block):boolean
+  def add_methods(klass: ClassDefinition, block: Block): boolean
     found_methods = false
     block.body_size.times do |i|
       node = block.body(i)
@@ -101,7 +101,7 @@ class ClosureBuilder
   end
 
   # Builds MethodDefinitions in klass for the abstrace methods in iface.
-  def build_method(klass:ClassDefinition, block:Block, iface:ResolvedType)
+  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType)
     methods = @types.getAbstractMethods(iface)
     if methods.size != 1
       raise UnsupportedOperationException, "Multiple abstract methods in #{iface}: #{methods}"
@@ -125,7 +125,7 @@ class ClosureBuilder
     end
   end
 
-  def build_constructor(enclosing_body:NodeList, klass:ClassDefinition, parent_scope:Scope):void
+  def build_constructor(enclosing_body: NodeList, klass: ClassDefinition, parent_scope: Scope): void
     parent_scope.binding_type ||= begin
       binding_klass = build_class(klass.position, nil)
       enclosing_body.insert(0, binding_klass)
