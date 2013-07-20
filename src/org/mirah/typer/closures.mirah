@@ -117,10 +117,10 @@ class ClosureBuilder
       mtype = MethodType(_m)
       name = SimpleString.new(block.position, mtype.name)
       args = if block.arguments
-        Arguments(block.arguments.clone)
-      else
-        Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
-      end
+               Arguments(block.arguments.clone)
+             else
+               Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
+             end
       while args.required.size < mtype.parameterTypes.size
         arg = RequiredArgument.new(block.position, SimpleString.new("arg#{args.required.size}"), nil)
         args.required.add(arg)
@@ -134,13 +134,17 @@ class ClosureBuilder
 
   def build_constructor(enclosing_body: NodeList, klass: ClassDefinition, parent_scope: Scope): void
     parent_scope.binding_type ||= begin
-      binding_klass = build_class(klass.position, nil)
-      enclosing_body.insert(0, binding_klass)
-      @typer.infer(binding_klass, true).resolve
-    end
+                                    binding_klass = build_class(klass.position, nil)
+                                    enclosing_body.insert(0, binding_klass)
+                                    @typer.infer(binding_klass, true).resolve
+                                  end
     binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
-    args = Arguments.new(klass.position, [RequiredArgument.new(SimpleString.new('binding'), binding_type_name)],
-                         Collections.emptyList, nil, Collections.emptyList, nil)
+    args = Arguments.new(klass.position,
+                         [RequiredArgument.new(SimpleString.new('binding'), binding_type_name)],
+                         Collections.emptyList,
+                         nil,
+                         Collections.emptyList,
+                         nil)
     body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil)
     constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil)
     klass.body.add(constructor)
