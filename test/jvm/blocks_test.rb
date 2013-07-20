@@ -332,4 +332,25 @@ class BlocksTest < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_block_with_interface_method_with_2_arguments
+    cls, = compile(<<-EOF)
+      interface DoubleArgMethod do
+        def run(a: String, b: int):void;end
+      end
+
+      class ExpectsDoubleArgMethod
+        def foo(a:DoubleArgMethod)
+          a.run "hello", 1243
+        end
+      end
+      ExpectsDoubleArgMethod.new.foo do |a, b|
+        puts a
+        puts b
+      end
+    EOF
+    assert_output "hello\n1243\n" do
+      cls.main(nil)
+    end
+  end
 end
