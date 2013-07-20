@@ -46,17 +46,9 @@ class ClosureBuilder
     build_constructor(enclosing_body, klass, parent_scope)
 
     if contains_methods(block)
-      copy_methods(klass, block)
+      copy_methods(klass, block, parent_scope)
     else
-      build_method(klass, block, parent_type)
-    end
-
-    # Now assign the parent scopes
-    klass.body.each do |n|
-      unless n.kind_of?(ConstructorDefinition)
-        method = MethodDefinition(n)
-        set_parent_scope method, parent_scope
-      end
+      build_method(klass, block, parent_type, parent_scope)
     end
     closure_type = infer(klass)
     new_closure_call_node(block, closure_type)
@@ -87,13 +79,14 @@ class ClosureBuilder
   end
 
   # Copies MethodDefinition nodes from block to klass.
-  def copy_methods(klass: ClassDefinition, block: Block): void
+  def copy_methods(klass: ClassDefinition, block: Block, parent_scope: Scope): void
     block.body_size.times do |i|
       node = block.body(i)
       # TODO warn if there are non method definition nodes
       # they won't be used at all currently--so it'd be nice to note that.
       if node.kind_of?(MethodDefinition)
         cloned = MethodDefinition(node.clone)
+        set_parent_scope cloned, parent_scope
         klass.body.add(cloned)
       end
     end
@@ -109,7 +102,7 @@ class ClosureBuilder
   end
 
   # Builds MethodDefinitions in klass for the abstrace methods in iface.
-  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType)
+  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope)
     methods = @types.getAbstractMethods(iface)
     if methods.size != 1
       raise UnsupportedOperationException, "Multiple abstract methods in #{iface}: #{methods}"
@@ -129,6 +122,9 @@ class ClosureBuilder
       return_type = makeTypeName(block.position, mtype.returnType)
       method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
       method.body = NodeList(block.body.clone)
+
+      set_parent_scope method, parent_scope
+
       klass.body.add(method)
     end
   end
