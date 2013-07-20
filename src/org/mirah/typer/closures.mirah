@@ -69,15 +69,15 @@ class ClosureBuilder
   # Builds an anonymous class.
   def build_class(position: Position, parent_type: ResolvedType)
     interfaces = if (parent_type && parent_type.isInterface)
-      [makeTypeName(position, parent_type)]
-    else
-      Collections.emptyList
-    end
+                   [makeTypeName(position, parent_type)]
+                 else
+                   Collections.emptyList
+                 end
     superclass = if (parent_type.nil? || parent_type.isInterface)
-      nil
-    else
-      makeTypeName(position, parent_type)
-    end
+                   nil
+                 else
+                   makeTypeName(position, parent_type)
+                 end
     ClosureDefinition.new(position, nil, superclass, Collections.emptyList, interfaces, nil)
   end
 
