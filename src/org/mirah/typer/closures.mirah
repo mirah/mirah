@@ -58,10 +58,14 @@ class ClosureBuilder
       end
     end
 
-    # Infer the types
-    enclosing_body.insert(0, klass)
-    closure_type = @typer.infer(klass)
+    insert_into_body enclosing_body, klass
 
+    closure_type = infer(klass)
+
+    new_closure_call_node(block, closure_type)
+  end
+
+  def new_closure_call_node(block: Block, closure_type: TypeFuture): Call
     target = makeTypeName(block.position, closure_type.resolve)
     Call.new(block.position, target, SimpleString.new("new"), [BindingReference.new], nil)
   end
@@ -135,8 +139,8 @@ class ClosureBuilder
   def build_constructor(enclosing_body: NodeList, klass: ClassDefinition, parent_scope: Scope): void
     parent_scope.binding_type ||= begin
                                     binding_klass = build_class(klass.position, nil)
-                                    enclosing_body.insert(0, binding_klass)
-                                    @typer.infer(binding_klass, true).resolve
+                                    insert_into_body enclosing_body, binding_klass
+                                    infer(binding_klass).resolve
                                   end
     binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
     args = Arguments.new(klass.position,
@@ -148,5 +152,13 @@ class ClosureBuilder
     body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil)
     constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil)
     klass.body.add(constructor)
+  end
+
+  def insert_into_body enclosing_body: NodeList, klass: ClassDefinition
+    enclosing_body.insert(0, klass)
+  end
+
+  def infer node: Node
+    @typer.infer node
   end
 end
