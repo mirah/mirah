@@ -50,11 +50,12 @@ class ClosureBuilder
     else
       build_method(klass, block, parent_type, parent_scope)
     end
-    closure_type = infer(klass)
-    new_closure_call_node(block, closure_type)
+
+    new_closure_call_node(block, klass)
   end
 
-  def new_closure_call_node(block: Block, closure_type: TypeFuture): Call
+  def new_closure_call_node(block: Block, klass: Node): Call
+    closure_type = infer(klass)
     target = makeTypeName(block.position, closure_type.resolve)
     Call.new(block.position, target, SimpleString.new("new"), [BindingReference.new], nil)
   end
