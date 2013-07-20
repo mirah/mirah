@@ -55,7 +55,7 @@ class ClosureBuilder
     klass.body.each do |n|
       unless n.kind_of?(ConstructorDefinition)
         method = MethodDefinition(n)
-        @scoper.addScope(method).parent = parent_scope
+        set_parent_scope method, parent_scope
       end
     end
     closure_type = infer(klass)
@@ -157,5 +157,9 @@ class ClosureBuilder
 
   def infer node: Node
     @typer.infer node
+  end
+
+  def set_parent_scope method: MethodDefinition, parent_scope: Scope
+    @scoper.addScope(method).parent = parent_scope
   end
 end
