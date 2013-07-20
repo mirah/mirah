@@ -39,6 +39,7 @@ class ClosureBuilder
     end
 
     klass = build_class(block.position, parent_type)
+    insert_into_body enclosing_body, klass
 
     # TODO(ribrdb) binding
     parent_scope = @scoper.getScope(block)
@@ -57,11 +58,7 @@ class ClosureBuilder
         @scoper.addScope(method).parent = parent_scope
       end
     end
-
-    insert_into_body enclosing_body, klass
-
     closure_type = infer(klass)
-
     new_closure_call_node(block, closure_type)
   end
 
