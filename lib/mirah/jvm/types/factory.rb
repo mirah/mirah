@@ -636,10 +636,10 @@ module Mirah::JVM::Types
           outer_name = $1
           inner_name = $2
           outer_type = get_type(outer_name)
-          return nil if outer_type.nil?
+          return nil unless outer_type
           full_name = "#{outer_type.name}$#{inner_name}"
           mirror = get_mirror(full_name)
-          return nil if mirror.nil?
+          return nil unless mirror
         else
           return nil
         end
