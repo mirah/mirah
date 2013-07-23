@@ -485,9 +485,9 @@ class Typer < SimpleNodeVisitor
     else
       @types.getVoidType()
     end
-    method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    methodType = infer(method)
-    if methodType.kind_of?(MethodFuture)
+    enclosing_node = node.findAncestor {|n| n.kind_of?(MethodDefinition) || n.kind_of?(Script)}
+    if enclosing_node.kind_of? MethodDefinition
+      methodType = infer enclosing_node
       returnType = MethodFuture(methodType).returnType
       assignment = returnType.assign(type, node.position)
       future = DelegateFuture.new
@@ -499,7 +499,9 @@ class Typer < SimpleNodeVisitor
           future.type = returnType
         end
       end
-      future
+      TypeFuture(future)
+    elsif enclosing_node.kind_of? Script
+      TypeFuture(@types.getVoidType)
     end
   end
 
@@ -748,8 +750,8 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.addScope(script)
     @types.addDefaultImports(scope)
     scope.selfType = @types.getMainType(scope, script)
-    type = infer(script.body, false)
-    type
+    infer(script.body, false)
+    @types.getVoidType
   end
 
   def visitAnnotation(anno, expression)

@@ -74,7 +74,16 @@ class TyperTest < Test::Unit::TestCase
 
   def infer(ast, expression=true)
     new_typer(:bar).infer(ast, expression)
+    if ast.kind_of? Java::MirahLangAst::Script
+      ast = ast.body
+    end
     inferred_type(ast)
+  end
+
+  def test_script_is_void
+    ast = parse("x='a script'")
+    infer(ast)
+    assert_equal(@types.getVoidType, inferred_type(ast))
   end
 
   def test_fixnum

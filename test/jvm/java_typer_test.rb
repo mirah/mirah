@@ -33,6 +33,9 @@ class JavaTyperTest < Test::Unit::TestCase
   end
 
   def inferred_type(node, expression=false)
+    if node.kind_of? Java::MirahLangAst::Script
+      node = node.body
+    end
     type = @typer.infer(node, expression).resolve
     if type.name == ':error'
       catch(:exit) do
