@@ -1000,20 +1000,11 @@ class Typer < SimpleNodeVisitor
     new_scope = @scopes.addScope(block)
     infer(block.arguments) if block.arguments
     closures = @closures
-    parent = CallSite(block.parent)
+    #parent = CallSite(block.parent)
     typer = self
     BlockFuture.new(block) do |x, resolvedType|
       unless resolvedType.isError
-        # TODO: This will fail if the block's class changes.
-        new_node = closures.prepare(block, resolvedType)
-        if block == parent.block
-          parent.block = nil
-          parent.parameters.add(new_node)
-        else
-          new_node.setParent(nil)
-          parent.replaceChild(block, new_node)
-        end
-        typer.infer(new_node)
+        closures.insert_closure(block, resolvedType)
       end
     end
   end

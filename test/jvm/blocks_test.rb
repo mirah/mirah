@@ -353,4 +353,173 @@ class BlocksTest < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_closures_support_non_local_return
+    cls, = compile(<<-EOF)
+      class NonLocalMe
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+      end
+      def nlr: String
+        NonLocalMe.new.foo { return "NLR!"}
+        "nor here either"
+      end
+      puts nlr
+    EOF
+    assert_output "NLR!\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_closures_support_non_local_return_with_primitives
+    cls, = compile(<<-EOF)
+      class NonLocalMe
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+      end
+      def nlr: int
+        NonLocalMe.new.foo { return 1234}
+        5678
+      end
+      puts nlr
+    EOF
+    assert_output "1234\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_when_non_local_return_types_incompatible_has_error
+    assert_raises Mirah::MirahError do
+      parse_and_type(<<-CODE)
+      class NonLocalMe
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+      end
+      def nlr: int
+        NonLocalMe.new.foo { return "not an int"}
+        5678
+      end
+
+      CODE
+    end
+  end
+
+  def test_closures_non_local_return_to_a_script
+    cls, = compile(<<-EOF)
+      def foo(a: Runnable)
+        a.run
+        puts "doesn't get here"
+      end
+      puts "before"
+      foo { return }
+      puts "or here"
+    EOF
+    assert_output "before\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_closures_non_local_return_defined_in_a_class
+    cls, = compile(<<-EOF)
+      class ClosureInMethodInClass
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+        def nlr
+          puts "before"
+          foo { return 1234 }
+          puts "or here"
+          5678
+        end
+      end
+      puts ClosureInMethodInClass.new.nlr
+    EOF
+    assert_output "before\n1234\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_closures_non_local_return_defined_in_a_void_method
+    cls, = compile(<<-EOF)
+      class ClosureInVoidMethodInClass
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+        def nlr: void
+          puts "before"
+          foo { return }
+          puts "or here"
+        end
+      end
+      ClosureInVoidMethodInClass.new.nlr
+    EOF
+    puts "before running"
+    assert_output "before\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_closure_non_local_return_with_multiple_returns
+    pending {
+    cls, = compile(<<-EOF)
+      class NonLocalMe
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+      end
+      def nlr(flag: boolean): String
+        NonLocalMe.new.foo { if flag; return "NLR!"; else; return "NLArrrr"; end}
+        "nor here either"
+      end
+      puts nlr true
+      puts nlr false
+    EOF
+    assert_output "NLR!\nNLArrrr\n" do
+      cls.main(nil)
+    end
+  }
+  end
+
+
+  def test_two_nlr_closures_in_the_same_method
+    pending{
+    cls, = compile(<<-EOF)
+      class NonLocalMe
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+      end
+      def nlr(flag: boolean): String
+        if flag
+          NonLocalMe.new.foo { return "NLR!" }
+        else
+          NonLocalMe.new.foo { return "NLArrrr" }
+        end
+        "nor here either"
+      end
+      puts nlr
+    EOF
+    assert_output "NLR!\nNLArrrr\n" do
+      cls.main(nil)
+    end
+  }
+  end
+  # nested nlr scopes
+
+# works with script as end
+  # non-local-return when return type incompat, has sensible error
+  # non-local-return when multiple non-local-return blocks in same method
+  # non-local-return when multiple non-local-return blocks in same method, in if statment
+  # non-local-return when multiple non-local-return block with multiple returns
+  #    
 end
