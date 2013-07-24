@@ -27,6 +27,7 @@ import javax.lang.model.type.TypeVariable
 import javax.lang.model.type.WildcardType
 import mirah.lang.ast.Position
 import org.mirah.jvm.types.CallType
+import org.mirah.jvm.types.GenericMethod
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.BaseTypeFuture
@@ -157,7 +158,11 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
 
   # TypeMirror methods
   def getKind
-    @target.getKind
+    if @target
+      @target.getKind
+    else
+      TypeKind.ERROR
+    end
   end
   def accept(v, p)
     k = getKind
@@ -217,6 +222,8 @@ class ResolvedCall < MirrorProxy implements CallType
   def self.expressionType(target:MirrorType, method:JVMMethod):MirrorType
     if "V".equals(method.returnType.getAsmType.getDescriptor)
       target
+    elsif method.kind_of?(GenericMethod)
+      MirrorType(GenericMethod(method).genericReturnType)
     else
       MirrorType(method.returnType)
     end

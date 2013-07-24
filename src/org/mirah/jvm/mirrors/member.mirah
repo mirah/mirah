@@ -21,13 +21,17 @@ import java.util.List
 import java.util.logging.Logger
 import org.jruby.org.objectweb.asm.Opcodes
 import org.mirah.jvm.types.JVMType
-import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.GenericMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
-class Member implements JVMMethod
+class Member implements GenericMethod
+  def self.initialize:void
+    @@log = Logger.getLogger(Member.class.getName)
+  end
+
   def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List,
                  returnType:JVMType, kind:MemberKind)
     @flags = flags
@@ -40,6 +44,12 @@ class Member implements JVMMethod
 
   attr_reader declaringClass:JVMType, name:String, argumentTypes:List
   attr_reader returnType:JVMType, kind:MemberKind, flags:int
+  attr_accessor signature:String
+  attr_writer genericReturnType:JVMType
+
+  def genericReturnType
+    @genericReturnType || returnType
+  end
 
   def asyncArgument(index:int):TypeFuture
     BaseTypeFuture.new(nil).resolved(ResolvedType(argumentTypes.get(index)))

@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.Collections
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMMethod
@@ -29,6 +30,10 @@ class MirahMirror < AsyncMirror
     super
     @default_constructor = Member.new(Opcodes.ACC_PUBLIC, self, '<init>', [], self, MemberKind.CONSTRUCTOR)
     @fields = {}
+  end
+
+  def getTypeVariableMap
+    Collections.emptyMap
   end
 
   def declareField(field:JVMMethod)

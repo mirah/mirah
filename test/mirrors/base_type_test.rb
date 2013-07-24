@@ -38,18 +38,6 @@ class BaseTypeTest < Test::Unit::TestCase
   def test_tostring
     assert_equal("FooBar", @type.toString)
   end
-  
-  def test_getmethod
-    constructor = Member.new(Opcodes.ACC_PUBLIC, @type, "<init>", [], @void, MemberKind::CONSTRUCTOR)
-    copy = Member.new(Opcodes.ACC_PUBLIC, @type, "copyFrom", [@type], @void, MemberKind::METHOD)
-    @type.add(constructor)
-    @type.add(copy)
-    assert_nil(@type.getMethod('foobar', []))
-    assert_equal(constructor, @type.getMethod('<init>', []))
-    assert_nil(@type.getMethod('<init>', [@type]))
-    assert_equal(copy, @type.getMethod('copyFrom', [@type]))
-    assert_nil(@type.getMethod('copyFrom', []))
-  end
 
   def test_assignableFrom
     object = type('java.lang.Object')

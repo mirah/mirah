@@ -598,14 +598,14 @@ class GenericsTest < Test::Unit::TestCase
     klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
     string = @types.getStringType
     a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces,
-        [string, string, string])
+        [string, string, string], {})
     
     r = typevar('R')
     s = typevar('S')
     t = typevar('T')
     
     f = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces,
-        [future(r), future(@type_utils.getWildcardType(s, nil)), future(@type_utils.getWildcardType(nil, t))])
+        [future(r), future(@type_utils.getWildcardType(s, nil)), future(@type_utils.getWildcardType(nil, t))], {})
     rc = Constraints.new
     sc = Constraints.new
     tc = Constraints.new
@@ -620,7 +620,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_cycle
     klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
     cycle = Cycle.new
-    a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces, [future(cycle)])
+    a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces, [future(cycle)], {})
     cycle.target_set(a)
     assert_equal("FooBar<FooBar<FooBar<...>>>", a.toString)
   end
@@ -672,7 +672,8 @@ class GenericsTest < Test::Unit::TestCase
     a = set(type('java.lang.String'))
     b = type('java.util.Set')
     assert(b.isSupertypeOf(a))
-    assert(!a.isSupertypeOf(b))
+    # Set<E> isn't really a supertype of Set, but we allow it to make unchecked conversion work.
+    # assert(!a.isSupertypeOf(b))
     assert(b.isSupertypeOf(b))
     assert(b.isSameType(b))
     assert(!b.isSameType(a))

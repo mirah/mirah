@@ -52,6 +52,10 @@ class TypeInvoker < SignatureVisitor
     @interfaces = []
   end
 
+  def getTypeVariableMap:Map
+    @typeVariables
+  end
+
   def visitFormalTypeParameter(name)
     @typeVariables[name] = @args.removeFirst unless @args.isEmpty
   end
@@ -105,7 +109,8 @@ class TypeInvoker < SignatureVisitor
       invoker = TypeInvoker.new(context, outerTypeArgs, args)
       invoker.read(dtype.signature)
       TypeInvocation.new(type,
-                         invoker.superclass, invoker.interfaces, args)
+                         invoker.superclass, invoker.interfaces, args,
+                         invoker.getTypeVariableMap)
     end
   end
 end

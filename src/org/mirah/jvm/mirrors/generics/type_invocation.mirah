@@ -13,8 +13,11 @@
 package org.mirah.jvm.mirrors.generics
 
 import java.util.logging.Logger
+import java.util.Collections
+import java.util.HashMap
 import java.util.List
 import java.util.LinkedList
+import java.util.Map
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import org.mirah.jvm.mirrors.AsyncMirror
@@ -24,7 +27,7 @@ import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.TypeFuture
 
 class TypeInvocation < AsyncMirror
-  def initialize(raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List)
+  def initialize(raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List, typeVariableMap:Map)
     super(raw.getAsmType, raw.flags, superclass, interfaces)
     @raw = raw
     @interfaces = interfaces
@@ -35,6 +38,7 @@ class TypeInvocation < AsyncMirror
         mirror.notifyOfIncompatibleChange
       end
     end
+    @typeVariableMap = Collections.unmodifiableMap(HashMap.new(typeVariableMap))
   end
 
   def self.initialize:void
@@ -47,6 +51,10 @@ class TypeInvocation < AsyncMirror
 
   def getTypeArguments
     @typeArguments.map {|a:TypeFuture| a.resolve}
+  end
+
+  def getTypeVariableMap
+    @typeVariableMap
   end
 
   def toString
@@ -88,6 +96,10 @@ class TypeInvocation < AsyncMirror
   def isSupertypeOf(other)
     if getAsmType.equals(other.getAsmType) && other.getKind == TypeKind.DECLARED
       other_args = DeclaredType(other).getTypeArguments
+      if other_args.nil? || other_args.isEmpty
+        # Allow unchecked conversion
+        return true
+      end
       match = true
       getTypeArguments.zip(other_args) do |a:MirrorType, b:MirrorType|
         unless b && a.isSupertypeOf(b)

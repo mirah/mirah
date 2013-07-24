@@ -21,6 +21,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.JVMScope'
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.MethodLookup'
+  java_import 'org.mirah.jvm.mirrors.LookupState'
   java_import 'org.mirah.jvm.mirrors.FakeMember'
   java_import 'org.mirah.jvm.mirrors.Member'
   java_import 'org.mirah.jvm.mirrors.MetaType'
@@ -54,6 +55,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   def setup
     @types = MirrorTypeSystem.new
     @scope = JVMScope.new
+    @lookup = MethodLookup.new(@types.context)
   end
 
   def jvmtype(internal_name, flags=0, superclass=nil)
@@ -266,7 +268,7 @@ class MethodLookupTest < BaseMethodLookupTest
     methods_desc = methods.inspect
     expected_invisible = methods - expected_visible
     set_self_type(type)
-    invisible = MethodLookup.removeInaccessible(methods, @scope, nil)
+    invisible = @lookup.removeInaccessible(methods, @scope, nil)
     assert_equal(expected_invisible.map {|m| m.toString}, invisible.map {|m| m.toString})
     assert_equal(expected_visible.map {|m| m.toString}, methods.map {|m| m.toString})
     # TODO: fix protected usage. e.g. Foo can call Object.clone() through a foo instance, but not any Object.
@@ -283,7 +285,7 @@ class MethodLookupTest < BaseMethodLookupTest
   end
 
   def test_gatherMethods
-    methods = MethodLookup.gatherMethods(wrap('Ljava/lang/String;'), 'toString')
+    methods = @lookup.gatherMethods(wrap('Ljava/lang/String;'), 'toString')
     assert_equal(3, methods.size)
 
     declaring_classes = Set.new(methods.map {|m| m.declaringClass})
@@ -296,14 +298,14 @@ class MethodLookupTest < BaseMethodLookupTest
   def test_method_splitting
     set_self_type(jvmtype('Foo'))
     methods = [make_method("Ljava/lang/Object;.()V", Opcodes.ACC_PRIVATE), make_method("Ljava/lang/String;.()V")]
-    state = MethodLookup.new(@scope, wrap('Ljava/lang/String;'), methods, nil)
+    state = LookupState.new(@types.context, @scope, wrap('Ljava/lang/String;'), methods, nil)
     assert_equal("{potentials: 1 0 inaccessible: 1 0}", state.toString)
   end
 
   def test_search
     set_self_type(jvmtype('Foo'))
     methods = [make_method("Ljava/lang/Object;.()V")]
-    state = MethodLookup.new(@scope, wrap('Ljava/lang/String;'), methods, nil)
+    state = LookupState.new(@types.context, @scope, wrap('Ljava/lang/String;'), methods, nil)
     state.search([], nil)
     assert_equal("{1 methods 0 macros 0 inaccessible}", state.toString)
     future = state.future(false)
@@ -315,13 +317,13 @@ class MethodLookupTest < BaseMethodLookupTest
 
   def test_findMethod
     set_self_type(jvmtype('Foo'))
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil, nil, false).resolve
+    type = @lookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'toString', [], nil, nil, false).resolve
     assert(!type.isError, type.toString)
-    assert_nil(MethodLookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil, nil, false))
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil, nil, false).resolve
+    assert_nil(@lookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil, nil, false))
+    type = @lookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil, nil, false).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.registerNatives() from Foo', type.message[0][0])
-    type = MethodLookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil, nil, false).resolve
+    type = @lookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil, nil, false).resolve
     assert(type.isError)
     assert_equal('Cannot access java.lang.Object.clone() from Foo', type.message[0][0])
     # TODO test ambiguous
@@ -475,7 +477,7 @@ end
 
 class Phase1Test < BaseMethodLookupTest
   def phase1(methods, params)
-    methods = MethodLookup.phase1(methods.map{|m| make_method(m)}, params.map{|p| wrap(p)})
+    methods = @lookup.phase1(methods.map{|m| make_method(m)}, params.map{|p| wrap(p)})
     methods.map {|m| m.toString } if methods
   end
 
@@ -507,16 +509,17 @@ class Phase1Test < BaseMethodLookupTest
         MemberKind::METHOD)
     # The method should match
     assert_equal([error_member],
-                 MethodLookup.phase1([error_member], [wrap('I')]).to_a)
+                 @lookup.phase1([error_member], [wrap('I')]).to_a)
     # And be least specific
     ok_member = make_method('I.(I)S')
     assert_equal([ok_member],
-                 MethodLookup.phase1([error_member, ok_member], [wrap('I')]).to_a)
+                 @lookup.phase1([error_member, ok_member], [wrap('I')]).to_a)
   end
 end
 
 class FieldTest < BaseMethodLookupTest
   def setup
+    super
     @a = FakeMirror.new('LA;')
     @b = FakeMirror.new('LB;', @a)
     @scope = JVMScope.new
@@ -529,15 +532,15 @@ class FieldTest < BaseMethodLookupTest
     a_foo = @a.add_field("foo")
     a_bar = @a.add_field("bar")
     b_foo = @b.add_field("foo")
-    foos = MethodLookup.gatherFields(@b, 'foo').to_a
+    foos = @lookup.gatherFields(@b, 'foo').to_a
     assert_equal([b_foo, a_foo], foos)
     
-    assert_equal([a_bar], MethodLookup.gatherFields(@b, 'bar').to_a)
+    assert_equal([a_bar], @lookup.gatherFields(@b, 'bar').to_a)
   end
 
   def test_find_super_field
     @a.add_field("foo")
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+    future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)    
   end
 
@@ -545,7 +548,7 @@ class FieldTest < BaseMethodLookupTest
     @a.add_field("foo")
     @b.add_field("foo")
 
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+    future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert_equal("LB;", future.resolve.returnType.asm_type.descriptor)
   end
 
@@ -554,18 +557,18 @@ class FieldTest < BaseMethodLookupTest
     @a.add_field("foo", Opcodes.ACC_PUBLIC)
     @b.add_field("foo", Opcodes.ACC_PRIVATE)
     
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+    future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)
   end
 
   def test_inaccessible
     @a.add_field("foo", Opcodes.ACC_PRIVATE)
-    future = MethodLookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+    future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
     assert(future.resolve.isError, "Expected error, got #{future.resolve}")
   end
 
   def test_field_setter
     @a.add_field("foo")
-    future = MethodLookup.findMethod(@scope, @a, 'foo_set', [@a], nil, nil, false)
+    future = @lookup.findMethod(@scope, @a, 'foo_set', [@a], nil, nil, false)
   end
 end

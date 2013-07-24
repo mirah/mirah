@@ -762,6 +762,7 @@ module Mirah::JVM::Types
       until interfaces.empty?
         interface = interfaces.pop
         next if seen[interface]
+        next if interface.isError
         seen[interface] = true
         interfaces.concat(interface.interfaces)
         new_things = block.call interface

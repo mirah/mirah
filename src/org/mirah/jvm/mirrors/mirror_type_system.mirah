@@ -106,6 +106,7 @@ class MirrorTypeSystem implements TypeSystem
     classpath.loader = @loader
     classpath.bytecode_loader = bytecode_loader
     classpath.macro_loader = @macro_loader
+    context[MethodLookup] = @methods = MethodLookup.new(context)
 
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
@@ -262,15 +263,17 @@ class MirrorTypeSystem implements TypeSystem
           macro_params.add(@macro_loader.loadMirror(type))
         end
       end
-      method = MethodLookup.findMethod(
+      method = @methods.findMethod(
           call.scope, target, method_name,
           call.resolved_parameters, macro_params,
           call.position, !call.explicitTarget)
       future.type = method || error
       log = @@log
       log.finer("Adding listener for #{target}.#{method_name} (#{target.getClass})")
+      
+      method_lookup = @methods
       target.addMethodListener(method_name) do |klass, name|
-        future.type = MethodLookup.findMethod(
+        future.type = method_lookup.findMethod(
             call.scope, target, method_name,
             call.resolved_parameters, macro_params,
             call.position, !call.explicitTarget) || error
@@ -335,7 +338,7 @@ class MirrorTypeSystem implements TypeSystem
 
   def getAbstractMethods(type)
     if type.kind_of?(MirrorType)
-      MethodLookup.gatherAbstractMethods(MirrorType(type))
+      @methods.gatherAbstractMethods(MirrorType(type))
     else
       Collections.emptyList
     end
@@ -565,7 +568,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def inferOverride(target:MirrorType, name:String, arguments:List):TypeFuture
-    override = Member(MethodLookup.findOverride(target, name, arguments.size))
+    override = Member(@methods.findOverride(target, name, arguments.size))
     if override
       arguments.size.times do |i|
         arg = AssignableTypeFuture(arguments.get(i))

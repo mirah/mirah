@@ -17,6 +17,10 @@ interface JVMMethod
   def isAbstract:boolean; end
 end
 
+interface GenericMethod < JVMMethod
+  def genericReturnType:JVMType; end
+end
+
 interface JVMType < ResolvedType
   def superclass:JVMType; end
   def getAsmType:Type; end

@@ -18,6 +18,7 @@ package org.mirah.jvm.mirrors
 import java.util.ArrayList
 import java.util.Collections
 import java.util.LinkedList
+import java.util.List
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.tree.AnnotationNode
@@ -30,6 +31,7 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.MethodType
 import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
 import mirah.lang.ast.TypeRefImpl
@@ -108,7 +110,11 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     argument_types.each do |t|
       argument_mirrors.add(lookup(t))
     end
-    add(Member.new(method.access, self, method.name, argument_mirrors, lookup(method_type.getReturnType), kind))
+    member = Member.new(
+        method.access, self, method.name, argument_mirrors,
+        lookup(method_type.getReturnType), kind)
+    member.signature = method.signature
+    add(member)
   end
 
   def addInnerClass(node:InnerClassNode):void
@@ -173,5 +179,29 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
       end
     end
     nil
+  end
+
+  def getTypeVariableMap
+    Collections.emptyMap
+  end
+
+  # This should only used by StringCompiler to lookup
+  # StringBuilder.append(). This really should happen
+  # during type inference :-(
+  def getMethod(name:String, params:List):JVMMethod
+    @methods_loaded ||= load_methods
+    members = getMembers(name)
+    if members
+      members.each do |m|
+        member = Member(m)
+        if member.argumentTypes.equals(params)
+          return member
+        end
+      end
+    end
+    t = @context[MethodLookup].findMethod(nil, self, name, params, nil, nil, false)
+    if t
+      return ResolvedCall(MethodType(t.resolve).returnType).member
+    end
   end
 end

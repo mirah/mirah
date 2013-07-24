@@ -550,4 +550,15 @@ class MTS_MethodLookupTest < BaseMirrorsTest
         @types, @scope, main_type, true, 'class', [], [], nil)
     assert_equal('java.lang.Class<FooBar>', method.resolve.toString)
   end
+
+  def test_generic_method
+    klass = CallFuture.new(
+        @types, @scope, main_type, true, 'class', [], [], nil)
+    collections = @types.getMetaType(
+        @types.get(@scope, typeref('java.util.Collections')))
+    set = @types.get(@scope, typeref('java.util.Set'))
+    checked = CallFuture.new(
+        @types, @scope, collections, true, 'checkedSet', [set, klass], [], nil)
+    assert_equal('java.util.Set<FooBar>', checked.resolve.toString)
+  end
 end

@@ -19,6 +19,7 @@ import java.util.Collections
 import java.util.ArrayList
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import java.util.Set
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.NoType
@@ -32,7 +33,6 @@ import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
-import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
@@ -59,6 +59,7 @@ end
 interface DeclaredMirrorType < MirrorType, DeclaredType
   def link:void; end
   def signature:String; end
+  def getTypeVariableMap:Map; end
 end
 
 # package_private
@@ -159,26 +160,6 @@ class BaseType implements MirrorType, DeclaredType
   def hasStaticField(name:String):boolean
     field = getDeclaredField(name)
     field && field.kind.name.startsWith("STATIC_")
-  end
-
-  # This should only used by StringCompiler to lookup
-  # StringBuilder.append(). This really should happen
-  # during type inference :-(
-  def getMethod(name:String, params:List):JVMMethod
-    @methods_loaded ||= load_methods
-    members = List(@members[name])
-    if members
-      members.each do |m|
-        member = Member(m)
-        if member.argumentTypes.equals(params)
-          return member
-        end
-      end
-    end
-    t = MethodLookup.findMethod(nil, self, name, params, nil, nil, false)
-    if t
-      return ResolvedCall(MethodType(t.resolve).returnType).member
-    end
   end
 
   def getDeclaredMethods(name:String)
@@ -293,6 +274,14 @@ class BaseType implements MirrorType, DeclaredType
   def isSupertypeOf(other)
     return true if getAsmType.equals(other.getAsmType)
     other.directSupertypes.any? {|x| isSupertypeOf(MirrorType(x))}
+  end
+
+  def getMembers(name:String)
+    List(@members[name])
+  end
+
+  def getMethod(name:String, params:List):JVMMethod
+    nil
   end
 
   def erasure

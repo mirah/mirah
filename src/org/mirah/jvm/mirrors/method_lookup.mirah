@@ -26,19 +26,21 @@ import java.util.Set
 import java.util.logging.Level
 import java.util.logging.Logger
 import mirah.lang.ast.Position
+import org.jruby.org.objectweb.asm.Opcodes
 import org.mirah.MirahLogFormatter
+import org.mirah.jvm.mirrors.generics.GenericMethodLookup
+import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
+import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.InlineCode
 import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
-import org.mirah.typer.TypeFuture
 import org.mirah.typer.Scope
-import org.mirah.jvm.types.JVMMethod
-import org.mirah.jvm.types.JVMType
-import org.mirah.jvm.types.JVMTypeUtils
-import org.mirah.jvm.types.MemberKind
-import org.jruby.org.objectweb.asm.Opcodes
+import org.mirah.typer.TypeFuture
+import org.mirah.util.Context
 
 
 interface SubtypeChecker
@@ -62,6 +64,10 @@ class MethodLookup
     @@log = Logger.getLogger(MethodLookup.class.getName)
   end
 
+  def initialize(context:Context)
+    @context = context
+  end
+
   class << self
     def isPrimitive(type:JVMType)
       JVMTypeUtils.isPrimitive(type)
@@ -79,7 +85,7 @@ class MethodLookup
       return true if subtype.matchesAnything
       return supertype.matchesAnything
     end
-  
+
     def isJvmSubType(subtype:JVMType, supertype:JVMType):boolean
       return true if (subtype.matchesAnything || supertype.matchesAnything)
       if subtype.kind_of?(NullType)
@@ -91,7 +97,7 @@ class MethodLookup
       end
       MirrorType(supertype).isSupertypeOf(MirrorType(subtype))
     end
-  
+
     def isPrimitiveSubType(subtype:JVMType, supertype:JVMType):boolean
       MirrorType(supertype).isSupertypeOf(MirrorType(subtype))
     end
@@ -136,7 +142,7 @@ class MethodLookup
       end
       jvm_a = MirrorType(a)
       jvm_b = MirrorType(b)
-          
+        
       return 0.0 if jvm_a.isSameType(jvm_b)
 
       if isJvmSubType(jvm_b, jvm_a)
@@ -157,7 +163,7 @@ class MethodLookup
       ambiguous = false
       methods.each do |m|
         method = JVMMethod(m)
-        
+      
         # Compare 'method' with each of the maximally specific methods.
         # If it is strictly more specific than all of them, it is the
         # new most specific method.
@@ -263,307 +269,315 @@ class MethodLookup
       end
       method
     end
+  end
 
-    def findMethod(scope:Scope,
-                   target:MirrorType,
-                   name:String,
-                   params:List,
-                   macro_params:List,
-                   position:Position,
-                   includeStaticImports:boolean):TypeFuture
-      potentials = gatherMethods(target, name)
-      if includeStaticImports && potentials.isEmpty && target == scope.selfType.resolve
-        potentials = gatherStaticImports(JVMScope(scope), name)
-      end
-      state = MethodLookup.new(scope, target, potentials, position)
-      state.search(params, macro_params)
-      state.searchFields(name)
-      @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{state}")
-      state.future(false)
+  def findMethod(scope:Scope,
+                 target:MirrorType,
+                 name:String,
+                 params:List,
+                 macro_params:List,
+                 position:Position,
+                 includeStaticImports:boolean):TypeFuture
+    potentials = gatherMethods(target, name)
+    if includeStaticImports && potentials.isEmpty && target == scope.selfType.resolve
+      potentials = gatherStaticImports(JVMScope(scope), name)
     end
+    state = LookupState.new(@context, scope, target, potentials, position)
+    state.search(params, macro_params)
+    state.searchFields(name)
+    @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{state}")
+    state.future(false)
+  end
 
-    def findOverride(target:MirrorType, name:String, arity:int):JVMMethod
-      match = nil
-      gatherMethods(target, name).each do |m|
-        member = JVMMethod(m)
-        next if member.declaringClass == target
-        if member.argumentTypes.size == arity
-          if match.nil?
-            match = member
-          else
-            return nil
-          end
-        end
-      end
-      match
-    end
-
-    def makeFuture(target:MirrorType, method:Member, params:List,
-                   position:Position):TypeFuture
-      DerivedFuture.new(method.asyncReturnType) do |resolved|
-        type = if resolved.kind_of?(InlineCode)
-          resolved
+  def findOverride(target:MirrorType, name:String, arity:int):JVMMethod
+    match = nil
+    gatherMethods(target, name).each do |m|
+      member = JVMMethod(m)
+      next if member.declaringClass == target
+      if member.argumentTypes.size == arity
+        if match.nil?
+          match = member
         else
-          ResolvedCall.new(target, method)
-        end
-        MethodType.new(method.name, method.argumentTypes, type, method.isVararg)
-      end
-    end
-
-    def inaccessible(scope:Scope, method:Member, position:Position):TypeFuture
-      ErrorType.new(
-          [["Cannot access #{method} from #{scope.selfType.resolve}",
-            position]])
-    end
-
-    def gatherMethods(target:MirrorType, name:String):List
-      methods = LinkedList.new
-      types = HashSet.new
-      gatherMethodsInternal(target, name, methods, types)
-    end
-
-    def gatherStaticImports(scope:JVMScope, name:String):List
-      methods = LinkedList.new
-      types = HashSet.new
-      scope.staticImports.each do |type|
-        resolved = TypeFuture(type).resolve
-        if resolved.kind_of?(MirrorType)
-          gatherMethodsInternal(MirrorType(resolved), name, methods, types)
-        end
-      end
-      methods
-    end
-
-    def gatherMethodsInternal(target:MirrorType, name:String, methods:List, visited:Set):List
-      if target
-        target = target.unmeta
-      end
-      unless target.nil? || target.isError || visited.contains(target)
-        visited.add(target)
-        methods.addAll(target.getDeclaredMethods(name))
-        return methods if "<init>".equals(name)
-        target.directSupertypes.each do |t|
-          gatherMethodsInternal(MirrorType(t), name, methods, visited)
-        end
-      end
-      methods
-    end
-
-    def gatherAbstractMethods(target:MirrorType):List
-      defined_methods = HashSet.new
-      abstract_methods = { }
-      visited = HashSet.new
-      gatherAbstractMethodsInternal(target, defined_methods, abstract_methods, visited)
-      abstract_methods.keySet.removeAll(defined_methods)
-      ArrayList.new(abstract_methods.values)
-    end
-
-    def gatherAbstractMethodsInternal(target:MirrorType, defined_methods:Set, abstract_methods:Map, visited:Set):void
-      if target
-        target = target.unmeta
-      end
-      unless target.nil? || target.isError || visited.contains(target)
-        visited.add(target)
-        target.getAllDeclaredMethods.each do |m|
-          member = JVMMethod(m)
-          if member.isAbstract
-            type = MethodType.new(member.name, member.argumentTypes, member.returnType, member.isVararg)
-            abstract_methods[[member.name, member.argumentTypes]] = type
-          else
-            defined_methods.add([member.name, member.argumentTypes])
-          end
-        end
-        target.directSupertypes.each do |t|
-          gatherAbstractMethodsInternal(MirrorType(t), defined_methods, abstract_methods, visited)
+          return nil
         end
       end
     end
+    match
+  end
 
-    def gatherFields(target:MirrorType, name:String):List
-      setter = false
-      if name.endsWith('_set')
-        name = name.substring(0, name.length - 4)
-        setter = true
-      end
-      fields = LinkedList.new
-      mirror = target.unmeta
-      gatherFieldsInternal(target, name, setter, fields, HashSet.new)
-      fields
-    end
-
-    def gatherFieldsInternal(target:MirrorType, name:String,
-                             isSetter:boolean, fields:List, visited:Set):void
-      unless target.nil? || target.isError || visited.contains(target)
-        visited.add(target)
-        field = target.getDeclaredField(name)
-        if field
-          field = makeSetter(Member(field)) if isSetter
-          fields.add(field)
-        end
-        target.directSupertypes.each do |t|
-          gatherFieldsInternal(MirrorType(t), name, isSetter, fields, visited)
-        end
-      end
-    end
-
-    def makeSetter(field:Member)
-      kind = if field.kind == MemberKind.FIELD_ACCESS
-        MemberKind.FIELD_ASSIGN
+  def makeFuture(target:MirrorType, method:Member, params:List,
+                 position:Position):TypeFuture
+    DerivedFuture.new(method.asyncReturnType) do |resolved|
+      type = if resolved.kind_of?(InlineCode)
+        resolved
       else
-        MemberKind.STATIC_FIELD_ASSIGN
+        ResolvedCall.new(target, method)
       end
-      AsyncMember.new(field.flags,
-                      MirrorType(field.declaringClass),
-                      "#{field.name}=",
-                      [field.asyncReturnType],
-                      field.asyncReturnType,
-                      kind)
-    end
-
-    def findMatchingMethod(potentials:List, params:List):List
-      if  params && !potentials.isEmpty && params.all?
-        phase1(potentials, params) || phase2(potentials, params) || phase3(potentials, params)
-      end
-    end
-
-    def phase1(potentials:List, params:List):List
-      findMatchingArityMethod(Phase1Checker.new, potentials, params)
-    end
-    
-    def findMatchingArityMethod(phase:SubtypeChecker,
-                                potentials:List,
-                                params:List)
-      arity = params.size
-      phase_methods = LinkedList.new
-      potentials.each do |m|
-        member = Member(m)
-        args = member.argumentTypes
-        next unless args.size == arity
-        match = true
-        arity.times do |i|
-          unless phase.isSubType(ResolvedType(params[i]), ResolvedType(args[i]))
-            match = false
-            break
-          end
-        end
-        phase_methods.add(member) if match
-      end
-      if phase_methods.size == 0
-        nil
-      elsif phase_methods.size > 1
-        findMaximallySpecific(phase_methods)
-      else
-        phase_methods
-      end
-    end
-
-    def phase2(potentials:List, params:List):List
-      findMatchingArityMethod(Phase2Checker.new, potentials, params)
-    end
-
-    def phase3(potentials:List, params:List):List
-      arity = params.size
-      phase3_methods = LinkedList.new
-      potentials.each do |m|
-        member = Member(m)
-        next unless member.isVararg
-        args = member.argumentTypes
-        required_count = args.size - 1
-        next unless required_count <= arity
-        match = true
-        arity.times do |i|
-          param = ResolvedType(params[i])
-          arg = getMethodArgument(args, i, true)
-          unless isSubTypeWithConversion(param, arg)
-            match = false
-            break
-          end
-        end
-        phase3_methods.add(member) if match
-      end
-      if phase3_methods.size == 0
-        nil
-      elsif phase3_methods.size > 1
-        findMaximallySpecific(phase3_methods)
-      else
-        phase3_methods
-      end
-    end
-
-    def isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
-      return true if scope.nil?
-      selfType = MirrorType(scope.selfType.resolve)
-      if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
-        return false
-      elsif (0 != (access & Opcodes.ACC_PUBLIC) ||
-          type.getAsmType.getDescriptor.equals(
-              selfType.getAsmType.getDescriptor))
-        return true
-      elsif 0 != (access & Opcodes.ACC_PRIVATE)
-        return false
-      elsif getPackage(type).equals(getPackage(selfType))
-        return true
-      elsif (0 != (access & Opcodes.ACC_PROTECTED) &&
-             isJvmSubType(selfType, type))
-        # A subclass may call protected methods from the superclass,
-        # but only on instances of the subclass.
-        return target.nil? || isJvmSubType(target, selfType)
-      else
-        return false
-      end
-    end
-
-    def getPackage(type:JVMType):String
-      name = type.getAsmType.getInternalName
-      lastslash = name.lastIndexOf(?/)
-      if lastslash == -1
-        ""
-      else
-        name.substring(0, lastslash)
-      end
-    end
-
-    def removeInaccessible(methods:List, scope:Scope, target:JVMType):List
-      inaccessible = LinkedList.new
-      it = methods.iterator
-      while it.hasNext
-        method = Member(it.next)
-        # The declaring class and the method must be visible for the method
-        # to be applicable.
-        accessible = true
-        accessible = false unless isAccessible(method.declaringClass, 
-                                               method.declaringClass.flags,
-                                               scope)
-        accessible = false unless isAccessible(method.declaringClass,
-                                               method.flags, scope, target)
-        unless accessible
-          it.remove
-          inaccessible.add(method)
-        end
-      end
-      inaccessible
-    end
-
-    def main(args:String[]):void
-      logger = MirahLogFormatter.new(true).install
-      @@log.setLevel(Level.ALL)
-      types = MirrorTypeSystem.new
-      methods = LinkedList.new
-      args.each do |arg|
-        methods.add(FakeMember.create(types, arg))
-      end
-      puts findMaximallySpecific(methods)
+      MethodType.new(method.name, method.argumentTypes, type, method.isVararg)
     end
   end
 
-  def initialize(scope:Scope,
+  def inaccessible(scope:Scope, method:Member, position:Position):TypeFuture
+    ErrorType.new(
+        [["Cannot access #{method} from #{scope.selfType.resolve}",
+          position]])
+  end
+
+  def gatherMethods(target:MirrorType, name:String):List
+    methods = LinkedList.new
+    types = HashSet.new
+    gatherMethodsInternal(target, name, methods, types)
+  end
+
+  def gatherStaticImports(scope:JVMScope, name:String):List
+    methods = LinkedList.new
+    types = HashSet.new
+    scope.staticImports.each do |type|
+      resolved = TypeFuture(type).resolve
+      if resolved.kind_of?(MirrorType)
+        gatherMethodsInternal(MirrorType(resolved), name, methods, types)
+      end
+    end
+    methods
+  end
+
+  def gatherMethodsInternal(target:MirrorType, name:String, methods:List, visited:Set):List
+    if target
+      target = target.unmeta
+    end
+    unless target.nil? || target.isError || visited.contains(target)
+      visited.add(target)
+      methods.addAll(target.getDeclaredMethods(name))
+      return methods if "<init>".equals(name)
+      target.directSupertypes.each do |t|
+        gatherMethodsInternal(MirrorType(t), name, methods, visited)
+      end
+    end
+    methods
+  end
+
+  def gatherAbstractMethods(target:MirrorType):List
+    defined_methods = HashSet.new
+    abstract_methods = { }
+    visited = HashSet.new
+    gatherAbstractMethodsInternal(target, defined_methods, abstract_methods, visited)
+    abstract_methods.keySet.removeAll(defined_methods)
+    ArrayList.new(abstract_methods.values)
+  end
+
+  def gatherAbstractMethodsInternal(target:MirrorType, defined_methods:Set, abstract_methods:Map, visited:Set):void
+    if target
+      target = target.unmeta
+    end
+    unless target.nil? || target.isError || visited.contains(target)
+      visited.add(target)
+      target.getAllDeclaredMethods.each do |m|
+        member = JVMMethod(m)
+        if member.isAbstract
+          type = MethodType.new(member.name, member.argumentTypes, member.returnType, member.isVararg)
+          abstract_methods[[member.name, member.argumentTypes]] = type
+        else
+          defined_methods.add([member.name, member.argumentTypes])
+        end
+      end
+      target.directSupertypes.each do |t|
+        gatherAbstractMethodsInternal(MirrorType(t), defined_methods, abstract_methods, visited)
+      end
+    end
+  end
+
+  def gatherFields(target:MirrorType, name:String):List
+    setter = false
+    if name.endsWith('_set')
+      name = name.substring(0, name.length - 4)
+      setter = true
+    end
+    fields = LinkedList.new
+    mirror = target.unmeta
+    gatherFieldsInternal(target, name, setter, fields, HashSet.new)
+    fields
+  end
+
+  def gatherFieldsInternal(target:MirrorType, name:String,
+                           isSetter:boolean, fields:List, visited:Set):void
+    unless target.nil? || target.isError || visited.contains(target)
+      visited.add(target)
+      field = target.getDeclaredField(name)
+      if field
+        field = makeSetter(Member(field)) if isSetter
+        fields.add(field)
+      end
+      target.directSupertypes.each do |t|
+        gatherFieldsInternal(MirrorType(t), name, isSetter, fields, visited)
+      end
+    end
+  end
+
+  def makeSetter(field:Member)
+    kind = if field.kind == MemberKind.FIELD_ACCESS
+      MemberKind.FIELD_ASSIGN
+    else
+      MemberKind.STATIC_FIELD_ASSIGN
+    end
+    AsyncMember.new(field.flags,
+                    MirrorType(field.declaringClass),
+                    "#{field.name}=",
+                    [field.asyncReturnType],
+                    field.asyncReturnType,
+                    kind)
+  end
+
+  def findMatchingMethod(potentials:List, params:List):List
+    if  params && !potentials.isEmpty && params.all?
+      phase1(potentials, params) || phase2(potentials, params) || phase3(potentials, params)
+    end
+  end
+
+  def phase1(potentials:List, params:List):List
+    findMatchingArityMethod(Phase1Checker.new, potentials, params)
+  end
+  
+  def findMatchingArityMethod(phase:SubtypeChecker,
+                              potentials:List,
+                              params:List)
+    arity = params.size
+    phase_methods = LinkedList.new
+    potentials.each do |m|
+      member = Member(m)
+      args = member.argumentTypes
+      next unless args.size == arity
+      match = true
+      arity.times do |i|
+        unless phase.isSubType(ResolvedType(params[i]), ResolvedType(args[i]))
+          match = false
+          break
+        end
+      end
+      phase_methods.add(member) if match
+    end
+    if phase_methods.size == 0
+      nil
+    elsif phase_methods.size > 1
+      MethodLookup.findMaximallySpecific(phase_methods)
+    else
+      phase_methods
+    end
+  end
+
+  def phase2(potentials:List, params:List):List
+    findMatchingArityMethod(Phase2Checker.new, potentials, params)
+  end
+
+  def phase3(potentials:List, params:List):List
+    arity = params.size
+    phase3_methods = LinkedList.new
+    potentials.each do |m|
+      member = Member(m)
+      next unless member.isVararg
+      args = member.argumentTypes
+      required_count = args.size - 1
+      next unless required_count <= arity
+      match = true
+      arity.times do |i|
+        param = ResolvedType(params[i])
+        arg = MethodLookup.getMethodArgument(args, i, true)
+        unless MethodLookup.isSubTypeWithConversion(param, arg)
+          match = false
+          break
+        end
+      end
+      phase3_methods.add(member) if match
+    end
+    if phase3_methods.size == 0
+      nil
+    elsif phase3_methods.size > 1
+      MethodLookup.findMaximallySpecific(phase3_methods)
+    else
+      phase3_methods
+    end
+  end
+
+  def self.isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
+    return true if scope.nil?
+    selfType = MirrorType(scope.selfType.resolve)
+    if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
+      return false
+    elsif (0 != (access & Opcodes.ACC_PUBLIC) ||
+        type.getAsmType.getDescriptor.equals(
+            selfType.getAsmType.getDescriptor))
+      return true
+    elsif 0 != (access & Opcodes.ACC_PRIVATE)
+      return false
+    elsif getPackage(type).equals(getPackage(selfType))
+      return true
+    elsif (0 != (access & Opcodes.ACC_PROTECTED) &&
+           MethodLookup.isJvmSubType(selfType, type))
+      # A subclass may call protected methods from the superclass,
+      # but only on instances of the subclass.
+      return target.nil? || MethodLookup.isJvmSubType(target, selfType)
+    else
+      return false
+    end
+  end
+
+  def self.getPackage(type:JVMType):String
+    name = type.getAsmType.getInternalName
+    lastslash = name.lastIndexOf(?/)
+    if lastslash == -1
+      ""
+    else
+      name.substring(0, lastslash)
+    end
+  end
+
+  def removeInaccessible(methods:List, scope:Scope, target:JVMType):List
+    inaccessible = LinkedList.new
+    it = methods.iterator
+    while it.hasNext
+      method = Member(it.next)
+      # The declaring class and the method must be visible for the method
+      # to be applicable.
+      accessible = true
+      accessible = false unless MethodLookup.isAccessible(
+          method.declaringClass, method.declaringClass.flags, scope)
+      accessible = false unless MethodLookup.isAccessible(
+          method.declaringClass, method.flags, scope, target)
+      unless accessible
+        it.remove
+        inaccessible.add(method)
+      end
+    end
+    inaccessible
+  end
+
+  def self.main(args:String[]):void
+    logger = MirahLogFormatter.new(true).install
+    @@log.setLevel(Level.ALL)
+    types = MirrorTypeSystem.new
+    methods = LinkedList.new
+    args.each do |arg|
+      methods.add(FakeMember.create(types, arg))
+    end
+    puts findMaximallySpecific(methods)
+  end
+end
+
+class LookupState
+  def initialize(context:Context,
+                 scope:Scope,
                  target:MirrorType,
                  potentials:List,
                  position:Position)
+    @context = context
     @scope = scope
     @target = target
     @position = position
     setPotentials(potentials)
+  end
+
+  def processGenericMethods
+    generics = GenericMethodLookup.new(@context)
+    @matches = generics.processGenerics(@target, @params, @matches)
   end
 
   def setPotentials(potentials:List)
@@ -604,13 +618,22 @@ class MethodLookup
   def search(params:List, macro_params:List):void
     @params = params
     @macro_params = macro_params
-    @matches = MethodLookup.findMatchingMethod(@methods, params)
-    @macro_matches = MethodLookup.findMatchingMethod(@macros, macro_params)
+    lookup = @context[MethodLookup]
+    @matches = lookup.findMatchingMethod(@methods, params)
+    @macro_matches = lookup.findMatchingMethod(@macros, macro_params)
+    if matches > 0
+      # These methods match using the raw signature, but they
+      # may not actually be applicable using generics
+      # (in which case there would probably be a ClassCastException
+      # at runtime).
+      # Since this can bring us down to 0 applicable methods, we need
+      # to process generics before inaccessible methods
+      processGenericMethods
+    end
     if matches + macro_matches == 0
-      @inaccessible = MethodLookup.findMatchingMethod(
-          @inaccessible_methods, params)
+      @inaccessible = lookup.findMatchingMethod(@inaccessible_methods, params)
       if @inaccessible.nil? || @inaccessible.isEmpty
-        @inaccessible = MethodLookup.findMatchingMethod(
+        @inaccessible = lookup.findMatchingMethod(
             @inaccessible_macros, macro_params)
       end
     end
@@ -619,7 +642,7 @@ class MethodLookup
   def searchFields(name:String):void
     if matches + macro_matches + inaccessible == 0
       if @params.size == 0 || (name.endsWith('_set') && @params.size == 1)
-        setPotentials(MethodLookup.gatherFields(@target, name))
+        setPotentials(@context[MethodLookup].gatherFields(@target, name))
         search(@params, nil)
       end
     end
@@ -652,9 +675,8 @@ class MethodLookup
   def future(isField:boolean)
     if matches + macro_matches == 0
       if inaccessible
-        MethodLookup.inaccessible(@scope,
-                                  Member(@inaccessible.get(0)),
-                                  @position)
+        @context[MethodLookup].inaccessible(
+            @scope, Member(@inaccessible.get(0)), @position)
       else
         nil
       end
@@ -669,7 +691,8 @@ class MethodLookup
     if methods.size == 0
       nil
     elsif isField || methods.size == 1
-      MethodLookup.makeFuture(@target, Member(methods[0]), params, @position)
+      @context[MethodLookup].makeFuture(
+          @target, Member(methods[0]), params, @position)
     else
       ErrorType.new([["Ambiguous methods #{methods}", @position]])
     end

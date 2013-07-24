@@ -45,7 +45,7 @@ class LubFinder
     @@log = Logger.getLogger(LubFinder.class.getName)
   end
 
-  def leastUpperBound(types:List):DeclaredType
+  def leastUpperBound(types:Collection):DeclaredType
     if @cycles.containsKey(types)
       DeclaredType(@cycles[types])
     else
@@ -106,7 +106,7 @@ class LubFinder
   end
 
   # Returns a map of erased_candidate: invocations
-  def erasedCandidateSet(types:List):Map
+  def erasedCandidateSet(types:Collection):Map
     candidates = nil
     types.each do |t|
       candidates = combineCandidates(
