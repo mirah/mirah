@@ -6,6 +6,9 @@ import org.jruby.org.objectweb.asm.Type
 class JVMTypeUtils
   class << self
     def isPrimitive(type:JVMType)
+      if type.isError
+        return false
+      end
       sort = type.getAsmType.getSort
       sort != Type.OBJECT && sort != Type.ARRAY
     end

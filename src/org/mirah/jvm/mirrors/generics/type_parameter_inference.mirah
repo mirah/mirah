@@ -138,7 +138,7 @@ class TypeParameterInference
                              formalParameter:TypeMirror,
                              typeParameters:Map):void
     tpi = self
-    visitor = lambda(AbstractTypeVisitor6) do
+    visitor = lambda(SimpleTypeVisitor6) do
       def visitTypeVariable(t, p)
         c = Constraints(typeParameters[t])
         c.addEqual(TypeMirror(p)) if c
@@ -203,7 +203,7 @@ class TypeParameterInference
                              formalParameter:TypeMirror,
                              typeParameters:Map):void
     tpi = self
-    visitor = lambda(AbstractTypeVisitor6) do
+    visitor = lambda(SimpleTypeVisitor6) do
       def visitTypeVariable(t, p)
         # T <: A
         c = Constraints(typeParameters[t])

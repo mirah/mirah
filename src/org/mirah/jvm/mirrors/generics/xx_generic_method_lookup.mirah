@@ -17,6 +17,7 @@ package org.mirah.jvm.mirrors.generics
 
 import java.util.ArrayList
 import java.util.Collection
+import java.util.Collections
 import java.util.HashMap
 import java.util.HashSet
 import java.util.List
@@ -55,7 +56,7 @@ class GenericMethodLookup
           if generic_method
             result.add(generic_method)
           end
-        rescue => ex
+        rescue Throwable => ex
           @@log.log(Level.WARNING,
                     "Error during generic method processing for #{member}",
                     ex)
@@ -90,14 +91,14 @@ class GenericMethodLookup
   end
 
   def getTypeParams(target:MirrorType, type_params:Collection, isInit:boolean)
+    result = Collections.checkedSet(HashSet.new, TypeVariable.class)
     if target.kind_of?(DeclaredMirrorType) && isInit
-      result = HashSet.new
-      result.addAll(DeclaredMirrorType(target).getTypeVariableMap.values)
-      result.addAll(type_params)
-      result
-    else
-      type_params
+      DeclaredMirrorType(target).getTypeVariableMap.values.each do |x:TypeFuture|
+        result.add(x.resolve)
+      end
     end
+    result.addAll(type_params)
+    result
   end
 
   def collectConstraints(inference:TypeParameterInference,
@@ -107,8 +108,9 @@ class GenericMethodLookup
                          isVararg:boolean):Map
     arg_count = generic_params.size
     required_count = isVararg ? arg_count - 1 : arg_count
-    constraint_map = {}
-    type_params.each do |v:TypeVariable|
+    constraint_map = Collections.checkedMap(
+        {}, TypeVariable.class, Constraints.class)
+    type_params.each do |v|
       constraint_map[v] = Constraints.new
     end
     vararg_component = nil
@@ -140,6 +142,10 @@ class GenericMethodLookup
     end
     generic_target = DeclaredMirrorType(inference.findMatchingSupertype(
         target, DeclaredType(method.declaringClass)))
+    if generic_target.nil?
+      # This happens for static imports.
+      return result
+    end
     vars = generic_target.getTypeVariableMap
     vars.keySet.each do |k|
       result[k.toString] = vars[k]
