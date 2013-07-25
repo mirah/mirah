@@ -16,7 +16,9 @@
 package org.mirah.jvm.mirrors.generics
 
 import java.util.ArrayList
+import java.util.Collection
 import java.util.HashMap
+import java.util.HashSet
 import java.util.List
 import java.util.Map
 import java.util.logging.Level
@@ -72,7 +74,10 @@ class GenericMethodLookup
     initial_vars = calculateInitialVars(inference, method, target)
     methodReader = MethodSignatureReader.new(@context, initial_vars)
     methodReader.read(method.signature)
-    type_params = methodReader.getFormalTypeParameters
+    type_params = getTypeParams(
+        target,
+        methodReader.getFormalTypeParameters,
+        "<init>".equals(method.name))
     generic_params = methodReader.getFormalParameterTypes
     constraint_map = collectConstraints(
         inference, type_params, generic_params, params, method.isVararg)
@@ -84,8 +89,19 @@ class GenericMethodLookup
     end
   end
 
+  def getTypeParams(target:MirrorType, type_params:Collection, isInit:boolean)
+    if target.kind_of?(DeclaredMirrorType) && isInit
+      result = HashSet.new
+      result.addAll(DeclaredMirrorType(target).getTypeVariableMap.values)
+      result.addAll(type_params)
+      result
+    else
+      type_params
+    end
+  end
+
   def collectConstraints(inference:TypeParameterInference,
-                         type_params:List,
+                         type_params:Collection,
                          generic_params:List,
                          params:List,
                          isVararg:boolean):Map
@@ -118,12 +134,15 @@ class GenericMethodLookup
 
   def calculateInitialVars(inference:TypeParameterInference,
                            method:Member, target:MirrorType)
-    generic_target = DeclaredMirrorType(inference.findMatchingSupertype(
-        target.unmeta, DeclaredType(method.declaringClass)))
     result = {}
+    if target.isMeta
+      return result
+    end
+    generic_target = DeclaredMirrorType(inference.findMatchingSupertype(
+        target, DeclaredType(method.declaringClass)))
     vars = generic_target.getTypeVariableMap
     vars.keySet.each do |k|
-      result[k.toString] = TypeFuture(vars[k]).resolve
+      result[k.toString] = vars[k]
     end
     result
   end
@@ -161,7 +180,9 @@ class GenericMethodLookup
     typevars.keySet.each do |k|
       v = TypeMirror(typevars[k])
       while v.getKind == TypeKind.TYPEVAR && typevars.containsKey(v.toString)
-        v = TypeMirror(typevars[v.toString])
+        new_v = TypeMirror(typevars[v.toString])
+        break if new_v == v
+        v = new_v
         updates[k] = v
       end
     end

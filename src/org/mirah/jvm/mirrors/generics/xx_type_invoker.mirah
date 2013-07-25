@@ -42,22 +42,21 @@ class IgnoredTypeBuilder < SignatureVisitor
   end
 end
 
-class TypeInvoker < SignatureVisitor
+class TypeInvoker < BaseSignatureReader
   def initialize(context:Context, typeVars:Map, args:List)
-    super(Opcodes.ASM4)
-    @context = context
-    @typeVariables = {}
-    @typeVariables.putAll(typeVars) if typeVars
+    super(context, typeVars)
+    @typeParams = LinkedList.new
     @args = LinkedList.new(args)
     @interfaces = []
   end
 
   def getTypeVariableMap:Map
-    @typeVariables
+    typeVariables
   end
 
-  def visitFormalTypeParameter(name)
-    @typeVariables[name] = @args.removeFirst unless @args.isEmpty
+  def saveTypeParam(var)
+    typeVariables[var.toString] = @args.removeFirst unless @args.isEmpty
+    @typeParams.add(var)
   end
 
   def visitClassBound
@@ -69,11 +68,12 @@ class TypeInvoker < SignatureVisitor
   end
 
   def visitSuperclass
-    @superclass = AsyncTypeBuilder.new(@context, @typeVariables)
+    finishTypeParam
+    @superclass = newBuilder
   end
 
   def visitInterface
-    builder = AsyncTypeBuilder.new(@context, @typeVariables)
+    builder = newBuilder
     @interfaces.add(builder)
     builder
   end
@@ -95,9 +95,8 @@ class TypeInvoker < SignatureVisitor
     array
   end
 
-  def read(signature:String):void
-    reader = SignatureReader.new(signature)
-    reader.accept(self)
+  def getFormalTypeParameters:List
+    @typeParams
   end
 
   def self.invoke(context:Context, type:MirrorType, args:List,

@@ -30,71 +30,32 @@ import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.util.Context
 
-class MethodSignatureReader < SignatureVisitor
+class MethodSignatureReader < BaseSignatureReader
   def initialize(context:Context, typeVariables:Map={}):void
-    super(Opcodes.ASM4)
-    @context = context
-    @typeVariables = HashMap.new(typeVariables)
+    super(context, typeVariables)
     @typeParams = LinkedList.new
     @params = ArrayList.new
-    @classbound = AsyncTypeBuilder(nil)
   end
 
-  def finishTypeParam
-    if @typeParamName
-      types = []
-      if @classbound
-        types.add(@classbound.future.resolve)
-      end
-      @interfaces.each do |i:AsyncTypeBuilder|
-        types.add(@classbound.future.resolve)
-      end
-      bound = if types.size == 0
-        MirrorType(@context[MirrorTypeSystem].loadNamedType(
-            "java.lang.Object").resolve)
-      elsif types.size == 1
-        MirrorType(types[0])
-      else
-        IntersectionType.new(types)
-      end
-      var = TypeVariable.new(@context[Types], @typeParamName, bound)
-      @typeVariables[@typeParamName] = BaseTypeFuture.new.resolved(var)
-      @typeParams.add(var)
-    end
-    @typeParamName = String(nil)
+  def saveTypeParam(var)
+    typeVariables[var.toString] = BaseTypeFuture.new.resolved(var)
+    @typeParams.add(var)
   end
 
-  def visitFormalTypeParameter(name)
-    finishTypeParam
-    @typeParamName = name
-    @classbound = nil
-    @interfaces = []
-  end
-  def visitClassBound
-    @classbound = newBuilder
-  end
-  def visitInterfaceBound
-    builder = newBuilder
-    @interfaces.add(builder)
-    builder
-  end
   def visitParameterType
     finishTypeParam
     builder = newBuilder
     @params.add(builder)
     builder
   end
+
   def visitReturnType
     finishTypeParam
     @returnType = newBuilder
   end
-  def visitExceptionType
-    finishTypeParam
-    newBuilder
-  end
 
-  def newBuilder
-    AsyncTypeBuilder.new(@context, @typeVariables)
+  def visitExceptionType
+    newBuilder
   end
 
   def getFormalTypeParameters:List
@@ -107,10 +68,5 @@ class MethodSignatureReader < SignatureVisitor
 
   def genericReturnType
     MirrorType(@returnType.future.resolve)
-  end
-
-  def read(signature:String):void
-    reader = SignatureReader.new(signature)
-    reader.accept(self)
   end
 end

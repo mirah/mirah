@@ -63,7 +63,7 @@ class TypeParameterInference
       argument = TypeMirror(MirrorType(argument).box)
     end
     tpi = self
-    visitor = lambda(AbstractTypeVisitor6) do
+    visitor = lambda(SimpleTypeVisitor6) do
       def visitTypeVariable(t, p)
         # T :> A
         a = TypeMirror(p)

@@ -107,6 +107,7 @@ class MirrorTypeSystem implements TypeSystem
     classpath.bytecode_loader = bytecode_loader
     classpath.macro_loader = @macro_loader
     context[MethodLookup] = @methods = MethodLookup.new(context)
+    context[JavaxTypes] = Types.new(context)
 
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
@@ -115,7 +116,6 @@ class MirrorTypeSystem implements TypeSystem
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
     initBoxes
-    context[JavaxTypes] = Types.new(context)
   end
 
   attr_reader context:Context

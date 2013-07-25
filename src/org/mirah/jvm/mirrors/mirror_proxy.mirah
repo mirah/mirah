@@ -15,6 +15,7 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.Collections
 import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.ErrorType
@@ -198,6 +199,14 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
   def link
     if @target.kind_of?(DeclaredMirrorType)
       DeclaredMirrorType(@target).link
+    end
+  end
+
+  def getTypeVariableMap
+    if @target.kind_of?(DeclaredMirrorType)
+      DeclaredMirrorType(@target).getTypeVariableMap
+    else
+      Collections.emptyMap
     end
   end
 end

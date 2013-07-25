@@ -436,7 +436,7 @@ class MethodCompiler < BaseCompiler
   def visitAttrAssign(node, expression)
     compiler = CallCompiler.new(
         self, @builder, node.position, node.target,
-        "#{node.name.identifier}_set", [node.value], getInferredType(node.value))
+        "#{node.name.identifier}_set", [node.value], getInferredType(node))
     compiler.compile(expression != nil)
   end
   

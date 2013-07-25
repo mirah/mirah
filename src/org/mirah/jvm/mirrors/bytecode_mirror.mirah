@@ -17,6 +17,7 @@ package org.mirah.jvm.mirrors
 
 import java.util.ArrayList
 import java.util.Collections
+import java.util.LinkedHashMap
 import java.util.LinkedList
 import java.util.List
 import org.jruby.org.objectweb.asm.Opcodes
@@ -58,6 +59,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     @interface_names = klass.interfaces
     @annotations = klass.visibleAnnotations
     @innerClassNodes = klass.innerClasses
+    @typeParams = LinkedHashMap.new
   end
 
   def self.lookupType(loader:MirrorLoader, internalName:String)
@@ -73,6 +75,9 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
       invoker = TypeInvoker.new(@context, nil, [])
       invoker.read(@signature)
       setSupertypes(invoker.superclass, invoker.interfaces)
+      invoker.getFormalTypeParameters.each do |var|
+        @typeParams[var.toString] = BaseTypeFuture.new.resolved(MirrorType(var))
+      end
     else
       superclass = @superName ? types.wrap(Type.getType("L#{@superName};")) : nil
       interfaces = TypeFuture[@interface_names ? @interface_names.size : 0]
@@ -145,7 +150,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   def load_methods:boolean
     @methods.each do |m|
       addMethod(MethodNode(m))
-    end
+    end if @methods
     @methods = nil
     @innerClassNodes.each do |n|
       addInnerClass(InnerClassNode(n))
@@ -182,7 +187,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   end
 
   def getTypeVariableMap
-    Collections.emptyMap
+    @typeParams
   end
 
   # This should only used by StringCompiler to lookup

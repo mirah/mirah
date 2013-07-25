@@ -45,6 +45,7 @@ import org.mirah.util.Context
 class Types implements TypesModel
   def initialize(context:Context)
     @types = context[MirrorTypeSystem]
+    context[TypesModel] = self
     @object = MirrorType(@types.loadNamedType('java.lang.Object').resolve)
     @primitives = EnumMap.new(
       TypeKind.BOOLEAN => @types.loadNamedType('boolean').resolve,
