@@ -28,6 +28,8 @@ import javax.lang.model.type.TypeMirror
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.jvm.mirrors.generics.LubFinder
+import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.JVMMethod
@@ -122,13 +124,13 @@ class BaseType implements MirrorType, DeclaredType
       other
     elsif self.box
       self.box.widen(other)
+    elsif other.kind_of?(MirrorType) && MirrorType(other).box
+      widen(MirrorType(other).box)
     else
-      a = self
-      while a.superclass
-        a = a.superclass
-        return a if a.assignableFrom(other)
-      end
-      ErrorType.new([["Incompatible types #{self} and #{other}."]])
+      # This may spread intersection types to places java wouldn't allow them.
+      # Do we care?
+      lub = MirrorType(LubFinder.new(@context).leastUpperBound([self, other]))
+      lub || ErrorType.new([["Incompatible types #{self} and #{other}."]])
     end
   end
 

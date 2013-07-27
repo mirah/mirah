@@ -60,6 +60,8 @@ class LubFinder
       @@log.fine("lub candidates(#{types}) = #{supertypes}")
       result = if supertypes.size == 1
         DeclaredType(supertypes[0])
+      elsif supertypes.size == 0
+        nil
       else
         IntersectionType.new(@context, supertypes)
       end

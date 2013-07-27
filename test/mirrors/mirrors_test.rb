@@ -522,9 +522,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     a = @types.getStringType.resolve
     b = @types.getRegexType.resolve
     c = a.widen(b)
-    # Note that we currently don't include interfaces, so we miss
-    # Serializable.
-    assert_resolved_to('Ljava/lang/Object;', c)
+    assert_resolved_to('Ljava/io/Serializable;', c)
   end
 
   def test_boxed_assignment
