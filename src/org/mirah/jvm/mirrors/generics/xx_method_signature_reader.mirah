@@ -64,6 +64,9 @@ class MethodSignatureReader < BaseSignatureReader
   end
 
   def getFormalParameterTypes:List
+    if @forced_params
+      return @forced_params
+    end
     @params.map {|p:AsyncTypeBuilder| p.future.resolve}
   end
 
@@ -75,7 +78,7 @@ class MethodSignatureReader < BaseSignatureReader
     if member.signature
       read(member.signature)
     else
-      @params = ArrayList.new(member.argumentTypes)
+      @forced_params = ArrayList.new(member.argumentTypes)
       @forced_return = member.returnType
     end
   end
