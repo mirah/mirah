@@ -193,7 +193,11 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
   end
 
   def signature
-    DeclaredMirrorType(@target).signature
+    if target.kind_of?(DeclaredMirrorType)
+      DeclaredMirrorType(@target).signature
+    else
+      nil
+    end
   end
 
   def link
@@ -229,12 +233,15 @@ class ResolvedCall < MirrorProxy implements CallType
   end
 
   def self.expressionType(target:MirrorType, method:JVMMethod):MirrorType
-    if "V".equals(method.returnType.getAsmType.getDescriptor)
-      target
-    elsif method.kind_of?(GenericMethod)
+    return_type = if method.kind_of?(GenericMethod)
       MirrorType(GenericMethod(method).genericReturnType)
     else
       MirrorType(method.returnType)
+    end
+    if "V".equals(return_type.getAsmType.getDescriptor)
+      target
+    else
+      return_type
     end
   end
 

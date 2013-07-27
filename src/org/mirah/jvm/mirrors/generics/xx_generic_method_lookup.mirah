@@ -22,6 +22,7 @@ import java.util.HashMap
 import java.util.HashSet
 import java.util.List
 import java.util.Map
+import java.util.Set
 import java.util.logging.Level
 import java.util.logging.Logger
 import javax.lang.model.type.DeclaredType
@@ -33,12 +34,17 @@ import org.mirah.jvm.mirrors.DeclaredMirrorType
 import org.mirah.jvm.mirrors.Member
 import org.mirah.jvm.mirrors.MethodLookup
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.jvm.types.JVMType
+import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.GenericTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
 
 class GenericMethodLookup
   def initialize(context:Context)
     @context = context
+    @types = @context[MirrorTypeSystem]
   end
 
   def self.initialize:void
@@ -48,7 +54,8 @@ class GenericMethodLookup
   def processGenerics(target:MirrorType, params:List, members:List)
     result = ArrayList.new(members.size)
     members.each do |member:Member|
-      if member.signature.nil?
+      generic_constructor = ("<init>".equals(member.name) && target.unmeta.kind_of?(DeclaredMirrorType) && DeclaredMirrorType(target.unmeta).signature)
+      if member.signature.nil? && !generic_constructor
         result.add(member)
       else
         begin
@@ -67,22 +74,20 @@ class GenericMethodLookup
     result
   end
 
-  def processMethod(method:Member, target:MirrorType, params:List)
-    if method.signature.nil?
-      return method
-    end
+  def processMethod(method:Member, target:MirrorType, params:List):Member
     inference = TypeParameterInference.new(@context[Types])
     initial_vars = calculateInitialVars(inference, method, target)
-    methodReader = MethodSignatureReader.new(@context, initial_vars)
-    methodReader.read(method.signature)
+    methodReader = readMethodSignature(method, initial_vars)
     type_params = getTypeParams(
         target,
         methodReader.getFormalTypeParameters,
         "<init>".equals(method.name))
+    initial_vars.putAll(type_params)
     generic_params = methodReader.getFormalParameterTypes
     constraint_map = collectConstraints(
-        inference, type_params, generic_params, params, method.isVararg)
+        inference, findUnsolved(initial_vars), generic_params, params, method.isVararg)
     solved_vars = solveConstraints(constraint_map, initial_vars)
+    lockSolutions(solved_vars, type_params.keySet)
     if methodIsApplicable(generic_params, params, solved_vars)
       return substituteReturnType(method, methodReader.genericReturnType, solved_vars)
     else
@@ -90,15 +95,49 @@ class GenericMethodLookup
     end
   end
 
-  def getTypeParams(target:MirrorType, type_params:Collection, isInit:boolean)
-    result = Collections.checkedSet(HashSet.new, TypeVariable.class)
-    if target.kind_of?(DeclaredMirrorType) && isInit
-      DeclaredMirrorType(target).getTypeVariableMap.values.each do |x:TypeFuture|
-        result.add(x.resolve)
+  def readMethodSignature(method:Member, typevar_futures:Map)
+    new_map = HashMap.new
+    typevar_futures.keySet.each do |k:String|
+      future = TypeFuture(typevar_futures[k])
+      if future.kind_of?(GenericTypeFuture)
+        # This is an unsolved variable. Create a type variable so we can try
+        # to infer its type.
+        new_map[k] = BaseTypeFuture.new.resolved(
+            TypeVariable.new(@context, k, MirrorType(future.resolve)))
+      else
+        new_map[k] = future
       end
     end
-    result.addAll(type_params)
+    methodReader = MethodSignatureReader.new(@context, new_map)
+    methodReader.readMember(method)
+    methodReader
+  end
+
+  def getTypeParams(target:MirrorType, type_params:Collection, isInit:boolean)
+    result = Collections.checkedMap(HashMap.new, String.class, TypeFuture.class)
+    if target.kind_of?(DeclaredMirrorType) && isInit
+      DeclaredMirrorType(target).getTypeVariableMap.values.each do |x:TypeFuture|
+        tv = TypeVariable(x.resolve)
+        result[tv.toString] = GenericTypeFuture.new(
+            nil, MirrorType(tv.getUpperBound))
+      end
+    end
+    type_params.each do |tv:TypeVariable|
+      result[tv.toString] = GenericTypeFuture.new(
+          nil, MirrorType(tv.getUpperBound))
+    end
     result
+  end
+
+  def findUnsolved(initial_vars:Map):Set
+    unsolved = HashSet.new
+    initial_vars.keySet.each do |k|
+      v = initial_vars[k]
+      if v.kind_of?(GenericTypeFuture)
+        unsolved.add(k)
+      end
+    end
+    unsolved
   end
 
   def collectConstraints(inference:TypeParameterInference,
@@ -109,7 +148,7 @@ class GenericMethodLookup
     arg_count = generic_params.size
     required_count = isVararg ? arg_count - 1 : arg_count
     constraint_map = Collections.checkedMap(
-        {}, TypeVariable.class, Constraints.class)
+        {}, String.class, Constraints.class)
     type_params.each do |v|
       constraint_map[v] = Constraints.new
     end
@@ -153,63 +192,80 @@ class GenericMethodLookup
     result
   end
 
-  def solveConstraints(constraints:Map, initial:Map):Map
-    solved = {}
-    initial.keySet.each do |k|
-      solved[k] = TypeFuture(initial[k]).resolve
+  def newInvocation(type:JVMType, typevars:Map)
+    if type.kind_of?(DeclaredMirrorType)
+      declared = DeclaredMirrorType(type)
+      vars = declared.getTypeVariableMap
+      unless vars.isEmpty
+        args = ArrayList.new(vars.size)
+        vars.keySet.each do |k|
+          args.add(typevars[k])
+        end
+        return @types.parameterize(BaseTypeFuture.new.resolved(type), args).resolve
+      end
     end
-    # process equality constraints first
+    type
+  end
+
+  def solveConstraints(constraints:Map, solved:Map):Map
+    # This isn't quite right. If we're inferring arguments on the target,
+    # we will apply anything we've learned from this invocation. However,
+    # we may later decide that this invocation isn't applicable or is ambiguous.
+
+    # Process equality constraints first.
     constraints.keySet.each do |tv|
       c = Constraints(constraints[tv])
-      c.getEqual.each do |t:TypeMirror|
+      c.getEqual.each do |t:MirrorType|
         if t.getKind == TypeKind.TYPEVAR
           next if t.toString.equals(tv.toString)
         end
-        solved[tv.toString] = t
+        tv_future = GenericTypeFuture(solved[tv])
+        t_future = GenericTypeFuture(solved[t])
+        if t_future
+          tv_future.assign(t_future, nil)
+        else
+          tv_future.resolved(t)
+        end
       end
     end
-    simplifyConstraints(solved)
     constraints.keySet.each do |tv|
       c = Constraints(constraints[tv])
-      unless c.getExtends.isEmpty
-        finder = LubFinder.new(@context)
-        solved[tv.toString] = finder.leastUpperBound(c.getExtends)
-        simplifyConstraints(solved)
+      future = GenericTypeFuture(solved[tv])
+      c.getSuper.each do |result:MirrorType|
+        future.assign(BaseTypeFuture.new.resolved(result), nil)
       end
     end
     solved
   end
 
-  # Replace references to solved typevars with the solution
-  def simplifyConstraints(typevars:Map):void
-    updates = {}
-    typevars.keySet.each do |k|
-      v = TypeMirror(typevars[k])
-      while v.getKind == TypeKind.TYPEVAR && typevars.containsKey(v.toString)
-        new_v = TypeMirror(typevars[v.toString])
-        break if new_v == v
-        v = new_v
-        updates[k] = v
+  def lockSolutions(solved:Map, lockable:Collection):void
+    lockable.each do |k|
+      future = GenericTypeFuture(solved[k])
+      if future.isResolved
+        solved[k] = BaseTypeFuture.new.resolved(future.resolve)
       end
     end
-    typevars.putAll(updates)
   end
 
   def substituteTypeVariables(type:TypeMirror, typevars:Map):MirrorType
     visitor = Substitutor.new(@context, typevars)
-    MirrorType(visitor.visit(type))
+    future = TypeFuture(visitor.visit(type))
+    MirrorType(future.resolve)
   end
 
   def substituteReturnType(method:Member, returnType:TypeMirror, typevars:Map):Member
-    newReturnType = substituteTypeVariables(
-        TypeMirror(returnType), typevars)
+    newReturnType = if "<init>".equals(method.name)
+      newInvocation(method.declaringClass, typevars)
+    else
+      substituteTypeVariables(returnType, typevars)
+    end
     if newReturnType == returnType
       method
     else
       newMember = Member.new(
           method.flags, method.declaringClass, method.name,
           method.argumentTypes, method.returnType, method.kind)
-      newMember.genericReturnType = newReturnType
+      newMember.genericReturnType = MirrorType(newReturnType)
       newMember
     end
   end

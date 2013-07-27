@@ -25,6 +25,7 @@ import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.jruby.org.objectweb.asm.signature.SignatureReader
 import org.jruby.org.objectweb.asm.signature.SignatureVisitor
+import org.mirah.jvm.mirrors.Member
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.typer.BaseTypeFuture
@@ -67,6 +68,15 @@ class MethodSignatureReader < BaseSignatureReader
   end
 
   def genericReturnType
-    MirrorType(@returnType.future.resolve)
+    MirrorType(@forced_return || @returnType.future.resolve)
+  end
+
+  def readMember(member:Member)
+    if member.signature
+      read(member.signature)
+    else
+      @params = ArrayList.new(member.argumentTypes)
+      @forced_return = member.returnType
+    end
   end
 end

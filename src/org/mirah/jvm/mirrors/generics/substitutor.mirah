@@ -17,48 +17,63 @@ package org.mirah.jvm.mirrors.generics
 
 import java.util.Map
 import javax.lang.model.type.TypeMirror
-import javax.lang.model.util.Types
 import javax.lang.model.util.SimpleTypeVisitor6
 import org.mirah.util.Context
+import org.mirah.jvm.mirrors.ArrayType
+import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.ResolvedType
+import org.mirah.typer.TypeFuture
 
 class Substitutor < SimpleTypeVisitor6
   def initialize(context:Context, typeVars:Map)
-    @types = context[Types]
+    @context = context
+    @types = context[MirrorTypeSystem]
     @typeVars = typeVars
+    @substitutions = 0
   end
   def defaultAction(e, p)
-    e
+    future(e)
   end
 
   def visitArray(t, p)
     c = t.getComponentType
-    c2 = TypeMirror(visit(c, p))
-    if c == c2
+    saved = @substitutions
+    c2 = TypeFuture(visit(c, p))
+    array = if saved == @substitutions
       t
     else
-      @types.getArrayType(c2)
+      ArrayType.new(@context, MirrorType(c2.resolve))
     end
+    future(array)
   end
 
   def visitTypeVariable(t, p)
     t2 = @typeVars[t.toString]
     # What if the bounds involve typevars?
-    t2 || t
+    if t2
+      @substitutions += 1
+      t2
+    else
+      future(t)
+    end
   end
 
   def visitDeclared(t, p)
+    saved = @substitutions
     newArgs = t.getTypeArguments.map do |x:TypeMirror|
       visit(x, p)
     end
-    t.getTypeArguments.zip(newArgs) do |a, b|
-      if a != b
-        # If any type parameters were substituted, re-invoke the type
-        elem = TypeElement(@types.asElement(t))
-        args = TypeMirror[newArgs.size]
-        newArgs.toArray(args)
-        return @types.getDeclaredType(elem, args)
-      end
+    if saved == @substitutions
+      future(t)
+    else
+      # If any type parameters were substituted, re-invoke the type
+      @types.parameterize(future(MirrorType(t).erasure), newArgs)
     end
-    t
+  end
+
+  def future(t:Object)
+    BaseTypeFuture.new.resolved(ResolvedType(t))
   end
 end

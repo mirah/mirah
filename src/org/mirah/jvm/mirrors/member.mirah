@@ -56,7 +56,7 @@ class Member implements GenericMethod
   end
 
   def asyncReturnType:TypeFuture
-    @returnFuture ||= BaseTypeFuture.new.resolved(@returnType)
+    @returnFuture ||= BaseTypeFuture.new.resolved(@genericReturnType || @returnType)
   end
 
   def accept(visitor, expression):void

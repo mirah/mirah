@@ -67,7 +67,7 @@ class TypeParameterInference
       def visitTypeVariable(t, p)
         # T :> A
         a = TypeMirror(p)
-        c = Constraints(typeParameters[t])
+        c = Constraints(typeParameters[t.toString])
         c.addSuper(a) if c
       end
 
@@ -140,7 +140,7 @@ class TypeParameterInference
     tpi = self
     visitor = lambda(SimpleTypeVisitor6) do
       def visitTypeVariable(t, p)
-        c = Constraints(typeParameters[t])
+        c = Constraints(typeParameters[t.toString])
         c.addEqual(TypeMirror(p)) if c
       end
 
@@ -206,7 +206,7 @@ class TypeParameterInference
     visitor = lambda(SimpleTypeVisitor6) do
       def visitTypeVariable(t, p)
         # T <: A
-        c = Constraints(typeParameters[t])
+        c = Constraints(typeParameters[t.toString])
         c.addExtends(TypeMirror(p)) if c
       end
 

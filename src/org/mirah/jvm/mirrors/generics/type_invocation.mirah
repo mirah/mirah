@@ -23,11 +23,12 @@ import javax.lang.model.type.TypeKind
 import org.mirah.jvm.mirrors.AsyncMirror
 import org.mirah.jvm.mirrors.MirrorProxy
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.mirrors.DeclaredMirrorType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
 
-class TypeInvocation < AsyncMirror
+class TypeInvocation < AsyncMirror implements DeclaredMirrorType
   def initialize(context:Context, raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List, typeVariableMap:Map)
     super(context, raw.getAsmType, raw.flags, superclass, interfaces)
     @raw = raw
@@ -44,6 +45,10 @@ class TypeInvocation < AsyncMirror
 
   def self.initialize:void
     @@log = Logger.getLogger(TypeInvocation.class.getName)
+  end
+
+  def signature
+    DeclaredMirrorType(@raw).signature
   end
 
   def interfaces:TypeFuture[]

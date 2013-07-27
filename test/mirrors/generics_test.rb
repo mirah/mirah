@@ -90,7 +90,7 @@ class GenericsTest < Test::Unit::TestCase
     a = NullType.new
     f = typevar('S')
     constraints = Constraints.new
-    map = {f => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
     assert_equal(0, constraints.size)
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -103,7 +103,7 @@ class GenericsTest < Test::Unit::TestCase
     a = @types.getStringType.resolve
     f = typevar('S')
     constraints = Constraints.new
-    map = {f => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
     assert_equal(1, constraints.size)
     assert_equal(HashSet.new([a]), constraints.getSuper)
@@ -113,7 +113,7 @@ class GenericsTest < Test::Unit::TestCase
     a = @types.getFixnumType(1).resolve
     f = typevar('S')
     constraints = Constraints.new
-    map = {f => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
     assert_equal(1, constraints.size)
     c = constraints.getSuper.iterator.next
@@ -125,7 +125,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     f = @types.getArrayType(s)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
     assert_equal(1, constraints.size)
     c = constraints.getSuper.iterator.next
@@ -137,7 +137,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     f = @types.getArrayType(s)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
     assert_equal(1, constraints.size)
     c = constraints.getSuper.iterator.next
@@ -151,7 +151,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<S[]>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     f = set(@types.getArrayType(s))
 
@@ -170,7 +170,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(s, nil))
     
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -184,7 +184,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@types.getArrayType((@types.getRegexType.resolve)))
 
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     @tpi.processArgument(a, ?<.ord, f, map)
     # S <: Regex[]
@@ -195,7 +195,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S[]>
     f = set(@type_utils.getWildcardType(@types.getArrayType(s), nil))
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
 
     # S <: Regex
@@ -206,7 +206,7 @@ class GenericsTest < Test::Unit::TestCase
     # A has a supertype Set<Regex[]>
     a = BaseType.new(nil, Type.getType('LFooBar;'), 0, a)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
 
     # S <: Regex
@@ -222,7 +222,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(s, nil))
     
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -239,7 +239,7 @@ class GenericsTest < Test::Unit::TestCase
 
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     # F = Set<? super S>
     f = set(@type_utils.getWildcardType(nil, s))
@@ -256,7 +256,7 @@ class GenericsTest < Test::Unit::TestCase
 
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     # F = Set<? super S>
     f = set(@type_utils.getWildcardType(nil, s))
@@ -273,7 +273,7 @@ class GenericsTest < Test::Unit::TestCase
 
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     # F = Set<? super S>
     f = set(@type_utils.getWildcardType(nil, s))
@@ -316,7 +316,7 @@ class GenericsTest < Test::Unit::TestCase
     a = @types.getStringType.resolve
     f = typevar('S')
     constraints = Constraints.new
-    map = {f => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
     assert_equal(1, constraints.size)
     assert_equal(HashSet.new([a]), constraints.getEqual)
@@ -328,7 +328,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     f = @types.getArrayType(s)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
     assert_equal(1, constraints.size)
     c = constraints.getEqual.iterator.next
@@ -340,7 +340,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     f = @types.getArrayType(s)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
     assert_equal(1, constraints.size)
     c = constraints.getEqual.iterator.next
@@ -354,7 +354,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<S[]>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     f = set(@types.getArrayType(s))
 
@@ -374,7 +374,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(s, nil))
     
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -390,7 +390,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@type_utils.getWildcardType(re_array, nil))
 
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     @tpi.processArgument(a, ?=.ord, f, map)
     # S = Regex[]
@@ -399,7 +399,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S[]>
     f = set(@type_utils.getWildcardType(@types.getArrayType(s), nil))
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
 
     # S = Regex
@@ -408,7 +408,7 @@ class GenericsTest < Test::Unit::TestCase
     # A has a supertype Set<Regex[]>
     a = BaseType.new(nil, Type.getType('LFooBar;'), 0, a)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
 
     # No constraint
@@ -422,7 +422,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(s, nil))
     
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -437,7 +437,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? super S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(nil, s))
     
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -458,7 +458,7 @@ class GenericsTest < Test::Unit::TestCase
     a = @types.getStringType.resolve
     f = typevar('S')
     constraints = Constraints.new
-    map = {f => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
     # T <: A
     assert_constraints(constraints, :extends => [a])
@@ -469,7 +469,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     f = @types.getArrayType(s)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
     assert_constraints(constraints, :extends => [a.getComponentType])
   end
@@ -480,7 +480,7 @@ class GenericsTest < Test::Unit::TestCase
     s = typevar('S')
     f = @types.getArrayType(s)
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
     assert_constraints(constraints, :extends => [string])
   end
@@ -493,7 +493,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<S[]>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     f = set(@types.getArrayType(s))
 
@@ -508,14 +508,14 @@ class GenericsTest < Test::Unit::TestCase
     # F has supertype Set<String>
     f = BaseType.new(nil, Type.getType("LFooBar;"), 0, set(s))
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
     assert_constraints(constraints, :extends => [string])
 
     # A = Set<? super String>
     a = set(@type_utils.getWildcardType(nil, string))
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
     assert_constraints(constraints, :super => [string])
   end
@@ -528,7 +528,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(s, nil))
 
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -540,7 +540,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@type_utils.getWildcardType(re_array, nil))
 
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
 
     @tpi.processArgument(a, ?>.ord, f, map)
     # S = Regex[]
@@ -549,7 +549,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S[]>
     f = set(@type_utils.getWildcardType(@types.getArrayType(s), nil))
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
 
     # S = Regex
@@ -563,7 +563,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? extends S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(s, nil))
 
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -578,7 +578,7 @@ class GenericsTest < Test::Unit::TestCase
     # F = Set<? super S>
     s = typevar('S')
     constraints = Constraints.new
-    map = {s => constraints}
+    map = {'S' => constraints}
     f = set(@type_utils.getWildcardType(nil, s))
 
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -609,7 +609,7 @@ class GenericsTest < Test::Unit::TestCase
     rc = Constraints.new
     sc = Constraints.new
     tc = Constraints.new
-    map = {r => rc, s => sc, t => tc}
+    map = {'R' => rc, 'S' => sc, 'T' => tc}
     @tpi.processArgument(a, ?<.ord, f, map)
     string = string.resolve
     assert_constraints(rc, :equal => [string])
