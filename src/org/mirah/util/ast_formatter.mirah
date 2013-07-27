@@ -21,7 +21,7 @@ import mirah.lang.ast.Node
 import mirah.lang.ast.NodeScanner
 
 class AstFormatter < NodeScanner
-  def initialize(node:Node)
+  def initialize(node: Node)
     @out = StringBuilder.new
     @indent = 0
     @newline = true
@@ -29,15 +29,15 @@ class AstFormatter < NodeScanner
     @childCounts.addLast(Integer.valueOf(0))
     @node = node
   end
-  def appendIndent:void
+  def appendIndent: void
     @indent.times {@out.append(" ")}
   end
-  def appendLine(arg:String):void
+  def appendLine(arg: String): void
     append(arg)
     @newline = true
     @out.append("\n")
   end
-  def append(arg:String):void
+  def append(arg: String): void
     appendIndent if @newline
     @out.append(arg)
     @newline = false
@@ -52,7 +52,7 @@ class AstFormatter < NodeScanner
     appendLine("nil")
   end
 
-  def startNode(node:Node)
+  def startNode(node: Node)
     count = Integer(@childCounts.removeLast)
     @childCounts.addLast(Integer.valueOf(count.intValue + 1))
     @childCounts.addLast(Integer.valueOf(0))

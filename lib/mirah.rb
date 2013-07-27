@@ -23,7 +23,6 @@ $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-bootstrap.jar'
 $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-util.jar'
 $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-compiler.jar'
 $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-mirrors.jar'
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/dynalink-0.2.jar'
 
 require 'mirah/version'
 require 'mirah/transform'

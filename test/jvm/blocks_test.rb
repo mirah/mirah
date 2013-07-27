@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'test_helper'
 
 class BlocksTest < Test::Unit::TestCase
 
@@ -328,6 +329,27 @@ class BlocksTest < Test::Unit::TestCase
       end
     EOF
     assert_output "writing\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_block_with_interface_method_with_2_arguments
+    cls, = compile(<<-EOF)
+      interface DoubleArgMethod do
+        def run(a: String, b: int):void;end
+      end
+
+      class ExpectsDoubleArgMethod
+        def foo(a:DoubleArgMethod)
+          a.run "hello", 1243
+        end
+      end
+      ExpectsDoubleArgMethod.new.foo do |a, b|
+        puts a
+        puts b
+      end
+    EOF
+    assert_output "hello\n1243\n" do
       cls.main(nil)
     end
   end

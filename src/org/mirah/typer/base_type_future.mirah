@@ -144,4 +144,8 @@ class BaseTypeFuture; implements TypeFuture
     end
     @lock.unlock
   end
+
+  def toString
+    "<#{getClass.getSimpleName}: resolved=#{@resolved}, listenerCt=#{@listeners.size}>"
+  end
 end

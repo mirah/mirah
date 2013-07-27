@@ -31,7 +31,15 @@ bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :gem => 'jar:bootstrap'
 task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar', 'javalib/mirah-util.jar']
-task :default => [:'test:core', :'test:jvm:bytecode']
+
+
+task :default => :bytecode_ci
+
+desc "run bytecode backend ci"
+task :bytecode_ci => [:'test:core', :'test:jvm:bytecode']
+desc "run new backend ci"
+task :new_ci => [:'test:core', :'test:jvm:new']
+
 def run_tests tests
   results = tests.map do |name|
     begin
