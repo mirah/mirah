@@ -42,7 +42,7 @@ module Mirah
         type_system.bootclasspath = state.bootclasspath
       end
 
-      @typer = Mirah::Typer::Typer.new(type_system, @scoper, self)
+      @typer = Mirah::Typer::Typer.new(type_system, @scoper, self, nil)
       @parser = Mirah::Parser.new(state, @typer, logging)
       @compiler = Mirah::Compiler::ASTCompiler.new(state, compiler_class, logging)
       @extension_compiler = Mirah::Compiler::ASTCompiler.new(state, compiler_class, logging)

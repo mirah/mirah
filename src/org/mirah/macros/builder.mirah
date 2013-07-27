@@ -86,12 +86,13 @@ end
 # managing intrinsics.
 #
 class MacroBuilder; implements Compiler
-  def initialize(typer:Typer, backend:JvmBackend)
+  def initialize(typer:Typer, backend:JvmBackend, parser:MirahParser=nil)
     @typer = typer
     @types = typer.type_system
     @scopes = typer.scoper
     @backend = backend
     @extension_counters = HashMap.new
+    @parser = parser || MirahParser.new
   end
 
   def self.initialize:void
@@ -134,15 +135,13 @@ class MacroBuilder; implements Compiler
   end
 
   def deserializeScript(filename:String, code:InputStream, values:List):Script
-    parser = MirahParser.new
-    script = Script(parser.parse(StreamCodeSource.new(filename, code)))
+    script = Script(@parser.parse(StreamCodeSource.new(filename, code)))
     ValueSetter.new(values).scan(script)
     script
   end
 
   def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List):Node
-    parser = MirahParser.new
-    script = Script(parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
+    script = Script(@parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
     # TODO(ribrdb) scope
     ValueSetter.new(values).scan(script)
     node = if script.body_size == 1

@@ -341,7 +341,7 @@ file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
   mkdir_p 'build/mirahc'
   sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirahc ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar:javalib/mirah-mirrors.jar) +
-       %w(src/org/mirah/tool/mirahc.mirah))
+       %w(src/org/mirah/tool/))
   ant.jar :jarfile => 'javalib/mirahc.jar' do
     fileset :dir => 'build/mirahc'
     zipfileset :src => 'javalib/mirah-bootstrap.jar'

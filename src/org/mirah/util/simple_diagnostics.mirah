@@ -38,12 +38,13 @@ class SimpleDiagnostics; implements DiagnosticListener
     System.err.print(@prefixes[diagnostic.getKind])
     System.err.println(diagnostic.getMessage(Locale.getDefault))
     if source
-      target_line = int(diagnostic.getLineNumber - source.initialLine)
+      target_line = Math.max(0, int(diagnostic.getLineNumber - source.initialLine))
       start_col = if target_line == 0
         diagnostic.getColumnNumber - source.initialColumn
       else
         diagnostic.getColumnNumber - 1
       end
+      start_col = long(0) if start_col < 0
       lines = @newline.split(source.contents)
       if target_line < lines.length
         line = lines[target_line]

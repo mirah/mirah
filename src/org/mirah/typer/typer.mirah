@@ -18,6 +18,7 @@ package org.mirah.typer
 import java.util.*
 import java.util.logging.Logger
 import mirah.lang.ast.*
+import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
 import org.mirah.macros.MacroBuilder
 
@@ -52,13 +53,13 @@ class Typer < SimpleNodeVisitor
     @@log = Logger.getLogger(Typer.class.getName)
   end
 
-  def initialize(types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend)
+  def initialize(types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser=nil)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
     @types = types
     @scopes = scopes
     @closures = ClosureBuilder.new(self)
-    @macros = MacroBuilder.new(self, jvm_backend)
+    @macros = MacroBuilder.new(self, jvm_backend, parser)
   end
 
   def macro_compiler

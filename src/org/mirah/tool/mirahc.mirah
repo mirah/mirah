@@ -18,7 +18,9 @@ package org.mirah.tool
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.logging.Logger
 import java.util.logging.Level
+import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser
 import mirah.lang.ast.CodeSource
 import mirah.lang.ast.Node
@@ -32,26 +34,39 @@ import org.mirah.jvm.mirrors.JVMScope
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
-import org.mirah.typer.simple.TypePrinter
+import org.mirah.typer.Scoper
 import org.mirah.typer.Typer
+import org.mirah.typer.TypeSystem
+import org.mirah.util.ParserDiagnostics
 import org.mirah.util.SimpleDiagnostics
+import org.mirah.util.AstFormatter
+import org.mirah.util.TooManyErrorsException
+import org.mirah.util.LazyTypePrinter
+import org.mirah.util.Context
 
 class Mirahc implements JvmBackend
   def initialize
     logger = MirahLogFormatter.new(true).install
     logger.setLevel(Level.ALL)
-    @diagnostics = SimpleDiagnostics.new(true)
-    @types = MirrorTypeSystem.new
-    @scoper = SimpleScoper.new do |s, node|
+    @context = context = Context.new
+    context[JvmBackend] = self
+    context[DiagnosticListener] = @diagnostics = SimpleDiagnostics.new(true)
+    context[SimpleDiagnostics] = @diagnostics
+    context[TypeSystem] = @types = MirrorTypeSystem.new(context)
+    context[Scoper] = @scoper = SimpleScoper.new do |s, node|
       scope = JVMScope.new(s)
       scope.context = node
       scope
     end
-    @typer = Typer.new(@types, @scoper, self)
-    @parser = MirahParser.new
-    BaseParser(@parser).diagnostics = @diagnostics
-    @backend = Backend.new(@typer)
+    context[MirahParser] = @parser = MirahParser.new
+    BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics)
+    context[Typer] = @typer = Typer.new(@types, @scoper, self, @parser)
+    @backend = Backend.new(context)
     @asts = []
+  end
+
+  def self.initialize:void
+    @@log = Logger.getLogger(Mirahc.class.getName)
   end
 
   def parse(code:CodeSource)
@@ -62,14 +77,28 @@ class Mirahc implements JvmBackend
   end
 
   def infer
-    @asts.each do |n|
-      node = Node(n)
+    @asts.each do |node:Node|
       begin
         @typer.infer(node, false)
       ensure
-        TypePrinter.new(@typer, System.out).scan(node, nil)
+        logAst(node)
       end
     end
+    errors = ErrorCollector.new(@context)
+    @asts.each do |node:Node|
+      errors.scan(node, nil)
+    end
+    if @diagnostics.errorCount > 0
+      System.exit(1)
+    end
+  end
+
+  def logAst(node:Node)
+    @@log.log(Level.FINE, "Inferred types:\n{0}", LazyTypePrinter.new(@typer, node))
+  end
+
+  def logExtensionAst(ast)
+    @@log.log(Level.FINE, "Inferred types:\n{0}", AstFormatter.new(ast))
   end
 
   def compile
@@ -102,5 +131,7 @@ class Mirahc implements JvmBackend
     end
     mirahc.infer
     mirahc.compile
+  rescue TooManyErrorsException
+    puts "Too many errors, exiting."
   end
 end

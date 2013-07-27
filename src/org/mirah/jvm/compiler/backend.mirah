@@ -12,6 +12,14 @@ interface BytecodeConsumer
 end
 
 class Backend
+  def initialize(context:Context)
+    @context = context
+    @diagnostics = context[SimpleDiagnostics]
+    @context[AnnotationCompiler] = AnnotationCompiler.new(@context)
+    @cleanup = ScriptCleanup.new(@context)
+    @compiler = ScriptCompiler.new(@context)
+  end
+
   def initialize(typer:Typer)
     @context = Context.new
     @context[Typer] = typer
@@ -22,7 +30,7 @@ class Backend
     @cleanup = ScriptCleanup.new(@context)
     @compiler = ScriptCompiler.new(@context)
   end
-  
+
   def visit(script:Script, arg:Object):void
     script.accept(@cleanup, arg)
     script.accept(@compiler, arg)

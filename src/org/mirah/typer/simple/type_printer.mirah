@@ -26,6 +26,35 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.FileInputStream
 import java.io.PrintStream
+import java.io.PrintWriter
+import java.io.Writer
+
+class PrintStreamAdapter < PrintWriter
+  def initialize(out:PrintStream)
+    @out = out
+  end
+  
+  def write(buf:char[], off:int, len:int)
+    if off == 0 && len == buf.length
+      @out.print(buf)
+    else
+      @out.print(String.new(buf, off, len))
+    end
+  end
+
+  def printf(format, args)
+    @out.printf(format, args)
+    self
+  end
+
+  def print(arg:String)
+    @out.print(arg)
+  end
+
+  def println
+    @out.println
+  end
+end
 
 # Prints an AST along with its inferred types.
 class TypePrinter < NodeScanner
@@ -33,13 +62,18 @@ class TypePrinter < NodeScanner
     initialize(typer, System.out)
   end
 
-  def initialize(typer:Typer, writer:PrintStream)
+  def initialize(typer:Typer, writer:PrintWriter)
     @indent = 0
     @typer = typer
     @args = Object[1]
     @args[0] = ""
     @out = writer
   end
+
+  def initialize(typer:Typer, writer:PrintStream)
+    initialize(typer, PrintWriter(PrintStreamAdapter.new(writer)))
+  end
+
   def printIndent:void
     @out.printf("%#{@indent}s", @args) if @indent > 0
   end
