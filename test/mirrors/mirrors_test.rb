@@ -172,7 +172,7 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_hash
-    assert_descriptor("Ljava/util/HashMap;", @types.getHashLiteralType(nil, nil, nil))
+    assert_descriptor("Ljava/util/Map;", @types.getHashLiteralType(@types.getStringType, @types.getRegexType, nil))
   end
 
   def test_float
@@ -199,7 +199,7 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_list
-    assert_descriptor("Ljava/util/List;", @types.getArrayLiteralType(nil, nil))
+    assert_descriptor("Ljava/util/List;", @types.getArrayLiteralType(@types.getStringType, nil))
   end
 
   def test_superclass

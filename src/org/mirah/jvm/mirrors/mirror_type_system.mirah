@@ -46,6 +46,7 @@ import org.mirah.typer.CallFuture
 import org.mirah.typer.DelegateFuture
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
+import org.mirah.typer.GenericTypeFuture
 import org.mirah.typer.MethodFuture
 import org.mirah.typer.MethodType
 import org.mirah.typer.NarrowingTypeFuture
@@ -60,6 +61,7 @@ import org.mirah.util.Context
 import org.mirah.jvm.mirrors.generics.TypeInvoker
 import org.mirah.jvm.model.Types
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 
 class ClassPath
@@ -135,6 +137,17 @@ class MirrorTypeSystem implements TypeSystem
           TypeInvoker.invoke(context, MirrorType(resolved), args, nil))
     end
     future
+  end
+
+  def box(type:TypeFuture)
+    DerivedFuture.new(type) do |r|
+      resolved = MirrorType(r)
+      if JVMTypeUtils.isPrimitive(resolved)
+        resolved.box
+      else
+        resolved
+      end
+    end
   end
 
   def getSuperClass(type)
@@ -223,11 +236,17 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getArrayLiteralType(valueType, position)
-    wrap(Type.getType("Ljava/util/List;"))
+    typevar = GenericTypeFuture.new(position, @object)
+    typevar.assign(box(valueType), position)
+    parameterize(loadNamedType('java.util.List'), [typevar])
   end
 
   def getHashLiteralType(keyType, valueType, position)
-    wrap(Type.getType("Ljava/util/HashMap;"))
+    keyVar = GenericTypeFuture.new(position, @object)
+    keyVar.assign(box(keyType), position)
+    valueVar = GenericTypeFuture.new(position, @object)
+    valueVar.assign(box(valueType), position)
+    parameterize(loadNamedType("java.util.Map"), [keyVar, valueVar])
   end
 
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
