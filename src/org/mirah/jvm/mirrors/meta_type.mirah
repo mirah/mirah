@@ -25,7 +25,7 @@ import org.mirah.jvm.types.JVMMethod
 # package_private
 class MetaType < BaseType
   def initialize(type:MirrorType)
-    super(type.name, type.getAsmType, type.flags | Opcodes.ACC_STATIC,
+    super(nil, type.name, type.getAsmType, type.flags | Opcodes.ACC_STATIC,
           type.superclass)
     @unmeta = type
   end

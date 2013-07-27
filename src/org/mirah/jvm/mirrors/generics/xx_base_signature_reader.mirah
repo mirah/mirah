@@ -55,9 +55,9 @@ abstract class BaseSignatureReader < SignatureVisitor
       elsif types.size == 1
         MirrorType(types[0])
       else
-        IntersectionType.new(types)
+        IntersectionType.new(@context, types)
       end
-      saveTypeParam(TypeVariable.new(@context[Types], @typeParamName, bound))
+      saveTypeParam(TypeVariable.new(@context, @typeParamName, bound))
     end
     @typeParamName = String(nil)
   end

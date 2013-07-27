@@ -23,10 +23,11 @@ import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.util.Context
 
 class IntersectionType < BaseType implements DeclaredType
-  def initialize(types:List)
-    super(nil, nil, 0, nil)
+  def initialize(context:Context, types:List)
+    super(context, nil, nil, 0, nil)
     @types = ArrayList.new(types)
     Collections.sort(@types) do |a, b|
       # Move the interfaces after the superclass

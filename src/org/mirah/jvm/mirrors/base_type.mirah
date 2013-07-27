@@ -35,6 +35,7 @@ import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
+import org.mirah.util.Context
 
 interface MethodListener
   def methodChanged(klass:JVMType, name:String):void; end
@@ -79,11 +80,12 @@ class BaseType implements MirrorType, DeclaredType
     }
   end
 
-  def initialize(type:Type, flags:int, superclass:JVMType)
-    initialize(type.getClassName, type, flags, superclass)
+  def initialize(context:Context, type:Type, flags:int, superclass:JVMType)
+    initialize(context, type.getClassName, type, flags, superclass)
   end
 
-  def initialize(name:String, type:Type, flags:int, superclass:JVMType)
+  def initialize(context:Context, name:String, type:Type, flags:int, superclass:JVMType)
+    @context = context
     @name = name
     @type = type
     @flags = flags
@@ -290,13 +292,13 @@ class BaseType implements MirrorType, DeclaredType
 end
 
 class AsyncMirror < BaseType
-  def initialize(type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
-    super(type, flags, nil)
+  def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
+    super(context, type, flags, nil)
     setSupertypes(superclass, interfaces)
   end
 
-  def initialize(type:Type, flags:int)
-    super(type, flags, nil)
+  def initialize(context:Context, type:Type, flags:int)
+    super(context, type, flags, nil)
   end
 
   def setSupertypes(superclass:TypeFuture, interfaces:TypeFuture[]):void

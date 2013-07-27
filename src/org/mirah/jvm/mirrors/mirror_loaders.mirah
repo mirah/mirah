@@ -63,8 +63,9 @@ class SimpleMirrorLoader implements MirrorLoader
 end
 
 class PrimitiveLoader < SimpleMirrorLoader
-  def initialize(parent:MirrorLoader=nil)
+  def initialize(context:Context, parent:MirrorLoader=nil)
     super(parent)
+    @context = context
     @mirrors = {}
     defineVoidType
     defineBoolean
@@ -83,12 +84,12 @@ class PrimitiveLoader < SimpleMirrorLoader
 
   def defineNumber(desc:String, supertype:MirrorType)
     type = Type.getType(desc)
-    @mirrors[type] = Number.new(type, supertype, self)
+    @mirrors[type] = Number.new(@context, type, supertype, self)
   end
 
   def defineBoolean
     type = Type.getType('Z')
-    @mirrors[type] = BooleanType.new(self)
+    @mirrors[type] = BooleanType.new(@context, self)
   end
 
   def findMirror(type:Type)
@@ -97,7 +98,8 @@ class PrimitiveLoader < SimpleMirrorLoader
 end
 
 class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
-  def initialize(parent:AsyncMirrorLoader=nil)
+  def initialize(context:Context, parent:AsyncMirrorLoader=nil)
+    @context = context
     @parent = parent
     @futures = {}
   end
@@ -134,9 +136,9 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
   end
 
   def findArrayMirrorAsync(type:Type):TypeFuture
-    loader = self
+    context = @context
     DerivedFuture.new(loadMirrorAsync(type)) do |resolved|
-      ArrayType.new(MirrorType(resolved), loader)
+      ArrayType.new(context, MirrorType(resolved))
     end
   end
 
@@ -148,8 +150,8 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
 end
 
 class AsyncLoaderAdapter < SimpleAsyncMirrorLoader
-  def initialize(parent:MirrorLoader)
-    super(nil)
+  def initialize(context:Context, parent:MirrorLoader)
+    super(context, nil)
     @parent = parent
   end
   

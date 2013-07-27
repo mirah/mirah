@@ -23,12 +23,14 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.SimpleAsyncMirrorLoader'
   java_import 'org.mirah.jvm.mirrors.AsyncLoaderAdapter'
   java_import 'org.mirah.jvm.mirrors.PrimitiveLoader'
+  java_import 'org.mirah.jvm.mirrors.ClassPath'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
+  java_import 'org.mirah.util.Context'
 
   def test_no_parent
-    loader = SimpleAsyncMirrorLoader.new
+    loader = SimpleAsyncMirrorLoader.new(nil)
     future = loader.loadMirrorAsync(Type.getType("V"))
     mirror = future.resolve
     assert(mirror.isError)
@@ -37,21 +39,21 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   end
 
   def test_define_type
-    loader = SimpleAsyncMirrorLoader.new
+    loader = SimpleAsyncMirrorLoader.new(nil)
     expected_future = BaseTypeFuture.new
     loader.defineMirror(Type.getType("V"), expected_future)
     actual_future =  loader.loadMirrorAsync(Type.getType("V"))
-    expected_future.resolved(BaseType.new(Type.getType("V"), 0, nil))
+    expected_future.resolved(BaseType.new(nil, Type.getType("V"), 0, nil))
     assert_equal("void", expected_future.resolve.name)
   end
 
 
   def test_define_type_later
-    loader = SimpleAsyncMirrorLoader.new
+    loader = SimpleAsyncMirrorLoader.new(nil)
     actual_future =  loader.loadMirrorAsync(Type.getType("V"))
     assert(actual_future.resolve.isError)
     expected_future = BaseTypeFuture.new
-    expected_future.resolved(BaseType.new(Type.getType("V"), 0, nil))
+    expected_future.resolved(BaseType.new(nil, Type.getType("V"), 0, nil))
     loader.defineMirror(Type.getType("V"), expected_future)
     assert_equal("void", expected_future.resolve.name)
   end
@@ -63,13 +65,13 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   end
 
   def test_parent
-    parent = SimpleAsyncMirrorLoader.new
-    child = SimpleAsyncMirrorLoader.new(parent)
+    parent = SimpleAsyncMirrorLoader.new(nil)
+    child = SimpleAsyncMirrorLoader.new(nil, parent)
     
     defineType(parent, Type.getType("LA;"),
-               BaseType.new(Type.getType("Lparent/A;"), 0, nil))
+               BaseType.new(nil, Type.getType("Lparent/A;"), 0, nil))
     defineType(child, Type.getType("LA;"),
-               BaseType.new(Type.getType("Lchild/A;"), 0, nil))
+               BaseType.new(nil, Type.getType("Lchild/A;"), 0, nil))
     
     future = child.loadMirrorAsync(Type.getType("LA;"))
     assert_equal("child.A", future.resolve.name)
@@ -78,24 +80,29 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     assert(future.resolve.isError)
     
     defineType(parent, Type.getType("LB;"),
-               BaseType.new(Type.getType("Lparent/B;"), 0, nil))
+               BaseType.new(nil, Type.getType("Lparent/B;"), 0, nil))
     assert_equal("parent.B", future.resolve.name)
     defineType(child, Type.getType("LB;"),
-               BaseType.new(Type.getType("Lchild/B;"), 0, nil))
+               BaseType.new(nil, Type.getType("Lchild/B;"), 0, nil))
     assert_equal("child.B", future.resolve.name)
   end
 
   def test_adapter
-    loader = AsyncLoaderAdapter.new(PrimitiveLoader.new)
+    loader = AsyncLoaderAdapter.new(nil, PrimitiveLoader.new(nil))
     future = loader.loadMirrorAsync(Type.getType("I"))
     assert_equal('int', future.resolve.name)
   end
 
   def test_array
-    loader = SimpleAsyncMirrorLoader.new
-    future = loader.loadMirrorAsync(Type.getType("[LA;"))
+    context = Context.new
+    classpath = ClassPath.new
+    classpath.bytecode_loader_set PrimitiveLoader.new(context)
+    classpath.macro_loader_set classpath.bytecode_loader
+    classpath.loader_set(loader = SimpleAsyncMirrorLoader.new(context))
+    context.add(ClassPath.java_class, classpath)
+    future = classpath.loader.loadMirrorAsync(Type.getType("[LA;"))
     defineType(loader, Type.getType("LA;"),
-               BaseType.new(Type.getType("LA;"), 0, nil))
+               BaseType.new(nil, Type.getType("LA;"), 0, nil))
     assert(JVMTypeUtils.isArray(future.resolve))
     assert_equal('LA;', future.resolve.getComponentType.asm_type.descriptor)
     assert(!future.resolve.getComponentType.isError)

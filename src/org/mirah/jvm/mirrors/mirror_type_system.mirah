@@ -90,9 +90,9 @@ class MirrorTypeSystem implements TypeSystem
     @context = context
     context[MirrorTypeSystem] = self
     bytecode_loader = BytecodeMirrorLoader.new(
-        context, classloader, PrimitiveLoader.new)
-    @loader = SimpleAsyncMirrorLoader.new(AsyncLoaderAdapter.new(
-        bytecode_loader))
+        context, classloader, PrimitiveLoader.new(context))
+    @loader = SimpleAsyncMirrorLoader.new(context, AsyncLoaderAdapter.new(
+        context, bytecode_loader))
     if macroloader
       @macroloader = BytecodeMirrorLoader.new(
           context, macroloader, bytecode_loader)
@@ -390,7 +390,7 @@ class MirrorTypeSystem implements TypeSystem
       if node.kind_of?(InterfaceDeclaration)
         flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
       end
-      mirror = MirahMirror.new(type, flags,
+      mirror = MirahMirror.new(@context, type, flags,
                                superclass, interfaceArray)
       addClassIntrinsic(mirror)
       future = MirrorFuture.new(mirror, position)
@@ -455,7 +455,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getResolvedArrayType(componentType:ResolvedType):ResolvedType
-    ArrayType.new(cast(componentType), @loader)
+    ArrayType.new(@context, cast(componentType))
   end
 
   def getArrayType(componentType:ResolvedType):ResolvedType

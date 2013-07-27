@@ -172,7 +172,7 @@ class GenericMethodLookup
     constraints.keySet.each do |tv|
       c = Constraints(constraints[tv])
       unless c.getExtends.isEmpty
-        finder = LubFinder.new(@context[Types])
+        finder = LubFinder.new(@context)
         solved[tv.toString] = finder.leastUpperBound(c.getExtends)
         simplifyConstraints(solved)
       end

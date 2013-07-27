@@ -26,9 +26,9 @@ class BaseTypeTest < Test::Unit::TestCase
   java_import 'mirah.lang.ast.TypeRefImpl'
 
   def setup
-    @type = BaseType.new(Type.getType("LFooBar;"), 0, nil)
-    @void = BaseType.new(Type.getType("V"), 0, nil)
     @types = MirrorTypeSystem.new
+    @type = BaseType.new(@types.context, Type.getType("LFooBar;"), 0, nil)
+    @void = BaseType.new(@types.context, Type.getType("V"), 0, nil)
   end
 
   def type(name)

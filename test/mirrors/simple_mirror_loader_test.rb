@@ -27,7 +27,7 @@ class ParentLoader < SimpleMirrorLoader
 
   def findMirror(type)
     @callcount += 1
-    BaseType.new(type, 0, nil) if type.descriptor == "V"
+    BaseType.new(nil, type, 0, nil) if type.descriptor == "V"
   end
 
   attr_reader :callcount
@@ -66,7 +66,7 @@ class PrimitiveLoaderTest < Test::Unit::TestCase
   java_import 'org.jruby.org.objectweb.asm.Type'
 
   def test_primitives
-    loader = PrimitiveLoader.new
+    loader = PrimitiveLoader.new(nil)
     %w(V Z B S C I J F D).each do |desc|
       type = Type.getType(desc)
       mirror = loader.loadMirror(type)
@@ -77,7 +77,7 @@ class PrimitiveLoaderTest < Test::Unit::TestCase
 
   def test_parent
     parent = ParentLoader.new
-    loader = PrimitiveLoader.new(parent)
+    loader = PrimitiveLoader.new(nil, parent)
     mirror = loader.loadMirror(Type.getType("V"))
     assert_equal(1, parent.callcount)
   end

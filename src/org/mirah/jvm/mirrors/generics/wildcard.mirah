@@ -15,12 +15,14 @@ package org.mirah.jvm.mirrors.generics
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.WildcardType
+import org.jruby.org.objectweb.asm.Opcodes
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.util.Context
 
 class Wildcard < BaseType implements WildcardType
-  def initialize(object:MirrorType, extendsBound:TypeMirror=nil, superBound:TypeMirror=nil)
-    super(nil, nil, 0, nil)
+  def initialize(context:Context, object:MirrorType, extendsBound:TypeMirror=nil, superBound:TypeMirror=nil)
+    super(context, nil, nil, Opcodes.ACC_PUBLIC, nil)
     raise IllegalArgumentException unless (extendsBound.nil? || superBound.nil?)
     @object = object
     @extendsBound = extendsBound

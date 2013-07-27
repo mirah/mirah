@@ -880,6 +880,10 @@ module Mirah::JVM::Types
     end
 
     def declare_field(name, type, static)
+      if type.isError
+        declared_fields.delete(name)
+        return
+      end
       declared_fields[name] ||= MirahMember.new(self, name, [], type, static, [])
     end
 

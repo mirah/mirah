@@ -69,7 +69,7 @@ class GenericsTest < Test::Unit::TestCase
     if bounds.kind_of?(String)
       bounds = type(bounds)
     end
-    TypeVariable.new(@type_utils, name, bounds)
+    TypeVariable.new(@types.context, name, bounds)
   end
 
   def assert_constraints(constraints, expected={})
@@ -204,7 +204,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal 'java.util.regex.Pattern', c.name
     
     # A has a supertype Set<Regex[]>
-    a = BaseType.new(Type.getType('LFooBar;'), 0, a)
+    a = BaseType.new(nil, Type.getType('LFooBar;'), 0, a)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?<.ord, f, map)
@@ -235,7 +235,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_f_has_super_a_not_wildcard
     # A has a supertype Set<String>
     string = @types.getStringType.resolve
-    a = BaseType.new(Type.getType('LFooBar;'), 0, set(string))
+    a = BaseType.new(nil, Type.getType('LFooBar;'), 0, set(string))
 
     s = typevar('S')
     constraints = Constraints.new
@@ -252,7 +252,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_f_has_super_a_has_extends
     # A has a supertype Set<? extends String>
     string = @types.getStringType.resolve
-    a = BaseType.new(Type.getType('LFooBar;'), 0, set(@type_utils.getWildcardType(string, nil)))
+    a = BaseType.new(nil, Type.getType('LFooBar;'), 0, set(@type_utils.getWildcardType(string, nil)))
 
     s = typevar('S')
     constraints = Constraints.new
@@ -269,7 +269,7 @@ class GenericsTest < Test::Unit::TestCase
   def test_extends_f_and_a_have_super
     # A has a supertype Set<? super String>
     string = @types.getStringType.resolve
-    a = BaseType.new(Type.getType('LFooBar;'), 0, set(@type_utils.getWildcardType(nil, string)))
+    a = BaseType.new(nil, Type.getType('LFooBar;'), 0, set(@type_utils.getWildcardType(nil, string)))
 
     s = typevar('S')
     constraints = Constraints.new
@@ -406,7 +406,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_constraints(constraints, :equal => [re])
     
     # A has a supertype Set<Regex[]>
-    a = BaseType.new(Type.getType('LFooBar;'), 0, a)
+    a = BaseType.new(nil, Type.getType('LFooBar;'), 0, a)
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?=.ord, f, map)
@@ -506,7 +506,7 @@ class GenericsTest < Test::Unit::TestCase
     a = set(@type_utils.getWildcardType(string, nil))
 
     # F has supertype Set<String>
-    f = BaseType.new(Type.getType("LFooBar;"), 0, set(s))
+    f = BaseType.new(nil, Type.getType("LFooBar;"), 0, set(s))
     constraints = Constraints.new
     map = {s => constraints}
     @tpi.processArgument(a, ?>.ord, f, map)
@@ -595,16 +595,16 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_multi_generic
-    klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
+    klass = BaseType.new(nil, Type.getType("LFooBar;"), 0, nil)
     string = @types.getStringType
-    a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces,
+    a = TypeInvocation.new(nil, klass, future(klass.superclass), klass.interfaces,
         [string, string, string], {})
     
     r = typevar('R')
     s = typevar('S')
     t = typevar('T')
     
-    f = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces,
+    f = TypeInvocation.new(nil, klass, future(klass.superclass), klass.interfaces,
         [future(r), future(@type_utils.getWildcardType(s, nil)), future(@type_utils.getWildcardType(nil, t))], {})
     rc = Constraints.new
     sc = Constraints.new
@@ -618,9 +618,9 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_cycle
-    klass = BaseType.new(Type.getType("LFooBar;"), 0, nil)
+    klass = BaseType.new(nil, Type.getType("LFooBar;"), 0, nil)
     cycle = Cycle.new
-    a = TypeInvocation.new(klass, future(klass.superclass), klass.interfaces, [future(cycle)], {})
+    a = TypeInvocation.new(nil, klass, future(klass.superclass), klass.interfaces, [future(cycle)], {})
     cycle.target_set(a)
     assert_equal("FooBar<FooBar<FooBar<...>>>", a.toString)
   end
@@ -642,11 +642,13 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal("java.util.Set<java.lang.String[]>[]", t.toString)
     e = @type_utils.erasure(t)
     assert_equal("java.util.Set[]", e.toString)
-    t = IntersectionType.new([type('java.io.Serializable'),
+    t = IntersectionType.new(@types.context,
+                             [type('java.io.Serializable'),
                               type('java.lang.CharSequence')])
     e = @type_utils.erasure(t)
     assert_equal(type('java.io.Serializable'), e, e.toString)
-    t = IntersectionType.new([type('java.io.Serializable'),
+    t = IntersectionType.new(@types.context,
+                             [type('java.io.Serializable'),
                               type('java.util.AbstractMap')])
     e = @type_utils.erasure(t)
     assert_equal(type('java.util.AbstractMap'), e)
@@ -692,7 +694,7 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_erased_supertypes
-    lub = LubFinder.new(@type_utils)
+    lub = LubFinder.new(@types.context)
     t = @types.getStringType.resolve
     m = lub.erasedSupertypes(t)
     assert_equal(
@@ -716,7 +718,7 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_minimizeErasedCandidates
-    lub = LubFinder.new(@type_utils)
+    lub = LubFinder.new(@types.context)
     t = set(@types.getStringType.resolve)
     s = g('java.util.Collection', [type('java.lang.CharSequence')])
     candidates = lub.erasedCandidateSet([t, s])
@@ -733,7 +735,7 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_lub
-    finder = LubFinder.new(@type_utils)
+    finder = LubFinder.new(@types.context)
     string = type('java.lang.String')
     lub = finder.leastUpperBound([string])
     assert_equal(string, lub, lub.toString)
@@ -757,7 +759,7 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_lub_cycle
-    finder = LubFinder.new(@type_utils)
+    finder = LubFinder.new(@types.context)
     string = type('java.lang.String')
     integer = type('java.lang.Integer')
     lub = finder.leastUpperBound([string, integer])

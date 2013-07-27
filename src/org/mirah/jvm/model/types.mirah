@@ -44,6 +44,7 @@ import org.mirah.util.Context
 
 class Types implements TypesModel
   def initialize(context:Context)
+    @context = context
     @types = context[MirrorTypeSystem]
     context[TypesModel] = self
     @object = MirrorType(@types.loadNamedType('java.lang.Object').resolve)
@@ -112,6 +113,6 @@ class Types implements TypesModel
   end
 
   def getWildcardType(extendsBound, superBound)
-    Wildcard.new(@object, extendsBound, superBound)
+    Wildcard.new(@context, @object, extendsBound, superBound)
   end
 end

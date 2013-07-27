@@ -20,7 +20,7 @@ import org.jruby.org.objectweb.asm.Type
 
 class ImplicitNil < BaseType
   def initialize
-    super(Type.getType('V'), Opcodes.ACC_PUBLIC, nil)
+    super(nil, Type.getType('V'), Opcodes.ACC_PUBLIC, nil)
   end
 
   def widen(other)

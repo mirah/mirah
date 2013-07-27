@@ -23,7 +23,7 @@ import javax.lang.model.type.TypeKind
 
 class VoidType < BaseType implements NoType
   def initialize
-    super(Type.getType("V"), Opcodes.ACC_PUBLIC, nil)
+    super(nil, Type.getType("V"), Opcodes.ACC_PUBLIC, nil)
   end
 
   def getKind

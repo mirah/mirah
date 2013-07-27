@@ -31,13 +31,15 @@ import javax.lang.model.type.WildcardType
 import javax.lang.model.util.AbstractTypeVisitor6
 import javax.lang.model.util.SimpleTypeVisitor6
 import javax.lang.model.util.Types
+import org.mirah.util.Context
 
 import org.mirah.jvm.mirrors.MirrorType
 
 # This class is not threadsafe
 class LubFinder
-  def initialize(types:Types)
-    @types = types
+  def initialize(context:Context)
+    @context = context
+    @types = context[Types]
     @cycles = HashMap.new
   end
 
@@ -59,7 +61,7 @@ class LubFinder
       result = if supertypes.size == 1
         DeclaredType(supertypes[0])
       else
-        IntersectionType.new(supertypes)
+        IntersectionType.new(@context, supertypes)
       end
       @cycles.remove(types)
       cycle_guard.target = MirrorType(result)
@@ -186,7 +188,8 @@ class LubFinder
         @types.getWildcardType(leastUpperBound([a, bw.getExtendsBound]), nil)
       else
         # lcta(U, ? super V) = ? super glb(U, V)
-        @types.getWildcardType(nil, IntersectionType.new([a, bw.getSuperBound]))
+        @types.getWildcardType(
+            nil, IntersectionType.new(@context, [a, bw.getSuperBound]))
       end
     elsif aw.getExtendsBound && bw.getExtendsBound
       # lcta(? extends U, ? extends V) = ? extends lub(U, V)

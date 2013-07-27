@@ -16,10 +16,11 @@
 package org.mirah.jvm.mirrors
 
 import org.jruby.org.objectweb.asm.Type
+import org.mirah.util.Context
 
 class BooleanType < Number
-  def initialize(loader:MirrorLoader)
-    super(Type.getType('Z'), nil, loader)
+  def initialize(context:Context, loader:MirrorLoader)
+    super(context, Type.getType('Z'), nil, loader)
   end
 
   def load_methods

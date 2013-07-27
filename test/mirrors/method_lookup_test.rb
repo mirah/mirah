@@ -33,7 +33,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
 
   class FakeMirror < BaseType
     def initialize(desc, superclass=nil, flags=Opcodes.ACC_PUBLIC)
-      super(Type.getType(desc), flags, superclass)
+      super(nil, Type.getType(desc), flags, superclass)
       @fields = {}
     end
 
@@ -59,7 +59,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   end
 
   def jvmtype(internal_name, flags=0, superclass=nil)
-    BaseType.new(Type.getObjectType(internal_name), flags, superclass || wrap('Ljava/lang/Object;'))
+    BaseType.new(@types.context, Type.getObjectType(internal_name), flags, superclass || wrap('Ljava/lang/Object;'))
   end
 
   def wrap(descriptor)

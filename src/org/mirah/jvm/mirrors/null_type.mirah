@@ -26,7 +26,7 @@ import org.mirah.typer.ResolvedType
 
 class NullType < BaseType implements NullTypeModel
   def initialize
-    super('null', Type.getType('Ljava/lang/Object;'), Opcodes.ACC_PUBLIC, nil)
+    super(nil, 'null', Type.getType('Ljava/lang/Object;'), Opcodes.ACC_PUBLIC, nil)
   end
   def widen(other:ResolvedType):ResolvedType
     if other.matchesAnything

@@ -19,7 +19,7 @@ import org.jruby.org.objectweb.asm.Type
 
 class BlockType < BaseType
   def initialize
-    super(Type.getType("Lorg/mirah/jvm/mirrors/BlockType;"), 0, nil)
+    super(nil, Type.getType("Lorg/mirah/jvm/mirrors/BlockType;"), 0, nil)
   end
 
   def isBlock

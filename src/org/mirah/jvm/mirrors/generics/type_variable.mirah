@@ -16,17 +16,19 @@ import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
 import javax.lang.model.type.TypeVariable as TypeVariableModel
+import org.jruby.org.objectweb.asm.Opcodes
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.NullType
+import org.mirah.util.Context
 
 # A declared type parameter.
 class TypeVariable < BaseType implements TypeVariableModel
-  def initialize(types:Types, name:String, ancestor:MirrorType)
-    super(name, nil, 0, ancestor)
+  def initialize(context:Context, name:String, ancestor:MirrorType)
+    super(context, name, nil, Opcodes.ACC_PUBLIC, ancestor)
     @name = name
     raise IllegalArgumentException if ancestor.nil?
     @extendsBound = ancestor
-    @lowerBound = types.getNullType
+    @lowerBound = context[Types].getNullType
   end
   def getAsmType
     @extendsBound.getAsmType

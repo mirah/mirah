@@ -107,7 +107,7 @@ class TypeInvoker < BaseSignatureReader
     else
       invoker = TypeInvoker.new(context, outerTypeArgs, args)
       invoker.read(dtype.signature)
-      TypeInvocation.new(type,
+      TypeInvocation.new(context, type,
                          invoker.superclass, invoker.interfaces, args,
                          invoker.getTypeVariableMap)
     end

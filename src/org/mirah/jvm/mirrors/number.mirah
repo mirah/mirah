@@ -20,6 +20,7 @@ import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.MemberKind
 import javax.lang.model.type.PrimitiveType
 import javax.lang.model.type.TypeKind
+import org.mirah.util.Context
 
 class Number < BaseType implements PrimitiveType
   def self.initialize:void
@@ -35,8 +36,8 @@ class Number < BaseType implements PrimitiveType
     }
   end
 
-  def initialize(type:Type, supertype:MirrorType, loader:MirrorLoader)
-    super(type, Opcodes.ACC_PUBLIC, supertype)
+  def initialize(context:Context, type:Type, supertype:MirrorType, loader:MirrorLoader)
+    super(context, type, Opcodes.ACC_PUBLIC, supertype)
     @kind = TypeKind(@@kind_map[type.getDescriptor])
     @loader = loader
   end

@@ -49,7 +49,7 @@ end
 
 class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   def initialize(context:Context, klass:ClassNode, loader:MirrorLoader)
-    super(Type.getObjectType(klass.name), klass.access)
+    super(context, Type.getObjectType(klass.name), klass.access)
     @context = context
     @loader = loader
     @fields = klass.fields

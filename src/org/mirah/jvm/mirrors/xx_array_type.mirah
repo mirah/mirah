@@ -51,8 +51,9 @@ class ArrayType < BaseType implements ArrayModel
   end
 
   def initialize(context:Context, component:MirrorType)
-    super(Type.getType("[#{component.getAsmType.getDescriptor}"),
+    super(context, Type.getType("[#{component.getAsmType.getDescriptor}"),
           Opcodes.ACC_PUBLIC, nil)
+    @context = context
     @loader = context[ClassPath].loader
     @int_type = context[ClassPath].bytecode_loader.loadMirror(Type.getType('I'))
     @componentType = component
@@ -60,27 +61,6 @@ class ArrayType < BaseType implements ArrayModel
     BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, sync_loader)
     BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, sync_loader)
     
-  end
-
-  def initialize(component:MirrorType, loader:AsyncMirrorLoader)
-    super(Type.getType("[#{component.getAsmType.getDescriptor}"),
-          Opcodes.ACC_PUBLIC, nil)
-    @loader = loader
-    @int_type = loader.loadMirrorAsync(Type.getType('I')).resolve
-    @componentType = component
-    sync_loader = SyncLoaderAdapter.new(loader)
-    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, sync_loader)
-    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, sync_loader)
-  end
-
-  def initialize(component:MirrorType, loader:MirrorLoader)
-    super(Type.getType("[#{component.getAsmType.getDescriptor}"),
-          Opcodes.ACC_PUBLIC, nil)
-    @loader = AsyncLoaderAdapter.new(loader)
-    @int_type = loader.loadMirror(Type.getType('I'))
-    @componentType = component
-    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, loader)
-    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, loader)
   end
 
   def interfaces:TypeFuture[]
@@ -98,7 +78,7 @@ class ArrayType < BaseType implements ArrayModel
       supertypes = @componentType.directSupertypes
       interfaces = TypeFuture[supertypes.size]
       supertypes.map do |x|
-         BaseTypeFuture.new.resolved(ArrayType.new(MirrorType(x), @loader))
+         BaseTypeFuture.new.resolved(ArrayType.new(@context, MirrorType(x)))
       end.toArray(interfaces)
       interfaces
     end
@@ -166,7 +146,7 @@ class ArrayType < BaseType implements ArrayModel
       if @componentType == component
         self
       else
-        ArrayType.new(MirrorType(component), @loader)
+        ArrayType.new(@context, MirrorType(component))
       end
     end
   end

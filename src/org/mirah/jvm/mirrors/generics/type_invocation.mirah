@@ -25,10 +25,11 @@ import org.mirah.jvm.mirrors.MirrorProxy
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.TypeFuture
+import org.mirah.util.Context
 
 class TypeInvocation < AsyncMirror
-  def initialize(raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List, typeVariableMap:Map)
-    super(raw.getAsmType, raw.flags, superclass, interfaces)
+  def initialize(context:Context, raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List, typeVariableMap:Map)
+    super(context, raw.getAsmType, raw.flags, superclass, interfaces)
     @raw = raw
     @interfaces = interfaces
     @typeArguments = args

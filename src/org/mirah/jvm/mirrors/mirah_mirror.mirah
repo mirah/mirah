@@ -22,11 +22,12 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.TypeFuture
+import org.mirah.util.Context
 
 
 # Mirror for a type being loaded from a .mirah file.
 class MirahMirror < AsyncMirror
-  def initialize(type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
+  def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
     super
     @default_constructor = Member.new(Opcodes.ACC_PUBLIC, self, '<init>', [], self, MemberKind.CONSTRUCTOR)
     @fields = {}
