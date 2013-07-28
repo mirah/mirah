@@ -18,6 +18,7 @@ package org.mirah.tool
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.util.List
 import java.util.logging.Logger
 import java.util.logging.Level
 import javax.tools.DiagnosticListener
@@ -43,11 +44,15 @@ import org.mirah.util.AstFormatter
 import org.mirah.util.TooManyErrorsException
 import org.mirah.util.LazyTypePrinter
 import org.mirah.util.Context
+import org.mirah.util.OptionParser
 
 class Mirahc implements JvmBackend
-  def initialize
-    logger = MirahLogFormatter.new(true).install
-    logger.setLevel(Level.ALL)
+  @@VERSION = "0.1.1.dev"
+
+  def initialize(args:String[])
+    @logger = MirahLogFormatter.new(true).install
+    @code_sources = []
+    processArgs(args)
     @context = context = Context.new
     context[JvmBackend] = self
     context[DiagnosticListener] = @diagnostics = SimpleDiagnostics.new(true)
@@ -116,19 +121,59 @@ class Mirahc implements JvmBackend
     end
   end
 
-  def self.main(args:String[]):void
-    mirahc = Mirahc.new
-    inline = false
-    args.each do |arg|
-      if inline
-        mirahc.parse(StringCodeSource.new('DashE', arg))
-        inline = false
-      elsif '-e'.equals(arg)
-        inline = true
-      else
-        mirahc.parse(StreamCodeSource.new(arg))
+  def processArgs(args:String[]):void
+    parser = OptionParser.new("Mirahc [flags] <files or -e SCRIPT>")
+    parser.addFlag(["h", "help"], "Print this help message.") do
+      parser.printUsage
+      System.exit(0)
+    end
+    code_sources = @code_sources
+    parser.addFlag(
+        ["e"], "CODE",
+        "Compile an inline script.\n\t(The class will be named DashE)") do |c|
+      code_sources.add(StringCodeSource.new('DashE', c))
+    end
+    version = @@VERSION
+    parser.addFlag(['v', 'version'], 'Print the version.') do
+      puts "Mirahc v#{version}"
+      System.exit(1)
+    end
+    logger = @logger
+    parser.addFlag(['V', 'verbose'], 'Verbose logging.') do
+      logger.setLevel(Level.FINE)
+    end
+    parser.addFlag(
+        ['vmodule'], 'logger.name=LEVEL[,...]',
+        "Customized verbose logging. `logger.name` can be a class or package\n"+
+        "\t(e.g. org.mirah.jvm or org.mirah.tool.Mirahc)\n"+
+        "\t`LEVEL` should be one of \n"+
+        "\t(SEVERE, WARNING, INFO, CONFIG, FINE, FINER FINEST)") do |spec|
+      split = spec.split(',')
+      i = 0
+      while i < split.length
+        pieces = split[i].split("=", 2)
+        i += 1
+        logger = Logger.getLogger(pieces[0])
+        level = Level.parse(pieces[1])
+        logger.setLevel(level)
       end
     end
+    it = parser.parse(args).iterator
+    while it.hasNext
+      f = String(it.next)
+      @code_sources.add(StreamCodeSource.new(f))
+    end
+  end
+
+  def parseAllFiles
+    @code_sources.each do |c:CodeSource|
+      parse(c)
+    end
+  end
+
+  def self.main(args:String[]):void
+    mirahc = Mirahc.new(args)
+    mirahc.parseAllFiles
     mirahc.infer
     mirahc.compile
   rescue TooManyErrorsException

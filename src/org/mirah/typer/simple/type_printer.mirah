@@ -29,7 +29,7 @@ import java.io.PrintStream
 import java.io.PrintWriter
 import java.io.Writer
 
-class PrintStreamAdapter < PrintWriter
+class PrintStreamAdapter < Writer
   def initialize(out:PrintStream)
     @out = out
   end
@@ -42,17 +42,8 @@ class PrintStreamAdapter < PrintWriter
     end
   end
 
-  def printf(format, args)
-    @out.printf(format, args)
-    self
-  end
-
-  def print(arg:String)
-    @out.print(arg)
-  end
-
-  def println
-    @out.println
+  def write(str:String)
+    @out.print(str)
   end
 end
 
@@ -71,7 +62,7 @@ class TypePrinter < NodeScanner
   end
 
   def initialize(typer:Typer, writer:PrintStream)
-    initialize(typer, PrintWriter(PrintStreamAdapter.new(writer)))
+    initialize(typer, PrintWriter.new(PrintStreamAdapter.new(writer)))
   end
 
   def printIndent:void

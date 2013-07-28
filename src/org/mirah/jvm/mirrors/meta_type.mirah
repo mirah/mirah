@@ -34,6 +34,11 @@ class MetaType < BaseType
 
   def isMeta:boolean; true; end
 
+  def widen(other)
+    # What does this mean?
+    unmeta.widen(other)
+  end
+
   def notifyOfIncompatibleChange
     unmeta.notifyOfIncompatibleChange
   end
