@@ -80,7 +80,7 @@ class ClosureBuilder
     raise "Unable to determine method return type before generating closure including non local return" unless resolved
 
     enclosing_body = get_body(enclosing_node)
-    node_in_body = block.findAncestor { |node| enclosing_body == node.parent }
+    node_in_body = block.findAncestor { |node| node.parent.kind_of? NodeList }
     new_call = wrap_with_rescue block, nlr_klass, node_in_body, resolved
     node_in_body.parent.replaceChild node_in_body, new_call
     
