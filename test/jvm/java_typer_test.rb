@@ -28,7 +28,7 @@ class JavaTyperTest < Test::Unit::TestCase
   def setup
     @types = Mirah::JVM::Types::TypeFactory.new
     @scopes = SimpleScoper.new {|scoper, node| Mirah::AST::StaticScope.new(node, scoper)}
-    @typer = Mirah::Typer::Typer.new(@types, @scopes, nil)
+    @typer = Mirah::Typer::Typer.new(@types, @scopes, nil, nil)
     @mirah = Mirah::Transform::Transformer.new(Mirah::Util::CompilationState.new, @typer)
   end
 
