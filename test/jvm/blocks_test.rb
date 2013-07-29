@@ -468,7 +468,6 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closure_non_local_return_with_multiple_returns
-    pending {
     cls, = compile(<<-EOF)
       class NonLocalMe
         def foo(a: Runnable)
@@ -486,12 +485,9 @@ class BlocksTest < Test::Unit::TestCase
     assert_output "NLR!\nNLArrrr\n" do
       cls.main(nil)
     end
-  }
   end
 
-
-  def test_two_nlr_closures_in_the_same_method
-    pending{
+  def test_two_nlr_closures_in_the_same_method_in_if
     cls, = compile(<<-EOF)
       class NonLocalMe
         def foo(a: Runnable)
@@ -507,13 +503,54 @@ class BlocksTest < Test::Unit::TestCase
         end
         "nor here either"
       end
-      puts nlr
+      puts nlr true
+      puts nlr false
     EOF
     assert_output "NLR!\nNLArrrr\n" do
       cls.main(nil)
     end
-  }
   end
+
+  def test_two_nlr_closures_in_the_same_method
+    # this has a binding generation problem
+    cls, = compile(<<-EOF)
+      class NonLocalMe2
+        def foo(a: Runnable)
+          a.run
+          puts "doesn't get here"
+        end
+      end
+      def nlr(flag: boolean): String
+        NonLocalMe2.new.foo { return "NLR!" if flag }
+        NonLocalMe2.new.foo { return "NLArrrr" unless flag }
+        "nor here either"
+      end
+      puts nlr true
+      puts nlr false
+    EOF
+    assert_output "NLR!\nNLArrrr\n" do
+      cls.main(nil)
+    end
+  end
+
+
+  def test_two_closures_in_the_same_method
+    cls, = compile(<<-EOF)
+      def foo(a: Runnable)
+        a.run
+      end
+      def nlr: String
+        foo { puts "NLR!" }
+        foo { puts "NLArrrr" }
+        "nor here either"
+      end
+      nlr
+    EOF
+    assert_output "NLR!\nNLArrrr\n" do
+      cls.main(nil)
+    end
+  end
+
   # nested nlr scopes
 
 # works with script as end
