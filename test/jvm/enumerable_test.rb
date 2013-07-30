@@ -135,7 +135,7 @@ class EnumerableTest < Test::Unit::TestCase
     end
   end
 
-  def test_times
+  def test_times_with_arg
     cls, = compile(<<-EOF)
       def foo(i:int)
         i.times {|x| System.out.println x }
@@ -145,7 +145,9 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("0\n1\n2\n") do
       cls.foo(3)
     end
+  end
 
+  def test_times_without_arg
     cls, = compile(<<-EOF)
       def foo(i:int)
         i.times { System.out.println "Hi" }
@@ -157,7 +159,7 @@ class EnumerableTest < Test::Unit::TestCase
     end
   end
 
-  def test_general_loop
+  def test_normal_while_loop
     cls, = compile(<<-EOF)
       def foo(x:boolean)
         a = StringBuilder.new
@@ -168,7 +170,9 @@ class EnumerableTest < Test::Unit::TestCase
       end
     EOF
     assert_equal("", cls.foo(false))
+  end
 
+  def test_postfix_while_loop
     cls, = compile(<<-EOF)
       def foo
         a = StringBuilder.new
@@ -179,7 +183,9 @@ class EnumerableTest < Test::Unit::TestCase
       end
     EOF
     assert_equal("<body>", cls.foo)
+  end
 
+  def test_general_loop
     cls, = compile(<<-EOF)
       def foo(x:boolean)
         a = StringBuilder.new
@@ -239,8 +245,7 @@ class EnumerableTest < Test::Unit::TestCase
     assert_equal("<init><pre><post><pre><body><post>", cls.foo)
   end
 
-
-    def test_each
+  def test_each
     cls, = compile(<<-EOF)
       def foo
         [1,2,3].each {|x| System.out.println x}
@@ -260,7 +265,6 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("thrice\nthrice\nthrice\n") do
       cls.foo
     end
-
   end
 
   def test_any
@@ -276,7 +280,7 @@ class EnumerableTest < Test::Unit::TestCase
     end
   end
 
-  def test_all
+  def test_all_empty_block_and_not_with_cast
     cls, = compile(<<-EOF)
       import java.lang.Integer
       def foo
@@ -287,7 +291,8 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("true\nfalse\n") do
       cls.foo
     end
-
+  end
+  def test_all_with_block_with_no_cast
     cls, = compile(<<-EOF)
       def foo
         System.out.println [1,2,3].all? {|x| x.intValue > 3}
@@ -334,7 +339,7 @@ class EnumerableTest < Test::Unit::TestCase
     end
   end
 
-  def test_reduce
+  def test_reduce_with_string_array
     cls, = compile(<<-'EOF')
       def foo
         x = ["a", "b", "c"].reduce {|a, b| "#{a}#{b}"}
@@ -344,7 +349,9 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("abc\n") do
       cls.foo
     end
+  end
 
+  def test_reduce_with_multiple_typed_block_parameters
     cls, = compile(<<-'EOF')
       def foo
         puts [1, 2, 3].reduce {|a:Integer, b:Integer| Integer.new(a.intValue + b.intValue)}
@@ -353,7 +360,9 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("6\n") do
       cls.foo
     end
+  end
 
+  def test_reduce_with_one_typed_block_parameters
     cls, = compile(<<-'EOF')
       def foo
         puts ["a", "b", "c"].reduce {|a:Integer| "#{a}a"}
@@ -362,9 +371,9 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("aaa\n") do
       cls.foo
     end
+  end
 
-
-
+  def test_reduce_with_no_arguments
     cls, = compile(<<-'EOF')
       def foo
         ["a", "b", "c"].reduce {puts "x"}
@@ -373,7 +382,9 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("x\nx\n") do
       cls.foo
     end
+  end
 
+  def test_reduce_of_single_element_list_does_not_execute_block
    cls, = compile(<<-'EOF')
       def foo
         puts ["a"].reduce { puts "x"}
@@ -382,7 +393,9 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("a\n") do
       cls.foo
     end
+  end
 
+  def test_reduce_of_empty_list_with_some_variable_name_as_outer_scope_does_not_effect_outer_scope
     cls, = compile(<<-'EOF')
       def foo
         a = "foo"
@@ -393,8 +406,10 @@ class EnumerableTest < Test::Unit::TestCase
     assert_output("null\n") do
       cls.foo
     end
+  end
 
-    pend do "Generating bad bytecode"
+  def test_reduce_with_int_array
+    if compiler_name == 'new'
       cls, = compile(<<-'EOF')
         def baz
           a = int[3]
@@ -407,6 +422,8 @@ class EnumerableTest < Test::Unit::TestCase
       assert_output("8\n") do
         cls.baz
       end
+    else
+      pend 'Generated bad bytecode'
     end
   end
 
