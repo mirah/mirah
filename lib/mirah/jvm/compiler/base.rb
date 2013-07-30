@@ -201,6 +201,7 @@ module Mirah
 
         # arg_types must be an Array
         def create_method_builder(name, node, static, exceptions, return_type, arg_types)
+          return_type = nil if return_type.name == ':unreachable'
           visibility = :public  # TODO
           flags = BiteScript::ASM::Opcodes::ACC_PUBLIC
           flags |= BiteScript::ASM::Opcodes::ACC_STATIC if static

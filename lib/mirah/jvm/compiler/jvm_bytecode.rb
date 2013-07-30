@@ -252,7 +252,7 @@ module Mirah
               end
             end
 
-            return_type.return(@method)
+            return_type.return(@method) unless return_type.name == ':unreachable'
 
             @method.stop
           end
