@@ -20,17 +20,17 @@ import org.mirah.typer.ClosureBuilder
 
 class ObjectExtensions
   macro def puts(node)
-    quote {System.out.println(`node`)}
+    quote {System.out.println(` [node] `)}
   end
   macro def self.puts(node)
-    quote {System.out.println(`node`)}
+    quote {System.out.println(` [node] `)}
   end
 
   macro def print(node)
-    quote {System.out.print(`node`)}
+    quote {System.out.print(` [node] `)}
   end
   macro def self.print(node)
-    quote {System.out.print(`node`)}
+    quote {System.out.print(` [node] `)}
   end
   macro def loop(block:Block)
     quote { while true do `block.body` end }
