@@ -206,7 +206,7 @@ class BaseType implements MirrorType, DeclaredType
   def invalidateMethod(name:String)
     listeners = List(@method_listeners[name])
     if listeners
-      listeners.each do |l|
+      ArrayList.new(listeners).each do |l|
         MethodListener(l).methodChanged(self, name)
       end
     end
