@@ -47,7 +47,7 @@ abstract class BaseSignatureReader < SignatureVisitor
         types.add(@classbound.future.resolve)
       end
       @interfaces.each do |i:AsyncTypeBuilder|
-        types.add(@classbound.future.resolve)
+        types.add(i.future.resolve)
       end
       bound = if types.size == 0
         MirrorType(@context[MirrorTypeSystem].loadNamedType(
