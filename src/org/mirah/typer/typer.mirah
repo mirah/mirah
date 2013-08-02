@@ -66,6 +66,10 @@ class Typer < SimpleNodeVisitor
     @macros
   end
 
+  def macro_compiler=(compiler:MacroBuilder)
+    @macros = compiler
+  end
+
   def type_system
     @types
   end

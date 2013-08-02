@@ -18,9 +18,12 @@ package org.mirah.tool
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URL
+import java.net.URLClassLoader
 import java.util.List
 import java.util.logging.Logger
 import java.util.logging.Level
+import java.util.regex.Pattern
 import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser
 import mirah.lang.ast.CodeSource
@@ -28,10 +31,15 @@ import mirah.lang.ast.Node
 import mirah.lang.ast.Script
 import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
+import org.mirah.IsolatedResourceLoader
+import org.mirah.MirahClassLoader
 import org.mirah.MirahLogFormatter
 import org.mirah.jvm.compiler.Backend
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.JVMScope
+import org.mirah.jvm.mirrors.ClassResourceLoader
+import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
+import org.mirah.jvm.mirrors.FilteredResources
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
@@ -52,12 +60,19 @@ class Mirahc implements JvmBackend
   def initialize(args:String[])
     @logger = MirahLogFormatter.new(true).install
     @code_sources = []
+    @destination = "."
     processArgs(args)
     @context = context = Context.new
     context[JvmBackend] = self
     context[DiagnosticListener] = @diagnostics = SimpleDiagnostics.new(true)
     context[SimpleDiagnostics] = @diagnostics
-    context[TypeSystem] = @types = MirrorTypeSystem.new(context)
+
+    @macro_context = Context.new
+    @macro_context[JvmBackend] = self
+    @macro_context[DiagnosticListener] = @diagnostics
+    @macro_context[SimpleDiagnostics] = @diagnostics
+
+    createTypeSystems
     context[Scoper] = @scoper = SimpleScoper.new do |s, node|
       scope = JVMScope.new(s)
       scope.context = node
@@ -65,8 +80,19 @@ class Mirahc implements JvmBackend
     end
     context[MirahParser] = @parser = MirahParser.new
     BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics)
+
+    @macro_context[Scoper] = @scoper
+    @macro_context[MirahParser] = @parser
+    @macro_context[Typer] = @macro_typer = Typer.new(
+        @macro_types, @scoper, self, @parser)
+
     context[Typer] = @typer = Typer.new(@types, @scoper, self, @parser)
+
+    # Make sure macros are compiled using the correct type system.
+    @typer.macro_compiler = @macro_typer.macro_compiler
+
     @backend = Backend.new(context)
+    @macro_backend = Backend.new(@macro_context)
     @asts = []
   end
 
@@ -86,33 +112,59 @@ class Mirahc implements JvmBackend
       begin
         @typer.infer(node, false)
       ensure
-        logAst(node)
+        logAst(node, @typer)
       end
     end
-    errors = ErrorCollector.new(@context)
     @asts.each do |node:Node|
-      errors.scan(node, nil)
+      processInferenceErrors(node, @context)
     end
+  end
+
+  def processInferenceErrors(node:Node, context:Context):void
+    errors = ErrorCollector.new(context)
+    errors.scan(node, nil)
     if @diagnostics.errorCount > 0
       System.exit(1)
     end
   end
 
-  def logAst(node:Node)
-    @@log.log(Level.FINE, "Inferred types:\n{0}", LazyTypePrinter.new(@typer, node))
+  def logAst(node:Node, typer:Typer):void
+    @@log.log(Level.FINE, "Inferred types:\n{0}", LazyTypePrinter.new(typer, node))
   end
 
   def logExtensionAst(ast)
     @@log.log(Level.FINE, "Inferred types:\n{0}", AstFormatter.new(ast))
   end
 
+  def compileAndLoadExtension(ast)
+    logAst(ast, @macro_typer)
+    processInferenceErrors(ast, @macro_context)
+    @macro_backend.visit(ast, nil)
+    first_class_name = nil
+    destination = @destination
+    class_map = @extension_classes
+    @macro_backend.generate do |classname, bytes|
+      first_class_name ||= classname if classname.contains('$Extension')
+      class_map[classname] = bytes
+      file = File.new(destination, "#{classname.replace(?., ?/)}.class")
+      parent = file.getParentFile
+      parent.mkdirs if parent
+      output = BufferedOutputStream.new(FileOutputStream.new(file))
+      output.write(bytes)
+      output.close
+    end
+    @extension_loader.loadClass(first_class_name)
+  end
+
+
   def compile
     @asts.each do |n|
       node = Script(n)
       @backend.visit(node, nil)
     end
+    destination = @destination
     @backend.generate do |filename, bytes|
-      file = File.new("#{filename.replace(?., ?/)}.class")
+      file = File.new(destination, "#{filename.replace(?., ?/)}.class")
       parent = file.getParentFile
       parent.mkdirs if parent
       output = BufferedOutputStream.new(FileOutputStream.new(file))
@@ -121,12 +173,70 @@ class Mirahc implements JvmBackend
     end
   end
 
+  def parseClassPath(classpath:String)
+    filenames = classpath.split(File.pathSeparator)
+    urls = URL[filenames.length]
+    filenames.length.times do |i|
+      urls[i] = File.new(filenames[i]).toURI.toURL
+    end
+    urls
+  end
+
+  def setDestination(dest:String):void
+    @destination = dest
+  end
+
+  def setClasspath(classpath:String):void
+    @classpath = parseClassPath(classpath)
+  end
+
+  def setBootClasspath(classpath:String):void
+    @bootcp = parseClassPath(classpath)
+  end
+
+  def setMacroClasspath(classpath:String):void
+    @macrocp = parseClassPath(classpath)
+  end
+
+  def createTypeSystems
+    # Construct a loader with the standard Java classes plus the classpath
+    bootloader = if @bootcp
+      ClassLoaderResourceLoader.new(IsolatedResourceLoader.new(@bootcp))
+    else
+      ClassResourceLoader.new(System.class)
+    end
+    @classpath ||= parseClassPath(@destination)
+    classloader = ClassLoaderResourceLoader.new(
+        IsolatedResourceLoader.new(@classpath), bootloader)
+    
+    # Now one for macros: These will be loaded into this JVM,
+    # so we don't support bootclasspath.
+    @macrocp ||= @classpath
+    bootloader = ClassResourceLoader.new(System.class)
+    macroloader = FilteredResources.new(
+       ClassLoaderResourceLoader.new(IsolatedResourceLoader.new(@macrocp)),
+       Pattern.compile("^(mirah\\.|org\\.mirah\\.macros)"),
+       bootloader)
+    
+    @extension_classes = {}
+    extension_parent = URLClassLoader.new(
+       @macrocp, Mirahc.class.getClassLoader())
+    @extension_loader = MirahClassLoader.new(
+       extension_parent, @extension_classes)
+    
+    @macro_context[TypeSystem] = @macro_types = MirrorTypeSystem.new(
+        @macro_context, macroloader)
+    @context[TypeSystem] = @types = MirrorTypeSystem.new(
+        @context, classloader, macroloader)
+  end
+
   def processArgs(args:String[]):void
     parser = OptionParser.new("Mirahc [flags] <files or -e SCRIPT>")
     parser.addFlag(["h", "help"], "Print this help message.") do
       parser.printUsage
       System.exit(0)
     end
+    mirahc = self
     code_sources = @code_sources
     parser.addFlag(
         ["e"], "CODE",
@@ -158,6 +268,28 @@ class Mirahc implements JvmBackend
         logger.setLevel(level)
       end
     end
+    parser.addFlag(
+        ['classpath', 'cp'], 'CLASSPATH',
+        "A #{File.pathSeparator} separated list of directories, JAR \n"+
+        "\tarchives, and ZIP archives to search for class files.") do |classpath|
+      mirahc.setClasspath(classpath)
+    end
+    parser.addFlag(
+        ['bootclasspath'], 'CLASSPATH',
+        "Classpath to search for standard JRE classes."
+    ) do |classpath|
+      mirahc.setBootClasspath(classpath)
+    end
+    parser.addFlag(
+        ['macroclasspath'], 'CLASSPATH',
+        "Classpath to use when compiling macros."
+    ) do |classpath|
+      mirahc.setMacroClasspath(classpath)
+    end
+    parser.addFlag(
+        ['dest', 'd'], 'DESTINATION',
+        'Directory where class files should be saved.'
+    ) {|dest| mirahc.setDestination(dest) }
     it = parser.parse(args).iterator
     while it.hasNext
       f = String(it.next)

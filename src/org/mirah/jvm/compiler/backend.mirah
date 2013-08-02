@@ -15,6 +15,7 @@ class Backend
   def initialize(context:Context)
     @context = context
     @diagnostics = context[SimpleDiagnostics]
+    @context[Compiler] = @context[Typer].macro_compiler
     @context[AnnotationCompiler] = AnnotationCompiler.new(@context)
     @cleanup = ScriptCleanup.new(@context)
     @compiler = ScriptCompiler.new(@context)

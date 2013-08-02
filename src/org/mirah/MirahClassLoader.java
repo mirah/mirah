@@ -11,7 +11,7 @@ import java.nio.charset.Charset;
 public class MirahClassLoader extends SecureClassLoader {
   private Map<String, String> class_map;
 
-  public MirahClassLoader(ClassLoader parent, Map<String, String> class_map) {
+  public MirahClassLoader(ClassLoader parent, Map class_map) {
     super(parent);
     this.class_map = class_map;
   }
@@ -19,7 +19,13 @@ public class MirahClassLoader extends SecureClassLoader {
   public Class findClass(String name) throws ClassNotFoundException {
     if (class_map.containsKey(name)) {
       try {
-        byte[] bytes = class_map.get(name).getBytes("ISO-8859-1");
+        Object value = class_map.get(name);
+        byte[] bytes = null;
+        if (value instanceof byte[]) {
+          bytes = (byte[])value;
+        } else {
+          bytes = ((String)value).getBytes("ISO-8859-1");
+        }
         return defineClass(name, bytes, 0, bytes.length);
       } catch (java.io.UnsupportedEncodingException ex) {
           throw new ClassNotFoundException(name, ex);

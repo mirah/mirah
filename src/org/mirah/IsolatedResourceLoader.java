@@ -6,7 +6,7 @@ import java.net.URL;
 
 // Isolates resource lookup from the parent and
 // default class loaders.
-class IsolatedResourceLoader extends URLClassLoader {
+public class IsolatedResourceLoader extends URLClassLoader {
 
     // just in case, we make the parent nil,
     // so if something tries to ask it for something,

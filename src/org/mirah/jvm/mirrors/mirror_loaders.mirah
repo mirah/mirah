@@ -18,6 +18,8 @@ package org.mirah.jvm.mirrors
 import java.util.Collections
 import java.util.List
 import java.util.logging.Logger
+import java.util.regex.Pattern
+import java.io.InputStream
 
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
@@ -31,6 +33,56 @@ import org.mirah.typer.DerivedFuture
 import org.mirah.typer.TypeFuture
 
 import org.mirah.util.Context
+
+class ResourceLoader
+  def initialize(parent:ResourceLoader=nil)
+    @parent = parent
+  end
+  def findResource(name:String):InputStream; nil; end
+  def getResourceAsStream(name:String):InputStream
+    if @parent
+      @parent.getResourceAsStream(name) || findResource(name)
+    else
+      findResource(name)
+    end
+  end
+end
+
+class ClassResourceLoader < ResourceLoader
+  def initialize(klass:Class, parent:ResourceLoader=nil)
+    super(parent)
+    @klass = klass
+  end
+
+  def findResource(name)
+    name = "/#{name}" unless name.startsWith("/")
+    @klass.getResourceAsStream(name)
+  end
+end
+
+class ClassLoaderResourceLoader < ResourceLoader
+  def initialize(loader:ClassLoader, parent:ResourceLoader=nil)
+    super(parent)
+    @loader = loader
+  end
+
+  def findResource(name)
+    @loader.getResourceAsStream(name)
+  end
+end
+
+class FilteredResources < ResourceLoader
+  def initialize(source:ResourceLoader, filter:Pattern, parent:ResourceLoader=nil)
+    super(parent)
+    @source = source
+    @filter = filter
+  end
+  def findResource(name)
+    if @filter.matcher(name).lookingAt
+      @source.getResourceAsStream(name)
+    end
+  end
+end
 
 class SimpleMirrorLoader implements MirrorLoader
   def initialize(parent:MirrorLoader=nil)
@@ -203,7 +255,7 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
   end
 
   def initialize(context:Context,
-                 resourceLoader:ClassLoader,
+                 resourceLoader:ResourceLoader,
                  parent:MirrorLoader=nil)
     super(parent)
     @context = context

@@ -65,7 +65,7 @@ import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 
 class ClassPath
-  attr_accessor classpath:ClassLoader, macro_classpath:ClassLoader
+  attr_accessor classpath:ResourceLoader, macro_classpath:ResourceLoader
   attr_accessor loader:AsyncMirrorLoader
   attr_accessor bytecode_loader:MirrorLoader
   attr_accessor macro_loader:MirrorLoader
@@ -74,8 +74,8 @@ end
 class MirrorTypeSystem implements TypeSystem
   def initialize(
       context:Context=nil,
-      classloader:ClassLoader=MirrorTypeSystem.class.getClassLoader,
-      macroloader:ClassLoader=nil)
+      classloader:ResourceLoader=nil,
+      macroloader:ResourceLoader=nil)
     @primitives = {
       boolean: 'Z',
       byte: 'B',
@@ -91,12 +91,13 @@ class MirrorTypeSystem implements TypeSystem
     context ||= Context.new
     @context = context
     context[MirrorTypeSystem] = self
+    classloader ||= ClassResourceLoader.new(MirrorTypeSystem.class)
     bytecode_loader = BytecodeMirrorLoader.new(
         context, classloader, PrimitiveLoader.new(context))
     @loader = SimpleAsyncMirrorLoader.new(context, AsyncLoaderAdapter.new(
         context, bytecode_loader))
     if macroloader
-      @macroloader = BytecodeMirrorLoader.new(
+      @macro_loader = BytecodeMirrorLoader.new(
           context, macroloader, bytecode_loader)
     else
       @macro_loader = bytecode_loader
