@@ -25,12 +25,22 @@ import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.util.Context
 
 class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
   def initialize(message:List, type:Type, supertype:MirrorType)
     super(message)
     @supertype = supertype
     @type = type
+  end
+
+  def initialize(context:Context, error:ErrorType)
+    initialize(
+        error.message,
+        Type.getType("Lmirah/lang/errors/UnknownType;"),
+        MirrorType(
+            context[MirrorTypeSystem].loadNamedType(
+                "java.lang.Object").resolve))
   end
 
   def superclass:JVMType; @supertype; end

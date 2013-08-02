@@ -21,16 +21,19 @@ import java.util.Map
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
 import org.mirah.jvm.mirrors.AsyncMirror
+import org.mirah.jvm.mirrors.JvmErrorType
 import org.mirah.jvm.mirrors.MirrorProxy
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.DeclaredMirrorType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.ErrorType
 import org.mirah.util.Context
 
 class TypeInvocation < AsyncMirror implements DeclaredMirrorType
   def initialize(context:Context, raw:MirrorType, superclass:TypeFuture, interfaces:TypeFuture[], args:List, typeVariableMap:Map)
     super(context, raw.getAsmType, raw.flags, superclass, interfaces)
+    @context = context
     @raw = raw
     @interfaces = interfaces
     @typeArguments = args
@@ -56,7 +59,14 @@ class TypeInvocation < AsyncMirror implements DeclaredMirrorType
   end
 
   def getTypeArguments
-    @typeArguments.map {|a:TypeFuture| a.resolve}
+    @typeArguments.map do |a:TypeFuture|
+      resolved = a.resolve
+      if resolved.kind_of?(ErrorType)
+        JvmErrorType.new(@context, ErrorType(resolved))
+      else
+        MirrorType(resolved)
+      end
+    end
   end
 
   def getTypeVariableMap

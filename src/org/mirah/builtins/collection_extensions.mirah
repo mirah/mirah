@@ -24,7 +24,7 @@ class CollectionExtensions
       `list` = `@call.target`
       `result` = java::util::ArrayList.new(`list`.size)
       `list`.each do |`block.arguments`|
-        `result`.add(`block.body`)
+        `result`.add(` [block.body] `)
       end
       `result`
     end

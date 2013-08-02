@@ -39,6 +39,7 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.GenericTypeFuture
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.ResolvedType
 import org.mirah.util.Context
 
 class GenericMethodLookup
@@ -52,6 +53,9 @@ class GenericMethodLookup
   end
 
   def processGenerics(target:MirrorType, params:List, members:List)
+    if params.any? {|x:ResolvedType| x.nil? || x.isError}
+      return members
+    end
     result = ArrayList.new(members.size)
     members.each do |member:Member|
       generic_constructor = ("<init>".equals(member.name) && target.unmeta.kind_of?(DeclaredMirrorType) && DeclaredMirrorType(target.unmeta).signature)

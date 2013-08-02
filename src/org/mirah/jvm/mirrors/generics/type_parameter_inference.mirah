@@ -131,7 +131,7 @@ class TypeParameterInference
         end
       end
     end
-    formalParameter.accept(visitor, argument)
+    formalParameter.accept(visitor, argument) if formalParameter
   end
 
   def processEqualConstraint(argument:TypeMirror,
