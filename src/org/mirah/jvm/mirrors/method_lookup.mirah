@@ -279,7 +279,9 @@ class MethodLookup
                  position:Position,
                  includeStaticImports:boolean):TypeFuture
     potentials = gatherMethods(target, name)
-    if includeStaticImports && potentials.isEmpty && target == scope.selfType.resolve
+    is_static_scope = (
+        scope && scope.selfType && target == scope.selfType.resolve)
+    if includeStaticImports && potentials.isEmpty && is_static_scope
       potentials = gatherStaticImports(JVMScope(scope), name)
     end
     state = LookupState.new(@context, scope, target, potentials, position)
@@ -499,6 +501,9 @@ class MethodLookup
 
   def self.isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
     return true if scope.nil?
+    if scope.nil? || scope.selfType.nil?
+      return 0 != (access & Opcodes.ACC_PUBLIC)
+    end
     selfType = MirrorType(scope.selfType.resolve)
     if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
       return false
