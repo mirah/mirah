@@ -377,7 +377,7 @@ class MirrorTypeSystem implements TypeSystem
         ClassDefinition(node).name = SimpleString.new(name)
       end
       name
-    elsif scope && scope.package && !scope.package.isEmpty
+    elsif scope && scope.package && !scope.package.isEmpty && !name.contains(".")
       "#{scope.package}.#{name}"
     else
       name

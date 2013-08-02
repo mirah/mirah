@@ -143,10 +143,11 @@ class Mirahc implements JvmBackend
     first_class_name = nil
     destination = @destination
     class_map = @extension_classes
-    @macro_backend.generate do |classname, bytes|
+    @macro_backend.generate do |filename, bytes|
+      classname = filename.replace(?/, ?.)
       first_class_name ||= classname if classname.contains('$Extension')
       class_map[classname] = bytes
-      file = File.new(destination, "#{classname.replace(?., ?/)}.class")
+      file = File.new(destination, "#{filename.replace(?., ?/)}.class")
       parent = file.getParentFile
       parent.mkdirs if parent
       output = BufferedOutputStream.new(FileOutputStream.new(file))
