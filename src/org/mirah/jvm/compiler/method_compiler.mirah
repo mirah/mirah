@@ -499,6 +499,7 @@ class MethodCompiler < BaseCompiler
       end
       reportError("Invalid return type #{type.name}, expected #{@returnType.name}", body_position)
     end
+    @builder.convertValue(type, @returnType) unless isVoid || type.nil?
     @builder.returnValue
   end
   
