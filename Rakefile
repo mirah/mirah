@@ -136,6 +136,7 @@ task :clean do
   ant.delete 'quiet' => true, 'dir' => 'build'
   ant.delete 'quiet' => true, 'dir' => 'dist'
   rm_f 'javalib/mirah-bootstrap.jar'
+  rm_f 'javalib/mirah-compiler.jar'
   rm_f 'javalib/mirah-builtins.jar'
   rm_f 'javalib/mirah-util.jar'
   rm_rf 'tmp'
@@ -318,7 +319,6 @@ file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/o
   ant.jar 'jarfile' => 'javalib/mirah-compiler.jar' do
     fileset 'dir' => 'build/compiler'
   end
-  rm_rf 'build/compiler'
 end
 
 file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/org/mirah/jvm/mirrors/**/*.mirah','src/org/mirah/jvm/model/**/*.mirah'] do
