@@ -46,7 +46,8 @@ module Mirah
       end
 
       def to_s
-        "#<StaticScope node=#{@scope_node.inspect}>"
+        #"#<StaticScope node=#{@scope_node.to_s}>"
+        inspect
       end
 
       def inspect
@@ -92,7 +93,7 @@ module Mirah
       end
 
       def temp(name="tmp")
-        "$#{name}$#{@temps[name] += 1}"
+        "#{name}$#{@temps[name] += 1}"
       end
 
       def local_type(name, position=nil)

@@ -411,7 +411,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closures_non_local_return_to_a_script
-    cls, = compile(<<-EOF)
+    cls, = with_finest_logging{compile(<<-EOF)}
       def foo(a: Runnable)
         a.run
         puts "doesn't get here"

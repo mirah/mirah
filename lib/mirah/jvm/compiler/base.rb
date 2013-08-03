@@ -84,6 +84,7 @@ module Mirah
           begin
             @typer.get_inferred_type(node).resolve
           rescue Exception => ex
+            puts node #--------------
             raise Mirah::InternalCompilerError.wrap(ex, node)
           end
         end

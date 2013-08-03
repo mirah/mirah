@@ -107,6 +107,7 @@ module JVMCompiler
     ast = [AST.parse_ruby(nil, code, name)]
 
     scoper, typer = generator.infer_asts(ast, true)
+    generator.do_transforms ast
     compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
 
     generate_classes compiler_results

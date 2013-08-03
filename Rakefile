@@ -86,7 +86,7 @@ namespace :test do
     task :test_setup =>  [:clean_tmp_test_directory, :build_test_fixtures]
 
     desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode => [:bootstrap, :test_setup] do |t|
+    Rake::TestTask.new :bytecode => [:bootstrap, "javalib/mirah-compiler.jar", :test_setup] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]

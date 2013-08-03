@@ -533,20 +533,29 @@ class Typer < SimpleNodeVisitor
     # Start by saving the old args and creating a new, empty arg list
     old_args = node.args
     node.args = NodeList.new(node.args.position)
-
+    possibilities = ArrayList.new
     exceptions = ArrayList.new
     if old_args.size == 1
       exceptions.addAll buildNodeAndTypeForRaiseTypeOne(old_args, node)
+      possibilities.add "1"
     end
 
     if old_args.size > 0
       exceptions.addAll buildNodeAndTypeForRaiseTypeTwo(old_args, node)
+      possibilities.add "2"
     end
     exceptions.addAll buildNodeAndTypeForRaiseTypeThree(old_args, node)
+      possibilities.add "3"
 
+    log = logger()
+    log.finest "possibilities #{possibilities}"
+    exceptions.each do |e|
+      log.finest "type possible #{e} for raise"
+    end
     # Now we'll try all of these, ignoring any that cause an inference error.
     # Then we'll take the first that succeeds, in the order listed above.
     exceptionPicker = PickFirst.new(exceptions) do |type, pickedNode|
+      log.finest "picking #{type} for raise"
       if node.args.size == 0
         node.args.add(Node(pickedNode))
       else
@@ -998,15 +1007,50 @@ class Typer < SimpleNodeVisitor
 
   def visitBlock(block, expression)
     new_scope = @scopes.addScope(block)
+    new_scope.parent = @scopes.getScope(block.parent)
     infer(block.arguments) if block.arguments
+
+
     closures = @closures
     #parent = CallSite(block.parent)
     typer = self
-    BlockFuture.new(block) do |x, resolvedType|
+
+    BlockFuture.new(block) do |block_future, resolvedType|
       unless resolvedType.isError
-        closures.insert_closure(block, resolvedType)
+# if Method-having-closure
+#   selfType of new scope is block type future
+#   && infer body as non-expression
+# else
+#   selfType of newscope stays outer class
+#   infer body as expression
+# end
+        if typer.contains_methods block
+          new_scope.selfType = block_future
+          typer.infer(block.body)
+#          closures.insert_closure block, resolvedType
+        else
+#          closures.insert_closure block, resolvedType
+          methods = typer.type_system.getAbstractMethods(resolvedType)
+          if methods.size != 1
+            raise UnsupportedOperationException,
+                  "Multiple abstract methods in #{resolvedType}: #{methods}"
+          end
+          # TODO should be able to call methods on abstract classes that are the closures,
+          # which needs a self type of some kind
+          BlockFuture(block_future).basic_block_method_type = MethodType(methods.get(0))
+          typer.infer(block.body, true)
+        end
       end
     end
+  end
+
+  # Returns true if any MethodDefinitions were found.
+  def contains_methods(block: Block): boolean
+    block.body_size.times do |i|
+      node = block.body(i)
+      return true if node.kind_of?(MethodDefinition)
+    end
+    return false
   end
 
   def visitBindingReference(ref, expression)

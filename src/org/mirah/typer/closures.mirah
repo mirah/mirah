@@ -139,6 +139,7 @@ class ClosureBuilder
     outer_name = if class_or_script.kind_of? ClassDefinition
                    ClassDefinition(class_or_script).name.identifier
                  else
+                   puts class_or_script
                    source_name = class_or_script.position.source.name || 'DashE'
                    id = ""
                    File.new(source_name).getName.
