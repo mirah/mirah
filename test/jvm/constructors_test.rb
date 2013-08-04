@@ -73,6 +73,54 @@ class ConstructorsTest < Test::Unit::TestCase
     end
   end
 
+  def test_super_constructor_inferred_args_like_ruby
+    sc_a, sc_b = compile(<<-EOF)
+      class SuperCA
+        def initialize(a: int)
+          System.out.println "A \#{a}"
+        end
+      end
+
+      class SuperCB < SuperCA
+        def initialize a: int
+          super
+          System.out.println "B \#{a}"
+        end
+      end
+    EOF
+    assert_output("A 1\nB 1\n") do
+      sc_b.new 1
+    end
+  end
+
+  def test_when_inferred_args_dont_match_super_has_error
+    error = assert_raises Mirah::MirahError do
+      compile(<<-EOF)
+        class SuperCA
+          def initialize(a: int);end
+        end
+
+        class SuperCB < SuperCA
+          def initialize; super; end
+        end
+      EOF
+    end
+    assert_equal "Cannot find instance method initialize() on SuperCA", error.message
+  end
+
+
+  def test_when_inferred_args_dont_match_java_super_has_error
+    error = assert_raises Mirah::MirahError do
+      compile(<<-EOF)
+        import java.util.ArrayList
+        class SuperArray < ArrayList
+          def initialize str: String; super; end
+        end
+      EOF
+    end
+    assert_equal "Cannot find instance method initialize(java.lang.String) on java.util.ArrayList", error.message
+  end
+
   def test_empty_constructor
     foo, = compile(<<-EOF)
       class Foo6
