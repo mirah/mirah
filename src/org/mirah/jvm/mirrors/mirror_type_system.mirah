@@ -588,15 +588,18 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def inferOverride(target:MirrorType, name:String, arguments:List):TypeFuture
-    override = Member(@methods.findOverride(target, name, arguments.size))
-    if override
+    overrides = List(@methods.findOverride(target, name, arguments.size))
+    
+    if overrides
       arguments.size.times do |i|
         arg = AssignableTypeFuture(arguments.get(i))
+        override = OverrideFuture(overrides.get(i + 1))
         unless arg.hasDeclaration
-          arg.declare(override.asyncArgument(i), nil)
+          override.error = arg.resolve
+          arg.declare(override, nil)
         end
       end
-      override.asyncReturnType
+      TypeFuture(overrides.get(0))
     end
   end
 

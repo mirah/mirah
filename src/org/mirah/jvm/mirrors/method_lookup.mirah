@@ -291,20 +291,33 @@ class MethodLookup
     state.future(false)
   end
 
-  def findOverride(target:MirrorType, name:String, arity:int):JVMMethod
-    match = nil
+  def findOverride(target:MirrorType, name:String, arity:int):List  # <OverrideFuture>
+    match = ArrayList.new(arity + 1)
+    (arity + 1).times do
+      match.add(OverrideFuture.new)
+    end
+    foundMatch = false
     gatherMethods(target, name).each do |m|
-      member = JVMMethod(m)
+      member = Member(m)
       next if member.declaringClass == target
       if member.argumentTypes.size == arity
-        if match.nil?
-          match = member
-        else
-          return nil
+        foundMatch = true
+        it = match.iterator
+        f = OverrideFuture(it.next)
+        f.addType(member.asyncReturnType)
+        i = 0
+        while it.hasNext
+          f = OverrideFuture(it.next)
+          f.addType(member.asyncArgument(i))
+          i += 1
         end
       end
     end
-    match
+    if foundMatch
+      match
+    else
+      nil
+    end
   end
 
   def makeFuture(target:MirrorType, method:Member, params:List,
