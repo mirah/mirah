@@ -752,7 +752,26 @@ module Mirah::JVM::Types
 
     def jvm_field(name)
       return nil unless jvm_type
-      jvm_type.getField(name)
+      field = jvm_type.getField(name)
+      field ||= begin
+                  ifaces = jvm_type.interfaces.map { |i| wrap_with_mirror i }
+                  ifaces.map{|i| i.getField(name) }.compact.first
+                end
+      field ||= begin
+                  mirror = wrap_with_mirror jvm_type.superclass
+                  potential, mirror = [mirror.getField(name), wrap_with_mirror(mirror.superclass)] until potential || mirror.nil?
+                  potential
+                end
+      field
+    end
+
+    def wrap_with_mirror type
+      return unless type
+      if type.respond_to?(:getField)
+        type
+      else
+        BiteScript::ASM::ClassMirror.for_name type.class_name
+      end
     end
 
     def bitescript_signatures types
