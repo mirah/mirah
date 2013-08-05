@@ -118,14 +118,14 @@ class Mirahc implements JvmBackend
     @asts.each do |node:Node|
       processInferenceErrors(node, @context)
     end
+    if @diagnostics.errorCount > 0
+      System.exit(1)
+    end
   end
 
   def processInferenceErrors(node:Node, context:Context):void
     errors = ErrorCollector.new(context)
     errors.scan(node, nil)
-    if @diagnostics.errorCount > 0
-      System.exit(1)
-    end
   end
 
   def logAst(node:Node, typer:Typer):void
@@ -139,6 +139,9 @@ class Mirahc implements JvmBackend
   def compileAndLoadExtension(ast)
     logAst(ast, @macro_typer)
     processInferenceErrors(ast, @macro_context)
+    if @diagnostics.errorCount > 0
+      System.exit(1)
+    end
     @macro_backend.visit(ast, nil)
     first_class_name = nil
     destination = @destination
