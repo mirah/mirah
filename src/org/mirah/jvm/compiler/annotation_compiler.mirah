@@ -24,6 +24,7 @@ import org.jruby.org.objectweb.asm.FieldVisitor
 import org.jruby.org.objectweb.asm.MethodVisitor
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.TypeSystem
+import org.mirah.util.Context
 
 interface AnnotationVisitorFactory
   def create(type:String, runtime:boolean):AnnotationVisitor; end
