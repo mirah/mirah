@@ -22,6 +22,7 @@ import java.util.List
 import java.util.Collection
 import java.util.Set
 import java.util.logging.Logger
+import javax.lang.model.element.TypeElement
 import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeKind
@@ -34,6 +35,8 @@ import javax.lang.model.util.Types
 import org.mirah.util.Context
 
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.model.Cycle
+import org.mirah.jvm.model.IntersectionType
 
 # This class is not threadsafe
 class LubFinder

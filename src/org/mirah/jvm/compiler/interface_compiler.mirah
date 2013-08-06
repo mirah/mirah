@@ -19,6 +19,7 @@ import org.jruby.org.objectweb.asm.Opcodes
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.InterfaceDeclaration
 import mirah.lang.ast.MethodDefinition
+import org.mirah.util.Context
 
 class InterfaceCompiler < ClassCompiler
   def initialize(context:Context, classdef:InterfaceDeclaration)

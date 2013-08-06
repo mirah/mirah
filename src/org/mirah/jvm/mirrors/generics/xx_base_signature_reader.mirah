@@ -24,6 +24,7 @@ import org.jruby.org.objectweb.asm.signature.SignatureReader
 import org.jruby.org.objectweb.asm.signature.SignatureVisitor
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.jvm.model.IntersectionType
 import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
 
