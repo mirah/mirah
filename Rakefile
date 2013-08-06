@@ -29,7 +29,7 @@ end
 
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
-task :gem => 'jar:bootstrap'
+task :gem => ['jar:bootstrap', "javalib/mirah-compiler.jar", "javalib/mirah-mirrors.jar"]
 task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar', 'javalib/mirah-util.jar']
 
 
