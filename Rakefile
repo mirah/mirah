@@ -169,7 +169,6 @@ namespace :jar do
       zipfileset 'src' => 'dist/mirah.jar'
       zipfileset 'src' => 'javalib/jruby-complete.jar'
       zipfileset 'src' => 'javalib/mirah-parser.jar'
-      zipfileset 'src' => 'javalib/dynalink-0.2.jar'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
@@ -191,7 +190,7 @@ task :zip => 'jar:complete' do
   cp Dir['{distbin/*.bat}'], "#{basedir}/bin/"
   cp_r 'examples', "#{basedir}/examples"
   rm_rf "#{basedir}/examples/wiki"
-  cp 'README.txt', "#{basedir}"
+  cp 'README.md', "#{basedir}"
   cp 'NOTICE', "#{basedir}"
   cp 'LICENSE', "#{basedir}"
   cp 'History.txt', "#{basedir}"
