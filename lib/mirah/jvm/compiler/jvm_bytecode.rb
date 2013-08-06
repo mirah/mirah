@@ -249,6 +249,7 @@ module Mirah
                   end
                 end
                 visit(body, expression)
+                convert_value inferred_type(body), return_type if expression
               end
             end
 
@@ -1135,7 +1136,7 @@ module Mirah
         private
 
         def convert_value in_type, out_type
-          in_type.compile_widen(@method, out_type) if in_type.primitive?
+          in_type.compile_widen(@method, out_type) if in_type.name != ':unreachable' &&  in_type.primitive?
         end
 
         def dup_value type

@@ -719,10 +719,14 @@ module Mirah::JVM::Types
     end
 
     def base_classpath
-      Mirah::Env.encode_paths(['.',
-                               File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
-                               File.dirname(__FILE__) + '/../../../../javalib/mirah-parser.jar',
-                               File.dirname(__FILE__) + '/../../../../javalib/mirah-bootstrap.jar'])
+      if __FILE__.include? '.jar'
+        Mirah::Env.encode_paths([__FILE__.split('!').first.split(':').last])
+      else
+        Mirah::Env.encode_paths(['.',
+                                 File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
+                                 File.dirname(__FILE__) + '/../../../../javalib/mirah-parser.jar',
+                                 File.dirname(__FILE__) + '/../../../../javalib/mirah-bootstrap.jar'])
+      end
     end
 
     def classpath
