@@ -1,5 +1,7 @@
 === 0.1.1 Summer Summit / 2013-08-05
 
+e94e5be bump bitescript dependency
+a8c7863 bump 0.1.1 history
 963c81c bump bitescript version to 0.1.3
 5e457f9 when bundled in a jar, add the jar to the classpath
 4834157 rm dynalink from zip/jar dist
