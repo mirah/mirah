@@ -51,4 +51,10 @@ class MethodFuture < BaseTypeFuture
   def returnType
     @returnType
   end
+
+  def print(out)
+    out.print("returnType: ")
+    out.printFuture(@returnType)
+    super
+  end
 end

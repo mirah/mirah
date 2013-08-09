@@ -66,6 +66,15 @@ class CallFuture < BaseTypeFuture
     setupListeners
   end
 
+  def print(out)
+    out.print("target: ")
+    out.printFuture(@target)
+    out.puts("name: #{@name}")
+    @paramTypes.each do |p|
+      out.printFuture(TypeFuture(p))
+    end
+  end
+
   def self.getNodes(call:CallSite):List
     l = LinkedList.new
     call.parameters.each {|p| l.add(p)} if call.parameters
@@ -101,6 +110,10 @@ class CallFuture < BaseTypeFuture
     @resolved_args
   end
 
+  def futures
+    @paramTypes
+  end
+
   def dt(type:TypeFuture)
     "#{type} (#{(type &&type.isResolved) ? type.resolve.toString : 'unresolved'})"
   end
@@ -124,6 +137,18 @@ class CallFuture < BaseTypeFuture
       next if arg.kind_of?(BlockFuture)
       addParamListener(i, arg)
     end
+  end
+
+  def resolve
+    unless isResolved
+      @target.resolve
+      @paramTypes.size.times do |i|
+        arg = TypeFuture(@paramTypes.get(i))
+        next if arg.kind_of?(BlockFuture)
+        arg.resolve
+      end
+    end
+    super
   end
 
   def addParamListener(i:int, arg:TypeFuture):void

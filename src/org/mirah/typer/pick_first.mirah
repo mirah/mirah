@@ -42,6 +42,7 @@ class PickFirst < BaseTypeFuture
     @picked = -1
     @listener = listener
     @default = default
+    @items = ArrayList.new(items.size / 2)
     items.size.times do |i|
       next if i % 2 != 0
       addItem(i, TypeFuture(items.get(i)), items.get(i + 1))
@@ -69,10 +70,17 @@ class PickFirst < BaseTypeFuture
     self.resolved(resolvedType)
   end
 
+  def print(out)
+    @items.each do |i|
+      out.printFuture(TypeFuture(i))
+    end
+  end
+
   private
   def addItem(index:int, type:TypeFuture, value:Object):void
     me = self
     i = index
+    @items.add(type)
     type.onUpdate do |x, resolved|
       if (me.picked == -1 && !resolved.isError) ||
           me.picked >= i

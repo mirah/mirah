@@ -19,6 +19,7 @@ import java.util.ArrayList
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
+import org.mirah.typer.InlineCode
 
 # Type future for argument/return inferred from a supertype.
 # We can only infer if all supertype methods have the same argument type.
@@ -44,7 +45,7 @@ class OverrideFuture < BaseTypeFuture
     @types.each do |f:TypeFuture|
       if f.isResolved
         t = f.resolve
-        unless t.isError
+        unless t.isError || t.kind_of?(InlineCode)
           type = MirrorType(t)
           if resolved.nil?
             resolved = type
@@ -58,5 +59,12 @@ class OverrideFuture < BaseTypeFuture
       end
     end
     self.resolved(resolved)
+  end
+
+  def print(out)
+    out.puts("error: #{@error}") if @error
+    @types.each do |t:TypeFuture|
+      out.printFuture(t)
+    end
   end
 end

@@ -27,9 +27,15 @@ class SimpleDiagnostics; implements DiagnosticListener
       @prefixes.put(Kind.NOTE, "")
       @prefixes.put(Kind.OTHER, "")
     end
+    @max_errors = 20
   end
-  
+
+  def setMaxErrors(count:int):void
+    @max_errors = count
+  end
+
   def errorCount; @errors; end
+
   
   def report(diagnostic)
     @errors += 1 if Kind.ERROR == diagnostic.getKind
@@ -59,6 +65,8 @@ class SimpleDiagnostics; implements DiagnosticListener
         System.err.println(underline)
       end
     end
-    raise TooManyErrorsException if @errors > 20
+    if @errors > @max_errors && @max_errors > 0
+      raise TooManyErrorsException
+    end
   end
 end

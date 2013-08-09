@@ -61,10 +61,11 @@ class Mirahc implements JvmBackend
     @logger = MirahLogFormatter.new(true).install
     @code_sources = []
     @destination = "."
+    @diagnostics = SimpleDiagnostics.new(true)
     processArgs(args)
     @context = context = Context.new
     context[JvmBackend] = self
-    context[DiagnosticListener] = @diagnostics = SimpleDiagnostics.new(true)
+    context[DiagnosticListener] = @diagnostics
     context[SimpleDiagnostics] = @diagnostics
 
     @macro_context = Context.new
@@ -202,6 +203,10 @@ class Mirahc implements JvmBackend
     @macrocp = parseClassPath(classpath)
   end
 
+  def setMaxErrors(count:int):void
+    @diagnostics.setMaxErrors(count)
+  end
+
   def createTypeSystems
     # Construct a loader with the standard Java classes plus the classpath
     bootloader = if @bootcp
@@ -294,6 +299,10 @@ class Mirahc implements JvmBackend
         ['dest', 'd'], 'DESTINATION',
         'Directory where class files should be saved.'
     ) {|dest| mirahc.setDestination(dest) }
+    parser.addFlag(['all-errors'],
+        'Display all compilation errors, even if there are a lot.') {
+      mirahc.setMaxErrors(-1)
+    }
     it = parser.parse(args).iterator
     while it.hasNext
       f = String(it.next)

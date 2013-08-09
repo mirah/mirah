@@ -57,4 +57,8 @@ class DelegateFuture < BaseTypeFuture
     end
     resolved(nil) unless type.isResolved
   end
+
+  def print(out)
+    out.printFuture(@type)
+  end
 end

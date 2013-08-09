@@ -58,4 +58,7 @@ class SpecialType; implements ResolvedType, TypeFuture
   def isError; ":error".equals(name); end
   def isBlock; ":block".equals(name); end
   def matchesAnything; false; end
+  def print(out)
+    out.puts("#{resolve}")
+  end
 end
