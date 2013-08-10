@@ -41,7 +41,7 @@ class ReturnTypeFuture < AssignableTypeFuture
   end
 end
 
-class MirahMethod < AsyncMember implements Runnable, MethodListener
+class MirahMethod < AsyncMember implements MethodListener
   def initialize(lookup:MethodLookup, position:Position,
                  flags:int, klass:MirrorType, name:String,
                  argumentTypes:List /* of TypeFuture */,
@@ -68,7 +68,6 @@ class MirahMethod < AsyncMember implements Runnable, MethodListener
       declareArguments(argumentTypes)
     end
     type = MirrorType(declaringClass)
-    type.onIncompatibleChange(self)
     type.addMethodListener(name, self)
     checkOverrides
   end
@@ -81,10 +80,6 @@ class MirahMethod < AsyncMember implements Runnable, MethodListener
       @arguments[i].type = @error
       AssignableTypeFuture(argumentTypes[i]).declare(@arguments[i], @position)
     end
-  end
-
-  def run
-    checkOverrides
   end
 
   def methodChanged(type, name)

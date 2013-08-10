@@ -102,10 +102,12 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
 
   def notifyOfIncompatibleChange:void
     @cached_supertypes = List(nil)
-    @compatibility_listeners.each do |l|
+    listeners = ArrayList.new(@compatibility_listeners)
+    methods = HashSet.new(@method_listeners.keySet)
+    listeners.each do |l|
       Runnable(l).run()
     end
-    @method_listeners.keySet.each do |n|
+    methods.each do |n|
       invalidateMethod(String(n))
     end
   end
