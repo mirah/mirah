@@ -269,7 +269,6 @@ class Typer < SimpleNodeVisitor
     parameters.add(infer(call.block, true)) if call.block
     methodType = CallFuture.new(@types, @scopes.getScope(call), target, true, parameters, call)
     delegate = DelegateFuture.new
-    delegate.type = methodType
     typer = self
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
@@ -283,6 +282,7 @@ class Typer < SimpleNodeVisitor
         delegate.type = methodType
       end
     end
+    delegate.type = methodType unless methodType.isResolved
     if  call.parameters.size == 1
       # This might actually be a cast or array instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
