@@ -104,7 +104,11 @@ class MirahMethod < AsyncMember implements MethodListener
     size.times do |i|
       @arguments[i] = DelegateFuture.new
       @arguments[i].type = @error
-      AssignableTypeFuture(argumentTypes[i]).declare(@arguments[i], @position)
+      arg = AssignableTypeFuture(argumentTypes[i])
+      # Don't declare it if it's optional or already is declared.
+      unless arg.hasDeclaration || arg.assignedValues(false, false).size > 0
+        arg.declare(@arguments[i], @position)
+      end
     end
   end
 
