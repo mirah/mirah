@@ -40,6 +40,10 @@ class OverrideFuture < BaseTypeFuture
     end
   end
 
+  def error_message:String
+    "Incompatible types #{@types.map {|x:TypeFuture| x.resolve}}"
+  end
+
   def checkTypes:void
     resolved = nil
     @types.each do |f:TypeFuture|

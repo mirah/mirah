@@ -200,6 +200,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   end
 
   def addMethodListener(name:String, listener:MethodListener)
+    @methods_loaded ||= load_methods
     listeners = Set(@method_listeners[name] ||= HashSet.new)
     listeners.add(listener)
     parent = superclass

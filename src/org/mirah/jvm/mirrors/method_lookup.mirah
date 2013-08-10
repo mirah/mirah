@@ -291,35 +291,20 @@ class MethodLookup
     state.future(false)
   end
 
-  def findOverride(target:MirrorType, name:String, arity:int):List  # <OverrideFuture>
-    # TODO: Match static/instance methods based on target.
-    match = ArrayList.new(arity + 1)
-    (arity + 1).times do
-      match.add(OverrideFuture.new)
-    end
-    foundMatch = false
-    gatherMethods(target, name).each do |m|
-      member = Member(m)
-      next if member.declaringClass == target
-      next if member.kind_of?(MacroMember)
-      if member.argumentTypes.size == arity
-        foundMatch = true
-        it = match.iterator
-        f = OverrideFuture(it.next)
-        f.addType(member.asyncReturnType)
-        i = 0
-        while it.hasNext
-          f = OverrideFuture(it.next)
-          f.addType(member.asyncArgument(i))
-          i += 1
+  def findOverrides(target:MirrorType, name:String, arity:int):List  # <Member>
+    results = LinkedList.new
+    unless target.isMeta
+      gatherMethods(target, name).each do |m|
+        member = Member(m)
+        next if member.declaringClass == target
+        next if member.kind_of?(MacroMember)
+        member_is_static = (0 != member.flags & Opcodes.ACC_STATIC)
+        if member.argumentTypes.size == arity
+          results.add(member)
         end
       end
     end
-    if foundMatch
-      match
-    else
-      nil
-    end
+    results
   end
 
   def makeFuture(target:MirrorType, method:Member, params:List,
@@ -516,13 +501,13 @@ class MethodLookup
 
   def self.isAccessible(type:JVMType, access:int, scope:Scope, target:JVMType=nil)
     return true if scope.nil?
-    if scope.nil? || scope.selfType.nil?
+    if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
+      return false
+    elsif scope.nil? || scope.selfType.nil?
       return 0 != (access & Opcodes.ACC_PUBLIC)
     end
     selfType = MirrorType(scope.selfType.resolve)
-    if target && target.isMeta && (0 == (access & Opcodes.ACC_STATIC))
-      return false
-    elsif (0 != (access & Opcodes.ACC_PUBLIC) ||
+    if (0 != (access & Opcodes.ACC_PUBLIC) ||
         type.getAsmType.getDescriptor.equals(
             selfType.getAsmType.getDescriptor))
       return true

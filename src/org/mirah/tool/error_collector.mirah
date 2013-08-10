@@ -65,8 +65,8 @@ class ErrorCollector < NodeScanner
     nil
   end
 
-  def exitBlock(node, arg)
+  def enterBlock(node, arg)
     # There must have already been an error for the method call, so ignore this.
-    nil
+    false
   end
 end
