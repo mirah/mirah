@@ -292,6 +292,7 @@ class MethodLookup
   end
 
   def findOverride(target:MirrorType, name:String, arity:int):List  # <OverrideFuture>
+    # TODO: Match static/instance methods based on target.
     match = ArrayList.new(arity + 1)
     (arity + 1).times do
       match.add(OverrideFuture.new)
@@ -300,6 +301,7 @@ class MethodLookup
     gatherMethods(target, name).each do |m|
       member = Member(m)
       next if member.declaringClass == target
+      next if member.kind_of?(MacroMember)
       if member.argumentTypes.size == arity
         foundMatch = true
         it = match.iterator
