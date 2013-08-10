@@ -632,7 +632,7 @@ class MethodCompiler < BaseCompiler
         else
           @builder.pop
         end
-        compileBody(clause.body, expression, getInferredType(clause.body))
+        compileBody(clause.body, expression, getInferredType(node))
         @builder.goTo(done)
       end
       @builder.mark(done)
