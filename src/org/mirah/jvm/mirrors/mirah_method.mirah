@@ -41,6 +41,14 @@ class ReturnTypeFuture < AssignableTypeFuture
   def hasDeclaration
     @has_declaration
   end
+
+  def resolved(type)
+    # We don't support generic methods in Mirah classes
+    if type.kind_of?(MirrorType)
+      type = MirrorType(MirrorType(type).erasure)
+    end
+    super
+  end
 end
 
 class MirahMethod < AsyncMember implements MethodListener
