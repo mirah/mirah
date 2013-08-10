@@ -104,6 +104,7 @@ class Mirahc implements JvmBackend
   def parse(code:CodeSource)
     @asts.add(@parser.parse(code))
     if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
       System.exit(1)
     end
   end
@@ -120,6 +121,7 @@ class Mirahc implements JvmBackend
       processInferenceErrors(node, @context)
     end
     if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
       System.exit(1)
     end
   end
@@ -141,6 +143,7 @@ class Mirahc implements JvmBackend
     logAst(ast, @macro_typer)
     processInferenceErrors(ast, @macro_context)
     if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
       System.exit(1)
     end
     @macro_backend.visit(ast, nil)
