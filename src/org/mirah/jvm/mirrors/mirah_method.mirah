@@ -21,9 +21,11 @@ import mirah.lang.ast.Position
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.DelegateFuture
+import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
+import org.mirah.util.Context
 
 class ReturnTypeFuture < AssignableTypeFuture
   def initialize(position:Position)
@@ -42,22 +44,38 @@ class ReturnTypeFuture < AssignableTypeFuture
 end
 
 class MirahMethod < AsyncMember implements MethodListener
-  def initialize(lookup:MethodLookup, position:Position,
+  def initialize(context:Context, position:Position,
                  flags:int, klass:MirrorType, name:String,
                  argumentTypes:List /* of TypeFuture */,
                  returnType:TypeFuture, kind:MemberKind)
     super(flags, klass, name, argumentTypes,
           @return_type = ReturnTypeFuture.new(position), kind)
-    @lookup = lookup
+    @context = context
+    @lookup = context[MethodLookup]
     @position = position
     @super_return_type = DelegateFuture.new
     @declared_return_type = returnType
-    @return_type.declare(@super_return_type, position)
+    @return_type.declare(wrap(@super_return_type), position)
     @return_type.resolved(nil)
     @return_type.error_message = "Cannot determine return type."
     @error = ErrorType.new([['Does not override a method from a supertype.', @position]])
     @arity = argumentTypes.size
     setupOverrides(argumentTypes)
+  end
+
+  def wrap(target:TypeFuture):TypeFuture
+    me = self
+    DerivedFuture.new(target) do |resolved|
+      if resolved.kind_of?(ErrorType)
+        me.wrap_error(resolved)
+      else
+        resolved
+      end
+    end
+  end
+
+  def wrap_error(type:ResolvedType):ResolvedType
+    JvmErrorType.new(@context, ErrorType(type))
   end
 
   def setupOverrides(argumentTypes:List):void
@@ -135,17 +153,17 @@ class MirahMethod < AsyncMember implements MethodListener
         @return_type.resolved(nil)
         @return_type.setHasDeclaration(false)
       end
-    elsif filtered.size == 1
+    else
       @return_type.setHasDeclaration(true)
       future = OverrideFuture.new
-      future.addType(Member(supertype_methods[0]).asyncReturnType)
       if @declared_return_type
         future.addType(@declared_return_type)
       end
+      filtered.each do |m:Member|
+        future.addType(m.asyncReturnType)
+      end
+      future.addType(Member(supertype_methods[0]).asyncReturnType)
       @super_return_type.type = future
-    else
-      @return_type.setHasDeclaration(true)
-      @super_return_type.type = ErrorType.new([["Ambiguous override: #{filtered}", @position]])
     end
   end
 end

@@ -567,7 +567,7 @@ class MirrorTypeSystem implements TypeSystem
       end
       returnType = getVoidType
     end
-    member = MirahMethod.new(@methods, position, flags, target, name, arguments, returnType, kind)
+    member = MirahMethod.new(@context, position, flags, target, name, arguments, returnType, kind)
 
     returnFuture = AssignableTypeFuture(member.asyncReturnType)
     log = @@log

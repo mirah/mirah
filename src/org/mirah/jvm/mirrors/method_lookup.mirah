@@ -292,7 +292,7 @@ class MethodLookup
   end
 
   def findOverrides(target:MirrorType, name:String, arity:int):List  # <Member>
-    results = LinkedList.new
+    results = {}
     unless target.isMeta
       gatherMethods(target, name).each do |m|
         member = Member(m)
@@ -300,11 +300,11 @@ class MethodLookup
         next if member.kind_of?(MacroMember)
         member_is_static = (0 != member.flags & Opcodes.ACC_STATIC)
         if member.argumentTypes.size == arity
-          results.add(member)
+          results[[member.argumentTypes, member.asyncReturnType.resolve]] = member
         end
       end
     end
-    results
+    ArrayList.new(results.values)
   end
 
   def makeFuture(target:MirrorType, method:Member, params:List,
