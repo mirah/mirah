@@ -17,6 +17,7 @@ package org.mirah.jvm.mirrors
 
 import java.util.Collections
 import java.util.ArrayList
+import java.util.HashSet
 import java.util.LinkedList
 import java.util.List
 import java.util.Map
@@ -66,7 +67,7 @@ interface DeclaredMirrorType < MirrorType, DeclaredType
 end
 
 # package_private
-class BaseType implements MirrorType, DeclaredType
+class BaseType implements MirrorType, DeclaredType, MethodListener
 
   def self.initialize:void
     @@kind_map = {
@@ -199,17 +200,33 @@ class BaseType implements MirrorType, DeclaredType
   end
 
   def addMethodListener(name:String, listener:MethodListener)
-    listeners = List(@method_listeners[name] ||= LinkedList.new)
+    listeners = Set(@method_listeners[name] ||= HashSet.new)
     listeners.add(listener)
+    parent = superclass
+    if parent && parent.kind_of?(MirrorType)
+      MirrorType(parent).addMethodListener(name, self)
+    end
+    interfaces.each do |future|
+      if future.isResolved
+        iface = future.resolve
+        if iface.kind_of?(MirrorType)
+          MirrorType(iface).addMethodListener(name, self)
+        end
+      end
+    end
   end
 
   def invalidateMethod(name:String)
-    listeners = List(@method_listeners[name])
+    listeners = Set(@method_listeners[name])
     if listeners
-      ArrayList.new(listeners).each do |l|
+      HashSet.new(listeners).each do |l|
         MethodListener(l).methodChanged(self, name)
       end
     end
+  end
+
+  def methodChanged(type, name)
+    invalidateMethod(name)
   end
 
   def declareField(field:JVMMethod):void
@@ -296,11 +313,13 @@ end
 class AsyncMirror < BaseType
   def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
     super(context, type, flags, nil)
+    @watched_methods = HashSet.new
     setSupertypes(superclass, interfaces)
   end
 
   def initialize(context:Context, type:Type, flags:int)
     super(context, type, flags, nil)
+    @watched_methods = HashSet.new
   end
 
   def setSupertypes(superclass:TypeFuture, interfaces:TypeFuture[]):void
@@ -313,14 +332,29 @@ class AsyncMirror < BaseType
     end
     @interfaces.each do |i|
       i.onUpdate do |x, resolved|
-        mirror.notifyOfIncompatibleChange
+        mirror.resolveSupertype(resolved)
       end
     end
   end
 
-  def resolveSuperclass(resolved:JVMType)
+  def resolveSuperclass(resolved:JVMType):void
     @superclass = resolved
+    resolveSupertype(resolved)
+  end
+
+  def resolveSupertype(resolved:ResolvedType):void
+    if resolved.kind_of?(MirrorType)
+      parent = MirrorType(resolved)
+      @watched_methods.each do |name:String|
+        parent.addMethodListener(name, self)
+      end
+    end
     notifyOfIncompatibleChange
+  end
+
+  def addMethodListener(name, listener)
+    @watched_methods.add(name)
+    super
   end
 
   def superclass

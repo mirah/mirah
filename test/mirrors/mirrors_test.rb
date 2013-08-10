@@ -405,6 +405,26 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_resolved_to('I', type.resolve.returnType)
   end
 
+  def test_async_return_type_from_superclass
+    a = define_type('A')
+    b = define_type('B', a)
+    type = CallFuture.new(@types, @scope, b, true, 'foo', [], [], nil)
+    assert_error(type)
+    @types.getMethodDefType(a, 'foo', [], a, nil)
+    assert_not_error(type)
+    assert_descriptor('LA;', type)
+  end
+
+  def test_async_return_type_from_interface
+    a = define_type('A')
+    b = define_type('B', main_type, [a])
+    type = CallFuture.new(@types, @scope, b, true, 'foo', [], [], nil)
+    assert_error(type)
+    @types.getMethodDefType(a, 'foo', [], a, nil)
+    assert_not_error(type)
+    assert_descriptor('LA;', type)
+  end
+
   def test_infer_return_type_from_body
     future = @types.getMethodDefType(main_type, 'foo', [], nil, nil)
     type = @types.getMethodType(
