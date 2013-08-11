@@ -61,6 +61,7 @@ class Bytecode < GeneratorAdapter
     @nextLocal = 0
     @firstLocal = @nextLocal
     @codesource = codesource
+    @currentLine = -1
   end
 
   def arguments
@@ -114,8 +115,14 @@ class Bytecode < GeneratorAdapter
     super
   end
   
-  def recordPosition(position:Position)
-    visitLineNumber(position.startLine, mark) if position && position.source == @codesource
+  def recordPosition(position:Position, atEnd:boolean=false)
+    if position && position.source == @codesource
+      line = atEnd ? position.endLine : position.startLine
+      if line != @currentLine
+        visitLineNumber(line, mark)
+        @currentLine = line
+      end
+    end
   end
   
   def pushNil:void

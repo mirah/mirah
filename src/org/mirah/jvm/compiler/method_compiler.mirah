@@ -163,8 +163,8 @@ class MethodCompiler < BaseCompiler
     end
   end
   
-  def recordPosition(position:Position)
-    @builder.recordPosition(position)
+  def recordPosition(position:Position, atEnd:boolean=false)
+    @builder.recordPosition(position, atEnd)
   end
   
   def defaultValue(type:JVMType)
@@ -355,6 +355,7 @@ class MethodCompiler < BaseCompiler
     if need_else
       compileBody(node.elseBody, expression, type)
     end
+    recordPosition(node.position, true)
     @builder.mark(endifLabel)
   end
   
@@ -551,6 +552,7 @@ class MethodCompiler < BaseCompiler
       @builder.goTo(@loop.getNext)
     end
     @builder.mark(@loop.getBreak)
+    recordPosition(node.position, true)
 
     # loops always evaluate to null
     @builder.pushNil if expression
