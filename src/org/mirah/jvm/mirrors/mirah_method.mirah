@@ -144,6 +144,11 @@ class MirahMethod < AsyncMember implements MethodListener
   end
 
   def processReturnType(supertype_methods:List):void
+    if @declared_return_type
+      @super_return_type.type = @declared_return_type
+      @return_type.setHasDeclaration(true)
+      return
+    end
     filtered = ArrayList.new(supertype_methods.size)
     supertype_methods.each do |method:Member|
       match = true
@@ -157,20 +162,12 @@ class MirahMethod < AsyncMember implements MethodListener
       filtered.add(method) if match
     end
     if filtered.isEmpty
-      if @declared_return_type
-        @super_return_type.type = @declared_return_type
-        @return_type.setHasDeclaration(true)
-      else
-        @super_return_type.type = @error
-        @return_type.resolved(nil)
-        @return_type.setHasDeclaration(false)
-      end
+      @super_return_type.type = @error
+      @return_type.resolved(nil)
+      @return_type.setHasDeclaration(false)
     else
       @return_type.setHasDeclaration(true)
       future = OverrideFuture.new
-      if @declared_return_type
-        future.addType(@declared_return_type)
-      end
       filtered.each do |m:Member|
         future.addType(m.asyncReturnType)
       end
