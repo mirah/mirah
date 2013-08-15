@@ -17,7 +17,6 @@ class Backend
     @diagnostics = context[SimpleDiagnostics]
     @context[Compiler] = @context[Typer].macro_compiler
     @context[AnnotationCompiler] = AnnotationCompiler.new(@context)
-    @cleanup = ScriptCleanup.new(@context)
     @compiler = ScriptCompiler.new(@context)
   end
 
@@ -33,10 +32,18 @@ class Backend
   end
 
   def visit(script:Script, arg:Object):void
-    script.accept(@cleanup, arg)
+    clean(script, arg)
+    compile(script, arg)
+  end
+
+  def clean(script:Script, arg:Object):void
+    script.accept(ScriptCleanup.new(@context), arg)
+  end
+
+  def compile(script:Script, arg:Object):void
     script.accept(@compiler, arg)
   end
-  
+
   def generate(consumer:BytecodeConsumer)
     raise UnsupportedOperationException, "Compilation failed" if @diagnostics.errorCount > 0
     @compiler.generate(consumer)
