@@ -93,10 +93,15 @@ class MacroBuilder; implements Compiler
     @backend = backend
     @extension_counters = HashMap.new
     @parser = parser || MirahParser.new
+    @loader = Typer(nil)
   end
 
   def self.initialize:void
     @@log = java::util::logging::Logger.getLogger(MacroBuilder.class.getName)
+  end
+
+  def setMacroLoader(loader:Typer)
+    @loader = loader
   end
 
   def buildExtension(macroDef:MacroDefinition)
@@ -291,18 +296,35 @@ class MacroBuilder; implements Compiler
     if extensions.nil?
       entries = [HashEntry.new(SimpleString.new('macros'), Array.new(Collections.emptyList))]
       extensions = Annotation.new(SimpleString.new('org.mirah.macros.anno.Extensions'), entries)
-      @typer.infer(extensions)
+      extensions_type = @typer.infer(extensions)
       classdef.annotations.add(extensions)
+      if @loader
+        @loader.learnType(extensions, extensions_type)
+      end
     end
 
     array = Array(extensions.values(0).value)
     new_entry = SimpleString.new(klass.getName)
-    @typer.infer(new_entry)
+    entry_type = @typer.infer(new_entry)
     array.values.add(new_entry)
+    if @loader
+      @loader.learnType(new_entry, entry_type)
+    end
   end
 
   def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
-    extended_class = @scopes.getScope(macroDef).selfType.resolve
-    @types.addMacro(extended_class, klass)
+    typer = if @loader
+      @loader
+    else
+      @typer
+    end
+    scopes = if @loader
+      @loader.scoper
+    else
+      @scopes
+    end
+    
+    extended_class = typer.scoper.getScope(macroDef).selfType.resolve
+    typer.type_system.addMacro(extended_class, klass)
   end
 end

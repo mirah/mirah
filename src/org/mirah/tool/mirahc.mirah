@@ -92,6 +92,10 @@ class Mirahc implements JvmBackend
     # Make sure macros are compiled using the correct type system.
     @typer.macro_compiler = @macro_typer.macro_compiler
 
+    # Ugh -- we have to use separate type systems for compiling and loading
+    # macros.
+    @typer.macro_compiler.setMacroLoader(@typer)
+
     @backend = Backend.new(context)
     @macro_backend = Backend.new(@macro_context)
     @asts = []
