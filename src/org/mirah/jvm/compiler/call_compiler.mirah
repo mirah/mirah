@@ -264,7 +264,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
 
     @method.invokeConstructor(method.declaringClass.getAsmType, desc)
   end
-  def visitFieldAccess(method:JVMMethod, expression:boolean)
+  def visitFieldAccess(method:JVMMethod, expression:boolean):void
     compile(@target)
     if expression
       recordPosition
@@ -279,7 +279,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
       @method.getStatic(method.declaringClass.getAsmType, method.name, method.returnType.getAsmType)
     end
   end
-  def visitFieldAssign(method:JVMMethod, expression:boolean)
+  def visitFieldAssign(method:JVMMethod, expression:boolean):void
     compile(@target)
     compile(@args[0])
     @method.dupX1(getInferredType(@args[0])) if expression
