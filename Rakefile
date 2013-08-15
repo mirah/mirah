@@ -334,14 +334,6 @@ file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/or
   rm_rf 'build/mirrors'
 end
 
-def find_jruby_jar
-  require 'java'
-  java_import 'org.jruby.Ruby'
-  path = Ruby.java_class.resource('Ruby.class').toString
-  path =~ %r{^jar:file:(.+)!/org/jruby/Ruby.class}
-  $1
-end
-
 file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
                               'src/org/mirah/tool/mirahc.mirah',
                               ] do
@@ -358,7 +350,7 @@ file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
     zipfileset :src => 'javalib/mirah-util.jar'
     zipfileset :src => 'javalib/mirah-compiler.jar'
     zipfileset :src => 'javalib/mirah-mirrors.jar'
-    zipfileset :src => find_jruby_jar, :includes => 'org/jruby/org/objectweb/**/*'
+    zipfileset :src => 'javalib/jruby-complete.jar', :includes => 'org/jruby/org/objectweb/**/*'
     zipfileset :src => 'javalib/mirah-parser.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.tool.Mirahc'
