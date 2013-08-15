@@ -13,7 +13,7 @@ class ParserDiagnostics; implements DiagnosticListener
     @buffering = true
   end
   def report(diagnostic)
-    if Kind.ERROR.equals(diagnostic)
+    if Kind.ERROR.equals(diagnostic.getKind)
       @buffer.each do |d:Diagnostic|
         @out.report(d)
       end
