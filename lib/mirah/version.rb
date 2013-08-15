@@ -14,5 +14,5 @@
 # limitations under the License.
 
 module Mirah
-  VERSION = "0.1.1"
+  VERSION = "0.1.2.dev"
 end
