@@ -87,10 +87,13 @@ class MirahMethod < AsyncMember implements MethodListener
   end
 
   def setupOverrides(argumentTypes:List):void
-    # Should this be 'all?'?
+    # Should this require all args are declared or none are?
     # It seems strange to specify some args explicitly and infer
     # others from the supertypes.
-    if argumentTypes.any? {|x:AssignableTypeFuture| !x.hasDeclaration}
+    args_declared = argumentTypes.all? do |x:AssignableTypeFuture|
+      x.hasDeclaration|| x.assignedValues(false, false).size > 0
+    end
+    if !args_declared
       declareArguments(argumentTypes)
     end
     type = MirrorType(declaringClass)
