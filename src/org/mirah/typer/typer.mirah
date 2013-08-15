@@ -740,7 +740,7 @@ class Typer < SimpleNodeVisitor
       i += 1
     end
     if body.size > 0
-      infer(body.get(body.size - 1), expression != null)
+      infer(body.get(body.size - 1), expression != nil)
     else
       @types.getImplicitNilType()
     end

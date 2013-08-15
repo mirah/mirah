@@ -47,7 +47,7 @@ class ErrorType < SpecialType
     message.hashCode
   end
 
-  private
+  # private
 
   def checkMessage(message:List)
     new_message = ArrayList.new(message.size)

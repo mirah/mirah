@@ -76,7 +76,7 @@ class PickFirst < BaseTypeFuture
     end
   end
 
-  private
+#  private
   def addItem(index:int, type:TypeFuture, value:Object):void
     me = self
     i = index
