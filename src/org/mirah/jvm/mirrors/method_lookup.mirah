@@ -519,7 +519,12 @@ class MethodLookup
            MethodLookup.isJvmSubType(selfType, type))
       # A subclass may call protected methods from the superclass,
       # but only on instances of the subclass.
-      return target.nil? || MethodLookup.isJvmSubType(target, selfType)
+      # NOTE: There's no way to differentiate between a call to super
+      # or just trying to access protected methods on a random instance
+      # of the superclass. For now I guess we just allow both and let
+      # the latter raise a runtime exception.
+      return true
+      #return target.nil? || MethodLookup.isJvmSubType(target, selfType)
     else
       return false
     end
