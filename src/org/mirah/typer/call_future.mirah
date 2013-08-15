@@ -42,9 +42,6 @@ class CallFuture < BaseTypeFuture
 
   def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, explicitTarget:boolean, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
-    unless target
-      raise IllegalArgumentException, "No target for #{name}"
-    end
     @scope = scope
     @types = types
     @target = target
@@ -63,7 +60,11 @@ class CallFuture < BaseTypeFuture
         end
       )
     end
-    setupListeners
+    # if target is nil, this is probably an orphaned node.
+    # So just let it be an error.
+    if target
+      setupListeners
+    end
   end
 
   def print(out)

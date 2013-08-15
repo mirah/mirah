@@ -490,7 +490,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def addMacro(klass:ResolvedType, macro_impl:Class)
-    type = BaseType(klass).unmeta
+    type = MirrorType(klass).unmeta
     member = MacroMember.create(macro_impl, type, @macro_loader)
     type.add(member)
     @@log.fine("Added macro #{member}")

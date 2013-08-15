@@ -279,11 +279,13 @@ class Typer < SimpleNodeVisitor
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
-        typer.logger.fine("Expanding macro #{call}")
-        node = InlineCode(resolvedType).expand(call, typer)
-        node = current_node.parent.replaceChild(current_node, node)
-        current_node = node
-        delegate.type = typer.infer(node, expression != nil)
+        if current_node.parent
+          typer.logger.fine("Expanding macro #{call}")
+          node = InlineCode(resolvedType).expand(call, typer)
+          node = current_node.parent.replaceChild(current_node, node)
+          current_node = node
+          delegate.type = typer.infer(node, expression != nil)
+        end
       else
         delegate.type = methodType
       end
@@ -458,8 +460,12 @@ class Typer < SimpleNodeVisitor
 
   def visitFieldAccess(field, expression)
     targetType = @scopes.getScope(field).selfType
-    targetType = @types.getMetaType(targetType) if field.isStatic
-    @types.getFieldType(targetType, field.name.identifier, field.position)
+    if targetType.nil?
+      TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
+    else
+      targetType = @types.getMetaType(targetType) if field.isStatic
+      @types.getFieldType(targetType, field.name.identifier, field.position)
+    end
   end
 
   def visitConstant(constant, expression)
@@ -1009,7 +1015,7 @@ class Typer < SimpleNodeVisitor
     parent = CallSite(block.parent)
     typer = self
     BlockFuture.new(block) do |x, resolvedType|
-      unless resolvedType.isError
+      unless resolvedType.isError || block.parent.nil?
         # TODO: This will fail if the block's class changes.
         new_node = closures.prepare(block, resolvedType)
         if block == parent.block
