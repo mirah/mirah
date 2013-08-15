@@ -92,7 +92,7 @@ class GenericMethodLookup
         inference, findUnsolved(initial_vars), generic_params, params, method.isVararg)
     solved_vars = solveConstraints(constraint_map, initial_vars)
     lockSolutions(solved_vars, type_params.keySet)
-    if methodIsApplicable(generic_params, params, solved_vars)
+    if methodIsApplicable(generic_params, params, solved_vars, method.isVararg)
       return substituteReturnType(method, methodReader.genericReturnType, solved_vars)
     else
       return nil
@@ -274,10 +274,34 @@ class GenericMethodLookup
     end
   end
 
-  def methodIsApplicable(params:List, args:List, typevars:Map)
-    params.zip(args) do |param:TypeMirror, arg:MirrorType|
-      unless substituteTypeVariables(param, typevars).assignableFrom(arg)
-        return false
+  def methodIsApplicable(params:List, args:List, typevars:Map, isVararg:boolean)
+    required_count = if isVararg
+      params.size - 1
+    else
+      -1
+    end
+    vararg_component = nil
+    i = 0
+    args.zip(params) do |arg:MirrorType, param:TypeMirror|
+      if param.nil?
+        unless vararg_component.assignableFrom(arg)
+          return false
+        end
+      else
+        substituted = substituteTypeVariables(param, typevars)
+        if i == required_count 
+          vararg = MirrorType(substituted)
+          unless args.size == params.size && vararg.assignableFrom(arg)
+            vararg_component = MirrorType(vararg.getComponentType)
+            unless vararg_component.assignableFrom(arg)
+              return false
+            end
+          end
+        else
+          unless substituted.assignableFrom(arg)
+            return false
+          end
+        end
       end
     end
     true
