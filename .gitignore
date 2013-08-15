@@ -16,6 +16,7 @@ vendor/
 javalib/mirah-bootstrap.jar
 javalib/mirah-builtins.jar
 javalib/mirah-newast-transitional.jar
+javalib/jruby-complete.jar
 javalib/mirah-util.jar
 javalib/mirah-compiler.jar
 javalib/mirah-mirrors.jar

@@ -164,7 +164,7 @@ end
 
 namespace :jar do
   desc "build self-contained, complete jar"
-  task :complete => :jar do
+  task :complete => [:jar, 'javalib/jruby-complete.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
       zipfileset 'src' => 'dist/mirah.jar'
       zipfileset 'src' => 'javalib/jruby-complete.jar'
@@ -200,6 +200,16 @@ end
 
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
+
+file_create 'javalib/jruby-complete.jar' do
+  require 'open-uri'
+  puts "Downloading jruby-complete.jar"
+  open('http://jruby.org.s3.amazonaws.com/downloads/1.7.4/jruby-complete-1.7.4.jar', 'rb') do |src|
+    open('javalib/jruby-complete.jar', 'wb') do |dest|
+      dest.write(src.read)
+    end
+  end
+end
 
 file_create 'javalib/mirah-newast-transitional.jar' do
   require 'open-uri'
