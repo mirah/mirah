@@ -349,7 +349,7 @@ class ClosureTransformer < NodeScanner
 
     def replace_return_with_nlr_raise(node: Return): void
       nlr_exception_name = @nlr_exception_class.name
-      raise_expression = if node.value.equals ImplicitNil.new
+      raise_expression = if node.value.kind_of? ImplicitNil
                            @parser.quote { raise `nlr_exception_name`.new }
                          else
                            @parser.quote { raise `nlr_exception_name`.new `node.value` }
@@ -474,6 +474,11 @@ class ClosureTransformer < NodeScanner
 
       closure_definition.body.add Utils.build_closure_constructor(node.position, method_scope.binding_type)
 
+
+if contains_methods node
+  copy_methods closure_definition, node, method_scope
+else
+
       mtype = future.basic_block_method_type
       args = if node.arguments
                Arguments(node.arguments.clone)
@@ -491,6 +496,7 @@ class ClosureTransformer < NodeScanner
       return_type = Utils.makeTypeName(node.position, mtype.returnType)
       method = MethodDefinition.new(node.position, SimpleString.new(mtype.name), args, return_type, nil, nil)
       method.body = NodeList(node.body.clone)
+end
 
       set_parent_scope method, @scoper.getScope(node)
       closure_definition.body.add method
@@ -521,6 +527,31 @@ class ClosureTransformer < NodeScanner
       klass = Utils.build_class(node.position, ResolvedType(nil), klass_name)
       klass
     end
+
+  # Returns true if any MethodDefinitions were found.
+  def contains_methods(block: Block): boolean
+    block.body_size.times do |i|
+      node = block.body(i)
+      return true if node.kind_of?(MethodDefinition)
+    end
+    return false
+  end
+
+
+  # Copies MethodDefinition nodes from block to klass.
+  def copy_methods(klass: ClassDefinition, block: Block, parent_scope: Scope): void
+    block.body_size.times do |i|
+      node = block.body(i)
+      # TODO warn if there are non method definition nodes
+      # they won't be used at all currently--so it'd be nice to note that.
+      if node.kind_of?(MethodDefinition)
+        cloned = MethodDefinition(node.clone)
+        set_parent_scope cloned, parent_scope
+        klass.body.add(cloned)
+      end
+    end
+  end
+
   end
 
   class Utils

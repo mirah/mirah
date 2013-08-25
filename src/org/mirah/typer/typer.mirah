@@ -1012,7 +1012,6 @@ class Typer < SimpleNodeVisitor
 
 
     closures = @closures
-    #parent = CallSite(block.parent)
     typer = self
 
     BlockFuture.new(block) do |block_future, resolvedType|
@@ -1025,11 +1024,11 @@ class Typer < SimpleNodeVisitor
 #   infer body as expression
 # end
         if typer.contains_methods block
-          new_scope.selfType = block_future
-          typer.infer(block.body)
-#          closures.insert_closure block, resolvedType
+          closures.insert_closure block, resolvedType
+          #new_scope.selfType = block_future
+          #typer.infer(block.body)
         else
-#          closures.insert_closure block, resolvedType
+
           methods = typer.type_system.getAbstractMethods(resolvedType)
           if methods.size != 1
             raise UnsupportedOperationException,

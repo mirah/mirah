@@ -297,7 +297,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closure_in_closure_doesnt_raise_error
-    cls, = compile(<<-CODE)
+    cls, = with_finest_logging{compile(<<-CODE)}
         interface BarRunner do;def run:void;end;end
 
         class Nestable
@@ -411,7 +411,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closures_non_local_return_to_a_script
-    cls, = with_finest_logging{compile(<<-EOF)}
+    cls, = compile(<<-EOF)
       def foo(a: Runnable)
         a.run
         puts "doesn't get here"
