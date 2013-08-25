@@ -271,7 +271,7 @@ file 'javalib/mirah-util.jar' do
 
   # compile ant stuff
   ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
-  sh *%W(jruby -Ilib bin/mirahc --classpath #{ant_classpath}:#{build_dir} --dest #{build_dir} src/org/mirah/ant)
+  sh *%W(jruby -S mirahc --classpath #{ant_classpath}:#{build_dir} --dest #{build_dir} src/org/mirah/ant)
 
   # compile invokedynamic stuff
   ant.javac 'destdir' => build_dir, 'srcdir' => 'src',
@@ -290,7 +290,7 @@ file 'javalib/mirah-builtins.jar' => ['javalib/mirah-bootstrap.jar'] + Dir['src/
   rm_f 'javalib/mirah-builtins.jar'
   rm_rf 'build/builtins'
   mkdir_p 'build/builtins'
-  sh *%w(jruby -Ilib bin/mirahc --dest build/builtins src/org/mirah/builtins)
+  sh *%w(jruby -S mirahc --dest build/builtins src/org/mirah/builtins)
   ant.jar 'jarfile' => 'javalib/mirah-builtins.jar' do
     fileset 'dir' => 'build/builtins'
   end
@@ -304,16 +304,16 @@ file 'javalib/mirah-compiler.jar' => ['javalib/mirah-builtins.jar'] + Dir['src/o
   phase3_files = Dir['src/org/mirah/jvm/compiler/{class,interface,script}_compiler.mirah'] + ['src/org/mirah/jvm/compiler/backend.mirah']
   phase2_files = Dir['src/org/mirah/jvm/compiler/{condition,method,string}_compiler.mirah']
   phase1_files = Dir['src/org/mirah/jvm/compiler/*.mirah'] - phase2_files - phase3_files
-  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+  sh *(%w(jruby -S mirahc --dest build/compiler ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar) +
        %w(src/org/mirah/util src/org/mirah/jvm/types src/org/mirah/jvm/compiler/base_compiler.mirah))
-  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+  sh *(%w(jruby -S mirahc --dest build/compiler ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
        %w(src/org/mirah/util/context.mirah) + phase1_files)
-  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+  sh *(%w(jruby -S mirahc --dest build/compiler ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
        %w(src/org/mirah/util/context.mirah) + phase2_files)
-  sh *(%w(jruby -Ilib bin/mirahc --dest build/compiler ) +
+  sh *(%w(jruby -S mirahc --dest build/compiler ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:build/compiler) +
        %w(src/org/mirah/util/context.mirah) + phase3_files)
   ant.jar 'jarfile' => 'javalib/mirah-compiler.jar' do
@@ -325,7 +325,7 @@ file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/or
   rm_f 'javalib/mirah-mirrors.jar'
   rm_rf 'build/mirrors'
   mkdir_p 'build/mirrors'
-  sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirrors ) +
+  sh *(%w(jruby -S mirahc -N --dest build/mirrors ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar) +
        %w(src/org/mirah/jvm/mirrors/ src/org/mirah/jvm/model/))
   ant.jar 'jarfile' => 'javalib/mirah-mirrors.jar' do
@@ -348,7 +348,7 @@ file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
   rm_f 'javalib/mirahc.jar'
   rm_rf 'build/mirahc'
   mkdir_p 'build/mirahc'
-  sh *(%w(jruby -Ilib bin/mirahc -N --dest build/mirahc ) +
+  sh *(%w(jruby -S mirahc -N --dest build/mirahc ) +
        %w(--classpath javalib/mirah-parser.jar:javalib/mirah-bootstrap.jar:javalib/mirah-compiler.jar:javalib/mirah-mirrors.jar) +
        %w(src/org/mirah/tool/))
   ant.jar :jarfile => 'javalib/mirahc.jar' do
