@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-class StringTest < Test::Unit::TestCase
+class StringExtensionsTest < Test::Unit::TestCase
 
   def test_string_concat
     cls, = compile("
@@ -38,4 +38,19 @@ class StringTest < Test::Unit::TestCase
     assert_equal("a1", cls.str_long)
   end
 
+  def test_string_match
+    cls, = compile("def match; 'abcdef' =~ /d/; end")
+    assert cls.match, 'failed to match string'
+  end
+
+  def test_string_dont_match
+    cls, = compile("def dont_match; 'abcdef' =~ /g/; end")
+    refute cls.dont_match, 'mistakenly matched string'
+  end
+
+  def test_string_match_wrong_type
+    assert_raises Mirah::MirahError do
+      compile("def match_wrong_type; 'abcdef' =~ 'd'; end")
+    end
+  end
 end

@@ -56,7 +56,7 @@ import org.mirah.util.Context
 import org.mirah.util.OptionParser
 
 class Mirahc implements JvmBackend
-  @@VERSION = "0.1.1.dev"
+  @@VERSION = "0.1.2.dev"
 
   def initialize(args:String[])
     @logger = MirahLogFormatter.new(true).install

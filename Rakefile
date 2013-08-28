@@ -29,7 +29,7 @@ end
 
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
-task :gem => 'jar:bootstrap'
+task :gem => ['jar:bootstrap', "javalib/mirah-compiler.jar", "javalib/mirah-mirrors.jar"]
 task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar', 'javalib/mirah-util.jar']
 
 
@@ -164,7 +164,7 @@ end
 
 namespace :jar do
   desc "build self-contained, complete jar"
-  task :complete => :jar do
+  task :complete => [:jar, 'javalib/jruby-complete.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
       zipfileset 'src' => 'dist/mirah.jar'
       zipfileset 'src' => 'javalib/jruby-complete.jar'
@@ -200,6 +200,16 @@ end
 
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
+
+file_create 'javalib/jruby-complete.jar' do
+  require 'open-uri'
+  puts "Downloading jruby-complete.jar"
+  open('http://jruby.org.s3.amazonaws.com/downloads/1.7.4/jruby-complete-1.7.4.jar', 'rb') do |src|
+    open('javalib/jruby-complete.jar', 'wb') do |dest|
+      dest.write(src.read)
+    end
+  end
+end
 
 file_create 'javalib/mirah-newast-transitional.jar' do
   require 'open-uri'
@@ -361,14 +371,6 @@ file 'javalib/mirah-mirrors.jar' => ['javalib/mirah-compiler.jar'] + Dir['src/or
   rm_rf 'build/mirrors'
 end
 
-def find_jruby_jar
-  require 'java'
-  java_import 'org.jruby.Ruby'
-  path = Ruby.java_class.resource('Ruby.class').toString
-  path =~ %r{^jar:file:(.+)!/org/jruby/Ruby.class}
-  $1
-end
-
 file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
                               'src/org/mirah/tool/mirahc.mirah',
                               ] do
@@ -385,7 +387,7 @@ file 'javalib/mirahc.jar' => ['javalib/mirah-mirrors.jar',
     zipfileset :src => 'javalib/mirah-util.jar'
     zipfileset :src => 'javalib/mirah-compiler.jar'
     zipfileset :src => 'javalib/mirah-mirrors.jar'
-    zipfileset :src => find_jruby_jar, :includes => 'org/jruby/org/objectweb/**/*'
+    zipfileset :src => 'javalib/jruby-complete.jar', :includes => 'org/jruby/org/objectweb/**/*'
     zipfileset :src => 'javalib/mirah-parser.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.tool.Mirahc'
