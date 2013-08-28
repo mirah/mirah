@@ -590,4 +590,10 @@ class MTS_MethodLookupTest < BaseMirrorsTest
         @types, @scope, collections, true, 'checkedSet', [set, klass], [], nil)
     assert_equal('java.util.Set<FooBar>', checked.resolve.toString)
   end
+
+  def test_nil_argument
+    sb = @types.get(@scope, typeref('java.lang.StringBuilder'))
+    result = CallFuture.new(@types, @scope, sb, true, 'append', [@types.getNullType], [], nil)
+    assert_descriptor('Ljava/lang/StringBuilder;', result)
+  end
 end

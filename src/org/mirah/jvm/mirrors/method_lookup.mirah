@@ -158,7 +158,7 @@ class MethodLookup
     # specific methods if the given methods are ambiguous.
     # Implements the rules in JLS 2nd edition, 15.12.2.2.
     # Notably, it does not support varargs or generic methods.
-    def findMaximallySpecific(methods:List):List
+    def findMaximallySpecific(methods:List, params:List):List
       maximal = LinkedList.new
       ambiguous = false
       methods.each do |m|
@@ -174,7 +174,7 @@ class MethodLookup
         method_ambiguous = false
         maximal.each do |x|
           item = JVMMethod(x)
-          comparison = compareSpecificity(method, item)
+          comparison = compareSpecificity(method, item, params)
           @@log.finest("compareSpecificity('#{method}', '#{item}') = #{comparison}")
           if comparison < 0
             more_specific = false
@@ -210,7 +210,7 @@ class MethodLookup
     # Note that methods with the same signature but from unrelated classes return 0.
     # This should only happen when at least one of the methods comes from an interface,
     # so pickMostSpecific will break the tie.
-    def compareSpecificity(a:JVMMethod, b:JVMMethod):double
+    def compareSpecificity(a:JVMMethod, b:JVMMethod, params:List):double
       last_a = a.argumentTypes.size - 1
       last_b = b.argumentTypes.size - 1
       raise IllegalArgumentException if (last_a != last_b && !(a.isVararg && b.isVararg) )
@@ -219,6 +219,9 @@ class MethodLookup
         a_arg = getMethodArgument(a.argumentTypes, i, a.isVararg)
         b_arg = getMethodArgument(b.argumentTypes, i, b.isVararg)
         arg_comparison = subtypeComparison(a_arg, b_arg)
+        if params[i].kind_of?(NullType)
+          arg_comparison *= -1
+        end
         return arg_comparison if Double.isNaN(arg_comparison)
         if arg_comparison != 0.0
           if comparison == 0.0
@@ -460,7 +463,7 @@ class MethodLookup
     if phase_methods.size == 0
       nil
     elsif phase_methods.size > 1
-      MethodLookup.findMaximallySpecific(phase_methods)
+      MethodLookup.findMaximallySpecific(phase_methods, params)
     else
       phase_methods
     end
@@ -493,7 +496,7 @@ class MethodLookup
     if phase3_methods.size == 0
       nil
     elsif phase3_methods.size > 1
-      MethodLookup.findMaximallySpecific(phase3_methods)
+      MethodLookup.findMaximallySpecific(phase3_methods, params)
     else
       phase3_methods
     end
@@ -510,11 +513,11 @@ class MethodLookup
     if (0 != (access & Opcodes.ACC_PUBLIC) ||
         type.getAsmType.getDescriptor.equals(
             selfType.getAsmType.getDescriptor))
-      return true
+      true
     elsif 0 != (access & Opcodes.ACC_PRIVATE)
-      return false
+      false
     elsif getPackage(type).equals(getPackage(selfType))
-      return true
+      true
     elsif (0 != (access & Opcodes.ACC_PROTECTED) &&
            MethodLookup.isJvmSubType(selfType, type))
       # A subclass may call protected methods from the superclass,
@@ -523,10 +526,10 @@ class MethodLookup
       # or just trying to access protected methods on a random instance
       # of the superclass. For now I guess we just allow both and let
       # the latter raise a runtime exception.
-      return true
+      true
       #return target.nil? || MethodLookup.isJvmSubType(target, selfType)
     else
-      return false
+      false
     end
   end
 
@@ -568,7 +571,7 @@ class MethodLookup
     args.each do |arg|
       methods.add(FakeMember.create(types, arg))
     end
-    puts findMaximallySpecific(methods)
+    puts findMaximallySpecific(methods, [])
   end
 end
 

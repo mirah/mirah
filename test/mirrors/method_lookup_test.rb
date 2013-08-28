@@ -358,7 +358,7 @@ class CompareSpecificityTest < BaseMethodLookupTest
   end
 
   def assert_specificity(a, b, value)
-    actual = MethodLookup.compareSpecificity(make_method(a), make_method(b))
+    actual = MethodLookup.compareSpecificity(make_method(a), make_method(b), [nil, nil])
     assert_block "Expected compareSpecificity(#{a.inspect}, #{b.inspect}) = #{value} but was #{actual}" do
       if value.nan?
         actual.nan?
@@ -423,7 +423,7 @@ class FindMaximallySpecificTest < BaseMethodLookupTest
       method = make_method(m)
       methods[method] = m
     end
-    result = MethodLookup.findMaximallySpecific(methods.keys)
+    result = MethodLookup.findMaximallySpecific(methods.keys, [nil, nil])
     result.map {|m| methods[m] || m}
   end
 
