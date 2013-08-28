@@ -114,15 +114,27 @@ class MacroBuilder; implements Compiler
   end
 
   def typer
-    @typer
+    if @loader
+      @loader
+    else
+      @typer
+    end
   end
 
   def type_system
-    @types
+    if @loader
+      @loader.type_system
+    else
+      @types
+    end
   end
 
   def scoper
-    @scopes
+    if @loader
+      @loader.scoper
+    else
+      @scopes
+    end
   end
 
   def serializeAst(node:Node):Object
