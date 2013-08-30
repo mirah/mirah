@@ -87,7 +87,7 @@ class TypeParameterInference
       end
 
       def visitDeclared(t, p)
-        return if t.getTypeArguments.isEmpty
+        return nil if t.getTypeArguments.isEmpty
         params = t.getTypeArguments.iterator
         args = tpi.findExtendsTypeArguments(TypeMirror(p), t).iterator
         while args.hasNext
@@ -160,7 +160,7 @@ class TypeParameterInference
       end
       
       def visitDeclared(t, p)
-        return if t.getTypeArguments.isEmpty
+        return nil if t.getTypeArguments.isEmpty
         params = t.getTypeArguments.iterator
         args = tpi.findEqualTypeArguments(
             TypeMirror(p), t).iterator
@@ -227,7 +227,7 @@ class TypeParameterInference
       
       def visitDeclared(t, p)
         types = tpi.findMatchingGenericSupertypes(TypeMirror(p), t)
-        return if types.nil?
+        return nil if types.nil?
         args = types[0].getTypeArguments.iterator
         params = types[1].getTypeArguments.iterator
         while args.hasNext
