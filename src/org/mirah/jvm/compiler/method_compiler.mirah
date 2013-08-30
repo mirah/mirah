@@ -404,6 +404,7 @@ class MethodCompiler < BaseCompiler
   def visitFieldAssign(node, expression)
     klass = @selfType.getAsmType
     name = node.name.identifier
+    raise IllegalArgumentException.new if name.endsWith("=")
     isStatic = node.isStatic || self.isStatic
     type = @klass.getDeclaredField(node.name.identifier).returnType
     @builder.loadThis unless isStatic
@@ -641,8 +642,6 @@ class MethodCompiler < BaseCompiler
       end
       @builder.mark(done)
     end
-  rescue => ex
-    raise ex
   end
   
   def handleEnsures(node:Node, klass:Class):void
