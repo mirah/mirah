@@ -17,12 +17,8 @@ require 'fileutils'
 require 'rbconfig'
 require 'bitescript'
 
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-builtins.jar'
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-parser.jar'
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-bootstrap.jar'
+$CLASSPATH << File.dirname(__FILE__) + '/../dist/mirahc.jar'
 $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-util.jar'
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-compiler.jar'
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-mirrors.jar'
 
 require 'mirah/version'
 require 'mirah/transform'
