@@ -283,7 +283,7 @@ file 'javalib/mirahc-2.jar' => ['javalib/mirahc.jar'] do
   # Build the jar                    
   ant.jar 'jarfile' => 'javalib/mirahc-2.jar' do
     fileset 'dir' => build_dir
-    zipfileset :src => find_jruby_jar, :includes => 'org/jruby/org/objectweb/**/*'
+    zipfileset :src => 'javalib/jruby-complete.jar', :includes => 'org/jruby/org/objectweb/**/*'
     zipfileset :src => 'javalib/mirah-parser.jar'
     manifest do
       attribute :name => 'Main-Class', :value => 'org.mirah.tool.Mirahc'
