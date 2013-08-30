@@ -31,9 +31,19 @@ import org.mirah.typer.Typer
 import org.mirah.typer.TypeSystem
 
 
-# $Extensions[macros:['org.mirah.macros.QuoteMacro']]
 interface Macro do
   def expand:Node; end
+  macro def quote(block:Block)
+    node = if @call.block.body_size == 1
+      @call.block.body(0)
+    else
+      @call.block.body
+    end
+    serialized = @mirah.serializeAst(node)
+    cast = quote {Cast(@mirah.deserializeAst(`serialized`))}
+    cast.name = SimpleString.new(node.getClass.getName)
+    cast
+  end
 end
 
 interface Compiler do
@@ -47,51 +57,20 @@ interface Compiler do
   def type_system:TypeSystem; end
   def typer:Typer; end
   def scoper:Scoper; end
+  macro def quote(block:Block)
+    node = if @call.block.body_size == 1
+      @call.block.body(0)
+    else
+      @call.block.body
+    end
+    serialized = @mirah.serializeAst(node)
+    cast = quote {Cast(`@call.target`.deserializeAst(`serialized`))}
+    cast.name = SimpleString.new(node.getClass.getName)
+    cast
+  end
 end
 
 interface JvmBackend do
   def compileAndLoadExtension(macro:Script):Class; end
   def logExtensionAst(node:Node):void; end
-end
-
-# The bootstrap compiler can't generate newast macros, so we manually implement quote
-# $MacroDef[name:'quote', arguments:$MacroArgs[required:['mirah.lang.ast.Block']]
-class QuoteMacro; implements Macro
-  def initialize(mirah:Compiler, call:CallSite)
-    @mirah = mirah
-    @call = call
-  end
-
-  def expand
-    node = if @call.block.body_size == 1
-      @call.block.body(0)
-    else
-      @call.block.body
-    end
-    serialized = @mirah.serializeAst(node)
-    unquote = Unquote.new
-    unquote.object = serialized
-    loadCall = Call.new(FieldAccess.new(SimpleString.new("mirah")), SimpleString.new("deserializeAst"), [unquote], nil)
-    Cast.new(SimpleString.new(node.getClass.getName), loadCall)
-  end
-end
-
-class CompilerQuoteMacro; implements Macro
-  def initialize(mirah:Compiler, call:CallSite)
-    @mirah = mirah
-    @call = call
-  end
-
-  def expand
-    node = if @call.block.body_size == 1
-      @call.block.body(0)
-    else
-      @call.block.body
-    end
-    serialized = @mirah.serializeAst(node)
-    unquote = Unquote.new
-    unquote.object = serialized
-    loadCall = Call.new(@call.target, SimpleString.new("deserializeAst"), [unquote], nil)
-    Cast.new(SimpleString.new(node.getClass.getName), loadCall)
-  end
 end

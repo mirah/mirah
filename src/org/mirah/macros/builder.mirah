@@ -186,24 +186,39 @@ class MacroBuilder; implements Compiler
   end
 
   def constructAst(macroDef:MacroDefinition):Script
-    template = MacroBuilder.class.getResourceAsStream("template.mirah.tpl")
     name = extensionName(macroDef)
     addMissingTypes(macroDef)
     argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
     scope = @scopes.getScope(macroDef)
     isStatic = mirah::lang::ast::Boolean.new(macroDef.name.position, macroDef.isStatic || scope.selfType.resolve.isMeta)
-    script = deserializeScript("Macro", template,
-                               [ name,
-                                 macroDef.arguments.clone,
-                                 macroDef.body,
-                                 casts,
-                                 # Annotations come last in the AST even though they're first
-                                 # in the source.
-                                 macroDef.name.clone,
-                                 argdef,
-                                 isStatic
-                               ])
+    script = Script.new(macroDef.position)
+    script.body = quote do
+      import org.mirah.macros.anno.*
+      import org.mirah.macros.Macro
+      import org.mirah.macros.Compiler
+      import mirah.lang.ast.*
+
+      $MacroDef[name: `macroDef.name`, arguments:`argdef`, isStatic:`isStatic`]
+      class `name` implements Macro
+        def initialize(mirah:Compiler, call:CallSite)
+          @mirah = mirah
+          @call = call
+        end
+
+        def _expand(`macroDef.arguments`):Node
+          `macroDef.body`
+        end
+
+        def expand:Node
+          _expand(`casts`)
+        end
+
+        def gensym:String
+          @mirah.scoper.getScope(@call).temp('gensym')
+        end
+      end
+    end
     preamble = NodeList.new
 
     if scope.package
