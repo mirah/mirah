@@ -205,12 +205,16 @@ class Typer < SimpleNodeVisitor
     methodType = CallFuture.new(@types, scope, targetType, false, parameters, call)
     delegate.type = methodType
     typer = self
+    current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
-        typer.logger.fine("Expanding macro #{call}")
-        node = InlineCode(resolvedType).expand(call, typer)
-        node = call.parent.replaceChild(call, node)
-        delegate.type = typer.infer(node, expression != nil)
+        if current_node.parent
+          typer.logger.fine("Expanding macro #{call}")
+          node = InlineCode(resolvedType).expand(call, typer)
+          node = current_node.parent.replaceChild(current_node, node)
+          current_node = node
+          delegate.type = typer.infer(node, expression != nil)
+        end
       else
         delegate.type = methodType
       end
@@ -229,7 +233,7 @@ class Typer < SimpleNodeVisitor
       TypeFuture(PickFirst.new(items, delegate) do |type, arg|
         if arg != nil
           # We chose the cast.
-          call.parent.replaceChild(call, cast)
+          current_node = current_node.parent.replaceChild(current_node, cast)
           typer.infer(cast, expression != nil)
         end
       end)
