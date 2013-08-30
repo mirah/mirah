@@ -208,6 +208,9 @@ file_create 'javalib/jruby-complete.jar' do
   end
 end
 
+# TODO
+# file_create 'javalib/mirahc-1.1.2-dev.jar' { ... }
+
 mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah',
                  'src/org/mirah/typer/**/*.mirah',
                  'src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah',
