@@ -54,7 +54,9 @@ class Bytecode < GeneratorAdapter
   
   def initialize(flags:int, method:Method, klass:ClassVisitor, codesource:CodeSource)
     super(Opcodes.ASM4,
-          klass.visitMethod(flags, method.getName, method.getDescriptor, nil, nil),
+          MethodVisitor(@mv = LocalInitializerAdapter.new(klass.visitMethod(
+              flags, method.getName, method.getDescriptor, nil, nil),
+              flags, method.getDescriptor)),
           flags, method.getName, method.getDescriptor)
     @endLabel = newLabel
     @locals = LinkedHashMap.new
@@ -62,6 +64,11 @@ class Bytecode < GeneratorAdapter
     @firstLocal = @nextLocal
     @codesource = codesource
     @currentLine = -1
+    @flags = flags
+  end
+
+  def instruction_count
+    @mv.instruction_count
   end
 
   def arguments
@@ -108,9 +115,11 @@ class Bytecode < GeneratorAdapter
   end
 
   def endMethod:void
-    mark(@endLabel)
-    @locals.values.each do |info|
-      LocalInfo(info).declare(self)
+    if 0 == @flags & (Opcodes.ACC_NATIVE | Opcodes.ACC_ABSTRACT)
+      mark(@endLabel)
+      @locals.values.each do |info|
+        LocalInfo(info).declare(self)
+      end
     end
     super
   end

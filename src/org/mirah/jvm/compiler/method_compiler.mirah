@@ -607,6 +607,7 @@ class MethodCompiler < BaseCompiler
   
   def visitRescue(node, expression)
     start = @builder.mark
+    start_offset = @builder.instruction_count
     bodyEnd = @builder.newLabel
     bodyIsExpression = if expression.nil? || node.elseClause.size > 0
       nil
@@ -614,12 +615,13 @@ class MethodCompiler < BaseCompiler
       Boolean.TRUE
     end
     visit(node.body, bodyIsExpression)
+    end_offset = @builder.instruction_count
     @builder.mark(bodyEnd)
     visit(node.elseClause, expression) if node.elseClause.size > 0
     
     # If the body was empty, it can't throw any exceptions
     # so we must not emit a try/catch.
-    unless start.getOffset == bodyEnd.getOffset
+    unless start_offset == end_offset
       done = @builder.newLabel
       @builder.goTo(done)
       node.clauses_size.times do |clauseIndex|
@@ -639,6 +641,8 @@ class MethodCompiler < BaseCompiler
       end
       @builder.mark(done)
     end
+  rescue => ex
+    raise ex
   end
   
   def handleEnsures(node:Node, klass:Class):void
@@ -652,13 +656,15 @@ class MethodCompiler < BaseCompiler
   def visitEnsure(node, expression)
     start = @builder.mark
     bodyEnd = @builder.newLabel
+    start_offset = @builder.instruction_count
     visit(node.body, expression)
+    end_offset = @builder.instruction_count
     @builder.mark(bodyEnd)
     visit(node.ensureClause, nil)
     
     # If the body was empty, it can't throw any exceptions
     # so we must not emit a try/catch.
-    unless start.getOffset == bodyEnd.getOffset
+    unless start_offset == end_offset
       done = @builder.newLabel
       @builder.goTo(done)
       @builder.catchException(start, bodyEnd, nil)
