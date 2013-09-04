@@ -25,6 +25,8 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.FakeMember'
   java_import 'org.mirah.jvm.mirrors.Member'
   java_import 'org.mirah.jvm.mirrors.MetaType'
+  java_import 'org.mirah.jvm.mirrors.MirrorProxy'
+  java_import 'org.mirah.jvm.mirrors.NullType'
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
@@ -164,6 +166,13 @@ class MethodLookupTest < BaseMethodLookupTest
                      array("Ljava/util/Map;"),
                      array("Ljava/io/Serializable;"),
                      array("Ljava/util/AbstractMap;"))
+  end
+
+  def test_null_subtype
+    null = MirrorProxy.new(NullType.new)
+    object = wrap("Ljava/lang/Object;")
+    assert(MethodLookup.isSubType(null, object))
+    assert(MethodLookup.isSubType(null, wrap("Ljava/lang/String;")))
   end
 
   def test_subtype_comparison
