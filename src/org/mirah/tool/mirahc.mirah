@@ -248,10 +248,12 @@ class Mirahc implements JvmBackend
     # so we don't support bootclasspath.
     @macrocp ||= @classpath
     bootloader = ClassResourceLoader.new(System.class)
-    macroloader = FilteredResources.new(
-       ClassLoaderResourceLoader.new(IsolatedResourceLoader.new(@macrocp)),
-       Pattern.compile("^(mirah\\.|org\\.mirah\\.macros)"),
-       bootloader)
+    macroloader = ClassLoaderResourceLoader.new(
+        IsolatedResourceLoader.new(@macrocp),
+        FilteredResources.new(
+            ClassResourceLoader.new(Mirahc.class),
+            Pattern.compile("^(mirah\\.|org\\.mirah\\.macros)"),
+            bootloader))
     
     @extension_classes = {}
     extension_parent = URLClassLoader.new(
