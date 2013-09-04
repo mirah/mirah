@@ -45,6 +45,7 @@ import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
+import mirah.lang.ast.Unquote
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.Typer
 
@@ -261,7 +262,12 @@ class MacroBuilder; implements Compiler
       end
     end
     block = macroDef.arguments.block
-    block.type = SimpleString.new('mirah.lang.ast.Block') if (block && block.type.nil?)
+    if block
+      type = block.type || SimpleString.new('mirah.lang.ast.Block')
+      macroDef.arguments.block = nil
+      macroDef.arguments.required.add(
+          RequiredArgument.new(block.position, block.name, type))
+    end
   end
 
   def makeCasts(args:Arguments):List

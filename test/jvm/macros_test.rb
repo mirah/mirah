@@ -278,6 +278,22 @@ class MacrosTest < Test::Unit::TestCase
     end
   end
 
+
+  def test_block_parameter
+    cls, = compile(<<-EOF)
+      macro def foo(&block)
+        block.body
+      end
+      foo do
+        puts :hi
+      end
+    EOF
+
+    assert_output("hi\n") do
+      cls.main(nil)
+    end
+  end
+
   def test_method_def_after_macro_def_with_same_name_raises_error
     assert_raises Mirah::MirahError do
       compile(<<-EOF)
