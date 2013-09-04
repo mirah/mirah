@@ -160,6 +160,11 @@ class LubFinder
   end
 
   def candidateInvocation2(x:DeclaredType, y:DeclaredType):DeclaredType
+    if x.getTypeArguments.size == 0
+      return x
+    elsif y.getTypeArguments.size == 0
+      return y
+    end
     args = TypeMirror[x.getTypeArguments.size]
     i = 0
     x.getTypeArguments.zip(y.getTypeArguments) do |a:TypeMirror, b:TypeMirror|

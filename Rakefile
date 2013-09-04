@@ -104,11 +104,11 @@ namespace :test do
     end
     
     desc "run tests for mirror type system"
-    Rake::TestTask.new :mirrors  => "javalib/mirah-mirrors.jar" do |t|
+    Rake::TestTask.new :mirrors  => "dist/mirahc.jar" do |t|
       t.libs << 'test'
       t.test_files = FileList["test/mirrors/**/*test.rb"]
     end
-    Rake::TestTask.new :mirror_compilation  => "javalib/mirah-mirrors.jar" do |t|
+    Rake::TestTask.new :mirror_compilation  => "dist/mirahc.jar" do |t|
       t.libs << 'test' << 'test/jvm'
       t.ruby_opts.concat ["-r", "mirror_compilation_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]

@@ -717,6 +717,14 @@ class GenericsTest < Test::Unit::TestCase
       ], m.values.map{|x| x.toString})
   end
 
+  def test_raw_lub
+    a = g('java.lang.Iterable', [type('java.lang.String')])
+    b = a.erasure
+    lub = LubFinder.new(@types.context)
+    c = lub.leastUpperBound([a, b])
+    assert_equal(b.toString, c.toString)
+  end
+
   def test_minimizeErasedCandidates
     lub = LubFinder.new(@types.context)
     t = set(@types.getStringType.resolve)
