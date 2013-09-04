@@ -25,6 +25,7 @@ import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.UnreachableType
 import org.mirah.util.Context
 
 class ReturnTypeFuture < AssignableTypeFuture
@@ -46,6 +47,8 @@ class ReturnTypeFuture < AssignableTypeFuture
     # We don't support generic methods in Mirah classes
     if type.kind_of?(MirrorType)
       type = MirrorType(MirrorType(type).erasure)
+    elsif type.kind_of?(UnreachableType)
+      type = VoidType.new
     end
     super
   end
