@@ -333,8 +333,24 @@ class Mirahc implements JvmBackend
     }
     it = parser.parse(args).iterator
     while it.hasNext
-      f = String(it.next)
-      @code_sources.add(StreamCodeSource.new(f))
+      f = File.new(String(it.next))
+      addFileOrDirectory(f)
+    end
+  end
+
+  def addFileOrDirectory(f:File):void
+    unless f.exists
+      puts "No such file #{f.getPath}"
+      System.exit(1)
+    end
+    if f.isDirectory
+      f.listFiles.each do |c|
+        if c.isDirectory || c.getPath.endsWith(".mirah")
+          addFileOrDirectory(c)
+        end
+      end
+    else
+      @code_sources.add(StreamCodeSource.new(f.getPath))
     end
   end
 
