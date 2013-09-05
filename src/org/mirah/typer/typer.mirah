@@ -951,6 +951,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitBlockArgument(arg, expression)
+    @@log.finest "BlockArgument: got here for #{arg}"
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, arg.name.identifier, arg.position)
     if arg.type
@@ -1024,6 +1025,7 @@ class Typer < SimpleNodeVisitor
   def visitBlock(block, expression)
     new_scope = @scopes.addScope(block)
     new_scope.parent = @scopes.getScope(block.parent)
+    @@log.finest "Block: got here for #{block} #{block.arguments}"
     infer(block.arguments) if block.arguments
 
 

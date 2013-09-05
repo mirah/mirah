@@ -311,7 +311,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closure_in_closure_doesnt_raise_error
-    cls, = with_finest_logging{compile(<<-CODE)}
+    cls, = compile(<<-CODE)
         interface BarRunner do;def run:void;end;end
 
         class Nestable
@@ -348,7 +348,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_with_interface_method_with_2_arguments
-    cls, = compile(<<-EOF)
+    cls, = with_finest_logging{compile(<<-EOF)}
       interface DoubleArgMethod do
         def run(a: String, b: int):void;end
       end
@@ -483,14 +483,14 @@ class BlocksTest < Test::Unit::TestCase
 
   def test_closure_non_local_return_with_multiple_returns
     cls, = compile(<<-EOF)
-      class NonLocalMe
+      class NLRMultipleReturnRunner
         def foo(a: Runnable)
           a.run
           puts "doesn't get here"
         end
       end
       def nlr(flag: boolean): String
-        NonLocalMe.new.foo { if flag; return "NLR!"; else; return "NLArrrr"; end}
+        NLRMultipleReturnRunner.new.foo { if flag; return "NLR!"; else; return "NLArrrr"; end}
         "nor here either"
       end
       puts nlr true
@@ -503,7 +503,7 @@ class BlocksTest < Test::Unit::TestCase
 
   def test_two_nlr_closures_in_the_same_method_in_if
     cls, = compile(<<-EOF)
-      class NonLocalMe
+      class NLRTwoClosure
         def foo(a: Runnable)
           a.run
           puts "doesn't get here"
@@ -511,9 +511,9 @@ class BlocksTest < Test::Unit::TestCase
       end
       def nlr(flag: boolean): String
         if flag
-          NonLocalMe.new.foo { return "NLR!" }
+          NLRTwoClosure.new.foo { return "NLR!" }
         else
-          NonLocalMe.new.foo { return "NLArrrr" }
+          NLRTwoClosure.new.foo { return "NLArrrr" }
         end
         "nor here either"
       end
@@ -531,18 +531,18 @@ class BlocksTest < Test::Unit::TestCase
       class NonLocalMe2
         def foo(a: Runnable)
           a.run
-          puts "doesn't get here"
+          puts "may get here"
         end
       end
       def nlr(flag: boolean): String
         NonLocalMe2.new.foo { return "NLR!" if flag }
         NonLocalMe2.new.foo { return "NLArrrr" unless flag }
-        "nor here either"
+        "but not here"
       end
       puts nlr true
       puts nlr false
     EOF
-    assert_output "NLR!\nNLArrrr\n" do
+    assert_output "NLR!\nmay get here\nNLArrrr\n" do
       cls.main(nil)
     end
   end
@@ -553,14 +553,14 @@ class BlocksTest < Test::Unit::TestCase
       def foo(a: Runnable)
         a.run
       end
-      def nlr: String
-        foo { puts "NLR!" }
-        foo { puts "NLArrrr" }
-        "nor here either"
+      def regular: String
+        foo { puts "Closure!" }
+        foo { puts "We Want it" }
+        "finish"
       end
-      nlr
+      regular
     EOF
-    assert_output "NLR!\nNLArrrr\n" do
+    assert_output "Closure!\nWe Want it\n" do
       cls.main(nil)
     end
   end

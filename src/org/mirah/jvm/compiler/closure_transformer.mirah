@@ -32,6 +32,7 @@ import java.util.logging.Logger
 
 import java.util.Collections
 import java.util.Stack
+import java.util.List
 import java.util.ArrayList
 import java.io.File
 
@@ -49,6 +50,11 @@ class ClosureTransformer < NodeScanner
     @method_stack = Stack.new
   end
 
+  def enterMacroDefinition(node, arg)
+    # all the macros have been generated
+    # TODO: it'd be nice if the AST sent to the compiler elided macro defs as they've already been compiled
+    false
+  end
   def enterMethodDefinition(node, arg)
     @method_stack.push StackEntry.new node
     true
@@ -91,16 +97,14 @@ class ClosureTransformer < NodeScanner
   def exit_method(node: Node, arg: Object): void 
     result = StackEntry(@method_stack.pop)
     unless result.had_block?
-      puts "No block in #{node}"
       return
     end
 
     if result.has_non_local_returns?
-      puts "#{node} contains non local returns"
-      @nlr_transformer.reset_exception
-      node.accept @nlr_transformer, result.node
+      @@log.finest "#{node} contains non local returns"
+      node.accept @nlr_transformer, NLRStruct.new(result.node)
     else
-      node.accept @regular_transformer, result.node
+      node.accept @regular_transformer, []
     end
   end
 
@@ -155,7 +159,14 @@ class ClosureTransformer < NodeScanner
   end
 
 
-
+  class NLRStruct
+    def initialize root: Node
+      @root = root
+      @toInject = []
+    end
+    def root; @root; end
+    def toInject; @toInject; end
+  end
       #closure_definition.body.add @parser.quote do
         #          def initialize(binding: `method_scope.binding_type`) # can't do this because Unquote handling doesn't deal with it
         #            @binding = binding
@@ -190,32 +201,31 @@ class ClosureTransformer < NodeScanner
       @parser = @typer.macro_compiler
     end
 
-    def reset_exception
-      @nlr_exception_class = ClassDefinition(nil)
-    end
-
     def enterScript(node, arg)
-      maybe_build_nlr_exception node, arg
+      maybe_build_nlr_exception node, NLRStruct(arg)
       true
     end
 
     def enterMethodDefinition(node, arg)
-      maybe_build_nlr_exception node, arg
+      maybe_build_nlr_exception node, NLRStruct(arg)
       true
     end
 
     def enterStaticMethodDefinition(node, arg)
-      maybe_build_nlr_exception node, arg
+      maybe_build_nlr_exception node, NLRStruct(arg)
       true
     end
 
-    def maybe_build_nlr_exception(node: Node, arg: Object): void
-      if arg == node
+    def maybe_build_nlr_exception(node: Node, arg: NLRStruct): void
+      if arg.root == node
+      #if arg == node
         @nlr_exception_class = build_nlr_exception(node)
-        body = Utils.enclosing_body node
-        Utils.insert_in_front body, @nlr_exception_class
-        infer @nlr_exception_class
+        arg.toInject.add @nlr_exception_class
       end
+        #body = Utils.enclosing_body node
+        #Utils.insert_in_front body, @nlr_exception_class
+        #infer @nlr_exception_class
+      #end
     end
 
     def exitScript(node, arg)
@@ -246,12 +256,12 @@ class ClosureTransformer < NodeScanner
 
     def exitBlock(node, arg)
       @in_block = false
-      build_and_inject_closure node
+      build_and_inject_closure node, NLRStruct(arg)
       node
     end
 
     def exit_method(node: Node, arg: Object): void
-      return unless arg == node
+      return unless NLRStruct(arg).root == node
       body = Utils.enclosing_body node
 
       nlr_exception_name = @nlr_exception_class.name
@@ -260,7 +270,7 @@ class ClosureTransformer < NodeScanner
                           elsif node.kind_of? Script
                             @typer.infer(node).resolve
                           end
-      puts "return value of #{node}: #{return_value_type} is void? #{void_type? return_value_type}"
+      @@log.finest "return value of #{node}: #{return_value_type} is void? #{void_type? return_value_type}"
       return_value = unless void_type? return_value_type
                        Node(Call.new(node.position, 
                                      LocalAccess.new(SimpleString.new 'return_exception'), 
@@ -289,14 +299,17 @@ class ClosureTransformer < NodeScanner
       else
         MethodDefinition(node).body = real_new_body
       end
+      
       @typer.infer real_new_body
+
+      Utils.inject_nodes real_new_body, NLRStruct(arg).toInject, @typer
     end
 
     def infer node: Node
       @typer.infer node
     end
 
-    def build_and_inject_closure node: Block
+    def build_and_inject_closure node: Block, struct: NLRStruct
       ancestor = Utils.find_enclosing_method_node node
       enclosing_body = Utils.enclosing_body ancestor
 
@@ -308,7 +321,7 @@ class ClosureTransformer < NodeScanner
                                     end
       
       future = BlockFuture(@typer.getInferredType node)
-      closure_definition = Utils.build_class node.position, future.resolve, build_temp_name("Closure", node)
+      closure_definition = Utils.build_class node.position, future.resolve, build_temp_name("Closure", enclosing_body)
 
       closure_definition.body.add Utils.build_closure_constructor(node.position, method_scope.binding_type)
 
@@ -333,8 +346,8 @@ class ClosureTransformer < NodeScanner
       set_parent_scope method, @scoper.getScope(node)
       closure_definition.body.add method
 
-      Utils.insert_in_front enclosing_body, closure_definition
-      infer(closure_definition)
+      struct.toInject.add(closure_definition)
+
       new_closure = Utils.closure_call_node node.position, ClassDefinition(closure_definition)
       infer new_closure
       Utils.replace_block_with_closure_in_call CallSite(node.parent),
@@ -402,7 +415,6 @@ class ClosureTransformer < NodeScanner
     end
 
     def build_nlr_exception(node: Node): ClassDefinition
-      puts "building exception #{node}"
       klass = Utils.build_class node.position,
                           @typer.type_system.getBaseExceptionType.resolve,
                           build_temp_name("NonLocalReturn", node)
@@ -411,7 +423,6 @@ class ClosureTransformer < NodeScanner
                           elsif node.kind_of? Script
                             void_type
                           end
-      puts "return building nlr exception #{return_value_type}"
       # empty fillInStackTrace should force JVM to skip trace building
       klass.body.add @parser.quote { def fillInStackTrace; end }
       unless void_type? return_value_type
@@ -441,6 +452,11 @@ class ClosureTransformer < NodeScanner
   end
 
   class RegularTransformer < NodeScanner
+
+    def self.initialize:void
+      @@log = Logger.getLogger(ClosureTransformer.class.getName)
+    end
+
     def initialize(context: Context)
       @context = context
       @typer = context[Typer]
@@ -448,9 +464,27 @@ class ClosureTransformer < NodeScanner
       @parser = @typer.macro_compiler
     end
 
+  def exitMethodDefinition(node, list)
+    @@log.finest "to inject: #{list} scope: #{@scoper.getScope(node)}"
+    Utils.inject_nodes node.body, List(list), @typer
+    node
+  end
+
+  def exitStaticMethodDefinition(node, list)
+    @@log.finest "to inject: #{list} scope: #{@scoper.getScope(node)}"
+    Utils.inject_nodes node.body, List(list), @typer
+    node
+  end
+
+  def exitScript(node, list)
+    @@log.finest "to inject: #{list} scope: #{@scoper.getScope(node)}"
+    Utils.inject_nodes node.body, List(list), @typer
+    node
+  end
+
     def exitBlock(node, arg)
-      puts "injecting regular closure"
-      build_and_inject_closure node
+      @@log.finest "injecting regular closure #{node}"
+      build_and_inject_closure node, List(arg)
       node
     end
 
@@ -458,7 +492,7 @@ class ClosureTransformer < NodeScanner
       @typer.infer node
     end
 
-    def build_and_inject_closure node: Block
+    def build_and_inject_closure(node: Block, toInject: List): void
       ancestor = Utils.find_enclosing_method_node node
       enclosing_body = Utils.enclosing_body ancestor
 
@@ -470,7 +504,12 @@ class ClosureTransformer < NodeScanner
                                     end
       
       future = BlockFuture(@typer.getInferredType node)
-      closure_definition = Utils.build_class node.position, future.resolve, build_temp_name("Closure", node)
+
+      @@log.finest "future #{future} node #{node} .parent #{node.parent}"
+      return if future.nil?
+
+
+      closure_definition = Utils.build_class node.position, future.resolve, build_temp_name("Closure", enclosing_body)
 
       closure_definition.body.add Utils.build_closure_constructor(node.position, method_scope.binding_type)
 
@@ -501,8 +540,7 @@ end
       set_parent_scope method, @scoper.getScope(node)
       closure_definition.body.add method
 
-      Utils.insert_in_front enclosing_body, closure_definition
-      infer(closure_definition)
+      toInject.add closure_definition
 
       new_closure = Utils.closure_call_node node.position, ClassDefinition(closure_definition)
       Utils.replace_block_with_closure_in_call CallSite(node.parent), node, new_closure
@@ -610,6 +648,16 @@ end
         NodeList(Script(ancestor).body)
       end
     end
+
+
+
+  def self.inject_nodes body: NodeList, nodes: List, typer: Typer
+    nodes.each do |arg|
+      node = Node(arg)
+      Utils.insert_in_front body, node
+      typer.infer node
+    end
+  end
 
     # Builds an anonymous class.
     def self.build_class(position: Position, parent_type: ResolvedType, name: String=nil)
