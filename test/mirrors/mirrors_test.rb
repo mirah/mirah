@@ -21,6 +21,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.JVMScope'
   java_import 'org.mirah.jvm.types.JVMType'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
+  java_import 'org.mirah.typer.AssignableTypeFuture'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.CallFuture'
   java_import 'org.mirah.typer.TypeFuture'
@@ -45,7 +46,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   end
 
   def assert_descriptor(descriptor, type)
-    assert(type.isResolved)
+    assert(type.isResolved, type.resolve.toString)
     assert_resolved_to(descriptor, type.resolve)
     assert_not_error(type)
   end
@@ -62,7 +63,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   end
 
   def assert_not_error(type)
-    assert(!type.resolve.isError)
+    assert(!type.resolve.isError, type.resolve.toString)
   end
 
   def assert_subtype_of(supertype, subtype)
@@ -405,6 +406,26 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_resolved_to('I', type.resolve.returnType)
   end
 
+  def test_async_return_type_from_superclass
+    a = define_type('A')
+    b = define_type('B', a)
+    type = CallFuture.new(@types, @scope, b, true, 'foo', [], [], nil)
+    assert_error(type)
+    @types.getMethodDefType(a, 'foo', [], a, nil)
+    assert_not_error(type)
+    assert_descriptor('LA;', type)
+  end
+
+  def test_async_return_type_from_interface
+    a = define_type('A')
+    b = define_type('B', main_type, [a])
+    type = CallFuture.new(@types, @scope, b, true, 'foo', [], [], nil)
+    assert_error(type)
+    @types.getMethodDefType(a, 'foo', [], a, nil)
+    assert_not_error(type)
+    assert_descriptor('LA;', type)
+  end
+
   def test_infer_return_type_from_body
     future = @types.getMethodDefType(main_type, 'foo', [], nil, nil)
     type = @types.getMethodType(
@@ -420,9 +441,13 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     @scope.selfType_set(type)
     int = @types.wrap(Type.getType("I"))
     short = @types.wrap(Type.getType("S"))
-    @types.getMethodDefType(type, 'foo', [int], int, nil)
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(int, nil)
+    @types.getMethodDefType(type, 'foo', [decl], int, nil)
     argument_future = BaseTypeFuture.new
-    @types.getMethodDefType(type, 'foo', [argument_future], short, nil)
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(argument_future, nil)
+    @types.getMethodDefType(type, 'foo', [decl], short, nil)
 
     call_future = CallFuture.new(@types, @scope, type, true, 'foo', [short], [], nil)
     assert_not_error(call_future)
@@ -436,9 +461,13 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   def test_async_arguments_meta
     int = @types.wrap(Type.getType("I"))
     short = @types.wrap(Type.getType("S"))
-    @types.getMethodDefType(main_type, 'foo', [int], int, nil)
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(int, nil)
+    @types.getMethodDefType(main_type, 'foo', [decl], int, nil)
     argument_future = BaseTypeFuture.new
-    @types.getMethodDefType(main_type, 'foo', [argument_future], short, nil)
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(argument_future, nil)
+    @types.getMethodDefType(main_type, 'foo', [decl], short, nil)
 
     call_future = CallFuture.new(@types, @scope, main_type, true, 'foo', [short], [], nil)
     assert_not_error(call_future)
@@ -455,8 +484,10 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     b = @types.defineType(@scope, ClassDefinition.new, "B", super_future, [])
     a = @types.defineType(@scope, ClassDefinition.new, "A", b, [])
     c = @types.defineType(@scope, ClassDefinition.new, "C", nil, [])
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(c, nil)
     
-    @types.getMethodDefType(main_type, 'foobar', [c],
+    @types.getMethodDefType(main_type, 'foobar', [decl],
                             @types.getFixnumType(0), nil)
     type1 = CallFuture.new(@types, @scope, main_type, true, 'foobar', [b], [], nil)
     assert_error(type1)
@@ -558,5 +589,11 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     checked = CallFuture.new(
         @types, @scope, collections, true, 'checkedSet', [set, klass], [], nil)
     assert_equal('java.util.Set<FooBar>', checked.resolve.toString)
+  end
+
+  def test_nil_argument
+    sb = @types.get(@scope, typeref('java.lang.StringBuilder'))
+    result = CallFuture.new(@types, @scope, sb, true, 'append', [@types.getNullType], [], nil)
+    assert_descriptor('Ljava/lang/StringBuilder;', result)
   end
 end

@@ -19,4 +19,8 @@ class StringExtensions
   macro def +(arg)
     quote { "#{`@call.target`}#{`arg`}" }
   end
+
+  macro def =~(arg)
+    quote { `arg`.matcher(`@call.target`).find }
+  end
 end

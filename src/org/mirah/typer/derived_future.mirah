@@ -49,4 +49,10 @@ class DerivedFuture < BaseTypeFuture
     end
     super
   end
+
+  def print(out)
+    out.print("target: ")
+    out.printFuture(@target)
+    super
+  end
 end

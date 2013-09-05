@@ -94,4 +94,7 @@ class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
       Collections.emptyList
     end
   end
+  def erasure
+    self
+  end
 end

@@ -163,8 +163,8 @@ class MethodCompiler < BaseCompiler
     end
   end
   
-  def recordPosition(position:Position)
-    @builder.recordPosition(position)
+  def recordPosition(position:Position, atEnd:boolean=false)
+    @builder.recordPosition(position, atEnd)
   end
   
   def defaultValue(type:JVMType)
@@ -355,6 +355,7 @@ class MethodCompiler < BaseCompiler
     if need_else
       compileBody(node.elseBody, expression, type)
     end
+    recordPosition(node.position, true)
     @builder.mark(endifLabel)
   end
   
@@ -403,6 +404,7 @@ class MethodCompiler < BaseCompiler
   def visitFieldAssign(node, expression)
     klass = @selfType.getAsmType
     name = node.name.identifier
+    raise IllegalArgumentException.new if name.endsWith("=")
     isStatic = node.isStatic || self.isStatic
     type = @klass.getDeclaredField(node.name.identifier).returnType
     @builder.loadThis unless isStatic
@@ -551,6 +553,7 @@ class MethodCompiler < BaseCompiler
       @builder.goTo(@loop.getNext)
     end
     @builder.mark(@loop.getBreak)
+    recordPosition(node.position, true)
 
     # loops always evaluate to null
     @builder.pushNil if expression
@@ -605,6 +608,7 @@ class MethodCompiler < BaseCompiler
   
   def visitRescue(node, expression)
     start = @builder.mark
+    start_offset = @builder.instruction_count
     bodyEnd = @builder.newLabel
     bodyIsExpression = if expression.nil? || node.elseClause.size > 0
       nil
@@ -612,12 +616,13 @@ class MethodCompiler < BaseCompiler
       Boolean.TRUE
     end
     visit(node.body, bodyIsExpression)
+    end_offset = @builder.instruction_count
     @builder.mark(bodyEnd)
     visit(node.elseClause, expression) if node.elseClause.size > 0
     
     # If the body was empty, it can't throw any exceptions
     # so we must not emit a try/catch.
-    unless start.getOffset == bodyEnd.getOffset
+    unless start_offset == end_offset
       done = @builder.newLabel
       @builder.goTo(done)
       node.clauses_size.times do |clauseIndex|
@@ -632,7 +637,7 @@ class MethodCompiler < BaseCompiler
         else
           @builder.pop
         end
-        compileBody(clause.body, expression, getInferredType(clause.body))
+        compileBody(clause.body, expression, getInferredType(node))
         @builder.goTo(done)
       end
       @builder.mark(done)
@@ -650,13 +655,15 @@ class MethodCompiler < BaseCompiler
   def visitEnsure(node, expression)
     start = @builder.mark
     bodyEnd = @builder.newLabel
+    start_offset = @builder.instruction_count
     visit(node.body, expression)
+    end_offset = @builder.instruction_count
     @builder.mark(bodyEnd)
     visit(node.ensureClause, nil)
     
     # If the body was empty, it can't throw any exceptions
     # so we must not emit a try/catch.
-    unless start.getOffset == bodyEnd.getOffset
+    unless start_offset == end_offset
       done = @builder.newLabel
       @builder.goTo(done)
       @builder.catchException(start, bodyEnd, nil)

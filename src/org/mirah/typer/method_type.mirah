@@ -79,7 +79,7 @@ class MethodType
     false
   end
 
-  def toString:string
+  def toString:String
     "<MethodType: name=#{@name} #{@parameterTypes} : #{@returnType}>"
   end
 end

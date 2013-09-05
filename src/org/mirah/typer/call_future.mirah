@@ -42,9 +42,6 @@ class CallFuture < BaseTypeFuture
 
   def initialize(types:TypeSystem, scope:Scope, target:TypeFuture, explicitTarget:boolean, name:String, paramTypes:List, paramNodes:List, position:Position)
     super(position)
-    unless target
-      raise IllegalArgumentException, "No target for #{name}"
-    end
     @scope = scope
     @types = types
     @target = target
@@ -63,7 +60,20 @@ class CallFuture < BaseTypeFuture
         end
       )
     end
-    setupListeners
+    # if target is nil, this is probably an orphaned node.
+    # So just let it be an error.
+    if target
+      setupListeners
+    end
+  end
+
+  def print(out)
+    out.print("target: ")
+    out.printFuture(@target)
+    out.puts("name: #{@name}")
+    @paramTypes.each do |p|
+      out.printFuture(TypeFuture(p))
+    end
   end
 
   def self.getNodes(call:CallSite):List
@@ -101,6 +111,10 @@ class CallFuture < BaseTypeFuture
     @resolved_args
   end
 
+  def futures
+    @paramTypes
+  end
+
   def dt(type:TypeFuture)
     "#{type} (#{(type &&type.isResolved) ? type.resolve.toString : 'unresolved'})"
   end
@@ -124,6 +138,18 @@ class CallFuture < BaseTypeFuture
       next if arg.kind_of?(BlockFuture)
       addParamListener(i, arg)
     end
+  end
+
+  def resolve
+    unless isResolved
+      @target.resolve
+      @paramTypes.size.times do |i|
+        arg = TypeFuture(@paramTypes.get(i))
+        next if arg.kind_of?(BlockFuture)
+        arg.resolve
+      end
+    end
+    super
   end
 
   def addParamListener(i:int, arg:TypeFuture):void

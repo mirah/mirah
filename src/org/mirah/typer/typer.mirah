@@ -87,6 +87,12 @@ class Typer < SimpleNodeVisitor
     TypeFuture(@futures[node])
   end
 
+  def learnType(node:Node, type:TypeFuture):void
+    existing = @futures[node]
+    raise IllegalArgumentException if existing
+    @futures[node] = type
+  end
+
   def infer(node:Node, expression:boolean=true)
     @@log.entering("Typer", "infer", "infer(#{node})")
     return nil if node.nil?
@@ -199,12 +205,16 @@ class Typer < SimpleNodeVisitor
     methodType = CallFuture.new(@types, scope, targetType, false, parameters, call)
     delegate.type = methodType
     typer = self
+    current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
-        typer.logger.fine("Expanding macro #{call}")
-        node = InlineCode(resolvedType).expand(call, typer)
-        node = call.parent.replaceChild(call, node)
-        delegate.type = typer.infer(node, expression != nil)
+        if current_node.parent
+          typer.logger.fine("Expanding macro #{call}")
+          node = InlineCode(resolvedType).expand(call, typer)
+          node = current_node.parent.replaceChild(current_node, node)
+          current_node = node
+          delegate.type = typer.infer(node, expression != nil)
+        end
       else
         delegate.type = methodType
       end
@@ -223,7 +233,7 @@ class Typer < SimpleNodeVisitor
       TypeFuture(PickFirst.new(items, delegate) do |type, arg|
         if arg != nil
           # We chose the cast.
-          call.parent.replaceChild(call, cast)
+          current_node = current_node.parent.replaceChild(current_node, cast)
           typer.infer(cast, expression != nil)
         end
       end)
@@ -269,20 +279,22 @@ class Typer < SimpleNodeVisitor
     parameters.add(infer(call.block, true)) if call.block
     methodType = CallFuture.new(@types, @scopes.getScope(call), target, true, parameters, call)
     delegate = DelegateFuture.new
-    delegate.type = methodType
     typer = self
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
-        typer.logger.fine("Expanding macro #{call}")
-        node = InlineCode(resolvedType).expand(call, typer)
-        node = current_node.parent.replaceChild(current_node, node)
-        current_node = node
-        delegate.type = typer.infer(node, expression != nil)
+        if current_node.parent
+          typer.logger.fine("Expanding macro #{call}")
+          node = InlineCode(resolvedType).expand(call, typer)
+          node = current_node.parent.replaceChild(current_node, node)
+          current_node = node
+          delegate.type = typer.infer(node, expression != nil)
+        end
       else
         delegate.type = methodType
       end
     end
+    delegate.type = methodType unless methodType.isResolved
     if  call.parameters.size == 1
       # This might actually be a cast or array instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
@@ -452,8 +464,12 @@ class Typer < SimpleNodeVisitor
 
   def visitFieldAccess(field, expression)
     targetType = @scopes.getScope(field).selfType
-    targetType = @types.getMetaType(targetType) if field.isStatic
-    @types.getFieldType(targetType, field.name.identifier, field.position)
+    if targetType.nil?
+      TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
+    else
+      targetType = @types.getMetaType(targetType) if field.isStatic
+      @types.getFieldType(targetType, field.name.identifier, field.position)
+    end
   end
 
   def visitConstant(constant, expression)
@@ -743,7 +759,7 @@ class Typer < SimpleNodeVisitor
       i += 1
     end
     if body.size > 0
-      infer(body.get(body.size - 1), expression != null)
+      infer(body.get(body.size - 1), expression != nil)
     else
       @types.getImplicitNilType()
     end
@@ -1015,7 +1031,7 @@ class Typer < SimpleNodeVisitor
     typer = self
 
     BlockFuture.new(block) do |block_future, resolvedType|
-      unless resolvedType.isError
+      unless resolvedType.isError || block.parent.nil?
 # if Method-having-closure
 #   selfType of new scope is block type future
 #   && infer body as non-expression
@@ -1028,7 +1044,6 @@ class Typer < SimpleNodeVisitor
           #new_scope.selfType = block_future
           #typer.infer(block.body)
         else
-
           methods = typer.type_system.getAbstractMethods(resolvedType)
           if methods.size != 1
             raise UnsupportedOperationException,

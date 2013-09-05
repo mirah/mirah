@@ -84,7 +84,7 @@ class SimpleTypes; implements TypeSystem
     lookup :Hash
   end
 
-  def getMetaType(type:ResolvedType)
+  def getMetaType(type:ResolvedType):ResolvedType
     return type if (type.isMeta || type.isError)
     t = ResolvedType(@meta_types[type])
     unless t
@@ -93,10 +93,10 @@ class SimpleTypes; implements TypeSystem
     end
     t
   end
-  def getMetaType(type:TypeFuture)
+  def getMetaType(type:TypeFuture):TypeFuture
     TypeFuture(getMetaType(ResolvedType(type)))
   end
-  def getArrayType(componentType:ResolvedType)
+  def getArrayType(componentType:ResolvedType):ResolvedType
     # What about multi-dimensional arrays?
     t = ResolvedType(@array_types[componentType])
     unless t
@@ -105,7 +105,7 @@ class SimpleTypes; implements TypeSystem
     end
     t
   end
-  def getArrayType(componentType:TypeFuture)
+  def getArrayType(componentType:TypeFuture):TypeFuture
     TypeFuture(getArrayType(componentType.resolve))
   end
   def createType(name:String)
@@ -208,11 +208,11 @@ code = StreamCodeSource.new("stdin", System.in)
 ast = Node(parser.parse(code))
 types = SimpleTypes.new('foo')
 scopes = SimpleScoper.new
-typer = Typer.new(types, scopes, nil)
+typer = Typer.new(types, scopes, nil, nil)
 
 puts "Original AST:"
 TypePrinter.new(typer).scan(ast, nil)
-puts
+puts ""
 puts "Inferring types..."
 
 typer.infer(ast, false)

@@ -40,6 +40,7 @@ import org.mirah.jvm.mirrors.JVMScope
 import org.mirah.jvm.mirrors.ClassResourceLoader
 import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
+import org.mirah.jvm.mirrors.SafeTyper
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
@@ -61,10 +62,11 @@ class Mirahc implements JvmBackend
     @logger = MirahLogFormatter.new(true).install
     @code_sources = []
     @destination = "."
+    @diagnostics = SimpleDiagnostics.new(true)
     processArgs(args)
     @context = context = Context.new
     context[JvmBackend] = self
-    context[DiagnosticListener] = @diagnostics = SimpleDiagnostics.new(true)
+    context[DiagnosticListener] = @diagnostics
     context[SimpleDiagnostics] = @diagnostics
 
     @macro_context = Context.new
@@ -83,13 +85,18 @@ class Mirahc implements JvmBackend
 
     @macro_context[Scoper] = @scoper
     @macro_context[MirahParser] = @parser
-    @macro_context[Typer] = @macro_typer = Typer.new(
-        @macro_types, @scoper, self, @parser)
+    @macro_context[Typer] = @macro_typer = SafeTyper.new(
+        @macro_context, @macro_types, @scoper, self, @parser)
 
-    context[Typer] = @typer = Typer.new(@types, @scoper, self, @parser)
+    context[Typer] = @typer = SafeTyper.new(
+        context, @types, @scoper, self, @parser)
 
     # Make sure macros are compiled using the correct type system.
     @typer.macro_compiler = @macro_typer.macro_compiler
+
+    # Ugh -- we have to use separate type systems for compiling and loading
+    # macros.
+    @typer.macro_compiler.setMacroLoader(@typer)
 
     @backend = Backend.new(context)
     @macro_backend = Backend.new(@macro_context)
@@ -101,8 +108,14 @@ class Mirahc implements JvmBackend
   end
 
   def parse(code:CodeSource)
-    @asts.add(@parser.parse(code))
+    node = @parser.parse(code)
+    if node.nil?
+      puts "#{code.name} parsed to nil"
+    else
+      @asts.add(node)
+    end
     if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
       System.exit(1)
     end
   end
@@ -119,6 +132,7 @@ class Mirahc implements JvmBackend
       processInferenceErrors(node, @context)
     end
     if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
       System.exit(1)
     end
   end
@@ -140,9 +154,16 @@ class Mirahc implements JvmBackend
     logAst(ast, @macro_typer)
     processInferenceErrors(ast, @macro_context)
     if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
       System.exit(1)
     end
-    @macro_backend.visit(ast, nil)
+    @macro_backend.clean(ast, nil)
+    processInferenceErrors(ast, @macro_context)
+    if @diagnostics.errorCount > 0
+      puts "#{@diagnostics.errorCount} errors"
+      System.exit(1)
+    end
+    @macro_backend.compile(ast, nil)
     first_class_name = nil
     destination = @destination
     class_map = @extension_classes
@@ -164,7 +185,13 @@ class Mirahc implements JvmBackend
   def compile
     @asts.each do |n|
       node = Script(n)
-      @backend.visit(node, nil)
+      @backend.clean(node, nil)
+      processInferenceErrors(node, @context)
+      if @diagnostics.errorCount > 0
+        puts "#{@diagnostics.errorCount} errors"
+        System.exit(1)
+      end
+      @backend.compile(node, nil)
     end
     destination = @destination
     @backend.generate do |filename, bytes|
@@ -200,6 +227,10 @@ class Mirahc implements JvmBackend
 
   def setMacroClasspath(classpath:String):void
     @macrocp = parseClassPath(classpath)
+  end
+
+  def setMaxErrors(count:int):void
+    @diagnostics.setMaxErrors(count)
   end
 
   def createTypeSystems
@@ -294,6 +325,10 @@ class Mirahc implements JvmBackend
         ['dest', 'd'], 'DESTINATION',
         'Directory where class files should be saved.'
     ) {|dest| mirahc.setDestination(dest) }
+    parser.addFlag(['all-errors'],
+        'Display all compilation errors, even if there are a lot.') {
+      mirahc.setMaxErrors(-1)
+    }
     it = parser.parse(args).iterator
     while it.hasNext
       f = String(it.next)

@@ -149,6 +149,10 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
     @target && @target.isSameType(other)
   end
 
+  def isInterface
+    @target.isInterface
+  end
+
   def directSupertypes
     @target.directSupertypes
   end
@@ -218,7 +222,7 @@ end
 class MirrorFuture < BaseTypeFuture
   def initialize(type:MirrorType, position:Position=nil)
     super(position)
-    resolved(type)
+    resolved(MirrorProxy.new(type))
     future = self
     type.onIncompatibleChange do
       future.resolved(MirrorProxy.new(type))

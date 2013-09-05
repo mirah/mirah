@@ -17,10 +17,12 @@ package org.mirah.tool
 
 import java.util.List
 import java.util.HashSet
+import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Position
 import org.mirah.typer.ErrorType
+import org.mirah.typer.FuturePrinter
 import org.mirah.typer.Typer
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
@@ -31,6 +33,11 @@ class ErrorCollector < NodeScanner
     @typer = context[Typer]
     @reporter = context[DiagnosticListener]
   end
+
+  def self.initialize:void
+    @@log = Logger.getLogger(ErrorCollector.class.getName)
+  end
+
 
   def exitDefault(node, arg)
     future = @typer.getInferredType(node)
@@ -50,13 +57,16 @@ class ErrorCollector < NodeScanner
           MirahDiagnostic.error(node.position, "Error")
         end
         @reporter.report(diagnostic)
+        debug = FuturePrinter.new
+        debug.printFuture(future)
+        @@log.fine("future:\n#{debug}")
       end
     end
     nil
   end
 
-  def exitBlock(node, arg)
+  def enterBlock(node, arg)
     # There must have already been an error for the method call, so ignore this.
-    nil
+    false
   end
 end

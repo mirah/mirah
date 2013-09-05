@@ -148,4 +148,8 @@ class BaseTypeFuture; implements TypeFuture
   def toString
     "<#{getClass.getSimpleName}: resolved=#{@resolved}, listenerCt=#{@listeners.size}>"
   end
+
+  def print(out:FuturePrinter)
+    out.puts(String.valueOf(@resolved))
+  end
 end

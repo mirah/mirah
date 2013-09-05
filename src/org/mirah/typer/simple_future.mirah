@@ -28,4 +28,7 @@ class SimpleFuture; implements TypeFuture
     listener
   end
   def removeListener(listener); end
+  def print(out)
+    out.puts("#{resolve}")
+  end
 end

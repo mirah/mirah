@@ -130,6 +130,20 @@ class BlocksTest < Test::Unit::TestCase
     assert_equal(2, cls.foo)
   end
 
+
+  def test_int_closure_with_int_as_method_param
+    cls, = compile(<<-EOF)
+      def run(x:Runnable)
+        x.run
+      end
+      def foo a: int
+        run {a += 1}
+        a
+      end
+    EOF
+    assert_equal(2, cls.foo(1))
+  end
+
   def test_block_with_method_def
     cls, = compile(<<-EOF)
       import java.util.ArrayList

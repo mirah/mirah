@@ -490,7 +490,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def addMacro(klass:ResolvedType, macro_impl:Class)
-    type = BaseType(klass).unmeta
+    type = MirrorType(klass).unmeta
     member = MacroMember.create(macro_impl, type, @macro_loader)
     type.add(member)
     @@log.fine("Added macro #{member}")
@@ -567,14 +567,9 @@ class MirrorTypeSystem implements TypeSystem
       end
       returnType = getVoidType
     end
-    member = AsyncMember.new(flags, target, name, arguments, returnFuture, kind)
-    overriden_return = inferOverride(target, name, arguments)
-    returnType ||= overriden_return
+    member = MirahMethod.new(@context, position, flags, target, name, arguments, returnType, kind)
 
-    returnFuture.error_message =
-        "Cannot determine return type for method #{member}"
-    returnFuture.declare(returnType, position) if returnType
-
+    returnFuture = AssignableTypeFuture(member.asyncReturnType)
     log = @@log
     me = self
     returnFuture.onUpdate do |x, resolved|
@@ -585,22 +580,6 @@ class MirrorTypeSystem implements TypeSystem
 
     target.add(member)
     MethodFuture.new(name, member.argumentTypes, returnFuture, false, position)
-  end
-
-  def inferOverride(target:MirrorType, name:String, arguments:List):TypeFuture
-    overrides = List(@methods.findOverride(target, name, arguments.size))
-    
-    if overrides
-      arguments.size.times do |i|
-        arg = AssignableTypeFuture(arguments.get(i))
-        override = OverrideFuture(overrides.get(i + 1))
-        unless arg.hasDeclaration
-          override.error = arg.resolve
-          arg.declare(override, nil)
-        end
-      end
-      TypeFuture(overrides.get(0))
-    end
   end
 
   def createField(target:MirrorType, name:String,

@@ -127,7 +127,7 @@ module Mirah
                 param_type = inferred_type(param)
                 if scope.captured?(param.name.identifier)
                   @method.dup
-                  type.load(@method, @method.local(name, param_type))
+                  param_type.load(@method, @method.local(name, param_type))
                   @method.putfield(type, name, param_type)
                 end
               end
