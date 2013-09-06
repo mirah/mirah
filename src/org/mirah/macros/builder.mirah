@@ -138,6 +138,14 @@ class MacroBuilder; implements Compiler
     end
   end
 
+  def cast(typename, value)
+    t = Unquote.new
+    t.object = typename
+    v = Unquote.new
+    v.object = value
+    Cast.new(t, v)
+  end
+
   def serializeAst(node:Node):Object
     raise IllegalArgumentException, "No position for #{node}" unless node.position
     result = Object[5]

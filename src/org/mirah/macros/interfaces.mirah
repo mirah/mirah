@@ -57,6 +57,7 @@ interface Compiler do
   def type_system:TypeSystem; end
   def typer:Typer; end
   def scoper:Scoper; end
+  def cast(typename:Object, value:Object):Cast; end
   macro def quote(block:Block)
     node = if @call.block.body_size == 1
       @call.block.body(0)
