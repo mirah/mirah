@@ -198,6 +198,10 @@ class ClassCleanup < NodeScanner
     # ignore
     false
   end
+  def enterNoop(node, arg)
+    # ignore
+    false
+  end
   def enterNodeList(node, arg)
     # Scan the children
     true

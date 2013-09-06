@@ -194,6 +194,9 @@ class BaseCompiler < SimpleNodeVisitor
   def visitImport(node, arg)
   end
   
+  def visitNoop(node, arg)
+  end
+  
   def visitUnquote(node, arg)
     node.nodes.each {|n| visit(Node(n), arg)}
   end
