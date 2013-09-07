@@ -77,7 +77,7 @@ class Call < NodeImpl
     target_typeref = TypeName(target).typeref
     return nil if target_typeref.nil?
     position = PositionImpl.add(self.name.position, target_typeref.position)
-    if '[]'.equals(name)
+    if '[]'.equals(self.name.identifier)
       return TypeRefImpl.new(target_typeref.name, true, false, position)
     else
       name = "#{target_typeref.name}.#{self.name.identifier}"

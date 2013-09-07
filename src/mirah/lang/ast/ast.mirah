@@ -1,5 +1,6 @@
 package mirahparser.lang.ast
 
+import java.io.InputStream
 import java.io.Serializable
 import java.util.ArrayList
 import java.util.LinkedList
@@ -8,7 +9,7 @@ import java.util.Iterator
 import org.mirahparser.ast.NodeMeta
 
 interface CodeSource do
-  def name:string; end
+  def name:String; end
   def initialLine:int; end
   def initialColumn:int; end
   def contents:String; end
@@ -24,7 +25,7 @@ interface Position do
   def endLine:int; end
   def endColumn:int; end
   def add(other:Position):Position; end
-  macro def +(other) quote { add(`other`) } end
+  macro def +(other) quote { `@call.target`.add(`other`) } end
 end
 
 interface CloneListener do
@@ -45,7 +46,7 @@ interface Node < Cloneable do
   def accept(visitor:NodeVisitor, arg:Object):Object; end
   def whenCloned(listener:CloneListener):void; end
 
-  def findAncestor(type:java::lang::Class):Node; end
+  def findAncestor(type:Class):Node; end
   def findAncestor(filter:NodeFilter):Node; end
   def findChild(filter:NodeFilter):List; end
   def findChildren(filter:NodeFilter):List; end
@@ -97,7 +98,7 @@ interface TypeRef < TypeName do
 end
 
 interface NodeVisitor do
-  macro def init_visitor; NodeMeta.init_visitor(@mirah, @call); end
+  macro def self.init_visitor; NodeMeta.init_visitor(@mirah, @call); end
   init_visitor
 end
 
@@ -126,19 +127,17 @@ class NodeRef
   end
 end
 
-class NodeImpl
-  implements Node
-  macro def init_node(&block); NodeMeta.init_node(@mirah, @call); end
-  macro def init_node(); NodeMeta.init_node(@mirah, @call); end
-  macro def init_list(type); NodeMeta.init_list(@mirah, type); end
-  macro def init_literal(type); NodeMeta.init_literal(@mirah, type); end
-  macro def init_subclass(parent); NodeMeta.init_subclass(@mirah, parent); end
-  macro def attr_reader(hash); NodeMeta.attr_reader(@mirah, hash); end
-  macro def attr_writer(hash); NodeMeta.attr_writer(@mirah, hash); end
-  macro def attr_accessor(hash); NodeMeta.attr_accessor(@mirah, hash); end
-  macro def child(hash); NodeMeta.child(@mirah, hash); end
-  macro def child_list(hash); NodeMeta.child_list(@mirah, hash); end
-  macro def add_constructor(name); NodeMeta.add_constructor(@mirah, name); end
+class NodeImpl implements Node
+  class << self
+    macro def init_node(&block); NodeMeta.init_node(@mirah, @call); end
+    macro def init_node(); NodeMeta.init_node(@mirah, @call); end
+    macro def init_list(type:Identifier); NodeMeta.init_list(@mirah, type); end
+    macro def init_literal(type:Identifier); NodeMeta.init_literal(@mirah, type); end
+    macro def init_subclass(parent:Identifier); NodeMeta.init_subclass(@mirah, parent); end
+    macro def child(hash:Hash); NodeMeta.child(@mirah, hash); end
+    macro def child_list(hash:Hash); NodeMeta.child_list(@mirah, hash); end
+    macro def add_constructor(name:Identifier); NodeMeta.add_constructor(@mirah, name); end
+  end
 
   def accept(visitor:NodeVisitor, arg:Object):Object
     visitor.visitOther(self, arg)
@@ -147,7 +146,7 @@ class NodeImpl
   attr_reader parent: Node
   attr_reader originalNode: Node
 
-  def findAncestor(type:java::lang::Class):Node
+  def findAncestor(type:Class):Node
     node = Node(self)
     node = node.parent until node.nil? || node.kind_of?(type)
     node
@@ -212,7 +211,7 @@ class NodeImpl
     @clone_listeners.add(listener)
   end
 
- protected
+# protected
   def initialize
     @clone_listeners = LinkedList.new
   end
@@ -283,7 +282,7 @@ class ErrorNode < NodeImpl
   init_node
 end
 
-class TypeRefImpl < NodeImpl; implements TypeRef, TypeName
+class TypeRefImpl < NodeImpl implements TypeRef, TypeName
   init_node
   attr_accessor name: String, isArray: 'boolean', isStatic: 'boolean'
 
@@ -299,7 +298,7 @@ class TypeRefImpl < NodeImpl; implements TypeRef, TypeName
   end
 end
 
-class StringCodeSource; implements CodeSource
+class StringCodeSource implements CodeSource
   def initialize(name:String, code:String)
     @name = name
     @code = code
@@ -324,10 +323,10 @@ class StreamCodeSource < StringCodeSource
     super(filename, StreamCodeSource.readToString(
         java::io::FileInputStream.new(filename)))
   end
-  def initialize(name:String, stream:java::io::InputStream)
+  def initialize(name:String, stream:InputStream)
     super(name, StreamCodeSource.readToString(stream))
   end
-  def self.readToString(stream:java::io::InputStream):String
+  def self.readToString(stream:InputStream):String
     reader = java::io::BufferedReader.new(java::io::InputStreamReader.new(stream))
     buffer = char[8192]
     builder = StringBuilder.new
@@ -338,7 +337,7 @@ class StreamCodeSource < StringCodeSource
   end
 end
 
-class PositionImpl; implements Position
+class PositionImpl implements Position
   def initialize(source:CodeSource, startChar:int, startLine:int, startColumn:int,
                  endChar:int, endLine:int, endColumn: int)
     @source = source

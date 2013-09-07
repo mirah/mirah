@@ -27,12 +27,16 @@ class Unquote < NodeImpl
 
   def identifier:String
     obj = @object || @value
+    identifierNode(obj).identifier
+  end
+
+  def identifierNode(obj:Object):Identifier
     if obj.kind_of?(Identifier)
-      Identifier(obj).identifier
+      Identifier(obj)
     elsif obj.kind_of?(Named)
-      Named(obj).name.identifier
+      Named(obj).name
     elsif obj.kind_of?(String)
-      String(obj)
+      SimpleString.new(String(obj))
     else
       raise UnsupportedOperationException, "#{obj} is not an Identifier"
     end
@@ -106,7 +110,7 @@ class Unquote < NodeImpl
     end
   end
 
-  private
+#  private
   def add_arg(args:Arguments, node:Node)
     if node.kind_of?(OptionalArgument)
       args.optional.add(OptionalArgument(node))
@@ -139,7 +143,7 @@ class Unquote < NodeImpl
       l = List(object)
       nameobj = l.get(0)
       type = l.size > 1 ? typeref(l.get(1)) : nil
-      name = Identifier(nodeValue(nameobj))
+      name = identifierNode(nameobj)
       RequiredArgument.new(name.position, name, type)
     else
       raise IllegalArgumentException, "Bad unquote value for arg #{value} (#{value.getClass})"
