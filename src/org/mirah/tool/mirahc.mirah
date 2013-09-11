@@ -255,7 +255,7 @@ class Mirahc implements JvmBackend
             ClassResourceLoader.new(Mirahc.class),
             Pattern.compile("^(mirah\\.|org\\.mirah\\.macros)"),
             bootloader))
-    
+        
     @extension_classes = {}
     extension_parent = URLClassLoader.new(
        @macrocp, Mirahc.class.getClassLoader())
@@ -266,6 +266,9 @@ class Mirahc implements JvmBackend
         @macro_context, macroloader)
     @context[TypeSystem] = @types = MirrorTypeSystem.new(
         @context, classloader, macroloader)
+
+    macro_class_loader = URLClassLoader.new(@macrocp)
+    @context[ClassLoader] = @macro_context[ClassLoader] = macro_class_loader
   end
 
   def processArgs(args:String[]):void

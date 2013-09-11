@@ -301,7 +301,12 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
   end
 
   def self.addMacro(type:BaseType, name:String, loader:MirrorLoader)
-    klass = Class.forName(name)
+    classloader = type.context[ClassLoader]
+    klass = if classloader
+      classloader.loadClass(name)
+    else
+      Class.forName(name)
+    end
     member = MacroMember.create(klass, type, loader)
     type.add(member)
     @@log.fine("Loaded macro #{member}")
