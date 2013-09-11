@@ -17,6 +17,7 @@ package org.mirahparser.ast
 
 import mirah.lang.ast.Block
 import mirah.lang.ast.CallSite
+import mirah.lang.ast.Constant
 import mirah.lang.ast.Hash
 import mirah.lang.ast.Identifier
 import mirah.lang.ast.Node
@@ -202,7 +203,7 @@ class ListNodeState < BaseNodeState
       enclosing_class(type).interfaces = interfaces = TypeNameList.new
       mirah.typer.infer(interfaces)
     end
-    iterable = SimpleString.new("Iterable")
+    iterable = Constant.new(SimpleString.new("Iterable"))
     interfaces.add(iterable)
     mirah.typer.infer(iterable)
     mirah.quote do
@@ -600,7 +601,7 @@ class NodeMeta < MetaTool
     @visitors = VisitorState.new(mirah)
   end
 
-  def init_visitor(call:CallSite)
+  def init_visitor(call:CallSite):Node
     @visitors.init_visitor(call)
     nil
   end
