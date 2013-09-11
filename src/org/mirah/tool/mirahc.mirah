@@ -20,6 +20,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
 import java.net.URLClassLoader
+import java.util.HashSet
 import java.util.List
 import java.util.logging.Logger
 import java.util.logging.Level
@@ -289,6 +290,7 @@ class Mirahc implements JvmBackend
     parser.addFlag(['V', 'verbose'], 'Verbose logging.') do
       logger.setLevel(Level.FINE)
     end
+    vloggers = @vloggers = HashSet.new
     parser.addFlag(
         ['vmodule'], 'logger.name=LEVEL[,...]',
         "Customized verbose logging. `logger.name` can be a class or package\n"+
@@ -300,9 +302,10 @@ class Mirahc implements JvmBackend
       while i < split.length
         pieces = split[i].split("=", 2)
         i += 1
-        logger = Logger.getLogger(pieces[0])
+        vlogger = Logger.getLogger(pieces[0])
         level = Level.parse(pieces[1])
-        logger.setLevel(level)
+        vlogger.setLevel(level)
+        vloggers.add(vlogger)
       end
     end
     parser.addFlag(
