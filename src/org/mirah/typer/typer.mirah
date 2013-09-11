@@ -1083,11 +1083,11 @@ class Typer < SimpleNodeVisitor
   end
 
   def buildNodeAndTypeForRaiseTypeOne(old_args: NodeList, node: Node)
-    new_node = Node(Node(old_args.get(0)).clone)
-    @scopes.copyScopeFrom(node, new_node)
-    new_type = BaseTypeFuture.new(new_node.position)
-    error = ErrorType.new([["Not an expression", new_node.position]])
-    infer(new_node).onUpdate do |x, resolvedType|
+    exception_node = Node(old_args.clone)
+    exception_node.setParent(node)
+    new_type = BaseTypeFuture.new(exception_node.position)
+    error = ErrorType.new([["Not an expression", exception_node.position]])
+    infer(exception_node).onUpdate do |x, resolvedType|
       # We need to make sure they passed an object, not just a class name
       if resolvedType.isMeta
         new_type.resolved(error)
@@ -1095,12 +1095,13 @@ class Typer < SimpleNodeVisitor
         new_type.resolved(resolvedType)
       end
     end
+    exception_node.setParent(nil)
     # Now we need to make sure the object is an exception, otherwise we
     # need to use a different syntax.
-    exceptionType = AssignableTypeFuture.new(new_node.position)
+    exceptionType = AssignableTypeFuture.new(exception_node.position)
     exceptionType.declare(@types.getBaseExceptionType(), node.position)
     assignment = exceptionType.assign(new_type, node.position)
-    [assignment, new_node]
+    [assignment, exception_node]
   end
 
   def buildNodeAndTypeForRaiseTypeTwo(old_args: NodeList, node: Node)
