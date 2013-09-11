@@ -615,13 +615,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRescue(node, expression)
-    bodyType = infer(node.body, expression && node.elseClause.nil?) if node.body
-    elseType = infer(node.elseClause, expression != nil) if node.elseClause
+    # AST contains an empty else clause even if there isn't one
+    # in the source. Once, the parser's compiling, we should fix it.
+    hasElse = !(node.elseClause.nil? || node.elseClause.size == 0)
+    bodyType = infer(node.body, expression && !hasElse) if node.body
+    elseType = infer(node.elseClause, expression != nil) if hasElse
     if expression
       myType = AssignableTypeFuture.new(node.position)
-      # AST contains an empty else clause even if there isn't one
-      # in the source. Once, the parser's compiling, we should fix it.
-      if node.elseClause && node.elseClause.size > 0
+      if hasElse
         myType.assign(elseType, node.elseClause.position)
       else
         myType.assign(bodyType, node.body.position)
