@@ -395,6 +395,14 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_resolved_to('I', type.resolve.returnType)
   end
 
+  def test_method_def_nil
+    @types.getMethodDefType(main_type, 'foobar', [], @types.getNullType, nil)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
+    assert_not_equal('null', type.resolve.returnType.name)
+    assert_resolved_to('Ljava/lang/Object;', type.resolve.returnType)
+  end
+
   def test_async_return_type
     future = BaseTypeFuture.new
     @types.getMethodDefType(main_type, 'foo', [], future, nil)
