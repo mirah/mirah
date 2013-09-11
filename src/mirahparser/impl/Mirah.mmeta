@@ -26,6 +26,10 @@ import java.util.Collections
 import java.util.EnumSet
 import mmeta.BaseParser.Token
 import mirahparser.lang.ast.*
+import mirahparser.lang.ast.Position as IPosition
+import mirahparser.lang.ast.Float
+import mirahparser.lang.ast.Boolean
+import mirahparser.lang.ast.Package
 
 
 public class FArglistReturn {
@@ -366,7 +370,7 @@ parser MirahParser {
            (?{t == Tokens.tDefmacro} $Do)?
            body=bodystmt! verify_end(s)! $End
            node=-> ^(MacroDefinition name args body annotations)
-           {node.isStatic = (isStatic != null); node}
+           {node.isStatic = (isStatic != nil); node}
          ;
   primary2_break: $Break -> ^(Break);
   primary2_next: $Next -> ^(Next);
@@ -726,9 +730,9 @@ parser MirahParser {
        ;
 
   $Returns[TypeName]
-  type: n=(TypeName(identifier) | cpath)
-        ( $LBrack $RBrack {TypeRefImpl.new(n.typeref.name, true, false, n.position)}
-        | {n}
+  type: n=(identifier | cpath)
+        ( $LBrack $RBrack {TypeRefImpl.new(TypeName(n).typeref.name, true, false, n.position)}
+        | {TypeName(n)}
         );
 
   superclass: $LT cpath # Should this be expr_value instead of cpath?
@@ -896,7 +900,7 @@ parser MirahParser {
 
   tokenpos(pos:int): &{self._pos = pos; pos(_lex.startpos)};
 
-  def makeIdentifier(position:mirahparser::lang::ast::Position, text:String) {
+  def makeIdentifier(position:IPosition, text:String) {
     Identifier(SimpleString.new(position, text))
   }
 
@@ -964,7 +968,7 @@ parser MirahParser {
 
   def self.parse_args(args:String[]) {
     argc = args.length
-    source = CodeSource(null)
+    source = CodeSource(nil)
     if args[0].equals "-v"
       BaseParser.tracing = true
       argc -= 1
@@ -984,7 +988,6 @@ parser MirahParser {
   }
 
   def self.main(args:String[]) {
-      returns void
       parser = MirahParser.new
       code = parse_args(args)
       begin
@@ -1001,6 +1004,8 @@ parser MirahParser {
           puts "Max Memory: #{runtime.maxMemory / mb}"
         end
       end
+      System.exit(0)
+      raise
   }
 
   def initialize {
@@ -1107,20 +1112,18 @@ parser MirahParser {
   }
 
   def getSimpleName(fullname:Identifier) {
-    returns Identifier
     pieces = fullname.identifier.split('\.')
     short = pieces[pieces.length - 1]
     start = fullname.position.endColumn - short.length
     position = PositionImpl.new(fullname.position.source, fullname.position.startChar,
                                 fullname.position.startLine, start, fullname.position.endChar,
                                 fullname.position.endLine, fullname.position.endColumn)
-    SimpleString.new(position, short)
+    Identifier(SimpleString.new(position, short))
   }
   
   def getStaticImportName(fullname:Identifier) {
-    returns Identifier
     short = getSimpleName(fullname)
-    SimpleString.new(short.position, ".#{short.identifier}")
+    Identifier(SimpleString.new(short.position, ".#{short.identifier}"))
   }
 
   heredoc: $HereDocBegin!
@@ -1197,7 +1200,6 @@ parser MirahParser {
   }
 
   def addToBlock(a:List, b:Object) {
-    returns List
     if b.kind_of?(List)
       a.addAll(List(b))
     elsif b

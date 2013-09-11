@@ -23,19 +23,22 @@ task :clean do
   ant.delete :quiet => true, :dir => 'dist'
 end
 
-task :build_parser => ['javalib/mirah-complete_parsersupport.jar', 'dist/mirah-parser.jar']
+task :build_parser => ['javalib/mirahc.jar', 'dist/mirah-parser.jar']
 ant.taskdef :name => 'jarjar', :classpath => 'javalib/jarjar-1.1.jar', :classname=>"com.tonicsystems.jarjar.JarJarTask"
 
 def mirahc(path, options)
   args = options[:options] || []
   if options[:classpath]
-    args << '--classpath' << options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
+    cp = options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
+    args << '--classpath' << cp
   end
-  args << '-d' << File.expand_path(options[:dest]) << path
-  jarfile = File.expand_path('javalib/mirah-complete_parsersupport.jar')
-  Dir.chdir(options[:dir] || '.') do
-    runjava(jarfile, 'compile', *args)
-  end
+  args << '-d' << File.expand_path(options[:dest])
+  jarfile = File.expand_path('javalib/mirahc.jar')
+
+  dir = options[:dir] || '.'
+  filename = File.join(dir, path)
+  args << filename
+  runjava(jarfile, *args)
 end
 
 file 'build/mirah-parser.jar' => ['build/mirahparser/lang/ast/Node.class',
@@ -67,7 +70,11 @@ file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
   end
 end
 
-file 'build/mirahparser/impl/MirahParser.class' => ['build/mirahparser/impl/Mirah.mirah', 'build/mirahparser/impl/MirahLexer.class'] do
+file 'build/mirahparser/impl/MirahParser.class' => [
+    'build/mirahparser/impl/Mirah.mirah',
+    'build/org/mirahparser/ast/NodeMeta.class',
+    'build/mirahparser/impl/MirahLexer.class',
+  ] do
   mirahc('mirahparser/impl/Mirah.mirah',
          :dir => 'build',
          :dest => 'build',
@@ -112,7 +119,19 @@ end
 
 file 'build/mirahparser/impl/Mirah.mirah' => 'src/mirahparser/impl/Mirah.mmeta' do
   ant.mkdir :dir => 'build/mirahparser/impl'
-  runjava 'javalib/mmeta.jar', '--tpl', 'node=src/mirahparser/impl/node.xtm', 'src/mirahparser/impl/Mirah.mmeta', 'build/mirahparser/impl/Mirah.mirah'
+  runjava 'javalib/mmeta.jar', '--tpl', 'node=src/mirahparser/impl/node.xtm', 'src/mirahparser/impl/Mirah.mmeta', 'build/mirahparser/impl/Mirah.mirah.in'
+
+  # This is an ugly hack, but I can't get mmeta to build right now
+  open('build/mirahparser/impl/Mirah.mirah.in') do |fin|
+    open('build/mirahparser/impl/Mirah.mirah', 'w') do |out|
+      out.write("package mirahparser.impl\n")
+      fin.each_line do |line|
+        unless line =~ /^\s+throws RuleFailure/
+          out.write(line)
+        end
+      end
+    end
+  end
 end
 
 directory 'dist'
