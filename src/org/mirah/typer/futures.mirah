@@ -52,5 +52,5 @@ interface TypeFuture do
 
   def removeListener(listener:TypeListener):void; end
 
-  def print(out:FuturePrinter):void; end
+  def dump(out:FuturePrinter):void; end
 end

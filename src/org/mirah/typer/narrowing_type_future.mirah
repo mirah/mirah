@@ -26,9 +26,9 @@ class NarrowingTypeFuture < BaseTypeFuture
     @wide_future ||= BaseTypeFuture.new(self.position).resolved(@wide)
   end
 
-  def print(out)
-    out.puts("narrow: #{@narrow}")
-    out.puts("wide: #{@wide}")
+  def dump(out)
+    out.writeLine("narrow: #{@narrow}")
+    out.writeLine("wide: #{@wide}")
     super
   end
 end

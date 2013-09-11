@@ -65,8 +65,8 @@ class OverrideFuture < BaseTypeFuture
     self.resolved(resolved)
   end
 
-  def print(out)
-    out.puts("error: #{@error}") if @error
+  def dump(out)
+    out.writeLine("error: #{@error}") if @error
     @types.each do |t:TypeFuture|
       out.printFuture(t)
     end

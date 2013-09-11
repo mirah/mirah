@@ -104,17 +104,19 @@ class AssignableTypeFuture < BaseTypeFuture
     @lock.unlock
   end
 
-  def print(out:FuturePrinter)
+  def dump(out:FuturePrinter)
+    out.write("resolved: ")
+    super
     if hasDeclaration
       decl = TypeFuture(@declarations.keySet.iterator.next)
-      out.print("declared: ")
+      out.write("declared: ")
       out.printFuture(decl)
     end
     assignedValues(true, true).each do |_value|
       value = TypeFuture(_value)
       out.printFuture(value)
       unless value.isResolved
-        out.puts "(resolved: #{value.resolve})"
+        out.writeLine("(resolved: #{value.resolve})")
       end
     end
   end

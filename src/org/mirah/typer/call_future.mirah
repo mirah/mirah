@@ -67,10 +67,12 @@ class CallFuture < BaseTypeFuture
     end
   end
 
-  def print(out)
-    out.print("target: ")
+  def dump(out)
+    out.write("resolved: ")
+    super
+    out.write("target: ")
     out.printFuture(@target)
-    out.puts("name: #{@name}")
+    out.writeLine("name: #{@name}")
     @paramTypes.each do |p|
       out.printFuture(TypeFuture(p))
     end
