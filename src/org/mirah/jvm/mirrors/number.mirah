@@ -57,6 +57,8 @@ class Number < BaseType implements PrimitiveType
     end
     BytecodeMirrorLoader.extendClass(
         self, MirrorObjectExtensions.class, @loader)
+    BytecodeMirrorLoader.extendClass(
+        self, MirrorNumberExtensions.class, @loader)
     true
   end
 

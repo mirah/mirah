@@ -101,6 +101,13 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(6, cls.foo)
   end
 
+  def test_negate
+    cls, = compile("def foo; a = 5; -a; end")
+    assert_equal(-5, cls.foo)
+    cls, = compile("def foo; a = 7.5; -a; end")
+    assert_equal(-7.5, cls.foo)
+  end
+
   def test_return
     cls, = compile("def foo; return 1; end")
     assert_equal(1, cls.foo)
