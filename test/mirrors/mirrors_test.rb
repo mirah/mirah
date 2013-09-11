@@ -506,6 +506,12 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_descriptor("I", type2)
   end
 
+  def test_nulltype_methods
+    type = CallFuture.new(@types, @scope, @types.getNullType, true, 'nil?', [], [], nil)
+    assert_not_error(type)
+    assert_descriptor('Z', type)
+  end
+
   def test_super_in_constructor
     @scope.selfType_set(main_type)
     @scope.context_set(ConstructorDefinition.new)

@@ -514,19 +514,26 @@ class MirrorTypeSystem implements TypeSystem
     BytecodeMirrorLoader.extendClass(
         @object, MirrorObjectExtensions.class, @macro_loader)
     bool = JVMType(getBooleanType.resolve)
-    @object.add(Member.new(
-        Opcodes.ACC_PUBLIC, @object, 'nil?', [],
-        bool, MemberKind.IS_NULL))
     object_meta = getMetaType(@object_future).resolve
-    @object.add(Member.new(
+    methods = [
+      Member.new(
+          Opcodes.ACC_PUBLIC, @object, 'nil?', [],
+          bool, MemberKind.IS_NULL),
+      Member.new(
         Opcodes.ACC_PUBLIC, @object, 'kind_of?', [object_meta],
-        bool, MemberKind.INSTANCEOF))
-    @object.add(Member.new(
+        bool, MemberKind.INSTANCEOF),
+      Member.new(
         Opcodes.ACC_PUBLIC, @object, '==', [@object],
-        bool, MemberKind.COMPARISON_OP))
-    @object.add(Member.new(
+        bool, MemberKind.COMPARISON_OP),
+      Member.new(
         Opcodes.ACC_PUBLIC, @object, '!=', [@object],
-        bool, MemberKind.COMPARISON_OP))
+        bool, MemberKind.COMPARISON_OP),
+    ]
+    nullType = NullType(getNullType.resolve)
+    methods.each do |m:Member|
+      @object.add(m)
+      nullType.add(m)
+    end
   end
 
   def wrap(type:Type):TypeFuture
