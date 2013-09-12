@@ -193,4 +193,23 @@ class Bytecode < GeneratorAdapter
   def invokeSpecial(type:Type, method:Method):void
     invokeConstructor(type, method)
   end
+
+  def ifCmp(type:Type, mode:int, negated:boolean, label:Label):void
+    sort = type.getSort
+    # We often negate conditions so that we can generate code in an order that
+    # makes sense. If this is a floating point type, we also need to make sure
+    # comparisons with NaN get negated.
+    negated_float = (negated & ((sort == Type.FLOAT) | (sort == Type.DOUBLE)))
+    if negated_float
+      greater = (mode == GeneratorAdapter.GE || mode == GeneratorAdapter.GT)
+      if sort == Type.FLOAT
+        @mv.visitInsn(greater ? Opcodes.FCMPG : Opcodes.FCMPL)
+      else
+        @mv.visitInsn(greater ? Opcodes.DCMPG : Opcodes.DCMPL)
+      end
+      @mv.visitJumpInsn(mode, label)
+    else
+      ifCmp(type, mode, label)
+    end
+  end
 end

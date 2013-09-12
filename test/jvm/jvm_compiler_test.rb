@@ -108,6 +108,18 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(-7.5, cls.foo)
   end
 
+  def test_nan
+    cls, = compile("def foo(a:double); if a < 0 then 1 else 2 end; end")
+    assert_equal(1, cls.foo(-1))
+    assert_equal(2, cls.foo(0))
+    assert_equal(2, cls.foo(java.lang.Double::NaN))
+
+    cls, = compile("def foo(a:double); a > 0 ? 1 : 2; end")
+    assert_equal(1, cls.foo(1))
+    assert_equal(2, cls.foo(-1))
+    assert_equal(2, cls.foo(java.lang.Double::NaN))
+  end
+
   def test_return
     cls, = compile("def foo; return 1; end")
     assert_equal(1, cls.foo)
