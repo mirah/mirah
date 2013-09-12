@@ -771,7 +771,7 @@ class GenericsTest < Test::Unit::TestCase
     string = type('java.lang.String')
     integer = type('java.lang.Integer')
     lub = finder.leastUpperBound([string, integer])
-    assert_match(/\? extends java\.lang\.Comparable<\? extends ...>/,
+    assert_match(/java\.lang\.Comparable<\? extends ...>/,
                  lub.toString)
   end
 
