@@ -36,6 +36,7 @@ import org.mirah.IsolatedResourceLoader
 import org.mirah.MirahClassLoader
 import org.mirah.MirahLogFormatter
 import org.mirah.jvm.compiler.Backend
+import org.mirah.jvm.compiler.JvmVersion
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.JVMScope
 import org.mirah.jvm.mirrors.ClassResourceLoader
@@ -234,6 +235,10 @@ class Mirahc implements JvmBackend
     @diagnostics.setMaxErrors(count)
   end
 
+  def setJvmVersion(version:String):void
+    @context[JvmVersion] = JvmVersion.new(version)
+  end
+
   def createTypeSystems
     # Construct a loader with the standard Java classes plus the classpath
     bootloader = if @bootcp
@@ -337,6 +342,11 @@ class Mirahc implements JvmBackend
         'Display all compilation errors, even if there are a lot.') {
       mirahc.setMaxErrors(-1)
     }
+    parser.addFlag(
+        ['jvm'], 'VERSION',
+        'Emit JVM bytecode targeting specified JVM version (1.5, 1.6, 1.7)'
+    ) { |version| mirahc.setJvmVersion(version) }
+
     it = parser.parse(args).iterator
     while it.hasNext
       f = File.new(String(it.next))

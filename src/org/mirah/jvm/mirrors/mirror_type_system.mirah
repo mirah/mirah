@@ -55,6 +55,7 @@ import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.TypeSystem
+import org.mirah.typer.UnreachableType
 import org.mirah.typer.simple.SimpleScope
 import org.mirah.util.Context
 
@@ -264,7 +265,7 @@ class MirrorTypeSystem implements TypeSystem
   def getMethodType(call)
     future = DelegateFuture.new()
     if call.resolved_target
-      if call.resolved_target.isError
+      if call.resolved_target.isError || call.resolved_target.kind_of?(UnreachableType)
         return BaseTypeFuture.new().resolved(call.resolved_target)
       end
       target = MirrorType(call.resolved_target)
