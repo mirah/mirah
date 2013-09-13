@@ -65,16 +65,19 @@ class Mirahc implements JvmBackend
     @code_sources = []
     @destination = "."
     @diagnostics = SimpleDiagnostics.new(true)
+    @jvm = JvmVersion.new
     processArgs(args)
     @context = context = Context.new
     context[JvmBackend] = self
     context[DiagnosticListener] = @diagnostics
     context[SimpleDiagnostics] = @diagnostics
+    context[JvmVersion] = @jvm
 
     @macro_context = Context.new
     @macro_context[JvmBackend] = self
     @macro_context[DiagnosticListener] = @diagnostics
     @macro_context[SimpleDiagnostics] = @diagnostics
+    @macro_context[JvmVersion] = @jvm
 
     createTypeSystems
     context[Scoper] = @scoper = SimpleScoper.new do |s, node|
@@ -236,7 +239,7 @@ class Mirahc implements JvmBackend
   end
 
   def setJvmVersion(version:String):void
-    @context[JvmVersion] = JvmVersion.new(version)
+    @jvm = JvmVersion.new(version)
   end
 
   def createTypeSystems
@@ -345,7 +348,7 @@ class Mirahc implements JvmBackend
     parser.addFlag(
         ['jvm'], 'VERSION',
         'Emit JVM bytecode targeting specified JVM version (1.5, 1.6, 1.7)'
-    ) { |version| mirahc.setJvmVersion(version) }
+    ) { |v| mirahc.setJvmVersion(v) }
 
     it = parser.parse(args).iterator
     while it.hasNext
