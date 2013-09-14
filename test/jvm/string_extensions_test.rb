@@ -38,6 +38,22 @@ class StringExtensionsTest < Test::Unit::TestCase
     assert_equal("a1", cls.str_long)
   end
 
+  def test_string_included
+    cls, = compile("def included; 'abcdef'.include? 'd'; end")
+    assert cls.included, 'failed to find the contained string'
+  end
+
+  def test_string_dont_include
+    cls, = compile("def dont_include; 'abcdef'.include? 'g'; end")
+    refute cls.dont_include, 'mistakenly found contained string'
+  end
+
+  def test_string_include_wrong_type
+    assert_raises Mirah::MirahError do
+      compile("def include_wrong_type; 'abcdef'.include? 1; end")
+    end
+  end
+
   def test_string_match
     cls, = compile("def match; 'abcdef' =~ /d/; end")
     assert cls.match, 'failed to match string'
