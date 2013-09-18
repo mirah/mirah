@@ -222,7 +222,7 @@ mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah',
                  'src/org/mirah/typer/**/*.mirah',
                  'src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah',
                  'src/org/mirah/tool/*.mirah']
-file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-dev.jar'] do
+file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-dev.jar', 'javalib/jruby-complete.jar'] do
   build_dir = 'build/bootstrap'
   rm_rf build_dir
   mkdir_p build_dir
