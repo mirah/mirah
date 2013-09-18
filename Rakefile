@@ -208,11 +208,11 @@ file_create 'javalib/jruby-complete.jar' do
   end
 end
 
-file_create 'javalib/mirahc-1.1.2-dev.jar' do
+file_create 'javalib/mirahc-0.1.2-dev.jar' do
   require 'open-uri'
-  puts "Downloading mirahc-1.1.2-dev.jar"
-  open('https://mirah.googlecode.com/files/mirahc-1.1.2-dev.jar', 'rb') do |src|
-    open('javalib/mirahc-1.1.2-dev.jar', 'wb') do |dest|
+  puts "Downloading mirahc-0.1.2-dev.jar"
+  open('https://mirah.googlecode.com/files/mirahc-0.1.2-dev.jar', 'rb') do |src|
+    open('javalib/mirahc-0.1.2-dev.jar', 'wb') do |dest|
       dest.write(src.read)
     end
   end
@@ -222,7 +222,7 @@ mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah',
                  'src/org/mirah/typer/**/*.mirah',
                  'src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah',
                  'src/org/mirah/tool/*.mirah']
-file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-1.1.2-dev.jar'] do
+file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-dev.jar'] do
   build_dir = 'build/bootstrap'
   rm_rf build_dir
   mkdir_p build_dir
@@ -232,7 +232,7 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-1.1.2-dev.jar'] do
     'includeantruntime' => false, 'debug' => true, 'listfiles' => true
 
   # Compile Mirah sources
-  runjava('javalib/mirahc-1.1.2-dev.jar',
+  runjava('javalib/mirahc-0.1.2-dev.jar',
           '-d', build_dir,
           '-classpath', "javalib/mirah-parser.jar:#{build_dir}",
           *mirah_srcs)
