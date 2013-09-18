@@ -51,6 +51,7 @@ class MethodState
     elsif @signature.nil? || other.signature.nil?
       if @num_args == 0
         # We know there's a conflict
+        # TODO: unless these are macros and one of them is static
         Kind.ERROR
       else
         # At least one of these is a macro, so it's hard to tell if
@@ -60,10 +61,10 @@ class MethodState
     else
       # Two methods
       if @signature.equals(other.signature)
-        nil
-      else
         # TODO, generate bridge methods automatically and make this an error
         Kind.WARNING
+      else
+        nil
       end
     end
   end

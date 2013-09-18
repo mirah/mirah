@@ -215,7 +215,7 @@ class MacroBuilder; implements Compiler
           @call = call
         end
 
-        def _expand(`macroDef.arguments`):Node
+        def _expand(`macroDef.arguments.clone`):Node
           `macroDef.body`
         end
 
