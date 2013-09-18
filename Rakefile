@@ -228,7 +228,7 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-1.1.2-dev.jar'] do
   mkdir_p build_dir
 
   # Compile Java sources
-  ant.javac 'source' => '1.5', 'destdir' => build_dir, 'srcdir' => 'src',
+  ant.javac 'source' => '1.5', 'target' => '1.5', 'destdir' => build_dir, 'srcdir' => 'src',
     'includeantruntime' => false, 'debug' => true, 'listfiles' => true
 
   # Compile Mirah sources
