@@ -49,10 +49,11 @@ class ScriptCleanup < NodeScanner
     @parser = context[MacroCompiler]
     @main_code = ArrayList.new
     @methods = ArrayList.new
-    @classes = {}
   end
   def enterScript(node, arg)
     @@log.log(Level.FINER, "Before cleanup:\n{0}", AstFormatter.new(node))
+    scope = @typer.scoper.getIntroducedScope(node)
+    @main_type = @typer.type_system.getMainType(scope, node).resolve.name
     true
   end
   def exitScript(script, arg)
@@ -73,8 +74,7 @@ class ScriptCleanup < NodeScanner
       unless @methods.isEmpty
         nodes = @parser.quote { class << self; end }
         @methods.each do |n|
-          mdef = MethodDefinition(n)
-          MethodCleanup.new(@context, mdef).clean
+          mdef = Node(n)
           mdef.parent.removeChild(mdef)
           mdef.setParent(nil)  # TODO: ast bug
           nodes.body.add(mdef)
@@ -82,15 +82,19 @@ class ScriptCleanup < NodeScanner
         klass.body.add(nodes)
         @typer.infer(nodes, false)
       end
-      if @generatedClass
-        ClassCleanup.new(@context, klass).clean
-      end
+    end
+    if @main_class
+      ClassCleanup.new(@context, @main_class).clean
     end
     @@log.log(Level.FINE, "After cleanup:\n{0}", AstFormatter.new(script))
     script
   end
   def enterDefault(node, arg)
     @main_code.add(node)
+    false
+  end
+  def enterMacroDefinition(node, arg)
+    @methods.add(node)
     false
   end
   def enterMethodDefinition(node, arg)
@@ -111,8 +115,11 @@ class ScriptCleanup < NodeScanner
   end
   def enterClassDefinition(node, arg)
     type = @typer.infer(node).resolve
-    @classes[type.name] = node
-    ClassCleanup.new(@context, node).clean
+    if @main_type.equals(type.name)
+      @main_class = node
+    else
+      ClassCleanup.new(@context, node).clean
+    end
     false
   end
   def enterClosureDefinition(node, arg)
@@ -134,20 +141,16 @@ class ScriptCleanup < NodeScanner
   end
   
   def getOrCreateClass(script:Script)
-    scope = @typer.scoper.getIntroducedScope(script)
-    type = @typer.type_system.getMainType(scope, script).resolve
-    klass = ClassDefinition(@classes[type.name])
-    if klass.nil?
-      klass = @parser.quote do
-        class `type.name`
+    if @main_class.nil?
+      @main_class = @parser.quote do
+        class `@main_type`
           def initialize;super; end
         end
       end
-      klass.position = script.position
-      script.body.insert(0, klass)
-      @typer.infer(klass, false)
-      @generatedClass = true
+      @main_class.position = script.position
+      script.body.insert(0, @main_class)
+      @typer.infer(@main_class, false)
     end
-    ClassDefinition(klass)
+    ClassDefinition(@main_class)
   end
 end
