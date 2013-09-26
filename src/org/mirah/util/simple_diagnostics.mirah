@@ -36,14 +36,24 @@ class SimpleDiagnostics; implements DiagnosticListener
 
   def errorCount; @errors; end
 
-  
+  def log(kind:Kind, position:String, message:String)
+    System.err.println(position) if position
+    System.err.print(@prefixes[kind])
+    System.err.println(message)
+  end
+
   def report(diagnostic)
     @errors += 1 if Kind.ERROR == diagnostic.getKind
     source = CodeSource(diagnostic.getSource) if diagnostic.getSource.kind_of?(CodeSource)
-    System.err.println("#{source.name}:#{diagnostic.getLineNumber}:") if source
-    System.err.print(@prefixes[diagnostic.getKind])
-    System.err.println(diagnostic.getMessage(Locale.getDefault))
+    position = if source
+      String.format("%s:%d:%n", source.name, diagnostic.getLineNumber)
+    end
+    message = diagnostic.getMessage(Locale.getDefault)
     if source
+      buffer = StringBuffer.new(message)
+      newline = String.format("%n")
+      buffer.append(newline)
+      
       target_line = Math.max(0, int(diagnostic.getLineNumber - source.initialLine))
       start_col = if target_line == 0
         diagnostic.getColumnNumber - source.initialColumn
@@ -54,17 +64,20 @@ class SimpleDiagnostics; implements DiagnosticListener
       lines = @newline.split(source.contents)
       if target_line < lines.length
         line = lines[target_line]
-        System.err.println(line)
+        buffer.append(line)
+        buffer.append(newline)
         space = char[int(start_col)]
         Arrays.fill(space, char(32))
-        System.err.print(space)
+        buffer.append(space)
         length = Math.min(diagnostic.getEndPosition - diagnostic.getStartPosition,
                           line.length - start_col)
         underline = char[int(Math.max(length, 1))]
         Arrays.fill(underline, char(94))
-        System.err.println(underline)
+        buffer.append(underline)
+        message = buffer.toString
       end
     end
+    log(diagnostic.getKind, position, message)
     if @errors > @max_errors && @max_errors > 0
       raise TooManyErrorsException
     end
