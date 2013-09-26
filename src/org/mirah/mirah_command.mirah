@@ -13,25 +13,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.tool
+package org.mirah
 
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
+import java.util.Arrays
+import java.util.List
+import org.mirah.tool.Mirahc
+import org.mirah.tool.RunCommand
 
-class Mirahc < MirahTool
+class MirahCommand
+  def self.compile(args:List):void
+    argv = String[args.size]
+    args.toArray(argv)
+    Mirahc.main(argv)
+  end
 
-  def consumeClass(filename:String, bytes:byte[]):void
-    file = File.new(destination, "#{filename.replace(?., ?/)}.class")
-    parent = file.getParentFile
-    parent.mkdirs if parent
-    output = BufferedOutputStream.new(FileOutputStream.new(file))
-    output.write(bytes)
-    output.close
+  def self.run(args:List):void
+    argv = String[args.size]
+    args.toArray(argv)
+    RunCommand.main(argv)
   end
 
   def self.main(args:String[]):void
-    mirahc = Mirahc.new()
-    System.exit(mirahc.compile(args))
+    list = Arrays.asList(args)
+    if list.size > 0 && "run".equals(list.get(0))
+      run(list.subList(1, list.size))
+    elsif list.size > 0 && "compile".equals(list.get(0))
+      compile(list.subList(1, list.size))
+    else
+      compile(list)
+    end
   end
 end

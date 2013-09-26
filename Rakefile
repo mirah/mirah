@@ -243,7 +243,7 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-dev.jar', 'javalib
     zipfileset :src => 'javalib/jruby-complete.jar', :includes => 'org/jruby/org/objectweb/**/*'
     zipfileset :src => 'javalib/mirah-parser.jar'
     manifest do
-      attribute :name => 'Main-Class', :value => 'org.mirah.tool.Mirahc'
+      attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
     end
   end
 end
