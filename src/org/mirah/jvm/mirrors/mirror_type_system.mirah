@@ -65,18 +65,10 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 
-class ClassPath
-  attr_accessor classpath:ResourceLoader, macro_classpath:ResourceLoader
-  attr_accessor loader:AsyncMirrorLoader
-  attr_accessor bytecode_loader:MirrorLoader
-  attr_accessor macro_loader:MirrorLoader
-end
-
 class MirrorTypeSystem implements TypeSystem
   def initialize(
       context:Context=nil,
-      classloader:ResourceLoader=nil,
-      macroloader:ResourceLoader=nil)
+      classloader:ResourceLoader=nil)
     @primitives = {
       boolean: 'Z',
       byte: 'B',
@@ -97,19 +89,7 @@ class MirrorTypeSystem implements TypeSystem
         context, classloader, PrimitiveLoader.new(context))
     @loader = SimpleAsyncMirrorLoader.new(context, AsyncLoaderAdapter.new(
         context, bytecode_loader))
-    if macroloader
-      @macro_loader = BytecodeMirrorLoader.new(
-          context, macroloader, bytecode_loader)
-    else
-      @macro_loader = bytecode_loader
-    end
 
-    context[ClassPath] = classpath = ClassPath.new
-    classpath.classpath = classloader
-    classpath.macro_classpath = macroloader
-    classpath.loader = @loader
-    classpath.bytecode_loader = bytecode_loader
-    classpath.macro_loader = @macro_loader
     context[MethodLookup] = @methods = MethodLookup.new(context)
     context[JavaxTypes] = Types.new(context)
 
@@ -280,8 +260,8 @@ class MirrorTypeSystem implements TypeSystem
       nodes = call.parameterNodes
       unless nodes.nil?
         nodes.each do |n|
-          type = Type.getType(n.getClass())
-          macro_params.add(@macro_loader.loadMirror(type))
+          typename = n.getClass.getName
+          macro_params.add(loadMacroType(typename))
         end
       end
       method = @methods.findMethod(
@@ -442,6 +422,12 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
+  def loadMacroType(name:String):MirrorType
+    macro_context = @context[Context] || @context
+    types = macro_context[MirrorTypeSystem]
+    MirrorType(types.loadNamedType(name).resolve)
+  end
+
   def loadNamedType(name:String)
     desc = @primitives[name]
     type = if desc
@@ -492,14 +478,14 @@ class MirrorTypeSystem implements TypeSystem
 
   def addMacro(klass:ResolvedType, macro_impl:Class)
     type = MirrorType(klass).unmeta
-    member = MacroMember.create(macro_impl, type, @macro_loader)
+    member = MacroMember.create(macro_impl, type, @context)
     type.add(member)
     @@log.fine("Added macro #{member}")
   end
 
   def extendClass(classname:String, extensions:Class)
     type = BaseType(loadNamedType(classname).resolve)
-    BytecodeMirrorLoader.extendClass(type, extensions, @macro_loader)
+    BytecodeMirrorLoader.extendClass(type, extensions)
   end
 
   def addClassIntrinsic(type:BaseType)
@@ -513,7 +499,7 @@ class MirrorTypeSystem implements TypeSystem
 
   def addObjectIntrinsics
     BytecodeMirrorLoader.extendClass(
-        @object, MirrorObjectExtensions.class, @macro_loader)
+        @object, MirrorObjectExtensions.class)
     bool = JVMType(getBooleanType.resolve)
     object_meta = getMetaType(@object_future).resolve
     methods = [

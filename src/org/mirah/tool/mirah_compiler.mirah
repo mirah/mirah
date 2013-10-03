@@ -84,6 +84,9 @@ class MirahCompiler implements JvmBackend
     @macro_context[SimpleDiagnostics] = @diagnostics
     @macro_context[JvmVersion] = @jvm
 
+    # The main type system needs access to the macro one to call macros.
+    @context[Context] = @macro_context
+
     createTypeSystems(classpath, bootclasspath, macroclasspath)
     context[Scoper] = @scoper = SimpleScoper.new do |s, node|
       scope = JVMScope.new(s)
@@ -127,6 +130,7 @@ class MirahCompiler implements JvmBackend
     if @diagnostics.errorCount > 0
       raise CompilationFailure.new
     end
+    node
   end
 
   def infer
@@ -218,8 +222,13 @@ class MirahCompiler implements JvmBackend
         IsolatedResourceLoader.new(macrocp),
         FilteredResources.new(
             ClassResourceLoader.new(Mirahc.class),
-            Pattern.compile("^(mirah\\.|org\\.mirah\\.macros)"),
+            Pattern.compile("^/?(mirah/|org/mirah/macros)"),
             bootloader))
+
+    macro_class_loader = URLClassLoader.new(
+        macrocp, MirahCompiler.class.getClassLoader())
+    @context[ClassLoader] = macro_class_loader
+    @macro_context[ClassLoader] = macro_class_loader
         
     @extension_classes = {}
     extension_parent = URLClassLoader.new(
@@ -230,10 +239,6 @@ class MirahCompiler implements JvmBackend
     @macro_context[TypeSystem] = @macro_types = MirrorTypeSystem.new(
         @macro_context, macroloader)
     @context[TypeSystem] = @types = MirrorTypeSystem.new(
-        @context, classloader, macroloader)
-
-    macro_class_loader = URLClassLoader.new(macrocp)
-    @context[ClassLoader] = macro_class_loader
-    @macro_context[ClassLoader] = macro_class_loader
+        @context, classloader)
   end
 end
