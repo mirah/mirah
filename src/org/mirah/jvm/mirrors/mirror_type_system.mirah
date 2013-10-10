@@ -95,7 +95,6 @@ class MirrorTypeSystem implements TypeSystem
 
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
-    @main_type = TypeFuture(nil)
     @anonymousClasses = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
@@ -139,7 +138,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    @main_type ||= getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
+    getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
   end
 
   def getMainClassName(script:Script):String
@@ -365,14 +364,16 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
-  def isTypeDefinition(future:TypeFuture):boolean
-    return false unless future.isResolved
+  def findTypeDefinition(future:TypeFuture):MirahMirror
+    return nil unless future.isResolved
     resolved = future.resolve
-    if resolved.kind_of?(MirahMirror)
-      return true
+    while resolved.kind_of?(MirrorProxy)
+      resolved = MirrorProxy(resolved).target
     end
-    if resolved.kind_of?(MirrorProxy)
-      MirrorProxy(resolved).target.kind_of?(MirahMirror)
+    if resolved.kind_of?(MirahMirror)
+      MirahMirror(resolved)
+    else
+      nil
     end
   end
 
@@ -380,24 +381,41 @@ class MirrorTypeSystem implements TypeSystem
     position = node ? node.position : nil
     fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
-    existing = wrap(type)      
-    if isTypeDefinition(existing)
-      existing
-    else
-      superclass ||= @object_future
-      interfaceArray = TypeFuture[interfaces.size]
-      interfaces.toArray(interfaceArray)
-      flags = Opcodes.ACC_PUBLIC
-      if node.kind_of?(InterfaceDeclaration)
-        flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
+    existing_future = wrap(type)
+    existing_type = findTypeDefinition(existing_future)
+    if existing_type
+      if superclass.nil? && (interfaces.nil? || interfaces.size == 0)
+        return existing_future
       end
-      mirror = MirahMirror.new(@context, type, flags,
-                               superclass, interfaceArray)
-      addClassIntrinsic(mirror)
-      future = MirrorFuture.new(mirror, position)
-      @loader.defineMirror(type, future)
-      future
     end
+
+    superclass ||= @object_future
+    interfaceArray = TypeFuture[interfaces.size]
+    interfaces.toArray(interfaceArray)
+    flags = Opcodes.ACC_PUBLIC
+    if node.kind_of?(InterfaceDeclaration)
+      flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
+    end
+
+    # Ugh. So typically we might define a type for the main type,
+    # then later we find the ClassDefinition that declares
+    # the supertypes. We can't create a new type, or we'll lose
+    # any methods already declared, so we have to change the supertypes
+    # on the existing one. But now if you have multiple ClassDefinitions
+    # for the same type with conflicting ancestors, we'll just pick the
+    # last one, which is not ideal.
+    if existing_type
+      existing_type.setSupertypes(superclass, interfaceArray)
+      existing_type.flags = flags
+      return existing_future
+    end
+
+    mirror = MirahMirror.new(@context, type, flags,
+                             superclass, interfaceArray)
+    addClassIntrinsic(mirror)
+    future = MirrorFuture.new(mirror, position)
+    @loader.defineMirror(type, future)
+    future
   end
 
   def get(scope, typeref)

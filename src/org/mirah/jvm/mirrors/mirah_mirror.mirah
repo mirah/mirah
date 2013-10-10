@@ -27,8 +27,11 @@ import org.mirah.util.Context
 
 # Mirror for a type being loaded from a .mirah file.
 class MirahMirror < AsyncMirror
+  attr_accessor flags:int
+
   def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
     super
+    @flags = flags
     @default_constructor = Member.new(Opcodes.ACC_PUBLIC, self, '<init>', [], self, MemberKind.CONSTRUCTOR)
     @fields = {}
   end
