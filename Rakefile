@@ -234,7 +234,7 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-dev.jar', 'javalib
   # Compile Mirah sources
   runjava('javalib/mirahc-0.1.2-dev.jar',
           '-d', build_dir,
-          '-classpath', "javalib/mirah-parser.jar:#{build_dir}",
+          '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
           *mirah_srcs)
   
   # Build the jar                    

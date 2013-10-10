@@ -84,6 +84,19 @@ class FilteredResources < ResourceLoader
   end
 end
 
+class NegativeFilteredResources < ResourceLoader
+  def initialize(source:ResourceLoader, filter:Pattern, parent:ResourceLoader=nil)
+    super(parent)
+    @source = source
+    @filter = filter
+  end
+  def findResource(name)
+    unless @filter.matcher(name).lookingAt
+      @source.getResourceAsStream(name)
+    end
+  end
+end
+
 class SimpleMirrorLoader implements MirrorLoader
   def initialize(parent:MirrorLoader=nil)
     @parent = parent

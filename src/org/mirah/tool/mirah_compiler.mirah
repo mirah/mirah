@@ -44,6 +44,7 @@ import org.mirah.jvm.mirrors.JVMScope
 import org.mirah.jvm.mirrors.ClassResourceLoader
 import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
+import org.mirah.jvm.mirrors.NegativeFilteredResources
 import org.mirah.jvm.mirrors.SafeTyper
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
@@ -209,7 +210,10 @@ class MirahCompiler implements JvmBackend
     bootloader = if bootcp
       ClassLoaderResourceLoader.new(IsolatedResourceLoader.new(bootcp))
     else
-      ClassResourceLoader.new(System.class)
+      # Make sure our internal classes don't sneak in here
+      NegativeFilteredResources.new(
+          ClassResourceLoader.new(System.class),
+          Pattern.compile("^/?(mirah/|org/mirah|org/jruby)"))
     end
     classloader = ClassLoaderResourceLoader.new(
         IsolatedResourceLoader.new(classpath), bootloader)
