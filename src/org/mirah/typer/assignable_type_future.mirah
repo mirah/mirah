@@ -104,13 +104,23 @@ class AssignableTypeFuture < BaseTypeFuture
     @lock.unlock
   end
 
+  def declaredType:TypeFuture
+    @lock.lock
+    if @declarations.isEmpty
+      nil
+    else
+      TypeFuture(@declarations.keySet.iterator.next)
+    end
+  ensure
+    @lock.unlock
+  end
+
   def dump(out:FuturePrinter)
     out.write("resolved: ")
     super
     if hasDeclaration
-      decl = TypeFuture(@declarations.keySet.iterator.next)
       out.write("declared: ")
-      out.printFuture(decl)
+      out.printFuture(declaredType)
     end
     assignedValues(true, true).each do |_value|
       value = TypeFuture(_value)
