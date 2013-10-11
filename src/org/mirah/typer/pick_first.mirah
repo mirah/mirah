@@ -76,6 +76,10 @@ class PickFirst < BaseTypeFuture
     end
   end
 
+  def getComponents
+    {items: ArrayList.new(@items)}
+  end
+
 #  private
   def addItem(index:int, type:TypeFuture, value:Object):void
     me = self

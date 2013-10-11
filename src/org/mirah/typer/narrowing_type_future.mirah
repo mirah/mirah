@@ -1,5 +1,6 @@
 package org.mirah.typer
 
+import java.util.LinkedHashMap
 import mirah.lang.ast.*
 
 class NarrowingTypeFuture < BaseTypeFuture
@@ -30,5 +31,12 @@ class NarrowingTypeFuture < BaseTypeFuture
     out.writeLine("narrow: #{@narrow}")
     out.writeLine("wide: #{@wide}")
     super
+  end
+
+  def getComponents
+    map = LinkedHashMap.new
+    map[:narrow] = @narrow
+    map[:wide] = @wide
+    map
   end
 end

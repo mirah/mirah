@@ -31,4 +31,7 @@ class SimpleFuture; implements TypeFuture
   def dump(out)
     out.writeLine("#{resolve}")
   end
+  def getComponents
+    {}
+  end
 end

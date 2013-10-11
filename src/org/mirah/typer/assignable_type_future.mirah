@@ -131,6 +131,13 @@ class AssignableTypeFuture < BaseTypeFuture
     end
   end
 
+  def getComponents
+    map = LinkedHashMap.new
+    map['declaration'] = declaredType if hasDeclaration
+    map['values'] = assignedValues(true, true)
+    map
+  end
+
   def checkAssignments:void
     if hasDeclaration
       return

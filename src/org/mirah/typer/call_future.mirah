@@ -78,6 +78,14 @@ class CallFuture < BaseTypeFuture
     end
   end
 
+  def getComponents
+    map = LinkedHashMap.new
+    map[:target] = @target
+    map[:name] = @name
+    map[:params] = ArrayList.new(@paramTypes)
+    map
+  end
+
   def self.getNodes(call:CallSite):List
     l = LinkedList.new
     call.parameters.each {|p| l.add(p)} if call.parameters

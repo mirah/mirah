@@ -53,4 +53,8 @@ interface TypeFuture do
   def removeListener(listener:TypeListener):void; end
 
   def dump(out:FuturePrinter):void; end
+
+  # Programmatic access to same info as dump for debugging.
+  # name -> (TypeFuture or List<TypeFuture>)
+  def getComponents:Map; end
 end

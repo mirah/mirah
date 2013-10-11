@@ -57,4 +57,8 @@ class MethodFuture < BaseTypeFuture
     out.printFuture(@returnType)
     super
   end
+
+  def getComponents
+    {returnType: @returnType}
+  end
 end

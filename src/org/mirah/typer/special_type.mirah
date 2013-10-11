@@ -61,4 +61,7 @@ class SpecialType; implements ResolvedType, TypeFuture
   def dump(out)
     out.writeLine("#{resolve}")
   end
+  def getComponents
+    Collections.emptyMap
+  end
 end

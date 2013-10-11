@@ -61,4 +61,8 @@ class DelegateFuture < BaseTypeFuture
   def dump(out)
     out.printFuture(@type)
   end
+
+  def getComponents
+    {target: @type}
+  end
 end

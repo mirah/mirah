@@ -21,6 +21,13 @@ import java.util.logging.Logger
 import java.util.logging.Level
 import mirah.lang.ast.*
 
+# Should there be an UpdateWatcher?
+interface ResolutionWatcher
+  def resolved(
+      future:BaseTypeFuture, current:ResolvedType, resolved:ResolvedType):void
+  end
+end
+
 # Base class for most TypeFutures.
 # Implements listeners and supports generating error messages.
 # Thread hostile
@@ -39,6 +46,10 @@ class BaseTypeFuture; implements TypeFuture
 
   def self.initialize:void
     @@log = Logger.getLogger(BaseTypeFuture.class.getName)
+  end
+
+  def watchResolves(watcher:ResolutionWatcher):void
+    @watcher = watcher
   end
 
   def isResolved
@@ -107,6 +118,9 @@ class BaseTypeFuture; implements TypeFuture
   # Notifies the listeners if the resolved type has changed.
   def resolved(type:ResolvedType):void
     @lock.lock
+    if @watcher
+      @watcher.resolved(self, @resolved, type)
+    end
     if type.nil?
       if type == @resolved
         return
@@ -151,5 +165,9 @@ class BaseTypeFuture; implements TypeFuture
 
   def dump(out:FuturePrinter):void
     out.writeLine(String.valueOf(@resolved))
+  end
+
+  def getComponents
+    Collections.emptyMap
   end
 end

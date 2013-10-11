@@ -55,4 +55,8 @@ class DerivedFuture < BaseTypeFuture
     out.printFuture(@target)
     super
   end
+
+  def getComponents
+    {target: @target}
+  end
 end
