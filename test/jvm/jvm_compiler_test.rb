@@ -1806,4 +1806,20 @@ class JVMCompilerTest < Test::Unit::TestCase
     }
   end
 
+  def test_incompatible_meta_change
+    cls, = compile(<<-EOF)
+      class A < B
+        def foo(a:Object)
+          a.kind_of?(A)
+        end
+      end
+
+      class B
+      end
+    EOF
+    
+    a = cls.new
+    assert(a.foo(a))
+  end
+
 end

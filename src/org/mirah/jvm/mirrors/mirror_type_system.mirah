@@ -328,7 +328,11 @@ class MirrorTypeSystem implements TypeSystem
   def getMetaType(type:TypeFuture):TypeFuture
     types = TypeSystem(self)
     DerivedFuture.new(type) do |resolved|
-      types.getMetaType(resolved)
+      if resolved.isError
+        resolved
+      else
+        MirrorProxy.new(MirrorType(types.getMetaType(resolved)))
+      end
     end
   end
 
@@ -562,7 +566,7 @@ class MirrorTypeSystem implements TypeSystem
     kind = MemberKind.METHOD
     isMeta = target.isMeta
     if isMeta
-      target = MirrorType(MetaType(target).unmeta)
+      target = MirrorType(MirrorType(target).unmeta)
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
     end
