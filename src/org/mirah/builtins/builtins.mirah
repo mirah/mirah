@@ -27,8 +27,9 @@ class Builtins
     type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
     type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
     type_system.extendClass('java.lang.String', StringExtensions.class)
+    type_system.extendClass('java.lang.StringBuilder', StringBuilderExtensions.class)
     type_system.extendClass('int', IntExtensions.class)
-    
+
     type_system.extendClass('byte', NumberExtensions.class)
     type_system.extendClass('short', NumberExtensions.class)
     type_system.extendClass('int', NumberExtensions.class)
