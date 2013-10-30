@@ -46,6 +46,8 @@ import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
 import org.mirah.jvm.mirrors.NegativeFilteredResources
 import org.mirah.jvm.mirrors.SafeTyper
+import org.mirah.jvm.mirrors.debug.DebuggerInterface
+import org.mirah.jvm.mirrors.debug.DebugTyper
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
@@ -68,7 +70,8 @@ class MirahCompiler implements JvmBackend
 
   def initialize(
       diagnostics:SimpleDiagnostics, jvm:JvmVersion, classpath:URL[],
-      bootclasspath:URL[], macroclasspath:URL[], macro_destination:String)
+      bootclasspath:URL[], macroclasspath:URL[], macro_destination:String,
+      debugger:DebuggerInterface=nil)
     @diagnostics = diagnostics
     @jvm = jvm
     @destination = macro_destination
@@ -99,11 +102,11 @@ class MirahCompiler implements JvmBackend
 
     @macro_context[Scoper] = @scoper
     @macro_context[MirahParser] = @parser
-    @macro_context[Typer] = @macro_typer = SafeTyper.new(
-        @macro_context, @macro_types, @scoper, self, @parser)
+    @macro_context[Typer] = @macro_typer = createTyper(
+        debugger, @macro_context, @macro_types, @scoper, self, @parser)
 
-    context[Typer] = @typer = SafeTyper.new(
-        context, @types, @scoper, self, @parser)
+    context[Typer] = @typer = createTyper(
+        debugger, context, @types, @scoper, self, @parser)
 
     # Make sure macros are compiled using the correct type system.
     @typer.macro_compiler = @macro_typer.macro_compiler
@@ -119,6 +122,15 @@ class MirahCompiler implements JvmBackend
 
   def self.initialize:void
     @@log = Logger.getLogger(Mirahc.class.getName)
+  end
+
+  def createTyper(debugger:DebuggerInterface, context:Context, types:TypeSystem,
+                  scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser)
+    if debugger.nil?
+      SafeTyper.new(context, types, scopes, jvm_backend, parser)
+    else
+      DebugTyper.new(debugger, context, types, scopes, jvm_backend, parser)
+    end
   end
 
   def parse(code:CodeSource)

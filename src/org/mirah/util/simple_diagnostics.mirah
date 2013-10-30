@@ -36,7 +36,7 @@ class SimpleDiagnostics; implements DiagnosticListener
 
   def errorCount; @errors; end
 
-  def log(kind:Kind, position:String, message:String)
+  def log(kind:Kind, position:String, message:String):void
     System.err.println(position) if position
     System.err.print(@prefixes[kind])
     System.err.println(message)

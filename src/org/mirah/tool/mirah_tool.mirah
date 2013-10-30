@@ -44,6 +44,7 @@ import org.mirah.jvm.mirrors.ClassResourceLoader
 import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
 import org.mirah.jvm.mirrors.SafeTyper
+import org.mirah.jvm.mirrors.debug.ConsoleDebugger
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
@@ -85,7 +86,8 @@ abstract class MirahTool implements BytecodeConsumer
     @classpath ||= parseClassPath(@destination)
 
     @compiler = MirahCompiler.new(
-        @diagnostics, @jvm, @classpath, @bootcp, @macrocp, @destination)
+        @diagnostics, @jvm, @classpath, @bootcp, @macrocp, @destination,
+        @debugger)
     parseAllFiles
     @compiler.infer
     @compiler.compile(self)
@@ -129,6 +131,12 @@ abstract class MirahTool implements BytecodeConsumer
 
   def setJvmVersion(version:String):void
     @jvm = JvmVersion.new(version)
+  end
+
+  def enableTypeDebugger:void
+    debugger = ConsoleDebugger.new
+    debugger.start
+    @debugger = debugger.debugger
   end
 
   def processArgs(args:String[]):void
@@ -201,6 +209,9 @@ abstract class MirahTool implements BytecodeConsumer
         ['jvm'], 'VERSION',
         'Emit JVM bytecode targeting specified JVM version (1.5, 1.6, 1.7)'
     ) { |v| mirahc.setJvmVersion(v) }
+    parser.addFlag(
+        ['tdb'], 'Start the interactive type debugger.'
+    ) { mirahc.enableTypeDebugger }
 
     it = parser.parse(args).iterator
     while it.hasNext
