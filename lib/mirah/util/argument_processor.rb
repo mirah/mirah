@@ -131,6 +131,10 @@ module Mirah
         -I DIR\t\tAdd DIR to the Ruby load path before running
         --jvm VERSION\t\tEmit JVM bytecode targeting specified JVM
         \t\t\t  version (1.4, 1.5, 1.6, 1.7)
+        --no-save-extensions\tDon't write macro classes to files
+        --no-color\t\tDon't use color when writing logs
+        -N, --new-backend\tUse the new backend
+        -T, --new-types\tUse the new type system
         -p, --plugin PLUGIN\trequire 'mirah/plugin/PLUGIN' before running
         -v, --version\t\tPrint the version of Mirah to the console
         -V, --verbose\t\tVerbose logging
