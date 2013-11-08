@@ -193,7 +193,12 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
     WildcardType(@target).getSuperBound
   end
   def erasure
-    @target.erasure
+    e = @target.erasure
+    if e == @target
+      self
+    else
+      e
+    end
   end
 
   def signature
