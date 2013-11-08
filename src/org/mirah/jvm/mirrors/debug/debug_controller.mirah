@@ -166,6 +166,13 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     @lock.unlock
   end
 
+  def javaStack
+    @lock.lock
+    @thread.getStackTrace
+  ensure
+    @lock.unlock
+  end
+
   def continue:void
     @lock.lock
     @step = nil
@@ -338,6 +345,7 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
   def block
     @lock.lock
     @stopped = true
+    @thread ||= Thread.currentThread
     @listener.stopped
     while @stopped
       @condition.await

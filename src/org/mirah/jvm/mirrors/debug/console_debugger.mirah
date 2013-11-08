@@ -19,6 +19,7 @@ import java.beans.Introspector
 import java.beans.IndexedPropertyDescriptor
 import java.util.concurrent.locks.ReentrantLock
 import java.util.Arrays
+import java.util.List
 import java.util.Map.Entry
 
 import org.mirah.typer.BaseTypeFuture
@@ -78,6 +79,7 @@ class ConsoleDebugger implements DebugListener, Runnable
     registerCommand x: dumpObject
     registerCommand bt: printNodeStack
     registerCommand where: printNodeStack
+    registerCommand jwhere: printJavaStack
     registerCommand finish: doFinish
     
   end
@@ -121,6 +123,13 @@ class ConsoleDebugger implements DebugListener, Runnable
     printFuture("future", watch.future)
     @console.printf("  from = %s%n", watch.currentValue)
     @console.printf("  to = %s%n", watch.newValue)
+    if watch.currentValue == watch.newValue
+      @console.printf("  (from == to)%n")
+    elsif watch.currentValue && watch.currentValue.equals(watch.newValue)
+      @console.printf("  (from.equals(to))%n")
+    else
+      @console.printf("  (from != to)%n")
+    end
   end
 
   def stopped
@@ -221,8 +230,8 @@ class ConsoleDebugger implements DebugListener, Runnable
     end
     index = Integer.parseInt(args[0])
     it = @controller.watches.keySet.iterator
-    index.times { it.next }
-    it.remove
+    (index - 1).times { it.next }
+    @controller.clearWatch(BaseTypeFuture(it.next))
   end
 
   def addWatch(args:String[]):void
@@ -363,6 +372,7 @@ class ConsoleDebugger implements DebugListener, Runnable
             if property_index != -1
               method = IndexedPropertyDescriptor(p).getIndexedReadMethod
               prop = method.invoke(value, property_index)
+              property_index = -1
             else
               method = p.getReadMethod
               prop = method.invoke(value)
@@ -375,6 +385,13 @@ class ConsoleDebugger implements DebugListener, Runnable
         method = value.getClass.getMethod(name)
         if method
           prop = method.invoke(value)
+        end
+      end
+      if property_index != -1
+        if prop.kind_of?(List)
+          prop = List(prop).get(property_index)
+        elsif prop.getClass.isArray
+          prop = Object[].cast(prop)[property_index]
         end
       end
       if prop.nil?
@@ -398,6 +415,12 @@ class ConsoleDebugger implements DebugListener, Runnable
       @console.printf("\t%d\t%s %s%n", i, node.getClass.getSimpleName, position)
       i += 1
       frame = frame.parent
+    end
+  end
+
+  def printJavaStack(args:String[]):void
+    @controller.javaStack.each do |frame|
+      @console.printf("\t%s%n", frame)
     end
   end
 end
