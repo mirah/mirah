@@ -14,38 +14,41 @@
 # limitations under the License.
 
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class BytecodeMirrorTest < Test::Unit::TestCase
   java_import 'org.jruby.org.objectweb.asm.Type'
-  java_import 'org.mirah.jvm.mirrors.ClassPath'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
 
   def setup
-    types = MirrorTypeSystem.new
-    @loader = types.context.get(ClassPath).bytecode_loader
+    @types = MirrorTypeSystem.new
   end
-  
+
+  def load(desc)
+    @types.wrap(desc).resolve
+  end
+
   def test_parent
-    mirror = @loader.loadMirror(Type.getType("I"))
+    mirror = load(Type.getType("I"))
     assert_equal("I", mirror.asm_type.descriptor)
   end
 
   def test_classloading
-    mirror = @loader.loadMirror(Type.getType("Ljava/lang/Object;"))
+    mirror = load(Type.getType("Ljava/lang/Object;"))
     assert(!mirror.isError)
     assert_equal("java.lang.Object", mirror.name)
   end
 
   def test_inner_class
-    mirror = @loader.loadMirror(Type.getType("Ljava/util/Map/Entry;"))
+    mirror = load(Type.getType("Ljava/util/Map/Entry;"))
     assert(!mirror.isError)
     assert_equal("java.util.Map$Entry", mirror.name)
   end
 
   def test_superclass
-    mirror = @loader.loadMirror(Type.getType("Ljava/lang/String;"))
+    mirror = load(Type.getType("Ljava/lang/String;"))
     assert(!mirror.isError)
     assert_equal("java.lang.String", mirror.name)
     
@@ -56,13 +59,13 @@ class BytecodeMirrorTest < Test::Unit::TestCase
   end
 
   def test_interfaces
-    mirror = @loader.loadMirror(Type.getType("Ljava/lang/String;"))
+    mirror = load(Type.getType("Ljava/lang/String;"))
     interfaces = mirror.interfaces.map {|t| t.resolve.name}
     assert_equal(['java.io.Serializable', 'java.lang.Comparable', 'java.lang.CharSequence'], interfaces)
   end
 
   def test_declared_field
-    mirror = @loader.loadMirror(Type.getType("Ljava/lang/String;"))
+    mirror = load(Type.getType("Ljava/lang/String;"))
     field = mirror.getDeclaredField('hash')
     assert_equal(mirror, field.declaringClass)
     assert_equal('hash', field.name)
@@ -74,13 +77,13 @@ class BytecodeMirrorTest < Test::Unit::TestCase
   end
 
   def test_array
-    mirror = @loader.loadMirror(Type.getType("[Ljava/lang/Object;"))
+    mirror = load(Type.getType("[Ljava/lang/Object;"))
     assert(JVMTypeUtils.isArray(mirror))
     assert_equal("Ljava/lang/Object;", mirror.getComponentType.asm_type.descriptor)
   end
 
   def test_retention
-    mirror = @loader.loadMirror(Type.getType("Ljava/lang/annotation/Retention;"))
+    mirror = load(Type.getType("Ljava/lang/annotation/Retention;"))
     assert_equal("RUNTIME", mirror.retention)
   end
 end

@@ -14,7 +14,8 @@
 # limitations under the License.
 
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
@@ -217,13 +218,13 @@ class MirrorsTest < BaseMirrorsTest
 
   def test_meta_resolved
     type = @types.getStringType.resolve
-    assert_false(type.isMeta)
+    assert(!type.isMeta)
     assert(@types.getMetaType(type).isMeta)
   end
 
   def test_meta_future
     type = @types.getStringType
-    assert_false(type.resolve.isMeta)
+    assert(!type.resolve.isMeta)
     assert(@types.getMetaType(type).resolve.isMeta)
   end
 

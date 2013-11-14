@@ -15,7 +15,8 @@
 
 require 'java'
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class GenericsTest < Test::Unit::TestCase
   java_import 'java.util.HashSet'

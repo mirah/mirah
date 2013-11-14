@@ -14,8 +14,8 @@
 # limitations under the License.
 
 require 'test/unit'
-require 'mirah'
-
+require 'java'
+require 'dist/mirahc.jar'
 
 java_import 'org.mirah.jvm.mirrors.SimpleMirrorLoader'
 java_import 'org.mirah.jvm.mirrors.BaseType'

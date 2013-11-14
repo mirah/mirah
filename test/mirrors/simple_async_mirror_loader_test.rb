@@ -14,7 +14,8 @@
 # limitations under the License.
 
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   java_import 'org.jruby.org.objectweb.asm.Type'
@@ -23,7 +24,6 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.SimpleAsyncMirrorLoader'
   java_import 'org.mirah.jvm.mirrors.AsyncLoaderAdapter'
   java_import 'org.mirah.jvm.mirrors.PrimitiveLoader'
-  java_import 'org.mirah.jvm.mirrors.ClassPath'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
