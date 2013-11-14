@@ -240,10 +240,10 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-dev.jar', 'javalib
   # Build the jar                    
   ant.jar 'jarfile' => 'dist/mirahc.jar' do
     fileset 'dir' => build_dir
-    zipfileset :src => 'javalib/jruby-complete.jar', :includes => 'org/jruby/org/objectweb/**/*'
-    zipfileset :src => 'javalib/mirah-parser.jar'
+    zipfileset 'src' => 'javalib/jruby-complete.jar', 'includes' => 'org/jruby/org/objectweb/**/*'
+    zipfileset 'src' => 'javalib/mirah-parser.jar'
     manifest do
-      attribute :name => 'Main-Class', :value => 'org.mirah.MirahCommand'
+      attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
     end
   end
 end
