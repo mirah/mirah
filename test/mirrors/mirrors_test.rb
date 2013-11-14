@@ -606,6 +606,14 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_equal('java.util.Set<FooBar>', checked.resolve.toString)
   end
 
+  def test_wildcard_return
+    loader = @types.get(@scope, typeref('java.lang.ClassLoader'))
+    klass = CallFuture.new(
+        @types, @scope, loader, true, 'loadClass',
+        [@types.getStringType], [], nil)
+    assert(klass.resolve.assignableFrom(klass.resolve), klass.resolve.toString)
+  end
+
   def test_nil_argument
     sb = @types.get(@scope, typeref('java.lang.StringBuilder'))
     result = CallFuture.new(@types, @scope, sb, true, 'append', [@types.getNullType], [], nil)

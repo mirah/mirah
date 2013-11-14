@@ -15,16 +15,39 @@
 
 package org.mirah.jvm.mirrors.generics
 
+import java.util.LinkedList
 import java.util.Map
+import java.util.logging.Logger
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.SimpleTypeVisitor6
 import org.mirah.util.Context
 import org.mirah.jvm.mirrors.ArrayType
+import org.mirah.jvm.mirrors.DeclaredMirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.model.IntersectionType
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
+
+class CapturedWildcard < TypeVariable
+  def initialize(context:Context, upper:MirrorType, lower:MirrorType)
+    super(context, "?", upper)
+    @lowerBound = lower
+  end
+
+  def getLowerBound
+    @lowerBound
+  end
+
+  def toString
+    if @lowerBound
+      "[? extends #{getUpperBound}, super #{@lowerBound}]"
+    else
+      "[? extends #{getUpperBound}]"
+    end
+  end
+end
 
 class Substitutor < SimpleTypeVisitor6
   def initialize(context:Context, typeVars:Map)
@@ -32,12 +55,28 @@ class Substitutor < SimpleTypeVisitor6
     @types = context[MirrorTypeSystem]
     @typeVars = typeVars
     @substitutions = 0
+    @type_parameters = LinkedList.new
   end
+
+  def self.initialize:void
+    @@log = Logger.getLogger(Substitutor.class.getName)
+  end
+
   def defaultAction(e, p)
+    popTypeParam
     future(e)
   end
 
+  def popTypeParam
+    if @type_parameters.isEmpty
+      nil
+    else
+      TypeFuture(@type_parameters.removeFirst).resolve
+    end
+  end
+
   def visitArray(t, p)
+    popTypeParam
     c = t.getComponentType
     saved = @substitutions
     c2 = TypeFuture(visit(c, p))
@@ -50,6 +89,7 @@ class Substitutor < SimpleTypeVisitor6
   end
 
   def visitTypeVariable(t, p)
+    popTypeParam
     t2 = @typeVars[t.toString]
     # What if the bounds involve typevars?
     if t2
@@ -61,16 +101,44 @@ class Substitutor < SimpleTypeVisitor6
   end
 
   def visitDeclared(t, p)
-    saved = @substitutions
-    newArgs = t.getTypeArguments.map do |x:TypeMirror|
-      visit(x, p)
+    popTypeParam
+    saved_substitutions = @substitutions
+    saved_parameters = @type_parameters
+    begin
+      @type_parameters = LinkedList.new
+      if t.kind_of?(MirrorType)
+        erasure = DeclaredMirrorType(MirrorType(t).erasure)
+        @type_parameters.addAll(erasure.getTypeVariableMap.values)
+      end
+      @@log.fine("Type parameters for #{t} = #{@type_parameters}")
+      newArgs = t.getTypeArguments.map do |x:TypeMirror|
+        visit(x, p)
+      end
+      if saved_substitutions == @substitutions
+        future(t)
+      else
+        # If any type parameters were substituted, re-invoke the type
+        @types.parameterize(future(MirrorType(t).erasure), newArgs)
+      end
+    ensure
+      @type_parameters = saved_parameters
     end
-    if saved == @substitutions
-      future(t)
-    else
-      # If any type parameters were substituted, re-invoke the type
-      @types.parameterize(future(MirrorType(t).erasure), newArgs)
+  end
+
+  def visitWildcard(t, p)
+    # Apply capture conversion.
+    param = TypeVariable(popTypeParam)
+    upper = MirrorType(param.getUpperBound)
+    lower = param.getLowerBound
+    if t.getSuperBound
+      lower = t.getSuperBound
     end
+    if t.getExtendsBound && !upper.isSameType(MirrorType(t.getExtendsBound))
+      lub = LubFinder.new(@context)
+      upper = MirrorType(lub.leastUpperBound([upper, t.getExtendsBound]))
+    end
+    @substitutions += 1
+    future(CapturedWildcard.new(@context, upper, MirrorType(lower)))
   end
 
   def future(t:Object)
