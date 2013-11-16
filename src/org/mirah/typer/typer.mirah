@@ -309,17 +309,16 @@ class Typer < SimpleNodeVisitor
       else
         typeref = call.typeref(true)
       end
-      scope = scopeOf(call)
       if typeref
         if is_array
           array = EmptyArray.new(call.position, typeref, call.parameters(0))
           newNode = Node(array)
-          newType = @types.getArrayType(@types.get(scope, typeref))
+          newType = @types.getArrayType(getTypeOf(call, typeref))
           @scopes.copyScopeFrom(call, newNode)
         else
           cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
           newNode = Node(cast)
-          newType = @types.get(scope, typeref)
+          newType = getTypeOf(call, typeref)
         end
         items = LinkedList.new
         items.add(newType)
