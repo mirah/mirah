@@ -976,8 +976,7 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(mdef.arguments)
 
     if mdef.type
-      outer_scope = scopeOf(mdef)
-      returnType = @types.get(outer_scope, mdef.type.typeref)
+      returnType = @types.get(scopeOf(mdef), mdef.type.typeref)
     end
 
     type = @types.getMethodDefType(selfType,
@@ -1168,8 +1167,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def selfTypeOf(mdef: MethodDefinition): TypeFuture
-    outer_scope = scopeOf(mdef)
-    selfType = outer_scope.selfType
+    selfType = scopeOf(mdef).selfType
     if mdef.kind_of?(StaticMethodDefinition)
       selfType = @types.getMetaType(selfType)
     end
