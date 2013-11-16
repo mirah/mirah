@@ -749,8 +749,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitLocalDeclaration(decl, expression)
-    scope = scopeOf(decl)
-    type = @types.get(scope, decl.type.typeref)
+    type = getTypeOf(decl, decl.type.typeref)
     getLocalType(decl).declare(type, decl.position)
   end
 
@@ -957,9 +956,8 @@ class Typer < SimpleNodeVisitor
 
   def visitRestArgument(arg, expression)
     if arg.type
-      scope = scopeOf(arg)
       getLocalType(arg).declare(
-        @types.getArrayType(@types.get(scope, arg.type.typeref)),
+        @types.getArrayType(getTypeOf(arg, arg.type.typeref)),
         arg.type.position)
     else
       getLocalType(arg)
