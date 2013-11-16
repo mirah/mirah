@@ -442,8 +442,7 @@ class Typer < SimpleNodeVisitor
       classdef.name.identifier
     end
     type = @types.defineType(scope, classdef, name, superclass, interfaces)
-    new_scope = addScopeUnder(classdef)
-    new_scope.selfType = type
+    addScopeWithSelfType(classdef, type)
     infer(classdef.body, false) if classdef.body
     type
   end
@@ -775,8 +774,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitClassAppendSelf(node, expression)
-    scope = addScopeUnder(node)
-    scope.selfType = @types.getMetaType(scopeOf(node).selfType)
+    addScopeWithSelfType node, @types.getMetaType(scopeOf(node).selfType)
     infer(node.body, false)
     @types.getNullType()
   end
@@ -1178,9 +1176,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def setupInnerScope(mdef: MethodDefinition): void
-    scope = addScopeUnder(mdef)
-    scope.selfType = selfTypeOf(mdef)
+    scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
     scope.resetDefaultSelfNode
+  end
+
+  def addScopeWithSelfType(node: Node, selfType: TypeFuture)
+    scope = addScopeUnder(node)
+    scope.selfType = selfType
+    scope
   end
 
   def isVoid type: MethodFuture
