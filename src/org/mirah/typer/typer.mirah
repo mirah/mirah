@@ -939,8 +939,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRequiredArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
+    type = getLocalType(arg)
     if arg.type
       type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
     else
@@ -949,16 +948,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitOptionalArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
+    type = getLocalType(arg)
     type.declare(@types.get(scope, arg.type.typeref), arg.type.position) if arg.type
     type.assign(infer(arg.value), arg.value.position)
     type
   end
 
   def visitRestArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
+    type = getLocalType(arg)
     if arg.type
       type.declare(@types.getArrayType(@types.get(scope, arg.type.typeref)), arg.type.position)
     else
@@ -968,8 +965,7 @@ class Typer < SimpleNodeVisitor
 
   def visitBlockArgument(arg, expression)
     @@log.finest "BlockArgument: got here for #{arg}"
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
+    type = getLocalType(arg)
     if arg.type
       type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
     else
@@ -1188,6 +1184,10 @@ class Typer < SimpleNodeVisitor
     scope.resetDefaultSelfNode
   end
 
+  def getLocalType arg: Node
+    scope = @scopes.getScope(arg)
+    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
+  end
 
   # FIXME: there's a bug in the AST that doesn't set the
   # calls target correctly
