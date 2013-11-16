@@ -149,9 +149,13 @@ class Typer < SimpleNodeVisitor
 
     workaroundASTBug call
 
-    targetType = infer(call.target)
-    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
-    methodType = CallFuture.new(@types, scope, targetType, false, Collections.emptyList, call)
+    targetType = inferCallTarget call.target, scope
+    methodType = CallFuture.new(@types,
+                                scope,
+                                targetType,
+                                false,
+                                Collections.emptyList,
+                                call)
     fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
     fcall.setParent(call.parent)
     @futures[fcall] = methodType
@@ -204,9 +208,13 @@ class Typer < SimpleNodeVisitor
 
     workaroundASTBug call
 
-    targetType = infer(call.target)
-    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
-    methodType = CallFuture.new(@types, scope, targetType, false, parameters, call)
+    targetType = inferCallTarget call.target, scope
+    methodType = CallFuture.new(@types,
+                                scope,
+                                targetType,
+                                false,
+                                parameters,
+                                call)
     delegate.type = methodType
     typer = self
     current_node = Node(call)
@@ -1211,6 +1219,12 @@ class Typer < SimpleNodeVisitor
 
   def getTypeOf(node: Node, typeref: TypeRef)
     @types.get(scopeOf(node), typeref)
+  end
+
+  def inferCallTarget target: Node, scope: Scope
+    targetType = infer(target)
+    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
+    targetType
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
