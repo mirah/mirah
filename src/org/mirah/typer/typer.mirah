@@ -83,7 +83,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def inferTypeName(node:TypeName)
-    @futures[node] ||= @types.get(scopeOf(node), node.typeref)
+    @futures[node] ||= getTypeOf(node, node.typeref)
     TypeFuture(@futures[node])
   end
 
@@ -392,11 +392,11 @@ class Typer < SimpleNodeVisitor
   def visitCast(cast, expression)
     # TODO check for compatibility
     infer(cast.value)
-    @types.get(scopeOf(cast), cast.type.typeref)
+    getTypeOf(cast, cast.type.typeref)
   end
 
   def visitColon2(colon2, expression)
-    @types.getMetaType(@types.get(scopeOf(colon2), colon2.typeref))
+    @types.getMetaType(getTypeOf(colon2, colon2.typeref))
   end
 
   def visitSuper(node, expression)
@@ -477,7 +477,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitConstant(constant, expression)
-    @types.getMetaType(@types.get(scopeOf(constant), constant.typeref))
+    @types.getMetaType(getTypeOf(constant, constant.typeref))
   end
 
   def visitIf(stmt, expression)
@@ -738,7 +738,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitTypeRefImpl(typeref, expression)
-    @types.get(scopeOf(typeref), typeref)
+    getTypeOf(typeref, typeref)
   end
 
   def visitLocalDeclaration(decl, expression)
@@ -792,7 +792,7 @@ class Typer < SimpleNodeVisitor
     anno.values_size.times do |i|
       infer(anno.values(i).value)
     end
-    @types.get(scopeOf(anno), anno.type.typeref)
+    getTypeOf(anno, anno.type.typeref)
   end
 
   def visitImport(node, expression)
@@ -828,7 +828,7 @@ class Typer < SimpleNodeVisitor
 
   def visitEmptyArray(node, expression)
     infer(node.size)
-    @types.getArrayType(@types.get(scopeOf(node), node.type.typeref))
+    @types.getArrayType(getTypeOf(node, node.type.typeref))
   end
 
   def visitUnquote(node, expression)
@@ -976,7 +976,7 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(mdef.arguments)
 
     if mdef.type
-      returnType = @types.get(scopeOf(mdef), mdef.type.typeref)
+      returnType = getTypeOf(mdef, mdef.type.typeref)
     end
 
     type = @types.getMethodDefType(selfType,
@@ -1200,12 +1200,15 @@ class Typer < SimpleNodeVisitor
   def getArgumentType(arg: FormalArgument)
     type = getLocalType arg
     if arg.type
-      scope = scopeOf(arg)
       type.declare(
-        @types.get(scope, arg.type.typeref),
+        getTypeOf(arg, arg.type.typeref),
         arg.type.position)
     end
     type
+  end
+
+  def getTypeOf(node: Node, typeref: TypeRef)
+    @types.get(scopeOf(node), typeref)
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
