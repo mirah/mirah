@@ -434,7 +434,7 @@ class Typer < SimpleNodeVisitor
       classdef.name.identifier
     end
     type = @types.defineType(scope, classdef, name, superclass, interfaces)
-    new_scope = @scopes.addScope(classdef)
+    new_scope = addScopeUnder(classdef)
     new_scope.selfType = type
     infer(classdef.body, false) if classdef.body
     type
@@ -605,7 +605,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRescueClause(clause, expression)
-    scope = @scopes.addScope(clause)
+    scope = addScopeUnder(clause)
     scope.parent = scopeOf(clause)
     name = clause.name
     if clause.types_size == 0
@@ -769,7 +769,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitClassAppendSelf(node, expression)
-    scope = @scopes.addScope(node)
+    scope = addScopeUnder(node)
     scope.selfType = @types.getMetaType(scopeOf(node).selfType)
     infer(node.body, false)
     @types.getNullType()
@@ -780,7 +780,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitScript(script, expression)
-    scope = @scopes.addScope(script)
+    scope = addScopeUnder(script)
     @types.addDefaultImports(scope)
     scope.selfType = @types.getMainType(scope, script)
     infer(script.body, false)
@@ -813,7 +813,7 @@ class Typer < SimpleNodeVisitor
 
   def visitPackage(node, expression)
     if node.body
-      scope = @scopes.addScope(node)
+      scope = addScopeUnder(node)
       scope.package = node.name.identifier
       infer(node.body, false)
     else
@@ -1032,7 +1032,7 @@ class Typer < SimpleNodeVisitor
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
-    new_scope = @scopes.addScope(block)
+    new_scope = addScopeUnder(block)
     new_scope.parent = scopeOf(block.parent)
     @@log.finest "Block: got here for #{block} #{block.arguments}"
     infer(block.arguments) if block.arguments
@@ -1174,7 +1174,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def setupInnerScope(mdef: MethodDefinition): void
-    scope = @scopes.addScope(mdef)
+    scope = addScopeUnder(mdef)
     scope.selfType = selfTypeOf(mdef)
     scope.resetDefaultSelfNode
   end
@@ -1194,6 +1194,10 @@ class Typer < SimpleNodeVisitor
 
   def scopeOf(node: Node)
     @scopes.getScope node
+  end
+
+  def addScopeUnder(node: Node)
+    @scopes.addScope node
   end
 
   def getArgumentType(arg: FormalArgument)
