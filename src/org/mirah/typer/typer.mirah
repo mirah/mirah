@@ -860,11 +860,23 @@ class Typer < SimpleNodeVisitor
   def visitArguments(args, expression)
     # Merge in any unquoted arguments first.
     it = args.required.listIterator
-    mergeArgs(args, it, it, args.optional.listIterator(args.optional_size), args.required2.listIterator(args.required2_size))
+    mergeArgs(args,
+              it,
+              it,
+              args.optional.listIterator(args.optional_size),
+              args.required2.listIterator(args.required2_size))
     it = args.optional.listIterator
-    mergeArgs(args, it, args.required.listIterator(args.required_size), it, args.required2.listIterator(args.required2_size))
+    mergeArgs(args,
+              it,
+              args.required.listIterator(args.required_size),
+              it,
+              args.required2.listIterator(args.required2_size))
     it = args.required.listIterator
-    mergeArgs(args, it, args.required.listIterator(args.required_size), args.optional.listIterator(args.optional_size), it)
+    mergeArgs(args,
+              it,
+              args.required.listIterator(args.required_size),
+              args.optional.listIterator(args.optional_size),
+              it)
     # Then do normal type inference.
     inferAll(args)
     @types.getVoidType()
