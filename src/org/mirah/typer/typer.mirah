@@ -939,26 +939,11 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRequiredArgument(arg, expression)
-    if arg.type
-      scope = @scopes.getScope(arg)
-      getLocalType(arg).declare(
-        @types.get(scope, arg.type.typeref),
-        arg.type.position)
-    else
-      getLocalType(arg)
-    end
+    getArgumentType arg
   end
 
   def visitOptionalArgument(arg, expression)
-    if arg.type
-      scope = @scopes.getScope(arg)
-      type = getLocalType(arg)
-      type.declare(
-        @types.get(scope, arg.type.typeref),
-        arg.type.position)
-    else
-      type = getLocalType(arg)
-    end
+    type = getArgumentType arg
     type.assign(infer(arg.value), arg.value.position)
     type
   end
@@ -976,15 +961,7 @@ class Typer < SimpleNodeVisitor
 
   def visitBlockArgument(arg, expression)
     @@log.finest "BlockArgument: got here for #{arg}"
-
-    if arg.type
-      scope = @scopes.getScope(arg)
-      getLocalType(arg).declare(
-        @types.get(scope, arg.type.typeref),
-        arg.type.position)
-    else
-      getLocalType(arg)
-    end
+    getArgumentType arg
   end
 
   def visitMethodDefinition(mdef, expression)
@@ -1216,6 +1193,17 @@ class Typer < SimpleNodeVisitor
   def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, identifier, arg.position)
+  end
+
+  def getArgumentType(arg: FormalArgument)
+    type = getLocalType arg
+    if arg.type
+      scope = @scopes.getScope(arg)
+      type.declare(
+        @types.get(scope, arg.type.typeref),
+        arg.type.position)
+    end
+    type
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
