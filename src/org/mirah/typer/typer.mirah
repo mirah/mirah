@@ -146,7 +146,9 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     scope = @scopes.getScope(call)
-    call.target.setParent(call)  # FIXME: workaround AST bug
+
+    workaroundASTBug call
+
     targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     methodType = CallFuture.new(@types, scope, targetType, false, Collections.emptyList, call)
@@ -199,7 +201,9 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     delegate = DelegateFuture.new
-    call.target.setParent(call)  # FIXME: workaround AST bug
+
+    workaroundASTBug call
+
     targetType = infer(call.target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     methodType = CallFuture.new(@types, scope, targetType, false, parameters, call)
@@ -1154,5 +1158,15 @@ class Typer < SimpleNodeVisitor
     call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
     @scopes.copyScopeFrom(node, call)
     [infer(call), call]
+  end
+
+  # FIXME: there's a bug in the AST that doesn't set the
+  # calls target correctly
+  def workaroundASTBug(call: FunctionalCall)
+    call.target.setParent(call)
+  end
+
+  def workaroundASTBug(call: VCall)
+    call.target.setParent(call)
   end
 end
