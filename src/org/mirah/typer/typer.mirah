@@ -751,16 +751,16 @@ class Typer < SimpleNodeVisitor
   def visitLocalDeclaration(decl, expression)
     scope = scopeOf(decl)
     type = @types.get(scope, decl.type.typeref)
-    @types.getLocalType(scope, decl.name.identifier, decl.position).declare(type, decl.position)
+    getLocalType(decl).declare(type, decl.position)
   end
 
   def visitLocalAssignment(local, expression)
     value = infer(local.value, true)
-    @types.getLocalType(scopeOf(local), local.name.identifier, local.position).assign(value, local.position)
+    getLocalType(local).assign(value, local.position)
   end
 
   def visitLocalAccess(local, expression)
-    @types.getLocalType(scopeOf(local), local.name.identifier, local.position)
+    getLocalType(local)
   end
 
   def visitNodeList(body, expression)
@@ -1191,8 +1191,8 @@ class Typer < SimpleNodeVisitor
     type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
   end
 
-  def getLocalType(arg: FormalArgument)
-    getLocalType arg, arg.name.identifier
+  def getLocalType(local: Named)
+    getLocalType(local, local.name.identifier)
   end
 
   def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
