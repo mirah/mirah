@@ -980,18 +980,19 @@ class Typer < SimpleNodeVisitor
   def visitMethodDefinition(mdef, expression)
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
-    scope = @scopes.addScope(mdef)
-    outer_scope = @scopes.getScope(mdef)
-    selfType = outer_scope.selfType
-    if mdef.kind_of?(StaticMethodDefinition)
-      selfType = @types.getMetaType(selfType)
-    end
-    scope.selfType = selfType
-    scope.resetDefaultSelfNode
+
+    setupInnerScope(mdef)
+    selfType = selfTypeOf(mdef)
+
     inferAll(mdef.annotations)
     infer(mdef.arguments)
     parameters = inferAll(mdef.arguments)
-    returnType = @types.get(outer_scope, mdef.type.typeref) if mdef.type
+
+    if mdef.type
+      outer_scope = @scopes.getScope(mdef)
+      returnType = @types.get(outer_scope, mdef.type.typeref)
+    end
+
     type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters, returnType, mdef.name.position)
     @futures[mdef] = type
     declareOptionalMethods(selfType, mdef, parameters, type.returnType)
@@ -1171,6 +1172,22 @@ class Typer < SimpleNodeVisitor
     @scopes.copyScopeFrom(node, call)
     [infer(call), call]
   end
+
+  def selfTypeOf(mdef: MethodDefinition): TypeFuture
+    outer_scope = @scopes.getScope(mdef)
+    selfType = outer_scope.selfType
+    if mdef.kind_of?(StaticMethodDefinition)
+      selfType = @types.getMetaType(selfType)
+    end
+    selfType
+  end
+
+  def setupInnerScope(mdef: MethodDefinition): void
+    scope = @scopes.addScope(mdef)
+    scope.selfType = selfTypeOf(mdef)
+    scope.resetDefaultSelfNode
+  end
+
 
   # FIXME: there's a bug in the AST that doesn't set the
   # calls target correctly
