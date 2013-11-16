@@ -1188,8 +1188,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
-    scope = scopeOf(arg)
-    type = @types.getLocalType(scope, identifier, arg.position)
+    @types.getLocalType(scopeOf(arg), identifier, arg.position)
   end
 
   def scopeOf(node: Node)
