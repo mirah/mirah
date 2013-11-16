@@ -976,7 +976,6 @@ class Typer < SimpleNodeVisitor
     # TODO optional arguments
 
     setupInnerScope(mdef)
-    selfType = selfTypeOf(mdef)
 
     inferAll(mdef.annotations)
     infer(mdef.arguments)
@@ -986,6 +985,7 @@ class Typer < SimpleNodeVisitor
       returnType = getTypeOf(mdef, mdef.type.typeref)
     end
 
+    selfType = selfTypeOf(mdef)
     type = @types.getMethodDefType(selfType,
                                    mdef.name.identifier,
                                    parameters,
