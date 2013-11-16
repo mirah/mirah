@@ -989,14 +989,21 @@ class Typer < SimpleNodeVisitor
       returnType = @types.get(outer_scope, mdef.type.typeref)
     end
 
-    type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters, returnType, mdef.name.position)
+    type = @types.getMethodDefType(selfType,
+                                   mdef.name.identifier,
+                                   parameters,
+                                   returnType,
+                                   mdef.name.position)
     @futures[mdef] = type
-    declareOptionalMethods(selfType, mdef, parameters, type.returnType)
-    is_void = type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
+    declareOptionalMethods(selfType,
+                           mdef,
+                           parameters,
+                           type.returnType)
+
     # TODO deal with overridden methods?
     # TODO throws
     # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
-    if is_void
+    if isVoid type
       infer(mdef.body, false)
       type.returnType.assign(@types.getVoidType, mdef.position)
     else
@@ -1182,6 +1189,10 @@ class Typer < SimpleNodeVisitor
     scope = @scopes.addScope(mdef)
     scope.selfType = selfTypeOf(mdef)
     scope.resetDefaultSelfNode
+  end
+
+  def isVoid type: MethodFuture
+    type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
   end
 
   def getLocalType arg: Node
