@@ -939,41 +939,51 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRequiredArgument(arg, expression)
-    type = getLocalType(arg)
-    scope = @scopes.getScope(arg)
     if arg.type
-      type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
+      scope = @scopes.getScope(arg)
+      getLocalType(arg).declare(
+        @types.get(scope, arg.type.typeref),
+        arg.type.position)
     else
-      type
+      getLocalType(arg)
     end
   end
 
   def visitOptionalArgument(arg, expression)
-    type = getLocalType(arg)
-    scope = @scopes.getScope(arg)
-    type.declare(@types.get(scope, arg.type.typeref), arg.type.position) if arg.type
+    if arg.type
+      scope = @scopes.getScope(arg)
+      type = getLocalType(arg)
+      type.declare(
+        @types.get(scope, arg.type.typeref),
+        arg.type.position)
+    else
+      type = getLocalType(arg)
+    end
     type.assign(infer(arg.value), arg.value.position)
     type
   end
 
   def visitRestArgument(arg, expression)
-    type = getLocalType(arg)
-    scope = @scopes.getScope(arg)
     if arg.type
-      type.declare(@types.getArrayType(@types.get(scope, arg.type.typeref)), arg.type.position)
+      scope = @scopes.getScope(arg)
+      getLocalType(arg).declare(
+        @types.getArrayType(@types.get(scope, arg.type.typeref)),
+        arg.type.position)
     else
-      type
+      getLocalType(arg)
     end
   end
 
   def visitBlockArgument(arg, expression)
     @@log.finest "BlockArgument: got here for #{arg}"
-    type = getLocalType(arg)
-    scope = @scopes.getScope(arg)
+
     if arg.type
-      type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
+      scope = @scopes.getScope(arg)
+      getLocalType(arg).declare(
+        @types.get(scope, arg.type.typeref),
+        arg.type.position)
     else
-      type
+      getLocalType(arg)
     end
   end
 
@@ -1199,11 +1209,11 @@ class Typer < SimpleNodeVisitor
     type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
   end
 
-  def getLocalType arg: FormalArgument
+  def getLocalType(arg: FormalArgument)
     getLocalType arg, arg.name.identifier
   end
 
-  def getLocalType arg: Node, identifier: String
+  def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
     scope = @scopes.getScope(arg)
     type = @types.getLocalType(scope, identifier, arg.position)
   end
