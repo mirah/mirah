@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,8 @@
 
 package org.mirah.builtins
 
-class StringExtensions
-  macro def +(arg)
-    quote { "#{`@call.target`}#{`arg`}" }
-  end
-
-  macro def include?(arg)
-    quote { `@call.target`.contains(`arg`) }
-  end
-
-  macro def =~(arg)
-    quote { `arg`.matcher(`@call.target`).find }
+class StringBuilderExtensions
+  macro def <<(arg)
+    quote { `@call.target`.append(`arg`) }
   end
 end
