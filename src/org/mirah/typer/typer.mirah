@@ -613,8 +613,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRescueClause(clause, expression)
-    scope = addScopeUnder(clause)
-    scope.parent = scopeOf(clause)
+    scope = addNestedScope clause
     name = clause.name
     if clause.types_size == 0
       clause.types.add(TypeRefImpl.new(@types.getDefaultExceptionType().resolve.name,
@@ -1038,11 +1037,10 @@ class Typer < SimpleNodeVisitor
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
-    new_scope = addScopeUnder(block)
-    new_scope.parent = scopeOf(block.parent)
     @@log.finest "Block: got here for #{block} #{block.arguments}"
-    infer(block.arguments) if block.arguments
+    new_scope = addNestedScope block
 
+    infer(block.arguments) if block.arguments
 
     closures = @closures
     typer = self
@@ -1223,6 +1221,12 @@ class Typer < SimpleNodeVisitor
     targetType = infer(target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     targetType
+  end
+
+  def addNestedScope node: Node
+    scope = addScopeUnder(node)
+    scope.parent = scopeOf(node)
+    scope
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
