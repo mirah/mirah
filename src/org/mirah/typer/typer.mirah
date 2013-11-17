@@ -226,13 +226,10 @@ class Typer < SimpleNodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      items = LinkedList.new
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
       castType = getTypeOf(call, call.typeref)
-      items.add(castType)
-      items.add(cast)
-      items.add(delegate)
-      items.add(nil)
+      items = [castType, cast,
+               delegate, nil]
       TypeFuture(PickFirst.new(items, delegate) do |type, arg|
         if arg != nil
           # We chose the cast.
@@ -325,11 +322,8 @@ class Typer < SimpleNodeVisitor
           newNode = Node(cast)
           newType = getTypeOf(call, typeref)
         end
-        items = LinkedList.new
-        items.add(newType)
-        items.add(newNode)
-        items.add(delegate)
-        items.add(nil)
+        items = [newType, newNode,
+                 delegate, nil]
         TypeFuture(PickFirst.new(items, delegate) do |type, arg|
           if arg != nil
             typer.replaceSelf(call, newNode)
