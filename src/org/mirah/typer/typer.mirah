@@ -176,9 +176,7 @@ class Typer < SimpleNodeVisitor
       node = Node(_node)
       picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
-        typer.logger.fine("Expanding macro #{call}")
-        node = InlineCode(picked_type).expand(fcall, typer)
-        need_to_infer = true
+        node = typer.expandMacro fcall, picked_type
       end
       if current_node.parent.nil?
         typer.logger.fine("Unable to replace #{current_node} with #{node}")
@@ -194,19 +192,18 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFunctionalCall(call, expression)
-    delegate = DelegateFuture.new
-
     workaroundASTBug call
     parameters = inferParameterTypes call
     methodType = callMethodType call, parameters
+
+    delegate = DelegateFuture.new
     delegate.type = methodType
     typer = self
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         if current_node.parent
-          typer.logger.fine("Expanding macro #{call}")
-          node = InlineCode(resolvedType).expand(call, typer)
+          node = typer.expandMacro call, resolvedType
           node = current_node.parent.replaceChild(current_node, node)
           current_node = node
           delegate.type = typer.infer(node, expression != nil)
@@ -285,8 +282,7 @@ class Typer < SimpleNodeVisitor
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         if current_node.parent
-          typer.logger.fine("Expanding macro #{call}")
-          node = InlineCode(resolvedType).expand(call, typer)
+          node = typer.expandMacro call, resolvedType
           node = current_node.parent.replaceChild(current_node, node)
           current_node = node
           delegate.type = typer.infer(node, expression != nil)
@@ -1269,6 +1265,11 @@ class Typer < SimpleNodeVisitor
     @types.getFieldType(targetType,
                         field.name.identifier,
                         field.position)
+  end
+
+  def expandMacro node: Node, inline_type: ResolvedType
+    logger.fine("Expanding macro #{node}")
+    InlineCode(inline_type).expand(node, self)
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
