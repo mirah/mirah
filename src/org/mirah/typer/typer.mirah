@@ -213,7 +213,7 @@ class Typer < SimpleNodeVisitor
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         if current_node.parent
-          current_node = typer.replaceAndInfer(delegate,
+          typer.replaceAndInfer(delegate,
                                 current_node,
                                 typer.expandMacro(call, resolvedType),
                                 expression != nil)
@@ -240,10 +240,6 @@ class Typer < SimpleNodeVisitor
     else
       delegate
     end
-  end
-
-  def replaceSelf me: Node, replacement: Node
-    me.parent.replaceChild(me, replacement)
   end
 
   def visitElemAssign(assignment, expression)
@@ -1282,6 +1278,10 @@ class Typer < SimpleNodeVisitor
     node = replaceSelf(current_node, replacement)
     future.type = infer(node, expression)
     node
+  end
+
+  def replaceSelf me: Node, replacement: Node
+    me.parent.replaceChild(me, replacement)
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
