@@ -600,12 +600,12 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRescueClause(clause, expression)
-    scope = addNestedScope clause
-    name = clause.name
     if clause.types_size == 0
-      clause.types.add(TypeRefImpl.new(@types.getDefaultExceptionType().resolve.name,
+      clause.types.add(TypeRefImpl.new(defaultExceptionTypeName,
                                        false, false, clause.position))
     end
+    scope = addNestedScope clause
+    name = clause.name
     if name
       scope.shadow(name.identifier)
       exceptionType = @types.getLocalType(scope, name.identifier, name.position)
@@ -1146,13 +1146,18 @@ class Typer < SimpleNodeVisitor
   end
 
   def buildNodeAndTypeForRaiseTypeThree(old_args: NodeList, node: Node)
-    class_name = @types.getDefaultExceptionType().resolve.name
-    targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
+    targetNode = Constant.new(node.position,
+                              SimpleString.new(node.position,
+                                defaultExceptionTypeName))
     params = ArrayList.new
     old_args.each {|a| params.add(Node(a).clone)}
     call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
     @scopes.copyScopeFrom(node, call)
     [infer(call), call]
+  end
+
+  def defaultExceptionTypeName
+    @types.getDefaultExceptionType().resolve.name
   end
 
   def selfTypeOf(mdef: MethodDefinition): TypeFuture
