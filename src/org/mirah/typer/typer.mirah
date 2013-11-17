@@ -236,13 +236,17 @@ class Typer < SimpleNodeVisitor
       TypeFuture(PickFirst.new(items, delegate) do |type, arg|
         if arg != nil
           # We chose the cast.
-          current_node = current_node.parent.replaceChild(current_node, cast)
+          current_node = typer.replaceSelf(current_node, cast)
           typer.infer(cast, expression != nil)
         end
       end)
     else
       delegate
     end
+  end
+
+  def replaceSelf me: Node, replacement: Node
+    me.parent.replaceChild(me, replacement)
   end
 
   def visitElemAssign(assignment, expression)
@@ -271,7 +275,7 @@ class Typer < SimpleNodeVisitor
       call.parameters.add(value)
       newNode = Node(call)
     end
-    newNode = assignment.parent.replaceChild(assignment, newNode)
+    newNode = replaceSelf(assignment, newNode)
     infer(newNode)
   end
 
@@ -328,7 +332,7 @@ class Typer < SimpleNodeVisitor
         items.add(nil)
         TypeFuture(PickFirst.new(items, delegate) do |type, arg|
           if arg != nil
-            call.parent.replaceChild(call, newNode)
+            typer.replaceSelf(call, newNode)
             typer.infer(newNode, expression != nil)
           end
         end)
@@ -422,7 +426,7 @@ class Typer < SimpleNodeVisitor
       end
     end
     replacement = Super.new(node.position, locals, nil)
-    infer(node.parent.replaceChild(node, replacement), expression != nil)
+    infer(replaceSelf(node, replacement), expression != nil)
   end
 
   def visitClassDefinition(classdef, expression)
@@ -830,7 +834,7 @@ class Typer < SimpleNodeVisitor
     else
       NodeList.new(node.position, nodes)
     end
-    replacement = node.parent.replaceChild(node, replacement)
+    replacement = replaceSelf(node, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -843,7 +847,7 @@ class Typer < SimpleNodeVisitor
     else
       replacement = LocalAssignment.new(node.position, node.name, node.value)
     end
-    replacement = node.parent.replaceChild(node, replacement)
+    replacement = replaceSelf(node, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -1281,7 +1285,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def replaceAndInfer future: DelegateFuture, current_node: Node, replacement: Node, expression: boolean
-    node = current_node.parent.replaceChild(current_node, replacement)
+    node = replaceSelf(current_node, replacement)
     future.type = infer(node, expression)
     node
   end
