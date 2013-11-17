@@ -446,27 +446,30 @@ class Typer < SimpleNodeVisitor
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
     scope = scopeOf(decl)
-    targetType = scope.selfType
-    targetType = @types.getMetaType(targetType) if decl.isStatic
-    @types.getFieldType(targetType, decl.name.identifier, decl.position).declare(
-        @types.get(scope, decl.type.typeref), decl.position)
+    targetType = fieldTargetType(decl, decl.isStatic)
+    @types.getFieldType(targetType,
+                        decl.name.identifier, 
+                        decl.position).declare(
+                          @types.get(scope, decl.type.typeref), decl.position)
   end
 
   def visitFieldAssign(field, expression)
     inferAnnotations field
-    targetType = scopeOf(field).selfType
-    targetType = @types.getMetaType(targetType) if field.isStatic
+    targetType = fieldTargetType field, field.isStatic
     value = infer(field.value, true)
-    @types.getFieldType(targetType, field.name.identifier, field.position).assign(value, field.position)
+    @types.getFieldType(targetType,
+                        field.name.identifier,
+                        field.position).assign(value, field.position)
   end
 
   def visitFieldAccess(field, expression)
-    targetType = scopeOf(field).selfType
+    targetType = fieldTargetType field, field.isStatic
     if targetType.nil?
       TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
     else
-      targetType = @types.getMetaType(targetType) if field.isStatic
-      @types.getFieldType(targetType, field.name.identifier, field.position)
+      @types.getFieldType(targetType,
+                          field.name.identifier,
+                          field.position)
     end
   end
 
@@ -1253,6 +1256,17 @@ class Typer < SimpleNodeVisitor
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
     parameters
+  end
+
+    # FIXME: fieldX nodes should have isStatic as an interface method
+  def fieldTargetType field: Named, isStatic: boolean
+    targetType = scopeOf(field).selfType
+    return nil unless targetType
+    if isStatic
+      @types.getMetaType(targetType)
+    else
+      targetType
+    end
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
