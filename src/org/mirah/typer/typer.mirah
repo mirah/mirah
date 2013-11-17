@@ -194,13 +194,10 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFunctionalCall(call, expression)
-    mergeUnquotes(call.parameters)
-    parameters = inferAll(call.parameters)
-    parameters.add(infer(call.block, true)) if call.block
     delegate = DelegateFuture.new
 
     workaroundASTBug call
-
+    parameters = inferParameterTypes call
     methodType = callMethodType call, parameters
     delegate.type = methodType
     typer = self
@@ -271,12 +268,11 @@ class Typer < SimpleNodeVisitor
     infer(newNode)
   end
 
+
+
   def visitCall(call, expression)
     target = infer(call.target)
-    mergeUnquotes(call.parameters)
-    parameters = inferAll(call.parameters)
-    parameters.add(infer(call.block, true)) if call.block
-
+    parameters = inferParameterTypes call
     methodType = CallFuture.new(@types,
                                 scopeOf(call),
                                 target,
@@ -403,8 +399,7 @@ class Typer < SimpleNodeVisitor
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
     scope = scopeOf(node)
     target = @types.getSuperClass(scope.selfType)
-    parameters = inferAll(node.parameters)
-    parameters.add(infer(node.block, true)) if node.block
+    parameters = inferParameterTypes node
     CallFuture.new(@types, scope, target, true, method.name.identifier, parameters, nil, node.position)
   end
 
@@ -1234,6 +1229,21 @@ class Typer < SimpleNodeVisitor
                                 false,
                                 parameters,
                                 call)
+  end
+
+  def inferParameterTypes call: CallSite
+    mergeUnquotes(call.parameters)
+    parameters = inferAll(call.parameters)
+    parameters.add(infer(call.block, true)) if call.block
+    parameters
+  end
+
+  # FIXME: Super should be a CallSite
+  def inferParameterTypes call: Super
+    mergeUnquotes(call.parameters)
+    parameters = inferAll(call.parameters)
+    parameters.add(infer(call.block, true)) if call.block
+    parameters
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
