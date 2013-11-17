@@ -1234,11 +1234,7 @@ class Typer < SimpleNodeVisitor
 
   # FIXME: there's a bug in the AST that doesn't set the
   # calls target correctly
-  def workaroundASTBug(call: FunctionalCall)
-    call.target.setParent(call)
-  end
-
-  def workaroundASTBug(call: VCall)
+  def workaroundASTBug(call: CallSite)
     call.target.setParent(call)
   end
 end
