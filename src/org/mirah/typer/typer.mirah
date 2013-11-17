@@ -176,13 +176,23 @@ class Typer < SimpleNodeVisitor
       node = Node(_node)
       picked_type = typefuture.resolve
       if picked_type.kind_of?(InlineCode)
-        node = typer.expandMacro fcall, picked_type
-      end
-      if current_node.parent.nil?
-        typer.logger.fine("Unable to replace #{current_node} with #{node}")
+        if current_node.parent
+          node = typer.replaceAndInfer(
+                         future,
+                         current_node,
+                         typer.expandMacro(fcall, picked_type),
+                         expression != nil)
+        end
       else
-        node = current_node.parent.replaceChild(current_node, node)
-        future.type = typer.infer(node, expression != nil)
+        if current_node.parent.nil?
+          typer.logger.fine("Unable to replace #{current_node} with #{node}")
+        else
+          node = typer.replaceAndInfer(
+                         future,
+                         current_node,
+                         node,
+                         expression != nil)
+        end
       end
       current_node = node
     end
@@ -203,10 +213,10 @@ class Typer < SimpleNodeVisitor
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         if current_node.parent
-          node = typer.expandMacro call, resolvedType
-          node = current_node.parent.replaceChild(current_node, node)
-          current_node = node
-          delegate.type = typer.infer(node, expression != nil)
+          current_node = typer.replaceAndInfer(delegate,
+                                current_node,
+                                typer.expandMacro(call, resolvedType),
+                                expression != nil)
         end
       else
         delegate.type = methodType
@@ -265,8 +275,6 @@ class Typer < SimpleNodeVisitor
     infer(newNode)
   end
 
-
-
   def visitCall(call, expression)
     target = infer(call.target)
     parameters = inferParameterTypes call
@@ -282,10 +290,10 @@ class Typer < SimpleNodeVisitor
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         if current_node.parent
-          node = typer.expandMacro call, resolvedType
-          node = current_node.parent.replaceChild(current_node, node)
-          current_node = node
-          delegate.type = typer.infer(node, expression != nil)
+          current_node = typer.replaceAndInfer(delegate,
+                                    current_node,
+                                    typer.expandMacro(call, resolvedType),
+                                    expression != nil)
         end
       else
         delegate.type = methodType
@@ -1270,6 +1278,12 @@ class Typer < SimpleNodeVisitor
   def expandMacro node: Node, inline_type: ResolvedType
     logger.fine("Expanding macro #{node}")
     InlineCode(inline_type).expand(node, self)
+  end
+
+  def replaceAndInfer future: DelegateFuture, current_node: Node, replacement: Node, expression: boolean
+    node = current_node.parent.replaceChild(current_node, replacement)
+    future.type = infer(node, expression)
+    node
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
