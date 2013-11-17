@@ -444,7 +444,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFieldDeclaration(decl, expression)
-    decl.annotations.each {|a| infer(a)}
+    inferAnnotations decl
     scope = scopeOf(decl)
     targetType = scope.selfType
     targetType = @types.getMetaType(targetType) if decl.isStatic
@@ -453,7 +453,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFieldAssign(field, expression)
-    field.annotations.each {|a| infer(a)}
+    inferAnnotations field
     targetType = scopeOf(field).selfType
     targetType = @types.getMetaType(targetType) if field.isStatic
     value = infer(field.value, true)
@@ -1229,6 +1229,10 @@ class Typer < SimpleNodeVisitor
                                 false,
                                 parameters,
                                 call)
+  end
+
+  def inferAnnotations annotated: Annotated
+    annotated.annotations.each {|a| infer(a)}
   end
 
   def inferParameterTypes call: CallSite
