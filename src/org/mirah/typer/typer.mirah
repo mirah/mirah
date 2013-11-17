@@ -145,18 +145,12 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitVCall(call, expression)
-    scope = scopeOf(call)
-
     workaroundASTBug call
-
-    targetType = inferCallTarget call.target, scope
-    methodType = CallFuture.new(@types,
-                                scope,
-                                targetType,
-                                false,
-                                Collections.emptyList,
-                                call)
-    fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
+    methodType = callMethodType call, Collections.emptyList
+    targetType = infer(call.target)
+    fcall = FunctionalCall.new(call.position,
+                               Identifier(call.name.clone),
+                               nil, nil)
     fcall.setParent(call.parent)
     @futures[fcall] = methodType
     @futures[fcall.target] = targetType
@@ -200,7 +194,6 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFunctionalCall(call, expression)
-    scope = scopeOf(call)
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
@@ -208,13 +201,7 @@ class Typer < SimpleNodeVisitor
 
     workaroundASTBug call
 
-    targetType = inferCallTarget call.target, scope
-    methodType = CallFuture.new(@types,
-                                scope,
-                                targetType,
-                                false,
-                                parameters,
-                                call)
+    methodType = callMethodType call, parameters
     delegate.type = methodType
     typer = self
     current_node = Node(call)
@@ -237,7 +224,7 @@ class Typer < SimpleNodeVisitor
       # the method call.
       items = LinkedList.new
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = @types.get(scope, call.typeref)
+      castType = getTypeOf(call, call.typeref)
       items.add(castType)
       items.add(cast)
       items.add(delegate)
@@ -289,7 +276,13 @@ class Typer < SimpleNodeVisitor
     mergeUnquotes(call.parameters)
     parameters = inferAll(call.parameters)
     parameters.add(infer(call.block, true)) if call.block
-    methodType = CallFuture.new(@types, scopeOf(call), target, true, parameters, call)
+
+    methodType = CallFuture.new(@types,
+                                scopeOf(call),
+                                target,
+                                true,
+                                parameters,
+                                call)
     delegate = DelegateFuture.new
     typer = self
     current_node = Node(call)
@@ -1230,6 +1223,17 @@ class Typer < SimpleNodeVisitor
     scope = addScopeUnder(node)
     scope.parent = scopeOf(node)
     scope
+  end
+
+  def callMethodType call: CallSite, parameters: List
+    scope = scopeOf(call)
+    targetType = inferCallTarget call.target, scope
+    methodType = CallFuture.new(@types,
+                                scope,
+                                targetType,
+                                false,
+                                parameters,
+                                call)
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
