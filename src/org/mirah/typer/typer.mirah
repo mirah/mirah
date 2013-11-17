@@ -445,21 +445,15 @@ class Typer < SimpleNodeVisitor
 
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
-    scope = scopeOf(decl)
-    targetType = fieldTargetType(decl, decl.isStatic)
-    @types.getFieldType(targetType,
-                        decl.name.identifier, 
-                        decl.position).declare(
-                          @types.get(scope, decl.type.typeref), decl.position)
+    getFieldType(decl, decl.isStatic).declare(
+                          getTypeOf(decl, decl.type.typeref),
+                          decl.position)
   end
 
   def visitFieldAssign(field, expression)
     inferAnnotations field
-    targetType = fieldTargetType field, field.isStatic
     value = infer(field.value, true)
-    @types.getFieldType(targetType,
-                        field.name.identifier,
-                        field.position).assign(value, field.position)
+    getFieldType(field, field.isStatic).assign(value, field.position)
   end
 
   def visitFieldAccess(field, expression)
@@ -467,9 +461,7 @@ class Typer < SimpleNodeVisitor
     if targetType.nil?
       TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
     else
-      @types.getFieldType(targetType,
-                          field.name.identifier,
-                          field.position)
+      getFieldType field, targetType
     end
   end
 
@@ -1267,6 +1259,16 @@ class Typer < SimpleNodeVisitor
     else
       targetType
     end
+  end
+
+  def getFieldType(field: Named, isStatic: boolean)
+    getFieldType(field, fieldTargetType(field, isStatic))
+  end
+
+  def getFieldType field: Named, targetType: TypeFuture
+    @types.getFieldType(targetType,
+                        field.name.identifier,
+                        field.position)
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
