@@ -22,6 +22,10 @@ module Mirah
       super(message)
       @position = position
     end
+
+    def inspect
+      "MirahError: #{message} #{position}"
+    end
   end
 
   class NodeError < MirahError
