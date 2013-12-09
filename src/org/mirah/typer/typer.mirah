@@ -1033,21 +1033,22 @@ class Typer < SimpleNodeVisitor
 #   selfType of newscope stays outer class
 #   infer body as expression
 # end
-        if typer.contains_methods block
-          closures.insert_closure block, resolvedType
-          #new_scope.selfType = block_future
-          #typer.infer(block.body)
-        else
-          methods = typer.type_system.getAbstractMethods(resolvedType)
-          if methods.size != 1
-            raise UnsupportedOperationException,
-                  "Multiple abstract methods in #{resolvedType}: #{methods}"
-          end
-          # TODO should be able to call methods on abstract classes that are the closures,
-          # which needs a self type of some kind
-          BlockFuture(block_future).basic_block_method_type = MethodType(methods.get(0))
-          typer.infer(block.body, true)
-        end
+        closures.insert_closure block, resolvedType
+#        if typer.contains_methods block
+#          closures.insert_closure block, resolvedType
+#          #new_scope.selfType = block_future
+#          #typer.infer(block.body)
+#        else
+#          methods = typer.type_system.getAbstractMethods(resolvedType)
+#          if methods.size != 1
+#            raise UnsupportedOperationException,
+#                  "Multiple abstract methods in #{resolvedType}: #{methods}"
+#          end
+#          # TODO should be able to call methods on abstract classes that are the closures,
+#          # which needs a self type of some kind
+#          BlockFuture(block_future).basic_block_method_type = MethodType(methods.get(0))
+#          typer.infer(block.body, true)
+#        end
       end
     end
   end

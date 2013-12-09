@@ -35,11 +35,11 @@ class ClosureBuilder
 
   def insert_closure(block: Block, parent_type: ResolvedType)
     # TODO: This will fail if the block's class changes.
-    new_node =  if has_non_local_return block
-                  prepare_non_local_return_closure(block, parent_type)
-                else
-                  prepare_regular_closure(block, parent_type)
-                end
+    #new_node =  if has_non_local_return block
+    #              prepare_non_local_return_closure(block, parent_type)
+    #            else
+    new_node =               prepare_regular_closure(block, parent_type)
+    #            end
 
     parent = CallSite(block.parent)
     replace_block_with_closure_in_call parent, block, new_node
