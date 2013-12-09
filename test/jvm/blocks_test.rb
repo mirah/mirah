@@ -58,7 +58,6 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
-
   def test_simple_block
     cls, = compile(<<-EOF)
       thread = Thread.new do
@@ -347,8 +346,8 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
-  def test_block_with_interface_method_with_2_arguments
-    cls, = with_finest_logging{compile(<<-EOF)}
+  def test_block_with_interface_method_with_2_arguments_with_types
+    cls, = compile(<<-EOF)
       interface DoubleArgMethod do
         def run(a: String, b: int):void;end
       end
@@ -358,7 +357,7 @@ class BlocksTest < Test::Unit::TestCase
           a.run "hello", 1243
         end
       end
-      ExpectsDoubleArgMethod.new.foo do |a, b|
+      ExpectsDoubleArgMethod.new.foo do |a: String, b: int|
         puts a
         puts b
       end
@@ -367,6 +366,28 @@ class BlocksTest < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_block_with_interface_method_with_2_arguments_without_types
+    cls, = compile(<<-EOF)
+      interface DoubleArgMethod2 do
+        def run(a: String, b: int):void;end
+      end
+
+      class ExpectsDoubleArgMethod2
+        def foo(a:DoubleArgMethod2)
+          a.run "hello", 1243
+        end
+      end
+      ExpectsDoubleArgMethod2.new.foo do |a, b|
+        puts a
+        puts b
+      end
+    EOF
+    assert_output "hello\n1243\n" do
+      cls.main(nil)
+    end
+  end
+
 
   def test_closures_support_non_local_return
     cls, = compile(<<-EOF)
