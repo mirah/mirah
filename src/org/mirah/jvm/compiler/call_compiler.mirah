@@ -36,19 +36,36 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void
     @@log = Logger.getLogger(CallCompiler.class.getName)
   end
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:NodeList, returnType:JVMType)
+  def initialize(compiler: BaseCompiler,
+                 bytecode: Bytecode,
+                 position: Position,
+                 target: Node,
+                 name: String,
+                 args: NodeList,
+                 returnType: JVMType)
     initialize(compiler, bytecode, position, target, name, returnType)
     @args = Node[args.size]
     args.size.times {|i| @args[i] = args.get(i)}
   end
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:List, returnType:JVMType)
+  def initialize(compiler: BaseCompiler,
+                 bytecode: Bytecode,
+                 position: Position,
+                 target: Node,
+                 name: String,
+                 args: List,
+                 returnType: JVMType)
     initialize(compiler, bytecode, position, target, name, returnType)
     @args = Node[args.size]
     args.toArray(@args)
   end
   
   # TODO: private
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, returnType:JVMType)
+  def initialize(compiler: BaseCompiler,
+                 bytecode: Bytecode,
+                 position: Position,
+                 target: Node,
+                 name: String,
+                 returnType: JVMType)
     super(compiler.context)
     @compiler = compiler
     @method = bytecode
