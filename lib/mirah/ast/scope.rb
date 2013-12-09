@@ -55,6 +55,7 @@ module Mirah
         result << "parent=#{@parent}\n  " if @parent
         result << "vars=#{locals.inspect}\n  " if @vars.size > 0
         result << "shadowed=#{@shadowed.keys.inspect}\n  " if @shadowed.size > 0
+        result << "captured=#{capturedLocals.inspect}\n  " if capturedLocals.size > 0
         result << "temps=#{@temps.keys.inspect}\n  " if @temps.size > 0
         result << "package=#{@package}\n  " if @package
         result << "imports=#{@imports.inspect}\n  " if @imports.size > 0
