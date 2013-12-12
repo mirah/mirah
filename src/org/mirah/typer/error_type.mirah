@@ -35,6 +35,10 @@ class ErrorType < SpecialType
 
   def matchesAnything; true; end
 
+  def assignableFrom(other)
+    false # error types can't be assigned from any other type
+  end
+
   def toString:String
     "<Error: #{message}>"
   end

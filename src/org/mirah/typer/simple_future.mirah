@@ -31,4 +31,7 @@ class SimpleFuture; implements TypeFuture
   def print(out)
     out.puts("#{resolve}")
   end
+  def toString
+    "<SimpleFuture: #{resolve}>"
+  end
 end

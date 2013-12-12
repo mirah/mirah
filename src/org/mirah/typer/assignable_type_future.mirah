@@ -39,10 +39,10 @@ class AssignableTypeFuture < BaseTypeFuture
   # Set the declared type. Only one declaration is allowed.
   def declare(type:TypeFuture, position:Position):TypeFuture
     @lock.lock
-    base_type = self
     if @declarations.containsKey(type)
       TypeFuture(@declarations[type])
     elsif @declarations.isEmpty
+      base_type = self
       type.onUpdate do |t, value|
         base_type.resolved(value)
       end
@@ -50,7 +50,11 @@ class AssignableTypeFuture < BaseTypeFuture
       @declarations[type] = self
       TypeFuture(self)
     else
-      TypeFuture(@declarations[type] = ErrorType.new([['Type redeclared', position], ['First declared', self.position]]))
+      declared_type_error = TypeFuture(ErrorType.new([['Type redeclared', position], ['First declared', self.position]]))
+      @declarations[type] = declared_type_error
+      resolved ResolvedType(declared_type_error)
+
+      declared_type_error
     end
   ensure
     @lock.unlock
@@ -63,9 +67,9 @@ class AssignableTypeFuture < BaseTypeFuture
     if @assignments.containsKey(value)
       TypeFuture(@assignments[value])
     else
-      variable = self
       assignment = AssignmentFuture.new(self, value, position)
       @assignments[value] = assignment
+      variable = self
       value.onUpdate do |x, resolved|
         variable.checkAssignments
         if resolved.isError
