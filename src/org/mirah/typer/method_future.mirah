@@ -23,7 +23,11 @@ import mirah.lang.ast.*
 # Future for the type of a method.
 # Resolves to either a MethodType or an ErrorType.
 class MethodFuture < BaseTypeFuture
-  def initialize(name:String, parameters:List, returnType:AssignableTypeFuture, vararg:boolean, position:Position)
+  def initialize(name: String,
+                 parameters: List,
+                 returnType: AssignableTypeFuture,
+                 vararg: boolean,
+                 position: Position)
     super(position)
     @methodName = name
     @returnType = returnType

@@ -169,9 +169,9 @@ class Typer < SimpleNodeVisitor
                infer(primitive, true), primitive
               ]
     current_node = Node(call)
-    typer = self
     future = DelegateFuture.new
     future.type = infer(local, true)
+    typer = self
     picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
       picked_type = typefuture.resolve
@@ -208,8 +208,8 @@ class Typer < SimpleNodeVisitor
 
     delegate = DelegateFuture.new
     delegate.type = methodType
-    typer = self
     current_node = Node(call)
+    typer = self
     methodType.onUpdate do |x, resolvedType|
       if resolvedType.kind_of?(InlineCode)
         if current_node.parent
