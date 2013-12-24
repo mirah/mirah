@@ -29,14 +29,19 @@ end
 
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
-task :gem => ['jar:bootstrap', "javalib/mirah-compiler.jar", "javalib/mirah-mirrors.jar"]
-task :bootstrap => ['javalib/mirah-bootstrap.jar', 'javalib/mirah-builtins.jar', 'javalib/mirah-util.jar']
+task :gem => [:bootstrap,
+              "javalib/mirah-compiler.jar",
+              "javalib/mirah-mirrors.jar"]
+task :bootstrap => ['javalib/mirah-bootstrap.jar',
+                    'javalib/mirah-builtins.jar',
+                    'javalib/mirah-util.jar']
 
 
 task :default => :bytecode_ci
 
 desc "run bytecode backend ci"
-task :bytecode_ci => [:'test:core', :'test:jvm:bytecode']
+task :bytecode_ci => [:'test:core',
+                      :'test:jvm:bytecode']
 desc "run new backend ci"
 task :new_ci => [:'test:core', :'test:jvm:new']
 
@@ -86,7 +91,9 @@ namespace :test do
     task :test_setup =>  [:clean_tmp_test_directory, :build_test_fixtures]
 
     desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode => [:bootstrap, "javalib/mirah-compiler.jar", :test_setup] do |t|
+    Rake::TestTask.new :bytecode => [:bootstrap, 
+                                     "javalib/mirah-compiler.jar",
+                                      :test_setup] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
@@ -139,6 +146,7 @@ task :clean do
   rm_f 'javalib/mirah-compiler.jar'
   rm_f 'javalib/mirah-builtins.jar'
   rm_f 'javalib/mirah-util.jar'
+  rm_f 'javalib/mirah-mirrors.jar'
   rm_rf 'tmp'
 end
 
@@ -175,9 +183,6 @@ namespace :jar do
       end
     end
   end
-
-  desc "build bootstrap jar used by the gem"
-  task :bootstrap => 'javalib/mirah-bootstrap.jar'
 end
 
 desc "Build a distribution zip file"
