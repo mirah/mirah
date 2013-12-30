@@ -238,7 +238,7 @@ class MirahCompiler implements JvmBackend
         IsolatedResourceLoader.new(macrocp),
         FilteredResources.new(
             ClassResourceLoader.new(Mirahc.class),
-            Pattern.compile("^/?(mirah/|org/mirah/macros)"),
+            Pattern.compile("^/?(mirah/|org/mirah)"),
             bootloader))
 
     macro_class_loader = URLClassLoader.new(
