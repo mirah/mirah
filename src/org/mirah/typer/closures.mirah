@@ -108,7 +108,7 @@ class ClosureBuilder
   end
 
   # Builds MethodDefinitions in klass for the abstract methods in iface.
-  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope)
+  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope):void
     methods = @types.getAbstractMethods(iface)
     if methods.size == 0
       @@log.warning("No abstract methods in #{iface}")
