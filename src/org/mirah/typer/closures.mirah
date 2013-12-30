@@ -16,6 +16,7 @@
 package org.mirah.typer
 
 import mirah.lang.ast.*
+import java.util.logging.Logger
 import java.util.Collections
 
 # This class transforms a Block into an anonymous class once the Typer has figured out
@@ -24,6 +25,10 @@ import java.util.Collections
 # Note: This is ugly. It depends on the internals of the JVM scope and jvm_bytecode classes,
 # and the BindingReference node is a hack. This should really all be cleaned up.
 class ClosureBuilder
+  def self.initialize:void
+    @@log = Logger.getLogger(ClosureBuilder.class.getName)
+  end
+
   def initialize(typer: Typer)
     @typer = typer
     @types = typer.type_system
@@ -102,10 +107,13 @@ class ClosureBuilder
     return false
   end
 
-  # Builds MethodDefinitions in klass for the abstrace methods in iface.
+  # Builds MethodDefinitions in klass for the abstract methods in iface.
   def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope)
     methods = @types.getAbstractMethods(iface)
-    if methods.size != 1
+    if methods.size == 0
+      @@log.warning("No abstract methods in #{iface}")
+      return
+    elsif methods.size > 1
       raise UnsupportedOperationException, "Multiple abstract methods in #{iface}: #{methods}"
     end
     methods.each do |_m|
