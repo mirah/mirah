@@ -34,10 +34,10 @@
               <arguments>
                 <argument>-c</argument>
                 <argument>
-                  jruby -S bundle exec rake jar:complete
+                  jruby -S rake dist/mirahc.jar
                   rm -rf dist/classes
                   mkdir dist/classes
-                  unzip dist/mirah-complete.jar -d dist/classes &gt; /dev/null
+                  unzip dist/mirahc.jar -d dist/classes &gt; /dev/null
                 </argument>
               </arguments>
             </configuration>
