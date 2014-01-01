@@ -720,7 +720,7 @@ module Mirah::JVM::Types
 
     def base_classpath
       if __FILE__.include? '.jar'
-        Mirah::Env.encode_paths([__FILE__.split('!').first.split(':').last])
+        Mirah::Env.encode_paths([__FILE__.split('!').first.split(Mirah::Env.path_separator).last])
       else
         Mirah::Env.encode_paths(['.',
                                  File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
@@ -735,7 +735,7 @@ module Mirah::JVM::Types
 
     def classpath=(classpath)
       if classpath
-        @classpath = classpath + ":" + base_classpath
+        @classpath = Mirah::Env.encode_paths [classpath, base_classpath]
       end
       @resource_loader = nil
     end
