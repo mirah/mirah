@@ -22,6 +22,11 @@ require 'java'
 require 'jruby/compiler'
 require 'ant'
 
+# this definition ensures that the bootstrap tasks will be completed before
+# building the .gem file. Otherwise, the gem may not contain the jars.
+task :gem => [:bootstrap,
+              "javalib/mirah-compiler.jar",
+              "javalib/mirah-mirrors.jar"]
 Gem::PackageTask.new Gem::Specification.load('mirah.gemspec') do |pkg|
   pkg.need_zip = true
   pkg.need_tar = true
@@ -29,9 +34,6 @@ end
 
 bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
-task :gem => [:bootstrap,
-              "javalib/mirah-compiler.jar",
-              "javalib/mirah-mirrors.jar"]
 task :bootstrap => ['javalib/mirah-bootstrap.jar',
                     'javalib/mirah-builtins.jar',
                     'javalib/mirah-util.jar']
