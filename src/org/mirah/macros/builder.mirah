@@ -45,6 +45,7 @@ import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
+import mirah.lang.ast.Unquote
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.Typer
 
@@ -137,6 +138,14 @@ class MacroBuilder; implements Compiler
     end
   end
 
+  def cast(typename, value)
+    t = Unquote.new
+    t.object = typename
+    v = Unquote.new
+    v.object = value
+    Cast.new(t, v)
+  end
+
   def serializeAst(node:Node):Object
     raise IllegalArgumentException, "No position for #{node}" unless node.position
     result = Object[5]
@@ -186,24 +195,39 @@ class MacroBuilder; implements Compiler
   end
 
   def constructAst(macroDef:MacroDefinition):Script
-    template = MacroBuilder.class.getResourceAsStream("template.mirah.tpl")
     name = extensionName(macroDef)
     addMissingTypes(macroDef)
     argdef = makeArgAnnotation(macroDef.arguments)
     casts = makeCasts(macroDef.arguments)
     scope = @scopes.getScope(macroDef)
     isStatic = mirah::lang::ast::Boolean.new(macroDef.name.position, macroDef.isStatic || scope.selfType.resolve.isMeta)
-    script = deserializeScript("Macro", template,
-                               [ name,
-                                 macroDef.arguments.clone,
-                                 macroDef.body,
-                                 casts,
-                                 # Annotations come last in the AST even though they're first
-                                 # in the source.
-                                 macroDef.name.clone,
-                                 argdef,
-                                 isStatic
-                               ])
+    script = Script.new(macroDef.position)
+    script.body = quote do
+      import org.mirah.macros.anno.*
+      import org.mirah.macros.Macro
+      import org.mirah.macros.Compiler
+      import mirah.lang.ast.*
+
+      $MacroDef[name: `macroDef.name`, arguments:`argdef`, isStatic:`isStatic`]
+      class `name` implements Macro
+        def initialize(mirah:Compiler, call:CallSite)
+          @mirah = mirah
+          @call = call
+        end
+
+        def _expand(`macroDef.arguments.clone`):Node
+          `macroDef.body`
+        end
+
+        def expand:Node
+          _expand(`casts`)
+        end
+
+        def gensym:String
+          @mirah.scoper.getScope(@call).temp('gensym')
+        end
+      end
+    end
     preamble = NodeList.new
 
     if scope.package
@@ -246,7 +270,12 @@ class MacroBuilder; implements Compiler
       end
     end
     block = macroDef.arguments.block
-    block.type = SimpleString.new('mirah.lang.ast.Block') if (block && block.type.nil?)
+    if block
+      type = block.type || SimpleString.new('mirah.lang.ast.Block')
+      macroDef.arguments.block = nil
+      macroDef.arguments.required.add(
+          RequiredArgument.new(block.position, block.name, type))
+    end
   end
 
   def makeCasts(args:Arguments):List

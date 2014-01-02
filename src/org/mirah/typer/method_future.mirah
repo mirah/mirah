@@ -56,9 +56,13 @@ class MethodFuture < BaseTypeFuture
     @returnType
   end
 
-  def print(out)
-    out.print("returnType: ")
+  def dump(out)
+    out.write("returnType: ")
     out.printFuture(@returnType)
     super
+  end
+
+  def getComponents
+    {returnType: @returnType}
   end
 end

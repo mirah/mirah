@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,28 +13,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.typer
+package org.mirah.jvm.mirrors
 
-# A minimal TypeFuture.
-# It is resolved at creation and never updated.
-class SimpleFuture; implements TypeFuture
-  def initialize(type:ResolvedType)
-    @type = type
-  end
-  def isResolved() true end
-  def resolve() @type end
-  def onUpdate(listener)
-    listener.updated(self, @type)
-    listener
-  end
-  def removeListener(listener); end
-  def dump(out)
-    out.writeLine("#{resolve}")
-  end
-  def getComponents
-    {}
-  end
-  def toString
-    "<SimpleFuture: #{resolve}>"
+import mirah.lang.ast.*
+
+class MirrorNumberExtensions
+
+  # This is needed by the Mirror type system,
+  # but it breaks the ruby type system.
+  macro def -@
+    quote {0 - `@call.target`}
   end
 end

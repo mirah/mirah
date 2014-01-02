@@ -88,6 +88,10 @@ class IntersectionType < BaseType implements DeclaredType
     Collections.emptyList
   end
 
+  def name
+    toString
+  end
+
   def toString
     sb = StringBuilder.new
     first = true

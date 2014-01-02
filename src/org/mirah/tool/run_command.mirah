@@ -18,20 +18,43 @@ package org.mirah.tool
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import org.mirah.MirahClassLoader
 
-class Mirahc < MirahTool
+class RunCommand < MirahTool
+  def initialize
+    @class_map = {}
+  end
 
   def consumeClass(filename:String, bytes:byte[]):void
-    file = File.new(destination, "#{filename.replace(?., ?/)}.class")
-    parent = file.getParentFile
-    parent.mkdirs if parent
-    output = BufferedOutputStream.new(FileOutputStream.new(file))
-    output.write(bytes)
-    output.close
+    @class_map[filename] = bytes
+  end
+
+  def run
+    loader = MirahClassLoader.new(RunCommand.class.getClassLoader, @class_map)
+    main_method = nil
+    @class_map.keySet.each do |filename:String|
+      klass = loader.loadClass(filename)
+      params = Class[1]
+      params[0] = String[].class
+      main_method ||= klass.getMethod("main", params)
+    end
+    if main_method
+      args = Object[1]
+      args[0] = String[0]
+      main_method.invoke(nil, args)
+      0
+    else
+      puts "No main method found"
+      1
+    end
   end
 
   def self.main(args:String[]):void
-    mirahc = Mirahc.new()
-    System.exit(mirahc.compile(args))
+    mirahc = RunCommand.new()
+    result = mirahc.compile(args)
+    if result == 0
+      result = mirahc.run
+    end
+    System.exit(result)
   end
 end

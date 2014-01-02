@@ -67,13 +67,23 @@ class CallFuture < BaseTypeFuture
     end
   end
 
-  def print(out)
-    out.print("target: ")
+  def dump(out)
+    out.write("resolved: ")
+    super
+    out.write("target: ")
     out.printFuture(@target)
-    out.puts("name: #{@name}")
+    out.writeLine("name: #{@name}")
     @paramTypes.each do |p|
       out.printFuture(TypeFuture(p))
     end
+  end
+
+  def getComponents
+    map = LinkedHashMap.new
+    map[:target] = @target
+    map[:name] = @name
+    map[:params] = ArrayList.new(@paramTypes)
+    map
   end
 
   def self.getNodes(call:CallSite):List

@@ -70,10 +70,14 @@ class PickFirst < BaseTypeFuture
     self.resolved(resolvedType)
   end
 
-  def print(out)
+  def dump(out)
     @items.each do |i|
       out.printFuture(TypeFuture(i))
     end
+  end
+
+  def getComponents
+    {items: ArrayList.new(@items)}
   end
 
 #  private

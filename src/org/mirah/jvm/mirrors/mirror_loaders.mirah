@@ -84,6 +84,19 @@ class FilteredResources < ResourceLoader
   end
 end
 
+class NegativeFilteredResources < ResourceLoader
+  def initialize(source:ResourceLoader, filter:Pattern, parent:ResourceLoader=nil)
+    super(parent)
+    @source = source
+    @filter = filter
+  end
+  def findResource(name)
+    unless @filter.matcher(name).lookingAt
+      @source.getResourceAsStream(name)
+    end
+  end
+end
+
 class SimpleMirrorLoader implements MirrorLoader
   def initialize(parent:MirrorLoader=nil)
     @parent = parent
@@ -279,7 +292,7 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
             @@log.fine("Found #{classfile}")
             mirror = BytecodeMirror.new(@context, node, @ancestorLoader)
             BytecodeMirrorLoader.findMacros(node).each do |name|
-              BytecodeMirrorLoader.addMacro(mirror, String(name), @ancestorLoader)
+              BytecodeMirrorLoader.addMacro(mirror, String(name))
             end
             return mirror
           end
@@ -300,21 +313,26 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     end
   end
 
-  def self.addMacro(type:BaseType, name:String, loader:MirrorLoader)
-    klass = Class.forName(name)
-    member = MacroMember.create(klass, type, loader)
+  def self.addMacro(type:BaseType, name:String)
+    classloader = type.context[ClassLoader]
+    klass = if classloader
+      classloader.loadClass(name)
+    else
+      Class.forName(name)
+    end
+    member = MacroMember.create(klass, type, type.context)
     type.add(member)
     @@log.fine("Loaded macro #{member}")
   end
 
-  def self.extendClass(type:BaseType, extensions:Class, loader:MirrorLoader)
+  def self.extendClass(type:BaseType, extensions:Class)
     path = "/#{extensions.getName.replace(?., ?/)}.class"
     stream = extensions.getResourceAsStream(path)
     node = ClassNode.new
     ClassReader.new(stream).accept(node, ClassReader.SKIP_CODE)
     macros = findMacros(node)
     macros.each do |name|
-      addMacro(type, String(name), loader)
+      addMacro(type, String(name))
     end
   end
 

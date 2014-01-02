@@ -98,7 +98,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @compatibility_listeners = []
   end
 
-  attr_reader superclass:JVMType, name:String, type:Type, flags:int
+  attr_reader superclass:JVMType, name:String, type:Type, flags:int, context:Context
 
   def notifyOfIncompatibleChange:void
     @cached_supertypes = List(nil)
@@ -145,7 +145,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   def getAsmType:Type; @type; end
 
   def isInterface:boolean
-    0 != (@flags & Opcodes.ACC_INTERFACE)
+    0 != (self.flags & Opcodes.ACC_INTERFACE)
   end
 
   def retention:String; nil; end

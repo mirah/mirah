@@ -108,19 +108,38 @@ class AssignableTypeFuture < BaseTypeFuture
     @lock.unlock
   end
 
-  def print(out:FuturePrinter)
+  def declaredType:TypeFuture
+    @lock.lock
+    if @declarations.isEmpty
+      nil
+    else
+      TypeFuture(@declarations.keySet.iterator.next)
+    end
+  ensure
+    @lock.unlock
+  end
+
+  def dump(out:FuturePrinter)
+    out.write("resolved: ")
+    super
     if hasDeclaration
-      decl = TypeFuture(@declarations.keySet.iterator.next)
-      out.print("declared: ")
-      out.printFuture(decl)
+      out.write("declared: ")
+      out.printFuture(declaredType)
     end
     assignedValues(true, true).each do |_value|
       value = TypeFuture(_value)
       out.printFuture(value)
       unless value.isResolved
-        out.puts "(resolved: #{value.resolve})"
+        out.writeLine("(resolved: #{value.resolve})")
       end
     end
+  end
+
+  def getComponents
+    map = LinkedHashMap.new
+    map['declaration'] = declaredType if hasDeclaration
+    map['values'] = assignedValues(true, true)
+    map
   end
 
   def checkAssignments:void

@@ -25,11 +25,13 @@ import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.UnreachableType
 import org.mirah.util.Context
 
 class ReturnTypeFuture < AssignableTypeFuture
-  def initialize(position:Position)
+  def initialize(context:Context, position:Position)
     super(position)
+    @context = context
     @has_declaration = false
   end
 
@@ -44,8 +46,12 @@ class ReturnTypeFuture < AssignableTypeFuture
 
   def resolved(type)
     # We don't support generic methods in Mirah classes
-    if type.kind_of?(MirrorType)
+    if type && type.name.equals("null")
+      type = @context[MirrorTypeSystem].loadNamedType('java.lang.Object').resolve
+    elsif type.kind_of?(MirrorType)
       type = MirrorType(MirrorType(type).erasure)
+    elsif type.kind_of?(UnreachableType)
+      type = VoidType.new
     end
     super
   end
@@ -57,7 +63,7 @@ class MirahMethod < AsyncMember implements MethodListener
                  argumentTypes:List /* of TypeFuture */,
                  returnType:TypeFuture, kind:MemberKind)
     super(flags, klass, name, argumentTypes,
-          @return_type = ReturnTypeFuture.new(position), kind)
+          @return_type = ReturnTypeFuture.new(context, position), kind)
     @context = context
     @lookup = context[MethodLookup]
     @position = position

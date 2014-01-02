@@ -50,9 +50,13 @@ class DerivedFuture < BaseTypeFuture
     super
   end
 
-  def print(out)
-    out.print("target: ")
+  def dump(out)
+    out.write("target: ")
     out.printFuture(@target)
     super
+  end
+
+  def getComponents
+    {target: @target}
   end
 end

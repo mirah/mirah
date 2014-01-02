@@ -614,13 +614,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRescue(node, expression)
-    bodyType = infer(node.body, expression && node.elseClause.nil?) if node.body
-    elseType = infer(node.elseClause, expression != nil) if node.elseClause
+    # AST contains an empty else clause even if there isn't one
+    # in the source. Once, the parser's compiling, we should fix it.
+    hasElse = !(node.elseClause.nil? || node.elseClause.size == 0)
+    bodyType = infer(node.body, expression && !hasElse) if node.body
+    elseType = infer(node.elseClause, expression != nil) if hasElse
     if expression
       myType = AssignableTypeFuture.new(node.position)
-      # AST contains an empty else clause even if there isn't one
-      # in the source. Once, the parser's compiling, we should fix it.
-      if node.elseClause && node.elseClause.size > 0
+      if hasElse
         myType.assign(elseType, node.elseClause.position)
       else
         myType.assign(bodyType, node.body.position)
@@ -1110,11 +1111,11 @@ class Typer < SimpleNodeVisitor
   end
 
   def buildNodeAndTypeForRaiseTypeOne(old_args: NodeList, node: Node)
-    new_node = Node(Node(old_args.get(0)).clone)
-    @scopes.copyScopeFrom(node, new_node)
-    new_type = BaseTypeFuture.new(new_node.position)
-    error = ErrorType.new([["Not an expression", new_node.position]])
-    infer(new_node).onUpdate do |x, resolvedType|
+    exception_node = Node(old_args.clone)
+    exception_node.setParent(node)
+    new_type = BaseTypeFuture.new(exception_node.position)
+    error = ErrorType.new([["Not an expression", exception_node.position]])
+    infer(exception_node).onUpdate do |x, resolvedType|
       # We need to make sure they passed an object, not just a class name
       if resolvedType.isMeta
         new_type.resolved(error)
@@ -1122,12 +1123,13 @@ class Typer < SimpleNodeVisitor
         new_type.resolved(resolvedType)
       end
     end
+    exception_node.setParent(nil)
     # Now we need to make sure the object is an exception, otherwise we
     # need to use a different syntax.
-    exceptionType = AssignableTypeFuture.new(new_node.position)
+    exceptionType = AssignableTypeFuture.new(exception_node.position)
     exceptionType.declare(@types.getBaseExceptionType(), node.position)
     assignment = exceptionType.assign(new_type, node.position)
-    [assignment, new_node]
+    [assignment, exception_node]
   end
 
   def buildNodeAndTypeForRaiseTypeTwo(old_args: NodeList, node: Node)

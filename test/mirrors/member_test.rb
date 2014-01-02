@@ -14,7 +14,8 @@
 # limitations under the License.
 
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class MembersTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.Member'

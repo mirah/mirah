@@ -55,8 +55,8 @@ class Number < BaseType implements PrimitiveType
         add_operators(@loader.loadMirror(Type.INT_TYPE), boolean)
       end
     end
-    BytecodeMirrorLoader.extendClass(
-        self, MirrorObjectExtensions.class, @loader)
+    BytecodeMirrorLoader.extendClass(self, MirrorObjectExtensions.class)
+    BytecodeMirrorLoader.extendClass(self, MirrorNumberExtensions.class)
     true
   end
 

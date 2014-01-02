@@ -263,7 +263,7 @@ class GenericMethodLookup
     else
       substituteTypeVariables(returnType, typevars)
     end
-    if newReturnType == returnType
+    if newReturnType == method.genericReturnType
       method
     else
       newMember = Member.new(

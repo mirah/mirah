@@ -105,7 +105,7 @@ class ConstructorsTest < Test::Unit::TestCase
         end
       EOF
     end
-    assert_equal "Cannot find instance method initialize() on SuperCA", error.message
+    assert_match /Can.*t find.* method (SuperCA\.)?initialize\(\)/, error.message
   end
 
 
@@ -118,7 +118,7 @@ class ConstructorsTest < Test::Unit::TestCase
         end
       EOF
     end
-    assert_equal "Cannot find instance method initialize(java.lang.String) on java.util.ArrayList", error.message
+    assert_match /Can.*t find( instance)? method (java.util.ArrayList\.)?initialize\(java.lang.String\)/, error.message
   end
 
   def test_empty_constructor

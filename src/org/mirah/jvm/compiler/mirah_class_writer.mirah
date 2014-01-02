@@ -13,25 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.tool
+package org.mirah.jvm.compiler
 
-import java.io.BufferedOutputStream
-import java.io.File
-import java.io.FileOutputStream
+import org.mirah.util.Context
+import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.jvm.mirrors.MirrorType
+import org.jruby.org.objectweb.asm.ClassWriter
 
-class Mirahc < MirahTool
-
-  def consumeClass(filename:String, bytes:byte[]):void
-    file = File.new(destination, "#{filename.replace(?., ?/)}.class")
-    parent = file.getParentFile
-    parent.mkdirs if parent
-    output = BufferedOutputStream.new(FileOutputStream.new(file))
-    output.write(bytes)
-    output.close
+class MirahClassWriter < ClassWriter
+  def initialize(context:Context, flags:int)
+    super(flags)
+    @types = context[MirrorTypeSystem]
   end
-
-  def self.main(args:String[]):void
-    mirahc = Mirahc.new()
-    System.exit(mirahc.compile(args))
+  def getCommonSuperClass(a, b)
+    if @types
+      resolved_a = MirrorType(@types.loadNamedType(a).resolve)
+      resolved_b = MirrorType(@types.loadNamedType(b).resolve)
+      wide = MirrorType(resolved_a.widen(resolved_b)).erasure
+      MirrorType(wide).getAsmType.getInternalName
+    else
+      super
+    end
   end
 end

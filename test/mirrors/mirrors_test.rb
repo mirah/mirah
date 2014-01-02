@@ -14,7 +14,8 @@
 # limitations under the License.
 
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
@@ -217,13 +218,13 @@ class MirrorsTest < BaseMirrorsTest
 
   def test_meta_resolved
     type = @types.getStringType.resolve
-    assert_false(type.isMeta)
+    assert(!type.isMeta)
     assert(@types.getMetaType(type).isMeta)
   end
 
   def test_meta_future
     type = @types.getStringType
-    assert_false(type.resolve.isMeta)
+    assert(!type.resolve.isMeta)
     assert(@types.getMetaType(type).resolve.isMeta)
   end
 
@@ -395,6 +396,14 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_resolved_to('I', type.resolve.returnType)
   end
 
+  def test_method_def_nil
+    @types.getMethodDefType(main_type, 'foobar', [], @types.getNullType, nil)
+    type = @types.getMethodType(
+        CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
+    assert_not_equal('null', type.resolve.returnType.name)
+    assert_resolved_to('Ljava/lang/Object;', type.resolve.returnType)
+  end
+
   def test_async_return_type
     future = BaseTypeFuture.new
     @types.getMethodDefType(main_type, 'foo', [], future, nil)
@@ -498,6 +507,12 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_descriptor("I", type2)
   end
 
+  def test_nulltype_methods
+    type = CallFuture.new(@types, @scope, @types.getNullType, true, 'nil?', [], [], nil)
+    assert_not_error(type)
+    assert_descriptor('Z', type)
+  end
+
   def test_super_in_constructor
     @scope.selfType_set(main_type)
     @scope.context_set(ConstructorDefinition.new)
@@ -589,6 +604,14 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     checked = CallFuture.new(
         @types, @scope, collections, true, 'checkedSet', [set, klass], [], nil)
     assert_equal('java.util.Set<FooBar>', checked.resolve.toString)
+  end
+
+  def test_wildcard_return
+    loader = @types.get(@scope, typeref('java.lang.ClassLoader'))
+    klass = CallFuture.new(
+        @types, @scope, loader, true, 'loadClass',
+        [@types.getStringType], [], nil)
+    assert(klass.resolve.assignableFrom(klass.resolve), klass.resolve.toString)
   end
 
   def test_nil_argument

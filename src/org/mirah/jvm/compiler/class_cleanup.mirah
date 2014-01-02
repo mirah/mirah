@@ -23,11 +23,13 @@ import mirah.lang.ast.*
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.Typer
+import org.mirah.typer.MethodType
 import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 
 import java.util.ArrayList
+import javax.tools.Diagnostic.Kind
 
 # Moves class-level field and constant initialization into the constructors/static initializer.
 # TODO: generate synthetic/bridge methods.
@@ -43,6 +45,7 @@ class ClassCleanup < NodeScanner
     @constructors = ArrayList.new
     @field_annotations = AnnotationCollector.new(context)
     @methods = ArrayList.new
+    @method_states = {}
   end
 
   def self.initialize:void
@@ -149,6 +152,27 @@ class ClassCleanup < NodeScanner
   def note(message:String, position:Position)
     @context[DiagnosticListener].report(MirahDiagnostic.note(position, message))
   end
+
+  def addMethodState(state:MethodState):void
+    methods = List(@method_states[state.name])
+    methods ||= @method_states[state.name] = []
+    methods.each do |m:MethodState|
+      conflict = m.conflictsWith(state)
+      if conflict
+        desc = if conflict == Kind.ERROR
+          "Conflicting definition of #{state}"
+        else
+          "Possibly conflicting definition of #{state}"
+        end
+        @context[DiagnosticListener].report(MirahDiagnostic.new(
+            conflict, state.position, desc))
+        note("Previous definition of #{m}", m.position)
+        return
+      end
+    end
+    methods.add(state)
+  end
+
   def enterDefault(node, arg)
     error("Statement (#{node.getClass}) not enclosed in a method", node.position)
     false
@@ -156,6 +180,8 @@ class ClassCleanup < NodeScanner
   def enterMethodDefinition(node, arg)
     MethodCleanup.new(@context, node).clean
     @methods.add(node)
+    addMethodState(MethodState.new(
+        node, MethodType(@typer.getInferredType(node).resolve)))
     false
   end
   def enterStaticMethodDefinition(node, arg)
@@ -165,6 +191,8 @@ class ClassCleanup < NodeScanner
     end
     @methods.add(node)
     MethodCleanup.new(@context, node).clean
+    addMethodState(MethodState.new(
+        node, MethodType(@typer.getInferredType(node).resolve)))
     false
   end
   def isStatic(node:Node)
@@ -183,6 +211,8 @@ class ClassCleanup < NodeScanner
     @field_annotations.collect(node.body)
     MethodCleanup.new(@context, node).clean
     @methods.add(node)
+    addMethodState(MethodState.new(
+        node, MethodType(@typer.getInferredType(node).resolve)))
     false
   end
   
@@ -195,6 +225,10 @@ class ClassCleanup < NodeScanner
     false
   end
   def enterImport(node, arg)
+    # ignore
+    false
+  end
+  def enterNoop(node, arg)
     # ignore
     false
   end
@@ -226,6 +260,7 @@ class ClassCleanup < NodeScanner
     false
   end
   def enterMacroDefinition(node, arg)
+    addMethodState(MethodState.new(node))
     false
   end
   

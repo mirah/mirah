@@ -100,8 +100,9 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   
   def startClass:void
     # TODO: need to support widening before we use COMPUTE_FRAMES
-    @classwriter = ClassWriter.new(ClassWriter.COMPUTE_MAXS)
-    @classwriter.visit(Opcodes.V1_6, flags, internal_name, nil, superclass, interfaces)
+    jvm = context[JvmVersion]
+    @classwriter = MirahClassWriter.new(context, jvm.flags)
+    @classwriter.visit(jvm.version, flags, internal_name, nil, superclass, interfaces)
     filename = self.filename
     @classwriter.visitSource(filename, nil) if filename
     if @outerClass

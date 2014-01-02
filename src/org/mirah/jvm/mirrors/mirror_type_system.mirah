@@ -55,6 +55,7 @@ import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.TypeSystem
+import org.mirah.typer.UnreachableType
 import org.mirah.typer.simple.SimpleScope
 import org.mirah.util.Context
 
@@ -64,18 +65,10 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 
-class ClassPath
-  attr_accessor classpath:ResourceLoader, macro_classpath:ResourceLoader
-  attr_accessor loader:AsyncMirrorLoader
-  attr_accessor bytecode_loader:MirrorLoader
-  attr_accessor macro_loader:MirrorLoader
-end
-
 class MirrorTypeSystem implements TypeSystem
   def initialize(
       context:Context=nil,
-      classloader:ResourceLoader=nil,
-      macroloader:ResourceLoader=nil)
+      classloader:ResourceLoader=nil)
     @primitives = {
       boolean: 'Z',
       byte: 'B',
@@ -96,25 +89,12 @@ class MirrorTypeSystem implements TypeSystem
         context, classloader, PrimitiveLoader.new(context))
     @loader = SimpleAsyncMirrorLoader.new(context, AsyncLoaderAdapter.new(
         context, bytecode_loader))
-    if macroloader
-      @macro_loader = BytecodeMirrorLoader.new(
-          context, macroloader, bytecode_loader)
-    else
-      @macro_loader = bytecode_loader
-    end
 
-    context[ClassPath] = classpath = ClassPath.new
-    classpath.classpath = classloader
-    classpath.macro_classpath = macroloader
-    classpath.loader = @loader
-    classpath.bytecode_loader = bytecode_loader
-    classpath.macro_loader = @macro_loader
     context[MethodLookup] = @methods = MethodLookup.new(context)
     context[JavaxTypes] = Types.new(context)
 
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
-    @main_type = TypeFuture(nil)
     @anonymousClasses = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
@@ -158,7 +138,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    @main_type ||= getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
+    getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
   end
 
   def getMainClassName(script:Script):String
@@ -264,7 +244,7 @@ class MirrorTypeSystem implements TypeSystem
   def getMethodType(call)
     future = DelegateFuture.new()
     if call.resolved_target
-      if call.resolved_target.isError
+      if call.resolved_target.isError || call.resolved_target.kind_of?(UnreachableType)
         return BaseTypeFuture.new().resolved(call.resolved_target)
       end
       target = MirrorType(call.resolved_target)
@@ -279,8 +259,8 @@ class MirrorTypeSystem implements TypeSystem
       nodes = call.parameterNodes
       unless nodes.nil?
         nodes.each do |n|
-          type = Type.getType(n.getClass())
-          macro_params.add(@macro_loader.loadMirror(type))
+          typename = n.getClass.getName
+          macro_params.add(loadMacroType(typename))
         end
       end
       method = @methods.findMethod(
@@ -348,7 +328,11 @@ class MirrorTypeSystem implements TypeSystem
   def getMetaType(type:TypeFuture):TypeFuture
     types = TypeSystem(self)
     DerivedFuture.new(type) do |resolved|
-      types.getMetaType(resolved)
+      if resolved.isError
+        resolved
+      else
+        MirrorProxy.new(MirrorType(types.getMetaType(resolved)))
+      end
     end
   end
 
@@ -384,14 +368,16 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
-  def isTypeDefinition(future:TypeFuture):boolean
-    return false unless future.isResolved
+  def findTypeDefinition(future:TypeFuture):MirahMirror
+    return nil unless future.isResolved
     resolved = future.resolve
-    if resolved.kind_of?(MirahMirror)
-      return true
+    while resolved.kind_of?(MirrorProxy)
+      resolved = MirrorProxy(resolved).target
     end
-    if resolved.kind_of?(MirrorProxy)
-      MirrorProxy(resolved).target.kind_of?(MirahMirror)
+    if resolved.kind_of?(MirahMirror)
+      MirahMirror(resolved)
+    else
+      nil
     end
   end
 
@@ -399,24 +385,41 @@ class MirrorTypeSystem implements TypeSystem
     position = node ? node.position : nil
     fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
-    existing = wrap(type)      
-    if isTypeDefinition(existing)
-      existing
-    else
-      superclass ||= @object_future
-      interfaceArray = TypeFuture[interfaces.size]
-      interfaces.toArray(interfaceArray)
-      flags = Opcodes.ACC_PUBLIC
-      if node.kind_of?(InterfaceDeclaration)
-        flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
+    existing_future = wrap(type)
+    existing_type = findTypeDefinition(existing_future)
+    if existing_type
+      if superclass.nil? && (interfaces.nil? || interfaces.size == 0)
+        return existing_future
       end
-      mirror = MirahMirror.new(@context, type, flags,
-                               superclass, interfaceArray)
-      addClassIntrinsic(mirror)
-      future = MirrorFuture.new(mirror, position)
-      @loader.defineMirror(type, future)
-      future
     end
+
+    superclass ||= @object_future
+    interfaceArray = TypeFuture[interfaces.size]
+    interfaces.toArray(interfaceArray)
+    flags = Opcodes.ACC_PUBLIC
+    if node.kind_of?(InterfaceDeclaration)
+      flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
+    end
+
+    # Ugh. So typically we might define a type for the main type,
+    # then later we find the ClassDefinition that declares
+    # the supertypes. We can't create a new type, or we'll lose
+    # any methods already declared, so we have to change the supertypes
+    # on the existing one. But now if you have multiple ClassDefinitions
+    # for the same type with conflicting ancestors, we'll just pick the
+    # last one, which is not ideal.
+    if existing_type
+      existing_type.setSupertypes(superclass, interfaceArray)
+      existing_type.flags = flags
+      return existing_future
+    end
+
+    mirror = MirahMirror.new(@context, type, flags,
+                             superclass, interfaceArray)
+    addClassIntrinsic(mirror)
+    future = MirrorFuture.new(mirror, position)
+    @loader.defineMirror(type, future)
+    future
   end
 
   def get(scope, typeref)
@@ -439,6 +442,12 @@ class MirrorTypeSystem implements TypeSystem
     else
       name
     end
+  end
+
+  def loadMacroType(name:String):MirrorType
+    macro_context = @context[Context] || @context
+    types = macro_context[MirrorTypeSystem]
+    MirrorType(types.loadNamedType(name).resolve)
   end
 
   def loadNamedType(name:String)
@@ -491,14 +500,14 @@ class MirrorTypeSystem implements TypeSystem
 
   def addMacro(klass:ResolvedType, macro_impl:Class)
     type = MirrorType(klass).unmeta
-    member = MacroMember.create(macro_impl, type, @macro_loader)
+    member = MacroMember.create(macro_impl, type, @context)
     type.add(member)
     @@log.fine("Added macro #{member}")
   end
 
   def extendClass(classname:String, extensions:Class)
     type = BaseType(loadNamedType(classname).resolve)
-    BytecodeMirrorLoader.extendClass(type, extensions, @macro_loader)
+    BytecodeMirrorLoader.extendClass(type, extensions)
   end
 
   def addClassIntrinsic(type:BaseType)
@@ -512,21 +521,28 @@ class MirrorTypeSystem implements TypeSystem
 
   def addObjectIntrinsics
     BytecodeMirrorLoader.extendClass(
-        @object, MirrorObjectExtensions.class, @macro_loader)
+        @object, MirrorObjectExtensions.class)
     bool = JVMType(getBooleanType.resolve)
-    @object.add(Member.new(
-        Opcodes.ACC_PUBLIC, @object, 'nil?', [],
-        bool, MemberKind.IS_NULL))
     object_meta = getMetaType(@object_future).resolve
-    @object.add(Member.new(
+    methods = [
+      Member.new(
+          Opcodes.ACC_PUBLIC, @object, 'nil?', [],
+          bool, MemberKind.IS_NULL),
+      Member.new(
         Opcodes.ACC_PUBLIC, @object, 'kind_of?', [object_meta],
-        bool, MemberKind.INSTANCEOF))
-    @object.add(Member.new(
+        bool, MemberKind.INSTANCEOF),
+      Member.new(
         Opcodes.ACC_PUBLIC, @object, '==', [@object],
-        bool, MemberKind.COMPARISON_OP))
-    @object.add(Member.new(
+        bool, MemberKind.COMPARISON_OP),
+      Member.new(
         Opcodes.ACC_PUBLIC, @object, '!=', [@object],
-        bool, MemberKind.COMPARISON_OP))
+        bool, MemberKind.COMPARISON_OP),
+    ]
+    nullType = NullType(getNullType.resolve)
+    methods.each do |m:Member|
+      @object.add(m)
+      nullType.add(m)
+    end
   end
 
   def wrap(type:Type):TypeFuture
@@ -550,7 +566,7 @@ class MirrorTypeSystem implements TypeSystem
     kind = MemberKind.METHOD
     isMeta = target.isMeta
     if isMeta
-      target = MirrorType(MetaType(target).unmeta)
+      target = MirrorType(MirrorType(target).unmeta)
       flags |= Opcodes.ACC_STATIC
       kind = MemberKind.STATIC_METHOD
     end

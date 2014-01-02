@@ -54,25 +54,20 @@ class ArrayType < BaseType implements ArrayModel
     super(context, Type.getType("[#{component.getAsmType.getDescriptor}"),
           Opcodes.ACC_PUBLIC, nil)
     @context = context
-    @loader = context[ClassPath].loader
-    @int_type = context[ClassPath].bytecode_loader.loadMirror(Type.getType('I'))
+    @types = @context[MirrorTypeSystem]
+    @int_type = MirrorType(@types.wrap(Type.getType('I')).resolve)
     @componentType = component
-    sync_loader = context[ClassPath].macro_loader
-    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class, sync_loader)
-    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class, sync_loader)
-    
+    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class)
+    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class)
   end
 
   def interfaces:TypeFuture[]
     if JVMTypeUtils.isPrimitive(@componentType) ||
         "Ljava/lang/Object;".equals(@componentType.getAsmType.getDescriptor)
       interfaces = TypeFuture[3]
-      interfaces[0] = @loader.loadMirrorAsync(
-          Type.getType('Ljava/lang/Object;'))
-      interfaces[1] = @loader.loadMirrorAsync(
-          Type.getType('Ljava/lang/Cloneable;'))
-      interfaces[2] = @loader.loadMirrorAsync(
-          Type.getType('Ljava/io/Serializable;'))
+      interfaces[0] = @types.loadNamedType('java.lang.Object')
+      interfaces[1] = @types.loadNamedType('java.lang.Cloneable')
+      interfaces[2] = @types.loadNamedType('java.io.Serializable')
       interfaces
     else
       supertypes = @componentType.directSupertypes

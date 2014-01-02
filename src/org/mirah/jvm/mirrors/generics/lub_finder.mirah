@@ -35,6 +35,7 @@ import javax.lang.model.util.Types
 import org.mirah.util.Context
 
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.mirrors.MirrorProxy
 import org.mirah.jvm.model.Cycle
 import org.mirah.jvm.model.IntersectionType
 
@@ -81,9 +82,9 @@ class LubFinder
     to_process = LinkedList.new
     to_process.add(t)
     until to_process.isEmpty
-      type = TypeMirror(to_process.removeFirst)
+      type = unwrap(TypeMirror(to_process.removeFirst))
       next if processed.contains(type)
-      erased = @types.erasure(type)
+      erased = unwrap(@types.erasure(type))
       @@log.finest("Processing #{type}")
       processed.add(type)
       processed.add(erased)
@@ -96,6 +97,13 @@ class LubFinder
       end
     end
     supertypes
+  end
+
+  def unwrap(t:TypeMirror):TypeMirror
+    while t.kind_of?(MirrorProxy)
+      t = MirrorProxy(t).target
+    end
+    t
   end
 
   def combineCandidates(a:Map, b:Map):Map
@@ -160,6 +168,11 @@ class LubFinder
   end
 
   def candidateInvocation2(x:DeclaredType, y:DeclaredType):DeclaredType
+    if x.getTypeArguments.size == 0
+      return x
+    elsif y.getTypeArguments.size == 0
+      return y
+    end
     args = TypeMirror[x.getTypeArguments.size]
     i = 0
     x.getTypeArguments.zip(y.getTypeArguments) do |a:TypeMirror, b:TypeMirror|

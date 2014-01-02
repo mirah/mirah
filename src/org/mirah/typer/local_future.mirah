@@ -52,6 +52,10 @@ class LocalFuture < AssignableTypeFuture
     (@parent && @parent.hasDeclaration) || super
   end
 
+  def declaredType
+    (@parent && @parent.declaredType) || super
+  end
+
   def assignedValues(includeParent, includeChildren)
     return super unless includeParent || includeChildren
 

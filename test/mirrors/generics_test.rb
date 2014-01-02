@@ -15,7 +15,8 @@
 
 require 'java'
 require 'test/unit'
-require 'mirah'
+require 'java'
+require 'dist/mirahc.jar'
 
 class GenericsTest < Test::Unit::TestCase
   java_import 'java.util.HashSet'
@@ -717,6 +718,14 @@ class GenericsTest < Test::Unit::TestCase
       ], m.values.map{|x| x.toString})
   end
 
+  def test_raw_lub
+    a = g('java.lang.Iterable', [type('java.lang.String')])
+    b = a.erasure
+    lub = LubFinder.new(@types.context)
+    c = lub.leastUpperBound([a, b])
+    assert_equal(b.toString, c.toString)
+  end
+
   def test_minimizeErasedCandidates
     lub = LubFinder.new(@types.context)
     t = set(@types.getStringType.resolve)
@@ -763,7 +772,7 @@ class GenericsTest < Test::Unit::TestCase
     string = type('java.lang.String')
     integer = type('java.lang.Integer')
     lub = finder.leastUpperBound([string, integer])
-    assert_match(/\? extends java\.lang\.Comparable<\? extends ...>/,
+    assert_match(/java\.lang\.Comparable<\? extends ...>/,
                  lub.toString)
   end
 

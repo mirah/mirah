@@ -18,6 +18,9 @@ class Backend
     @context[Compiler] = @context[Typer].macro_compiler
     @context[AnnotationCompiler] = AnnotationCompiler.new(@context)
     @compiler = ScriptCompiler.new(@context)
+    unless @context[JvmVersion]
+      @context[JvmVersion] = JvmVersion.new
+    end
   end
 
   def initialize(typer:Typer)

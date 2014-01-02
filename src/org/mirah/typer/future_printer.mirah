@@ -27,28 +27,38 @@ class FuturePrinter
     maybeStartLine
     @level += 1
     if future
-      self.print(future.getClass.getSimpleName)
-      self.print(" ")
+      self.write(future.getClass.getSimpleName)
+      self.write(" ")
       if @cycles.containsKey(future)
-        self.puts(@cycles.get(future).toString)
+        self.writeLine(@cycles.get(future).toString)
       else
         i = @cycles.size
         @cycles.put(future, Integer.new(i))
-        self.puts("#{i}")
-        future.print(self)
+        position = if future.kind_of?(BaseTypeFuture)
+          BaseTypeFuture(future).position
+        else
+          nil
+        end
+        tail = if position
+          " #{position.source.name}:#{position.startLine}"
+        else
+          ""
+        end
+        self.writeLine("#{i}#{tail}")
+        future.dump(self)
       end
     else
-      self.puts("null")
+      self.writeLine("null")
     end
     @level -= 1
   end
 
-  def print(text:String):void
+  def write(text:String):void
     maybeStartLine
     @out.append(text)
   end
 
-  def puts(text:String):void
+  def writeLine(text:String):void
     maybeStartLine
     @out.append(text)
     @out.append("\n")

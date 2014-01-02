@@ -27,6 +27,7 @@ import org.mirah.macros.Macro
 import org.mirah.typer.InlineCode
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.MemberKind
+import org.mirah.util.Context
 
 class MacroMember < Member
   def initialize(flags:int, klass:JVMType, name:String, argumentTypes:List,
@@ -47,16 +48,17 @@ class MacroMember < Member
     end
   end
 
-  def self.create(klass:Class, declaringClass:JVMType, loader:MirrorLoader)
+  def self.create(klass:Class, declaringClass:JVMType, context:Context)
     flags = Opcodes.ACC_PUBLIC
     macrodef = MacroDef(klass.getAnnotation(MacroDef.class))
     flags |= Opcodes.ACC_STATIC if macrodef.isStatic
     
+    types = context[MirrorTypeSystem]
+    
     # TODO support optional, rest args
     argumentTypes = []
     macrodef.arguments.required.each do |name|
-      descriptor = "L#{name.replace(?., ?/)};"
-      argumentTypes.add(loader.loadMirror(Type.getType(descriptor)))
+      argumentTypes.add(types.loadMacroType(name))
     end
     
     kind = if macrodef.isStatic

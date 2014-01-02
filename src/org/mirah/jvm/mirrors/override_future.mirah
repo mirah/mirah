@@ -16,6 +16,7 @@
 package org.mirah.jvm.mirrors
 
 import java.util.ArrayList
+import java.util.LinkedHashMap
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
@@ -65,10 +66,17 @@ class OverrideFuture < BaseTypeFuture
     self.resolved(resolved)
   end
 
-  def print(out)
-    out.puts("error: #{@error}") if @error
+  def dump(out)
+    out.writeLine("error: #{@error}") if @error
     @types.each do |t:TypeFuture|
       out.printFuture(t)
     end
+  end
+
+  def getComponents
+    map = LinkedHashMap.new
+    map[:types] = ArrayList.new(@types)
+    map[:error] = @error if @error
+    map
   end
 end
