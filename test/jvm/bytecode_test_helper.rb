@@ -87,7 +87,7 @@ module JVMCompiler
 
     loader = Mirah::Util::ClassLoader.new(
        URLClassLoader.new(
-                          make_urls(state.classpath),
+                          Mirah::Env.make_urls(state.classpath),
                           JRuby.runtime.jruby_class_loader),
       classes)
 
@@ -95,12 +95,6 @@ module JVMCompiler
       cls = loader.load_class(name.tr('/', '.'))
       JavaUtilities.get_proxy_class(JavaClass.get(JRuby.runtime, cls))
     end
-  end
-
-  def make_urls(classpath)
-    Mirah::Env.decode_paths(classpath).map do |filename|
-      java.io.File.new(filename).to_uri.to_url
-    end.to_java(java.net.URL)
   end
 
   def compile(code, options = {})
