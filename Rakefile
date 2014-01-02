@@ -176,6 +176,9 @@ task :jar => :compile do
 end
 
 namespace :jar do
+  desc "build mirahc.jar"
+  task :mirahc => 'javalib/mirahc.jar'
+
   desc "build self-contained, complete jar"
   task :complete => [:jar, 'javalib/jruby-complete.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
