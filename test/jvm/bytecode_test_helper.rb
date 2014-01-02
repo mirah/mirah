@@ -18,10 +18,10 @@ require 'set'
 module JVMCompiler
   $CLASSPATH << TEST_DEST
 
-  import java.lang.System
-  import java.io.PrintStream
-  import java.net.URLClassLoader
-  import org.jruby.javasupport.JavaClass
+  java_import 'java.lang.System'
+  java_import 'java.io.PrintStream'
+  java_import 'java.net.URLClassLoader'
+  java_import 'org.jruby.javasupport.JavaClass'
 
   include Mirah
 
@@ -126,8 +126,8 @@ end
 
 
 module CommonAssertions
-  import java.lang.System
-  import java.io.PrintStream
+  java_import 'java.lang.System'
+  java_import 'java.io.PrintStream'
 
   def assert_include(value, array, message=nil)
     message = build_message message, '<?> does not include <?>', array, value
