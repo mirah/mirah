@@ -22,7 +22,7 @@ module Mirah
       def execute
         execute_base do
           class_map = generate_classes
-
+          $CLASSPATH << Mirah::Env.decode_paths(@state.classpath) if @state.classpath
           class_loader = load_classes class_map
 
           main = find_main class_map, class_loader
