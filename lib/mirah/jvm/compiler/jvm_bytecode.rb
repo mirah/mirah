@@ -475,7 +475,7 @@ module Mirah
           type = type.meta if (@static && type == @type)
           fcall.target = ImplicitSelf.new
           fcall.target.parent = fcall
-          @typer.infer(fcall.target)
+          @typer.infer(fcall.target, true)
 
           params = fcall.parameters.map do |param|
             inferred_type(param)
