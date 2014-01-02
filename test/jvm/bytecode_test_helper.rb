@@ -16,18 +16,20 @@ require 'test_helper'
 require 'set'
 
 module JVMCompiler
-  TEST_DEST = File.expand_path(File.dirname(__FILE__)+'/../../tmp_test/') + "/"
   $CLASSPATH << TEST_DEST
 
   import java.lang.System
   import java.io.PrintStream
+  import java.net.URLClassLoader
+  import org.jruby.javasupport.JavaClass
+
   include Mirah
 
   def new_state
     state = Mirah::Util::CompilationState.new
     state.save_extensions = true
     state.destination = TEST_DEST
-    state.classpath =  TEST_DEST
+    state.classpath =  Env.encode_paths [TEST_DEST, FIXTURE_TEST_DEST]
     state.type_system = type_system if type_system
     state
   end
@@ -71,7 +73,7 @@ module JVMCompiler
     ast
   end
 
-  def generate_classes compiler_results
+  def generate_classes compiler_results, state
     classes = {}
 
     compiler_results.each do |result|
@@ -83,12 +85,22 @@ module JVMCompiler
       classes[result.filename[0..-7]] = Mirah::Util::ClassLoader.binary_string bytes
     end
 
-    loader = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, classes)
+    loader = Mirah::Util::ClassLoader.new(
+       URLClassLoader.new(
+                          make_urls(state.classpath),
+                          JRuby.runtime.jruby_class_loader),
+      classes)
 
     classes.keys.map do |name|
       cls = loader.load_class(name.tr('/', '.'))
-      JavaUtilities.get_proxy_class(cls.name)
+      JavaUtilities.get_proxy_class(JavaClass.get(JRuby.runtime, cls))
     end
+  end
+
+  def make_urls(classpath)
+    Mirah::Env.decode_paths(classpath).map do |filename|
+      java.io.File.new(filename).to_uri.to_url
+    end.to_java(java.net.URL)
   end
 
   def compile(code, options = {})
@@ -110,7 +122,7 @@ module JVMCompiler
     generator.do_transforms ast
     compiler_results = generator.compiler.compile_asts(ast, scoper, typer)
 
-    generate_classes compiler_results
+    generate_classes compiler_results, state
   end
 
   def tmp_script_name

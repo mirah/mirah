@@ -19,6 +19,12 @@ require 'jruby'
 require 'stringio'
 require 'fileutils'
 
+test_tmp_dir = File.expand_path(File.dirname(__FILE__)+'/../tmp_test/')
+TEST_DEST =  "#{test_tmp_dir}/test_classes/"
+FIXTURE_TEST_DEST =  "#{test_tmp_dir}/fixtures/"
+
+
+
 module CommonAssertions
   import java.lang.System
   import java.io.PrintStream

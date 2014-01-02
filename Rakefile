@@ -128,10 +128,12 @@ end
 task :clean_tmp_test_directory do
   FileUtils.rm_rf "tmp_test"
   FileUtils.mkdir_p "tmp_test"
+  FileUtils.mkdir_p "tmp_test/test_classes"
+  FileUtils.mkdir_p "tmp_test/fixtures"
 end
 
 task :build_test_fixtures do
-  ant.javac 'destdir' => "tmp_test", 'srcdir' => 'test/fixtures',
+  ant.javac 'destdir' => "tmp_test/fixtures", 'srcdir' => 'test/fixtures',
     'includeantruntime' => false, 'debug' => true, 'listfiles' => true
 end
 
