@@ -75,18 +75,21 @@ class MirahCompiler implements JvmBackend
     @diagnostics = diagnostics
     @jvm = jvm
     @destination = macro_destination
+    @debugger = debugger
 
     @context = context = Context.new
     context[JvmBackend] = self
     context[DiagnosticListener] = @diagnostics
     context[SimpleDiagnostics] = @diagnostics
     context[JvmVersion] = @jvm
+    context[DebuggerInterface] = debugger
 
     @macro_context = Context.new
     @macro_context[JvmBackend] = self
     @macro_context[DiagnosticListener] = @diagnostics
     @macro_context[SimpleDiagnostics] = @diagnostics
     @macro_context[JvmVersion] = @jvm
+    @macro_context[DebuggerInterface] = debugger
 
     # The main type system needs access to the macro one to call macros.
     @context[Context] = @macro_context
@@ -134,11 +137,14 @@ class MirahCompiler implements JvmBackend
   end
 
   def parse(code:CodeSource)
-    node = @parser.parse(code)
+    node = Node(@parser.parse(code))
     if node.nil?
       puts "#{code.name} parsed to nil"
     else
       @asts.add(node)
+      if @debugger
+        @debugger.parsedNode(node)
+      end
     end
     if @diagnostics.errorCount > 0
       raise CompilationFailure.new
