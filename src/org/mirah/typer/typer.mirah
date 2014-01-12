@@ -175,7 +175,7 @@ class Typer < SimpleNodeVisitor
     picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
       picked_type = typefuture.resolve
-      if picked_type.kind_of?(InlineCode)
+      if typer.isMacro picked_type
         if current_node.parent
           node = typer.replaceAndInfer(
                          future,
@@ -211,7 +211,7 @@ class Typer < SimpleNodeVisitor
     current_node = Node(call)
     typer = self
     methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
+      if typer.isMacro resolvedType
         if current_node.parent
           typer.replaceAndInfer(delegate,
                                 current_node,
@@ -285,7 +285,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
+      if typer.isMacro resolvedType
         if current_node.parent
           current_node = typer.replaceAndInfer(delegate,
                                     current_node,
@@ -1283,6 +1283,11 @@ class Typer < SimpleNodeVisitor
 
   def replaceSelf me: Node, replacement: Node
     me.parent.replaceChild(me, replacement)
+  end
+
+
+  def isMacro resolvedType: ResolvedType
+    resolvedType.kind_of?(InlineCode)
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
