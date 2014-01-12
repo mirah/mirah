@@ -176,25 +176,22 @@ class Typer < SimpleNodeVisitor
       node = Node(_node)
       picked_type = typefuture.resolve
       if typer.isMacro picked_type
-        if current_node.parent
-          node = typer.replaceAndInfer(
-                         future,
-                         current_node,
-                         typer.expandMacro(fcall, picked_type),
-                         expression != nil)
-        end
+        typer.expandAndReplaceMacro future,
+                                    current_node,
+                                    fcall,
+                                    picked_type,
+                                    expression != nil
       else
         if current_node.parent.nil?
           typer.logger.fine("Unable to replace #{current_node} with #{node}")
         else
-          node = typer.replaceAndInfer(
+          typer.replaceAndInfer(
                          future,
                          current_node,
                          node,
                          expression != nil)
         end
       end
-      current_node = node
     end
     future.position = call.position
     future.error_message = "Unable to find local or method '#{call.name.identifier}'"
@@ -212,12 +209,11 @@ class Typer < SimpleNodeVisitor
     typer = self
     methodType.onUpdate do |x, resolvedType|
       if typer.isMacro resolvedType
-        if current_node.parent
-          typer.replaceAndInfer(delegate,
-                                current_node,
-                                typer.expandMacro(call, resolvedType),
-                                expression != nil)
-        end
+        typer.expandAndReplaceMacro delegate,
+                            current_node,
+                            call,
+                            resolvedType,
+                            expression != nil
       else
         delegate.type = methodType
       end
@@ -286,12 +282,11 @@ class Typer < SimpleNodeVisitor
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
       if typer.isMacro resolvedType
-        if current_node.parent
-          current_node = typer.replaceAndInfer(delegate,
-                                    current_node,
-                                    typer.expandMacro(call, resolvedType),
-                                    expression != nil)
-        end
+        typer.expandAndReplaceMacro delegate,
+                            current_node,
+                            call,
+                            resolvedType,
+                            expression != nil
       else
         delegate.type = methodType
       end
@@ -1288,6 +1283,16 @@ class Typer < SimpleNodeVisitor
 
   def isMacro resolvedType: ResolvedType
     resolvedType.kind_of?(InlineCode)
+  end
+
+  def expandAndReplaceMacro future: DelegateFuture, current_node: Node, fcall: Node, picked_type: ResolvedType, expression: boolean
+    if current_node.parent
+      replaceAndInfer(
+                     future,
+                     current_node,
+                     expandMacro(fcall, picked_type),
+                     expression)
+    end
   end
 
   # FIXME: there's a bug in the AST that doesn't set the
