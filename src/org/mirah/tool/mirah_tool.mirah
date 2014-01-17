@@ -45,6 +45,7 @@ import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
 import org.mirah.jvm.mirrors.SafeTyper
 import org.mirah.jvm.mirrors.debug.ConsoleDebugger
+import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
@@ -137,6 +138,10 @@ abstract class MirahTool implements BytecodeConsumer
     debugger = ConsoleDebugger.new
     debugger.start
     @debugger = debugger.debugger
+  end
+  
+  def setDebugger(debugger:DebuggerInterface):void
+    @debugger = debugger
   end
 
   def processArgs(args:String[]):void

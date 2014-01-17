@@ -176,7 +176,7 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     @lock.unlock
   end
 
-  def continue:void
+  def continueExecution:void
     @lock.lock
     @step = nil
     unblock
@@ -376,7 +376,8 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     @lock.lock
     @stopped = true
     @thread ||= Thread.currentThread
-    @listener.stopped
+    listener = @listener
+    @executor.execute { listener.stopped }
     while @stopped
       @condition.await
     end
