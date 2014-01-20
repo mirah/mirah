@@ -40,6 +40,13 @@ class MethodFuture < BaseTypeFuture
     end
   end
 
+  def resolve
+    unless isResolved
+      @returnType.resolve
+    end
+    super
+  end
+
   def methodName
     @methodName
   end
