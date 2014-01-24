@@ -17,10 +17,6 @@ require 'test_helper'
 require 'jvm/bytecode_test_helper'
 class TestGenerics < Test::Unit::TestCase
 
-  def parse_and_type code, name=tmp_script_name
-    parse_and_resolve_types name, code
-  end
-
   def test_generics_calls_collections
     cls, = compile(<<-EOF)
       import java.util.ArrayList

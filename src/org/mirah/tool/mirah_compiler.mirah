@@ -127,6 +127,10 @@ class MirahCompiler implements JvmBackend
     @@log = Logger.getLogger(Mirahc.class.getName)
   end
 
+  def getParsedNodes
+    @asts
+  end
+
   def createTyper(debugger:DebuggerInterface, context:Context, types:TypeSystem,
                   scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser)
     if debugger.nil?

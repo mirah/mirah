@@ -82,6 +82,10 @@ abstract class MirahTool implements BytecodeConsumer
     @classpath = nil
   end
 
+  def setDiagnostics(diagnostics:SimpleDiagnostics):void
+    @diagnostics = diagnostics
+  end
+
   def compile(args:String[]):int
     processArgs(args)
     @classpath ||= parseClassPath(@destination)
@@ -116,6 +120,9 @@ abstract class MirahTool implements BytecodeConsumer
 
   def setClasspath(classpath:String):void
     @classpath = parseClassPath(classpath)
+  end
+  def classpath
+    @classpath
   end
 
   def setBootClasspath(classpath:String):void
@@ -241,9 +248,17 @@ abstract class MirahTool implements BytecodeConsumer
     end
   end
 
+  def addFakeFile(name:String, code:String):void
+    @code_sources.add(StringCodeSource.new(name, code))
+  end
+
   def parseAllFiles
     @code_sources.each do |c:CodeSource|
       @compiler.parse(c)
     end
+  end
+
+  def compiler
+    @compiler
   end
 end
