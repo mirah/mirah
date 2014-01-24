@@ -62,7 +62,7 @@ module Mirah
       # enter all ASTs into inference engine
       puts "Inferring types..." if logging
       scoper, typer = infer_asts(top_nodes)
-
+      do_transforms top_nodes
       # compile each AST in turn
       compiler_results = compiler.compile_asts(top_nodes, scoper, typer)
 
@@ -71,8 +71,25 @@ module Mirah
       compiler_results
     end
 
+    def do_transforms nodes
+      log("Starting Transform")
+
+      java_import 'org.mirah.jvm.compiler.ClosureTransformer' rescue puts $!
+      java_import 'org.mirah.util.Context' rescue puts $!
+      #java_import 'org.mirah.typer.Typer'
+      #java_import 'org.mirah.macros.Compiler'
+      transformer = ClosureTransformer.new(Context.new.tap{|c|c.add(Java::org.mirah.typer::Typer, @typer) }) rescue nil
+      if transformer
+        nodes.each{|n| n.accept transformer, nil } # rescue log("transformer exception", $!.cause)
+        log("POST Transform")
+        log_types nodes
+      else
+        log "No transformer, skipping"
+      end
+    end
+
     def infer_asts(nodes, should_raise=false)
-      begin
+      log_and_reraise "Caught exception during type inference" do
         nodes.each {|ast| @typer.infer(ast, false) }
         if should_raise
           error_handler = lambda do |errors|
@@ -81,13 +98,17 @@ module Mirah
           end
         end
         process_inference_errors(@typer, nodes, &error_handler)
-      rescue NativeException => ex
-        log("Caught exception during type inference", ex.cause)
-        raise ex
-      ensure
-        log_types(nodes)
       end
       [@scoper, @typer]
+    ensure
+      log_types(nodes)
+    end
+
+    def log_and_reraise message
+      yield
+    rescue NativeException => ex
+      log(message, ex.cause)
+      raise ex
     end
 
     def log_types(nodes)

@@ -20,6 +20,7 @@ end
 Gem::Specification.new do |s|
   s.name = 'mirah'
   s.version = Mirah::VERSION
+  s.license = 'Apache-2.0'
   s.authors = ["Charles Oliver Nutter", "Ryan Brown"]
   s.date =  Time.now.strftime("%Y-%m-%d")
   s.description = %q{Mirah is a customizable programming language featuring static types,

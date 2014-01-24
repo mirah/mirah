@@ -42,5 +42,11 @@ module Mirah
       end
       result
     end
+
+    def self.make_urls classpath
+      decode_paths(classpath).map do |filename|
+        java.io.File.new(filename).to_uri.to_url
+      end.to_java(java.net.URL)
+    end
   end
 end

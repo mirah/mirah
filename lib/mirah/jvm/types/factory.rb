@@ -712,15 +712,9 @@ module Mirah::JVM::Types
       end
     end
 
-    def make_urls(classpath)
-      Mirah::Env.decode_paths(classpath).map do |filename|
-        java.io.File.new(filename).to_uri.to_url
-      end.to_java(java.net.URL)
-    end
-
     def base_classpath
       if __FILE__.include? '.jar'
-        Mirah::Env.encode_paths([__FILE__.split('!').first.split(':').last])
+        Mirah::Env.encode_paths([__FILE__.split('!').first.split(Mirah::Env.path_separator).last])
       else
         Mirah::Env.encode_paths(['.',
                                  File.dirname(__FILE__) + '/../../../../javalib/mirah-builtins.jar',
@@ -735,19 +729,19 @@ module Mirah::JVM::Types
 
     def classpath=(classpath)
       if classpath
-        @classpath = classpath + ":" + base_classpath
+        @classpath = Mirah::Env.encode_paths [classpath, base_classpath]
       end
       @resource_loader = nil
     end
 
     def resource_loader
-      @resource_loader ||= URLClassLoader.new(make_urls(classpath), bootstrap_loader)
+      @resource_loader ||= URLClassLoader.new(Mirah::Env.make_urls(classpath), bootstrap_loader)
     end
 
     def bootstrap_loader
       @bootstrap_loader ||= begin
         parent = if bootclasspath
-                   Mirah::Util::IsolatedResourceLoader.new(make_urls(bootclasspath))
+                   Mirah::Util::IsolatedResourceLoader.new(Mirah::Env.make_urls(bootclasspath))
                  end
         if __FILE__ =~ /^(file:.+jar)!/
           bootstrap_urls = [java.net.URL.new($1)].to_java(java.net.URL)

@@ -20,6 +20,10 @@ class StringExtensions
     quote { "#{`@call.target`}#{`arg`}" }
   end
 
+  macro def include?(arg)
+    quote { `@call.target`.contains(`arg`) }
+  end
+
   macro def =~(arg)
     quote { `arg`.matcher(`@call.target`).find }
   end

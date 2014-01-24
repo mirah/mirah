@@ -83,7 +83,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def inferTypeName(node:TypeName)
-    @futures[node] ||= @types.get(@scopes.getScope(node), node.typeref)
+    @futures[node] ||= getTypeOf(node, node.typeref)
     TypeFuture(@futures[node])
   end
 
@@ -145,12 +145,12 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitVCall(call, expression)
-    scope = @scopes.getScope(call)
-    call.target.setParent(call)  # FIXME: workaround AST bug
+    workaroundASTBug call
+    methodType = callMethodType call, Collections.emptyList
     targetType = infer(call.target)
-    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
-    methodType = CallFuture.new(@types, scope, targetType, false, Collections.emptyList, call)
-    fcall = FunctionalCall.new(call.position, Identifier(call.name.clone), nil, nil)
+    fcall = FunctionalCall.new(call.position,
+                               Identifier(call.name.clone),
+                               nil, nil)
     fcall.setParent(call.parent)
     @futures[fcall] = methodType
     @futures[fcall.target] = targetType
@@ -169,24 +169,29 @@ class Typer < SimpleNodeVisitor
                infer(primitive, true), primitive
               ]
     current_node = Node(call)
-    typer = self
     future = DelegateFuture.new
     future.type = infer(local, true)
+    typer = self
     picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
       picked_type = typefuture.resolve
-      if picked_type.kind_of?(InlineCode)
-        typer.logger.fine("Expanding macro #{call}")
-        node = InlineCode(picked_type).expand(fcall, typer)
-        need_to_infer = true
-      end
-      if current_node.parent.nil?
-        typer.logger.fine("Unable to replace #{current_node} with #{node}")
+      if typer.isMacro picked_type
+        typer.expandAndReplaceMacro future,
+                                    current_node,
+                                    fcall,
+                                    picked_type,
+                                    expression != nil
       else
-        node = current_node.parent.replaceChild(current_node, node)
-        future.type = typer.infer(node, expression != nil)
+        if current_node.parent.nil?
+          typer.logger.fine("Unable to replace #{current_node} with #{node}")
+        else
+          typer.replaceAndInfer(
+                         future,
+                         current_node,
+                         node,
+                         expression != nil)
+        end
       end
-      current_node = node
     end
     future.position = call.position
     future.error_message = "Unable to find local or method '#{call.name.identifier}'"
@@ -194,27 +199,21 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFunctionalCall(call, expression)
-    scope = @scopes.getScope(call)
-    mergeUnquotes(call.parameters)
-    parameters = inferAll(call.parameters)
-    parameters.add(infer(call.block, true)) if call.block
+    workaroundASTBug call
+    parameters = inferParameterTypes call
+    methodType = callMethodType call, parameters
+
     delegate = DelegateFuture.new
-    call.target.setParent(call)  # FIXME: workaround AST bug
-    targetType = infer(call.target)
-    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
-    methodType = CallFuture.new(@types, scope, targetType, false, parameters, call)
     delegate.type = methodType
-    typer = self
     current_node = Node(call)
+    typer = self
     methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        if current_node.parent
-          typer.logger.fine("Expanding macro #{call}")
-          node = InlineCode(resolvedType).expand(call, typer)
-          node = current_node.parent.replaceChild(current_node, node)
-          current_node = node
-          delegate.type = typer.infer(node, expression != nil)
-        end
+      if typer.isMacro resolvedType
+        typer.expandAndReplaceMacro delegate,
+                            current_node,
+                            call,
+                            resolvedType,
+                            expression != nil
       else
         delegate.type = methodType
       end
@@ -223,17 +222,14 @@ class Typer < SimpleNodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      items = LinkedList.new
       cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = @types.get(scope, call.typeref)
-      items.add(castType)
-      items.add(cast)
-      items.add(delegate)
-      items.add(nil)
+      castType = getTypeOf(call, call.typeref)
+      items = [castType, cast,
+               delegate, nil]
       TypeFuture(PickFirst.new(items, delegate) do |type, arg|
         if arg != nil
           # We chose the cast.
-          current_node = current_node.parent.replaceChild(current_node, cast)
+          current_node = typer.replaceSelf(current_node, cast)
           typer.infer(cast, expression != nil)
         end
       end)
@@ -247,7 +243,7 @@ class Typer < SimpleNodeVisitor
     value = assignment.value
     assignment.removeChild(value)
     if value_type.kind_of?(NarrowingTypeFuture)
-      narrowingCall(@scopes.getScope(assignment),
+      narrowingCall(scopeOf(assignment),
                     infer(assignment.target),
                     '[]=',
                     inferAll(assignment.args),
@@ -257,7 +253,7 @@ class Typer < SimpleNodeVisitor
     call = Call.new(assignment.position, assignment.target, SimpleString.new('[]='), nil, nil)
     call.parameters = assignment.args
     if expression
-      temp = @scopes.getScope(assignment).temp('val')
+      temp = scopeOf(assignment).temp('val')
       call.parameters.add(LocalAccess.new(SimpleString.new(temp)))
       newNode = Node(NodeList.new([
         LocalAssignment.new(SimpleString.new(temp), value),
@@ -268,28 +264,29 @@ class Typer < SimpleNodeVisitor
       call.parameters.add(value)
       newNode = Node(call)
     end
-    newNode = assignment.parent.replaceChild(assignment, newNode)
+    newNode = replaceSelf(assignment, newNode)
     infer(newNode)
   end
 
   def visitCall(call, expression)
     target = infer(call.target)
-    mergeUnquotes(call.parameters)
-    parameters = inferAll(call.parameters)
-    parameters.add(infer(call.block, true)) if call.block
-    methodType = CallFuture.new(@types, @scopes.getScope(call), target, true, parameters, call)
+    parameters = inferParameterTypes call
+    methodType = CallFuture.new(@types,
+                                scopeOf(call),
+                                target,
+                                true,
+                                parameters,
+                                call)
     delegate = DelegateFuture.new
     typer = self
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        if current_node.parent
-          typer.logger.fine("Expanding macro #{call}")
-          node = InlineCode(resolvedType).expand(call, typer)
-          node = current_node.parent.replaceChild(current_node, node)
-          current_node = node
-          delegate.type = typer.infer(node, expression != nil)
-        end
+      if typer.isMacro resolvedType
+        typer.expandAndReplaceMacro delegate,
+                            current_node,
+                            call,
+                            resolvedType,
+                            expression != nil
       else
         delegate.type = methodType
       end
@@ -305,26 +302,22 @@ class Typer < SimpleNodeVisitor
       else
         typeref = call.typeref(true)
       end
-      scope = @scopes.getScope(call)
       if typeref
         if is_array
           array = EmptyArray.new(call.position, typeref, call.parameters(0))
           newNode = Node(array)
-          newType = @types.getArrayType(@types.get(scope, typeref))
+          newType = @types.getArrayType(getTypeOf(call, typeref))
           @scopes.copyScopeFrom(call, newNode)
         else
           cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
           newNode = Node(cast)
-          newType = @types.get(scope, typeref)
+          newType = getTypeOf(call, typeref)
         end
-        items = LinkedList.new
-        items.add(newType)
-        items.add(newNode)
-        items.add(delegate)
-        items.add(nil)
+        items = [newType, newNode,
+                 delegate, nil]
         TypeFuture(PickFirst.new(items, delegate) do |type, arg|
           if arg != nil
-            call.parent.replaceChild(call, newNode)
+            typer.replaceSelf(call, newNode)
             typer.infer(newNode, expression != nil)
           end
         end)
@@ -341,7 +334,7 @@ class Typer < SimpleNodeVisitor
     value = infer(call.value)
     name = call.name.identifier
     setter = "#{name}_set"
-    scope = @scopes.getScope(call)
+    scope = scopeOf(call)
     if (value.kind_of?(NarrowingTypeFuture))
       narrowingCall(scope, target, setter, Collections.emptyList, NarrowingTypeFuture(value), call.position)
     end
@@ -388,19 +381,18 @@ class Typer < SimpleNodeVisitor
   def visitCast(cast, expression)
     # TODO check for compatibility
     infer(cast.value)
-    @types.get(@scopes.getScope(cast), cast.type.typeref)
+    getTypeOf(cast, cast.type.typeref)
   end
 
   def visitColon2(colon2, expression)
-    @types.getMetaType(@types.get(@scopes.getScope(colon2), colon2.typeref))
+    @types.getMetaType(getTypeOf(colon2, colon2.typeref))
   end
 
   def visitSuper(node, expression)
     method = MethodDefinition(node.findAncestor(MethodDefinition.class))
-    scope = @scopes.getScope(node)
+    scope = scopeOf(node)
     target = @types.getSuperClass(scope.selfType)
-    parameters = inferAll(node.parameters)
-    parameters.add(infer(node.block, true)) if node.block
+    parameters = inferParameterTypes node
     CallFuture.new(@types, scope, target, true, method.name.identifier, parameters, nil, node.position)
   end
 
@@ -419,20 +411,19 @@ class Typer < SimpleNodeVisitor
       end
     end
     replacement = Super.new(node.position, locals, nil)
-    infer(node.parent.replaceChild(node, replacement), expression != nil)
+    infer(replaceSelf(node, replacement), expression != nil)
   end
 
   def visitClassDefinition(classdef, expression)
     classdef.annotations.each {|a| infer(a)}
-    scope = @scopes.getScope(classdef)
+    scope = scopeOf(classdef)
     interfaces = inferAll(scope, classdef.interfaces)
     superclass = @types.get(scope, classdef.superclass.typeref) if classdef.superclass
     name = if classdef.name
       classdef.name.identifier
     end
     type = @types.defineType(scope, classdef, name, superclass, interfaces)
-    new_scope = @scopes.addScope(classdef)
-    new_scope.selfType = type
+    addScopeWithSelfType(classdef, type)
     infer(classdef.body, false) if classdef.body
     type
   end
@@ -446,34 +437,29 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitFieldDeclaration(decl, expression)
-    decl.annotations.each {|a| infer(a)}
-    scope = @scopes.getScope(decl)
-    targetType = scope.selfType
-    targetType = @types.getMetaType(targetType) if decl.isStatic
-    @types.getFieldType(targetType, decl.name.identifier, decl.position).declare(
-        @types.get(scope, decl.type.typeref), decl.position)
+    inferAnnotations decl
+    getFieldType(decl, decl.isStatic).declare(
+                          getTypeOf(decl, decl.type.typeref),
+                          decl.position)
   end
 
   def visitFieldAssign(field, expression)
-    field.annotations.each {|a| infer(a)}
-    targetType = @scopes.getScope(field).selfType
-    targetType = @types.getMetaType(targetType) if field.isStatic
+    inferAnnotations field
     value = infer(field.value, true)
-    @types.getFieldType(targetType, field.name.identifier, field.position).assign(value, field.position)
+    getFieldType(field, field.isStatic).assign(value, field.position)
   end
 
   def visitFieldAccess(field, expression)
-    targetType = @scopes.getScope(field).selfType
+    targetType = fieldTargetType field, field.isStatic
     if targetType.nil?
       TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
     else
-      targetType = @types.getMetaType(targetType) if field.isStatic
-      @types.getFieldType(targetType, field.name.identifier, field.position)
+      getFieldType field, targetType
     end
   end
 
   def visitConstant(constant, expression)
-    @types.getMetaType(@types.get(@scopes.getScope(constant), constant.typeref))
+    @types.getMetaType(getTypeOf(constant, constant.typeref))
   end
 
   def visitIf(stmt, expression)
@@ -549,20 +535,29 @@ class Typer < SimpleNodeVisitor
     # Start by saving the old args and creating a new, empty arg list
     old_args = node.args
     node.args = NodeList.new(node.args.position)
-
+    possibilities = ArrayList.new
     exceptions = ArrayList.new
     if old_args.size == 1
       exceptions.addAll buildNodeAndTypeForRaiseTypeOne(old_args, node)
+      possibilities.add "1"
     end
 
     if old_args.size > 0
       exceptions.addAll buildNodeAndTypeForRaiseTypeTwo(old_args, node)
+      possibilities.add "2"
     end
     exceptions.addAll buildNodeAndTypeForRaiseTypeThree(old_args, node)
+      possibilities.add "3"
 
+    log = logger()
+    log.finest "possibilities #{possibilities}"
+    exceptions.each do |e|
+      log.finest "type possible #{e} for raise"
+    end
     # Now we'll try all of these, ignoring any that cause an inference error.
     # Then we'll take the first that succeeds, in the order listed above.
     exceptionPicker = PickFirst.new(exceptions) do |type, pickedNode|
+      log.finest "picking #{type} for raise"
       if node.args.size == 0
         node.args.add(Node(pickedNode))
       else
@@ -593,13 +588,12 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRescueClause(clause, expression)
-    scope = @scopes.addScope(clause)
-    scope.parent = @scopes.getScope(clause)
-    name = clause.name
     if clause.types_size == 0
-      clause.types.add(TypeRefImpl.new(@types.getDefaultExceptionType().resolve.name,
+      clause.types.add(TypeRefImpl.new(defaultExceptionTypeName,
                                        false, false, clause.position))
     end
+    scope = addNestedScope clause
+    name = clause.name
     if name
       scope.shadow(name.identifier)
       exceptionType = @types.getLocalType(scope, name.identifier, name.position)
@@ -721,26 +715,25 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitSelf(node, expression)
-    @scopes.getScope(node).selfType
+    scopeOf(node).selfType
   end
 
   def visitTypeRefImpl(typeref, expression)
-    @types.get(@scopes.getScope(typeref), typeref)
+    getTypeOf(typeref, typeref)
   end
 
   def visitLocalDeclaration(decl, expression)
-    scope = @scopes.getScope(decl)
-    type = @types.get(scope, decl.type.typeref)
-    @types.getLocalType(scope, decl.name.identifier, decl.position).declare(type, decl.position)
+    type = getTypeOf(decl, decl.type.typeref)
+    getLocalType(decl).declare(type, decl.position)
   end
 
   def visitLocalAssignment(local, expression)
     value = infer(local.value, true)
-    @types.getLocalType(@scopes.getScope(local), local.name.identifier, local.position).assign(value, local.position)
+    getLocalType(local).assign(value, local.position)
   end
 
   def visitLocalAccess(local, expression)
-    @types.getLocalType(@scopes.getScope(local), local.name.identifier, local.position)
+    getLocalType(local)
   end
 
   def visitNodeList(body, expression)
@@ -757,8 +750,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitClassAppendSelf(node, expression)
-    scope = @scopes.addScope(node)
-    scope.selfType = @types.getMetaType(@scopes.getScope(node).selfType)
+    addScopeWithSelfType node, @types.getMetaType(scopeOf(node).selfType)
     infer(node.body, false)
     @types.getNullType()
   end
@@ -768,7 +760,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitScript(script, expression)
-    scope = @scopes.addScope(script)
+    scope = addScopeUnder(script)
     @types.addDefaultImports(scope)
     scope.selfType = @types.getMainType(scope, script)
     infer(script.body, false)
@@ -779,11 +771,11 @@ class Typer < SimpleNodeVisitor
     anno.values_size.times do |i|
       infer(anno.values(i).value)
     end
-    @types.get(@scopes.getScope(anno), anno.type.typeref)
+    getTypeOf(anno, anno.type.typeref)
   end
 
   def visitImport(node, expression)
-    scope = @scopes.getScope(node)
+    scope = scopeOf(node)
     fullName = node.fullName.identifier
     simpleName = node.simpleName.identifier
     if ".*".equals(simpleName)
@@ -801,13 +793,13 @@ class Typer < SimpleNodeVisitor
 
   def visitPackage(node, expression)
     if node.body
-      scope = @scopes.addScope(node)
+      scope = addScopeUnder(node)
       scope.package = node.name.identifier
       infer(node.body, false)
     else
       # TODO this makes things complicated. Probably package should be a property of
       # Script, and Package nodes should require a body.
-      scope = @scopes.getScope(node)
+      scope = scopeOf(node)
       scope.package = node.name.identifier
     end
     @types.getVoidType()
@@ -815,7 +807,7 @@ class Typer < SimpleNodeVisitor
 
   def visitEmptyArray(node, expression)
     infer(node.size)
-    @types.getArrayType(@types.get(@scopes.getScope(node), node.type.typeref))
+    @types.getArrayType(getTypeOf(node, node.type.typeref))
   end
 
   def visitUnquote(node, expression)
@@ -827,7 +819,7 @@ class Typer < SimpleNodeVisitor
     else
       NodeList.new(node.position, nodes)
     end
-    replacement = node.parent.replaceChild(node, replacement)
+    replacement = replaceSelf(node, replacement)
     infer(replacement, expression != nil)
   end
 
@@ -840,18 +832,30 @@ class Typer < SimpleNodeVisitor
     else
       replacement = LocalAssignment.new(node.position, node.name, node.value)
     end
-    replacement = node.parent.replaceChild(node, replacement)
+    replacement = replaceSelf(node, replacement)
     infer(replacement, expression != nil)
   end
 
   def visitArguments(args, expression)
     # Merge in any unquoted arguments first.
     it = args.required.listIterator
-    mergeArgs(args, it, it, args.optional.listIterator(args.optional_size), args.required2.listIterator(args.required2_size))
+    mergeArgs(args,
+              it,
+              it,
+              args.optional.listIterator(args.optional_size),
+              args.required2.listIterator(args.required2_size))
     it = args.optional.listIterator
-    mergeArgs(args, it, args.required.listIterator(args.required_size), it, args.required2.listIterator(args.required2_size))
+    mergeArgs(args,
+              it,
+              args.required.listIterator(args.required_size),
+              it,
+              args.required2.listIterator(args.required2_size))
     it = args.required.listIterator
-    mergeArgs(args, it, args.required.listIterator(args.required_size), args.optional.listIterator(args.optional_size), it)
+    mergeArgs(args,
+              it,
+              args.required.listIterator(args.required_size),
+              args.optional.listIterator(args.optional_size),
+              it)
     # Then do normal type inference.
     inferAll(args)
     @types.getVoidType()
@@ -914,66 +918,60 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitRequiredArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
-    if arg.type
-      type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
-    else
-      type
-    end
+    getArgumentType arg
   end
 
   def visitOptionalArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
-    type.declare(@types.get(scope, arg.type.typeref), arg.type.position) if arg.type
+    type = getArgumentType arg
     type.assign(infer(arg.value), arg.value.position)
     type
   end
 
   def visitRestArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
     if arg.type
-      type.declare(@types.getArrayType(@types.get(scope, arg.type.typeref)), arg.type.position)
+      getLocalType(arg).declare(
+        @types.getArrayType(getTypeOf(arg, arg.type.typeref)),
+        arg.type.position)
     else
-      type
+      getLocalType(arg)
     end
   end
 
   def visitBlockArgument(arg, expression)
-    scope = @scopes.getScope(arg)
-    type = @types.getLocalType(scope, arg.name.identifier, arg.position)
-    if arg.type
-      type.declare(@types.get(scope, arg.type.typeref), arg.type.position)
-    else
-      type
-    end
+    @@log.finest "BlockArgument: got here for #{arg}"
+    getArgumentType arg
   end
 
   def visitMethodDefinition(mdef, expression)
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
-    scope = @scopes.addScope(mdef)
-    outer_scope = @scopes.getScope(mdef)
-    selfType = outer_scope.selfType
-    if mdef.kind_of?(StaticMethodDefinition)
-      selfType = @types.getMetaType(selfType)
-    end
-    scope.selfType = selfType
-    scope.resetDefaultSelfNode
+
+    setupInnerScope(mdef)
+
     inferAll(mdef.annotations)
     infer(mdef.arguments)
     parameters = inferAll(mdef.arguments)
-    returnType = @types.get(outer_scope, mdef.type.typeref) if mdef.type
-    type = @types.getMethodDefType(selfType, mdef.name.identifier, parameters, returnType, mdef.name.position)
+
+    if mdef.type
+      returnType = getTypeOf(mdef, mdef.type.typeref)
+    end
+
+    selfType = selfTypeOf(mdef)
+    type = @types.getMethodDefType(selfType,
+                                   mdef.name.identifier,
+                                   parameters,
+                                   returnType,
+                                   mdef.name.position)
     @futures[mdef] = type
-    declareOptionalMethods(selfType, mdef, parameters, type.returnType)
-    is_void = type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
+    declareOptionalMethods(selfType,
+                           mdef,
+                           parameters,
+                           type.returnType)
+
     # TODO deal with overridden methods?
     # TODO throws
     # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
-    if is_void
+    if isVoid type
       infer(mdef.body, false)
       type.returnType.assign(@types.getVoidType, mdef.position)
     else
@@ -1007,35 +1005,60 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitImplicitSelf(node, expression)
-    @scopes.getScope(node).selfType
+    scopeOf(node).selfType
   end
 
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
-    new_scope = @scopes.addScope(block)
+    @@log.finest "Block: got here for #{block} #{block.arguments}"
+    new_scope = addNestedScope block
+
     infer(block.arguments) if block.arguments
+
     closures = @closures
-    parent = CallSite(block.parent)
     typer = self
-    BlockFuture.new(block) do |x, resolvedType|
+
+    BlockFuture.new(block) do |block_future, resolvedType|
       unless resolvedType.isError || block.parent.nil?
-        # TODO: This will fail if the block's class changes.
-        new_node = closures.prepare(block, resolvedType)
-        if block == parent.block
-          parent.block = nil
-          parent.parameters.add(new_node)
-        else
-          new_node.setParent(nil)
-          parent.replaceChild(block, new_node)
-        end
-        typer.infer(new_node)
+# if Method-having-closure
+#   selfType of new scope is block type future
+#   && infer body as non-expression
+# else
+#   selfType of newscope stays outer class
+#   infer body as expression
+# end
+        closures.insert_closure block, resolvedType
+#        if typer.contains_methods block
+#          closures.insert_closure block, resolvedType
+#          #new_scope.selfType = block_future
+#          #typer.infer(block.body)
+#        else
+#          methods = typer.type_system.getAbstractMethods(resolvedType)
+#          if methods.size != 1
+#            raise UnsupportedOperationException,
+#                  "Multiple abstract methods in #{resolvedType}: #{methods}"
+#          end
+#          # TODO should be able to call methods on abstract classes that are the closures,
+#          # which needs a self type of some kind
+#          BlockFuture(block_future).basic_block_method_type = MethodType(methods.get(0))
+#          typer.infer(block.body, true)
+#        end
       end
     end
   end
 
+  # Returns true if any MethodDefinitions were found.
+  def contains_methods(block: Block): boolean
+    block.body_size.times do |i|
+      node = block.body(i)
+      return true if node.kind_of?(MethodDefinition)
+    end
+    return false
+  end
+
   def visitBindingReference(ref, expression)
-    binding = @scopes.getScope(ref).binding_type
+    binding = scopeOf(ref).binding_type
     future = BaseTypeFuture.new
     future.resolved(binding)
     future
@@ -1112,12 +1135,169 @@ class Typer < SimpleNodeVisitor
   end
 
   def buildNodeAndTypeForRaiseTypeThree(old_args: NodeList, node: Node)
-    class_name = @types.getDefaultExceptionType().resolve.name
-    targetNode = Constant.new(node.position, SimpleString.new(node.position, class_name))
+    targetNode = Constant.new(node.position,
+                              SimpleString.new(node.position,
+                                defaultExceptionTypeName))
     params = ArrayList.new
     old_args.each {|a| params.add(Node(a).clone)}
     call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
     @scopes.copyScopeFrom(node, call)
     [infer(call), call]
+  end
+
+  def defaultExceptionTypeName
+    @types.getDefaultExceptionType().resolve.name
+  end
+
+  def selfTypeOf(mdef: MethodDefinition): TypeFuture
+    selfType = scopeOf(mdef).selfType
+    if mdef.kind_of?(StaticMethodDefinition)
+      selfType = @types.getMetaType(selfType)
+    end
+    selfType
+  end
+
+  def setupInnerScope(mdef: MethodDefinition): void
+    scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
+    scope.resetDefaultSelfNode
+  end
+
+  def addScopeWithSelfType(node: Node, selfType: TypeFuture)
+    scope = addScopeUnder(node)
+    scope.selfType = selfType
+    scope
+  end
+
+  def isVoid type: MethodFuture
+    type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
+  end
+
+  def getLocalType(local: Named)
+    getLocalType(local, local.name.identifier)
+  end
+
+  def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
+    @types.getLocalType(scopeOf(arg), identifier, arg.position)
+  end
+
+  def scopeOf(node: Node)
+    @scopes.getScope node
+  end
+
+  def addScopeUnder(node: Node)
+    @scopes.addScope node
+  end
+
+  def getArgumentType(arg: FormalArgument)
+    type = getLocalType arg
+    if arg.type
+      type.declare(
+        getTypeOf(arg, arg.type.typeref),
+        arg.type.position)
+    end
+    type
+  end
+
+  def getTypeOf(node: Node, typeref: TypeRef)
+    @types.get(scopeOf(node), typeref)
+  end
+
+  def inferCallTarget target: Node, scope: Scope
+    targetType = infer(target)
+    targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
+    targetType
+  end
+
+  def addNestedScope node: Node
+    scope = addScopeUnder(node)
+    scope.parent = scopeOf(node)
+    scope
+  end
+
+  def callMethodType call: CallSite, parameters: List
+    scope = scopeOf(call)
+    targetType = inferCallTarget call.target, scope
+    methodType = CallFuture.new(@types,
+                                scope,
+                                targetType,
+                                false,
+                                parameters,
+                                call)
+  end
+
+  def inferAnnotations annotated: Annotated
+    annotated.annotations.each {|a| infer(a)}
+  end
+
+  def inferParameterTypes call: CallSite
+    mergeUnquotes(call.parameters)
+    parameters = inferAll(call.parameters)
+    parameters.add(infer(call.block, true)) if call.block
+    parameters
+  end
+
+  # FIXME: Super should be a CallSite
+  def inferParameterTypes call: Super
+    mergeUnquotes(call.parameters)
+    parameters = inferAll(call.parameters)
+    parameters.add(infer(call.block, true)) if call.block
+    parameters
+  end
+
+    # FIXME: fieldX nodes should have isStatic as an interface method
+  def fieldTargetType field: Named, isStatic: boolean
+    targetType = scopeOf(field).selfType
+    return nil unless targetType
+    if isStatic
+      @types.getMetaType(targetType)
+    else
+      targetType
+    end
+  end
+
+  def getFieldType(field: Named, isStatic: boolean)
+    getFieldType(field, fieldTargetType(field, isStatic))
+  end
+
+  def getFieldType field: Named, targetType: TypeFuture
+    @types.getFieldType(targetType,
+                        field.name.identifier,
+                        field.position)
+  end
+
+  def expandMacro node: Node, inline_type: ResolvedType
+    logger.fine("Expanding macro #{node}")
+    InlineCode(inline_type).expand(node, self)
+  end
+
+  def replaceAndInfer future: DelegateFuture, current_node: Node, replacement: Node, expression: boolean
+    node = replaceSelf(current_node, replacement)
+    future.type = infer(node, expression)
+    node
+  end
+
+  def replaceSelf me: Node, replacement: Node
+    me.parent.replaceChild(me, replacement)
+  end
+
+
+  def isMacro resolvedType: ResolvedType
+    resolvedType.kind_of?(InlineCode)
+  end
+
+  def expandAndReplaceMacro future: DelegateFuture, current_node: Node, fcall: Node, picked_type: ResolvedType, expression: boolean
+    if current_node.parent
+      replaceAndInfer(
+                     future,
+                     current_node,
+                     expandMacro(fcall, picked_type),
+                     expression)
+    end
+  end
+
+  # FIXME: there's a bug in the AST that doesn't set the
+  # calls target correctly
+  def workaroundASTBug(call: CallSite)
+    call.target.setParent(call)
   end
 end

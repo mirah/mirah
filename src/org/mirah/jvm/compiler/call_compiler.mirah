@@ -36,19 +36,15 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void
     @@log = Logger.getLogger(CallCompiler.class.getName)
   end
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:NodeList, returnType:JVMType)
-    initialize(compiler, bytecode, position, target, name, returnType)
-    @args = Node[args.size]
-    args.size.times {|i| @args[i] = args.get(i)}
-  end
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, args:List, returnType:JVMType)
-    initialize(compiler, bytecode, position, target, name, returnType)
-    @args = Node[args.size]
-    args.toArray(@args)
-  end
-  
-  # TODO: private
-  def initialize(compiler:BaseCompiler, bytecode:Bytecode, position:Position, target:Node, name:String, returnType:JVMType)
+
+
+  def initialize(compiler: BaseCompiler,
+                 bytecode: Bytecode,
+                 position: Position,
+                 target: Node,
+                 name: String,
+                 args: NodeList,
+                 returnType: JVMType)
     super(compiler.context)
     @compiler = compiler
     @method = bytecode
@@ -56,7 +52,66 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     @target = target
     @name = name
     @returnType = returnType
+    @args = Node[args.size]
+    args.size.times {|i| @args[i] = args.get(i)}
   end
+  def initialize(compiler: BaseCompiler,
+                 bytecode: Bytecode,
+                 position: Position,
+                 target: Node,
+                 name: String,
+                 args: List,
+                 returnType: JVMType)
+    super(compiler.context)
+    @compiler = compiler
+    @method = bytecode
+    @position = position
+    @target = target
+    @name = name
+    @returnType = returnType
+    @args = Node[args.size]
+    args.toArray(@args)
+  end
+
+# how they should really work, but fails on CI for some unknown reason.
+  # def initialize(compiler: BaseCompiler,
+  #                bytecode: Bytecode,
+  #                position: Position,
+  #                target: Node,
+  #                name: String,
+  #                args: NodeList,
+  #                returnType: JVMType)
+  #   initialize(compiler, bytecode, position, target, name, returnType)
+  #   @args = Node[args.size]
+  #   args.size.times {|i| @args[i] = args.get(i)}
+  # end
+  # def initialize(compiler: BaseCompiler,
+  #                bytecode: Bytecode,
+  #                position: Position,
+  #                target: Node,
+  #                name: String,
+  #                args: List,
+  #                returnType: JVMType)
+  #   initialize(compiler, bytecode, position, target, name, returnType)
+  #   @args = Node[args.size]
+  #   args.toArray(@args)
+  # end
+  # # TODO: private
+  # def initialize(compiler: BaseCompiler,
+  #                bytecode: Bytecode,
+  #                position: Position,
+  #                target: Node,
+  #                name: String,
+  #                returnType: JVMType)
+  #   super(compiler.context)
+  #   @compiler = compiler
+  #   @method = bytecode
+  #   @position = position
+  #   @target = target
+  #   @name = name
+  #   @returnType = returnType
+  # end
+
   
   def compile(expression:boolean):void
     getMethod.accept(self, expression)

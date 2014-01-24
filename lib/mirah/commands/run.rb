@@ -21,20 +21,12 @@ module Mirah
     class Run < Base
       def execute
         execute_base do
-          main = nil
-          class_map = {}
+          class_map = generate_classes
+          $CLASSPATH << Mirah::Env.decode_paths(@state.classpath) if @state.classpath
+          class_loader = load_classes class_map
 
-          # generate all bytes for all classes
-          generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
+          main = find_main class_map, class_loader
 
-          generator.generate(args).each do |result|
-            class_map[result.classname.gsub(/\//, '.')] = Mirah::Util::ClassLoader.binary_string result.bytes
-          end
-
-          # load all classes
-          main = load_classes_and_find_main(class_map)
-
-          # run the main method we found
           run_main(main)
         end
       end
@@ -45,15 +37,18 @@ module Mirah
 
       private
 
-      def load_classes_and_find_main(class_map)
-        main = nil
-        dcl = Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
-        class_map.each do |name,|
-          cls = dcl.load_class(name)
-          # TODO: using first main; find correct one?
-          main ||= cls.get_method("main", java::lang::String[].java_class)
+      def load_classes(class_map)
+        Mirah::Util::ClassLoader.new(JRuby.runtime.jruby_class_loader, class_map)
+      end
+
+      def find_main class_map, class_loader
+        # TODO: using first main; find correct one?
+        class_map.keys.each do |name|
+          cls = class_loader.load_class(name)
+          main = cls.get_method("main", java::lang::String[].java_class)
+          return main if main
         end
-        main
+        nil
       end
 
       def run_main(main)
@@ -67,6 +62,16 @@ module Mirah
         else
           puts "No main found" unless @state.version_printed || @state.help_printed
         end
+      end
+
+      def generate_classes
+        # generate all bytes for all classes
+        generator = Mirah::Generator.new(@state, @state.compiler_class, false, @state.verbose)
+        class_map = {}
+        generator.generate(args).each do |result|
+          class_map[result.classname.gsub(/\//, '.')] = Mirah::Util::ClassLoader.binary_string result.bytes
+        end
+        class_map
       end
     end
   end

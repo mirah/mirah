@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,6 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module Mirah
-  VERSION = "0.1.3.dev"
+package org.mirah.builtins
+
+class StringBuilderExtensions
+  macro def <<(arg)
+    quote { `@call.target`.append(`arg`) }
+  end
 end
