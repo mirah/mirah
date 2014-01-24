@@ -78,4 +78,18 @@ class ImportTest < Test::Unit::TestCase
     assert_equal(["1", "2", "3"], list.to_a)
   end
 
+  def test_static_import_late_resolve
+    cls, = compile(<<-EOF)
+      import static StaticImports2.*
+      doFoo()
+
+      class StaticImports2
+        def self.doFoo
+          puts :hi
+        end
+      end
+    EOF
+    assert_output("hi\n") { cls.main(nil) }
+  end
+
 end
