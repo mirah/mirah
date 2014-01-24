@@ -31,6 +31,7 @@ import org.mirah.typer.TypeFuture
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ResolutionWatcher
 import org.mirah.typer.ResolvedType
+import org.mirah.util.Context
 
 interface DebugListener
   def stopped:void; end
@@ -129,12 +130,13 @@ class WatchState
 end
 
 class StackEntry
-  def initialize(node:Node, expression:boolean, parent:StackEntry)
+  def initialize(context:Context, node:Node, expression:boolean, parent:StackEntry)
+    @context = context
     @node = node
     @expression = expression
     @parent = parent
   end
-  attr_reader node:Node, expression:boolean
+  attr_reader node:Node, expression:boolean, context:Context
   attr_accessor result:TypeFuture, watch:WatchState
   attr_accessor parent:StackEntry
 end
@@ -157,6 +159,7 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
       eq: lambda(WatchPredicate) {|a, b| a && a.equals(b)},
       ne: lambda(WatchPredicate) {|a, b| a != b && (a.nil? || !a.equals(b))}
     }
+    @asts = []
   end
 
   def where:StackEntry
@@ -173,7 +176,7 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     @lock.unlock
   end
 
-  def continue:void
+  def continueExecution:void
     @lock.lock
     @step = nil
     unblock
@@ -277,11 +280,38 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     @lock.unlock
   end
 
-  def enterNode(node, expression)
+  def parsedNode(node)
+    @asts.add(node)
+  end
+
+  def getAllParsedNodes
+    @asts
+  end
+
+  def inferenceError(context, node, error)
+    @lock.lock
+    begin
+      @stack = StackEntry.new(context, node, true, StackEntry(@stack))
+      @stack.result = error
+    ensure
+      @lock.unlock
+    end
+
+    self.block
+
+    @lock.lock
+    begin
+      @stack = @stack.parent
+    ensure
+      @lock.unlock
+    end
+  end
+
+  def enterNode(context, node, expression)
     should_stop = false
     @lock.lock
     begin
-      @stack = StackEntry.new(node, expression, StackEntry(@stack))
+      @stack = StackEntry.new(context, node, expression, StackEntry(@stack))
       position = node.position
       if @step && @step.stopBefore(@stack)
         should_stop = true
@@ -300,7 +330,7 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     self.block if should_stop
   end
 
-  def exitNode(node, result)
+  def exitNode(context, node, result)
     @lock.lock
     should_stop = false
     begin
@@ -346,7 +376,8 @@ class DebugController implements DebuggerInterface, ResolutionWatcher
     @lock.lock
     @stopped = true
     @thread ||= Thread.currentThread
-    @listener.stopped
+    listener = @listener
+    @executor.execute { listener.stopped }
     while @stopped
       @condition.await
     end

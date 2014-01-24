@@ -18,11 +18,18 @@ package org.mirah.tool
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.net.URLClassLoader
+import java.util.LinkedHashMap
 import org.mirah.MirahClassLoader
 
 class RunCommand < MirahTool
   def initialize
-    @class_map = {}
+    @class_map = LinkedHashMap.new
+  end
+
+  def loader
+    @loader ||=  MirahClassLoader.new(
+        URLClassLoader.new(classpath, nil), @class_map)
   end
 
   def consumeClass(filename:String, bytes:byte[]):void
@@ -30,7 +37,6 @@ class RunCommand < MirahTool
   end
 
   def run
-    loader = MirahClassLoader.new(RunCommand.class.getClassLoader, @class_map)
     main_method = nil
     @class_map.keySet.each do |filename:String|
       klass = loader.loadClass(filename)
@@ -47,6 +53,15 @@ class RunCommand < MirahTool
       puts "No main method found"
       1
     end
+  end
+
+  def loadClasses
+    classes = []
+    @class_map.keySet.each do |filename:String|
+      klass = loader.loadClass(filename)
+      classes.add(klass)
+    end
+    classes
   end
 
   def self.main(args:String[]):void

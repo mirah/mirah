@@ -166,6 +166,7 @@ class CallFuture < BaseTypeFuture
         next if arg.kind_of?(BlockFuture)
         arg.resolve
       end
+      @method.resolve if @method
     end
     super
   end
