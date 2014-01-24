@@ -233,6 +233,10 @@ class MirahCompiler implements JvmBackend
           ClassResourceLoader.new(System.class),
           Pattern.compile("^/?(mirah/|org/mirah|org/jruby)"))
     end
+    # Annotations used by the compiler also need to be loadable
+    bootloader = FilteredResources.new(
+        ClassResourceLoader.new(Mirahc.class),
+        Pattern.compile("^/?org/mirah/jvm/(types/(Flags|Member|Modifiers))|compiler/Cleaned"), bootloader)
     classloader = ClassLoaderResourceLoader.new(
         IsolatedResourceLoader.new(classpath), bootloader)
     
