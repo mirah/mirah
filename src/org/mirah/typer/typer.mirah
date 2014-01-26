@@ -146,12 +146,15 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     workaroundASTBug call
-    methodType = callMethodType call, Collections.emptyList
-    targetType = infer(call.target)
+
     fcall = FunctionalCall.new(call.position,
                                Identifier(call.name.clone),
                                nil, nil)
     fcall.setParent(call.parent)
+
+
+    methodType = callMethodType call, Collections.emptyList
+    targetType = infer(call.target)
     @futures[fcall] = methodType
     @futures[fcall.target] = targetType
 
@@ -222,7 +225,9 @@ class Typer < SimpleNodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
+      cast = Cast.new(call.position,
+                      TypeName(call.typeref),
+                      Node(call.parameters.get(0).clone))
       castType = getTypeOf(call, call.typeref)
       items = [castType, cast,
                delegate, nil]
@@ -309,7 +314,9 @@ class Typer < SimpleNodeVisitor
           newType = @types.getArrayType(getTypeOf(call, typeref))
           @scopes.copyScopeFrom(call, newNode)
         else
-          cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
+          cast = Cast.new(call.position,
+                          TypeName(typeref),
+                          Node(call.parameters(0).clone))
           newNode = Node(cast)
           newType = getTypeOf(call, typeref)
         end
