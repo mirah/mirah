@@ -170,18 +170,8 @@ module CommonAssertions
   end
 end
 
-module DebuggingHelp
-  def with_finest_logging
-    Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::FINEST
-    yield
-  ensure
-    Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::INFO
-  end
-end
-
 class Test::Unit::TestCase
   include JVMCompiler
-  include DebuggingHelp
 
   def setup
     @tmp_classes = Set.new
