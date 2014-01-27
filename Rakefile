@@ -92,7 +92,7 @@ namespace :test do
 
     desc "run jvm tests compiling to bytecode"
     Rake::TestTask.new :bytecode => [:bootstrap, 
-                                     "javalib/mirahc.jar",
+                                     "dist/mirahc.jar",
                                       :test_setup] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
@@ -104,7 +104,7 @@ namespace :test do
       run_tests ["test:jvm:new_backend", "test:jvm:mirrors"]
     end
 
-    Rake::TestTask.new :new_backend => [:bootstrap, "javalib/mirahc.jar", :test_setup] do |t|
+    Rake::TestTask.new :new_backend => [:bootstrap, "dist/mirahc.jar", :test_setup] do |t|
       t.libs << 'test' << 'test/jvm'
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
@@ -150,6 +150,12 @@ task :clean do
   rm_f 'javalib/mirah-util.jar'
   rm_f 'javalib/mirah-mirrors.jar'
   rm_rf 'tmp'
+end
+
+desc "clean downloaded dependencies"
+task :clean_downloads do
+  rm_f "javalib/mirahc-0.1.2-2.jar"
+  rm_f 'javalib/jruby-complete.jar'
 end
 
 task :compile => [:bootstrap, :util]
