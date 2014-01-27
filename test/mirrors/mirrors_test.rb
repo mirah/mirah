@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'test/unit'
-require 'java'
+
+require "test_helper"
 require 'dist/mirahc.jar'
 
 class BaseMirrorsTest < Test::Unit::TestCase
@@ -48,8 +48,8 @@ class BaseMirrorsTest < Test::Unit::TestCase
 
   def assert_descriptor(descriptor, type)
     assert(type.isResolved, type.resolve.toString)
-    assert_resolved_to(descriptor, type.resolve)
     assert_not_error(type)
+    assert_resolved_to(descriptor, type.resolve)
   end
 
   def assert_resolved_to(descriptor, resolved)
@@ -58,7 +58,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   end
 
   def assert_error(type)
-    assert_block("Excpected #{type.resolve} to be an error") {
+    assert_block("Expected #{type.resolve} to be an error") {
       type.resolve.isError
     }
   end
@@ -487,24 +487,68 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     assert_resolved_to('S', call_future.resolve)
   end
 
-  def test_async_param_superclass
+  def test_main_type_not_error
     assert_not_error(main_type)
+  end
+
+  def test_when_superclass_unresolved_then_call_futures_in_error
     super_future = BaseTypeFuture.new
-    b = @types.defineType(@scope, ClassDefinition.new, "B", super_future, [])
-    a = @types.defineType(@scope, ClassDefinition.new, "A", b, [])
-    c = @types.defineType(@scope, ClassDefinition.new, "C", nil, [])
+    subclass   = @types.defineType(@scope, ClassDefinition.new, "Subclass", super_future, [])
+    superclass = @types.defineType(@scope, ClassDefinition.new, "UltimateSuperClass", nil, [])
     decl = AssignableTypeFuture.new(nil)
-    decl.declare(c, nil)
+    decl.declare(superclass, nil)
     
     @types.getMethodDefType(main_type, 'foobar', [decl],
                             @types.getFixnumType(0), nil)
-    type1 = CallFuture.new(@types, @scope, main_type, true, 'foobar', [b], [], nil)
-    assert_error(type1)
-    type2 = CallFuture.new(@types, @scope, main_type, true, 'foobar', [b], [], nil)
-    assert_error(type2)
-    super_future.resolved(c.resolve)
-    assert_descriptor("I", type1)
-    assert_descriptor("I", type2)
+    type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [subclass], [], nil)
+    assert_error(type)
+  end
+
+  def test_when_superclass_of_superclass_unresolved_then_call_future_in_error
+    super_future = BaseTypeFuture.new
+    subclass     = @types.defineType(@scope, ClassDefinition.new, "Subclass", super_future, [])
+    sub_subclass = @types.defineType(@scope, ClassDefinition.new, "SubSubclass", super_future, [])
+    superclass   = @types.defineType(@scope, ClassDefinition.new, "UltimateSuperClass", nil, [])
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(superclass, nil)
+
+    @types.getMethodDefType(main_type, 'foobar', [decl],
+                            @types.getFixnumType(0), nil)
+    type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [sub_subclass], [], nil)
+    assert_error(type)
+  end
+
+  def test_after_unresolved_superclass_resolves_then_call_future_not_error
+    super_future = BaseTypeFuture.new
+    subclass   = @types.defineType(@scope, ClassDefinition.new, "Subclass", super_future, [])
+    superclass = @types.defineType(@scope, ClassDefinition.new, "UltimateSuperClass", nil, [])
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(superclass, nil)
+
+    @types.getMethodDefType(main_type, 'foobar', [decl],
+                            @types.getFixnumType(0), nil)
+
+    type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [subclass], [], nil)
+
+    super_future.resolved(superclass.resolve)
+
+    assert_descriptor("I", type)
+  end
+
+  def test_after_unresolved_superclass_of_superclass_resolves_then_call_future_not_error
+    super_future = BaseTypeFuture.new
+    subclass     = @types.defineType(@scope, ClassDefinition.new, "Subclass", super_future, [])
+    sub_subclass = @types.defineType(@scope, ClassDefinition.new, "SubSubclass", super_future, [])
+    superclass   = @types.defineType(@scope, ClassDefinition.new, "UltimateSuperClass", nil, [])
+    decl = AssignableTypeFuture.new(nil)
+    decl.declare(superclass, nil)
+    @types.getMethodDefType(main_type, 'foobar', [decl],
+                            @types.getFixnumType(0), nil)
+    type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [sub_subclass], [], nil)
+
+    super_future.resolved(superclass.resolve)
+
+    assert_descriptor("I", type)
   end
 
   def test_nulltype_methods
