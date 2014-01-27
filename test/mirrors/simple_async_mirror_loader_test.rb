@@ -94,6 +94,7 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   end
 
   def test_array
+    pend "undefined ClassPath class"
     context = Context.new
     classpath = ClassPath.new
     classpath.bytecode_loader_set PrimitiveLoader.new(context)
