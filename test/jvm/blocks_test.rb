@@ -251,7 +251,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_impling_interface_w_multiple_methods
-    assert_jraise java.lang.UnsupportedOperationException do
+   begin
       parse_and_type(<<-CODE)
         interface RunOrRun2 do
           def run:void;end
@@ -267,6 +267,10 @@ class BlocksTest < Test::Unit::TestCase
           1
         end
         CODE
+    rescue => ex
+      assert_match /multiple abstract/i, ex.message 
+    else
+      fail "No exception raised"
     end
   end
 

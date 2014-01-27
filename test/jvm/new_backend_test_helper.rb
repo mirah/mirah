@@ -38,7 +38,7 @@ module JVMCompiler
     name ||= tmp_script_name
 
     java_version = options.delete :java_version
-    args = ["-d", TEST_DEST, "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF"]
+    args = ["-d", TEST_DEST, "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF", "-classpath", FIXTURE_TEST_DEST]
     if java_version
       args = args + ["--jvm", java_version]
     end
