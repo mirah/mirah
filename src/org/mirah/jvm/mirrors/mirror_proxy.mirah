@@ -234,6 +234,7 @@ class MirrorFuture < BaseTypeFuture
     resolved(MirrorProxy.new(type))
     future = self
     type.onIncompatibleChange do
+      future.forgetType
       future.resolved(MirrorProxy.new(type))
     end
   end

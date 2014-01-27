@@ -59,6 +59,7 @@ class TypeInvocation < AsyncMirror implements DeclaredMirrorType
   end
 
   def getTypeArguments
+    return [] if @typeArguments.nil?
     @typeArguments.map do |a:TypeFuture|
       resolved = a.resolve
       if resolved.kind_of?(ErrorType)
@@ -74,7 +75,9 @@ class TypeInvocation < AsyncMirror implements DeclaredMirrorType
   end
 
   def toString
-    sb = StringBuilder.new(@raw.toString)
+
+    sb = StringBuilder.new
+    sb.append @raw
     sb.append('<')
     first = true
     getTypeArguments.each do |arg|
