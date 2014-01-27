@@ -39,4 +39,8 @@ class NarrowingTypeFuture < BaseTypeFuture
     map[:wide] = @wide
     map
   end
+
+  def toString
+    "<#{getClass}: narrow:#{@narrow}, wide:#{@wide}>"
+  end
 end
