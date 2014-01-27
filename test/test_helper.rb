@@ -58,9 +58,19 @@ module CommonAssertions
   def assert_output(expected, &block)
     assert_equal(expected, capture_output(&block))
   end
+end
 
+
+module DebuggingHelp
+  def with_finest_logging
+    Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::FINEST
+    yield
+  ensure
+    Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::INFO
+  end
 end
 
 class Test::Unit::TestCase
   include CommonAssertions
+  include DebuggingHelp
 end
