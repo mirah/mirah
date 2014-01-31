@@ -29,14 +29,112 @@ public class MirahLexer {
 
   private static final Logger logger = Logger.getLogger(MirahLexer.class.getName());
 
-  private interface Lexer {
-    int skipWhitespace(int pos);
-    Tokens lex();
+  public interface Input {
+    int pos();
+    int read();
+    boolean consume(char c);
+    boolean consume(String s);
+    void backup(int amount);
+    void skip(int amount);
+    boolean hasNext();
+    void consumeLine();
+    int peek();
+    int finishCodepoint();
+    CharSequence readBack(int length);
   }
-  private abstract class BaseLexer implements Lexer {
-    public int skipWhitespace(int pos) { return pos; }
+
+  public static class StringInput implements Input {
+    private int pos = 0;
+    private final String string;
+    private final char[] chars;
+    private final int end;
+
+    public StringInput(String string, char[] chars) {
+      this.string = string;
+      this.chars = chars;
+      this.end = chars.length;
+    }
+
+    public int pos() {
+      return pos;
+    }
+
+    public int read() {
+      if (pos >= end) {
+        pos = end + 1;
+        return -1;
+      }
+      return chars[pos++];
+    }
+
+    public boolean consume(char c) {
+      if (read() == c) {
+        return true;
+      }
+      --pos;
+      return false;
+    }
+
+    public boolean consume(String s) {
+      if (string.startsWith(s, pos)) {
+        pos += s.length();
+        return true;
+      }
+      return false;
+    }
+
+    public void backup(int amount) {
+      pos -= amount;
+    }
+
+    public void skip(int amount) {
+      if (pos < end - amount) {
+        pos += amount;
+      } else {
+        pos = end;
+      }
+    }
+
+    public boolean hasNext() {
+      return pos < end;
+    }
+
+    public void consumeLine() {
+      pos = string.indexOf('\n', pos);
+      if (pos == -1) {
+        pos = end;
+      }
+    }
+
+    public int peek() {
+      int result = read();
+      --pos;
+      return result;
+    }
+
+    public int finishCodepoint() {
+      int size = 1;
+      if (pos < end - 1) {
+        ++pos;
+        ++size;
+      }
+      return string.codePointAt(pos - size);
+    }
+    
+    public CharSequence readBack(int length) {
+      return string.substring(pos - length, pos);
+    }
   }
-  private class State {
+
+  protected interface Lexer {
+    Tokens skipWhitespace(MirahLexer l, Input i);
+    Tokens lex(MirahLexer l, Input i);
+  }
+  private static abstract class BaseLexer implements Lexer {
+    @Override
+    public Tokens skipWhitespace(MirahLexer l, Input i) { return null; }
+  }
+  protected static class State implements Cloneable {
     public final Lexer lexer;
     public final State previous;
     public final boolean justOnce;
@@ -56,158 +154,168 @@ public class MirahLexer {
     public void lbrace() {
       braceDepth += 1;
     }
-    public void rbrace() {
+    public void rbrace(MirahLexer ml) {
       braceDepth -= 1;
       if (braceDepth == -1) {
-        popState();
+        ml.popState();
       }
+    }
+    
+    public State clone() {
+      State clone = new State(previous == null ? null : previous.clone(), lexer, justOnce);
+      clone.braceDepth = braceDepth;
+      clone.hereDocs.addAll(hereDocs);
+      return clone;
     }
   }
 
-  private class SStringLexer extends BaseLexer {
-    private boolean isEscape() {
-      return isEscape(pos);
+  private static class CombinedState {
+    private final State state;
+    private final boolean isBEG;
+    private final boolean isARG;
+    private final boolean isEND;
+    private final boolean spaceSeen;
+    
+    public CombinedState(MirahLexer l) {
+      state = l.state.clone();
+      isBEG = l.isBEG();
+      isARG = l.isARG();
+      isEND = l.isEND();
+      spaceSeen = l.spaceSeen;
     }
-    private boolean isEscape(int i) {
-      if (i >= end) {
-        return false;
-      }
-      switch (chars[i]) {
-        case '\\': case '\'':
-          return true;
-      }
-      return false;
+  }
+
+  private static class SStringLexer extends BaseLexer {
+    private boolean isEscape(Input i) {
+      return i.consume('\'') || i.consume('\\');
     }
 
-    public Tokens lex() {
-      char c0 = chars[pos];
-      pos += 1;
+    @Override
+    public Tokens lex(MirahLexer l, Input i) {
+      int c0 = i.read();
       switch (c0) {
         case '\'':
-          popState();
+          l.popState();
           return Tokens.tSQuote;
         case '\\':
-          if (isEscape()) {
-            pos += 1;
+          if (isEscape(i)) {
             return Tokens.tEscape;
           }
       }
-      readRestOfString();
+      readRestOfString(i);
       return Tokens.tStringContent;
     }
 
-    private void readRestOfString() {
-      int i;
-      for (i = pos; i < end; ++i) {
-        char c = chars[i];
+    private void readRestOfString(Input i) {
+      for (int c = i.read(); c != -1;c = i.read()) {
         if (c == '\'') {
+          i.backup(1);
           break;
         } else if (c == '\\' && isEscape(i)) {
+          i.backup(2);
           break;
         }
       }
-      pos = i;
     }
   }
 
-  private class DStringLexer extends BaseLexer {
-    public Tokens lex() {
-      char c = chars[pos];
-      pos += 1;
+  private static class DStringLexer extends BaseLexer {
+    @Override
+    public Tokens lex(MirahLexer l, Input i) {
+      int c = i.read();
       if (isEndOfString(c)) {
-        popState();
-        return readEndOfString();
+        l.popState();
+        return readEndOfString(i);
       }
       switch (c) {
         case '\\':
-          readEscape();
+          readEscape(i);
           return Tokens.tEscape;
         case '#':
-          if (pos != end) {
-            if (chars[pos] == '{') {
-              pos += 1;
-              pushState(state.previous.lexer);
-              return Tokens.tStrEvBegin;
-            } else if (chars[pos] == '@') {
-              pushForOneToken(state.previous.lexer);
-              return Tokens.tStrEvBegin;
-            }
+          int c2 = i.read();
+          if (c2 == '{') {
+            l.pushState(l.state.previous.lexer);
+            return Tokens.tStrEvBegin;
+          } else if (c2 == '@') {
+            i.backup(1);
+            l.pushForOneToken(l.state.previous.lexer);
+            return Tokens.tStrEvBegin;
           }
+          i.backup(1);
       }
-      readRestOfString();
+      readRestOfString(i);
       return Tokens.tStringContent;
     }
-    public Tokens readEndOfString() {
+    public Tokens readEndOfString(Input i) {
       return Tokens.tDQuote;
     }
-    public boolean isEndOfString(char c) {
+    public boolean isEndOfString(int c) {
       return c == '"';
     }
-    private void readEscape() {
-      char c = chars[pos];
+    private void readEscape(Input i) {
+      int c = i.read();
       switch (c) {
         case 'x':
-          pos = Math.min(end, pos + 2);
+          i.skip(2);
           return;
         case 'u':
-          pos = Math.min(end, pos + 4);
+          i.skip(4);
           return;
         case 'U':
-          pos = Math.min(end, pos + 8);
+          i.skip(8);
           return;
         case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7':
-          if (pos + 2 < end) {
-            char c1 = chars[pos + 1];
-            char c2 = chars[pos + 2];
-            if (c1 >= '0' && c1 <= '7' && c2 >= '0' && c2 <= '7') {
-              pos += 2;
-              return;
-            }
+          int c1 = i.read();
+          int c2 = i.read();
+          if (c1 >= '0' && c1 <= '7' && c2 >= '0' && c2 <= '7') {
+            return;
           }
+          i.backup(2);
         default:
           if (c >= 0xD800 && c <= 0xDFFF) {
-            pos += 2;
-          } else {
-            pos += 1;
+            i.skip(1);
           }
       }
     }
 
-    private void readRestOfString() {
-      int i;
-      for (i = pos; i < end; ++i) {
-        char c = chars[i];
-        if (isEndOfString(c) || c == '"') {
+    private void readRestOfString(Input i) {
+      for (int c = i.read(); c != 01; c = i.read()) {
+        if (isEndOfString(c)) {
+          i.backup(1);
           break;
         } else if (c == '#') {
-          if (i + 1 < end && (chars[i + 1] == '{' || chars[i + 1] == '@')) {
+          int c2 = i.read();
+          if (c2 == '{' || c2 == '@') {
+            i.backup(2);
             break;
           }
         } else if (c == '\\') {
+          i.backup(1);
           break;
         }
       }
-      pos = i;
     }
   }
 
-  private class RegexLexer extends DStringLexer {
-    public boolean isEndOfString(char c) {
+  private static class RegexLexer extends DStringLexer {
+    @Override
+    public boolean isEndOfString(int c) {
       return c == '/';
     }
-    public Tokens readEndOfString() {
-      int i;
-      for (i = pos; i < end; ++i) {
-        if (!Character.isLetter(chars[pos])){
+
+    @Override
+    public Tokens readEndOfString(Input i) {
+      for (int c = i.read(); c != -1; c = i.read()) {
+        if (!Character.isLetter(c)){
           break;
         }
       }
-      MirahLexer.this.pos = i;
+      i.backup(1);
       return Tokens.tRegexEnd;
     }
   }
 
-  private class HereDocLexer extends BaseLexer {
+  private static class HereDocLexer extends BaseLexer {
     private final String marker;
     private final boolean allowIndented;
     private final boolean allowStrEv;
@@ -218,63 +326,65 @@ public class MirahLexer {
       this.allowStrEv = allowStrEv;
     }
 
-    public Tokens lex() {
-      int markerPos = readMarker(pos);
-      if (markerPos != -1) {
-        MirahLexer.this.pos = markerPos;
-        popState();
+    @Override
+    public Tokens lex(MirahLexer l, Input i) {
+      if (readMarker(i, true)) {
+        l.popState();
         return Tokens.tHereDocEnd;
       }
-      if (allowStrEv && chars[pos] == '#') {
-        if (pos + 1 < end && (chars[pos + 1] == '{' || chars[pos + 1] == '@')) {
-          pos += 1;
-          return readStrEv();
+      if (allowStrEv && i.consume('#')) {
+        if (i.consume('{') || i.consume('@')) {
+          return readStrEv(l, i);
         }
       }
-      int i;
-      for (i = pos; i < end; ++i) {
-        char c = chars[i];
+      for (int c = i.read();c != -1; c = i.read()) {
         if (c == '\n') {
-          if (-1 != readMarker(i + 1)) {
-            i += 1;
-            break;
+          if (readMarker(i, false)) {
+            return Tokens.tStringContent;
           }
         } else if (allowStrEv && c == '#') {
-          if (i + 1 < end && (chars[i + 1] == '{' || chars[i + 1] == '@')) {
-            break;
+          if (i.consume('{') || i.consume('@')) {
+            i.backup(2);
+            return Tokens.tStringContent;
           }
         }
       }
-      MirahLexer.this.pos = i;
+      i.backup(1);
       return Tokens.tStringContent;
     }
 
-    private int readMarker(int i) {
+    private boolean readMarker(Input i, boolean consume) {
+      int size = 0;
+      int c = i.read();
       if (allowIndented) {
-        while (i < end) {
-          if (" \t\r\f\u000b".indexOf(chars[i]) != -1) {
-            i += 1;
-          } else {
-            break;
-          }
+        while (" \t\r\f\u000b".indexOf(c) != -1) {
+          size += 1;
+          c = i.read();
         }
       }
-      if (string.startsWith(marker, i)) {
-        i += marker.length();
-        if (i == end || chars[i] == '\n') {
-          return i;
+      i.backup(1);
+      if (i.consume(marker)) {
+        size += marker.length();
+        if (i.hasNext() && i.peek() != '\n') {
+          i.backup(size);
+          return false;
         }
+        if (!consume) {
+          i.backup(size);
+        }
+        return true;
       }
-      return -1;
+      i.backup(size);
+      return false;
     }
 
-    private Tokens readStrEv() {
-      if (chars[pos] == '{') {
-        pos += 1;
-        pushState(state.previous.lexer);
+    private Tokens readStrEv(MirahLexer l, Input i) {
+      i.backup(1);
+      if (i.consume('{')) {
+        l.pushState(l.state.previous.lexer);
         return Tokens.tStrEvBegin;
-      } else if (chars[pos] == '@') {
-        pushForOneToken(state.previous.lexer);
+      } else if (i.peek() == '@') {
+        l.pushForOneToken(l.state.previous.lexer);
         return Tokens.tStrEvBegin;
       } else {
         return Tokens.tUNKNOWN;
@@ -282,637 +392,533 @@ public class MirahLexer {
     }
   }
 
-  private class StandardLexer implements Lexer {
-    public Tokens lex() {
-      Tokens type = processFirstChar(pos);
-      type = checkKeyword(type);
-      return readRestOfToken(type);
+  private static class StandardLexer implements Lexer {
+    @Override
+    public Tokens lex(MirahLexer l, Input i) {
+      Tokens type = processFirstChar(l, i);
+      type = checkKeyword(type, i);
+      return readRestOfToken(type, l, i);
     }
 
-    public int skipWhitespace(int pos) {
-      int i = pos;
+    @Override
+    public Tokens skipWhitespace(MirahLexer l, Input i) {
+      boolean found_whitespace = false;
       ws:
-      while (i < end) {
-        switch(chars[i]) {
+      for (int c = i.read(); c != -1; c = i.read()) {
+        switch(c) {
         case ' ': case '\t': case '\r': case '\f': case 11:
+          found_whitespace = true;
           break;
         case '\\':
-          if (i + 1 < end && chars[i + 1] == '\n') {
-            parser.note_newline(i + 1);
-            i += 1;
+          if (i.consume('\n')) {
+            l.noteNewline();
+            found_whitespace = true;
             break;
           }
           break ws;
         case '#':
-          i = string.indexOf('\n', i + 1);
-          if (i == -1) {
-            i = end;
+          if (found_whitespace) {
+            break ws;
           }
-          break ws;
+          i.consumeLine();
+          return Tokens.tComment;
         case '/':
-          if (i + 1 < end && chars[i + 1] == '*') {
-            i = skipBlockComment(i + 2);
-            break;
+          if (i.consume('*')) {
+            return readBlockComment(l, i);
           }
           break ws;
         default:
           break ws;
         }
-        i += 1;
       }
-      return i;
+      i.backup(1);
+      if (found_whitespace) {
+        return Tokens.tWhitespace;
+      }
+      return null;
     }
 
-    private int skipBlockComment(int start) {
-      int i = start;
-      while (i < end) {
-        switch(chars[i]) {
+    private Tokens readBlockComment(MirahLexer l, Input i) {
+      boolean javadoc = i.peek() == '*';
+      for (int c = i.read(); c != -1; c = i.read()) {
+        switch(c) {
         case '\n':
-          parser.note_newline(i);
+          l.noteNewline();
           break;
         case '*':
-          if (i + 1 < end && chars[i + 1] == '/') {
-            return i + 1;
+          if (i.consume('/')) {
+            return javadoc ? Tokens.tJavaDoc : Tokens.tComment;
           }
           break;
         case '/':
-          if (i + 1 < end && chars[i + 1] == '*') {
-            i = skipBlockComment(i + 2);
+          if (i.consume('*')) {
+            readBlockComment(l, i);
           }
           break;
        }
-        i += 1;
       }
-      throw parser.syntaxError("*/", null);
+      return l.unterminatedComment();
     }
 
-    private Tokens processFirstChar(int i) {
+    private Tokens processFirstChar(MirahLexer l, Input i) {
       Tokens type = null;
-      if (i == end) {
-        if (state.hereDocs.isEmpty()) {
+      int c0 = i.read();
+      switch (c0) {
+      case -1:
+        if (l.state.hereDocs.isEmpty()) {
           type = Tokens.tEOF;
         } else {
           type = Tokens.tHereDocBegin;
         }
-      } else {
-        char c0 = chars[i];
-        i += 1;
-        switch (c0) {
-        case '$':
-          type = Tokens.tDollar;
-          break;
-        case '@':
-          if (string.startsWith("@`", i)) {
-            i += 2;
-            type = Tokens.tClassVarBacktick;
-          } else if (string.startsWith("@", i) && i + 1 < end) {
-            i += 1;
-            type = Tokens.tClassVar;
-          } else if (string.startsWith("`", i)) {
-            i += 1;
-            type = Tokens.tInstVarBacktick;
-          } else if (i < end) {
-            type = Tokens.tInstVar;
-          }
-          break;
-        case '_':
-          if (string.startsWith("_ENCODING__", i)) {
-            type = Tokens.t__ENCODING__;
-            i += 11;
-          } else if (string.startsWith("_FILE__", i)) {
-            type = Tokens.t__FILE__;
-            i += 7;
-          } else if (string.startsWith("_LINE__", i)) {
-            type = Tokens.t__LINE__;
-            i += 7;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'B':
-          if (string.startsWith("EGIN", i)) {
-            type = Tokens.tBEGIN;
-            i += 4;
-          } else {
-            type = Tokens.tCONSTANT;
-          }
-          break;
-        case 'E':
-          if (string.startsWith("ND", i)) {
-            type = Tokens.tEND;
-            i += 2;
-          } else {
-            type = Tokens.tCONSTANT;
-          }
-          break;
-        case 'a':
-          if (string.startsWith("lias", i)) {
-            type = Tokens.tAlias;
-            i += 4;
-          } else if (string.startsWith("nd", i)) {
-            type = Tokens.tAnd;
-            i += 2;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'b':
-          if (string.startsWith("egin", i)) {
-            type = Tokens.tBegin;
-            i += 4;
-          } else if (string.startsWith("reak", i)) {
-            type = Tokens.tBreak;
-            i += 4;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'c':
-          if (string.startsWith("ase", i)) {
-            type = Tokens.tCase;
-            i += 3;
-          } else if (string.startsWith("lass", i)) {
-            type = Tokens.tClass;
-            i += 4;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'd':
-          if (string.startsWith("efined", i)) {
-            type = Tokens.tDefined;
-            i += 6;
-          } else if (string.startsWith("efmacro", i)) {
-            type = Tokens.tDefmacro;
-            i += 7;
-          } else if (string.startsWith("ef", i)) {
-            type = Tokens.tDef;
-            i += 2;
-          } else if (string.startsWith("o", i)) {
-            type = Tokens.tDo;
-            i += 1;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'e':
-          if (string.startsWith("lse", i)) {
-            type = Tokens.tElse;
-            i += 3;
-          } else if (string.startsWith("lsif", i)) {
-            type = Tokens.tElsif;
-            i += 4;
-          } else if (string.startsWith("nd", i)) {
-            type = Tokens.tEnd;
-            i += 2;
-          } else if (string.startsWith("nsure", i)) {
-            type = Tokens.tEnsure;
-            i += 5;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'f':
-          if (string.startsWith("alse", i)) {
-            type = Tokens.tFalse;
-            i += 4;
-          } else if (string.startsWith("or", i)) {
-            type = Tokens.tFor;
-            i += 2;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;      
-        case 'i':
-          if (string.startsWith("f", i)) {
-            type = Tokens.tIf;
-            i += 1;
-          } else if (string.startsWith("mplements", i)) {
-            type = Tokens.tImplements;
-            i += 9;
-          } else if (string.startsWith("mport", i)) {
-            type = Tokens.tImport;
-            i += 5;
-          } else if (string.startsWith("nterface", i)) {
-            type = Tokens.tInterface;
-            i += 8;
-          } else if (string.startsWith("n", i)) {
-            type = Tokens.tIn;
-            i += 1;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'm':
-          if (string.startsWith("acro", i)) {
-            type = Tokens.tMacro;
-            i += 4;
-          } else if (string.startsWith("odule", i)) {
-            type = Tokens.tModule;
-            i += 5;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'n':
-          if (string.startsWith("ext", i)) {
-            type = Tokens.tNext;
-            i += 3;
-          } else if (string.startsWith("il", i)) {
-            type = Tokens.tNil;
-            i += 2;
-          } else if (string.startsWith("ot", i)) {
-            type = Tokens.tNot;
-            i += 2;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'o':
-          if (string.startsWith("r", i)) {
-            type = Tokens.tOr;
-            i += 1;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'p':
-          if (string.startsWith("ackage", i)) {
-            type = Tokens.tPackage;
-            i += 6;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'r':
-          if (string.startsWith("aise", i)) {
-            type = Tokens.tRaise;
-            i += 4;
-          } else if (string.startsWith("edo", i)) {
-            type = Tokens.tRedo;
-            i += 3;
-          } else if (string.startsWith("escue", i)) {
-            type = Tokens.tRescue;
-            i += 5;
-          } else if (string.startsWith("etry", i)) {
-            type = Tokens.tRetry;
-            i += 4;
-          } else if (string.startsWith("eturn", i)) {
-            type = Tokens.tReturn;
-            i += 5;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 's':
-          if (string.startsWith("elf", i)) {
-            type = Tokens.tSelf;
-            i += 3;
-          } else if (string.startsWith("uper", i)) {
-            type = Tokens.tSuper;
-            i += 4;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 't':
-          if (string.startsWith("hen", i)) {
-            type = Tokens.tThen;
-            i += 3;
-          } else if (string.startsWith("rue", i)) {
-            type = Tokens.tTrue;
-            i += 3;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'u':
-          if (string.startsWith("ndef", i)) {
-            type = Tokens.tUndef;
-            i += 4;
-          } else if (string.startsWith("nless", i)) {
-            type = Tokens.tUnless;
-            i += 5;
-          } else if (string.startsWith("ntil", i)) {
-            type = Tokens.tUntil;
-            i += 4;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'w':
-          if (string.startsWith("hen", i)) {
-            type = Tokens.tWhen;
-            i += 3;
-          } else if (string.startsWith("hile", i)) {
-            type = Tokens.tWhile;
-            i += 4;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case 'y':
-          if (string.startsWith("ield", i)) {
-            type = Tokens.tYield;
-            i += 4;
-          } else {
-            type = Tokens.tIDENTIFIER;
-          }
-          break;
-        case '\n':
-          parser.note_newline(i);
-          if (state.hereDocs.isEmpty()) {
-            type = Tokens.tNL;
-          } else {
-            type = Tokens.tHereDocBegin;
-            pushState(state.hereDocs.removeFirst());
-          }
-          break;
-        case '/':
-          if (isBEG()) {
-            pushState(new RegexLexer());
-            type = Tokens.tRegexBegin;
-          } else if (i == end) {
-            type = Tokens.tSlash;
-
-          } else if (chars[i] == '=') {
-              i += 1;
-              type = Tokens.tOpAssign;
-          } else if (isARG() && spaceSeen && !Character.isWhitespace(chars[i])) {
-            // warn("Ambiguous first argument; make sure.")
-            type = Tokens.tRegexBegin;
-          } else {
-            type = Tokens.tSlash;
-          }
-          break;
-        case '\'':
-          pushState(new SStringLexer());
-          type = Tokens.tSQuote;
-          break;
-        case '"':
-          pushState(new DStringLexer());
-          type = Tokens.tDQuote;
-          break;
-        case ':':
-          if (i < end && chars[i] == ':') {
-            i += 1;
-            type = Tokens.tColons;
-          } else {
-            type = Tokens.tColon;
-          }
-          break;
-        case '.':
-          if (i < end && chars[i] == '.') {
-            i += 1;
-            type = Tokens.tDots;
-          } else {
-            type = Tokens.tDot;
-          }
-          break;
-        case '(':
-          type = Tokens.tLParen;
-          break;
-        case ')':
-          type = Tokens.tRParen;
-          break;
-        case '[':
-          type = Tokens.tLBrack;
-          break;
-        case ']':
-          type = Tokens.tRBrack;
-          break;
-        case '{':
-          state.lbrace();
-          type = Tokens.tLBrace;
-          break;
-        case '}':
-          state.rbrace();
-          type = Tokens.tRBrace;
-          break;
-        case ';':
-          type = Tokens.tSemi;
-          break;
-        case '!':
-          if (i < end) {
-            switch (chars[i]) {
-            case '=':
-              i += 1;
-              type = Tokens.tNE;
-              break;
-            case '~':
-              i += 1;
-              type = Tokens.tNMatch;
-              break;
-            default:
-              type = Tokens.tBang;
-            }
-          } else {
-            type = Tokens.tBang;
-          }
-          break;
-        case '<':
-          if (i < end) {
-            switch (chars[i]) {
-              case '=':
-                if (i + 1 < end && chars[i + 1] == '>') {
-                  i += 2;
-                  type = Tokens.tLEG;
-                } else {
-                  i += 1;
-                  type = Tokens.tLE;
-                }
-                break;
-              case '<':
-                if (i + 1 < end && chars[i + 1] == '<') {
-                  if (i + 2 < end && chars[i + 2] == '=') {
-                    i += 3;
-                    type = Tokens.tOpAssign;
-                  } else {
-                    i += 2;
-                    type = Tokens.tLLShift;
-                  }
-                } else if (i + 1 < end && chars[i + 1] == '=') {
-                  i += 2;
-                  type = Tokens.tOpAssign;
-                } else {
-                  i += 1;
-                  type = Tokens.tLShift;
-                }
-                break;
-              default:
-                type = Tokens.tLT;
-            }
-          } else {
-            type = Tokens.tLT;
-          }
-          break;
-        case '>':
-          if (i < end) {
-            char c = chars[i];
-            if (c == '=') {
-              i += 1;
-              type = Tokens.tGE;
-            } else if (c == '>') {
-              if (i + 1 < end && chars[i + 1] == '=') {
-                i += 2;
-                type = Tokens.tOpAssign;
-              } else {
-                i += 1;
-                type = Tokens.tRShift;
-              }
-            } else {
-              type = Tokens.tGT;
-            }
-          } else {
-            type = Tokens.tGT;
-          }
-          break;
-        case '?':
-          type = Tokens.tQuestion;
-          break;
-        case '=':
-          if (i == end) {
-            type = Tokens.tEQ;
-          } if (chars[i] == '>') {
-            i += 1;
-            type = Tokens.tRocket;
-          } else if (chars[i] == '~') {
-            i += 1;
-            type = Tokens.tMatch;
-          } else if (chars[i] == '=') {
-            if (i + 1 < end && chars[i + 1] == '=') {
-              i += 2;
-              type = Tokens.tEEEQ;
-            } else {
-              i += 1;
-              type = Tokens.tEEQ;
-            }
-          } else {
-            type = Tokens.tEQ;
-          }
-          break;
-        case '&':
-          if (i < end && chars[i] == '&') {
-            if (i + 1 < end && chars[i + 1] == '=') {
-              i += 2;
-              type = Tokens.tAndEq;
-            } else {
-              i += 1;
-              type = Tokens.tAmpers;
-            }
-          } else if (i < end && chars[i] == '=') {
-            i += 1;
+        break;
+      case '$':
+        type = Tokens.tDollar;
+        break;
+      case '@':
+        if (i.consume("@`")) {
+          type = Tokens.tClassVarBacktick;
+        } else if (i.consume('@') && i.hasNext()) {
+          type = Tokens.tClassVar;
+        } else if (i.consume('`')) {
+          type = Tokens.tInstVarBacktick;
+        } else if (i.hasNext()) {
+          type = Tokens.tInstVar;
+        }
+        break;
+      case '_':
+        if (i.consume("_ENCODING__")) {
+          type = Tokens.t__ENCODING__;
+        } else if (i.consume("_FILE__")) {
+          type = Tokens.t__FILE__;
+        } else if (i.consume("_LINE__")) {
+          type = Tokens.t__LINE__;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'B':
+        if (i.consume("EGIN")) {
+          type = Tokens.tBEGIN;
+        } else {
+          type = Tokens.tCONSTANT;
+        }
+        break;
+      case 'E':
+        if (i.consume("ND")) {
+          type = Tokens.tEND;
+        } else {
+          type = Tokens.tCONSTANT;
+        }
+        break;
+      case 'a':
+        if (i.consume("lias")) {
+          type = Tokens.tAlias;
+        } else if (i.consume("nd")) {
+          type = Tokens.tAnd;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'b':
+        if (i.consume("egin")) {
+          type = Tokens.tBegin;
+        } else if (i.consume("reak")) {
+          type = Tokens.tBreak;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'c':
+        if (i.consume("ase")) {
+          type = Tokens.tCase;
+        } else if (i.consume("lass")) {
+          type = Tokens.tClass;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'd':
+        if (i.consume("efined")) {
+          type = Tokens.tDefined;
+        } else if (i.consume("efmacro")) {
+          type = Tokens.tDefmacro;
+        } else if (i.consume("ef")) {
+          type = Tokens.tDef;
+        } else if (i.consume("o")) {
+          type = Tokens.tDo;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'e':
+        if (i.consume("lse")) {
+          type = Tokens.tElse;
+        } else if (i.consume("lsif")) {
+          type = Tokens.tElsif;
+        } else if (i.consume("nd")) {
+          type = Tokens.tEnd;
+        } else if (i.consume("nsure")) {
+          type = Tokens.tEnsure;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'f':
+        if (i.consume("alse")) {
+          type = Tokens.tFalse;
+        } else if (i.consume("or")) {
+          type = Tokens.tFor;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'i':
+        if (i.consume("f")) {
+          type = Tokens.tIf;
+        } else if (i.consume("mplements")) {
+          type = Tokens.tImplements;
+        } else if (i.consume("mport")) {
+          type = Tokens.tImport;
+        } else if (i.consume("nterface")) {
+          type = Tokens.tInterface;
+        } else if (i.consume("n")) {
+          type = Tokens.tIn;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'm':
+        if (i.consume("acro")) {
+          type = Tokens.tMacro;
+        } else if (i.consume("odule")) {
+          type = Tokens.tModule;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'n':
+        if (i.consume("ext")) {
+          type = Tokens.tNext;
+        } else if (i.consume("il")) {
+          type = Tokens.tNil;
+        } else if (i.consume("ot")) {
+          type = Tokens.tNot;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'o':
+        if (i.consume("r")) {
+          type = Tokens.tOr;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'p':
+        if (i.consume("ackage")) {
+          type = Tokens.tPackage;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'r':
+        if (i.consume("aise")) {
+          type = Tokens.tRaise;
+        } else if (i.consume("edo")) {
+          type = Tokens.tRedo;
+        } else if (i.consume("escue")) {
+          type = Tokens.tRescue;
+        } else if (i.consume("etry")) {
+          type = Tokens.tRetry;
+        } else if (i.consume("eturn")) {
+          type = Tokens.tReturn;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 's':
+        if (i.consume("elf")) {
+          type = Tokens.tSelf;
+        } else if (i.consume("uper")) {
+          type = Tokens.tSuper;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 't':
+        if (i.consume("hen")) {
+          type = Tokens.tThen;
+        } else if (i.consume("rue")) {
+          type = Tokens.tTrue;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'u':
+        if (i.consume("ndef")) {
+          type = Tokens.tUndef;
+        } else if (i.consume("nless")) {
+          type = Tokens.tUnless;
+        } else if (i.consume("ntil")) {
+          type = Tokens.tUntil;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'w':
+        if (i.consume("hen")) {
+          type = Tokens.tWhen;
+        } else if (i.consume("hile")) {
+          type = Tokens.tWhile;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case 'y':
+        if (i.consume("ield")) {
+          type = Tokens.tYield;
+        } else {
+          type = Tokens.tIDENTIFIER;
+        }
+        break;
+      case '\n':
+        l.noteNewline();
+        if (l.state.hereDocs.isEmpty()) {
+          type = Tokens.tNL;
+        } else {
+          type = Tokens.tHereDocBegin;
+          l.pushState(l.state.hereDocs.removeFirst());
+        }
+        break;
+      case '/':
+        if (l.isBEG()) {
+          l.pushState(new RegexLexer());
+          type = Tokens.tRegexBegin;
+        } else if (!i.hasNext()) {
+          type = Tokens.tSlash;
+        } else if (i.consume('=')) {
             type = Tokens.tOpAssign;
+        } else if (l.isARG() && l.spaceSeen && !Character.isWhitespace(i.peek())) {
+          // warn("Ambiguous first argument; make sure.")
+          type = Tokens.tRegexBegin;
+        } else {
+          type = Tokens.tSlash;
+        }
+        break;
+      case '\'':
+        l.pushState(new SStringLexer());
+        type = Tokens.tSQuote;
+        break;
+      case '"':
+        l.pushState(new DStringLexer());
+        type = Tokens.tDQuote;
+        break;
+      case ':':
+        if (i.consume(':')) {
+          type = Tokens.tColons;
+        } else {
+          type = Tokens.tColon;
+        }
+        break;
+      case '.':
+        if (i.consume('.')) {
+          type = Tokens.tDots;
+        } else {
+          type = Tokens.tDot;
+        }
+        break;
+      case '(':
+        type = Tokens.tLParen;
+        break;
+      case ')':
+        type = Tokens.tRParen;
+        break;
+      case '[':
+        type = Tokens.tLBrack;
+        break;
+      case ']':
+        type = Tokens.tRBrack;
+        break;
+      case '{':
+        l.state.lbrace();
+        type = Tokens.tLBrace;
+        break;
+      case '}':
+        l.state.rbrace(l);
+        type = Tokens.tRBrace;
+        break;
+      case ';':
+        type = Tokens.tSemi;
+        break;
+      case '!':
+        if (i.consume('=')) {
+          type = Tokens.tNE;
+        } else if (i.consume('~')) {
+          type = Tokens.tNMatch;
+        } else {
+          type = Tokens.tBang;
+        }
+        break;
+      case '<':
+        if (i.consume('=')) {
+          if (i.consume('>')) {
+            type = Tokens.tLEG;
           } else {
-            type = Tokens.tAmper;
+            type = Tokens.tLE;
           }
-          break;
-        case '|':
-          if (i < end && chars[i] == '|') {
-            if (i + 1 < end && chars[i + 1] == '=') {
-              i += 2;
-              type = Tokens.tOrEq;
-            } else {
-              i += 1;
-              type = Tokens.tPipes;
-            }
-          } else if (i < end && chars[i] == '=') {
-            i += 1;
-            type = Tokens.tOpAssign;
-          } else {
-            type = Tokens.tPipe;
-          }
-          break;
-        case '*':
-          if (i < end && chars[i] == '*') {
-            if (i + 1 < end && chars[i + 1] == '=') {
-              i += 2;
+        } else if (i.consume('<')) {
+          if (i.consume('<')) {
+            if (i.consume('=')) {
               type = Tokens.tOpAssign;
             } else {
-              i += 1;
-              type = Tokens.tStars;
+              type = Tokens.tLLShift;
             }
-          } else if (i < end && chars[i] == '=') {
-            i += 1;
+          } else if (i.consume('=')) {
             type = Tokens.tOpAssign;
           } else {
-            type = Tokens.tStar;
+            type = Tokens.tLShift;
           }
-          break;
-        case '+':
-          if (i < end && chars[i] == '=') {
-            i += 1;
+        } else {
+          type = Tokens.tLT;
+        }
+        break;
+      case '>':
+        if (i.consume('=')) {
+          type = Tokens.tGE;
+        } else if (i.consume('>')) {
+          if (i.consume('=')) {
             type = Tokens.tOpAssign;
           } else {
-            type = Tokens.tPlus;
+            type = Tokens.tRShift;
           }
-          break;
-        case '-':
-          if (i < end && chars[i] == '=') {
-            i += 1;
+        } else {
+          type = Tokens.tGT;
+        }
+        break;
+      case '?':
+        type = Tokens.tQuestion;
+        break;
+      case '=':
+        if (i.consume('>')) {
+          type = Tokens.tRocket;
+        } else if (i.consume('~')) {
+          type = Tokens.tMatch;
+        } else if (i.consume('=')) {
+          if (i.consume('=')) {
+            type = Tokens.tEEEQ;
+          } else {
+            type = Tokens.tEEQ;
+          }
+        } else {
+          type = Tokens.tEQ;
+        }
+        break;
+      case '&':
+        if (i.consume('&')) {
+          if (i.consume('=')) {
+            type = Tokens.tAndEq;
+          } else {
+            type = Tokens.tAmpers;
+          }
+        } else if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tAmper;
+        }
+        break;
+      case '|':
+        if (i.consume('|')) {
+          if (i.consume('=')) {
+            type = Tokens.tOrEq;
+          } else {
+            type = Tokens.tPipes;
+          }
+        } else if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tPipe;
+        }
+        break;
+      case '*':
+        if (i.consume('*')) {
+          if (i.consume('=')) {
             type = Tokens.tOpAssign;
           } else {
-            type = Tokens.tMinus;
+            type = Tokens.tStars;
           }
-          break;
-        case '%':
-          if (i < end && chars[i] == '=') {
-            i += 1;
-            type = Tokens.tOpAssign;
-          } else {
-            type = Tokens.tPercent;
-          }
-          break;
-        case '^':
-          if (i < end && chars[i] == '=') {
-            i += 1;
-            type = Tokens.tOpAssign;
-          } else {
-            type = Tokens.tCaret;
-          }
-          break;
-        case '~':
-          type = Tokens.tTilde;
-          break;
-        case '`':
-          type = Tokens.tBacktick;
-          break;
-        case ',':
-          type = Tokens.tComma;
-          break;
-        case '0': case '1': case '2': case '3': case '4':
-        case '5': case '6': case '7': case '8': case '9':
-          type = Tokens.tDigit;
-          break;
-        default:
-          // Note, I'm treating all surrogate pairs as identifier chars.
-          // We can fix that if it's ever a problem.
-          if ((c0 >= 'A' && c0 <= 'Z') ||
-              Character.isUpperCase(c0)) {
+        } else if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tStar;
+        }
+        break;
+      case '+':
+        if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tPlus;
+        }
+        break;
+      case '-':
+        if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tMinus;
+        }
+        break;
+      case '%':
+        if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tPercent;
+        }
+        break;
+      case '^':
+        if (i.consume('=')) {
+          type = Tokens.tOpAssign;
+        } else {
+          type = Tokens.tCaret;
+        }
+        break;
+      case '~':
+        type = Tokens.tTilde;
+        break;
+      case '`':
+        type = Tokens.tBacktick;
+        break;
+      case ',':
+        type = Tokens.tComma;
+        break;
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        type = Tokens.tDigit;
+        break;
+      default:
+        // Note, I'm treating all surrogate pairs as identifier chars.
+        // We can fix that if it's ever a problem.
+        if ((c0 >= 'A' && c0 <= 'Z') ||
+            Character.isUpperCase(c0)) {
+          type = Tokens.tCONSTANT;
+        } else if (c0 >= 0xD800 && c0 <= 0xDBFF) {
+          if (Character.isUpperCase(i.finishCodepoint())) {
             type = Tokens.tCONSTANT;
-          } else if (c0 >= 0xD800 && c0 <= 0xDBFF) {
-            if (Character.isUpperCase(string.codePointAt(i - 1))) {
-              type = Tokens.tCONSTANT;
-            } else {
-              type = Tokens.tIDENTIFIER;
-            }
-          } else if ((c0 >= 'a' && c0 <= 'z') ||
-                     (c0 > 0x7f && Character.isLetter(c0))) {
-            type = Tokens.tIDENTIFIER;
           } else {
-            type = Tokens.tUNKNOWN;
+            type = Tokens.tIDENTIFIER;
           }
+        } else if ((c0 >= 'a' && c0 <= 'z') ||
+                   (c0 > 0x7f && Character.isLetter(c0))) {
+          type = Tokens.tIDENTIFIER;
+        } else {
+          type = Tokens.tUNKNOWN;
         }
       }
-      pos = i;
       return type;
     }
 
-    private Tokens checkKeyword(Tokens type) {
+    private Tokens checkKeyword(Tokens type, Input i) {
       // If we found a keyword, see if it's just the beginning of another name
-      int i = pos;
-      if (Tokens.tClassVar.compareTo(type) > 0 && i < end) {
-        char c1 = chars[i];
+      if (Tokens.tClassVar.compareTo(type) > 0) {
+        int c1 = i.peek();
         if ((c1 >= 0xD800 && c1 <= 0xDFFF) ||
             Character.isLetterOrDigit(c1) ||
             c1 == '_') {
@@ -926,15 +932,14 @@ public class MirahLexer {
       return type;
     }
 
-    private Tokens readRestOfToken(Tokens type) {
-      int i = pos;
+    private Tokens readRestOfToken(Tokens type, MirahLexer l, Input i) {
       switch (type) {
         case tDigit:
           return readNumber(i);
         case tQuestion:
           return readCharacter(i);
         case tLShift:
-          return readHereDocIdentifier(i);
+          return readHereDocIdentifier(l, i);
       }
       if (Tokens.tFID.compareTo(type) >= 0) {
         return readName(i, type);
@@ -942,11 +947,9 @@ public class MirahLexer {
       return type;
     }
 
-    private Tokens readName(int pos, Tokens type) {
-      int i = pos;
-      while (i < end) {
-        char c = chars[i];
-        i += 1;
+    private Tokens readName(Input i, Tokens type) {
+      int start = i.pos();
+      for (int c = i.read(); c != -1; c = i.read()) {
         if (c <= 0x7F) {
           if (c == '_' ||
               (c >= '0' && c <= '9') ||
@@ -954,237 +957,228 @@ public class MirahLexer {
               (c >= 'a' && c <= 'z')) {
             continue;
           } else if (c == '?' || c == '!') {
-            if (i < end && chars[i] == '=') {
-              i -= 1;
+            if (i.consume('=')) {
+              i.backup(1);
+              break;
             } else {
-              type = Tokens.tFID;
+              return Tokens.tFID;
             }
-            break;
           }
-          i -= 1;
           break;
         } else if (c >= 0xD800 && c <= 0xDFFF) {
           continue;
         } else {
           if (!Character.isLetterOrDigit(c)) {
-            i -= 1;
             break;
           }
         }
       }
-      if (i == MirahLexer.this.pos && type == Tokens.tInstVar) {
+      i.backup(1);
+      if (type == Tokens.tInstVar && i.pos() == start) {
         type = Tokens.tAt;
       }
-      MirahLexer.this.pos = i;
       return type;
     }
 
-    private int readDigits(int pos, boolean oct, boolean dec, boolean hex) {
+    private void readDigits(Input i, boolean oct, boolean dec, boolean hex) {
       loop:
-      for (int i = pos; i < end; ++i) {
-        switch (chars[i]) {
+      for (int c = i.read(); c != -1; c = i.read()) {
+        switch (c) {
           case '0': case '1': case '_':
             break;
           case '2': case '3': case '4': case '5': case '6': case '7':
             if (oct) {
               break;
             } else {
-              return i;
+              i.backup(1);
+              return;
             }
           case '8': case '9':
             if (dec) {
               break;
             } else {
-              return i;
+              i.backup(1);
+              return;
             }
           case 'a': case 'A': case 'b': case 'B': case 'c': case 'C':
           case 'd': case 'D': case 'e': case 'E': case 'f': case 'F':
             if (hex) {
               break;
             } else {
-              return i;
+              i.backup(1);
+              return;
             }
           default:
-            return i;
+            i.backup(1);
+            return;
         }
       }
-      return end;
+      i.backup(1);
     }
 
-    private Tokens readNumber(int pos) {
-      if (pos == end) {
-        MirahLexer.this.pos = pos;
+    private Tokens readNumber(Input i) {
+      if (!i.hasNext()) {
         return Tokens.tInteger;
       }
       boolean oct = true;
       boolean dec = true;
       boolean hex = false;
       boolean maybeFloat = true;
-      if (chars[pos - 1] == '0') {
-        switch (chars[pos]) {
+      i.backup(1);
+      if (i.consume('0')) {
+        switch (i.read()) {
           case 'd': case 'D':
-            pos += 1;
             maybeFloat = false;
             break;
           case 'b': case 'B':
             oct = dec = maybeFloat = false;
-            pos += 1;
             break;
           case 'x': case 'X':
             hex = true;
             maybeFloat = false;
-            pos += 1;
+            break;
           case '.': case 'e': case 'E':
+            i.backup(1);
             break;
           case 'o': case 'O':
-            pos += 1;
+            dec = false;
+            break;
           default:
+            i.backup(1);
             maybeFloat = false;
             dec = false;
         }
       }
-      int i = readDigits(pos, oct, dec, hex);
-      MirahLexer.this.pos = i;
-      if (i == end || !maybeFloat) {
-        return Tokens.tInteger;
-      }
-      switch (chars[i]) {
-        case '.':
-          if (readFraction(i + 1)) {
+      readDigits(i, oct, dec, hex);
+      if (maybeFloat && i.hasNext()) {
+        if (i.consume('.')) {
+          if (readFraction(i)) {
             return Tokens.tFloat;
+          } else {
+            i.backup(1);
           }
-          break;
-        case 'e': case 'E':
-          readExponent(i + 1);
+        } else if (i.consume('e') || i.consume('E')) {
+          readExponent(i);
           return Tokens.tFloat;
+        }
       }
       return Tokens.tInteger;
     }
 
-    private boolean readFraction(int pos) {
-      int i = readDigits(pos, true, true, false);
-      if (i == pos) {
+    private boolean readFraction(Input i) {
+      int start = i.pos();
+      readDigits(i, true, true, false);
+      if (start == i.pos()) {
         return false;
       }
-      if (i < end) {
-        if (chars[i] == 'e' || chars[i] == 'E') {
-          readExponent(i + 1);
+      if (i.hasNext()) {
+        if (i.consume('e') || i.consume('E')) {
+          readExponent(i);
           return true;
         }
       }
-      MirahLexer.this.pos = i;
       return true;
     }
 
-    private void readExponent(int pos) {
-      if (pos < end && chars[pos] == '-') {
-        pos += 1;
-      }
-      MirahLexer.this.pos = readDigits(pos, true, true, false);
+    private void readExponent(Input i) {
+      i.consume('-');
+      readDigits(i, true, true, false);
     }
 
-    private boolean isIdentifierChar(char c) {
+    private boolean isIdentifierChar(int c) {
+      if (c == -1) {
+        return false;
+      }
       return Character.isLetterOrDigit(c) || c == '_' || (c >= 0xD800 && c <= 0xDBFF);
     }
 
-    private Tokens readCharacter(int pos) {
-      if (pos == end) {
+    private Tokens readCharacter(Input i) {
+      if (!i.hasNext()) {
         return Tokens.tQuestion;
       }
-      char c = chars[pos];
-      if (Character.isWhitespace(c)) {
+      int c = i.read();
+      if (c == -1 || Character.isWhitespace(c)) {
+        i.backup(1);
         return Tokens.tQuestion;
       }
-      if (pos + 1 == end) {
-        MirahLexer.this.pos = end;
-        return Tokens.tCharacter;
-      }
-      char c1 = chars[pos + 1];
-      if ((c == '_' || Character.isLetterOrDigit(c)) && isIdentifierChar(c1) ) {
+      if ((c == '_' || Character.isLetterOrDigit(c)) &&
+          isIdentifierChar(i.peek())) {
+        i.backup(1);
         return Tokens.tQuestion;
       }
       if (c >= 0xD800 && c <= 0xDBFF) {
-        if (pos + 2 < end && isIdentifierChar(chars[pos + 2])) {
+        i.skip(1);
+        if (isIdentifierChar(i.peek())) {
+          i.backup(2);
           return Tokens.tQuestion;
         }
-        MirahLexer.this.pos = pos + 2;
         return Tokens.tCharacter;
       }
       if (c != '\\') {
-        MirahLexer.this.pos += 1;
         return Tokens.tCharacter;
       }
       // Just gobble up any digits. Let the parser worry about whether it's a
       // valid escape.
-      int i;
-      for (i = pos + 2; i < end; ++i) {
-        c = chars[i];
-        switch (chars[i]) {
+      while (-1 != (c = i.read())) {
+        switch (c) {
           case '0': case '1': case '2': case '3': case '4': case '5': case '6':
           case '7': case '8': case '9': case 'a': case 'A': case 'b': case 'B':
           case 'c': case 'C': case 'd': case 'D': case 'e': case 'E': case 'f':
-          case 'F':
+          case 'F': case 'x': case 'u': case 'U':
             continue;
         }
         break;
       }
-      MirahLexer.this.pos = i;
+      if (c == -1 || Character.isWhitespace(c)) {
+        i.backup(1);
+      }
       return Tokens.tCharacter;
     }
 
-    private Tokens readHereDocIdentifier(int pos) {
+    private Tokens readHereDocIdentifier(MirahLexer l, Input i) {
+      int start = i.pos();
       boolean allowIndented = false;
-      if (pos == end || isEND() || (isARG() && !spaceSeen)) {
+      if (!i.hasNext() || l.isEND() || (l.isARG() && !l.spaceSeen)) {
         return Tokens.tLShift;
       }
-      if (chars[pos] == '-') {
+      if (i.consume('-')) {
         allowIndented = true;
-        pos += 1;
-        if (pos == end) {
-          return Tokens.tLShift;
-        }
       }
       char quote = 0;
-      if (chars[pos] == '"') {
+      if (i.consume('"')) {
         quote = '"';
-        pos += 1;
-      } else if (chars[pos] == '\'') {
+      } else if (i.consume('\'')) {
         quote = '\'';
-        pos += 1;
       }
-      if (pos == end) {
-        return Tokens.tLShift;
-      }
-      int start = pos;
-      while (pos < end) {
-        if (!isIdentifierChar(chars[pos])) {
+      int id_start = i.pos();
+      for (int c = i.read(); c != -1; c = i.read()) {
+        if (!isIdentifierChar(c)) {
           break;
         }
-        pos += 1;
       }
-      if (pos == start) {
+      i.backup(1);
+      if (i.pos() == id_start) {
         return Tokens.tLShift;
       }
-      String id = string.substring(start, pos);
+      CharSequence id = i.readBack(i.pos() - id_start);
       if (quote != 0) {
-        if ((pos == end || chars[pos] != quote)) {
+        if (!i.consume(quote)) {
+          i.backup(i.pos() - start);
           return Tokens.tLShift;
-        } else {
-          pos += 1;
         }
       }
-      state.hereDocs.add(new HereDocLexer(id, allowIndented, quote != '\''));
-      MirahLexer.this.pos = pos;
+      l.state.hereDocs.add(new HereDocLexer(id.toString(), allowIndented, quote != '\''));
       return Tokens.tHereDocId;
     }
   }
 
   public MirahLexer(String string, char[] chars, BaseParser parser) {
-    this.string = string;
-    this.chars = chars;
-    this.end = chars.length;
+    this(new StringInput(string, chars));
     this.parser = parser;
-    this.pos = 0;
+  }
+  
+  public MirahLexer(Input input) {
+    this.input = input;
     pushState(new StandardLexer());
     argTokens = EnumSet.of(Tokens.tSuper, Tokens.tYield, Tokens.tIDENTIFIER,
                            Tokens.tCONSTANT, Tokens.tFID);
@@ -1208,15 +1202,15 @@ public class MirahLexer {
   }
 
   private boolean isBEG() {
-    return tokens.size() == 0 || beginTokens.contains(tokens.get(tokens.size() - 1).type);
+    return isBEG;
   }
-  
+
   private boolean isARG() {
-    return tokens.size() > 0 && argTokens.contains(tokens.get(tokens.size() - 1).type);
+    return isARG;
   }
 
   private boolean isEND() {
-    return tokens.size() > 0 && endTokens.contains(tokens.get(tokens.size() - 1).type);
+    return isEND;
   }
 
   private void pushState(Lexer lexer) {
@@ -1233,8 +1227,26 @@ public class MirahLexer {
     }
   }
 
+  public Tokens simpleLex() {
+    boolean shouldPop = state.justOnce;
+    Tokens type = state.lexer.skipWhitespace(this, input);
+    if (type != null) {
+      spaceSeen = true;
+      return type;
+    }
+    type = state.lexer.lex(this, input);
+    if (shouldPop) {
+      popState();
+    }
+    spaceSeen = false;
+    isBEG = beginTokens.contains(type);
+    isARG = argTokens.contains(type);
+    isEND = endTokens.contains(type);
+    return type;
+  }
+
   public Token<Tokens> lex(int pos) {
-    if (pos < this.pos) {
+    if (pos < input.pos()) {
       ListIterator<Token<Tokens>> it = tokens.listIterator(tokens.size());
       while (it.hasPrevious()) {
         Token<Tokens> savedToken = it.previous();
@@ -1244,33 +1256,96 @@ public class MirahLexer {
           return savedToken;
         }
       }
-      throw new IllegalArgumentException("" + pos + " < " + this.pos);
-    } else if (pos >= end) {
+      throw new IllegalArgumentException("" + pos + " < " + input.pos());
+    } else if (!input.hasNext()) {
       return parser.build_token(state.hereDocs.isEmpty() ? Tokens.tEOF : Tokens.tHereDocBegin, pos, pos);
     }
-    boolean shouldPop = state.justOnce;
-    int start = state.lexer.skipWhitespace(pos);
-    this.pos = start;
-    this.spaceSeen = start != pos;
-    Tokens type = state.lexer.lex();
-    parser._pos = this.pos;
-    if (shouldPop) {
-      popState();
+    Tokens type = Tokens.tWhitespace;
+    int start = input.pos();
+    while (type.ordinal() > Tokens.tEOF.ordinal()) {
+      start = input.pos();
+      type = simpleLex();
     }
+    parser._pos = input.pos();
     Token<Tokens> token = parser.build_token(type, pos, start);
     tokens.add(token);
     return token;
   }
+  
+  void noteNewline() {
+    if (parser != null) {
+      parser.note_newline(input.pos());
+    }
+  }
 
-  private String string;
-  private char[] chars;
-  private int end;
-  private int pos;
+  public Tokens unterminatedComment() {
+    if (parser == null) {
+      return Tokens.tPartialComment;
+    } else {
+      throw parser.syntaxError("*/", null);
+    }
+  }
+
+  public Object getState() {
+    if (state.previous == null && state.hereDocs.isEmpty() && state.braceDepth < 0x20) {
+      int compressed = 0;
+      if (isBEG) {
+        compressed = 1;
+      } else if (isEND) {
+        compressed = 2;
+      } else if (isARG) {
+        if (spaceSeen) {
+          compressed = 4;
+        } else {
+          compressed = 3;
+        }
+      }
+      compressed |= (state.braceDepth << 3);
+      return compressed;
+    }
+    return new CombinedState(this);
+  }
+
+  void restore(Object state, Input input) {
+    this.input = input;
+    if (state instanceof CombinedState) {
+      CombinedState cs = (CombinedState)state;
+      this.state = cs.state;
+      spaceSeen = cs.spaceSeen;
+      isBEG = cs.isBEG;
+      isARG = cs.isARG;
+      isEND = cs.isEND;
+    } else {
+      int compressed = ((Integer)state).intValue();
+      this.state = new State(null, new StandardLexer());
+      this.state.braceDepth = (compressed >> 3) & 0x1f;
+      isBEG = isARG = isEND = spaceSeen = false;
+      switch (compressed & 0x7) {
+        case 1:
+          isBEG = true;
+          break;
+        case 2:
+          isEND = true;
+          break;
+        case 4:
+          spaceSeen = true;
+          // fall through;
+        case 3:
+          isARG = true;
+          break;
+      }
+    }
+  }
+
+  private Input input;
   private BaseParser parser;
   private State state;
   private ArrayList<Token<Tokens>> tokens = new ArrayList<Token<Tokens>>();
   private EnumSet<Tokens> beginTokens;
   private EnumSet<Tokens> argTokens;
   private EnumSet<Tokens> endTokens;
-  private boolean spaceSeen;
+  private boolean spaceSeen = false;
+  private boolean isBEG = true;
+  private boolean isARG = false;
+  private boolean isEND = false;
 }

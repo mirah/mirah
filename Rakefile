@@ -19,12 +19,12 @@ require 'rake/testtask'
 task :default => :build_parser
 
 task :clean do
-  ant.delete :quiet => true, :dir => 'build'
-  ant.delete :quiet => true, :dir => 'dist'
+  ant.delete 'quiet' => true, 'dir' => 'build'
+  ant.delete 'quiet' => true, 'dir' => 'dist'
 end
 
 task :build_parser => ['javalib/mirahc.jar', 'dist/mirah-parser.jar']
-ant.taskdef :name => 'jarjar', :classpath => 'javalib/jarjar-1.1.jar', :classname=>"com.tonicsystems.jarjar.JarJarTask"
+ant.taskdef 'name' => 'jarjar', 'classpath' => 'javalib/jarjar-1.1.jar', 'classname'=>"com.tonicsystems.jarjar.JarJarTask"
 
 def mirahc(path, options)
   args = options[:options] || []
@@ -44,14 +44,14 @@ end
 file 'build/mirah-parser.jar' => ['build/mirahparser/lang/ast/Node.class',
                                   'build/mirahparser/impl/MirahParser.class',
                                   'build/mirahparser/impl/MirahLexer.class'] do
-  ant.jarjar :jarfile => 'build/mirah-parser.jar' do
-    fileset :dir => 'build', :includes => 'mirahparser/impl/*.class'
-    fileset :dir => 'build', :includes => 'mirahparser/lang/ast/*.class'
-    fileset :dir => 'build', :includes => 'org/mirahparser/ast/*.class'
-    zipfileset :src => 'javalib/mmeta-runtime.jar'
-    _element :rule, :pattern=>'mmeta.**', :result=>'org.mirahparser.mmeta.@1'
+  ant.jarjar 'jarfile' => 'build/mirah-parser.jar' do
+    fileset 'dir' => 'build', 'includes' => 'mirahparser/impl/*.class'
+    fileset 'dir' => 'build', 'includes' => 'mirahparser/lang/ast/*.class'
+    fileset 'dir' => 'build', 'includes' => 'org/mirahparser/ast/*.class'
+    zipfileset 'src' => 'javalib/mmeta-runtime.jar'
+    _element 'rule', 'pattern'=>'mmeta.**', 'result'=>'org.mirahparser.mmeta.@1'
     manifest do
-      attribute :name=>"Main-Class", :value=>"mirahparser.impl.MirahParser"
+      attribute 'name'=>"Main-Class", 'value'=>"mirahparser.impl.MirahParser"
     end
   end
 end
@@ -60,12 +60,12 @@ file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
   # Mirahc picks up the built in classes instead of our versions.
   # So we compile in a different package and then jarjar them to the correct
   # one.
-  ant.jarjar :jarfile => 'dist/mirah-parser.jar' do
-    zipfileset :src => 'build/mirah-parser.jar'
-    _element :rule, :pattern=>'mirahparser.**', :result=>'mirah.@1'
-    _element :rule, :pattern=>'org.mirahparser.**', :result=>'org.mirah.@1'
+  ant.jarjar 'jarfile' => 'dist/mirah-parser.jar' do
+    zipfileset 'src' => 'build/mirah-parser.jar'
+    _element 'rule', 'pattern'=>'mirahparser.**', 'result'=>'mirah.@1'
+    _element 'rule', 'pattern'=>'org.mirahparser.**', 'result'=>'org.mirah.@1'
     manifest do
-      attribute :name=>"Main-Class", :value=>"mirah.impl.MirahParser"
+      attribute 'name'=>"Main-Class", 'value'=>"mirah.impl.MirahParser"
     end
   end
 end
@@ -106,19 +106,19 @@ file 'build/mirahparser/lang/ast/Node.java' =>
 end
 
 file 'build/mirahparser/impl/MirahLexer.class' => Dir['src/mirahparser/impl/*.java'] do
-  ant.javac :srcDir => 'src',
-      :destDir => 'build',
-      :source => '1.6',
-      :target => '1.6',
-      :debug => true do
-    include :name => 'mirahparser/impl/Tokens.java'
-    include :name => 'mirahparser/impl/MirahLexer.java'
-    classpath :path => 'build:javalib/mmeta-runtime.jar'
+  ant.javac 'srcDir' => 'src',
+      'destDir' => 'build',
+      'source' => '1.6',
+      'target' => '1.6',
+      'debug' => true do
+    include 'name' => 'mirahparser/impl/Tokens.java'
+    include 'name' => 'mirahparser/impl/MirahLexer.java'
+    classpath 'path' => 'build:javalib/mmeta-runtime.jar'
   end
 end
 
 file 'build/mirahparser/impl/Mirah.mirah' => 'src/mirahparser/impl/Mirah.mmeta' do
-  ant.mkdir :dir => 'build/mirahparser/impl'
+  ant.mkdir 'dir' => 'build/mirahparser/impl'
   runjava 'javalib/mmeta.jar', '--tpl', 'node=src/mirahparser/impl/node.xtm', 'src/mirahparser/impl/Mirah.mmeta', 'build/mirahparser/impl/Mirah.mirah.in'
 
   # This is an ugly hack, but I can't get mmeta to build right now

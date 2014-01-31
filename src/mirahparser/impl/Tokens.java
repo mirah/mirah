@@ -139,5 +139,9 @@ public enum Tokens {
   tHereDocBegin,
   tHereDocEnd,
   tUNKNOWN,
-  tEOF
+  tEOF,
+  tComment,
+  tJavaDoc,
+  tWhitespace,
+  tPartialComment
 }

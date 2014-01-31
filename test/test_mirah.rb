@@ -140,7 +140,7 @@ EOF
     assert_equal(3, ast.position.start_column)
     assert_equal(2, ast.position.end_line)
     assert_equal(6, ast.position.end_column)
-    assert_equal("test_position(TestParsing)-1", ast.position.source.name)
+    assert_equal("TestParsing-1", ast.position.source.name)
   end
 
   def test_modified_position
