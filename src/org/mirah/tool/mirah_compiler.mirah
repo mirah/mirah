@@ -75,18 +75,21 @@ class MirahCompiler implements JvmBackend
     @diagnostics = diagnostics
     @jvm = jvm
     @destination = macro_destination
+    @debugger = debugger
 
     @context = context = Context.new
     context[JvmBackend] = self
     context[DiagnosticListener] = @diagnostics
     context[SimpleDiagnostics] = @diagnostics
     context[JvmVersion] = @jvm
+    context[DebuggerInterface] = debugger
 
     @macro_context = Context.new
     @macro_context[JvmBackend] = self
     @macro_context[DiagnosticListener] = @diagnostics
     @macro_context[SimpleDiagnostics] = @diagnostics
     @macro_context[JvmVersion] = @jvm
+    @macro_context[DebuggerInterface] = debugger
 
     # The main type system needs access to the macro one to call macros.
     @context[Context] = @macro_context
@@ -124,6 +127,10 @@ class MirahCompiler implements JvmBackend
     @@log = Logger.getLogger(Mirahc.class.getName)
   end
 
+  def getParsedNodes
+    @asts
+  end
+
   def createTyper(debugger:DebuggerInterface, context:Context, types:TypeSystem,
                   scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser)
     if debugger.nil?
@@ -134,11 +141,14 @@ class MirahCompiler implements JvmBackend
   end
 
   def parse(code:CodeSource)
-    node = @parser.parse(code)
+    node = Node(@parser.parse(code))
     if node.nil?
       puts "#{code.name} parsed to nil"
     else
       @asts.add(node)
+      if @debugger
+        @debugger.parsedNode(node)
+      end
     end
     if @diagnostics.errorCount > 0
       raise CompilationFailure.new
@@ -227,6 +237,10 @@ class MirahCompiler implements JvmBackend
           ClassResourceLoader.new(System.class),
           Pattern.compile("^/?(mirah/|org/mirah|org/jruby)"))
     end
+    # Annotations used by the compiler also need to be loadable
+    bootloader = FilteredResources.new(
+        ClassResourceLoader.new(Mirahc.class),
+        Pattern.compile("^/?org/mirah/jvm/(types/(Flags|Member|Modifiers))|compiler/Cleaned"), bootloader)
     classloader = ClassLoaderResourceLoader.new(
         IsolatedResourceLoader.new(classpath), bootloader)
     
@@ -238,7 +252,7 @@ class MirahCompiler implements JvmBackend
         IsolatedResourceLoader.new(macrocp),
         FilteredResources.new(
             ClassResourceLoader.new(Mirahc.class),
-            Pattern.compile("^/?(mirah/|org/mirah/macros)"),
+            Pattern.compile("^/?(mirah/|org/mirah)"),
             bootloader))
 
     macro_class_loader = URLClassLoader.new(

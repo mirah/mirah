@@ -31,25 +31,27 @@ import org.mirah.jvm.compiler.ReportedException
 import org.mirah.jvm.mirrors.SafeTyper
 
 interface DebuggerInterface
-  def enterNode(node:Node, expression:boolean):void; end
-  def exitNode(node:Node, future:TypeFuture):void; end
+  def parsedNode(node:Node):void; end
+  def enterNode(context:Context, node:Node, expression:boolean):void; end
+  def exitNode(context:Context, node:Node, future:TypeFuture):void; end
+  def inferenceError(context:Context, node:Node, future:TypeFuture):void; end
 end
 
 class DebugTyper < SafeTyper
   def self.initialize:void
-     @@log = Logger.getLogger(SafeTyper.class.getName)
-   end
+    @@log = Logger.getLogger(SafeTyper.class.getName)
+  end
 
-   def initialize(debugger:DebuggerInterface, context:Context, types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser=nil)
-     super(context, types, scopes, jvm_backend, parser)
-     @debugger = debugger
-     @diagnostics = context[DiagnosticListener]
-   end
+  def initialize(debugger:DebuggerInterface, context:Context, types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser=nil)
+    super(context, types, scopes, jvm_backend, parser)
+    @debugger = debugger
+    @context = context
+  end
 
-   def infer(node:Node, expression:boolean)
-     @debugger.enterNode(node, expression)
-     result = super
-     @debugger.exitNode(node, result)
-     result
-   end
+  def infer(node:Node, expression:boolean)
+    @debugger.enterNode(@context, node, expression)
+    result = super
+    @debugger.exitNode(@context, node, result)
+    result
+  end
 end

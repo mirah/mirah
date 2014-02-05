@@ -15,8 +15,42 @@
 require 'bytecode_test_helper'
 
 module JVMCompiler
-  def compiler_type
-    Mirah::JVM::Compiler::Backend
+  java_import 'org.mirah.tool.RunCommand'
+  java_import 'org.mirah.util.SimpleDiagnostics'
+  class TestDiagnostics < SimpleDiagnostics
+    java_import 'java.util.Locale'
+    def report(diagnostic)
+      if diagnostic.kind.name == "ERROR"
+        raise Mirah::MirahError, diagnostic.getMessage(Locale.getDefault)
+      end
+      super
+    end
+  end
+  def parse_and_resolve_types name, code
+    cmd = RunCommand.new
+    cmd.addFakeFile(name, code)
+    cmd.compile(["-d", TEST_DEST])
+    cmd.compiler.getParsedNodes[0]
+  end
+
+  def compile(code, options = {})
+    name = options.delete :name
+    name ||= tmp_script_name
+
+    java_version = options.delete :java_version
+    args = ["-d", TEST_DEST, "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF", "-classpath", FIXTURE_TEST_DEST]
+    if java_version
+      args = args + ["--jvm", java_version]
+    end
+
+    cmd = RunCommand.new
+    cmd.setDiagnostics(TestDiagnostics.new(false))
+    cmd.addFakeFile(name, code)
+    if 0 != cmd.compile(args)
+      raise Mirah::MirahError, "Compilation failed"
+    end
+      
+    cmd.loadClasses.map {|cls| JRuby.runtime.java_support.getProxyClassFromCache(cls)}
   end
 
   def compiler_name

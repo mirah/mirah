@@ -26,7 +26,7 @@ public class MirahClassLoader extends SecureClassLoader {
         } else {
           bytes = ((String)value).getBytes("ISO-8859-1");
         }
-        return defineClass(name, bytes, 0, bytes.length);
+        return defineClass(name.replace('/', '.'), bytes, 0, bytes.length);
       } catch (java.io.UnsupportedEncodingException ex) {
           throw new ClassNotFoundException(name, ex);
       }

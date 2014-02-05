@@ -185,7 +185,7 @@ class ConsoleDebugger implements DebugListener, Runnable
 
   def doContinue(args:String[]):void
     @stopped = false
-    @controller.continue
+    @controller.continueExecution
   end
 
   def doStep(args:String[]):void

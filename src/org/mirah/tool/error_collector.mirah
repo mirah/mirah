@@ -21,6 +21,7 @@ import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Position
+import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.typer.ErrorType
 import org.mirah.typer.FuturePrinter
 import org.mirah.typer.Typer
@@ -32,6 +33,8 @@ class ErrorCollector < NodeScanner
     @errors = HashSet.new
     @typer = context[Typer]
     @reporter = context[DiagnosticListener]
+    @debugger = context[DebuggerInterface]
+    @context = context
   end
 
   def self.initialize:void
@@ -60,6 +63,9 @@ class ErrorCollector < NodeScanner
         debug = FuturePrinter.new
         debug.printFuture(future)
         @@log.fine("future:\n#{debug}")
+        if @debugger
+          @debugger.inferenceError(@context, node, future)
+        end
       end
     end
     nil

@@ -38,15 +38,12 @@ class AnnotationsTest < Test::Unit::TestCase
   end
 
   def test_annotation_with_an_integer
-    jruby_method = Java::OrgJrubyAnno::JRubyMethod.java_class
+    jruby_method = Java::OrgFoo::IntAnno.java_class
 
     cls, = compile(<<-EOF)
-      import org.jruby.*
-      import org.jruby.anno.*
-      import org.jruby.runtime.*
-      import org.jruby.runtime.builtin.*
+      import org.foo.IntAnno
 
-      $JRubyMethod["name" => ["bar"], "optional" => 1]
+      $IntAnno[name: ["bar"], value: 1]
       def bar(baz:int)
       end
     EOF

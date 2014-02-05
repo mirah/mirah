@@ -101,7 +101,7 @@ namespace :test do
 
     desc "run jvm tests using the new self hosted backend"
     task :new do
-      run_tests ["test:jvm:new_backend", "test:jvm:mirrors"]
+      run_tests ["test:jvm:mirror_compilation", "test:jvm:mirrors"]
     end
 
     Rake::TestTask.new :new_backend => [:bootstrap, "dist/mirahc.jar", :test_setup] do |t|
@@ -115,9 +115,9 @@ namespace :test do
       t.libs << 'test'
       t.test_files = FileList["test/mirrors/**/*test.rb"]
     end
-    Rake::TestTask.new :mirror_compilation  => "dist/mirahc.jar" do |t|
+    Rake::TestTask.new :mirror_compilation  => ["dist/mirahc.jar", :test_setup] do |t|
       t.libs << 'test' << 'test/jvm'
-      t.ruby_opts.concat ["-r", "mirror_compilation_test_helper"]
+      t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
   end
@@ -249,7 +249,8 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-2.jar', 'javalib/j
     'includeantruntime' => false, 'debug' => true, 'listfiles' => true
 
   # Compile Mirah sources
-  runjava('javalib/mirahc-0.1.2-2.jar',
+  runjava('-Xmx512m',
+          'javalib/mirahc-0.1.2-2.jar',
           '-d', build_dir,
           '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
           *mirah_srcs)

@@ -45,6 +45,7 @@ import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
 import org.mirah.jvm.mirrors.SafeTyper
 import org.mirah.jvm.mirrors.debug.ConsoleDebugger
+import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
 import org.mirah.typer.simple.SimpleScoper
@@ -79,6 +80,10 @@ abstract class MirahTool implements BytecodeConsumer
     @diagnostics = SimpleDiagnostics.new(true)
     @jvm = JvmVersion.new
     @classpath = nil
+  end
+
+  def setDiagnostics(diagnostics:SimpleDiagnostics):void
+    @diagnostics = diagnostics
   end
 
   def compile(args:String[]):int
@@ -116,6 +121,9 @@ abstract class MirahTool implements BytecodeConsumer
   def setClasspath(classpath:String):void
     @classpath = parseClassPath(classpath)
   end
+  def classpath
+    @classpath
+  end
 
   def setBootClasspath(classpath:String):void
     @bootcp = parseClassPath(classpath)
@@ -137,6 +145,10 @@ abstract class MirahTool implements BytecodeConsumer
     debugger = ConsoleDebugger.new
     debugger.start
     @debugger = debugger.debugger
+  end
+  
+  def setDebugger(debugger:DebuggerInterface):void
+    @debugger = debugger
   end
 
   def processArgs(args:String[]):void
@@ -236,9 +248,17 @@ abstract class MirahTool implements BytecodeConsumer
     end
   end
 
+  def addFakeFile(name:String, code:String):void
+    @code_sources.add(StringCodeSource.new(name, code))
+  end
+
   def parseAllFiles
     @code_sources.each do |c:CodeSource|
       @compiler.parse(c)
     end
+  end
+
+  def compiler
+    @compiler
   end
 end

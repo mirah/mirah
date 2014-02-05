@@ -272,11 +272,21 @@ class MirrorTypeSystem implements TypeSystem
       log.finer("Adding listener for #{target}.#{method_name} (#{target.getClass})")
       
       method_lookup = @methods
-      target.addMethodListener(method_name) do |klass, name|
+      listener = lambda(MethodListener) do |klass, name|
         future.type = method_lookup.findMethod(
             call.scope, target, method_name,
             call.resolved_parameters, macro_params,
             call.position, !call.explicitTarget) || error
+      end
+      target.addMethodListener(method_name, listener)
+      unless call.explicitTarget || call.scope.nil?
+        JVMScope(call.scope).staticImports.each do |f:TypeFuture|
+          f.onUpdate do |x, resolved|
+            if resolved.kind_of?(MirrorType)
+              MirrorType(resolved).addMethodListener(method_name, listener)
+            end
+          end
+        end
       end
     end
     future

@@ -299,4 +299,12 @@ class TyperTest < Test::Unit::TestCase
     assert_kind_of(LocalAccess, ast.body(2))
     assert_kind_of(FunctionalCall, ast.body(3))
   end
+
+  def test_import
+    ast = parse("import FooBar")
+    assert_equal("Void", infer(ast).name)
+    ast = parse("import foobar")
+    infer(ast)
+    assert_errors_including("Cannot find class foobar", @typer, ast)
+  end
 end
