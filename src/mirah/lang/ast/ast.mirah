@@ -148,7 +148,7 @@ class NodeImpl implements Node
 
   def findAncestor(type:Class):Node
     node = Node(self)
-    node = node.parent until node.nil? || node.kind_of?(type)
+    node = node.parent until node.nil? || type.isInstance(node)
     node
   end
 

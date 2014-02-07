@@ -320,7 +320,7 @@ class ListNodeState < BaseNodeState
       end
 
 #      public
-      def iterator
+      def iterator:Iterator
         listIterator(0)
       end
 
