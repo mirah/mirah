@@ -99,7 +99,7 @@ class Typer < SimpleNodeVisitor
     type = @futures[node]
     if type.nil?
       type = node.accept(self, expression ? @trueobj : nil)
-      @futures[node] = type
+      @futures[node] ||= type
     end
     TypeFuture(type)
   end
@@ -146,6 +146,10 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     workaroundASTBug call
+    
+    # This might be a local, method call, or primitive access,
+    # so try them all.
+
     methodType = callMethodType call, Collections.emptyList
     targetType = infer(call.target)
     fcall = FunctionalCall.new(call.position,
@@ -155,91 +159,33 @@ class Typer < SimpleNodeVisitor
     @futures[fcall] = methodType
     @futures[fcall.target] = targetType
 
-    # This might actually be a local or primitive access instead of a method call,
-    # so try them all.
-    # TODO should probably replace this with a FunctionalCall node if that's the
-    # right one so the compiler doesn't have to deal with an extra node.
-    primitive = Constant.new(call.position, call.name)
-    primitive.setParent(call.parent)
-    local = LocalAccess.new(call.position, call.name)
-    local.setParent(call.parent)
-    options = [
-               infer(local, true), local,
-               methodType, fcall,
-               infer(primitive, true), primitive
-              ]
-    current_node = Node(call)
-    future = DelegateFuture.new
-    future.type = infer(local, true)
-    typer = self
-    picker = PickFirst.new(options) do |typefuture, _node|
-      node = Node(_node)
-      picked_type = typefuture.resolve
-      if picked_type.kind_of?(InlineCode)
-        if current_node.parent
-          node = typer.replaceAndInfer(
-                         future,
-                         current_node,
-                         typer.expandMacro(fcall, picked_type),
-                         expression != nil)
-        end
-      else
-        if current_node.parent.nil?
-          typer.logger.fine("Unable to replace #{current_node} with #{node}")
-        else
-          node = typer.replaceAndInfer(
-                         future,
-                         current_node,
-                         node,
-                         expression != nil)
-        end
-      end
-      current_node = node
-    end
-    future.position = call.position
-    future.error_message = "Unable to find local or method '#{call.name.identifier}'"
-    future
+    proxy = ProxyNode.new(self, call)
+    proxy.setChildren([LocalAccess.new(call.position, call.name),
+                       fcall,
+                       Constant.new(call.position, call.name)])
+
+    proxy.inferChildren(expression != nil)
   end
 
   def visitFunctionalCall(call, expression)
     workaroundASTBug call
     parameters = inferParameterTypes call
-    methodType = callMethodType call, parameters
+    @futures[call] = methodType = callMethodType(call, parameters)
 
-    delegate = DelegateFuture.new
-    delegate.type = methodType
-    current_node = Node(call)
-    typer = self
-    methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        if current_node.parent
-          typer.replaceAndInfer(delegate,
-                                current_node,
-                                typer.expandMacro(call, resolvedType),
-                                expression != nil)
-        end
-      else
-        delegate.type = methodType
-      end
-    end
+    proxy = ProxyNode.new(self, call)
+    children = ArrayList.new(2)
+
     if call.parameters.size == 1
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
-      castType = getTypeOf(call, call.typeref)
-      items = [castType, cast,
-               delegate, nil]
-      TypeFuture(PickFirst.new(items, delegate) do |type, arg|
-        if arg != nil
-          # We chose the cast.
-          current_node = typer.replaceSelf(current_node, cast)
-          typer.infer(cast, expression != nil)
-        end
-      end)
-    else
-      delegate
+      children.add(Cast.new(call.position, TypeName(call.typeref),
+                            Node(call.parameters.get(0).clone)))
     end
+    children.add(call)
+    proxy.setChildren(children)
+
+    proxy.inferChildren(expression != nil)
   end
 
   def visitElemAssign(assignment, expression)
@@ -281,22 +227,11 @@ class Typer < SimpleNodeVisitor
                                 true,
                                 parameters,
                                 call)
-    delegate = DelegateFuture.new
-    typer = self
-    current_node = Node(call)
-    methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        if current_node.parent
-          current_node = typer.replaceAndInfer(delegate,
-                                    current_node,
-                                    typer.expandMacro(call, resolvedType),
-                                    expression != nil)
-        end
-      else
-        delegate.type = methodType
-      end
-    end
-    delegate.type = methodType unless methodType.isResolved
+    @futures[call] = methodType
+    
+    proxy = ProxyNode.new(self, call)
+    children = ArrayList.new(2)
+    
     if  call.parameters.size == 1
       # This might actually be a cast or array instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
@@ -308,30 +243,18 @@ class Typer < SimpleNodeVisitor
         typeref = call.typeref(true)
       end
       if typeref
-        if is_array
-          array = EmptyArray.new(call.position, typeref, call.parameters(0))
-          newNode = Node(array)
-          newType = @types.getArrayType(getTypeOf(call, typeref))
-          @scopes.copyScopeFrom(call, newNode)
+        children.add(if is_array
+          EmptyArray.new(call.position, typeref, call.parameters(0))
         else
-          cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
-          newNode = Node(cast)
-          newType = getTypeOf(call, typeref)
-        end
-        items = [newType, newNode,
-                 delegate, nil]
-        TypeFuture(PickFirst.new(items, delegate) do |type, arg|
-          if arg != nil
-            typer.replaceSelf(call, newNode)
-            typer.infer(newNode, expression != nil)
-          end
+          Cast.new(call.position, TypeName(typeref),
+                   Node(call.parameters(0).clone))
         end)
-      else
-        delegate
       end
-    else
-      delegate
     end
+    children.add(call)
+    proxy.setChildren(children)
+
+    proxy.inferChildren(expression != nil)
   end
 
   def visitAttrAssign(call, expression)
@@ -536,6 +459,8 @@ class Typer < SimpleNodeVisitor
     #  - raise *args_for_default_exception_class_constructor
     # We need to figure out which one is being used, and replace the
     # args with a single exception node.
+    
+    # TODO(ribrdb): Clean this up using ProxyNode.
 
     # Start by saving the old args and creating a new, empty arg list
     old_args = node.args
@@ -1149,8 +1074,9 @@ class Typer < SimpleNodeVisitor
     params = ArrayList.new
     1.upto(old_args.size - 1) {|i| params.add(Node(old_args.get(i)).clone)}
     call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
-    @scopes.copyScopeFrom(node, call)
-    [infer(call), call]
+    wrapper = NodeList.new([call])
+    @scopes.copyScopeFrom(node, wrapper)
+    [infer(wrapper), wrapper]
   end
 
   def buildNodeAndTypeForRaiseTypeThree(old_args: NodeList, node: Node)
@@ -1160,8 +1086,9 @@ class Typer < SimpleNodeVisitor
     params = ArrayList.new
     old_args.each {|a| params.add(Node(a).clone)}
     call = Call.new(node.position, targetNode, SimpleString.new(node.position, 'new'), params, nil)
-    @scopes.copyScopeFrom(node, call)
-    [infer(call), call]
+    wrapper = NodeList.new([call])
+    @scopes.copyScopeFrom(node, wrapper)
+    [infer(wrapper), wrapper]
   end
 
   def defaultExceptionTypeName

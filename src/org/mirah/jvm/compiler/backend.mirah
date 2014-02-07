@@ -30,7 +30,6 @@ class Backend
     @context[DiagnosticListener] = @diagnostics
     @context[Compiler] = typer.macro_compiler
     @context[AnnotationCompiler] = AnnotationCompiler.new(@context)
-    @cleanup = ScriptCleanup.new(@context)
     @compiler = ScriptCompiler.new(@context)
   end
 
@@ -40,6 +39,7 @@ class Backend
   end
 
   def clean(script:Script, arg:Object):void
+    script.accept(ProxyCleanup.new, arg)
     script.accept(ScriptCleanup.new(@context), arg)
   end
 
