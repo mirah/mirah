@@ -15,6 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
+import java.util.logging.Logger
+
 import java.util.Collections
 import java.util.ArrayList
 import java.util.HashSet
@@ -103,10 +105,10 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   def notifyOfIncompatibleChange:void
     @cached_supertypes = List(nil)
     listeners = ArrayList.new(@compatibility_listeners)
-    methods = HashSet.new(@method_listeners.keySet)
     listeners.each do |l|
       Runnable(l).run()
     end
+    methods = HashSet.new(@method_listeners.keySet)
     methods.each do |n|
       invalidateMethod(String(n))
     end
@@ -314,6 +316,11 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
 end
 
 class AsyncMirror < BaseType
+
+  def self.initialize:void
+    @@log = Logger.getLogger(AsyncMirror.class.getName)
+  end
+
   def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
     super(context, type, flags, nil)
     @watched_methods = HashSet.new
@@ -341,6 +348,7 @@ class AsyncMirror < BaseType
   end
 
   def resolveSuperclass(resolved:JVMType):void
+    @@log.finest "[#{self}] resolving super class #{resolved}"
     @superclass = resolved
     resolveSupertype(resolved)
   end

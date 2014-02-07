@@ -1,6 +1,7 @@
 build
 dist
 pkg
+tmp
 nbproject/private
 Duby Plugin/nbproject/private
 examples/appengine/war/

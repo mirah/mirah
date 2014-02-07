@@ -93,4 +93,19 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     assert_equal('int', future.resolve.name)
   end
 
+  def test_array
+    pend "undefined ClassPath class"
+    context = Context.new
+    classpath = ClassPath.new
+    classpath.bytecode_loader_set PrimitiveLoader.new(context)
+    classpath.macro_loader_set classpath.bytecode_loader
+    classpath.loader_set(loader = SimpleAsyncMirrorLoader.new(context))
+    context.add(ClassPath.java_class, classpath)
+    future = classpath.loader.loadMirrorAsync(Type.getType("[LA;"))
+    defineType(loader, Type.getType("LA;"),
+               BaseType.new(nil, Type.getType("LA;"), 0, nil))
+    assert(JVMTypeUtils.isArray(future.resolve))
+    assert_equal('LA;', future.resolve.getComponentType.asm_type.descriptor)
+    assert(!future.resolve.getComponentType.isError)
+  end
 end

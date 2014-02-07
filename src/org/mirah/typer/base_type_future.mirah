@@ -117,6 +117,7 @@ class BaseTypeFuture; implements TypeFuture
   # Resolves this future to the specified type.
   # Notifies the listeners if the resolved type has changed.
   def resolved(type:ResolvedType):void
+    @@log.fine "resolving as #{type} from #{@resolved}"
     @lock.lock
     if @watcher
       @watcher.resolved(self, @resolved, type)
@@ -134,6 +135,11 @@ class BaseTypeFuture; implements TypeFuture
     end
   ensure
     @lock.unlock
+  end
+
+  def forgetType
+    @@log.finest "forgetting previous type #{@resolved}"
+    @resolved = nil
   end
 
   def notifyListeners:void

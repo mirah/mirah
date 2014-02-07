@@ -92,7 +92,7 @@ namespace :test do
 
     desc "run jvm tests compiling to bytecode"
     Rake::TestTask.new :bytecode => [:bootstrap, 
-                                     "javalib/mirahc.jar",
+                                     "dist/mirahc.jar",
                                       :test_setup] do |t|
       t.libs << 'test' <<'test/jvm'
       t.ruby_opts.concat ["-r", "bytecode_test_helper"]
@@ -104,6 +104,12 @@ namespace :test do
       run_tests ["test:jvm:mirror_compilation", "test:jvm:mirrors"]
     end
 
+    Rake::TestTask.new :new_backend => [:bootstrap, "dist/mirahc.jar", :test_setup] do |t|
+      t.libs << 'test' << 'test/jvm'
+      t.ruby_opts.concat ["-r", "new_backend_test_helper"]
+      t.test_files = FileList["test/jvm/**/*test.rb"]
+    end
+    
     desc "run tests for mirror type system"
     Rake::TestTask.new :mirrors  => "dist/mirahc.jar" do |t|
       t.libs << 'test'
@@ -144,6 +150,12 @@ task :clean do
   rm_f 'javalib/mirah-util.jar'
   rm_f 'javalib/mirah-mirrors.jar'
   rm_rf 'tmp'
+end
+
+desc "clean downloaded dependencies"
+task :clean_downloads do
+  rm_f "javalib/mirahc-0.1.2-2.jar"
+  rm_f 'javalib/jruby-complete.jar'
 end
 
 task :compile => [:bootstrap, :util]
@@ -223,10 +235,10 @@ file_create 'javalib/mirahc-0.1.2-2.jar' do
   end
 end
 
-mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah',
-                 'src/org/mirah/typer/**/*.mirah',
-                 'src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah',
-                 'src/org/mirah/tool/*.mirah']
+mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah'].sort +
+             Dir['src/org/mirah/typer/**/*.mirah'].sort +
+             Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
+             Dir['src/org/mirah/tool/*.mirah']
 file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-2.jar', 'javalib/jruby-complete.jar'] do
   build_dir = 'build/bootstrap'
   rm_rf build_dir
