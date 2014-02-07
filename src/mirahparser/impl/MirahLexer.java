@@ -1306,8 +1306,7 @@ public class MirahLexer {
     return new CombinedState(this);
   }
 
-  void restore(Object state, Input input) {
-    this.input = input;
+  public void restore(Object state) {
     if (state instanceof CombinedState) {
       CombinedState cs = (CombinedState)state;
       this.state = cs.state;
