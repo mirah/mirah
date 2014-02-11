@@ -325,7 +325,7 @@ class MethodLookup
     if @context[DebuggerInterface].nil?
       state = nil
     end
-      
+
     DerivedFuture.new(method.asyncReturnType) do |resolved|
       x = state  # capture state for debugging
       type = if resolved.kind_of?(InlineCode)
@@ -711,6 +711,8 @@ class LookupState
       if inaccessible
         @context[MethodLookup].inaccessible(
             @scope, Member(@inaccessible.get(0)), @position, self)
+      elsif @context[DebuggerInterface]
+        DebugError.new([["Can't find method #{@target}#{@params}"]], @context, self)
       else
         nil
       end
