@@ -33,6 +33,7 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
+import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.InlineCode
@@ -56,6 +57,15 @@ end
 class Phase2Checker implements SubtypeChecker
   def isSubType(subtype, supertype)
     MethodLookup.isSubTypeWithConversion(subtype, supertype)
+  end
+end
+
+class DebugError < ErrorType
+  def initialize(message:List, context:Context, state:LookupState)
+    super(message)
+    if context[DebuggerInterface]
+      @state = state
+    end
   end
 end
 
@@ -311,8 +321,13 @@ class MethodLookup
   end
 
   def makeFuture(target:MirrorType, method:Member, params:List,
-                 position:Position):TypeFuture
+                 position:Position, state:LookupState):TypeFuture
+    if @context[DebuggerInterface].nil?
+      state = nil
+    end
+      
     DerivedFuture.new(method.asyncReturnType) do |resolved|
+      x = state  # capture state for debugging
       type = if resolved.kind_of?(InlineCode)
         resolved
       else
@@ -322,10 +337,10 @@ class MethodLookup
     end
   end
 
-  def inaccessible(scope:Scope, method:Member, position:Position):TypeFuture
-    ErrorType.new(
+  def inaccessible(scope:Scope, method:Member, position:Position, state:LookupState):TypeFuture
+    DebugError.new(
         [["Cannot access #{method} from #{scope.selfType.resolve}",
-          position]])
+          position]], @context, state)
   end
 
   def gatherMethods(target:MirrorType, name:String):List
@@ -594,6 +609,12 @@ class LookupState
   end
 
   def setPotentials(potentials:List)
+    # Save the old state for debugging.
+    @saved_methods = @methods
+    @saved_macros = @macros
+    @saved_inaccessible_methods = @inaccessible_methods
+    @saved_inaccessible_macros = @inaccessible_macros
+    
     @methods = LinkedList.new
     @macros = LinkedList.new
     @inaccessible_methods = LinkedList.new
@@ -689,7 +710,7 @@ class LookupState
     if matches + macro_matches == 0
       if inaccessible
         @context[MethodLookup].inaccessible(
-            @scope, Member(@inaccessible.get(0)), @position)
+            @scope, Member(@inaccessible.get(0)), @position, self)
       else
         nil
       end
@@ -705,9 +726,9 @@ class LookupState
       nil
     elsif isField || methods.size == 1
       @context[MethodLookup].makeFuture(
-          @target, Member(methods[0]), params, @position)
+          @target, Member(methods[0]), params, @position, self)
     else
-      ErrorType.new([["Ambiguous methods #{methods}", @position]])
+      DebugError.new([["Ambiguous methods #{methods}", @position]], @context, self)
     end
   end
 
