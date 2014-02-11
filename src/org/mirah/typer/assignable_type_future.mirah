@@ -77,6 +77,8 @@ class AssignableTypeFuture < BaseTypeFuture
         elsif variable.isResolved
           if variable.resolve.assignableFrom(resolved)
             assignment.resolved(resolved)
+          elsif variable.resolve.isError
+            assignment.resolved(variable.resolve)
           else
             assignment.resolved(variable.incompatibleWith(value.resolve, position))
           end
