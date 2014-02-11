@@ -19,11 +19,13 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.List
 import java.util.NoSuchElementException
+import mirah.lang.ast.Identifier
 import mirah.lang.ast.Node
 import mirah.lang.ast.NodeList
 import mirah.lang.ast.TypeName
+import mirah.lang.ast.Unquote
 
-class ProxyNode < NodeList implements TypeName
+class ProxyNode < NodeList implements TypeName, Identifier
   def initialize(typer:Typer, node:Node)
     super(node.position)
     @typer = typer
@@ -48,6 +50,11 @@ class ProxyNode < NodeList implements TypeName
     else
       raise NoSuchElementException, "No element #{i}"
     end
+  end
+
+  def identifier
+    @unquote ||= Unquote.new
+    @unquote.identifierNode(@selectedNode).identifier
   end
 
   def typeref
@@ -102,7 +109,14 @@ class ProxyNode < NodeList implements TypeName
       @future = DelegateFuture.new
       @futures = @nodes.map {|n:Node| @typer.infer(n, expression)}
       @selectedNode = Node(@nodes.get(@defaultChild))
-      @future.type = TypeFuture(@futures.get(@defaultChild))
+      @future.type = DerivedFuture.new(TypeFuture(@futures.get(@defaultChild))) do
+        |resolved|
+        if resolved.kind_of?(InlineCode)
+          nil
+        else
+          resolved
+        end
+      end
       proxy = self
       listener = lambda(TypeListener) do |x, resolved|
         proxy.updateSelection

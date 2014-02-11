@@ -162,7 +162,7 @@ class Typer < SimpleNodeVisitor
     proxy = ProxyNode.new(self, call)
     proxy.setChildren([LocalAccess.new(call.position, call.name),
                        fcall,
-                       Constant.new(call.position, call.name)])
+                       Constant.new(call.position, call.name)], 0)
 
     proxy.inferChildren(expression != nil)
   end
