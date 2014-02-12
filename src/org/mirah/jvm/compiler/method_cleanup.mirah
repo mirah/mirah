@@ -18,6 +18,7 @@ package org.mirah.jvm.compiler
 import mirah.lang.ast.*
 import org.mirah.util.Context
 import org.mirah.typer.Typer
+import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 
@@ -47,6 +48,9 @@ class MethodCleanup < NodeScanner
     if @typer.getInferredType(node).resolve.equals(@scope.binding_type) && node.body_size == 0
       @scope.capturedLocals.each do |name|
         type = JVMType(@typer.type_system.getLocalType(@scope, String(name), node.position).resolve)
+        if type.kind_of?(MirrorType)
+          type = JVMType(MirrorType(type).erasure)
+        end
         typeref = TypeRefImpl.new(type.name, JVMTypeUtils.isArray(type), false, node.position)
         decl = FieldDeclaration.new(SimpleString.new(String(name)), typeref, [
           Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
