@@ -256,4 +256,19 @@ class ResolvedCall < MirrorProxy implements CallType
   end
 
   attr_reader member:JVMMethod
+
+  def hashCode
+    target.hashCode
+  end
+
+  def equals(other)
+    if self == other
+      true
+    elsif other.kind_of?(ResolvedCall)
+      rc = ResolvedCall(other)
+      target.equals(rc.target) && @member.equals(rc.member)
+    else
+      false
+    end
+  end
 end
