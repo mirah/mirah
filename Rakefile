@@ -235,37 +235,43 @@ file_create 'javalib/mirahc-0.1.2-2.jar' do
   end
 end
 
-mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah'].sort +
-             Dir['src/org/mirah/typer/**/*.mirah'].sort +
-             Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
-             Dir['src/org/mirah/tool/*.mirah']
-file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-2.jar', 'javalib/jruby-complete.jar'] do
-  build_dir = 'build/bootstrap'
-  rm_rf build_dir
-  mkdir_p build_dir
 
-  # Compile Java sources
-  ant.javac 'source' => '1.5', 'target' => '1.5', 'destdir' => build_dir, 'srcdir' => 'src',
-    'includeantruntime' => false, 'debug' => true, 'listfiles' => true
+def bootstrap_mirah_from(old_jar, new_jar)
+  mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah'].sort +
+               Dir['src/org/mirah/typer/**/*.mirah'].sort +
+               Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
+               Dir['src/org/mirah/tool/*.mirah']
+  file new_jar => mirah_srcs + [old_jar, 'javalib/jruby-complete.jar'] do
+    build_dir = 'build/bootstrap'
+    rm_rf build_dir
+    mkdir_p build_dir
 
-  # Compile Mirah sources
-  runjava('-Xmx512m',
-          'javalib/mirahc-0.1.2-2.jar',
-          '-d', build_dir,
-          '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
-          *mirah_srcs)
+    # Compile Java sources
+    ant.javac 'source' => '1.5', 'target' => '1.5', 'destdir' => build_dir, 'srcdir' => 'src',
+      'includeantruntime' => false, 'debug' => true, 'listfiles' => true
+
+    # Compile Mirah sources
+    runjava('-Xmx512m',
+            old_jar,
+            '-d', build_dir,
+            '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
+            *mirah_srcs)
   
-  # Build the jar                    
-  ant.jar 'jarfile' => 'dist/mirahc.jar' do
-    fileset 'dir' => build_dir
-    zipfileset 'src' => 'javalib/jruby-complete.jar', 'includes' => 'org/jruby/org/objectweb/**/*'
-    zipfileset 'src' => 'javalib/mirah-parser.jar'
-    manifest do
-      attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
+    # Build the jar                    
+    ant.jar 'jarfile' => new_jar do
+      fileset 'dir' => build_dir
+      zipfileset 'src' => 'javalib/jruby-complete.jar', 'includes' => 'org/jruby/org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/mirah-parser.jar'
+      manifest do
+        attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
+      end
     end
   end
 end
 
+bootstrap_mirah_from('javalib/mirahc-0.1.2-2.jar', 'dist/mirahc.jar')
+bootstrap_mirah_from('dist/mirahc.jar', 'dist/mirahc2.jar')
+bootstrap_mirah_from('dist/mirahc2.jar', 'dist/mirahc3.jar')
 
 file 'javalib/mirah-util.jar' do
   require 'mirah'
