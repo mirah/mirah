@@ -1,3 +1,136 @@
+=== 0.1.2 New Year, New Release / 2014-01-05
+
+8421140 add desc'd rake task for building mirahc.jar
+325ec54 replace deprecated import usage w/ java_import in test helper
+f3c7911 move classpath-> Java URLs helper to Env module
+7e738c3 add passed classpath to run classpath when running with mirah
+1766599 split out test class file destinations for fixtures vs test classes
+e4e6f49 don't use platform dependent path separator literals in jvm type factory classpath munging
+223042f clean up run command
+66f8b24 rm puts in jvm base compiler
+0bb156e fix gem task definition ordering
+c2e59b4 add apache 2 license to gemspec
+3480594 move a few local variable assignments in the typer closer to their usage
+68d883e clean up Rakefile & fix gem task so that it depends on bootstrap
+e46edc7 add tests for type future classes, fix a couple associated bugs
+860f87f do some c&p to maybe get CallCompiler reliably building on CI
+8cf13b1 reorder call_compiler initializers to see if that'll fix it (annoyingly)
+331005e reformat initialize args for CallCompiler
+8e86d54 comment out non local return support so that this branch can be merged into master
+cedd8c2 break out multi arg block tests into typed and untyped
+9e19a49 have CallFuture log resolved target as well as args
+c9321ae add custom inspect for MirahError
+044f7ef improve scope inspect st it includes capture info
+8ab9e91 try removing unused var / move replace self down
+b8aac8a replace manually created lists with literals
+89c71f7 refactor node replacement into an extracted method
+ce7817a pull out more common code from macro expansion
+ca1a4e0 begin cleaning up macro expansion in typer
+8ced4e7 consolidate field type inference
+bbf8356 extract common target type lookup for fields
+81ec8ad extract helper for defaultExceptionTypeName
+3dffc61 extract inferring annotations
+d011167 extract inferring params
+5dbd367 consolidate call method type future creation
+71b731e consolidate workaround methods via widened type
+39a66ee extract creating scopes w/ selfType
+52723e9 extract adding nested scopes in typer
+f2410e6 collapse a couple more getTypeOfs
+88fe75a add widened getLocalType helper that works for any Named node
+062b55a refactor typer method def: reorg declaration to usage
+a38ae97 extract common call target inference
+21b7307 remove unnecessary temp vars from Typer.getLocalType
+5af117d pull out helper for adding new scope to typer
+71616c9 use type helper in a couple non-obvious places
+80cc787 wrap getting types from the typesystem in a helper
+150b91c typer: rm unneeded temp vars named outer_scope
+d2eff01 wrap scope getting w/ a helper method in typer
+f4f25f2 extract helper for argument types that works for all but rest args
+4f83d90 pushing more helper code around in typer
+e301bab oops. types for getLocalType helper were wrong. Fixed them, and added scope back
+114421a more reformatting of MethodDefinition typing
+b4ebaa6 add helper for constructing local type for args
+a632bae extract some helper methods for methoddefinition typing
+951c7a3 add some newline formatting in the typer
+e9e6b5e replace todos w/ methods noted w/ todos
+a5f7e63 Merge branch 'master' into closure_changes
+41640bc add cli help for new options
+c0d557b Merge branch 'string_ext' of git://github.com/altamic/mirah
+59fc3a8 closure work continues
+ea86178 Minor patches + Merge branch 'master' into closure_changes :/
+8e0f9b8 Fix jruby jar path
+c7e537e Fix double expansion of macros in FunctionalCall
+b61f5bf Fix return types.
+b30d7eb Fix for field assignment as a method call.
+084366d Add a pass to fix unitialized locals.
+35abdad merge
+b534cb6 Add a target to bootstrap using javalib/mirahc.jar.
+c2f8bb9 Expose the correct type system to macros.
+b783d57 Fix ambiguity for nil method parameters.
+e7b7f2b More fixes to compile with the selfhosted mirahc.jar
+3fe8e4b Fix vararg generic methods.
+0429eb6 Typo
+9b4655e Better error reporting.
+8efd6b2 Bug fixes
+e472901 ScriptCleanup is not reusable.
+c9ce542 Fixes to get code compiling with mirahc.jar
+1584448 Fix for macro compilation.
+343ac03 Fix for overrides with optional arguments.
+1c4dbde Fix calls to protected methods using super.
+a6bac61 Fix for recompiling a class that is also on the classpath.
+21fdfd9 add method def internal support, get a few more tests passing
+fed5aa6 use bundled mirahc instead of just built mirahc
+5ad5b1a added << operator to StringBuilder (somewhat fixes #40)
+079ded9 Added include? method to String (closes #133)
+41de27f added =~ operator to String (closes #160)
+ab10d98 use the jruby jar in javalib instead of the in-use one
+8dc1bd6 beginnings of a better way to build closures -- still has problems
+068b248 rm the compiler jar on clean
+ac45fa0 add more nlr tests
+9c9eaa7 wrap rescue around parent node list
+2cc0cd5 first pass at non local return
+5bdeca4 download jruby jar instead of keeping it in git
+02cee59 bump version to 0.1.2.dev
+1b74e54 Hack to support covariant return types.
+4f0ba15 Try to make debug info a little more sane
+f356201 Optional arguments don't need a declaration.
+a5cd63c Mirah methods should not return generic types
+0c1feee Another missing import
+1b326e2 Print the number of errors.
+d863176 Fix some override bugs.
+162848b Guard against concurrent modification in BaseType.notifyOfIncompatibleChange
+36a0635 Fix test_method_requiring_subclass_of_abstract_class_finds_abstract_method
+60dcf76 Add missing file
+d895ad2 Better support for overridden methods.
+82b089f Fix expansion order for macros.
+4eabcc5 Ensure method changes from supertypes get propagated
+5388d85 Don't consider macros when inferring overridden method types.
+9036f24 More debug logging to track down unhelpful error messages during inference.
+31c9cee bump history again
+33afd17 bump bitescript dependency
+98f57da bump 0.1.1 history
+af66397 bump bitescript version to 0.1.3
+776b74f when bundled in a jar, add the jar to the classpath
+71d3b82 rm dynalink from zip/jar dist
+383c615 bump version to 0.1.1; update history
+97d46fc add tests to nail down super behavior
+4ef8b3b add inherited lookup to static fields
+dabe54d fix missing conversion for implicit returns in new backend
+754cc38 fix primitive conversion errors in code generation for implicit return in methods
+d565657 update maven release instructions
+9d7529f the gem now relies on mirrors and the new backend
+8a781fc Merge branch 'master' of https://github.com/mirah/mirah
+0ef465c More missing imports
+ac60613 bump history again
+00e481f Missing import
+ff8c5b3 Show inference error messages from multiple classes.
+ea7a434 Support inferring overridden types when the same override is contained in multiple supertypes.
+ba84b9c Better error handling in generic method processing
+fc831a8 Guard against concurrent modification
+b214f8f Typo
+bdba3fc Support missing selfType in MethodLookup.
+aeaa4bc Fix compilation of extensions inside a package.
+
 === 0.1.1 Summer Summit / 2013-08-05
 
 e94e5be bump bitescript dependency

@@ -1226,6 +1226,21 @@ class Typer < SimpleNodeVisitor
     me.parent.replaceChild(me, replacement)
   end
 
+
+  def isMacro resolvedType: ResolvedType
+    resolvedType.kind_of?(InlineCode)
+  end
+
+  def expandAndReplaceMacro future: DelegateFuture, current_node: Node, fcall: Node, picked_type: ResolvedType, expression: boolean
+    if current_node.parent
+      replaceAndInfer(
+                     future,
+                     current_node,
+                     expandMacro(fcall, picked_type),
+                     expression)
+    end
+  end
+
   # FIXME: there's a bug in the AST that doesn't set the
   # calls target correctly
   def workaroundASTBug(call: CallSite)
