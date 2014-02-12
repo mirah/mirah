@@ -164,7 +164,7 @@ class Typer < SimpleNodeVisitor
                        fcall,
                        Constant.new(call.position, call.name)], 0)
 
-    proxy.inferChildren(expression != nil)
+    @futures[proxy] = proxy.inferChildren(expression != nil)
   end
 
   def visitFunctionalCall(call, expression)
@@ -185,7 +185,7 @@ class Typer < SimpleNodeVisitor
     children.add(call)
     proxy.setChildren(children)
 
-    proxy.inferChildren(expression != nil)
+    @futures[proxy] = proxy.inferChildren(expression != nil)
   end
 
   def visitElemAssign(assignment, expression)
@@ -254,7 +254,7 @@ class Typer < SimpleNodeVisitor
     children.add(call)
     proxy.setChildren(children)
 
-    proxy.inferChildren(expression != nil)
+    @futures[proxy] = proxy.inferChildren(expression != nil)
   end
 
   def visitAttrAssign(call, expression)

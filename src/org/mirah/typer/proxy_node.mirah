@@ -58,11 +58,12 @@ class ProxyNode < NodeList implements TypeName, Identifier
   end
 
   def typeref
-    if @selectedNode.kind_of?(TypeName)
-      TypeName(@selectedNode).typeref
-    else
-      nil
+    @nodes.each do |n|
+      if n.kind_of?(TypeName)
+        return TypeName(n).typeref
+      end
     end
+    nil
   end
 
   def add(node)
