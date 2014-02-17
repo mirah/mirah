@@ -83,31 +83,16 @@ class InterfaceTest < Test::Unit::TestCase
       EOF
   end
 
-  def test_interface_implementation_with_array_params_requires_type_information
+  def test_interface_implementation_with_array_params_doesnt_requires_type_information
     interface, a_impl = compile(<<-EOF)
-        interface InterfaceWithArrays
-          def arr(messages:String[]):int; end
-        end
+      interface InterfaceWithArrays
+        def arr(messages:String[]):int; end
+      end
 
-        class ExplicitArrImpl implements InterfaceWithArrays
-          def blah(s:String[]) s.length ; end
-          def arr(messages:String[]) blah messages ; end
-        end
-      EOF
-    
-    # this is the current behavior. I think we should fix it. nh
-    error = assert_raises Mirah::MirahError do
-      interface, a_impl = compile(<<-EOF)
-        interface InterfaceWithArrays
-          def arr(messages:String[]):int; end
-        end
-
-        class ImplicitArrImpl implements InterfaceWithArrays
-          def blah(s:String[]) s.length ; end
-          def arr(messages) blah messages ; end
-        end
-      EOF
-    end
-    assert_equal "Cannot find instance method blah(java.lang.String) on ImplicitArrImpl", error.message
+      class ImplicitArrImpl implements InterfaceWithArrays
+        def blah(s:String[]) s.length ; end
+        def arr(messages) blah messages ; end
+      end
+    EOF
   end
 end
