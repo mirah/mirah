@@ -195,7 +195,8 @@ class MacrosTest < Test::Unit::TestCase
       puts x.foo
       x.foo = 3
       puts x.foo
-    EOF #`
+    EOF
+
     assert_output("0\n3\n") {script.main(nil)}
   end
 
