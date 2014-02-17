@@ -27,9 +27,8 @@ module JVMCompiler
     end
   end
   def parse_and_resolve_types name, code
-    cmd = RunCommand.new
-    cmd.addFakeFile(name, code)
-    cmd.compile(["-d", TEST_DEST])
+    cmd = build_command name, code
+    compile_or_raise cmd, ["-d", TEST_DEST]
     cmd.compiler.getParsedNodes[0]
   end
 
@@ -45,16 +44,25 @@ module JVMCompiler
       args += ["--jvm", java_version]
     end
 
-    cmd = RunCommand.new
-    cmd.setDiagnostics(TestDiagnostics.new(false))
-    cmd.addFakeFile(name, code)
-    if 0 != cmd.compile(args)
-      raise Mirah::MirahError, "Compilation failed"
-    end
+    cmd = build_command name, code
+    compile_or_raise cmd, args
 
     dump_class_files cmd.classMap
 
     cmd.loadClasses.map {|cls| JRuby.runtime.java_support.getProxyClassFromCache(cls)}
+  end
+
+  def build_command(name, code)
+    cmd = RunCommand.new
+    cmd.addFakeFile(name, code)
+    cmd.setDiagnostics(TestDiagnostics.new(false))
+    cmd
+  end
+
+  def compile_or_raise cmd, args
+    if 0 != cmd.compile(args)
+      raise Mirah::MirahError, "Compilation failed"
+    end
   end
 
   def compiler_name
