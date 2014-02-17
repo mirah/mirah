@@ -20,7 +20,7 @@ class MacrosTest < Test::Unit::TestCase
         mirah::lang::ast::Null.new
       end
 
-      System.out.println(Object(foo))
+      puts(Object(foo))
     EOF
 
     assert_output("null\n") {cls.main(nil)}
@@ -48,7 +48,7 @@ class MacrosTest < Test::Unit::TestCase
         mirah::lang::ast::Null.new
       end
 
-      System.out.println(Object(foo()))
+      puts(Object(foo()))
     EOF
 
     assert_output("null\n") {cls.main(nil)}
@@ -61,7 +61,7 @@ class MacrosTest < Test::Unit::TestCase
         quote { nil }
       end
 
-      System.out.println(Object(foo))
+      puts(Object(foo))
     EOF
 
     assert_output("null\n") {cls.main(nil)}
@@ -192,10 +192,10 @@ class MacrosTest < Test::Unit::TestCase
       end
 
       x = UnquoteMacros.new
-      System.out.println x.foo
+      puts x.foo
       x.foo = 3
-      System.out.println x.foo
-    EOF
+      puts x.foo
+    EOF #`
     assert_output("0\n3\n") {script.main(nil)}
   end
 
@@ -213,8 +213,8 @@ class MacrosTest < Test::Unit::TestCase
 
       def foo
         x = "1"
-        System.out.println doubleIt(x)
-        System.out.println x
+        puts doubleIt(x)
+        puts x
       end
     EOF
 
@@ -236,8 +236,8 @@ class MacrosTest < Test::Unit::TestCase
 
       def foo
         x = 1
-        System.out.println doubleIt(x)
-        System.out.println x
+        puts doubleIt(x)
+        puts x
       end
     EOF
 
@@ -251,7 +251,7 @@ class MacrosTest < Test::Unit::TestCase
       end
 
       def bar(a:String, b:String, c:String, d:String)
-        System.out.println "\#{a} \#{b} \#{c} \#{d}"
+        puts "\#{a} \#{b} \#{c} \#{d}"
       end
 
       foo(["a", "b"])
@@ -265,7 +265,7 @@ class MacrosTest < Test::Unit::TestCase
   def test_block_parameter_uses_outer_scope
     cls, = compile(<<-EOF)
       macro def foo(block:Block)
-        quote { z = `block.body`; System.out.println z }
+        quote { z = `block.body`; puts z }
       end
       apple = 1
       foo do
@@ -298,7 +298,7 @@ class MacrosTest < Test::Unit::TestCase
     assert_raises Mirah::MirahError do
       compile(<<-EOF)
         macro def self.foo
-          quote { System.out.println :z }
+          quote { puts :z }
         end
         def foo
           :bar
@@ -330,9 +330,9 @@ class MacrosTest < Test::Unit::TestCase
       end
 
       x = AttrAccessorTest.new
-      System.out.println x.foo
+      puts x.foo
       x.foo = 3
-      System.out.println x.foo
+      puts x.foo
     EOF
     assert_output("0\n3\n") {script.main(nil)}
   end

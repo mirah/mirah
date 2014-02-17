@@ -61,13 +61,13 @@ class BlocksTest < Test::Unit::TestCase
   def test_simple_block
     cls, = compile(<<-EOF)
       thread = Thread.new do
-        System.out.println "Hello"
+        puts "Hello"
       end
       begin
         thread.run
         thread.join
       rescue
-        System.out.println "Uh Oh!"
+        puts "Uh Oh!"
       end
     EOF
     assert_output("Hello\n") do
@@ -85,7 +85,7 @@ class BlocksTest < Test::Unit::TestCase
       end
 
       o = MyObservable.new
-      o.addObserver {|x, a| System.out.println a}
+      o.addObserver {|x, a| puts a}
       o.notifyObservers("Hello Observer")
     EOF
     assert_output("Hello Observer\n") do
@@ -98,14 +98,14 @@ class BlocksTest < Test::Unit::TestCase
       def foo
         a = "Hello"
         thread = Thread.new do
-          System.out.println a
+          puts a
         end
         begin
           a = a + " Closures"
           thread.run
           thread.join
         rescue
-          System.out.println "Uh Oh!"
+          puts "Uh Oh!"
         end
         return
       end
@@ -156,7 +156,7 @@ class BlocksTest < Test::Unit::TestCase
           String(a).compareToIgnoreCase(String(b))
         end
       end
-      list.each {|x| System.out.println x}
+      list.each {|x| puts x}
     EOF
 
     assert_output("a\nABC\nb\nCats\n") do
@@ -186,14 +186,14 @@ class BlocksTest < Test::Unit::TestCase
       import java.util.concurrent.Callable
       def foo c:Callable
         # throws Exception
-         System.out.println c.call
+         puts c.call
       end
       begin
       foo do
         "an object"
       end
       rescue
-        System.out.println "never get here"
+        puts "never get here"
       end
     EOF
     assert_output("an object\n") do
@@ -205,13 +205,13 @@ class BlocksTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(x:String):void
         thread = Thread.new do
-          System.out.println "Hello \#{x}"
+          puts "Hello \#{x}"
         end
         begin
           thread.run
           thread.join
         rescue
-          System.out.println "Uh Oh!"
+          puts "Uh Oh!"
         end
       end
 
@@ -231,7 +231,7 @@ class BlocksTest < Test::Unit::TestCase
         b.call
       end
       def bar
-        foo {System.out.println "Hi"}
+        foo {puts "Hi"}
       end
     EOF
     assert_output("Hi\n") do

@@ -16,7 +16,7 @@
 class ConstructorsTest < Test::Unit::TestCase
   def test_constructor
     cls, = compile(
-        "class InitializeTest;def initialize;System.out.println 'Constructed';end;end")
+        "class InitializeTest;def initialize;puts 'Constructed';end;end")
     assert_output("Constructed\n") do
       cls.new
     end
@@ -57,14 +57,14 @@ class ConstructorsTest < Test::Unit::TestCase
     sc_a, sc_b = compile(<<-EOF)
       class SC_A
         def initialize(a:int)
-          System.out.println "A"
+          puts "A"
         end
       end
 
       class SC_B < SC_A
         def initialize
           super(0)
-          System.out.println "B"
+          puts "B"
         end
       end
     EOF
@@ -77,14 +77,14 @@ class ConstructorsTest < Test::Unit::TestCase
     sc_a, sc_b = compile(<<-EOF)
       class SuperCA
         def initialize(a: int)
-          System.out.println "A \#{a}"
+          puts "A \#{a}"
         end
       end
 
       class SuperCB < SuperCA
         def initialize a: int
           super
-          System.out.println "B \#{a}"
+          puts "B \#{a}"
         end
       end
     EOF
@@ -141,7 +141,7 @@ class ConstructorsTest < Test::Unit::TestCase
             t.join
           rescue InterruptedException
           end
-          System.out.println 'ok'
+          puts 'ok'
         end
       end
     EOF

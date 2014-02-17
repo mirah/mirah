@@ -237,12 +237,12 @@ class JVMCompilerTest < Test::Unit::TestCase
     a, b = compile(<<-EOF)
       class VoidBase
         def foo:void
-          System.out.println "foo"
+          puts "foo"
         end
       end
       class VoidChain < VoidBase
         def bar:void
-          System.out.println "bar"
+          puts "bar"
         end
 
         def self.foobar
@@ -260,12 +260,12 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_class_name_from_file_with_underscore
-    foo, = compile("System.out.println 'blah'", :name => 'class_name_test.mirah')
+    foo, = compile("puts 'blah'", :name => 'class_name_test.mirah')
     assert_equal('ClassNameTest', foo.java_class.name)
   end
 
   def test_class_name_from_file_with_dash
-    foo, = compile("System.out.println 'blah'", :name => 'class-dash-test.mirah')
+    foo, = compile("puts 'blah'", :name => 'class-dash-test.mirah')
     assert_equal('ClassDashTest', foo.java_class.name)
   end
 
@@ -434,25 +434,25 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_loop
     cls, = compile(
-        'def foo(a:int);while a > 0; a -= 1; System.out.println ".";end;end')
+        'def foo(a:int);while a > 0; a -= 1; puts ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a:int);begin;a -= 1; System.out.println ".";end while a > 0;end')
+        'def foo(a:int);begin;a -= 1; puts ".";end while a > 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a:int);until a <= 0; a -= 1; System.out.println ".";end;end')
+        'def foo(a:int);until a <= 0; a -= 1; puts ".";end;end')
     assert_equal('', capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
 
     cls, = compile(
-        'def foo(a:int);begin;a -= 1; System.out.println ".";end until a <= 0;end')
+        'def foo(a:int);begin;a -= 1; puts ".";end until a <= 0;end')
     assert_equal(".\n", capture_output{cls.foo(0)})
     assert_equal(".\n", capture_output{cls.foo(1)})
     assert_equal(".\n.\n", capture_output{cls.foo(2)})
@@ -876,7 +876,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_and
     cls, = compile(<<-EOF)
       def bool(n:String, x:boolean)
-        System.out.println n
+        puts n
         x
       end
 
@@ -885,7 +885,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
 
       def str(n:String, x:String)
-        System.out.println n
+        puts n
         x
       end
 
@@ -995,7 +995,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_or
     cls, = compile(<<-EOF)
       def bool(n:String, x:boolean)
-        System.out.println n
+        puts n
         x
       end
 
@@ -1004,7 +1004,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
 
       def str(n:String, x:String)
-        System.out.println n
+        puts n
         x
       end
 
@@ -1154,7 +1154,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_literal_array
     cls, = compile(<<-EOF)
-      def foo; System.out.println "hello"; nil; end
+      def foo; puts "hello"; nil; end
       def expr
         [foo]
       end
@@ -1196,7 +1196,7 @@ class JVMCompilerTest < Test::Unit::TestCase
         /foo/.split('barfoobaz')
       end
       def puts
-        System.out.println split
+        puts split
       end
     EOF
 
@@ -1221,8 +1221,8 @@ class JVMCompilerTest < Test::Unit::TestCase
         end
       end
 
-      System.out.println A1.new.foo("Hi")
-      System.out.println B1.new.foo("There")
+      puts A1.new.foo("Hi")
+      puts B1.new.foo("There")
     EOF
 
     assert_output("Hi\nThere\n") do
@@ -1260,7 +1260,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_optional_args
     cls, = compile(<<-EOF)
       def foo(a:int, b:int = 1, c:int = 2)
-        System.out.println a; System.out.println b; System.out.println c
+        puts a; puts b; puts c
       end
       foo(0)
       foo(0,0)
@@ -1273,7 +1273,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_field_read
     cls, = compile(<<-EOF)
-      System.out.println System.out.getClass.getName
+      puts System.out.getClass.getName
     EOF
     assert_output("java.io.PrintStream\n") do
       cls.main([].to_java :String)
@@ -1476,10 +1476,10 @@ class JVMCompilerTest < Test::Unit::TestCase
     abstract_class, concrete_class = compile(<<-EOF)
       abstract class Abstract
         abstract def foo:void; end
-        def bar; System.out.println "bar"; end
+        def bar; puts "bar"; end
       end
       class Concrete < Abstract
-        def foo; System.out.println :foo; end
+        def foo; puts :foo; end
       end
     EOF
 
@@ -1496,7 +1496,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_return_void
     script, = compile(<<-EOF)
       def foo:void
-        System.out.println :hi
+        puts :hi
         return
       end
     EOF
@@ -1552,10 +1552,10 @@ class JVMCompilerTest < Test::Unit::TestCase
         begin
           raise "Foo"
         rescue => b
-          System.out.println a
-          System.out.println b.getMessage
+          puts a
+          puts b.getMessage
         end
-        System.out.println b
+        puts b
       end
     EOF
 
@@ -1613,7 +1613,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_covariant_arrays
     cls, = compile(<<-EOF)
-      System.out.println java::util::Arrays.toString(String[5])
+      puts java::util::Arrays.toString(String[5])
     EOF
 
     assert_output("[null, null, null, null, null]\n") do
@@ -1623,7 +1623,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_getClass_on_object_array
     cls, = compile(<<-EOF)
-      System.out.println Object[0].getClass.getName
+      puts Object[0].getClass.getName
     EOF
 
     assert_output("[Ljava.lang.Object;\n") do
@@ -1644,7 +1644,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       a = nil
-      System.out.println Object(a)
+      puts Object(a)
     EOF
 
     assert_output("null\n") do
@@ -1655,7 +1655,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_long_generation
     cls, = compile(<<-EOF)
       c = 2_000_000_000_000
-      System.out.println c
+      puts c
     EOF
   end
 
@@ -1668,14 +1668,14 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_bool_equality
-    cls, = compile("System.out.println true == false")
+    cls, = compile("puts true == false")
     assert_output("false\n") do
       cls.main(nil)
     end
   end
 
   def test_bool_inequality
-    cls, = compile("System.out.println true != false")
+    cls, = compile("puts true != false")
     assert_output("true\n") do
       cls.main(nil)
     end

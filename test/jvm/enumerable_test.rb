@@ -44,7 +44,7 @@ class EnumerableTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       def foo(a:Iterable)
         a.each do |x|
-          System.out.println x
+          puts x
         end
       end
     EOF
@@ -63,7 +63,7 @@ class EnumerableTest < Test::Unit::TestCase
       import java.util.ArrayList
       def foo(a:ArrayList)
         a.each do |x|
-          System.out.println x
+          puts x
         end
       end
     EOF
@@ -80,7 +80,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_each_int_arry
     cls, = compile(<<-EOF)
       def foo(a:int[])
-        a.each {|x| x += 1;System.out.println x; redo if x == 2}
+        a.each {|x| x += 1;puts x; redo if x == 2}
       end
     EOF
 
@@ -114,7 +114,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_downto
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.downto(1) {|x| System.out.println x }
+        i.downto(1) {|x| puts x }
       end
     EOF
 
@@ -126,7 +126,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_upto
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.upto(3) {|x| System.out.println x }
+        i.upto(3) {|x| puts x }
       end
     EOF
 
@@ -138,7 +138,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_times_with_arg
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.times {|x| System.out.println x }
+        i.times {|x| puts x }
       end
     EOF
 
@@ -150,7 +150,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_times_without_arg
     cls, = compile(<<-EOF)
       def foo(i:int)
-        i.times { System.out.println "Hi" }
+        i.times { puts "Hi" }
       end
     EOF
 
@@ -248,7 +248,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_each
     cls, = compile(<<-EOF)
       def foo
-        [1,2,3].each {|x| System.out.println x}
+        [1,2,3].each {|x| puts x}
       end
     EOF
     assert_output("1\n2\n3\n") do
@@ -259,7 +259,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_each_without_block_arguments
     cls, = compile(<<-EOF)
       def foo
-        [1,2,3].each { System.out.println :thrice }
+        [1,2,3].each { puts :thrice }
       end
     EOF
     assert_output("thrice\nthrice\nthrice\n") do
@@ -271,8 +271,8 @@ class EnumerableTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.lang.Integer
       def foo
-        System.out.println [1,2,3].any?
-        System.out.println [1,2,3].any? {|x| Integer(x).intValue > 3}
+        puts [1,2,3].any?
+        puts [1,2,3].any? {|x| Integer(x).intValue > 3}
       end
     EOF
     assert_output("true\nfalse\n") do
@@ -284,8 +284,8 @@ class EnumerableTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.lang.Integer
       def foo
-        System.out.println [1,2,3].all?
-        System.out.println [1,2,3].all? {|x| Integer(x).intValue > 3}
+        puts [1,2,3].all?
+        puts [1,2,3].all? {|x| Integer(x).intValue > 3}
       end
     EOF
     assert_output("true\nfalse\n") do
@@ -295,7 +295,7 @@ class EnumerableTest < Test::Unit::TestCase
   def test_all_with_block_with_no_cast
     cls, = compile(<<-EOF)
       def foo
-        System.out.println [1,2,3].all? {|x| x.intValue > 3}
+        puts [1,2,3].all? {|x| x.intValue > 3}
       end
     EOF
     assert_output("false\n") do
@@ -306,10 +306,10 @@ class EnumerableTest < Test::Unit::TestCase
   def test_map
     cls, = compile(<<-EOF)
       def foo
-        System.out.println [1,2,3].map {|x:Integer| x.intValue + 1}
-        System.out.println [1,2,3].map {|x| x}
-        System.out.println [1].map { 'a' }
-        System.out.println [].map { 'b' }
+        puts [1,2,3].map {|x:Integer| x.intValue + 1}
+        puts [1,2,3].map {|x| x}
+        puts [1].map { 'a' }
+        puts [].map { 'b' }
       end
     EOF
     assert_output("[2, 3, 4]\n[1, 2, 3]\n[a]\n[]\n") do
@@ -454,7 +454,7 @@ class EnumerableTest < Test::Unit::TestCase
         end
 
         def self.test(x:String)
-          MyIterator.new(x).each {|y| System.out.println y}
+          MyIterator.new(x).each {|y| puts y}
         end
       end
     EOF

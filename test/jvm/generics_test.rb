@@ -24,7 +24,7 @@ class TestGenerics < Test::Unit::TestCase
       foo = ArrayList.new()
       foo.add("first string")
       foo.add("second string")
-      System.out.println(foo.get(1).substring(2))
+      puts(foo.get(1).substring(2))
     EOF
 
     assert_output("cond string\n") do
@@ -41,7 +41,7 @@ class TestGenerics < Test::Unit::TestCase
       foo.add("second string")
       bar = ArrayList.new()
       bar.add(foo)
-      System.out.println(bar.get(0).get(1).substring(2))
+      puts(bar.get(0).get(1).substring(2))
     EOF
 
     assert_output("cond string\n") do
