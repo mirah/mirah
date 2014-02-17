@@ -21,12 +21,14 @@ import java.util.logging.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Position
+import mirah.lang.ast.Node
 import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.typer.ErrorType
 import org.mirah.typer.FuturePrinter
 import org.mirah.typer.Typer
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
+
 
 class ErrorCollector < NodeScanner
   def initialize(context:Context)
@@ -41,24 +43,13 @@ class ErrorCollector < NodeScanner
     @@log = Logger.getLogger(ErrorCollector.class.getName)
   end
 
-
   def exitDefault(node, arg)
     future = @typer.getInferredType(node)
     type = future.nil? ? nil : future.resolve
     if (type && type.isError)
       if @errors.add(type)
         messages = ErrorType(type).message
-        diagnostic = if messages.size >= 1
-          items = List(messages[0])
-          text = items[0].toString
-          position = node.position
-          if items.size == 1 && items[1]
-            position = Position(items[1])
-          end
-          MirahDiagnostic.error(position, text)
-        else messages.size == 0
-          MirahDiagnostic.error(node.position, "Error")
-        end
+        diagnostic = build_diagnostic messages, node
         @reporter.report(diagnostic)
         debug = FuturePrinter.new
         debug.printFuture(future)
@@ -74,5 +65,19 @@ class ErrorCollector < NodeScanner
   def enterBlock(node, arg)
     # There must have already been an error for the method call, so ignore this.
     false
+  end
+
+  def build_diagnostic(messages: List, node: Node)
+    if messages.size >= 1
+      items = List(messages[0])
+      text = items[0].toString
+      position = node.position
+      if items.size == 1 && items[1]
+        position = Position(items[1])
+      end
+      MirahDiagnostic.error(position, text)
+    else messages.size == 0
+      MirahDiagnostic.error(node.position, "Error")
+    end
   end
 end
