@@ -128,10 +128,6 @@ class MirrorProxy implements MirrorType, PrimitiveType, DeclaredType, ArrayType,
   def toString
     @target.toString
   end
-  def equals(other)
-    return true if other == self
-    other.kind_of?(MirrorType) && isSameType(MirrorType(other))
-  end
   def unmeta
     if @target.isMeta
       @target.unmeta
