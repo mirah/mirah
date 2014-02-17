@@ -38,9 +38,11 @@ module JVMCompiler
     name ||= tmp_script_name
 
     java_version = options.delete :java_version
-    args = ["-d", TEST_DEST, "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF", "-classpath", FIXTURE_TEST_DEST]
+    args = ["-d", TEST_DEST,
+            "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF",
+            "--classpath", Mirah::Env.encode_paths([FIXTURE_TEST_DEST, TEST_DEST]) ]
     if java_version
-      args = args + ["--jvm", java_version]
+      args += ["--jvm", java_version]
     end
 
     cmd = RunCommand.new
@@ -49,11 +51,35 @@ module JVMCompiler
     if 0 != cmd.compile(args)
       raise Mirah::MirahError, "Compilation failed"
     end
-      
+
+    dump_class_files cmd.classMap
+
     cmd.loadClasses.map {|cls| JRuby.runtime.java_support.getProxyClassFromCache(cls)}
   end
 
   def compiler_name
     "new"
+  end
+
+  def clean_tmp_files
+    return unless @tmp_classes
+    File.unlink(*@tmp_classes)
+  end
+
+  def setup
+    @tmp_classes = Set.new
+  end
+
+  def cleanup
+    clean_tmp_files
+  end
+
+  def dump_class_files class_map
+    class_map.each do |filename, bytes|
+      filename = "#{TEST_DEST}#{filename}.class"
+      FileUtils.mkdir_p(File.dirname(filename))
+      File.open(filename, 'wb') { |f| f.write(bytes) }
+      @tmp_classes << filename
+    end
   end
 end

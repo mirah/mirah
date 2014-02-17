@@ -64,6 +64,10 @@ class RunCommand < MirahTool
     classes
   end
 
+  def classMap
+    @class_map
+  end
+
   def self.main(args:String[]):void
     mirahc = RunCommand.new()
     result = mirahc.compile(args)
