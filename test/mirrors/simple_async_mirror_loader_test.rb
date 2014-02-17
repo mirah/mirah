@@ -94,7 +94,8 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   end
 
   def test_array
-    pend "undefined ClassPath class"
+    pend "undefined ClassPath class" do
+    
     context = Context.new
     classpath = ClassPath.new
     classpath.bytecode_loader_set PrimitiveLoader.new(context)
@@ -107,5 +108,7 @@ class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
     assert(JVMTypeUtils.isArray(future.resolve))
     assert_equal('LA;', future.resolve.getComponentType.asm_type.descriptor)
     assert(!future.resolve.getComponentType.isError)
+
+    end
   end
 end
