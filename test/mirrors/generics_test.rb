@@ -755,7 +755,7 @@ class GenericsTest < Test::Unit::TestCase
 
     a = set(string)
     lub = finder.leastUpperBound([a, a])
-    assert_equal(a, lub, lub.toString)
+    assert(a.isSameType(lub), lub.toString)
 
     b = g('java.lang.Iterable', [type('java.io.Serializable')])
     lub = finder.leastUpperBound([a, b])
