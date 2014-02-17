@@ -38,18 +38,21 @@ class AnnotationsTest < Test::Unit::TestCase
   end
 
   def test_annotation_with_an_integer
-    jruby_method = Java::OrgFoo::IntAnno.java_class
-
     cls, = compile(<<-EOF)
       import org.foo.IntAnno
-
-      $IntAnno[name: ["bar"], value: 1]
-      def bar(baz:int)
+      class IntValAnnotation
+        $IntAnno[name: "bar", value: 1]
+        def bar
+        end
       end
+      method = IntValAnnotation.class.getMethod("bar")
+      anno = method.getAnnotation(IntAnno.class)
+      puts anno.value
     EOF
-    method_annotation = cls.java_class.java_method('bar', :int).annotation(jruby_method)
 
-    assert_equal 1, method_annotation.optional
+    assert_output "1\n" do
+      cls.main nil
+    end
   end
 
 end
