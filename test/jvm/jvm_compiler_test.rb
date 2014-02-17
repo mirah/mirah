@@ -1683,9 +1683,11 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_field_setter_with_nil
     cls, = compile(<<-EOF)
-      import mirah.lang.ast.*
-      a = Arguments.new
-      a.block = nil
+      class FieldSetter
+        attr_accessor field: String
+      end
+      a = FieldSetter.new
+      a.field = nil
       print "OK"
     EOF
     
