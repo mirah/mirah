@@ -37,11 +37,8 @@ bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 task :bootstrap => ['dist/mirahc.jar']
 
 
-task :default => :bytecode_ci
+task :default => :new_ci
 
-desc "run bytecode backend ci"
-task :bytecode_ci => [:'test:core',
-                      :'test:jvm:bytecode']
 desc "run new backend ci"
 task :new_ci => [:'test:core', :'test:jvm:new']
 
@@ -82,22 +79,13 @@ namespace :test do
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
-  desc "run jvm tests, both bytecode and java source"
+  desc "run jvm tests"
   task :jvm do
-    run_tests ["test:jvm:bytecode"]
+    run_tests ["test:jvm:new"]
   end
 
   namespace :jvm do
     task :test_setup =>  [:clean_tmp_test_directory, :build_test_fixtures]
-
-    desc "run jvm tests compiling to bytecode"
-    Rake::TestTask.new :bytecode => [:bootstrap, 
-                                     "dist/mirahc.jar",
-                                      :test_setup] do |t|
-      t.libs << 'test' <<'test/jvm'
-      t.ruby_opts.concat ["-r", "bytecode_test_helper"]
-      t.test_files = FileList["test/jvm/**/*test.rb"]
-    end
 
     desc "run jvm tests using the new self hosted backend"
     task :new do
