@@ -132,15 +132,16 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   end
 
   def retention
-    if @annotations
-      @annotations.each do |n|
-        anno = AnnotationNode(n)
-        if "Ljava/lang/annotation/Retention;".equals(anno.desc)
-          # anno.values should be
-          # ["value", ["Ljava/lang/annotation/RetentionPolicy;", policy]]
-          value = String[].cast(anno.values.get(1))
-          return value[1]
-        end
+    # CLASS is the default retention policy http://docs.oracle.com/javase/7/docs/api/java/lang/annotation/RetentionPolicy.html#CLASS
+    return "CLASS" unless @annotations
+
+    @annotations.each do |n|
+      anno = AnnotationNode(n)
+      if "Ljava/lang/annotation/Retention;".equals(anno.desc)
+        # anno.values should be
+        # ["value", ["Ljava/lang/annotation/RetentionPolicy;", policy]]
+        value = String[].cast(anno.values.get(1))
+        return value[1]
       end
     end
   end

@@ -20,10 +20,17 @@ require 'dist/mirahc.jar'
 class BytecodeMirrorTest < Test::Unit::TestCase
   java_import 'org.jruby.org.objectweb.asm.Type'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
+  java_import 'org.mirah.jvm.mirrors.ClassLoaderResourceLoader'
+  java_import 'org.mirah.jvm.mirrors.ClassResourceLoader'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
+  java_import 'org.mirah.IsolatedResourceLoader'
 
   def setup
-    @types = MirrorTypeSystem.new
+    class_based_loader = ClassResourceLoader.new(MirrorTypeSystem.java_class)
+    loader = ClassLoaderResourceLoader.new(
+                IsolatedResourceLoader.new([TEST_DEST,FIXTURE_TEST_DEST].map{|u|java.net.URL.new "file:"+u}),
+                class_based_loader)
+    @types = MirrorTypeSystem.new nil, loader
   end
 
   def load(desc)
@@ -82,8 +89,18 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert_equal("Ljava/lang/Object;", mirror.getComponentType.asm_type.descriptor)
   end
 
-  def test_retention
+  def test_annotation_retention_with_runtime
     mirror = load(Type.getType("Ljava/lang/annotation/Retention;"))
     assert_equal("RUNTIME", mirror.retention)
+  end
+
+  def test_annotation_retention_with_source
+    mirror = load(Type.getType("Ljava/lang/Override;"))
+    assert_equal("SOURCE", mirror.retention)
+  end
+
+  def test_annotation_retention_with_source
+    mirror = load(Type.getType("Lorg/foo/ImplicitClassRetAnno;"))
+    assert_equal("CLASS", mirror.retention)
   end
 end
