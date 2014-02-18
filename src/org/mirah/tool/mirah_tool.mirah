@@ -64,7 +64,6 @@ abstract class MirahTool implements BytecodeConsumer
   @@VERSION = "0.1.2.dev"
 
   def initialize
-    @logger = MirahLogFormatter.new(true).install
     reset
   end
 
@@ -88,6 +87,7 @@ abstract class MirahTool implements BytecodeConsumer
 
   def compile(args:String[]):int
     processArgs(args)
+    @logger = MirahLogFormatter.new(@color).install
     @classpath ||= parseClassPath(@destination)
 
     @compiler = MirahCompiler.new(
@@ -221,6 +221,11 @@ abstract class MirahTool implements BytecodeConsumer
         ['jvm'], 'VERSION',
         'Emit JVM bytecode targeting specified JVM version (1.5, 1.6, 1.7)'
     ) { |v| mirahc.setJvmVersion(v) }
+
+    @color = true
+    parser.addFlag(['no-color'],
+      "Don't use color when writing logs"
+    ) { @color = false }
     parser.addFlag(
         ['tdb'], 'Start the interactive type debugger.'
     ) { mirahc.enableTypeDebugger }
