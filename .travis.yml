@@ -6,10 +6,6 @@ jdk:
   - oraclejdk7
 script: rake $TASK
 env:
-  - TASK=bytecode_ci
   - TASK=new_ci
-matrix:
-  allow_failures:
-    - env: TASK=new_ci
 notifications:
   irc: "irc.freenode.org#mirah"
