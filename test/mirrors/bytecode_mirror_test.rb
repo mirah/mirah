@@ -99,7 +99,7 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert_equal("SOURCE", mirror.retention)
   end
 
-  def test_annotation_retention_with_source
+  def test_annotation_retention_with_class
     mirror = load(Type.getType("Lorg/foo/ImplicitClassRetAnno;"))
     assert_equal("CLASS", mirror.retention)
   end
