@@ -14,8 +14,8 @@
 # limitations under the License.
 
 require 'test_helper'
-require 'jvm/bytecode_test_helper'
-class TestGenerics < Test::Unit::TestCase
+
+class GenericsTest < Test::Unit::TestCase
 
   def test_generics_calls_collections
     cls, = compile(<<-EOF)

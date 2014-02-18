@@ -12,10 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'test_helper'
 
 module JVMCompiler
   java_import 'org.mirah.tool.RunCommand'
   java_import 'org.mirah.util.SimpleDiagnostics'
+  System = Java::System
   class TestDiagnostics < SimpleDiagnostics
     java_import 'java.util.Locale'
     def report(diagnostic)
@@ -73,14 +75,6 @@ module JVMCompiler
     File.unlink(*@tmp_classes)
   end
 
-  def setup
-    @tmp_classes = Set.new
-  end
-
-  def cleanup
-    clean_tmp_files
-  end
-
   def dump_class_files class_map
     class_map.each do |filename, bytes|
       filename = "#{TEST_DEST}#{filename}.class"
@@ -88,5 +82,37 @@ module JVMCompiler
       File.open(filename, 'wb') { |f| f.write(bytes) }
       @tmp_classes << filename
     end
+  end
+
+  def tmp_script_name
+    "script#{name.gsub(/\)|\(/,'_').capitalize}#{System.nano_time}"
+  end
+
+  def assert_raise_java(type, message=nil)
+    begin
+      yield
+    rescue Exception => e
+      ex = e
+    end
+    ex = ex.cause if ex.is_a? NativeException
+    assert_equal type, ex.class
+    if message
+      assert_equal message,
+                   ex.message.to_s,
+                  "expected error message to be '#{message}' but was '#{ex.message}'"
+    end
+    ex
+  end
+end
+
+class Test::Unit::TestCase
+  include JVMCompiler
+
+  def setup
+    @tmp_classes = Set.new
+  end
+
+  def cleanup
+    clean_tmp_files
   end
 end

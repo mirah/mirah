@@ -16,19 +16,20 @@ require 'test_helper'
 
 
 class JVMCommandsTest < Test::Unit::TestCase
+
   def test_dash_e_eval
     assert_output "1\n" do
-      Mirah::Commands::Run.new(['-e','puts 1']).execute
+      RunCommand.main(['-e','puts 1'])
     end
   end
 
   def test_runtime_classpath_modifications
     assert_output "1234\n" do
-      Mirah::Commands::Run.new(['-c', FIXTURE_TEST_DEST,
+      RunCommand.main(['-c', FIXTURE_TEST_DEST,
                                 '-e',
                                   'import org.foo.LowerCaseInnerClass
                                   puts LowerCaseInnerClass.inner.field']
-                              ).execute
+                              )
     end
   end
 end
