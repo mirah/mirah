@@ -16,4 +16,3 @@
 require 'mirah/commands/base'
 require 'mirah/commands/run'
 require 'mirah/commands/compile'
-require 'mirah/commands/parse'
