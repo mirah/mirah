@@ -75,6 +75,7 @@ class MirahArguments
 
   def initialize
     @logger_color = true
+    @use_type_debugger = false
     @code_sources = []
     @destination = "."
 
@@ -204,15 +205,15 @@ class MirahArguments
     end
   end
 
-  def setup_loggers
+  def setup_logging
     @logger = MirahLogFormatter.new(logger_color).install
     if verbose
       @logger.setLevel(Level.FINE)
     end
-    @vloggers = all_the_loggers
+    @real_loggers = build_loggers
   end
 
-  def all_the_loggers
+  def build_loggers
     loggers = HashSet.new
     return loggers unless vloggers
 
