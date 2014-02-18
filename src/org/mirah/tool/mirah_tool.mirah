@@ -80,11 +80,7 @@ abstract class MirahTool implements BytecodeConsumer
   def compile(args:String[]):int
     @compiler_args.applyArgs(args)
 
-    @logger = MirahLogFormatter.new(compiler_args.logger_color).install
-    if compiler_args.verbose
-      @logger.setLevel(Level.FINE)
-    end
-    @vloggers = compiler_args.all_the_loggers
+    @compiler_args.setup_logging
 
     if compiler_args.use_type_debugger && !@debugger
       debugger = ConsoleDebugger.new

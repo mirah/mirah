@@ -204,6 +204,13 @@ class MirahArguments
     end
   end
 
+  def setup_loggers
+    @logger = MirahLogFormatter.new(logger_color).install
+    if verbose
+      @logger.setLevel(Level.FINE)
+    end
+    @vloggers = all_the_loggers
+  end
 
   def all_the_loggers
     loggers = HashSet.new
