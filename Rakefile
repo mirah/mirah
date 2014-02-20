@@ -240,7 +240,7 @@ file 'dist/mirahc.jar' => mirah_srcs + ['javalib/mirahc-0.1.2-2.jar', 'javalib/j
   runjava('-Xmx512m',
           'javalib/mirahc-0.1.2-2.jar',
           '-d', build_dir,
-          '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
+          '-classpath', ["javalib/mirah-parser.jar",build_dir, "javalib/jruby-complete.jar"].join(File::PATH_SEPARATOR),
           *mirah_srcs)
   
   # Build the jar                    
@@ -271,7 +271,7 @@ file 'javalib/mirah-util.jar' do
 
   # compile ant stuff
   ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
-  sh *%W(jruby -S mirahc --classpath #{ant_classpath}:#{build_dir} --dest #{build_dir} src/org/mirah/ant)
+  sh *%W(jruby -S mirahc --classpath #{[ant_classpath, build_dir].join(File::PATH_SEPARATOR)} --dest #{build_dir} src/org/mirah/ant)
 
   # Build the jar
   ant.jar 'jarfile' => 'javalib/mirah-util.jar' do
