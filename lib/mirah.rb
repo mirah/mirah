@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,30 +22,31 @@ $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-util.jar'
 
 require 'mirah/version'
 require 'mirah/transform'
-require 'mirah/ast'
-require 'mirah/compiler'
+#require 'mirah/compiler'
 require 'mirah/env'
 require 'mirah/errors'
 require 'mirah/typer'
-require 'mirah/jvm/types'
 
-require 'mirah/jvm/compiler'
+require "mirah/util/process_errors"
+require "mirah/util/logging"
+require "mirah/util/compilation_state"
+require "mirah/util/class_loader"
+#require "mirah/util/argument_processor"
+
+#require 'mirah/jvm/compiler'
 #Dir[File.dirname(__FILE__) + "/mirah/plugin/*"].each {|file| require "#{file}" if file =~ /\.rb$/}
-require 'jruby'
-
-require 'mirah/commands'
+#require 'jruby'
 
 module Mirah
+  java_import 'org.mirah.tool.RunCommand'
+  java_import 'org.mirah.tool.Mirahc'
+
   def self.run(*args)
-    Mirah::Commands::Run.new(args).execute
+    Mirah::RunCommand.main(args)
   end
 
   def self.compile(*args)
-    Mirah::Commands::Compile.new(args).execute
-  end
-
-  def self.parse(*args)
-    Mirah::Commands::Parse.new(args).execute
+    Mirah::Mirahc.main(args)
   end
 
   def self.plugins
@@ -98,6 +99,7 @@ module Mirah
       endcol = end_col if lineno == end_line
 
       result << "^" * [endcol - start, 1].max
+
       result << "\n"
     end
     result

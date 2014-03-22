@@ -11,7 +11,7 @@ class ListExtensionsTest < Test::Unit::TestCase
 
   def test_bracket_assignment
     cls, = compile(<<-EOF)
-      import java.util.ArrayList # literals are immutable
+      import java.util.ArrayList
       x = ArrayList.new
       x[0]= "2"
       puts x

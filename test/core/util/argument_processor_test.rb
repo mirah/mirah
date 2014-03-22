@@ -15,50 +15,51 @@
 require 'test_helper'
 
 class ArgumentProcessorTest < Test::Unit::TestCase
-
+  java_import 'org.mirah.tool.MirahArguments'
   def test_arg_dash_v_prints_version_and_has_exit_0
-    state = Mirah::Util::CompilationState.new
-    processor = Mirah::Util::ArgumentProcessor.new state, ["-v"]
+    arg_processor = MirahArguments.new
 
     assert_output "Mirah v#{Mirah::VERSION}\n" do
-      processor.process
+      arg_processor.handle_args(["-v"])
     end
 
-    assert processor.exit?
-    assert_equal 0, processor.exit_status_code
+    assert arg_processor.exit?
+    assert_equal 0, arg_processor.exit_status
   end
 
 
   def test_on_invalid_arg_prints_error_and_exits_1
-    state = Mirah::Util::CompilationState.new
-    processor = Mirah::Util::ArgumentProcessor.new state, ["--some-arg"]
+    arg_processor = MirahArguments.new
 
-    assert_output "unrecognized flag: --some-arg\n" do
-      processor.process
+    assert_output "Unrecognized flag: --some-arg\n" do
+      arg_processor.handle_args(["--some-arg"])
     end
 
-    assert processor.exit?
-    assert_equal 1, processor.exit_status_code
+    assert arg_processor.exit?
+    assert_equal 1, arg_processor.exit_status
   end
 
-  def test_arg_bootclasspath_sets_bootclasspath_on_compilation_state
+  def test_arg_bootclasspath_sets_bootclasspath_with_absolute_paths
     path = "class:path"
-    state = Mirah::Util::CompilationState.new
-    processor = Mirah::Util::ArgumentProcessor.new state, ["--bootclasspath", path]
-    processor.process
+    arg_processor = MirahArguments.new
+    
+    arg_processor.handle_args ["--bootclasspath", path]
 
-    assert_equal path, state.bootclasspath
+    assert_equal path.split(":").map{|p|"file:%s" % File.expand_path(p) }.join(":"),
+                 arg_processor.real_bootclasspath.map{|u| u.to_s }.join(":")
   end
 
   def test_dash_h_prints_help_and_exits
-    state = Mirah::Util::CompilationState.new
-    processor = Mirah::Util::ArgumentProcessor.new state, ["-h"]
+    arg_processor = MirahArguments.new
 
-    assert_output processor.help_message + "\n" do
-      processor.process
+    usage_message = capture_output do
+      arg_processor.handle_args  ["-h"]
     end
 
-    assert processor.exit?
-    assert_equal 0, processor.exit_status_code
+    assert usage_message.include? 'mirahc [flags] <files or -e SCRIPT>'
+    assert usage_message.include? '-h, --help'
+
+    assert arg_processor.exit?
+    assert_equal 0, arg_processor.exit_status
   end
 end

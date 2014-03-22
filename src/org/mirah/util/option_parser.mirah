@@ -60,9 +60,9 @@ class OptionParser
       elsif "--".equals(arg)
         options_finished = true
       elsif arg.startsWith("--")
-        value_parser = parseOption(arg.substring(2))
+        value_parser = parseOption(arg.substring(2), "--")
       elsif arg.startsWith("-")
-        value_parser = parseOption(arg.substring(1))
+        value_parser = parseOption(arg.substring(1), "-")
       else
         filenames.add(arg)
       end
@@ -70,10 +70,10 @@ class OptionParser
     filenames
   end
 
-  def parseOption(arg:String)
+  def parseOption(arg:String, dashes:String)
     option = CommandLineOption(@flagMap[arg])
     if option.nil?
-      raise IllegalArgumentException, "Unrecognized argument --#{arg}"
+      raise IllegalArgumentException, "Unrecognized flag: #{dashes}#{arg}"
     end
     if option.option_callback
       option.option_callback
@@ -91,6 +91,7 @@ class OptionParser
         unless first_name
           print ", "
         end
+        first_name = false
         if n.length == 1
           print "-#{n}"
         else

@@ -108,13 +108,37 @@ class MirahArguments
     @macroclasspath
   end
 
+  def exit?
+    @should_exit
+  end
+
+  def isExit
+    @should_exit
+  end
+
+  def exit_status
+    @exit_status
+  end
+
+  def prep_for_exit status: int
+    @should_exit = true
+    @exit_status = status
+  end
+
   def applyArgs(args:String[]):void
+    handle_args(args)
+    if exit?
+      System.exit(@exit_status)
+    end
+  end
+
+  def handle_args(args:String[]):void
     compiler_args = self
 
-    parser = OptionParser.new("Mirahc [flags] <files or -e SCRIPT>")
+    parser = OptionParser.new("mirahc [flags] <files or -e SCRIPT>")
     parser.addFlag(["h", "help"], "Print this help message.") do
       parser.printUsage
-      System.exit(0)
+      compiler_args.prep_for_exit 0
     end
 
     parser.addFlag(
@@ -125,8 +149,8 @@ class MirahArguments
 
     version = @@VERSION
     parser.addFlag(['v', 'version'], 'Print the version.') do
-      puts "Mirahc v#{version}"
-      System.exit(0)
+      puts "Mirah v#{version}"
+      compiler_args.prep_for_exit 0
     end
     
     parser.addFlag(['V', 'verbose'], 'Verbose logging.') do
@@ -180,10 +204,15 @@ class MirahArguments
         ['tdb'], 'Start the interactive type debugger.'
     ) { compiler_args.use_type_debugger = true }
 
-    it = parser.parse(args).iterator
-    while it.hasNext
-      f = File.new(String(it.next))
-      addFileOrDirectory(f)
+    begin
+      it = parser.parse(args).iterator
+      while it.hasNext
+        f = File.new(String(it.next))
+        addFileOrDirectory(f)
+      end
+    rescue IllegalArgumentException => e
+      puts e.getMessage
+      prep_for_exit 1
     end
 
     compiler_args
