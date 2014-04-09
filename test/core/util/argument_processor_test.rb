@@ -20,7 +20,7 @@ class ArgumentProcessorTest < Test::Unit::TestCase
     arg_processor = MirahArguments.new
 
     assert_output "Mirah v#{Mirah::VERSION}\n" do
-      arg_processor.handle_args(["-v"])
+      arg_processor.apply_args(["-v"])
     end
 
     assert arg_processor.exit?
@@ -32,7 +32,7 @@ class ArgumentProcessorTest < Test::Unit::TestCase
     arg_processor = MirahArguments.new
 
     assert_output "Unrecognized flag: --some-arg\n" do
-      arg_processor.handle_args(["--some-arg"])
+      arg_processor.apply_args(["--some-arg"])
     end
 
     assert arg_processor.exit?
@@ -43,7 +43,7 @@ class ArgumentProcessorTest < Test::Unit::TestCase
     path = "class:path"
     arg_processor = MirahArguments.new
     
-    arg_processor.handle_args ["--bootclasspath", path]
+    arg_processor.apply_args ["--bootclasspath", path]
 
     assert_equal path.split(":").map{|p|"file:%s" % File.expand_path(p) }.join(":"),
                  arg_processor.real_bootclasspath.map{|u| u.to_s }.join(":")
@@ -53,7 +53,7 @@ class ArgumentProcessorTest < Test::Unit::TestCase
     arg_processor = MirahArguments.new
 
     usage_message = capture_output do
-      arg_processor.handle_args  ["-h"]
+      arg_processor.apply_args  ["-h"]
     end
 
     assert usage_message.include? 'mirahc [flags] <files or -e SCRIPT>'

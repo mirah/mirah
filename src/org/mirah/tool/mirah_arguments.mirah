@@ -123,13 +123,6 @@ class MirahArguments
   end
 
   def applyArgs(args:String[]):void
-    handle_args(args)
-    if exit?
-      System.exit(@exit_status)
-    end
-  end
-
-  def handle_args(args:String[]):void
     compiler_args = self
 
     parser = OptionParser.new("mirahc [flags] <files or -e SCRIPT>")
