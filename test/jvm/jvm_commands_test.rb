@@ -25,6 +25,16 @@ class JVMCommandsTest < Test::Unit::TestCase
 
   def test_runtime_classpath_modifications
     assert_output "1234\n" do
+      Mirah.run('-cp', FIXTURE_TEST_DEST,
+                                '-e',
+                                  'import org.foo.LowerCaseInnerClass
+                                  puts LowerCaseInnerClass.inner.field'
+                              )
+    end
+  end
+
+  def test_dash_c_is_deprecated
+    assert_output "WARN: option -c is deprecated.\n1234\n" do
       Mirah.run('-c', FIXTURE_TEST_DEST,
                                 '-e',
                                   'import org.foo.LowerCaseInnerClass

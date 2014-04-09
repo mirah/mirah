@@ -169,11 +169,19 @@ class MirahArguments
       compiler_args.classpath = classpath
     end
     parser.addFlag(
+        ['c'], 'CLASSPATH',
+        "Deprecated: same as cp/classpath") do |classpath|
+      System.err.println "WARN: option -c is deprecated."
+      compiler_args.classpath = classpath
+    end
+
+    parser.addFlag(
         ['bootclasspath'], 'CLASSPATH',
         "Classpath to search for standard JRE classes."
     ) do |classpath|
       compiler_args.bootclasspath = classpath
     end
+
     parser.addFlag(
         ['macroclasspath'], 'CLASSPATH',
         "Classpath to use when compiling macros."

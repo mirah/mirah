@@ -38,10 +38,12 @@ module CommonAssertions
 
   def capture_output
     saved_output = System.out
+    saved_err = System.err
     saved_stdout = $stdout
     saved_stderr = $stderr
     output = StringIO.new
     System.setOut(PrintStream.new(output.to_outputstream))
+    System.setErr(PrintStream.new(output.to_outputstream))
     $stdout = output
     $stderr = output
     begin
@@ -50,6 +52,7 @@ module CommonAssertions
       output.read
     ensure
       System.setOut(saved_output)
+      System.setErr(saved_err)
       $stdout = saved_stdout
       $stderr = saved_stderr
     end
