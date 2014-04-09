@@ -71,7 +71,8 @@ class MirahArguments
                 vloggers: String,
                 verbose: boolean,
                 max_errors: int,
-                use_type_debugger: boolean
+                use_type_debugger: boolean,
+                exit_status: int
 
   def initialize
     @logger_color = true
@@ -114,10 +115,6 @@ class MirahArguments
 
   def isExit
     @should_exit
-  end
-
-  def exit_status
-    @exit_status
   end
 
   def prep_for_exit status: int
@@ -220,8 +217,7 @@ class MirahArguments
 
   def addFileOrDirectory(f:File):void
     unless f.exists
-      puts "No such file #{f.getPath}"
-      System.exit(1)
+      raise IllegalArgumentException, "No such file #{f.getPath}"
     end
     if f.isDirectory
       f.listFiles.each do |c|

@@ -31,7 +31,12 @@ class Mirahc < MirahTool
   end
 
   def self.main(args:String[]):void
+    result = compile(args)
+    System.exit(result)
+  end
+
+  def self.compile(args: String[]): int
     mirahc = Mirahc.new()
-    System.exit(mirahc.compile(args))
+    mirahc.compile(args)
   end
 end

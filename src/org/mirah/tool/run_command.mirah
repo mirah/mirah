@@ -69,11 +69,16 @@ class RunCommand < MirahTool
   end
 
   def self.main(args:String[]):void
+    result = run(args)
+    System.exit(result)
+  end
+
+  def self.run(args: String[]): int
     mirahc = RunCommand.new()
     result = mirahc.compile(args)
     if result == 0
       result = mirahc.run
     end
-    System.exit(result)
+    result
   end
 end

@@ -78,7 +78,10 @@ abstract class MirahTool implements BytecodeConsumer
   end
 
   def compile(args:String[]):int
-    @compiler_args.applyArgs(args)
+    @compiler_args.handle_args(args)
+    if @compiler_args.exit?
+      return @compiler_args.exit_status
+    end
 
     @compiler_args.setup_logging
 

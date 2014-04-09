@@ -42,11 +42,11 @@ module Mirah
   java_import 'org.mirah.tool.Mirahc'
 
   def self.run(*args)
-    Mirah::RunCommand.main(args)
+    Mirah::RunCommand.run(args)
   end
 
   def self.compile(*args)
-    Mirah::Mirahc.main(args)
+    Mirah::Mirahc.compile(args)
   end
 
   def self.plugins
