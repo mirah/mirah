@@ -162,6 +162,10 @@ class JVMScope < SimpleScope
       @imports[shortname] = fullname
     end
   end
+  
+  def add_import(fullname:String, shortname:String)
+  	self.import(fullname, shortname)
+  end
 
   def selfType:TypeFuture
     if @selfType.nil? && parent
