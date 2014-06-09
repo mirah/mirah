@@ -26,6 +26,8 @@ interface Scope do
   def parent:Scope; end
   def parent=(scope:Scope):void; end
   def shadow(name:String):void; end
+  def shadowed?(name:String):boolean; end
+  def hasLocal(name:String, includeParent:boolean=true):boolean;end
   def isCaptured(name:String):boolean; end
   def capturedLocals:List; end  # List of captured local variable names
   def import(fullname:String, shortname:String):void; end

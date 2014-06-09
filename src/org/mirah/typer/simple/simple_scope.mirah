@@ -28,7 +28,7 @@ import java.io.FileInputStream
 import java.io.PrintStream
 
 # Minimal Scope implementation for SimpleScoper.
-# The main Scope is Mirah::AST::StaticScope in lib/mirah/ast/scope.rb.
+# The main Scope is JVMScope in src/org/mirah/jvm/mirrors/jvm_scope.mirah.
 class SimpleScope; implements Scope
   def initialize
     @nextTemp = -1
@@ -75,6 +75,9 @@ class SimpleScope; implements Scope
   def temp(name)
     "#{name}#{@nextTemp += 1}"
   end
-  def shadow(name:String):void; end
+  def shadow(name:String):void
+    raise UnsupportedOperationException, "Simple scope doesn't know how to shadow."
+  end
+
   def resetDefaultSelfNode:void; end
 end

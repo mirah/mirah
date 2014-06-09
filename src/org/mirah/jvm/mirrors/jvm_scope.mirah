@@ -38,6 +38,7 @@ class JVMScope < SimpleScope
     @imports = {}
     @staticImports = HashSet.new
     @children = HashSet.new
+    @shadowed = HashSet.new
   end
 
   def binding_type:ResolvedType
@@ -68,7 +69,7 @@ class JVMScope < SimpleScope
           locals.add(name)
         end
       end
-      if @parent
+      if @parent && !shadowed?(name)
         type.parent = @parent.getLocalType(name, position)
       end
       @local_types[name] = type
@@ -79,6 +80,10 @@ class JVMScope < SimpleScope
   def hasLocal(name:String, includeParent:boolean=true)
     @defined_locals.contains(name) ||
         (includeParent && @parent && @parent.hasLocal(name))
+  end
+
+  def shadowed? name: String
+    @shadowed.contains(name)
   end
 
   def isCaptured(name)
@@ -186,5 +191,10 @@ class JVMScope < SimpleScope
     @cached_imports = Map(nil)
     @cached_packages = List(nil)
     @cached_static_imports = Set(nil)
+  end
+
+  def shadow(name:String):void
+    @defined_locals.add name
+    @shadowed.add name
   end
 end

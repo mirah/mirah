@@ -21,6 +21,7 @@ import mirah.lang.ast.*
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
+import org.mirah.typer.Scope
 import org.jruby.org.objectweb.asm.*
 import org.jruby.org.objectweb.asm.Type as AsmType
 import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
@@ -259,11 +260,14 @@ class MethodCompiler < BaseCompiler
     if expression
       recordPosition(local.position)
       name = local.name.identifier
+
+      proper_name = scoped_name(containing_scope(local), name)
+
       if @bindingType != nil && getScope(local).isCaptured(name)
         @builder.loadLocal(@binding)
-        @builder.getField(@bindingType.getAsmType, name, getInferredType(local).getAsmType)
+        @builder.getField(@bindingType.getAsmType, proper_name, getInferredType(local).getAsmType)
       else
-        @builder.loadLocal(name)
+        @builder.loadLocal(proper_name)
       end
     end
   end
@@ -297,13 +301,45 @@ class MethodCompiler < BaseCompiler
     recordPosition(local.position)
     @builder.convertValue(valueType, type)
 
+    proper_name = scoped_name(containing_scope(local), name)
     if isCaptured
-      @builder.putField(@bindingType.getAsmType, name, type.getAsmType)
+      @builder.putField(@bindingType.getAsmType, proper_name, type.getAsmType)
     else
-      @builder.storeLocal(name, type)
+      @builder.storeLocal(proper_name, type)
     end
   end
   
+  def containing_scope(node: Named): Scope
+    scope = getScope node
+    name = node.name.identifier
+    containing_scope scope, name
+  end
+
+  def containing_scope(node: RescueClause): Scope
+    scope = getScope node.body
+    name = node.name.identifier
+    containing_scope scope, name
+  end
+  def containing_scope(scope: Scope, name: String)
+    while _has_scope_something scope, name
+      scope = scope.parent
+    end
+    scope
+  end
+
+  def _has_scope_something(scope: Scope, name: String): boolean
+    not_shadowed = !scope.shadowed?(name)
+    not_shadowed && !scope.parent.nil? && scope.parent.hasLocal(name)
+  end
+
+  def scoped_name scope: Scope, name: String
+    if scope.shadowed? name
+      "#{name}$#{System.identityHashCode(scope)}"
+    else
+      name
+    end
+  end
+
   def visitFunctionalCall(call, expression)
     name = call.name.identifier
     # if this is the first line of a constructor, a call to 'initialize' is really a call to another
@@ -633,7 +669,9 @@ class MethodCompiler < BaseCompiler
         end
         if clause.name
           recordPosition(clause.name.position)
-          @builder.storeLocal(clause.name.identifier, AsmType.getType('Ljava/lang/Throwable;'))
+          proper_name = scoped_name(containing_scope(clause), clause.name.identifier)
+
+          @builder.storeLocal(proper_name, AsmType.getType('Ljava/lang/Throwable;'))
         else
           @builder.pop
         end
