@@ -111,6 +111,7 @@ class Bytecode < GeneratorAdapter
   
   def loadLocal(name:String):void
     info = LocalInfo(@locals[name])
+    raise "missing local #{name} in list #{@locals.keySet}" if info.nil?
     visitVarInsn(info.type.getOpcode(Opcodes.ILOAD), info.index)
   end
 
