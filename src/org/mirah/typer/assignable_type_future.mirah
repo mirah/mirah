@@ -40,8 +40,10 @@ class AssignableTypeFuture < BaseTypeFuture
   def declare(type:TypeFuture, position:Position):TypeFuture
     @lock.lock
     if @declarations.containsKey(type)
+      @@log.finest "already visited declaration for #{type}"
       TypeFuture(@declarations[type])
     elsif @declarations.isEmpty
+      @@log.finest "first declaration as #{type}"
       base_type = self
       type.onUpdate do |t, value|
         base_type.resolved(value)
@@ -50,7 +52,15 @@ class AssignableTypeFuture < BaseTypeFuture
       @declarations[type] = self
       TypeFuture(self)
     else
-      declared_type_error = TypeFuture(ErrorType.new([['Type redeclared', position], ['First declared', self.position]]))
+      earlier_declarations = declarations.keySet.map{ |future: TypeFuture| future.resolve }
+      msg = "Type redeclared as #{type.resolve} from #{earlier_declarations}"
+      @@log.finest(msg)
+      declared_type_error = TypeFuture(
+        ErrorType.new(
+          [[
+            msg,
+             position],
+            ['First declared', self.position]]))
       @declarations[type] = declared_type_error
       resolved ResolvedType(declared_type_error)
 
