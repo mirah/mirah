@@ -303,17 +303,39 @@ class EnumerableTest < Test::Unit::TestCase
     end
   end
 
-  def test_map
+  def test_map_empty_literal
     cls, = compile(<<-EOF)
-      def foo
-        puts [1,2,3].map {|x:Integer| x.intValue + 1}
-        puts [1,2,3].map {|x| x}
-        puts [1].map { 'a' }
-        puts [].map { 'b' }
-      end
+       puts [].map { 'b' }
     EOF
-    assert_output("[2, 3, 4]\n[1, 2, 3]\n[a]\n[]\n") do
-      cls.foo
+    assert_output "[]\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_map_to_different_type
+    cls, = compile(<<-EOF)
+      puts [1].map { 'a' }
+    EOF
+    assert_output "[a]\n" do
+      cls.main(nil)
+    end
+  end
+
+def test_map_identity
+    cls, = compile(<<-EOF)
+      puts [1,2,3].map {|x| x}
+    EOF
+    assert_output("[1, 2, 3]\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_map_with_type_declaration
+    cls, = compile(<<-EOF)
+      puts [1,2,3].map {|x:Integer| x.intValue + 1}
+    EOF
+    assert_output("[2, 3, 4]\n") do
+      cls.main(nil)
     end
   end
 

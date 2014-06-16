@@ -18,12 +18,17 @@ package org.mirah.builtins
 
 class CollectionExtensions
   macro def map(block:Block)
+    x = if block.arguments && block.arguments.required_size() > 0
+      block.arguments.required(0)
+    else
+      gensym
+    end
     list = gensym
     result = gensym
     quote do
       `list` = `@call.target`
       `result` = java::util::ArrayList.new(`list`.size)
-      `list`.each do |`block.arguments`|
+      `list`.each do |`x`|
         `result`.add(` [block.body] `)
       end
       `result`
