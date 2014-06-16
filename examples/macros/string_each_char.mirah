@@ -16,7 +16,7 @@
 
 macro def eachChar(value, block:Block)
     quote {
-        `value`.toCharArray.each do |`block.arguments` |
+        `value`.toCharArray.each do |`block.arguments`|
             `block.body`
         end
     }
