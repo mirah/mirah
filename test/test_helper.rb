@@ -63,7 +63,6 @@ module CommonAssertions
   end
 end
 
-
 module DebuggingHelp
   def with_finest_logging
     Mirah::Logging::MirahLogger.level = Mirah::Logging::Level::FINEST

@@ -147,12 +147,15 @@ class Typer < SimpleNodeVisitor
 
   def visitVCall(call, expression)
     workaroundASTBug call
-    methodType = callMethodType call, Collections.emptyList
-    targetType = infer(call.target)
+
     fcall = FunctionalCall.new(call.position,
                                Identifier(call.name.clone),
                                nil, nil)
     fcall.setParent(call.parent)
+
+
+    methodType = callMethodType call, Collections.emptyList
+    targetType = infer(call.target)
     @futures[fcall] = methodType
     @futures[fcall.target] = targetType
 
@@ -176,26 +179,23 @@ class Typer < SimpleNodeVisitor
     picker = PickFirst.new(options) do |typefuture, _node|
       node = Node(_node)
       picked_type = typefuture.resolve
-      if picked_type.kind_of?(InlineCode)
-        if current_node.parent
-          node = typer.replaceAndInfer(
-                         future,
-                         current_node,
-                         typer.expandMacro(fcall, picked_type),
-                         expression != nil)
-        end
+      if typer.isMacro picked_type
+        typer.expandAndReplaceMacro future,
+                                    current_node,
+                                    fcall,
+                                    picked_type,
+                                    expression != nil
       else
         if current_node.parent.nil?
           typer.logger.fine("Unable to replace #{current_node} with #{node}")
         else
-          node = typer.replaceAndInfer(
+          typer.replaceAndInfer(
                          future,
                          current_node,
                          node,
                          expression != nil)
         end
       end
-      current_node = node
     end
     future.position = call.position
     future.error_message = "Unable to find local or method '#{call.name.identifier}'"
@@ -212,13 +212,12 @@ class Typer < SimpleNodeVisitor
     current_node = Node(call)
     typer = self
     methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        if current_node.parent
-          typer.replaceAndInfer(delegate,
-                                current_node,
-                                typer.expandMacro(call, resolvedType),
-                                expression != nil)
-        end
+      if typer.isMacro resolvedType
+        typer.expandAndReplaceMacro delegate,
+                            current_node,
+                            call,
+                            resolvedType,
+                            expression != nil
       else
         delegate.type = methodType
       end
@@ -227,7 +226,9 @@ class Typer < SimpleNodeVisitor
       # This might actually be a cast instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
       # the method call.
-      cast = Cast.new(call.position, TypeName(call.typeref), Node(call.parameters.get(0).clone))
+      cast = Cast.new(call.position,
+                      TypeName(call.typeref),
+                      Node(call.parameters.get(0).clone))
       castType = getTypeOf(call, call.typeref)
       items = [castType, cast,
                delegate, nil]
@@ -286,13 +287,12 @@ class Typer < SimpleNodeVisitor
     typer = self
     current_node = Node(call)
     methodType.onUpdate do |x, resolvedType|
-      if resolvedType.kind_of?(InlineCode)
-        if current_node.parent
-          current_node = typer.replaceAndInfer(delegate,
-                                    current_node,
-                                    typer.expandMacro(call, resolvedType),
-                                    expression != nil)
-        end
+      if typer.isMacro resolvedType
+        typer.expandAndReplaceMacro delegate,
+                            current_node,
+                            call,
+                            resolvedType,
+                            expression != nil
       else
         delegate.type = methodType
       end
@@ -315,7 +315,9 @@ class Typer < SimpleNodeVisitor
           newType = @types.getArrayType(getTypeOf(call, typeref))
           @scopes.copyScopeFrom(call, newNode)
         else
-          cast = Cast.new(call.position, TypeName(typeref), Node(call.parameters(0).clone))
+          cast = Cast.new(call.position,
+                          TypeName(typeref),
+                          Node(call.parameters(0).clone))
           newNode = Node(cast)
           newType = getTypeOf(call, typeref)
         end
@@ -1330,6 +1332,21 @@ class Typer < SimpleNodeVisitor
 
   def replaceSelf me: Node, replacement: Node
     me.parent.replaceChild(me, replacement)
+  end
+
+
+  def isMacro resolvedType: ResolvedType
+    resolvedType.kind_of?(InlineCode)
+  end
+
+  def expandAndReplaceMacro future: DelegateFuture, current_node: Node, fcall: Node, picked_type: ResolvedType, expression: boolean
+    if current_node.parent
+      replaceAndInfer(
+                     future,
+                     current_node,
+                     expandMacro(fcall, picked_type),
+                     expression)
+    end
   end
 
   # FIXME: there's a bug in the AST that doesn't set the

@@ -66,7 +66,6 @@ class CompilationFailure < Exception
 end
 
 class MirahCompiler implements JvmBackend
-  @@VERSION = "0.1.2.dev"
 
   def initialize(
       diagnostics:SimpleDiagnostics, jvm:JvmVersion, classpath:URL[],
