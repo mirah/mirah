@@ -95,6 +95,7 @@ class Typer < SimpleNodeVisitor
 
   def infer(node:Node, expression:boolean=true)
     @@log.entering("Typer", "infer", "infer(#{node})")
+    @@log.fine("source:\n    #{sourceContent node}")
     return nil if node.nil?
     type = @futures[node]
     if type.nil?
@@ -1303,5 +1304,18 @@ class Typer < SimpleNodeVisitor
   # calls target correctly
   def workaroundASTBug(call: CallSite)
     call.target.setParent(call)
+  end
+
+  def sourceContent node: Node
+    pos = node.position
+    return "<source non-existent>" if pos.nil? || pos.source.nil?
+    return "<source start/end negative start:#{pos.startChar} end:#{pos.endChar}>" if  pos.startChar < 0 || pos.endChar < 0
+    return "<source start after end start:#{pos.startChar} end:#{pos.endChar}>" if  pos.startChar > pos.endChar
+
+    begin
+      pos.source.substring(pos.startChar, pos.endChar)
+    rescue => e
+      "<error getting source: #{e}  start:#{pos.startChar} end:#{pos.endChar}>"
+    end
   end
 end
