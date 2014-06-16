@@ -41,12 +41,16 @@ class SafeTyper < Typer
   def infer(node:Node, expression:boolean)
     super
   rescue => ex
+
     if ex.kind_of?(ReportedException)
       raise ReportedException.new(ex.getCause)
     elsif ex.getCause.kind_of?(ReportedException)
       raise ex.getCause
+    # For test running, otherwise you get Internal compiler error over and over
+    elsif ex.kind_of? org::jruby::exceptions::RaiseException
+      raise ex
     else
-      @diagnostics.report(MirahDiagnostic.error(node.position, "Internal compiler error: #{ex.getMessage}"))
+      @diagnostics.report(MirahDiagnostic.error(node.position, "Internal compiler error: #{ex} #{ex.getMessage}"))
       raise ReportedException.new(ex)
     end
   end
