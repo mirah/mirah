@@ -1308,7 +1308,9 @@ class Typer < SimpleNodeVisitor
   end
 
   def sourceContent node: Node
-    pos = node.position
+    sourceContent node.position
+  end
+  def sourceContent pos: Position
     return "<source non-existent>" if pos.nil? || pos.source.nil?
     return "<source start/end negative start:#{pos.startChar} end:#{pos.endChar}>" if  pos.startChar < 0 || pos.endChar < 0
     return "<source start after end start:#{pos.startChar} end:#{pos.endChar}>" if  pos.startChar > pos.endChar
