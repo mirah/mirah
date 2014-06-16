@@ -965,7 +965,7 @@ class Typer < SimpleNodeVisitor
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
 
-    setupInnerScope(mdef)
+    addScopeForMethod(mdef)
 
     inferAll(mdef.annotations)
     infer(mdef.arguments)
@@ -1178,7 +1178,7 @@ class Typer < SimpleNodeVisitor
     selfType
   end
 
-  def setupInnerScope(mdef: MethodDefinition): void
+  def addScopeForMethod(mdef: MethodDefinition): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
     scope.resetDefaultSelfNode
   end
