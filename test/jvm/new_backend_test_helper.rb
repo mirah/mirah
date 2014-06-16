@@ -17,7 +17,7 @@ require 'test_helper'
 module JVMCompiler
   java_import 'org.mirah.tool.RunCommand'
   java_import 'org.mirah.util.SimpleDiagnostics'
-  System = Java::System
+  System = java.lang.System
   class TestDiagnostics < SimpleDiagnostics
     java_import 'java.util.Locale'
     def report(diagnostic)
