@@ -1031,14 +1031,15 @@ class Typer < SimpleNodeVisitor
 
   def visitBlock(block, expression)
     @@log.finest "Block: got here for #{block} #{block.arguments}"
-    new_scope = addNestedScope block
-
-    infer(block.arguments) if block.arguments
 
     closures = @closures
     typer = self
 
     BlockFuture.new(block) do |block_future, resolvedType|
+      new_scope = typer.addNestedScope block
+
+      typer.infer(block.arguments) if block.arguments
+
       unless resolvedType.isError || block.parent.nil?
 # if Method-having-closure
 #   selfType of new scope is block type future
