@@ -34,6 +34,14 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(3.0, cls.foo)
   end
 
+  def test_unary_negation
+    cls, = compile("def foo; a = 1; -a; end")
+    assert_equal(-1, cls.foo)
+
+    cls, = compile("def foo; a = 1; 1 + -a; end")
+    assert_equal(0, cls.foo)
+  end
+
   def test_subtraction
     cls, = compile("def foo; a = 3; b = 2; a - b; end")
     assert_equal(1, cls.foo)
