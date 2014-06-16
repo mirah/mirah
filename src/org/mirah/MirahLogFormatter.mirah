@@ -35,7 +35,7 @@ class MirahLogFormatter < Formatter
   def shorten(name:String):String
     short = String(@names[name])
     return short if short
-    pieces = Arrays.asList(name.split('.'))
+    pieces = Arrays.asList(name.split('\.'))
     pieces.size.times do |i|
       key = pieces.subList(pieces.size - i - 1, pieces.size)
       existing = List(@inverse_names[key])
@@ -77,10 +77,14 @@ class MirahLogFormatter < Formatter
   end
 
   def install
+    logger = Logger.getLogger('org.mirah')
+
+    return logger if logger.getHandlers.any? {|h| h.getFormatter.kind_of? MirahLogFormatter}
+
     handler = ConsoleHandler.new
     handler.setLevel(Level.ALL)
     handler.setFormatter(self)
-    logger = Logger.getLogger('org.mirah')
+
     logger.addHandler(handler)
     logger.setUseParentHandlers(false)
     logger
