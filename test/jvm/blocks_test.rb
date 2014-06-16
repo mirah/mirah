@@ -156,7 +156,7 @@ class BlocksTest < Test::Unit::TestCase
           String(a).compareToIgnoreCase(String(b))
         end
       end
-      list.each {|x| puts x}
+      list.each {|x| puts x }
     EOF
 
     assert_output("a\nABC\nb\nCats\n") do
