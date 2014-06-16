@@ -14,6 +14,42 @@
 # limitations under the License.
 
 class MacrosTest < Test::Unit::TestCase
+  #TODO perhaps one of these should be an error
+  def test_block_args_no_pipes_macro
+    cls, = compile(<<-EOF)
+      macro def foo(list: Node, block: Block)
+        quote do
+          `list`.each do `block.arguments`
+            puts 1
+            `block.body`
+          end
+        end
+      end
+
+      foo [2,3] {|x| puts x }
+    EOF
+
+    assert_output("1\n2\n1\n3\n") {cls.main(nil)}
+  end
+
+  def test_block_args_with_pipes_macro
+    cls, = compile(<<-EOF)
+      macro def foo(list: Node, block: Block)
+        quote do
+          `list`.each do |`block.arguments`|
+            puts 1
+            `block.body`
+          end
+        end
+      end
+
+      foo [2,3] {|x| puts x }
+    EOF
+
+    assert_output("1\n2\n1\n3\n") {cls.main(nil)}
+  end
+
+
   def test_vcall_macro
     cls, = compile(<<-EOF)
       macro def foo

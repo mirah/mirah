@@ -1030,8 +1030,7 @@ class Typer < SimpleNodeVisitor
   # TODO is a constructor special?
 
   def visitBlock(block, expression)
-    @@log.finest "Block: got here for #{block} #{block.arguments}"
-
+    expandUnquotedBlockArgs(block)
     closures = @closures
     typer = self
 
@@ -1066,6 +1065,38 @@ class Typer < SimpleNodeVisitor
 #        end
       end
     end
+  end
+
+  def expandUnquotedBlockArgs(block: Block): void
+    expandPipedUnquotedBlockArgs(block)
+    expandUnpipedUnquotedBlockArgs(block)
+  end
+
+  def expandPipedUnquotedBlockArgs(block: Block): void
+    return if block.arguments.nil?
+    return if block.arguments.required_size() == 0
+    return unless block.arguments.required(0).name.kind_of? Unquote
+    unquote_arg = Unquote(block.arguments.required(0).name)
+    return unless unquote_arg.object.kind_of?(Arguments)
+
+    @@log.finest "Block: expanding unquoted arguments with pipes"
+    unquoted_args = Arguments(unquote_arg.object)
+    block.arguments = unquoted_args
+    unquoted_args.setParent block
+  end
+
+  def expandUnpipedUnquotedBlockArgs(block: Block): void
+    return unless block.arguments.nil?
+    return if block.body.nil? || block.body.size == 0
+    return unless block.body.get(0).kind_of?(Unquote)
+    unquoted_first_element = Unquote(block.body.get(0))
+    return unless unquoted_first_element.object.kind_of?(Arguments)
+
+    @@log.finest "Block: expanding unquoted arguments with no pipes"
+    unquoted_args = Arguments(unquoted_first_element.object)
+    block.arguments = unquoted_args
+    unquoted_args.setParent block
+    block.body.removeChild block.body.get(0)
   end
 
   # Returns true if any MethodDefinitions were found.
