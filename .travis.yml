@@ -1,11 +1,15 @@
 language: ruby
 rvm:
   - jruby-19mode
+  - jruby-head
 jdk:
-  - openjdk6
   - oraclejdk7
-script: rake $TASK
+  - oraclejdk8
+script: rake new_ci
 env:
-  - TASK=new_ci
+  - MIRAH_TEST_JVM_VERSION=1.5
+  - MIRAH_TEST_JVM_VERSION=1.6
+  - MIRAH_TEST_JVM_VERSION=1.7
+  - MIRAH_TEST_JVM_VERSION=1.8
 notifications:
   irc: "irc.freenode.org#mirah"
