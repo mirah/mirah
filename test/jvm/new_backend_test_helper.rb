@@ -18,6 +18,8 @@ module JVMCompiler
   java_import 'org.mirah.tool.RunCommand'
   java_import 'org.mirah.util.SimpleDiagnostics'
   System = java.lang.System
+  JVM_VERSION = ENV['MIRAH_TEST_JVM_VERSION'] || '1.7'
+
   class TestDiagnostics < SimpleDiagnostics
     java_import 'java.util.Locale'
     def report(diagnostic)
@@ -34,10 +36,9 @@ module JVMCompiler
   end
 
   def compile(code, options = {})
-    name = options.delete :name
-    name ||= tmp_script_name
+    name = options.fetch :name, tmp_script_name
 
-    java_version = options.delete :java_version
+    java_version = options.fetch :java_version, JVMCompiler::JVM_VERSION
     args = ["-d", TEST_DEST,
             "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF",
             "--classpath", Mirah::Env.encode_paths([FIXTURE_TEST_DEST, TEST_DEST]) ]
