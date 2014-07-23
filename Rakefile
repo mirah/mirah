@@ -36,7 +36,6 @@ bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :bootstrap => ['dist/mirahc.jar']
 
-
 task :default => :new_ci
 
 desc "run new backend ci"
@@ -119,8 +118,11 @@ task :clean_tmp_test_directory do
 end
 
 task :build_test_fixtures do
-  ant.javac 'destdir' => "tmp_test/fixtures", 'srcdir' => 'test/fixtures',
-    'includeantruntime' => false, 'debug' => true, 'listfiles' => true
+  ant.javac 'destdir' => "tmp_test/fixtures",
+            'srcdir' => 'test/fixtures',
+            'includeantruntime' => false,
+            'debug' => true,
+            'listfiles' => true
 end
 
 task :init do
@@ -235,8 +237,13 @@ def bootstrap_mirah_from(old_jar, new_jar)
     mkdir_p build_dir
 
     # Compile Java sources
-    ant.javac 'source' => '1.5', 'target' => '1.5', 'destdir' => build_dir, 'srcdir' => 'src',
-      'includeantruntime' => false, 'debug' => true, 'listfiles' => true
+    ant.javac 'source' => '1.5',
+              'target' => '1.5',
+              'destdir' => build_dir,
+              'srcdir' => 'src',
+              'includeantruntime' => false,
+              'debug' => true,
+              'listfiles' => true
 
     # Compile Mirah sources
     runjava('-Xmx512m',
