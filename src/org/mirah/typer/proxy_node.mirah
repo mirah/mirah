@@ -91,11 +91,13 @@ class ProxyNode < NodeList implements TypeName, Identifier
       defaultChild += nodes.size
     end
     @defaultChild = defaultChild
+
     nodeCount = nodes.size
     newNodes = ArrayList.new(nodeCount)
+
     @futures = Collections.emptyList
     @future = nil
-    parent = self.parent
+
     nodes.size.times do |i|
       node = childAdded(Node(nodes[i]))
       newNodes.add(node)
