@@ -46,7 +46,7 @@ module Mirah
   end
 
   def self.compile(*args)
-    Mirah::Mirahc.compile(args)
+    Mirah::Mirahc.new.compile(args)
   end
 
   def self.plugins
