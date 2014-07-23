@@ -82,15 +82,7 @@ class AssignableTypeFuture < BaseTypeFuture
       variable = self
       value.onUpdate do |x, resolved|
         variable.checkAssignments
-        if resolved.isError
-          assignment.resolved(resolved)
-        elsif variable.isResolved
-          if variable.resolve.assignableFrom(resolved)
-            assignment.resolved(resolved)
-          else
-            assignment.resolved(variable.incompatibleWith(value.resolve, position))
-          end
-        end
+        assignment.checkCompatibility
       end
       TypeFuture(assignment)
     end

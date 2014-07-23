@@ -203,6 +203,15 @@ class CallFuture < BaseTypeFuture
     end
   end
 
+  def getArgError:ResolvedType
+    @resolved_args.each do |arg:ResolvedType|
+      if arg && arg.isError
+        return arg
+      end
+    end
+    nil
+  end
+
   def maybeUpdate:void
     log(Level.FINER, "maybeUpdate(name={0}, target={1}, args={2})", @name, @resolved_target, @resolved_args)
     if @resolved_target
@@ -234,8 +243,9 @@ class CallFuture < BaseTypeFuture
                   raise IllegalArgumentException, "Expected MethodType, got #{type}"
                 end
                 # TODO(ribrdb) should resolve blocks, return type
-                call.resolveBlocks(nil, type)
-                call.resolved(type)
+                error = call.getArgError || type
+                call.resolveBlocks(nil, error)
+                call.resolved(error)
               end
             end
           end

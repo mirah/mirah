@@ -206,6 +206,8 @@ class MacroBuilder; implements Compiler
       import org.mirah.macros.anno.*
       import org.mirah.macros.Macro
       import org.mirah.macros.Compiler
+      import mirah.lang.ast.CallSite
+      import mirah.lang.ast.Node
       import mirah.lang.ast.*
 
       $MacroDef[name: `macroDef.name`, arguments:`argdef`, isStatic:`isStatic`]
@@ -267,6 +269,8 @@ class MacroBuilder; implements Compiler
       arg = RequiredArgument(_arg)
       if arg.type.nil?
         arg.type = SimpleString.new('mirah.lang.ast.Node')
+      elsif arg.type.typeref.name.indexOf('.') == -1
+        arg.type = SimpleString.new("mirah.lang.ast.#{arg.type.typeref.name}")
       end
     end
     block = macroDef.arguments.block

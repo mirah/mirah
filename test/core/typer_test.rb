@@ -280,7 +280,7 @@ class TyperTest < Test::Unit::TestCase
   def test_colon2
     ast = parse("java::lang::System.out")
     infer(ast)
-    target_type = inferred_type(ast.body(0).target)
+    target_type = inferred_type(ast.body(0).get(0).target)
     assert_equal('java.lang.System', target_type.name)
   end
 
@@ -296,8 +296,9 @@ class TyperTest < Test::Unit::TestCase
     infer(ast)
     assert_equal(@types.getFixnumType(1), inferred_type(ast.body(2)))
     assert_equal(@types.getNullType, inferred_type(ast.body(3)))
-    assert_kind_of(LocalAccess, ast.body(2))
-    assert_kind_of(FunctionalCall, ast.body(3))
+
+    assert_kind_of(LocalAccess, ast.body(2).get(0))
+    assert_kind_of(FunctionalCall, ast.body(3).get(0).get(0))
   end
 
   def test_import

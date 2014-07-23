@@ -22,6 +22,10 @@ class AssignmentFuture < BaseTypeFuture
     super(position)
     @variable = variable
     @value = value
+    assignment = self
+    TypeFuture(@variable).onUpdate do |x, resolved|
+      assignment.checkCompatibility
+    end
   end
 
   def resolve
@@ -29,5 +33,23 @@ class AssignmentFuture < BaseTypeFuture
       resolved(@value.resolve)
     end
     super
+  end
+  
+  def checkCompatibility:void
+    resolved_value = @value.isResolved ? @value.resolve : nil
+    resolved_variable = @variable.isResolved ? @variable.resolve : nil
+    if resolved_value
+      if resolved_value.isError
+        resolved(resolved_value)
+      elsif resolved_variable
+        if resolved_variable.assignableFrom(resolved_value)
+          resolved(resolved_value)
+        elsif resolved_variable.isError
+          resolved(resolved_variable)
+        else
+          resolved(@variable.incompatibleWith(resolved_value, position))
+        end
+      end
+    end
   end
 end

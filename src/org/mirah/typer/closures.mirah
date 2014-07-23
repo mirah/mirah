@@ -51,8 +51,8 @@ class ClosureBuilder
     infer(new_node)
   end
 
-  def prepare(block: Block, parent_type: ResolvedType): Node
-    prepare_regular_closure block, parent_type
+  def prepare(block: Block, parent_type: ResolvedType): Call
+    Call(prepare_regular_closure(block, parent_type))
   end
 
   def prepare_non_local_return_closure(block: Block, parent_type: ResolvedType): Node
