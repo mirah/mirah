@@ -1832,9 +1832,9 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert(a.foo(a))
   end
 
-  def test_local_field_conflict
+  def test_local_method_conflict
     cls, arg = compile(<<-EOF)
-      @a = "1"
+      def a; ArgType.new; end
       def foo(a:ArgType):void
         x = Object[ a ? a.bar : 0]
         puts x.length
@@ -1849,7 +1849,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     
     assert_output("0\n") { cls.foo(nil)}
     assert_output("2\n") { cls.foo(arg.new)}
-      assert false
   end
 
 end
