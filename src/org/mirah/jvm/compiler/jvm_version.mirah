@@ -15,10 +15,15 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.logging.Logger
 import org.jruby.org.objectweb.asm.Opcodes
 import org.jruby.org.objectweb.asm.ClassWriter
 
 class JvmVersion
+  def self.initialize:void
+    @@log = Logger.getLogger(JvmVersion.class.getName)
+  end
+
   def initialize
     initialize(System.getProperty('java.specification.version'))
   end
@@ -31,6 +36,10 @@ class JvmVersion
     elsif "1.6".equals(version)
       Opcodes.V1_6
     elsif "1.7".equals(version)
+      Opcodes.V1_7
+    elsif "1.8".equals(version)
+      # TODO(nh): fix asm dependency
+      @@log.info("using 1.7 as target bytecode version.")
       Opcodes.V1_7
     else
       -1
