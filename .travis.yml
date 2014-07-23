@@ -13,3 +13,7 @@ env:
   - MIRAH_TEST_JVM_VERSION=1.8
 notifications:
   irc: "irc.freenode.org#mirah"
+matrix:
+  exclude:
+    - jdk: oraclejdk7
+      env: MIRAH_TEST_JVM_VERSION=1.8
