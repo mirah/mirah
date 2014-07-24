@@ -158,7 +158,12 @@ class JVMScope < SimpleScope
   def search_packages
     @cached_packages ||= fetch_packages([])
   end
-
+  
+  /* Wrapper around import() to make it accessible from java */
+  def add_import(fullname:String, shortname:String)
+    self.import(fullname, shortname)
+  end
+  
   def import(fullname:String, shortname:String)
     flush
     if "*".equals(shortname)
