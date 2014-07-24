@@ -207,7 +207,8 @@ public class MirahLexer {
     }
 
     private void readRestOfString(Input i) {
-      for (int c = i.read(); c != -1;c = i.read()) {
+      int c = 0;
+      for (c = i.read(); c != -1;c = i.read()) {
         if (c == '\'') {
           i.backup(1);
           break;
@@ -215,6 +216,9 @@ public class MirahLexer {
           i.backup(2);
           break;
         }
+      }
+      if ( c == -1 ){
+        i.backup(1);
       }
     }
   }
@@ -279,7 +283,8 @@ public class MirahLexer {
     }
 
     private void readRestOfString(Input i) {
-      for (int c = i.read(); c != -1; c = i.read()) {
+      int c = 0;
+      for (c = i.read(); c != -1; c = i.read()) {
         if (isEndOfString(c)) {
           i.backup(1);
           break;
@@ -293,6 +298,9 @@ public class MirahLexer {
           i.backup(1);
           break;
         }
+      }
+      if ( c == -1 ){
+        i.backup(1);
       }
     }
   }
