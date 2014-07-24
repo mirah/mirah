@@ -279,7 +279,7 @@ public class MirahLexer {
     }
 
     private void readRestOfString(Input i) {
-      for (int c = i.read(); c != 01; c = i.read()) {
+      for (int c = i.read(); c != -1; c = i.read()) {
         if (isEndOfString(c)) {
           i.backup(1);
           break;
