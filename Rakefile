@@ -29,6 +29,11 @@ ant.taskdef 'name' => 'jarjar', 'classpath' => 'javalib/jarjar-1.1.jar', 'classn
 def mirahc(path, options)
   args = options[:options] || []
   if options[:classpath]
+    options[:classpath] << 'javalib/mirah.jar'
+  else 
+    options[:classpath] = ['javalib/mirah.jar']
+  end
+  if options[:classpath]
     cp = options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
     args << '--classpath' << cp
   end
