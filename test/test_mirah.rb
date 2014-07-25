@@ -843,4 +843,16 @@ EOF
      checker.scan(ast3, ast3)
      assert_nil(ast3.parent)
    end
+
+  def test_unclosed_double_quote_is_error
+    assert_fails "\"no closing quote"
+    assert_fails "\""
+    assert_fails "\"\n"
+  end
+
+  def test_unclosed_single_quote_is_error
+    assert_fails "'no closing quote"
+    assert_fails "'"
+    assert_fails "'\n"
+  end
 end
