@@ -29,6 +29,7 @@ class JvmVersion
   end
 
   def initialize(version:String)
+    @version_string = version
     @version = if "1.4".equals(version)
       Opcodes.V1_4
     elsif "1.5".equals(version)
@@ -40,6 +41,7 @@ class JvmVersion
     elsif "1.8".equals(version)
       # TODO(nh): fix asm dependency
       @@log.info("using 1.7 as target bytecode version.")
+      @version_string = "1.7"
       Opcodes.V1_7
     else
       -1
@@ -53,5 +55,9 @@ class JvmVersion
     end
   end
 
-  attr_reader flags:int, version:int
+  def bytecode_version
+    @version
+  end
+
+  attr_reader flags:int, version:int, version_string:String
 end

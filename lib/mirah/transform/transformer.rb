@@ -25,12 +25,11 @@ module Mirah
       attr_reader :errors, :state
       attr_accessor :filename
 
-      def initialize(state, typer)
+      def initialize(typer)
         @errors = []
         @tmp_count = 0
         @annotations = []
         @extra_body = nil
-        @state = state
         @typer = typer
         @types = typer.type_system if typer
         @files = {""=>{:filename => "", :line => 0, :code => ""}}

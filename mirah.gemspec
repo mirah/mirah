@@ -39,5 +39,4 @@ output either JVM bytecode or Java source files.}
   s.summary = %q{Mirah is a customizable programming language featuring static types, local type inference and a heavily Ruby-inspired syntax}
   s.test_files = Dir["test/**/test*.rb"]
   s.platform = "java"
-  s.add_dependency("bitescript", ">= 0.1.4")
 end

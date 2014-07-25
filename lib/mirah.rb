@@ -15,7 +15,6 @@
 
 require 'fileutils'
 require 'rbconfig'
-require 'bitescript'
 
 $CLASSPATH << File.dirname(__FILE__) + '/../dist/mirahc.jar'
 $CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-util.jar'
@@ -29,7 +28,6 @@ require 'mirah/typer'
 
 require "mirah/util/process_errors"
 require "mirah/util/logging"
-require "mirah/util/compilation_state"
 require "mirah/util/class_loader"
 #require "mirah/util/argument_processor"
 
