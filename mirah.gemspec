@@ -21,13 +21,13 @@ Gem::Specification.new do |s|
   s.name = 'mirah'
   s.version = Mirah::VERSION
   s.license = 'Apache-2.0'
-  s.authors = ["Charles Oliver Nutter", "Ryan Brown"]
+  s.authors = ["Charles Oliver Nutter", "Ryan Brown", "Nick Howard"]
+  s.email = ["headius@headius.com", "ribrdb@google.com", "ndh@baroquebobcat.com"]
   s.date =  Time.now.strftime("%Y-%m-%d")
   s.description = %q{Mirah is a customizable programming language featuring static types,
 local type inference and a heavily Ruby-inspired syntax. Mirah
 currently includes a typer/compiler backend for the JVM which can
 output either JVM bytecode or Java source files.}
-  s.email = ["headius@headius.com", "ribrdb@google.com"]
   s.executables = ["mirah", "mirahc"]
   s.extra_rdoc_files = ["History.txt", "README.md"]
   s.files = files.reject {|file| file =~ /jruby-complete.jar|jsr292-mock.jar/}
