@@ -217,11 +217,11 @@ file_create 'javalib/jruby-complete.jar' do
   end
 end
 
-file_create 'javalib/mirahc-0.1.2-2.jar' do
+file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
-  puts "Downloading mirahc-0.1.2-2.jar"
+  puts "Downloading mirahc-prev.jar"
   open('https://mirah.googlecode.com/files/mirahc-0.1.2-2.jar', 'rb') do |src|
-    open('javalib/mirahc-0.1.2-2.jar', 'wb') do |dest|
+    open('javalib/mirahc-prev.jar', 'wb') do |dest|
       dest.write(src.read)
     end
   end
@@ -266,7 +266,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
   end
 end
 
-bootstrap_mirah_from('javalib/mirahc-0.1.2-2.jar', 'dist/mirahc.jar')
+bootstrap_mirah_from('javalib/mirahc-prev.jar', 'dist/mirahc.jar')
 bootstrap_mirah_from('dist/mirahc.jar', 'dist/mirahc2.jar')
 bootstrap_mirah_from('dist/mirahc2.jar', 'dist/mirahc3.jar')
 
