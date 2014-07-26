@@ -144,13 +144,13 @@ end
 
 desc "clean downloaded dependencies"
 task :clean_downloads do
-  rm_f "javalib/mirahc-0.1.2-2.jar"
+  rm_f "javalib/mirahc-prev.jar"
   rm_f 'javalib/jruby-complete.jar'
 end
 
 task :compile => [:bootstrap, :util]
 task :util => 'javalib/mirah-util.jar'
-task :jvm_backend => 'javalib/mirahc.jar'
+task :jvm_backend => 'dist/mirahc.jar'
 
 desc "build backwards-compatible ruby jar"
 task :jar => :compile do
