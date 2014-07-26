@@ -28,21 +28,17 @@ require 'ant'
 
 # this definition ensures that the bootstrap tasks will be completed before
 # building the .gem file. Otherwise, the gem may not contain the jars.
-task :gem => [:bootstrap,
-              "dist/mirahc.jar",
-              "javalib/mirah-mirrors.jar"]
+task :gem => :compile
 
 Gem::PackageTask.new Gem::Specification.load('mirah.gemspec') do |pkg|
   pkg.need_zip = true
   pkg.need_tar = true
 end
 
-task :bootstrap => ['dist/mirahc.jar']
-
 task :default => :new_ci
 
 desc "run new backend ci"
-task :new_ci => [:'test:core', :'test:jvm:new']
+task :new_ci => [:'test:core', :'test:jvm']
 
 def run_tests tests
   results = tests.map do |name|
@@ -62,42 +58,34 @@ end
 
 desc "run full test suite"
 task :test do
-  run_tests [ 'test:core', 'test:plugins', 'test:jvm', 'test:jvm:new' ]
+  run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
 end
 
 namespace :test do
 
   desc "run the core tests"
-  Rake::TestTask.new :core  => :bootstrap do |t|
+  Rake::TestTask.new :core  => :compile do |t|
     t.libs << 'test'
     t.test_files = FileList["test/core/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
   desc "run tests for plugins"
-  Rake::TestTask.new :plugins  => :bootstrap do |t|
+  Rake::TestTask.new :plugins  => :compile do |t|
     t.libs << 'test'
     t.test_files = FileList["test/plugins/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
   desc "run jvm tests"
-  task :jvm do
-    run_tests ["test:jvm:new"]
-  end
+  task :jvm => 'test:jvm:all'
 
   namespace :jvm do
     task :test_setup =>  [:clean_tmp_test_directory, :build_test_fixtures]
 
     desc "run jvm tests using the new self hosted backend"
-    task :new do
+    task :all do
       run_tests ["test:jvm:mirror_compilation", "test:jvm:mirrors"]
-    end
-
-    Rake::TestTask.new :new_backend => [:bootstrap, "dist/mirahc.jar", :test_setup] do |t|
-      t.libs << 'test' << 'test/jvm'
-      t.ruby_opts.concat ["-r", "new_backend_test_helper"]
-      t.test_files = FileList["test/jvm/**/*test.rb"]
     end
     
     desc "run tests for mirror type system"
@@ -105,6 +93,7 @@ namespace :test do
       t.libs << 'test'
       t.test_files = FileList["test/mirrors/**/*test.rb"]
     end
+
     Rake::TestTask.new :mirror_compilation  => ["dist/mirahc.jar", :test_setup] do |t|
       t.libs << 'test' << 'test/jvm'
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
@@ -137,11 +126,7 @@ desc "clean up build artifacts"
 task :clean do
   ant.delete 'quiet' => true, 'dir' => 'build'
   ant.delete 'quiet' => true, 'dir' => 'dist'
-  rm_f 'javalib/mirah-bootstrap.jar'
   rm_f 'javalib/mirahc.jar'
-  rm_f 'javalib/mirah-builtins.jar'
-  rm_f 'javalib/mirah-util.jar'
-  rm_f 'javalib/mirah-mirrors.jar'
   rm_rf 'tmp'
 end
 
@@ -151,8 +136,7 @@ task :clean_downloads do
   rm_f 'javalib/jruby-complete.jar'
 end
 
-task :compile => [:bootstrap, :util]
-task :util => 'javalib/mirah-util.jar'
+task :compile => 'dist/mirahc.jar'
 task :jvm_backend => 'dist/mirahc.jar'
 
 desc "build backwards-compatible ruby jar"
@@ -180,9 +164,6 @@ namespace :jar do
       end
     end
   end
-
-  desc "build the compiler"
-  task :bootstrap => 'dist/mirahc.jar'
 end
 
 desc "Build a distribution zip file"
@@ -270,29 +251,6 @@ bootstrap_mirah_from('javalib/mirahc-prev.jar', 'dist/mirahc.jar')
 bootstrap_mirah_from('dist/mirahc.jar', 'dist/mirahc2.jar')
 bootstrap_mirah_from('dist/mirahc2.jar', 'dist/mirahc3.jar')
 
-file 'javalib/mirah-util.jar' do
-  require 'mirah'
-  build_dir = 'build/util'
-  rm_rf build_dir
-  mkdir_p build_dir
-
-  # build the Ruby sources
-  puts "Compiling Ruby sources"
-  JRuby::Compiler.compile_argv([
-    '-t', build_dir,
-    '--javac',
-    'src/org/mirah/mirah_command.rb'
-  ])
-
-  # compile ant stuff
-  ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
-  sh *%W(jruby -S mirahc --classpath #{[ant_classpath, build_dir].join(File::PATH_SEPARATOR)} --dest #{build_dir} src/org/mirah/ant)
-
-  # Build the jar
-  ant.jar 'jarfile' => 'javalib/mirah-util.jar' do
-    fileset 'dir' => build_dir
-  end
-end
 
 def runjava(jar, *args)
   sh 'java', '-jar', jar, *args
