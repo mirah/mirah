@@ -22,17 +22,20 @@ require 'java'
 require 'jruby/compiler'
 require 'ant'
 
+#TODO update downloads st build reqs that are not run reqs go in a different dir
+# put run reqs in javalib
+# final artifacts got in dist
+
 # this definition ensures that the bootstrap tasks will be completed before
 # building the .gem file. Otherwise, the gem may not contain the jars.
 task :gem => [:bootstrap,
-              "javalib/mirahc.jar",
+              "dist/mirahc.jar",
               "javalib/mirah-mirrors.jar"]
+
 Gem::PackageTask.new Gem::Specification.load('mirah.gemspec') do |pkg|
   pkg.need_zip = true
   pkg.need_tar = true
 end
-
-bitescript_lib_dir = File.dirname Gem.find_files('bitescript').first
 
 task :bootstrap => ['dist/mirahc.jar']
 
@@ -158,7 +161,6 @@ task :jar => :compile do
     fileset 'dir' => 'lib'
     fileset 'dir' => 'build'
     fileset 'dir' => '.', 'includes' => 'bin/*'
-    fileset 'dir' => bitescript_lib_dir
     zipfileset 'src' => 'dist/mirahc.jar'
     zipfileset 'src' => 'javalib/mirah-util.jar'
     manifest do
