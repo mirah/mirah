@@ -9,7 +9,7 @@ Apache 2.0
 ##Build Instructions
 
 1. Copy mirah.jar and mirahc.jar from a working Mirah distribution into the javalib directory.
-2. `rake` and `rake test`
+2. `rake test`
 
 ### Adding Parser into the Mirah Project
 

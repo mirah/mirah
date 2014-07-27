@@ -149,7 +149,7 @@ Rake::TestTask.new :test do |t|
   t.test_files = FileList['test/*.rb']
 end
 
-task :test => 'build/mirah-parser.jar'
+task :test => :build_parser
 
 task :doc => 'build/mirahparser/lang/ast/Node.java' do
   ant.javadoc :sourcepath => 'build', :destdir => 'doc'
