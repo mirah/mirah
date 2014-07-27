@@ -112,7 +112,7 @@ class AstFormatter < NodeScanner
     count = Integer(@childCounts.peekLast).intValue
     if count == 0
       @newline = false
-      @out.setCharAt(@out.length - 1, ?\ )
+      @out.setCharAt(@out.length - 1, ' '.charAt(0))
     end
     append '"'
     @out.append(node.value)
