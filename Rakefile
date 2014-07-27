@@ -126,7 +126,7 @@ desc "clean up build artifacts"
 task :clean do
   ant.delete 'quiet' => true, 'dir' => 'build'
   ant.delete 'quiet' => true, 'dir' => 'dist'
-  rm_f 'javalib/mirahc.jar'
+  rm_f 'dist/mirahc.jar'
   rm_rf 'tmp'
 end
 
@@ -146,7 +146,6 @@ task :jar => :compile do
     fileset 'dir' => 'build'
     fileset 'dir' => '.', 'includes' => 'bin/*'
     zipfileset 'src' => 'dist/mirahc.jar'
-    zipfileset 'src' => 'javalib/mirah-util.jar'
     manifest do
       attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
     end
