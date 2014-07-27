@@ -820,9 +820,11 @@ class Typer < SimpleNodeVisitor
       name = arg.name
       next unless name.kind_of?(Unquote)
       next if arg.type # If the arg has a type then the unquote must only be an identifier.
+
       unquote = Unquote(name)
       new_args = unquote.arguments
       next unless new_args
+
       it.remove
       if it == req2 && new_args.optional.size == 0 && new_args.rest.nil? && new_args.required2.size == 0
         mergeIterators(new_args.required.listIterator, req2)

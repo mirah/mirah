@@ -23,6 +23,7 @@ class CollectionExtensions
     else
       gensym
     end
+
     list = gensym
     result = gensym
     quote do
