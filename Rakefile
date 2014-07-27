@@ -94,7 +94,7 @@ file 'build/org/mirahparser/ast/NodeMeta.class' => 'src/org/mirah/ast/meta.mirah
 end
 
 file 'build/mirahparser/lang/ast/Node.class' =>
-    ['build/org/mirahparser/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
+    ['build/org/mirahparser/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'].sort do
       mirahc('.',
              :dir => 'src/mirah/lang/ast',
              :dest => 'build',
@@ -102,7 +102,7 @@ file 'build/mirahparser/lang/ast/Node.class' =>
 end
 
 file 'build/mirahparser/lang/ast/Node.java' =>
-    ['build/org/mirahparser/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'] do
+    ['build/org/mirahparser/ast/NodeMeta.class'] + Dir['src/mirah/lang/ast/*.mirah'].sort do
       mirahc('.',
              :dir => 'src/mirah/lang/ast',
              :dest => 'build',
@@ -110,7 +110,7 @@ file 'build/mirahparser/lang/ast/Node.java' =>
              :options => ['--java'])
 end
 
-file 'build/mirahparser/impl/MirahLexer.class' => Dir['src/mirahparser/impl/*.java'] do
+file 'build/mirahparser/impl/MirahLexer.class' => Dir['src/mirahparser/impl/*.java'].sort do
   ant.javac 'srcDir' => 'src',
       'destDir' => 'build',
       'source' => '1.6',
