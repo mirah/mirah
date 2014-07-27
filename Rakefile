@@ -212,7 +212,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
   mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah'].sort +
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
-               Dir['src/org/mirah/tool/*.mirah']
+               Dir['src/org/mirah/tool/*.mirah'].sort
   file new_jar => mirah_srcs + [old_jar, 'javalib/jruby-complete.jar'] do
     build_dir = 'build/bootstrap'
     rm_rf build_dir
