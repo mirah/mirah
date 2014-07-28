@@ -295,6 +295,8 @@ public class MirahLexer {
           if (c2 == '{' || c2 == '@') {
             i.backup(2);
             break;
+          } else {
+            i.backup(1);
           }
         } else if (c == '\\') {
           i.backup(1);

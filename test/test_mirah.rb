@@ -855,4 +855,9 @@ EOF
     assert_fails "'"
     assert_fails "'\n"
   end
+
+  def test_double_quote_string_with_just_two_octothorpes
+    assert_parse "[Script, [[FunctionalCall, [SimpleString, puts], [[SimpleString, ##]], null]]]",
+    'puts "##"'
+  end
 end
