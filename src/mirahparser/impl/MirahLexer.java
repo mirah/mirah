@@ -29,6 +29,8 @@ public class MirahLexer {
 
   private static final Logger logger = Logger.getLogger(MirahLexer.class.getName());
 
+  private static final int EOF = -1;
+
   public interface Input {
     int pos();
     int read();
@@ -62,7 +64,7 @@ public class MirahLexer {
     public int read() {
       if (pos >= end) {
         pos = end + 1;
-        return -1;
+        return EOF;
       }
       return chars[pos++];
     }
@@ -208,7 +210,7 @@ public class MirahLexer {
 
     private void readRestOfString(Input i) {
       int c = 0;
-      for (c = i.read(); c != -1;c = i.read()) {
+      for (c = i.read(); c != EOF;c = i.read()) {
         if (c == '\'') {
           i.backup(1);
           break;
@@ -217,7 +219,7 @@ public class MirahLexer {
           break;
         }
       }
-      if ( c == -1 ){
+      if ( c == EOF ){
         i.backup(1);
       }
     }
@@ -284,7 +286,7 @@ public class MirahLexer {
 
     private void readRestOfString(Input i) {
       int c = 0;
-      for (c = i.read(); c != -1; c = i.read()) {
+      for (c = i.read(); c != EOF; c = i.read()) {
         if (isEndOfString(c)) {
           i.backup(1);
           break;
@@ -299,7 +301,7 @@ public class MirahLexer {
           break;
         }
       }
-      if ( c == -1 ){
+      if ( c == EOF ){
         i.backup(1);
       }
     }
@@ -313,7 +315,7 @@ public class MirahLexer {
 
     @Override
     public Tokens readEndOfString(Input i) {
-      for (int c = i.read(); c != -1; c = i.read()) {
+      for (int c = i.read(); c != EOF; c = i.read()) {
         if (!Character.isLetter(c)){
           break;
         }
@@ -345,7 +347,7 @@ public class MirahLexer {
           return readStrEv(l, i);
         }
       }
-      for (int c = i.read();c != -1; c = i.read()) {
+      for (int c = i.read();c != EOF; c = i.read()) {
         if (c == '\n') {
           if (readMarker(i, false)) {
             return Tokens.tStringContent;
@@ -412,7 +414,7 @@ public class MirahLexer {
     public Tokens skipWhitespace(MirahLexer l, Input i) {
       boolean found_whitespace = false;
       ws:
-      for (int c = i.read(); c != -1; c = i.read()) {
+      for (int c = i.read(); c != EOF; c = i.read()) {
         switch(c) {
         case ' ': case '\t': case '\r': case '\f': case 11:
           found_whitespace = true;
@@ -448,7 +450,7 @@ public class MirahLexer {
 
     private Tokens readBlockComment(MirahLexer l, Input i) {
       boolean javadoc = i.peek() == '*';
-      for (int c = i.read(); c != -1; c = i.read()) {
+      for (int c = i.read(); c != EOF; c = i.read()) {
         switch(c) {
         case '\n':
           l.noteNewline();
@@ -957,7 +959,7 @@ public class MirahLexer {
 
     private Tokens readName(Input i, Tokens type) {
       int start = i.pos();
-      for (int c = i.read(); c != -1; c = i.read()) {
+      for (int c = i.read(); c != EOF; c = i.read()) {
         if (c <= 0x7F) {
           if (c == '_' ||
               (c >= '0' && c <= '9') ||
@@ -990,7 +992,7 @@ public class MirahLexer {
 
     private void readDigits(Input i, boolean oct, boolean dec, boolean hex) {
       loop:
-      for (int c = i.read(); c != -1; c = i.read()) {
+      for (int c = i.read(); c != EOF; c = i.read()) {
         switch (c) {
           case '0': case '1': case '_':
             break;
@@ -1094,7 +1096,7 @@ public class MirahLexer {
     }
 
     private boolean isIdentifierChar(int c) {
-      if (c == -1) {
+      if (c == EOF) {
         return false;
       }
       return Character.isLetterOrDigit(c) || c == '_' || (c >= 0xD800 && c <= 0xDBFF);
@@ -1105,7 +1107,7 @@ public class MirahLexer {
         return Tokens.tQuestion;
       }
       int c = i.read();
-      if (c == -1 || Character.isWhitespace(c)) {
+      if (c == EOF || Character.isWhitespace(c)) {
         i.backup(1);
         return Tokens.tQuestion;
       }
@@ -1137,7 +1139,7 @@ public class MirahLexer {
         }
         break;
       }
-      if (c == -1 || Character.isWhitespace(c)) {
+      if (c == EOF || Character.isWhitespace(c)) {
         i.backup(1);
       }
       return Tokens.tCharacter;
@@ -1159,7 +1161,7 @@ public class MirahLexer {
         quote = '\'';
       }
       int id_start = i.pos();
-      for (int c = i.read(); c != -1; c = i.read()) {
+      for (int c = i.read(); c != EOF; c = i.read()) {
         if (!isIdentifierChar(c)) {
           break;
         }
