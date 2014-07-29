@@ -1846,7 +1846,7 @@ class JVMCompilerTest < Test::Unit::TestCase
         end
       end
     EOF
-    
+
     assert_output("0\n") { cls.foo(nil)}
     assert_output("2\n") { cls.foo(arg.new)}
   end

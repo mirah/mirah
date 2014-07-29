@@ -47,7 +47,7 @@ class SafeTyper < Typer
     elsif ex.getCause.kind_of?(ReportedException)
       raise ex.getCause
     # For test running, otherwise you get Internal compiler error over and over
-    elsif ex.kind_of? org::jruby::exceptions::RaiseException
+    elsif ex.getClass.getName.equals "org.jruby.exceptions.RaiseException"
       raise ex
     else
       @diagnostics.report(MirahDiagnostic.error(node.position, "Internal compiler error: #{ex} #{ex.getMessage}"))

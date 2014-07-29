@@ -785,7 +785,14 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitArguments(args, expression)
-    # Merge in any unquoted arguments first.
+    mergeUnquotedArgs(args)
+
+    # Then do normal type inference.
+    inferAll(args)
+    @types.getVoidType()
+  end
+
+  def mergeUnquotedArgs(args:Arguments): void
     it = args.required.listIterator
     mergeArgs(args,
               it,
@@ -804,9 +811,6 @@ class Typer < SimpleNodeVisitor
               args.required.listIterator(args.required_size),
               args.optional.listIterator(args.optional_size),
               it)
-    # Then do normal type inference.
-    inferAll(args)
-    @types.getVoidType()
   end
 
   def mergeArgs(args:Arguments, it:ListIterator, req:ListIterator, opt:ListIterator, req2:ListIterator):void
@@ -816,9 +820,11 @@ class Typer < SimpleNodeVisitor
       name = arg.name
       next unless name.kind_of?(Unquote)
       next if arg.type # If the arg has a type then the unquote must only be an identifier.
+
       unquote = Unquote(name)
       new_args = unquote.arguments
       next unless new_args
+
       it.remove
       if it == req2 && new_args.optional.size == 0 && new_args.rest.nil? && new_args.required2.size == 0
         mergeIterators(new_args.required.listIterator, req2)
@@ -960,6 +966,10 @@ class Typer < SimpleNodeVisitor
 
   def visitBlock(block, expression)
     expandUnquotedBlockArgs(block)
+    if block.arguments
+      mergeUnquotedArgs(block.arguments)
+    end
+
     closures = @closures
     typer = self
 
