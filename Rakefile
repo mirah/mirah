@@ -201,8 +201,13 @@ end
 
 file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
-  puts "Downloading mirahc-prev.jar"
-  open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/mirah-0.1.3-20140729.143938-3.jar', 'rb') do |src|
+  # get latest snapshot from XML description.
+  xml = open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/').read
+  url = xml.scan(%r{<resourceURI>(https:.*\.jar)</resourceURI>}).map(&:first).sort.last
+
+  puts "Downloading mirahc-prev.jar from #{url}"
+
+  open(url, 'rb') do |src|
     open('javalib/mirahc-prev.jar', 'wb') do |dest|
       dest.write(src.read)
     end
