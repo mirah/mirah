@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.mirrors
 
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Type
 
 class BlockType < BaseType
   def initialize

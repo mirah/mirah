@@ -21,11 +21,11 @@ import java.util.logging.Logger
 import java.util.regex.Pattern
 import java.io.InputStream
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
-import org.jruby.org.objectweb.asm.ClassReader
-import org.jruby.org.objectweb.asm.tree.AnnotationNode
-import org.jruby.org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
+import org.objectweb.asm.ClassReader
+import org.objectweb.asm.tree.AnnotationNode
+import org.objectweb.asm.tree.ClassNode
 
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.DelegateFuture

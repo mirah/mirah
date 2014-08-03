@@ -18,7 +18,7 @@ require 'test_helper'
 
 class JvmVersionTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.compiler.JvmVersion'
-  java_import 'org.jruby.org.objectweb.asm.Opcodes'
+  java_import 'org.objectweb.asm.Opcodes'
 
 
   spec_version = ENV_JAVA['java.specification.version']

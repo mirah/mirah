@@ -134,6 +134,7 @@ desc "clean downloaded dependencies"
 task :clean_downloads do
   rm_f "javalib/mirahc-prev.jar"
   rm_f 'javalib/jruby-complete.jar'
+  rm_f 'javalib/asm-5.jar'
 end
 
 task :compile => 'dist/mirahc.jar'
@@ -154,10 +155,10 @@ end
 
 namespace :jar do
   desc "build self-contained, complete ruby jar"
-  task :complete => [:jar, 'javalib/jruby-complete.jar'] do
+  task :complete => [:jar, 'javalib/asm-5.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
       zipfileset 'src' => 'dist/mirah.jar'
-      zipfileset 'src' => 'javalib/jruby-complete.jar'
+      zipfileset 'src' => 'javalib/asm-5.jar'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
@@ -187,11 +188,12 @@ end
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
 
-file_create 'javalib/jruby-complete.jar' do
+#TODO find/create ssl location for this jar 
+file_create 'javalib/asm-5.jar' do
   require 'open-uri'
-  puts "Downloading jruby-complete.jar"
-  open('http://jruby.org.s3.amazonaws.com/downloads/1.7.4/jruby-complete-1.7.4.jar', 'rb') do |src|
-    open('javalib/jruby-complete.jar', 'wb') do |dest|
+  puts "Downloading asm-5.jar"
+  open('http://central.maven.org/maven2/org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar', 'rb') do |src|
+    open('javalib/asm-5.jar', 'wb') do |dest|
       dest.write(src.read)
     end
   end
@@ -213,7 +215,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
-  file new_jar => mirah_srcs + [old_jar, 'javalib/jruby-complete.jar'] do
+  file new_jar => mirah_srcs + [old_jar, 'javalib/asm-5.jar'] do
     build_dir = 'build/bootstrap'
     rm_rf build_dir
     mkdir_p build_dir
@@ -231,13 +233,15 @@ def bootstrap_mirah_from(old_jar, new_jar)
     runjava('-Xmx512m',
             old_jar,
             '-d', build_dir,
-            '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
+            '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/asm-5.jar",
+            '--jvm', build_version,
             *mirah_srcs)
   
     # Build the jar                    
     ant.jar 'jarfile' => new_jar do
       fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/jruby-complete.jar', 'includes' => 'org/jruby/org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+      # TODO license from ASM
       zipfileset 'src' => 'javalib/mirah-parser.jar'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'

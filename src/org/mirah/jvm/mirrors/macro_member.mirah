@@ -20,8 +20,8 @@ import java.util.logging.Logger
 
 import mirah.lang.ast.Noop
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import org.mirah.macros.anno.MacroDef
 import org.mirah.macros.Macro
 import org.mirah.typer.InlineCode

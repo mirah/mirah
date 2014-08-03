@@ -22,10 +22,10 @@ import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
 import org.mirah.util.Context
 import org.mirah.typer.Scope
-import org.jruby.org.objectweb.asm.*
-import org.jruby.org.objectweb.asm.Type as AsmType
-import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
-import org.jruby.org.objectweb.asm.commons.Method as AsmMethod
+import org.objectweb.asm.*
+import org.objectweb.asm.Type as AsmType
+import org.objectweb.asm.commons.GeneratorAdapter
+import org.objectweb.asm.commons.Method as AsmMethod
 
 import org.mirah.jvm.types.JVMTypeUtils
 

@@ -31,8 +31,8 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
-  java_import 'org.jruby.org.objectweb.asm.Opcodes'
-  java_import 'org.jruby.org.objectweb.asm.Type'
+  java_import 'org.objectweb.asm.Opcodes'
+  java_import 'org.objectweb.asm.Type'
 
   class FakeMirror < BaseType
     def initialize(desc, superclass=nil, flags=Opcodes.ACC_PUBLIC)

@@ -16,7 +16,7 @@ import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
 import javax.lang.model.type.TypeVariable as TypeVariableModel
-import org.jruby.org.objectweb.asm.Opcodes
+import org.objectweb.asm.Opcodes
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.NullType

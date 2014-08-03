@@ -18,7 +18,7 @@ package org.mirah.jvm.compiler
 import org.mirah.util.Context
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorType
-import org.jruby.org.objectweb.asm.ClassWriter
+import org.objectweb.asm.ClassWriter
 
 class MirahClassWriter < ClassWriter
   def initialize(context:Context, flags:int)

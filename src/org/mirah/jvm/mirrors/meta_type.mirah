@@ -17,8 +17,8 @@ package org.mirah.jvm.mirrors
 
 import java.util.List
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 

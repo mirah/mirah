@@ -16,8 +16,8 @@
 package org.mirah.jvm.compiler
 
 import java.util.logging.Logger
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.ClassWriter
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.ClassWriter
 
 class JvmVersion
   def self.initialize:void

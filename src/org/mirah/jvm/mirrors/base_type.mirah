@@ -29,8 +29,8 @@ import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import org.mirah.jvm.mirrors.generics.LubFinder
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMType

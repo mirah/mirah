@@ -1,7 +1,7 @@
 package org.mirah.jvm.types
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 
 class JVMTypeUtils
   class << self

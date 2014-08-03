@@ -18,10 +18,10 @@ package org.mirah.jvm.compiler
 import java.util.Collections
 import java.util.logging.Logger
 import mirah.lang.ast.*
-import org.jruby.org.objectweb.asm.AnnotationVisitor
-import org.jruby.org.objectweb.asm.ClassVisitor
-import org.jruby.org.objectweb.asm.FieldVisitor
-import org.jruby.org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.AnnotationVisitor
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.FieldVisitor
+import org.objectweb.asm.MethodVisitor
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.TypeSystem
 import org.mirah.util.Context
