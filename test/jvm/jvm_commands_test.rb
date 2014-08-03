@@ -23,6 +23,13 @@ class JVMCommandsTest < Test::Unit::TestCase
     end
   end
 
+  def test_force_verbose_has_logging
+    out = capture_output do
+      Mirah.run('-V', '-e','puts 1')
+    end
+    assert out.include? "Finished class DashE"
+  end
+
   def test_runtime_classpath_modifications
     assert_output "1234\n" do
       Mirah.run('-cp', FIXTURE_TEST_DEST,
