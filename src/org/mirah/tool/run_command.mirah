@@ -20,6 +20,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.URLClassLoader
 import java.util.LinkedHashMap
+import java.util.Arrays
+import java.util.ArrayList
 import org.mirah.MirahClassLoader
 
 class RunCommand < MirahTool
@@ -75,6 +77,11 @@ class RunCommand < MirahTool
 
   def self.run(args: String[]): int
     mirahc = RunCommand.new()
+    argList = ArrayList.new(Arrays.asList(args))
+    argList.add(0, '--silent')
+
+    args = argList.toArray(String[argList.size])
+
     result = mirahc.compile(args)
     if result == 0
       result = mirahc.run

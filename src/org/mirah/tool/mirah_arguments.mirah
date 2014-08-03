@@ -23,6 +23,7 @@ import java.net.URLClassLoader
 import java.util.HashSet
 import java.util.List
 import java.util.logging.Logger
+import java.util.logging.LogManager
 import java.util.logging.Level
 import java.util.regex.Pattern
 import javax.tools.DiagnosticListener
@@ -70,6 +71,7 @@ class MirahArguments
                 diagnostics: SimpleDiagnostics,
                 vloggers: String,
                 verbose: boolean,
+                silent: boolean,
                 max_errors: int,
                 use_type_debugger: boolean,
                 exit_status: int
@@ -155,6 +157,10 @@ class MirahArguments
         "\t(SEVERE, WARNING, INFO, CONFIG, FINE, FINER FINEST)") do |spec|
       compiler_args.vloggers = spec
     end
+
+    parser.addFlag(['silent'], 'disable all logging. default for run commands.') do
+      compiler_args.silent = true
+    end
     parser.addFlag(
         ['classpath', 'cp'], 'CLASSPATH',
         "A #{File.pathSeparator} separated list of directories, JAR \n"+
@@ -231,7 +237,12 @@ class MirahArguments
     end
   end
 
-  def setup_logging
+  def setup_logging: void
+    if silent && !verbose && !vloggers
+      LogManager.getLogManager.reset()
+      return
+    end
+
     @logger = MirahLogFormatter.new(logger_color).install
     if verbose
       @logger.setLevel(Level.FINE)
