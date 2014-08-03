@@ -202,7 +202,7 @@ end
 file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
   puts "Downloading mirahc-prev.jar"
-  open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/mirah-0.1.3-20140727.005904-2.jar', 'rb') do |src|
+  open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/mirah-0.1.3-20140729.143938-3.jar', 'rb') do |src|
     open('javalib/mirahc-prev.jar', 'wb') do |dest|
       dest.write(src.read)
     end
