@@ -1,4 +1,6 @@
-#Mirah Parser
+Mirah Parser
+===============
+[![Build Status](https://secure.travis-ci.org/mirah/mirah-parser.png)](http://travis-ci.org/mirah/mirah-parser)
 
 The parser used for [Mirah](https://github.com/mirah/mirah).  
 
