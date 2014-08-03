@@ -235,7 +235,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
               'listfiles' => true
 
     # mirahc needs to be 1.7 or lower
-    build_version = System.getProperty('java.specification.version')
+    build_version = java.lang.System.getProperty('java.specification.version')
     if build_version.to_f > 1.7
       build_version = '1.7'
     end
