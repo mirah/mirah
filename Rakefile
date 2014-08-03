@@ -41,7 +41,7 @@ end
 task :default => :new_ci
 
 desc "run new backend ci"
-task :new_ci => [:'test:core', :'test:jvm']
+task :new_ci => [:'test:core', :'test:jvm', :'test:artifacts']
 
 def run_tests tests
   results = tests.map do |name|
@@ -61,7 +61,7 @@ end
 
 desc "run full test suite"
 task :test do
-  run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
+  run_tests [ 'test:core', 'test:plugins', 'test:jvm', 'test:artifacts' ]
 end
 
 namespace :test do
