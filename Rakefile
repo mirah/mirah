@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -79,6 +79,13 @@ namespace :test do
     t.test_files = FileList["test/plugins/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
+
+  desc "run the artifact tests"
+  Rake::TestTask.new :artifacts  => :compile do |t|
+    t.libs << 'test'
+    t.test_files = FileList["test/artifacts/**/*test.rb"]
+  end
+
 
   desc "run jvm tests"
   task :jvm => 'test:jvm:all'
