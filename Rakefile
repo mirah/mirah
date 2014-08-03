@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'bundler/setup'
+require 'bundler/setup' rescue LoadError
 require 'rake'
 require 'rake/testtask'
 require 'rubygems'
