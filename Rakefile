@@ -234,15 +234,14 @@ def bootstrap_mirah_from(old_jar, new_jar)
             old_jar,
             '-d', build_dir,
             '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/asm-5.jar",
-            '--jvm', build_version,
             *mirah_srcs)
   
     # Build the jar                    
     ant.jar 'jarfile' => new_jar do
       fileset 'dir' => build_dir
       zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
-      # TODO license from ASM
       zipfileset 'src' => 'javalib/mirah-parser.jar'
+      metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
