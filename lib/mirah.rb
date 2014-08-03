@@ -17,7 +17,6 @@ require 'fileutils'
 require 'rbconfig'
 
 $CLASSPATH << File.dirname(__FILE__) + '/../dist/mirahc.jar'
-$CLASSPATH << File.dirname(__FILE__) + '/../javalib/mirah-util.jar'
 
 require 'mirah/version'
 require 'mirah/transform'
