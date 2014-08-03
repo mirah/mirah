@@ -190,6 +190,7 @@ task :zip => 'jar:complete' do
   cp 'README.md', "#{basedir}"
   cp 'NOTICE', "#{basedir}"
   cp 'LICENSE', "#{basedir}"
+  cp 'COPYING', "#{basedir}"
   cp 'History.txt', "#{basedir}"
   sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip mirah-#{Mirah::VERSION}/*'"
   rm_rf 'tmp'
