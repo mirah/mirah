@@ -13,11 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+require 'bundler/setup'
 require 'rake'
 require 'rake/testtask'
 require 'rubygems'
 require 'rubygems/package_task'
-require 'bundler/setup'
 require 'java'
 require 'jruby/compiler'
 require 'ant'
