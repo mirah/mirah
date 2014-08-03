@@ -891,11 +891,6 @@ class Typer < SimpleNodeVisitor
     end
   end
 
-  def visitBlockArgument(arg, expression)
-    @@log.finest "BlockArgument: got here for #{arg}"
-    getArgumentType arg
-  end
-
   def visitMethodDefinition(mdef, expression)
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
@@ -1011,6 +1006,9 @@ class Typer < SimpleNodeVisitor
     expandUnpipedUnquotedBlockArgs(block)
   end
 
+  # expand cases like
+  # x = block.arguments
+  # quote { y { |`x`| `x.name` +  1 } }
   def expandPipedUnquotedBlockArgs(block: Block): void
     return if block.arguments.nil?
     return if block.arguments.required_size() == 0
