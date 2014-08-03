@@ -12,7 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-require 'bundler/setup'
+begin
+  require 'bundler/setup'
+rescue LoadError
+  puts "couldn't load bundler. Check your environment."
+end
 require 'test/unit'
 require 'mirah'
 require 'jruby'
