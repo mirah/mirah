@@ -61,6 +61,14 @@ module CommonAssertions
   def assert_output(expected, &block)
     assert_equal(expected, capture_output(&block))
   end
+
+  def pend_on_jruby version
+    if JRUBY_VERSION ==  version
+      pend("doesn't work on #{version}") { yield }
+    else
+      yield
+    end
+  end
 end
 
 module DebuggingHelp
