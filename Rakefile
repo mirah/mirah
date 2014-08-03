@@ -234,11 +234,17 @@ def bootstrap_mirah_from(old_jar, new_jar)
               'debug' => true,
               'listfiles' => true
 
+    # mirahc needs to be 1.7 or lower
+    build_version = System.getProperty('java.specification.version')
+    if build_version.to_f > 1.7
+      build_version = '1.7'
+    end
     # Compile Mirah sources
     runjava('-Xmx512m',
             old_jar,
             '-d', build_dir,
             '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/asm-5.jar",
+            '--jvm', build_version,
             *mirah_srcs)
   
     # Build the jar                    
