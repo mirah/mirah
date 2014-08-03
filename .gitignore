@@ -22,3 +22,4 @@ javalib/mirah-util.jar
 javalib/mirah-compiler.jar
 javalib/mirah-mirrors.jar
 javalib/mirahc-prev.jar
+javalib/asm-5.jar
