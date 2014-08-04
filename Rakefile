@@ -60,7 +60,8 @@ def mirahc(path, options)
 
   dir = options[:dir] || '.'
   filename = File.join(dir, path)
-  args << filename
+  filename.sub! /\.$/, '*'
+  args += Dir[filename].sort
   runjava(jarfile, *args)
 end
 
