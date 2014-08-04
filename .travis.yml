@@ -10,7 +10,7 @@ env:
   - MIRAH_TEST_JVM_VERSION=1.5
   - MIRAH_TEST_JVM_VERSION=1.6
   - MIRAH_TEST_JVM_VERSION=1.7
-#  - MIRAH_TEST_JVM_VERSION=1.8
+  - MIRAH_TEST_JVM_VERSION=1.8
 notifications:
   irc: "irc.freenode.org#mirah"
 matrix:
