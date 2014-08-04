@@ -161,12 +161,14 @@ class MirahArguments
     parser.addFlag(['silent'], 'disable all logging. default for run commands.') do
       compiler_args.silent = true
     end
+
     parser.addFlag(
         ['classpath', 'cp'], 'CLASSPATH',
         "A #{File.pathSeparator} separated list of directories, JAR \n"+
         "\tarchives, and ZIP archives to search for class files.") do |classpath|
       compiler_args.classpath = classpath
     end
+
     parser.addFlag(
         ['c'], 'CLASSPATH',
         "Deprecated: same as cp/classpath") do |classpath|
@@ -187,14 +189,17 @@ class MirahArguments
     ) do |classpath|
       compiler_args.macroclasspath = classpath
     end
+
     parser.addFlag(
         ['dest', 'd'], 'DESTINATION',
         'Directory where class files should be saved.'
     ) {|dest| compiler_args.destination = dest }
+
     parser.addFlag(['all-errors'],
         'Display all compilation errors, even if there are a lot.') {
       compiler_args.max_errors = -1
     }
+
     parser.addFlag(
         ['jvm'], 'VERSION',
         'Emit JVM bytecode targeting specified JVM version (1.5, 1.6, 1.7)'
@@ -209,9 +214,8 @@ class MirahArguments
     ) { compiler_args.use_type_debugger = true }
 
     begin
-      it = parser.parse(args).iterator
-      while it.hasNext
-        f = File.new(String(it.next))
+      parser.parse(args).each do |filename: String|
+        f = File.new(filename)
         addFileOrDirectory(f)
       end
     rescue IllegalArgumentException => e
