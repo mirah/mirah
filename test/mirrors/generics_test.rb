@@ -736,7 +736,7 @@ class GenericsTest < Test::Unit::TestCase
     lub.minimizeErasedCandidates(candidates.key_set)
     assert_equal(['java.util.Collection'],
                  candidates.key_set.map{|x| x.toString})
-    candidates = HashSet.new(candidates.values.iterator.next.map {|x| x.toString})
+    candidates = HashSet.new(candidates.values.first.map {|x| x.toString})
     assert_equal(HashSet.new(
     ["java.util.Collection<java.lang.String>",
       "java.util.Collection<java.lang.CharSequence>"
