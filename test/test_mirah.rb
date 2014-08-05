@@ -272,6 +272,7 @@ EOF
   def test_regexp
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a]], [SimpleString, ]]]]", '/a/')
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, \\/]], [SimpleString, ]]]]", '/\\//')
+    assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, \\d(cow)+\\w\\\\]], [SimpleString, ]]]]", "/\\d(cow)+\\w\\\\/")
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a]], [SimpleString, i]]]]", '/a/i')
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a]], [SimpleString, iz]]]]", '/a/iz')
     assert_parse("[Script, [[Regex, [StringPieceList, [SimpleString, a], [StringEval, [[VCall, [SimpleString, b]]]], [SimpleString, c]], [SimpleString, iz]]]]", '/a#{b}c/iz')
