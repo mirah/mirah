@@ -174,16 +174,6 @@ task :doc => 'build/mirahparser/lang/ast/Node.java' do
   ant.javadoc :sourcepath => 'build', :destdir => 'doc'
 end
 
-file_create 'javalib/mirah-complete_parsersupport.jar' do
-  require 'open-uri'
-  puts "Downloading mirah-complete_parsersupport.jar"
-  open('http://mirah.googlecode.com/files/mirah-complete_parsersupport.jar', 'rb') do |src|
-    open('javalib/mirah-complete_parsersupport.jar', 'wb') do |dest|
-      dest.write(src.read)
-    end
-  end
-end
-
 def runjava(jar, *args)
   sh 'java', '-jar', jar, *args
   unless $?.success?
