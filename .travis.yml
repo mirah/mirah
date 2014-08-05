@@ -14,6 +14,8 @@ env:
 notifications:
   irc: "irc.freenode.org#mirah"
 matrix:
+  allow_failures:
+    - rvm: jruby-head
   exclude:
     - jdk: oraclejdk7
       env: MIRAH_TEST_JVM_VERSION=1.8
