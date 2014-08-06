@@ -44,6 +44,7 @@ import org.mirah.util.Context
 
 class Types implements TypesModel
   def initialize(context:Context)
+    @emptyWildcard = Wildcard.new(@context,@object,nil,nil)
     @context = context
     @types = context[MirrorTypeSystem]
     context[TypesModel] = self
@@ -113,6 +114,8 @@ class Types implements TypesModel
   end
 
   def getWildcardType(extendsBound, superBound)
+    return @emptyWildcard if extendsBound.nil? && superBound.nil?
+
     Wildcard.new(@context, @object, extendsBound, superBound)
   end
 end

@@ -94,24 +94,37 @@ class AsyncTypeBuilder < SignatureVisitor
   end
 
   def visitInnerClassType(name)
+#    puts "visitInnerClassType #{name}"
     @outer = @type
     @typeArguments = []
     @class_name = "#{@class_name}$#{name}"
     @type = @types.wrap(Type.getType("L#{@class_name};"))
   end
 
-  def visitEnd
-    unless @outer.nil? && @typeArguments.isEmpty
-      # TODO: handle inner types properly
-      args = @typeArguments.map do |a|
-        if a.kind_of?(AsyncTypeBuilderResult)
-          AsyncTypeBuilderResult(a).getResult
-        else
-          a
-        end
+  def visitEnd: void
+    return if @outer.nil? && @typeArguments.isEmpty
+
+    # TODO: handle inner types properly
+    args = @typeArguments.map do |a|
+      if a.kind_of?(AsyncTypeBuilderResult)
+        AsyncTypeBuilderResult(a).getResult
+      else
+        a
       end
-      @type = @types.parameterize(@type, args)
     end
+    utils = @type_utils
+    #TODO use {|ar: TypeFuture| !ar || MirrorType(utils.getWildcardType(nil, nil)).equals(ar.resolve) }
+    # once the parser is fixed to support it
+    all_question_marks=args.all? do |ar: TypeFuture|
+      if ar
+        MirrorType(utils.getWildcardType(nil, nil)).equals(ar.resolve)
+      else
+        true
+      end
+    end
+    return if all_question_marks
+    # TODO detect cycles
+    @type = @types.parameterize(@type, args)
   end
 
   def newBuilder

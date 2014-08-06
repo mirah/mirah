@@ -1797,30 +1797,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
-  def test_static_field_inheritance_lookup_with_dot
-    cls, = compile(<<-EOF)
-      import java.util.GregorianCalendar
-      puts GregorianCalendar.AM
-    EOF
-
-    assert_output "0\n" do
-      cls.main(nil)
-    end
-  end
-
-  def test_static_field_inheritance_lookup_with_double_colon
-    pend("double colon is treated special for lookup") {
-    cls, = compile(<<-EOF)
-      import java.util.GregorianCalendar
-      puts GregorianCalendar::AM
-    EOF
-
-    assert_output "0\n" do
-      cls.main(nil)
-    end
-    }
-  end
-
   def test_incompatible_meta_change
     cls, = compile(<<-EOF)
       class A < B
