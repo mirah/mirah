@@ -145,8 +145,12 @@ parser MirahParser {
             | arg
             )
           )
-        ( ($And)=> $And opt_nl b=expr a=-> ^(If a [b] nil)
-        | ($Or)=> $Or opt_nl b=expr a=make_or(a, b))* {a};
+        (
+            ($Ampers)=> $Ampers opt_nl b=expr a=-> ^(If a [b] nil)
+          | ($Pipes)=> $Pipes opt_nl b=expr a=make_or(a, b)
+          | ($And)=> $And opt_nl b=expr a=-> ^(If a [b] nil)
+          | ($Or)=> $Or opt_nl b=expr a=make_or(a, b)
+        )* {a};
 
   make_or(a:Node, b:Node): t={makeIdentifier(a.position, temp(:or))}
     ->^(NodeList [^(LocalAssignment t a), ^(If ^(LocalAccess clone(t)) [^(LocalAccess clone(t))] [b])]);

@@ -861,4 +861,30 @@ EOF
     assert_parse "[Script, [[FunctionalCall, [SimpleString, puts], [[SimpleString, ##]], null]]]",
     'puts "##"'
   end
+
+  def test_block_with_not_pipes
+    assert_parse "[Script, [[FunctionalCall, [SimpleString, foo], [], [Block, [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [[[LocalAssignment, [SimpleString, $or$1], [Not, [VCall, [SimpleString, a]]]], [If, [LocalAccess, [SimpleString, $or$1]], [[LocalAccess, [SimpleString, $or$1]]], [[VCall, [SimpleString, a]]]]]]]]]]",
+      'foo {|a| !a || a }'
+  end
+
+  def test_not_pipes
+    assert_parse "[Script, [[[LocalAssignment, [SimpleString, $or$1], [Not, [VCall, [SimpleString, a]]]], [If, [LocalAccess, [SimpleString, $or$1]], [[LocalAccess, [SimpleString, $or$1]]], [[VCall, [SimpleString, a]]]]]]]",
+     '!a || a'
+  end
+
+  def test_not_ampers
+    assert_parse "[Script, [[If, [Not, [VCall, [SimpleString, a]]], [[VCall, [SimpleString, a]]], []]]]",
+     '!a && a'
+  end
+
+  def test_not_pipes_and_pipes
+    assert_parse "[Script, [[If, [[LocalAssignment, [SimpleString, $or$1], [VCall, [SimpleString, a]]], [If, [LocalAccess, [SimpleString, $or$1]], [[LocalAccess, [SimpleString, $or$1]]], [[VCall, [SimpleString, a]]]]], [[[LocalAssignment, [SimpleString, $or$2], [VCall, [SimpleString, a]]], [If, [LocalAccess, [SimpleString, $or$2]], [[LocalAccess, [SimpleString, $or$2]]], [[VCall, [SimpleString, a]]]]]], []]]]",
+     'a || a and a || a'
+  end
+
+  def test_assign_not_pipes
+    assert_parse "[Script, [[LocalAssignment, [SimpleString, a], [[LocalAssignment, [SimpleString, $or$1], [Not, [VCall, [SimpleString, a]]]], [If, [LocalAccess, [SimpleString, $or$1]], [[LocalAccess, [SimpleString, $or$1]]], [[VCall, [SimpleString, a]]]]]]]]",
+     'a = !a || a'
+  end
+
 end
