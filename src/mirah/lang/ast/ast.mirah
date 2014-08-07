@@ -316,6 +316,10 @@ class StringCodeSource implements CodeSource
   def substring(startPos, endPos); @code.substring(startPos, endPos); end
   def initialLine; @startLine; end
   def initialColumn; @startCol; end
+
+  def toString
+    "#{@name} #{@code} #{@startLine}:#{@startCol}"
+  end
 end
 
 class StreamCodeSource < StringCodeSource
@@ -347,6 +351,9 @@ class PositionImpl implements Position
     @endChar = endChar
     @endLine = endLine
     @endColumn = endColumn
+  end
+  def toString
+    "source:#{source.name} start:#{startLine} #{startColumn} end: #{endLine} #{endColumn}"
   end
   def source:CodeSource; @source; end
   def startChar:int; @startChar; end

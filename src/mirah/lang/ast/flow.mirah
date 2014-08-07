@@ -55,6 +55,9 @@ class Not < NodeImpl
   init_node do
     child value: Node
   end
+  def toString
+    "Not value:#{value}"
+  end
 end
 
 class Return < NodeImpl
