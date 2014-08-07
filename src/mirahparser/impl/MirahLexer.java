@@ -1129,9 +1129,12 @@ public class MirahLexer {
       if (c != '\\') {
         return Tokens.tCharacter;
       }
+//      if (i.consume('\\')) {
+//        return Tokens.tCharacter;
+//      }
       // Just gobble up any digits. Let the parser worry about whether it's a
       // valid escape.
-      while (-1 != (c = i.read())) {
+      while (EOF != (c = i.read())) {
         switch (c) {
           case '0': case '1': case '2': case '3': case '4': case '5': case '6':
           case '7': case '8': case '9': case 'a': case 'A': case 'b': case 'B':
