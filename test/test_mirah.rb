@@ -196,6 +196,7 @@ EOF
     assert_parse("[Script, [[CharLiteral, 65]]]", "?A")
     assert_parse("[Script, [[CharLiteral, 63]]]", "??")
     assert_parse("[Script, [[CharLiteral, 10]]]", "?\\n")
+    assert_parse "[Script, [[CharLiteral, 92]]]", '?\\\\'
     assert_parse("[Script, [[CharLiteral, 32]]]", "?\\s")
     assert_parse("[Script, [[CharLiteral, 13]]]", "?\\r")
     assert_parse("[Script, [[CharLiteral, 9]]]", "?\\t")
@@ -886,5 +887,4 @@ EOF
     assert_parse "[Script, [[LocalAssignment, [SimpleString, a], [[LocalAssignment, [SimpleString, $or$1], [Not, [VCall, [SimpleString, a]]]], [If, [LocalAccess, [SimpleString, $or$1]], [[LocalAccess, [SimpleString, $or$1]]], [[VCall, [SimpleString, a]]]]]]]]",
      'a = !a || a'
   end
-
 end
