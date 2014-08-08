@@ -1,6 +1,10 @@
 
-=== 0.1.3 Metacircularity: Achieved / 2014-08-06
+=== 0.1.3 Metacircularity: Achieved / 2014-08-08
 
+0a17b30 doh, java 7 parser
+607f9ae update to fixed parser
+4f78f2b reverting mirah-parser while trying to fix things
+394fd95 add history for 0.1.3
 5b1454c bump parser w/ java 7 jar
 8c0be9d de-SNAPSHOT/dev ify versions
 0bb1553 update parser
