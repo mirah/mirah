@@ -53,7 +53,7 @@ def mirahc(path, options)
   end
   if options[:classpath]
     cp = options[:classpath].map {|p| File.expand_path(p)}.join(File::PATH_SEPARATOR)
-    args << '--classpath' << cp
+    args << '--classpath' << cp << '--jvm' << '1.7'
   end
   args << '-d' << File.expand_path(options[:dest])
   jarfile = File.expand_path('javalib/mirahc.jar')
