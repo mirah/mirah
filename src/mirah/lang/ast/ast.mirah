@@ -353,7 +353,7 @@ class PositionImpl implements Position
     @endColumn = endColumn
   end
   def toString
-    "source:#{source.name} start:#{startLine} #{startColumn} end: #{endLine} #{endColumn}"
+    "source:#{source && source.name} start:#{startLine} #{startColumn} end: #{endLine} #{endColumn}"
   end
   def source:CodeSource; @source; end
   def startChar:int; @startChar; end
