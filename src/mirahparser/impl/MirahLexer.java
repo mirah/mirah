@@ -1259,8 +1259,13 @@ public class MirahLexer {
     isEND = endTokens.contains(type);
     return type;
   }
+  
 
   public Token<Tokens> lex(int pos) {
+    return lex(pos, true);
+  }
+
+  public Token<Tokens> lex(int pos, boolean skipWhitespaceAndComments) {
     if (pos < input.pos()) {
       ListIterator<Token<Tokens>> it = tokens.listIterator(tokens.size());
       while (it.hasPrevious()) {
@@ -1277,9 +1282,14 @@ public class MirahLexer {
     }
     Tokens type = Tokens.tWhitespace;
     int start = input.pos();
-    while (type.ordinal() > Tokens.tEOF.ordinal()) {
-      start = input.pos();
-      type = simpleLex();
+    if ( skipWhitespaceAndComments ){
+        while (type.ordinal() > Tokens.tEOF.ordinal()) {
+          start = input.pos();
+          type = simpleLex();
+        }
+    } else {
+        start = input.pos();
+        type = simpleLex();
     }
     parser._pos = input.pos();
     Token<Tokens> token = parser.build_token(type, pos, start);
