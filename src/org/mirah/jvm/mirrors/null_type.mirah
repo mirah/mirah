@@ -18,8 +18,8 @@ package org.mirah.jvm.mirrors
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.NullType as NullTypeModel
 
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.typer.ResolvedType

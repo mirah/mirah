@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.compiler
 
-import org.jruby.org.objectweb.asm.Opcodes
+import org.objectweb.asm.Opcodes
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.InterfaceDeclaration
 import mirah.lang.ast.MethodDefinition

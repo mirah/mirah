@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,32 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-package org.mirah.jvm.mirrors
+require 'test_helper'
 
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.mirah.jvm.types.MemberKind
-import javax.lang.model.type.NoType
-import javax.lang.model.type.TypeKind
-
-class VoidType < BaseType implements NoType
-  def initialize
-    super(nil, Type.getType("V"), Opcodes.ACC_PUBLIC, nil)
-  end
-
-  def getKind
-    TypeKind.VOID
-  end
-
-  def accept(v, p)
-    v.visitNoType(self, p)
-  end
-
-  def isSameType(other)
-    TypeKind.VOID == other.getKind
-  end
-
-  def hashCode
-    TypeKind.VOID.hashCode
+class JarTest < Test::Unit::TestCase
+  def test_happy_path
+  	out = `java -jar dist/mirahc.jar run -e 'puts 1'`
+    assert_equal "1\n", out
   end
 end

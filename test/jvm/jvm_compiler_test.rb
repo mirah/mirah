@@ -220,9 +220,11 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_object_array
-    cls, = compile("import java.lang.Object;def foo; a = Object[2];end")
-    assert_equal(Java::JavaLang::Object[].java_class, cls.foo.class.java_class)
-    assert_equal([nil, nil], cls.foo.to_a)
+    pend_on_jruby("1.7.13") do
+      cls, = compile("import java.lang.Object;def foo; a = Object[2];end")
+      assert_equal(Java::JavaLang::Object[].java_class, cls.foo.class.java_class)
+      assert_equal([nil, nil], cls.foo.to_a)
+    end
   end
 
   def test_void_selfcall
@@ -1124,40 +1126,43 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_op_elem_assign
-    foo, = compile(<<-EOF)
-      class Foo4
-        def initialize
-          @i = -1
-        end
+    pend_on_jruby("1.7.13") do
 
-        def i
-          @i += 1
-        end
+      foo, = compile(<<-EOF)
+        class Foo4
+          def initialize
+            @i = -1
+          end
 
-        def a
-          @a
-        end
+          def i
+            @i += 1
+          end
 
-        def a=(a:String[])
-          @a = a
-        end
+          def a
+            @a
+          end
 
-        def foo(x:String)
-          a[i] ||= x
-        end
+          def a=(a:String[])
+            @a = a
+          end
 
-        def bar(x:String)
-          a[i] &&= x
-        end
-      end
-    EOF
+          def foo(x:String)
+            a[i] ||= x
+          end
 
-    f = foo.new
-    f.a_set([nil, nil, nil].to_java(:string))
-    assert_equal(nil, f.bar("x"))
-    assert_equal([nil, nil, nil], f.a.to_a)
-    assert_equal("x", f.foo("x"))
-    assert_equal([nil, "x", nil], f.a.to_a)
+          def bar(x:String)
+            a[i] &&= x
+          end
+        end
+      EOF
+
+      f = foo.new
+      f.a_set([nil, nil, nil].to_java(:string))
+      assert_equal(nil, f.bar("x"))
+      assert_equal([nil, nil, nil], f.a.to_a)
+      assert_equal("x", f.foo("x"))
+      assert_equal([nil, "x", nil], f.a.to_a)
+    end
   end
 
   def test_literal_array
@@ -1790,30 +1795,6 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output "ran my method\n" do
       cls.main(nil)
     end
-  end
-
-  def test_static_field_inheritance_lookup_with_dot
-    cls, = compile(<<-EOF)
-      import java.util.GregorianCalendar
-      puts GregorianCalendar.AM
-    EOF
-
-    assert_output "0\n" do
-      cls.main(nil)
-    end
-  end
-
-  def test_static_field_inheritance_lookup_with_double_colon
-    pend("double colon is treated special for lookup") {
-    cls, = compile(<<-EOF)
-      import java.util.GregorianCalendar
-      puts GregorianCalendar::AM
-    EOF
-
-    assert_output "0\n" do
-      cls.main(nil)
-    end
-    }
   end
 
   def test_incompatible_meta_change

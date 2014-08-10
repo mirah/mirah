@@ -16,9 +16,9 @@
 package org.mirah.jvm.compiler
 
 import java.util.logging.Logger
-import org.jruby.org.objectweb.asm.Label
-import org.jruby.org.objectweb.asm.Type
-import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
+import org.objectweb.asm.Label
+import org.objectweb.asm.Type
+import org.objectweb.asm.commons.GeneratorAdapter
 
 import mirah.lang.ast.Node
 import org.mirah.jvm.types.MemberKind

@@ -18,28 +18,16 @@ require 'test_helper'
 
 class JvmVersionTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.compiler.JvmVersion'
-  java_import 'org.jruby.org.objectweb.asm.Opcodes'
+  java_import 'org.objectweb.asm.Opcodes'
 
-
-  spec_version = ENV_JAVA['java.specification.version']
-	if spec_version == '1.8'
-		def test_defaults_to_1_7_java
-			jvm_version = JvmVersion.new
-			spec_version = ENV_JAVA['java.specification.version']
-			assert_equal spec_version, jvm_version.version_string
-			assert_equal opcode("1.7"), jvm_version.bytecode_version
-		end
-	else
-		def test_defaults_to_current_java
-			jvm_version = JvmVersion.new
-			spec_version = ENV_JAVA['java.specification.version']
-			assert_equal spec_version, jvm_version.version_string
-			assert_equal opcode(spec_version), jvm_version.bytecode_version
-		end
-	end
+  def test_defaults_to_current_java
+    jvm_version = JvmVersion.new
+    spec_version = ENV_JAVA['java.specification.version']
+    assert_equal spec_version, jvm_version.version_string
+    assert_equal opcode(spec_version), jvm_version.bytecode_version
+  end
   
   supported_versions = %w[1.4 1.5 1.6 1.7 1.8]
-  supported_versions -= %w[1.8] # TODO update ASM
   supported_versions.each do |version|
     define_method  "test_setting_version_to_#{version.tr '.', '_'}" do
 			jvm_version = JvmVersion.new version

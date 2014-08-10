@@ -18,7 +18,7 @@ require 'java'
 require 'dist/mirahc.jar'
 
 class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
-  java_import 'org.jruby.org.objectweb.asm.Type'
+  java_import 'org.objectweb.asm.Type'
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.MirrorType'
   java_import 'org.mirah.jvm.mirrors.SimpleAsyncMirrorLoader'

@@ -18,13 +18,13 @@ package org.mirah.jvm.compiler
 import java.util.LinkedHashMap
 import java.util.LinkedList
 
-import org.jruby.org.objectweb.asm.ClassVisitor
-import org.jruby.org.objectweb.asm.Label
-import org.jruby.org.objectweb.asm.MethodVisitor
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.Type
-import org.jruby.org.objectweb.asm.commons.GeneratorAdapter
-import org.jruby.org.objectweb.asm.commons.Method
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.Label
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.Type
+import org.objectweb.asm.commons.GeneratorAdapter
+import org.objectweb.asm.commons.Method
 
 import mirah.lang.ast.CodeSource
 import mirah.lang.ast.Position

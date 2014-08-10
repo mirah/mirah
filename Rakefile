@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +12,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+begin
+  require 'bundler/setup'
+rescue LoadError
+  puts "couldn't load bundler. Check your environment."
+end
 require 'rake'
 require 'rake/testtask'
 require 'rubygems'
 require 'rubygems/package_task'
-require 'bundler/setup'
 require 'java'
 require 'jruby/compiler'
 require 'ant'
@@ -38,7 +41,7 @@ end
 task :default => :new_ci
 
 desc "run new backend ci"
-task :new_ci => [:'test:core', :'test:jvm']
+task :new_ci => [:'test:core', :'test:jvm', :'test:artifacts']
 
 def run_tests tests
   results = tests.map do |name|
@@ -58,7 +61,7 @@ end
 
 desc "run full test suite"
 task :test do
-  run_tests [ 'test:core', 'test:plugins', 'test:jvm' ]
+  run_tests [ 'test:core', 'test:plugins', 'test:jvm', 'test:artifacts' ]
 end
 
 namespace :test do
@@ -76,6 +79,13 @@ namespace :test do
     t.test_files = FileList["test/plugins/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
+
+  desc "run the artifact tests"
+  Rake::TestTask.new :artifacts  => :compile do |t|
+    t.libs << 'test'
+    t.test_files = FileList["test/artifacts/**/*test.rb"]
+  end
+
 
   desc "run jvm tests"
   task :jvm => 'test:jvm:all'
@@ -134,6 +144,7 @@ desc "clean downloaded dependencies"
 task :clean_downloads do
   rm_f "javalib/mirahc-prev.jar"
   rm_f 'javalib/jruby-complete.jar'
+  rm_f 'javalib/asm-5.jar'
 end
 
 task :compile => 'dist/mirahc.jar'
@@ -154,10 +165,10 @@ end
 
 namespace :jar do
   desc "build self-contained, complete ruby jar"
-  task :complete => [:jar, 'javalib/jruby-complete.jar'] do
+  task :complete => [:jar, 'javalib/asm-5.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
       zipfileset 'src' => 'dist/mirah.jar'
-      zipfileset 'src' => 'javalib/jruby-complete.jar'
+      zipfileset 'src' => 'javalib/asm-5.jar'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
@@ -179,6 +190,7 @@ task :zip => 'jar:complete' do
   cp 'README.md', "#{basedir}"
   cp 'NOTICE', "#{basedir}"
   cp 'LICENSE', "#{basedir}"
+  cp 'COPYING', "#{basedir}"
   cp 'History.txt', "#{basedir}"
   sh "sh -c 'cd tmp ; zip -r ../dist/mirah-#{Mirah::VERSION}.zip mirah-#{Mirah::VERSION}/*'"
   rm_rf 'tmp'
@@ -187,11 +199,12 @@ end
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
 
-file_create 'javalib/jruby-complete.jar' do
+#TODO find/create ssl location for this jar 
+file_create 'javalib/asm-5.jar' do
   require 'open-uri'
-  puts "Downloading jruby-complete.jar"
-  open('http://jruby.org.s3.amazonaws.com/downloads/1.7.4/jruby-complete-1.7.4.jar', 'rb') do |src|
-    open('javalib/jruby-complete.jar', 'wb') do |dest|
+  puts "Downloading asm-5.jar"
+  open('http://central.maven.org/maven2/org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar', 'rb') do |src|
+    open('javalib/asm-5.jar', 'wb') do |dest|
       dest.write(src.read)
     end
   end
@@ -199,8 +212,13 @@ end
 
 file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
-  puts "Downloading mirahc-prev.jar"
-  open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/mirah-0.1.3-20140727.005904-2.jar', 'rb') do |src|
+  # get latest snapshot from XML description.
+  xml = open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/').read
+  url = xml.scan(%r{<resourceURI>(https:.*\.jar)</resourceURI>}).map(&:first).sort.last
+
+  puts "Downloading mirahc-prev.jar from #{url}"
+
+  open(url, 'rb') do |src|
     open('javalib/mirahc-prev.jar', 'wb') do |dest|
       dest.write(src.read)
     end
@@ -213,7 +231,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
-  file new_jar => mirah_srcs + [old_jar, 'javalib/jruby-complete.jar'] do
+  file new_jar => mirah_srcs + [old_jar, 'javalib/asm-5.jar'] do
     build_dir = 'build/bootstrap'
     rm_rf build_dir
     mkdir_p build_dir
@@ -227,18 +245,25 @@ def bootstrap_mirah_from(old_jar, new_jar)
               'debug' => true,
               'listfiles' => true
 
+    # mirahc needs to be 1.7 or lower
+    build_version = java.lang.System.getProperty('java.specification.version')
+    if build_version.to_f > 1.7
+      build_version = '1.7'
+    end
     # Compile Mirah sources
     runjava('-Xmx512m',
             old_jar,
             '-d', build_dir,
-            '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/jruby-complete.jar",
+            '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/asm-5.jar",
+            '--jvm', build_version,
             *mirah_srcs)
   
     # Build the jar                    
     ant.jar 'jarfile' => new_jar do
       fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/jruby-complete.jar', 'includes' => 'org/jruby/org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
       zipfileset 'src' => 'javalib/mirah-parser.jar'
+      metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end

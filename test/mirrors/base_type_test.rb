@@ -18,8 +18,8 @@ require 'java'
 require 'dist/mirahc.jar'
 
 class BaseTypeTest < Test::Unit::TestCase
-  java_import 'org.jruby.org.objectweb.asm.Type'
-  java_import 'org.jruby.org.objectweb.asm.Opcodes'
+  java_import 'org.objectweb.asm.Type'
+  java_import 'org.objectweb.asm.Opcodes'
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.Member'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'

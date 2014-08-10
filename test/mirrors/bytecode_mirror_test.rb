@@ -18,7 +18,7 @@ require 'java'
 require 'dist/mirahc.jar'
 
 class BytecodeMirrorTest < Test::Unit::TestCase
-  java_import 'org.jruby.org.objectweb.asm.Type'
+  java_import 'org.objectweb.asm.Type'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.mirrors.ClassLoaderResourceLoader'
   java_import 'org.mirah.jvm.mirrors.ClassResourceLoader'

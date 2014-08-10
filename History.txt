@@ -1,3 +1,228 @@
+
+=== 0.1.3 Metacircularity: Achieved / 2014-08-06
+
+5b1454c bump parser w/ java 7 jar
+8c0be9d de-SNAPSHOT/dev ify versions
+0bb1553 update parser
+1c90452 update NOTICE
+2ade81b if the type params are unconstrained wildcards, consider them resolved
+347c633 allow jruby-head build to fail
+a6bb171 add 1.8 - 1.8 to travis
+9019478 fix failing generics test
+d2c8ba2 fix test workaround for asm version
+e5133d5 formatting + while -> each in mirah_arguments
+7f37cd4 add another guard for a bundler require
+0d5cdd8 add COPYING to zip dist
+48298cf add place to put artifact tests, w/ happy path examples
+44955db bump copyright year in Rakefile
+447a878 begin rescue load error hack
+10dfe71 maybe a well placed rescue'll fix jruby-head build
+02b0fcd skip tests that will NPE on JRuby 1.7.13
+3f0114c forgot java.lang in last change. Oops
+2364325 always compile mirahc for 1.7 or lower
+9d482e5 rm 1.8 -> 1.7 bytecode since 1.8 is available in new asm dep
+0691433 try moving bundler/setup require
+9c53cda always get latest SNAPSHOT
+52d850c bump snapshot to download
+c0a7c57 ignore downloaded asm lib jar
+e454796 add asm license to a file that's included in the compiler jar
+e7d6153 update asm to 5.0.3 for java 8 support & awesomeness
+c1537a7 oops. Fix missed escape in gemspec
+27567c6 rm some refs to old jars + depend only on mirahc.jar in gem
+d934870 clean up typer a little
+ba8acf7 missed a place where there should be a require test_helper
+d88d880 ensure -V overrides the default silent for run
+71e6fa8 silence logger for run commands
+a2abfb7 update parser to one that can parse the parser
+6480725 add consistent sorting to tool sources
+e02ca0b depend on a good snapshot in sonatype
+fe339bf more Rakefile cruft. Now dist task shouldn't error out
+f96626b add some whitespace
+442519b remove using confusing space char literal that doesn't parse
+b3bd746 merge unquotes in block args before constructing the block future.
+3ff0d0a Revert "use latest snapshot as the compiler to bootstrap with"
+85bdbd3 add note about pushing snapshots to maven instructions
+6f9e336 rm apparently unused jar
+7036f6b ignore the downloaded bootstrap compiler
+96c563a use latest snapshot as the compiler to bootstrap with
+d7d14ec add Nick to the author list in the gemspec
+638c47f rm mirahp from gemspec as it's gone
+46f622b clean up unused / needed portions of rakefile
+3c4cc9a refer to jruby exception w/ string instead of class obj
+be3fc9f remove commented requires
+7aa9091 remove references to bitescript
+5cd2e93 add tests for JvmVersion
+a8d3f2d have gem depend on dist/mirahc.jar
+1b51fe7 Merge pull request #252 from KeenS/master
+16f7623 more literals
+15ca101 remove dependency on bitescript, rm CompilationState, set max bytecode version to 1.7
+aa282e5 Squashed commit of the following:
+fe7bd6c add literal examples
+487d737 Merge branch 'shannah-master'
+f9100a2 Added wrapper around JVMScope.import method so that it can be called from java.  import is a reserved word in java.
+9ae690f Fixed stack overflow error because of two static compile and object compile method implemented in Mirahc. https://github.com/mirah/mirah/issues/250
+b981113 use 1.7 target when running on 1.8 for now
+6013668 1.8 isn't supported in the asm version we're currently using. duh
+222f5ed exclude jdk7 targeting 8 from build matrix
+b334a0a update travis w/ java target version builds+jruby head vs 19 mode
+0b4cdbd make test target JVM version configable by MIRAH_TEST_JVM_VERSION env var
+f1f859d add some whitespace to Rakefile
+2b319e8 update test_local_field_conflict to test_local_method_conflict
+f02d9b1 rm unused local in ProxyNode
+3677f5e Merge branch 'new_bootstrap' of git://github.com/ribrdb/mirah into ribrdb-new_bootstrap
+5dbd5b9 Merge branch 'master' into bootstrap_with_new_compiler
+89d4447 allow unquoted block args, both with and without pipes
+39d7946 whitespace in examples/macros/string_each_char.mirah
+fe16b3f add unary negation test
+b283dd8 add position based content lookup to typer for debugging
+b2cb3f0 add some more logging around redeclaring types
+dc9f253 fix nested error descriptions popping up in test runs
+17165f6 fix map collection extension method
+b2aef50 rename Typer scope creation for methods to be more consistent
+70a95a7 fix BlocksTest#test_block_with_method_def
+22efc0c fix system reference in test helper
+30955f6 blocks_test whitespace
+df57318 log source of AST to be typed, where available
+d15e37f fix up logging. typo, multi install, rm ruby impl
+9cd7f6e allow variable shadowing, fix rescue shadowing test failure
+c2bb20b raise a better error in bytecode generation on missing local
+93f4de2 rename handle_args back to applyArgs
+30cf680 rm factory_test since it's subject is gone
+c59d04b deprecate -c for classpath in favor of -cp / --classpath
+9ef9329 delay exiting to the main methods of commands so they're testable. Also more JRuby friendly
+e569bf2 delete all the things! rm JRuby Compiler bits
+b045cde use File::PATH_SEPARATOR for classpath when constructing classpaths in Rakefile
+486d634 clean up some lost changes removing the old test helper code
+2dff436 rm require of removed file
+bb7d224 rm mirahp
+f9761b2 rm old generator test
+cfa7c39 rm bytecode test helper as it's not needed anymore
+80d02da oops. fix typo in args code
+554860a rm old backend rake tasks
+78596fa only do new_ci and not bytecode_ci
+b45d158 move logger setup to MirahArguments
+68bef4a pull out arg object into its own file
+04a3b08 convert class loader tests to point directly at Mirah classes
+d884d90 extract an object to hold onto MirahTool cfg
+3a58e94 fix c&p'd test case name
+4f86094 add color toggle to self hosted jar
+3b3713a use CLASS as default retention for annotations
+ddf6782 fix annotation value test
+3422c00 rm accidentally checked fix for editor that doesn't understand 'EOF'
+8208a27 rm test that identified broken behavior that's fixed wrt interfaces
+32c2f1e replace System.out.println w/ puts in tests
+7ae7d17 change field setter test so it doesn't depend on ast
+3c7a417 improve compile, parse_and_type new backend test helpers
+71536e6 extract diagnostic construction in error collector into helper method
+9df5e48 fix compilation helper s.t. separate compilation test passes
+b0bfa37 use the pend w/ block form so that when ClassPath is added, it'll fail
+1b870c6 change mirror assertion from equality to same type check
+2581267 Revert "fix mirror lub equality assertion"
+87e47ae Merge branch 'master' into new_bootstrap
+f84664a Add targets for bootstrapping mirahc.jar from itself.
+3eca2d3 Fix for generic types inside a binding.
+72ba91c Implement equality for ResolvedCall to prevent extra type updates.
+2bf331c Proxy node fixes.
+dc23f9c Fix AssignmentFuture.
+366825f Revert "fix mirror lub equality assertion"
+4e9cbe4 Fix for MethodLookup debugging.
+40452c9 Fix error propagation with AssignableTypeFuture
+1b68b2f ProxyNode fixes.
+03b2238 Add debugging info to MethodLookup.
+7371f11 Improve CallFuture error propagation.
+da701e2 Update parser again
+bcce07e Merge branch 'bootstrap_with_new_compiler' of https://github.com/mirah/mirah into new_bootstrap
+2fc8bef Introduce a proxy node, so we can properly clone method calls.
+7b9408e Update parser
+2e7b404 Explicitly specify the package of AST types in case there's a conflicting type in the macro's package.
+8037711 Merge branch 'new_bootstrap' of git://github.com/ribrdb/mirah into ribrdb-new_bootstrap
+64fee4d Test fixes.
+29d335a try fixing travis by fixing file sorting
+67966e0 change rake deps to dist/mirahc for now + add clean for downloaded deps
+53123e1 fix superclass mirror type updates
+99350b3 move local var def in mirrors base_type closer to usage
+f12196b add toString to NarrowingTypeFuture
+a0053ba break out failing superclass type update mirror test
+d69f90d move debugging help to the test helper
+673d9e4 add tmp dir to ignored files
+3007c6c add pend to test depending on undefined constant
+d306a89 fix mirror lub equality assertion
+0099f67 move debugging module into test_helper
+ea9d8ea typer formatting
+61bea51 Update test targets.
+e0fff81 Merge branch 'jvm_version' into new_bootstrap
+e645fbf Merge branch 'master' of https://github.com/mirah/mirah
+010280e Fix for static imports that are updated after use.
+13c055a Update tests to use new compiler.
+d4231c6 Importing an undefined class should be an error
+a4a72d2 Fix for loading compiler annotations.
+ecff9e6 Fix MethodFuture error propagation
+492b08c Fix CallFuture error propagation
+d62bdb0 External debugger support
+b38a592 add helper for expanding and replacing macros
+d4626eb extract isMacro helper in typer
+be72bb5 Pause on inference errors when using type debugger.
+1431331 bump version to 0.1.3
+fe53788 fix up maven release notes
+a1f776e fix bug due to rm'd optional arg on typer.infer
+336d0ec Merge branch 'master' of git://github.com/ribrdb/mirah into ribrdb-master
+6ef42e7 fix invalid bytecode.
+944abf9 Fix maven build.
+d9f9e9e Print a warning instead of raising an exception when building a closure with no methods.
+4706809 Update classpath for macro classloader.
+4ade702 Update the bootstrap compiler
+6335479 Fix comparison of MirrorProxies in LubFinder.
+da24688 Fixes for generics.
+db0c49e Fix rakefile syntax
+8cda99e Test fixes
+cf46341 MirrorProxy.erasure should return a MirrorProxy.
+0709b89 Debugger improvements
+3311a0d Implement interactive type debugger.
+90f44dd Start implementing type debugger.
+dd3f3bf Merge branch 'master' into jvm_version
+fe037d1 Fix comparison of meta types after incompatible changes.
+b045672 Fix supertypes of main class.
+e088086 Fix debug formatting for LocalFuture
+4c0588b More classpath fixes.
+40ef885 Fix loading of macro types.
+6a5b61e Better support for extending SimpleDiagnostics
+93b0650 Implement MirahCommand.
+cbb2630 Merge branch 'fb2' into jvm_version
+6c393f1 Add dependency on jruby-complete.jar
+56df34f Fix a couple bugs in conflicting method/macro detection.
+2622fa5 Fix typo in bootstrap mirahc.jar version.
+9dd9287 Fix classfile version of java classes.
+e91515e Fix for test_method_def_after_macro_def_with_same_name_raises_error.
+0d6f12d Fix jvm version flag.
+3858e40 Add dependency on mirahc-1.1.2-dev.jar
+5a44329 Add --jvm option to mirahc.jar
+b858825 Download bootstrap mirahc from mirah.googlecode.com.
+aaa033e Fix constructors test.
+d3b3697 Fix lub test.
+e916083 Change test_findMethod failure to pending.
+0460f68 Fix negated comparisons with NaN.
+066fa56 Fix 'raise ex' where 'ex' is an exception object.
+21ce0df Fix classloader used for loading macros.
+3fec7e0 Fix inference for rescue body.
+6b47ed4 Implement unary minus operator.
+ea578b3 Add intrinsics to NullType
+f3837aa Improve debug output for type futures.
+41e6233 Test for nil methods.
+01cefa7 Fix vmofule -- loggers get garbage collected if no one retains them.
+e4ea7d7 Methods shouldn't return NullType
+9b468e7 Support Noops inside ClassDefinition
+0d6675e Patch bad bytecode in mirah.lang.ast.Unquote
+c35bb64 Add cast helper method for macros to use.
+a0c92d5 Fix block arguments in macros.
+ab3569f Support compiling a directory,
+aa97f2f Fix macro classpath.
+fc30632 Make sure UnreachableType doesn't leak out of method return values.
+de4bbe7 Fix subtyping for NullType.
+dac8dc1 Fix lub of raw and generic type.
+58d8305 Add todo to download compiler.
+be3324f Clean up compilation using the new compiler.
+ee560c4 Use real macros in org.mirah.macros.*
+
 === 0.1.2 New Year, New Release / 2014-01-05
 
 8421140 add desc'd rake task for building mirahc.jar

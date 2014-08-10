@@ -32,7 +32,7 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.model.Cycle'
   java_import 'org.mirah.jvm.model.IntersectionType'
   java_import 'org.mirah.typer.BaseTypeFuture'
-  java_import 'org.jruby.org.objectweb.asm.Type'
+  java_import 'org.objectweb.asm.Type'
   java_import 'javax.lang.model.util.Types'
 
   def setup
@@ -736,7 +736,7 @@ class GenericsTest < Test::Unit::TestCase
     lub.minimizeErasedCandidates(candidates.key_set)
     assert_equal(['java.util.Collection'],
                  candidates.key_set.map{|x| x.toString})
-    candidates = HashSet.new(candidates.values.iterator.next.map {|x| x.toString})
+    candidates = HashSet.new(candidates.values.first.map {|x| x.toString})
     assert_equal(HashSet.new(
     ["java.util.Collection<java.lang.String>",
       "java.util.Collection<java.lang.CharSequence>"

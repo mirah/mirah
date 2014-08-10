@@ -12,7 +12,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-require 'bundler/setup'
+begin
+  require 'bundler/setup'
+rescue LoadError
+  puts "couldn't load bundler. Check your environment."
+end
 require 'test/unit'
 require 'mirah'
 require 'jruby'
@@ -60,6 +64,14 @@ module CommonAssertions
 
   def assert_output(expected, &block)
     assert_equal(expected, capture_output(&block))
+  end
+
+  def pend_on_jruby version
+    if JRUBY_VERSION ==  version
+      pend("doesn't work on #{version}") { yield }
+    else
+      yield
+    end
   end
 end
 

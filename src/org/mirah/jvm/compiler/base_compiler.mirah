@@ -36,9 +36,9 @@ import org.mirah.typer.Typer
 import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
 import org.mirah.typer.UnreachableType
-import org.jruby.org.objectweb.asm.Type
-import org.jruby.org.objectweb.asm.Opcodes
-import org.jruby.org.objectweb.asm.commons.Method
+import org.objectweb.asm.Type
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.commons.Method
 
 class ReportedException < RuntimeException
   def initialize(ex:Throwable)

@@ -2,19 +2,20 @@
 $: << './lib'
 require 'mirah/version'
 
-files = Dir["{bin,lib,test,examples,javalib}/**/*"] + Dir["{*.txt,Rakefile}"] - Dir["{examples/wiki/**/*}"]
+files = Dir["{bin,lib,test,examples}/**/*"] \
+        + Dir['dist/mirahc.jar']            \
+        + Dir["{*.md,*.txt,Rakefile}"]      \
+        - Dir["{examples/wiki/**/*}"]
 
-bootstrap_jar = 'javalib/mirah-bootstrap.jar'
-if $PROGRAM_NAME.match(/gem$/) && !files.include?(bootstrap_jar)
+mirahc_jar = 'dist/mirahc.jar'
+if $PROGRAM_NAME.match(/gem$/) && !files.include?(mirahc_jar)
   $stderr.puts "-"*80
-  $stderr.puts "ERROR: Can't build gem: missing generated file #{bootstrap_jar}"
+  $stderr.puts "ERROR: Can't build gem: missing generated file #{mirahc_jar}"
   $stderr.puts "To generate the jars and build the gem, use"
   $stderr.puts "   $ rake gem"
   $stderr.puts "-"*80
   exit 1
 end
-
-
 
 
 Gem::Specification.new do |s|

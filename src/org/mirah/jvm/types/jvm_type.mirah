@@ -2,7 +2,7 @@ package org.mirah.jvm.types
 
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
-import org.jruby.org.objectweb.asm.Type
+import org.objectweb.asm.Type
 import java.util.List
 import java.util.Set
 
