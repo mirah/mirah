@@ -26,9 +26,7 @@ end
 
 file_create 'javalib/mirahc.jar' do
   require 'open-uri'
-  # get latest snapshot from XML description.
-  xml = open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/').read
-  url = xml.scan(%r{<resourceURI>(https:.*\.jar)</resourceURI>}).map(&:first).sort.last
+  url = 'http://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.1.3/mirah-0.1.3.jar'
 
   puts "Downloading mirahc.jar from #{url}"
 
