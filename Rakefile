@@ -212,9 +212,7 @@ end
 
 file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
-  # get latest snapshot from XML description.
-  xml = open('https://oss.sonatype.org/service/local/repositories/snapshots/content/org/mirah/mirah/0.1.3-SNAPSHOT/').read
-  url = xml.scan(%r{<resourceURI>(https:.*\.jar)</resourceURI>}).map(&:first).sort.last
+  url = 'http://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.1.3/mirah-0.1.3.jar'
 
   puts "Downloading mirahc-prev.jar from #{url}"
 
@@ -231,7 +229,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
-  file new_jar => mirah_srcs + [old_jar, 'javalib/asm-5.jar'] do
+  file new_jar => mirah_srcs + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
     build_dir = 'build/bootstrap'
     rm_rf build_dir
     mkdir_p build_dir
