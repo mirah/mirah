@@ -62,7 +62,7 @@ import org.mirah.util.Context
 import org.mirah.util.OptionParser
 
 class MirahArguments
-  @@VERSION = "0.1.3"
+  @@VERSION = "0.1.4-SNAPSHOT"
 
   attr_accessor logger_color: boolean,
                 code_sources: List,
