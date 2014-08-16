@@ -16,7 +16,7 @@ require 'test_helper'
 
 class StaticFieldsTest < Test::Unit::TestCase
   def test_static_field_inheritance_lookup_with_dot
-    cls, = with_finest_logging{compile(<<-EOF)}
+    cls, = compile(<<-EOF)
       import java.util.GregorianCalendar
       puts GregorianCalendar.AM
     EOF
