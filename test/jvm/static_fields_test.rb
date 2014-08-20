@@ -39,4 +39,14 @@ class StaticFieldsTest < Test::Unit::TestCase
     end
     }
   end
+
+  def test_create_constant
+    cls, = compile(<<-EOF)
+      CONSTANT = 1
+      puts CONSTANT
+    EOF
+    assert_output "1\n" do
+      cls.main(nil)
+    end
+  end
 end

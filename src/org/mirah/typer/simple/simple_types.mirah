@@ -164,6 +164,9 @@ class SimpleTypes; implements TypeSystem
     t
   end
 
+  def getFieldTypeOrDeclare(target, name, position)
+    getFieldType(target, name, position)
+  end
   def getFieldType(target, name, position)
     key = [target.resolve, name]
     t = AssignableTypeFuture(@fields[key])

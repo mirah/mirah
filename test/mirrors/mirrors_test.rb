@@ -268,6 +268,12 @@ class MirrorsTest < BaseMirrorsTest
     assert_descriptor("LFooBar;", @types.getSuperClass(type))
   end
 
+  def test_define_inner_class_type
+    type = define_type("Subclass$Inner", main_type)
+    assert_descriptor("LSubclass$Inner;", type)
+    assert_descriptor("LFooBar;", @types.getSuperClass(type))
+  end
+
   def test_redefine_main_type
     existing = main_type.resolve.unmeta
     type = @types.defineType(@scope, ClassDefinition.new, "FooBar", nil, [])
@@ -353,15 +359,47 @@ class MirrorsTest < BaseMirrorsTest
         '[S', @types.getArrayType(@types.get(@scope, typeref('short'))))
   end
 
-  def test_field
-    # TODO use instance field from static method
+
+  # TODO write test checking
+  # use of instance field from static method
+
+  def test_field_before_declaration
     a = @types.getFieldType(main_type, 'a', nil)
     b = @types.getFieldType(main_type, 'b', nil)
     assert_not_same(a, b)
     assert_same(a, @types.getFieldType(main_type, 'a', nil))
+
+    field = main_type.resolve.getDeclaredField('a')
+    assert(field.nil?, "expected field to be undeclared yet")
+  end
+
+  def test_separate_fields_without_declare_return_separate_futures
+    a = @types.getFieldType(main_type, 'a', nil)
+    b = @types.getFieldType(main_type, 'b', nil)
+    assert_not_same(a, b)
+  end
+
+  def test_separate_fields_with_declare_return_separate_futures
+    a = @types.getFieldTypeOrDeclare(main_type, 'a', nil)
+    b = @types.getFieldTypeOrDeclare(main_type, 'b', nil)
+    assert_not_same(a, b)
+  end
+
+  def test_declared_field_is_same_as_get_field_when_declared_first
+    a = @types.getFieldTypeOrDeclare(main_type, 'a', nil)
+    assert_same(a, @types.getFieldType(main_type, 'a', nil))
+  end
+
+  def test_declared_field_is_same_as_get_field_when_declared_second
+    a = @types.getFieldType(main_type, 'a', nil)
+    assert_same(a, @types.getFieldTypeOrDeclare(main_type, 'a', nil))
+  end
+
+  def test_field_attrs_of_declared_field
+    a = @types.getFieldTypeOrDeclare(main_type, 'a', nil)
     
     field = main_type.resolve.getDeclaredField('a')
-    assert_not_nil(field)
+
     assert_same(a, field.async_return_type)
     assert_equal("STATIC_FIELD_ACCESS", field.kind.name)
     

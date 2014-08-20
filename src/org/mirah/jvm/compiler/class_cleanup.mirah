@@ -125,6 +125,7 @@ class ClassCleanup < NodeScanner
     return if @alreadyCleaned
     type = JVMType(@typer.getInferredType(@klass).resolve)
     type.getDeclaredFields.each do |f|
+      @@log.finest "creating field declaration for #{f.name}"
       name = f.name
       annotations = @field_annotations.getAnnotations(name) || AnnotationList.new
       isStatic = type.hasStaticField(f.name)

@@ -371,7 +371,7 @@ class Typer < SimpleNodeVisitor
 
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
-    getFieldType(decl, decl.isStatic).declare(
+    getFieldTypeOrDeclare(decl, decl.isStatic).declare(
                           getTypeOf(decl, decl.type.typeref),
                           decl.position)
   end
@@ -379,7 +379,21 @@ class Typer < SimpleNodeVisitor
   def visitFieldAssign(field, expression)
     inferAnnotations field
     value = infer(field.value, true)
-    getFieldType(field, field.isStatic).assign(value, field.position)
+    getFieldTypeOrDeclare(field, field.isStatic).assign(value, field.position)
+  end
+
+  def visitConstantAssign(field, expression)
+    newField = FieldAssign.new field.name, field.value, [
+      Annotation.new(field.name.position,
+        Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+        [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))])
+    ]
+    newField.isStatic = true
+    newField.position = field.position
+
+    replaceSelf field, newField
+
+    infer(newField, expression != nil)
   end
 
   def visitFieldAccess(field, expression)
@@ -392,7 +406,17 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitConstant(constant, expression)
-    @types.getMetaType(getTypeOf(constant, constant.typeref))
+    proxy = ProxyNode.new self, constant
+
+    @futures[constant] = @types.getMetaType(getTypeOf(constant, constant.typeref))
+
+    fieldAccess = FieldAccess.new(constant.name)
+    fieldAccess.isStatic = true
+    fieldAccess.position = constant.position
+
+    proxy.setChildren([constant, fieldAccess], 0)
+
+    @futures[proxy] = proxy.inferChildren(expression != nil)
   end
 
   def visitIf(stmt, expression)
@@ -1252,6 +1276,16 @@ class Typer < SimpleNodeVisitor
 
   def getFieldType field: Named, targetType: TypeFuture
     @types.getFieldType(targetType,
+                        field.name.identifier,
+                        field.position)
+  end
+
+  def getFieldTypeOrDeclare(field: Named, isStatic: boolean)
+    getFieldTypeOrDeclare(field, fieldTargetType(field, isStatic))
+  end
+
+  def getFieldTypeOrDeclare field: Named, targetType: TypeFuture
+    @types.getFieldTypeOrDeclare(targetType,
                         field.name.identifier,
                         field.position)
   end

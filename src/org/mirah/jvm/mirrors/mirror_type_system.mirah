@@ -96,6 +96,7 @@ class MirrorTypeSystem implements TypeSystem
     @object_future = wrap(Type.getType('Ljava/lang/Object;'))
     @object = BaseType(@object_future.resolve)
     @anonymousClasses = {}
+    @unpinned_field_futures = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
     initBoxes
@@ -296,6 +297,27 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getFieldType(target, name, position)
+    resolved = MirrorType(target.resolve)
+    klass = MirrorType(resolved.unmeta)
+    member = klass.getDeclaredField(name)
+    if member
+      @@log.finest "found declared field future for target: #{target} name: #{name}"
+      return AssignableTypeFuture(AsyncMember(member).asyncReturnType)
+    end
+
+    undeclared_future = @unpinned_field_futures[unpinned_key(klass, name)]
+    if undeclared_future
+      @@log.finest "found undeclared field future for target: #{klass} name: #{name}"
+      return AssignableTypeFuture(undeclared_future)
+    end
+
+    @@log.finest "creating undeclared field's future target: #{target} name: #{name}"
+    future = AssignableTypeFuture.new(position)
+    @unpinned_field_futures[unpinned_key(klass, name)] = future
+    AssignableTypeFuture(future)
+  end
+
+  def getFieldTypeOrDeclare(target, name, position)
     resolved = MirrorType(target.resolve)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
@@ -622,7 +644,13 @@ class MirrorTypeSystem implements TypeSystem
       kind = MemberKind.FIELD_ACCESS
       access = "instance"
     end
-    future = AssignableTypeFuture.new(position)
+    undeclared_future = @unpinned_field_futures[unpinned_key(target, name)]
+    future = if undeclared_future
+      AssignableTypeFuture(undeclared_future)
+    else
+      AssignableTypeFuture.new(position)
+    end
+
     log = @@log
     future.onUpdate do |x, resolved|
       log.fine("Learned #{access} field #{target}.#{name} = #{resolved}")
@@ -671,6 +699,10 @@ class MirrorTypeSystem implements TypeSystem
     end
     sb.append(')')
     sb.toString
+  end
+
+  def unpinned_key(resolvedTarget:MirrorType, name:String)
+    [resolvedTarget, name]
   end
 
   def self.classnameFromFilename(name:String)
