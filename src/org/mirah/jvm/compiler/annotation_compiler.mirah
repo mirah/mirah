@@ -34,6 +34,7 @@ class ClassAnnotationFactory implements AnnotationVisitorFactory
   def initialize(visitor:ClassVisitor)
     @visitor = visitor
   end
+
   def create(type, runtime)
     @visitor.visitAnnotation(type, runtime)
   end
@@ -43,6 +44,7 @@ class MethodAnnotationFactory implements AnnotationVisitorFactory
   def initialize(visitor:MethodVisitor)
     @visitor = visitor
   end
+
   def create(type, runtime)
     @visitor.visitAnnotation(type, runtime)
   end
@@ -52,6 +54,7 @@ class FieldAnnotationFactory implements AnnotationVisitorFactory
   def initialize(visitor:FieldVisitor)
     @visitor = visitor
   end
+
   def create(type, runtime)
     @visitor.visitAnnotation(type, runtime)
   end
@@ -107,11 +110,11 @@ class AnnotationCompiler < BaseCompiler
   end
   
   def compileValues(anno:Annotation, visitor:AnnotationVisitor):void
+    type = getInferredType(anno)
     anno.values_size.times do |i|
       entry = anno.values(i)
       name = Identifier(entry.key).identifier
       value = entry.value
-      type = getInferredType(anno)
       method = type.getMethod(name, Collections.emptyList)
       unless method
         reportError("No method #{type.name}.#{name}()", entry.key.position)

@@ -34,12 +34,15 @@ class AnnotationCollector < NodeScanner
     @context = context
     @field_annotations = {}
   end
+
   def error(message:String, position:Position)
     @context[DiagnosticListener].report(MirahDiagnostic.error(position, message))
   end
+
   def collect(node:Node):void
     scan(node, nil)
   end
+
   def getAnnotations(field:String):AnnotationList
     AnnotationList(@field_annotations[field])
   end
@@ -61,9 +64,11 @@ class AnnotationCollector < NodeScanner
     # Scan the children
     true
   end
+
   def enterRescue(node, arg)
     true
   end
+
   def enterDefault(node, arg)
     # We only treat it as a declaration if it's at the top level
     false

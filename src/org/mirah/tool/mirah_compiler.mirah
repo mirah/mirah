@@ -156,7 +156,7 @@ class MirahCompiler implements JvmBackend
   end
 
   def infer
-    @asts.each do |node:Node|
+    @asts.each do |node: Node|
       begin
         @typer.infer(node, false)
       ensure
@@ -214,8 +214,7 @@ class MirahCompiler implements JvmBackend
   end
 
   def compile(generator:BytecodeConsumer)
-    @asts.each do |n|
-      node = Script(n)
+    @asts.each do |node: Script|
       @backend.clean(node, nil)
       processInferenceErrors(node, @context)
       if @diagnostics.errorCount > 0

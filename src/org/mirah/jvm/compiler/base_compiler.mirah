@@ -57,28 +57,28 @@ class BaseCompiler < SimpleNodeVisitor
   
   def self.initialize:void
     @@ACCESS = {
-      PUBLIC: Integer.valueOf(Opcodes.ACC_PUBLIC),
-      PRIVATE: Integer.valueOf(Opcodes.ACC_PRIVATE),
-      PROTECTED: Integer.valueOf(Opcodes.ACC_PROTECTED),
-      DEFAULT: Integer.valueOf(0)
+      PUBLIC: Opcodes.ACC_PUBLIC,
+      PRIVATE: Opcodes.ACC_PRIVATE,
+      PROTECTED: Opcodes.ACC_PROTECTED,
+      DEFAULT: 0
     }
     @@FLAGS = {
-      STATIC: Integer.valueOf(Opcodes.ACC_STATIC),
-      FINAL: Integer.valueOf(Opcodes.ACC_FINAL),
-      SUPER: Integer.valueOf(Opcodes.ACC_SUPER),
-      SYNCHRONIZED: Integer.valueOf(Opcodes.ACC_SYNCHRONIZED),
-      VOLATILE: Integer.valueOf(Opcodes.ACC_VOLATILE),
-      BRIDGE: Integer.valueOf(Opcodes.ACC_BRIDGE),
-      VARARGS: Integer.valueOf(Opcodes.ACC_VARARGS),
-      TRANSIENT: Integer.valueOf(Opcodes.ACC_TRANSIENT),
-      NATIVE: Integer.valueOf(Opcodes.ACC_NATIVE),
-      INTERFACE: Integer.valueOf(Opcodes.ACC_INTERFACE),
-      ABSTRACT: Integer.valueOf(Opcodes.ACC_ABSTRACT),
-      STRICT: Integer.valueOf(Opcodes.ACC_STRICT),
-      SYNTHETIC: Integer.valueOf(Opcodes.ACC_SYNTHETIC),
-      ANNOTATION: Integer.valueOf(Opcodes.ACC_ANNOTATION),
-      ENUM: Integer.valueOf(Opcodes.ACC_ENUM),
-      DEPRECATED: Integer.valueOf(Opcodes.ACC_DEPRECATED)
+      STATIC: Opcodes.ACC_STATIC,
+      FINAL: Opcodes.ACC_FINAL,
+      SUPER: Opcodes.ACC_SUPER,
+      SYNCHRONIZED: Opcodes.ACC_SYNCHRONIZED,
+      VOLATILE: Opcodes.ACC_VOLATILE,
+      BRIDGE: Opcodes.ACC_BRIDGE,
+      VARARGS: Opcodes.ACC_VARARGS,
+      TRANSIENT: Opcodes.ACC_TRANSIENT,
+      NATIVE: Opcodes.ACC_NATIVE,
+      INTERFACE: Opcodes.ACC_INTERFACE,
+      ABSTRACT: Opcodes.ACC_ABSTRACT,
+      STRICT: Opcodes.ACC_STRICT,
+      SYNTHETIC: Opcodes.ACC_SYNTHETIC,
+      ANNOTATION: Opcodes.ACC_ANNOTATION,
+      ENUM: Opcodes.ACC_ENUM,
+      DEPRECATED: Opcodes.ACC_DEPRECATED
     }
   end
   
