@@ -26,8 +26,6 @@ require 'mirah/typer'
 
 require "mirah/util/process_errors"
 require "mirah/util/logging"
-require "mirah/util/class_loader"
-
 
 module Mirah
   java_import 'org.mirah.tool.RunCommand'

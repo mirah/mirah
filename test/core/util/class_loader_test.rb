@@ -23,7 +23,7 @@ class ClassLoaderTest < Test::Unit::TestCase
 
   def test_mirah_class_loader_find_class_in_map_successful
     class_map = {
-      'org.foo.A' => Mirah::Util.binary_string(File.open(A_CLASS, 'rb') {|f| f.read })
+      'org.foo.A' => File.open(A_CLASS, 'rb') {|f| java.lang.String.new f.read.to_java_bytes, "ISO-8859-1" }
     }
     class_loader = MirahClassLoader.new nil, class_map
     cls = class_loader.load_class 'org.foo.A'
