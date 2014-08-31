@@ -145,8 +145,7 @@ class MethodCompiler < BaseCompiler
         @builder.dup
         args = AsmType[0]
         @builder.invokeConstructor(type.getAsmType, AsmMethod.new("<init>", AsmType.getType("V"), args))
-        @builder.arguments.each do |_arg|
-          arg = LocalInfo(_arg)
+        @builder.arguments.each do |arg: LocalInfo|
           # Save any captured method arguments into the binding
           if scope.isCaptured(arg.name)
             @builder.dup

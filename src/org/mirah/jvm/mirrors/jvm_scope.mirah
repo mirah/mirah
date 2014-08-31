@@ -92,7 +92,7 @@ class JVMScope < SimpleScope
     elsif @parent && @parent.hasLocal(name)
       return true
     else
-      return @children.any? {|child| JVMScope(child).hasLocal(name, false)}
+      return @children.any? {|child: JVMScope| child.hasLocal(name, false)}
     end
   end
 

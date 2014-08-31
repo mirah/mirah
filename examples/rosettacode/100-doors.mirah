@@ -47,8 +47,8 @@ end
 
 1.upto(100) do |multiplier|
     index = 0
-    doors.each do |door|
-        Door(door).toggle if (index+1)%multiplier == 0
+    doors.each do |door: Door|
+        door.toggle if (index+1)%multiplier == 0
         index += 1
     end
 end

@@ -135,7 +135,7 @@ class AsyncMember < Member
     @futures = argumentTypes
     @resolvedArguments = ArrayList.new(argumentTypes.size)
     @returnType = returnType
-    argumentTypes.each {|a| setupArgumentListener(TypeFuture(a)) }
+    argumentTypes.each {|a: TypeFuture| setupArgumentListener(a) }
   end
 
   def argumentTypes

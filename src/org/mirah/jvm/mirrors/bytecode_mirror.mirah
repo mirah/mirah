@@ -135,8 +135,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     # CLASS is the default retention policy http://docs.oracle.com/javase/7/docs/api/java/lang/annotation/RetentionPolicy.html#CLASS
     return "CLASS" unless @annotations
 
-    @annotations.each do |n|
-      anno = AnnotationNode(n)
+    @annotations.each do |anno: AnnotationNode|
       if "Ljava/lang/annotation/Retention;".equals(anno.desc)
         # anno.values should be
         # ["value", ["Ljava/lang/annotation/RetentionPolicy;", policy]]
@@ -149,12 +148,12 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   attr_reader signature:String
 
   def load_methods:boolean
-    @methods.each do |m|
-      addMethod(MethodNode(m))
+    @methods.each do |m: MethodNode|
+      addMethod(m)
     end if @methods
     @methods = nil
-    @innerClassNodes.each do |n|
-      addInnerClass(InnerClassNode(n))
+    @innerClassNodes.each do |n: InnerClassNode|
+      addInnerClass(n)
     end
     true
   end
@@ -198,8 +197,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     @methods_loaded ||= load_methods
     members = getMembers(name)
     if members
-      members.each do |m|
-        member = Member(m)
+      members.each do |member: Member|
         if member.argumentTypes.equals(params)
           return member
         end

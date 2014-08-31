@@ -73,8 +73,8 @@ class Bytecode < GeneratorAdapter
 
   def arguments
     args = LinkedList.new
-    @locals.values.each do |info|
-      if LocalInfo(info).index < @firstLocal
+    @locals.values.each do |info: LocalInfo|
+      if info.index < @firstLocal
         args.add(info)
       else
         break

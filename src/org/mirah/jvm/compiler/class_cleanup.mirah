@@ -64,8 +64,7 @@ class ClassCleanup < NodeScanner
         @typer.infer(@cinit, false)
       end
       nodes = NodeList.new
-      @static_init_nodes.each do |n|
-        node = Node(n)
+      @static_init_nodes.each do |node: Node|
         node.parent.removeChild(node)
         node.setParent(nil)  # TODO: ast bug
         nodes.add(node)
@@ -85,13 +84,13 @@ class ClassCleanup < NodeScanner
       NodeList.new(@init_nodes)
     end
     cleanup = ConstructorCleanup.new(@context)
-    @constructors.each do |n|
-      cleanup.clean(ConstructorDefinition(n), init)
+    @constructors.each do |n: ConstructorDefinition|
+      cleanup.clean(n, init)
     end
 
     declareFields
-    @methods.each do |m|
-      addOptionalMethods(MethodDefinition(m))
+    @methods.each do |m: MethodDefinition|
+      addOptionalMethods(m)
     end
   end
   

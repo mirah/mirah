@@ -198,7 +198,7 @@ class BaseCompiler < SimpleNodeVisitor
   end
   
   def visitUnquote(node, arg)
-    node.nodes.each {|n| visit(Node(n), arg)}
+    node.nodes.each {|n: Node| visit(n, arg)}
   end
   
   def findType(name:String):JVMType

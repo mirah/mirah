@@ -153,8 +153,8 @@ class AnnotationCompiler < BaseCompiler
       return
     end
     child = visitor.visitArray(name)
-    values.each do |n|
-      compileValue(child, nil, Node(n), type)
+    values.each do |n: Node|
+      compileValue(child, nil, n, type)
     end
     child.visitEnd
   end

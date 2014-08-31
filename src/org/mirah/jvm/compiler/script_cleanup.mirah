@@ -61,8 +61,7 @@ class ScriptCleanup < NodeScanner
       klass = getOrCreateClass(script)
       unless @main_code.isEmpty
         main = @parser.quote { def self.main(ARGV:String[]):void; end }
-        @main_code.each do |n|
-          node = Node(n)
+        @main_code.each do |node: Node|
           node.parent.removeChild(node)
           node.setParent(nil)  # TODO: ast bug
           main.body.add(node)
@@ -73,8 +72,7 @@ class ScriptCleanup < NodeScanner
       end
       unless @methods.isEmpty
         nodes = @parser.quote { class << self; end }
-        @methods.each do |n|
-          mdef = Node(n)
+        @methods.each do |mdef: Node|
           mdef.parent.removeChild(mdef)
           mdef.setParent(nil)  # TODO: ast bug
           nodes.body.add(mdef)

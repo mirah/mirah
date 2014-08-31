@@ -652,8 +652,7 @@ end
 
 
   def self.inject_nodes body: NodeList, nodes: List, typer: Typer
-    nodes.each do |arg|
-      node = Node(arg)
+    nodes.each do |node: Node|
       Utils.insert_in_front body, node
       typer.infer node
     end

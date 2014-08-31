@@ -105,8 +105,8 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   def notifyOfIncompatibleChange:void
     @cached_supertypes = List(nil)
     listeners = ArrayList.new(@compatibility_listeners)
-    listeners.each do |l|
-      Runnable(l).run()
+    listeners.each do |l: Runnable|
+      l.run()
     end
     methods = HashSet.new(@method_listeners.keySet)
     methods.each do |n|
@@ -180,8 +180,8 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   def getAllDeclaredMethods
     @methods_loaded ||= load_methods
     methods = ArrayList.new
-    @members.values.each do |list|
-      List(list).each do |m|
+    @members.values.each do |list: List|
+      list.each do |m|
         methods.add(m)
       end
     end
@@ -224,8 +224,8 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   def invalidateMethod(name:String)
     listeners = Set(@method_listeners[name])
     if listeners
-      HashSet.new(listeners).each do |l|
-        MethodListener(l).methodChanged(self, name)
+      HashSet.new(listeners).each do |l: MethodListener|
+        l.methodChanged(self, name)
       end
     end
   end
