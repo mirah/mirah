@@ -33,8 +33,7 @@ SYNOPSIS
 REQUIREMENTS
 -----------------
 
-* JRuby 1.6.0 or higher.
-* BiteScript 0.0.8 or higher
+* Java 1.7 or higher.
 
 INSTALL
 -----------------
@@ -56,7 +55,7 @@ Extract it, and add `bin` to your `$PATH` to be able to use `mirah`, `mirahc`, e
 SOURCE
 -----------------
 
-To build and install from source, you'll need jruby 1.7.0 or
+To build and install from source, you'll need jruby 1.7.12 or
 higher. Then just follow these commands.
 
     $ git clone http://github.com/mirah/mirah.git
