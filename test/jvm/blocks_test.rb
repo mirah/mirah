@@ -313,7 +313,7 @@ class BlocksTest < Test::Unit::TestCase
       end
   end
 
-  def test_closure_in_closure_doesnt_raise_error
+  def test_nested_closure_in_closure_doesnt_raise_error
     cls, = compile(<<-CODE)
         interface BarRunner do;def run:void;end;end
 
@@ -333,6 +333,31 @@ class BlocksTest < Test::Unit::TestCase
       cls.main(nil)
     end
   end
+
+  def test_nested_closure_with_var_from_outer_closure
+    pend "bindings in nested closures are incorrectly generated" do
+      cls, = compile(<<-'CODE')
+        interface BarRunner do;def run:void;end;end
+
+        class Nestable
+          def foo(a:BarRunner)
+            a.run
+          end
+        end
+        Nestable.new.foo do
+          c = "closure"
+          puts "first #{c}"
+          Nestable.new.foo do
+            puts "second #{c}"
+          end
+        end
+      CODE
+      assert_output "first closure\nsecond closure\n" do
+        cls.main(nil)
+      end
+    end
+  end
+
 
   def test_method_requiring_subclass_of_abstract_class_finds_abstract_method
     cls, = compile(<<-EOF)
