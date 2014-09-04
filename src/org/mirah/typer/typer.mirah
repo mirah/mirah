@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -1172,17 +1172,6 @@ class Typer < SimpleNodeVisitor
     selfType
   end
 
-  def addScopeForMethod(mdef: MethodDefinition): void
-    scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    scope.resetDefaultSelfNode
-  end
-
-  def addScopeWithSelfType(node: Node, selfType: TypeFuture)
-    scope = addScopeUnder(node)
-    scope.selfType = selfType
-    scope
-  end
-
   def isVoid type: MethodFuture
     type.returnType.isResolved && @types.getVoidType().resolve.equals(type.returnType.resolve)
   end
@@ -1193,14 +1182,6 @@ class Typer < SimpleNodeVisitor
 
   def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
     @types.getLocalType(scopeOf(arg), identifier, arg.position)
-  end
-
-  def scopeOf(node: Node)
-    @scopes.getScope node
-  end
-
-  def addScopeUnder(node: Node)
-    @scopes.addScope node
   end
 
   def getArgumentType(arg: FormalArgument)
@@ -1221,6 +1202,25 @@ class Typer < SimpleNodeVisitor
     targetType = infer(target)
     targetType = @types.getMetaType(targetType) if scope.context.kind_of?(ClassDefinition)
     targetType
+  end
+
+  def addScopeForMethod(mdef: MethodDefinition): void
+    scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
+    scope.resetDefaultSelfNode
+  end
+
+  def addScopeWithSelfType(node: Node, selfType: TypeFuture)
+    scope = addScopeUnder(node)
+    scope.selfType = selfType
+    scope
+  end
+
+  def scopeOf(node: Node)
+    @scopes.getScope node
+  end
+
+  def addScopeUnder(node: Node)
+    @scopes.addScope node
   end
 
   def addNestedScope node: Node
