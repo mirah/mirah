@@ -229,7 +229,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
-  file new_jar => mirah_srcs + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+
+  file new_jar => mirah_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
     build_dir = 'build/bootstrap'
     rm_rf build_dir
     mkdir_p build_dir
@@ -248,14 +249,26 @@ def bootstrap_mirah_from(old_jar, new_jar)
     if build_version.to_f > 1.7
       build_version = '1.7'
     end
+
+    default_class_path = ["javalib/mirah-parser.jar", build_dir,"javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
+
     # Compile Mirah sources
     runjava('-Xmx512m',
             old_jar,
             '-d', build_dir,
-            '-classpath', "javalib/mirah-parser.jar:#{build_dir}:javalib/asm-5.jar",
+            '-classpath', default_class_path,
             '--jvm', build_version,
             *mirah_srcs)
   
+      # compile ant stuff
+      ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
+      runjava '-Xmx512m',
+            old_jar,
+            '-d', build_dir,
+            '-classpath', [default_class_path, ant_classpath].join(File::PATH_SEPARATOR),
+            '--jvm', build_version,
+            'src/org/mirah/ant'
+
     # Build the jar                    
     ant.jar 'jarfile' => new_jar do
       fileset 'dir' => build_dir
