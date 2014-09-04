@@ -140,11 +140,16 @@ class ClosureBuilder
   end
 
   def define_nlr_exception(block: Block): ClosureDefinition
+    build_class block.position,
+                @types.getBaseExceptionType.resolve,
+                temp_name_from_outer_scope(block, "NLRException")
+  end
+
+  def temp_name_from_outer_scope block: Node,  scoped_name: String
     class_or_script = block.findAncestor {|node| node.kind_of?(ClassDefinition) || node.kind_of?(Script)}
     outer_name = if class_or_script.kind_of? ClassDefinition
                    ClassDefinition(class_or_script).name.identifier
                  else
-                   puts class_or_script
                    source_name = class_or_script.position.source.name || 'DashE'
                    id = ""
                    File.new(source_name).getName.
@@ -154,9 +159,7 @@ class ClosureBuilder
                      end
                    id
                  end
-    exception_name = get_scope(class_or_script).temp "#{outer_name}$NLRException"
-    nlr_klass = build_class block.position, @types.getBaseExceptionType.resolve, exception_name
-    nlr_klass
+    get_scope(class_or_script).temp "#{outer_name}$#{scoped_name}"
   end
 
   def finish_nlr_exception(block: Node, nlr_klass: ClosureDefinition, return_value_type: ResolvedType)
@@ -202,7 +205,7 @@ class ClosureBuilder
   end
 
   def build_closure_class block: Block, parent_type: ResolvedType, parent_scope: Scope
-    klass = build_class(block.position, parent_type)
+    klass = build_class(block.position, parent_type, temp_name_from_outer_scope(block, "Closure"))
     enclosing_body = find_enclosing_body block
     # TODO(ribrdb) binding
     build_constructor(enclosing_body, klass, parent_scope)
@@ -411,7 +414,9 @@ class ClosureBuilder
 
   def build_constructor(enclosing_body: NodeList, klass: ClassDefinition, parent_scope: Scope): void
     parent_scope.binding_type ||= begin
-                                    binding_klass = build_class(klass.position, nil)
+                                    binding_klass = build_class(klass.position,
+                                                                nil,
+                                                                temp_name_from_outer_scope(klass, "Binding"))
                                     insert_into_body enclosing_body, binding_klass
                                     infer(binding_klass).resolve
                                   end
