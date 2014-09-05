@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,17 +16,17 @@
 package org.mirah.jvm.compiler
 
 import java.util.logging.Logger
-import org.objectweb.asm.Type
-import org.objectweb.asm.commons.Method
-
 import mirah.lang.ast.Array
 import org.mirah.jvm.types.MemberKind
+import org.objectweb.asm.commons.Method
+import org.objectweb.asm.Type
 
 class ArrayCompiler < BaseCompiler
-  def self.initialize:void
+  def self.initialize: void
     @@log = Logger.getLogger(ArrayCompiler.class.getName)
   end
-  def initialize(method:BaseCompiler, bytecode:Bytecode)
+
+  def initialize(method: BaseCompiler, bytecode: Bytecode)
     super(method.context)
     @method = method
     @bytecode = bytecode
@@ -41,12 +41,13 @@ class ArrayCompiler < BaseCompiler
     @add = Method.new("add", Type.getType("Z"), arg)
   end
   
-  def compile(array:Array):void
+  def compile(array: Array): void
     @bytecode.recordPosition(array.position)
     @bytecode.newInstance(@arraylist.getAsmType)
     @bytecode.dup
     @bytecode.push(array.values_size)
     @bytecode.invokeConstructor(@arraylist.getAsmType, @constructor)
+
     array.values_size.times do |i|
       @bytecode.dup
       value = array.values(i)
