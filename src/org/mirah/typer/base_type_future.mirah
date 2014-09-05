@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ import mirah.lang.ast.*
 # Should there be an UpdateWatcher?
 interface ResolutionWatcher
   def resolved(
-      future:BaseTypeFuture, current:ResolvedType, resolved:ResolvedType):void
+      future: BaseTypeFuture, current: ResolvedType, resolved: ResolvedType):void
   end
 end
 
@@ -32,7 +32,7 @@ end
 # Implements listeners and supports generating error messages.
 # Thread hostile
 class BaseTypeFuture; implements TypeFuture
-  def initialize(position:Position)
+  def initialize(position: Position)
     @position = position
     @listeners = ArrayList.new
     @new_listeners = ArrayList(nil)
@@ -44,11 +44,11 @@ class BaseTypeFuture; implements TypeFuture
     @lock = ReentrantLock.new
   end
 
-  def self.initialize:void
+  def self.initialize: void
     @@log = Logger.getLogger(BaseTypeFuture.class.getName)
   end
 
-  def watchResolves(watcher:ResolutionWatcher):void
+  def watchResolves(watcher: ResolutionWatcher): void
     @watcher = watcher
   end
 
@@ -74,7 +74,7 @@ class BaseTypeFuture; implements TypeFuture
     @error_message || 'InferenceError'
   end
 
-  def error_message=(message:String)
+  def error_message=(message: String)
     @error_message = message
   end
 
@@ -82,11 +82,11 @@ class BaseTypeFuture; implements TypeFuture
     @position
   end
 
-  def position=(pos:Position)
+  def position=(pos: Position)
     @position = pos
   end
 
-  def onUpdate(listener:TypeListener):TypeListener
+  def onUpdate(listener: TypeListener): TypeListener
     begin
       @lock.lock
       if @notify_depth > 0
@@ -102,7 +102,7 @@ class BaseTypeFuture; implements TypeFuture
     listener
   end
 
-  def removeListener(listener:TypeListener):void
+  def removeListener(listener: TypeListener): void
     @lock.lock
     if @notify_depth > 0
       @new_listeners ||= ArrayList.new(@listeners)
@@ -116,8 +116,8 @@ class BaseTypeFuture; implements TypeFuture
 
   # Resolves this future to the specified type.
   # Notifies the listeners if the resolved type has changed.
-  def resolved(type:ResolvedType):void
-    @@log.fine "resolving as #{type} from #{@resolved}"
+  def resolved(type: ResolvedType): void
+    @@log.fine "resolving as #{type} from #{resolved_str}"
     @lock.lock
     if @watcher
       @watcher.resolved(self, @resolved, type)
@@ -138,11 +138,11 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def forgetType
-    @@log.finest "forgetting previous type #{@resolved}"
+    @@log.finest "forgetting previous type #{resolved_str}"
     @resolved = nil
   end
 
-  def notifyListeners:void
+  def notifyListeners: void
     @lock.lock
     @notify_depth += 1
     if @notify_depth > 100
@@ -152,8 +152,8 @@ class BaseTypeFuture; implements TypeFuture
       Logger.getLogger('org.mirah').setLevel(Level.ALL)
     end
 
-    @listeners.each do |l|
-      TypeListener(l).updated(self, @resolved)
+    @listeners.each do |l: TypeListener|
+      l.updated(self, @resolved)
     end
   ensure
     if 0 == (@notify_depth -= 1)
@@ -166,14 +166,24 @@ class BaseTypeFuture; implements TypeFuture
   end
 
   def toString
-    "<#{getClass.getSimpleName}: resolved=#{@resolved}, listenerCt=#{@listeners.size}>"
+    "<#{getClass.getSimpleName}: resolved=#{resolved_str}, listenerCt=#{@listeners.size}>"
   end
 
-  def dump(out:FuturePrinter):void
+  def dump(out: FuturePrinter): void
     out.writeLine(String.valueOf(@resolved))
   end
 
   def getComponents
     Collections.emptyMap
   end
+
+  def resolved_str: String
+    type_str @resolved
+  end
+
+  def type_str(type: ResolvedType): String
+    return "undefined" unless type
+    type.toString
+  end
+
 end

@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2013-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,7 +30,7 @@ import org.mirah.typer.Scoper
 import org.mirah.typer.TypeFuture
 
 class JVMScope < SimpleScope
-  def initialize(scoper:Scoper=nil)
+  def initialize(scoper: Scoper=nil)
     @defined_locals = HashSet.new
     @local_types = {}
     @scoper = scoper
@@ -41,7 +41,7 @@ class JVMScope < SimpleScope
     @shadowed = HashSet.new
   end
 
-  def binding_type:ResolvedType
+  def binding_type: ResolvedType
     if parent
       parent.binding_type
     else
@@ -49,7 +49,7 @@ class JVMScope < SimpleScope
     end
   end
 
-  def binding_type=(type:ResolvedType):void
+  def binding_type=(type: ResolvedType): void
     if parent
       parent.binding_type = type
     else
@@ -57,7 +57,7 @@ class JVMScope < SimpleScope
     end
   end
 
-  def getLocalType(name:String, position:Position)
+  def getLocalType(name: String, position: Position)
     type = LocalFuture(@local_types[name])
     if type.nil?
       type = LocalFuture.new(name, position)
@@ -102,24 +102,24 @@ class JVMScope < SimpleScope
     captured
   end
 
-  def addChild(scope:JVMScope)
+  def addChild(scope: JVMScope)
     @children.add(scope)
   end
 
-  def removeChild(scope:JVMScope)
+  def removeChild(scope: JVMScope)
     @children.remove(scope)
   end
 
   def parent; @parent; end
 
-  def parent=(parent:Scope):void
+  def parent=(parent: Scope):void
     @parent.removeChild(self) if @parent
     JVMScope(parent).addChild(self)
     @parent = JVMScope(parent)
     flush
   end
 
-  def outer_scope:JVMScope
+  def outer_scope: JVMScope
     node = self.context
     return nil if @scoper.nil? || node.nil? || node.parent.nil?
     JVMScope(@scoper.getScope(node))
@@ -130,21 +130,21 @@ class JVMScope < SimpleScope
     super || (outer && outer.package)
   end
 
-  def fetch_imports(map:Map)
+  def fetch_imports(map: Map)
     parent_scope = outer_scope
     parent_scope.fetch_imports(map) if parent_scope
 
     map.putAll(@imports)
   end
 
-  def fetch_packages(list:List)
+  def fetch_packages(list: List)
     parent_scope = outer_scope
     parent_scope.fetch_packages(list) if parent_scope
     list.addAll(@search_packages)
     list
   end
 
-  def fetch_static_imports(set:Set)
+  def fetch_static_imports(set: Set)
     parent_scope = outer_scope
     parent_scope.fetch_static_imports(set) if parent_scope
     set.addAll(@staticImports)
@@ -160,11 +160,11 @@ class JVMScope < SimpleScope
   end
   
   /* Wrapper around import() to make it accessible from java */
-  def add_import(fullname:String, shortname:String)
+  def add_import(fullname: String, shortname: String)
     self.import(fullname, shortname)
   end
   
-  def import(fullname:String, shortname:String)
+  def import(fullname: String, shortname: String)
     flush
     if "*".equals(shortname)
       @search_packages.add(fullname)
@@ -173,13 +173,13 @@ class JVMScope < SimpleScope
     end
   end
 
-  def selfType:TypeFuture
+  def selfType: TypeFuture
     if @selfType.nil? && parent
       @selfType = parent.selfType
     end
     @selfType
   end
-  def selfType=(type:TypeFuture):void
+  def selfType=(type: TypeFuture): void
     @selfType = type
   end
 
@@ -188,7 +188,7 @@ class JVMScope < SimpleScope
     @staticImports.add(type)
   end
   
-  def staticImports:Set
+  def staticImports: Set
     @cached_static_imports ||= fetch_static_imports(HashSet.new)
   end
 
@@ -198,7 +198,7 @@ class JVMScope < SimpleScope
     @cached_static_imports = Set(nil)
   end
 
-  def shadow(name:String):void
+  def shadow(name: String): void
     @defined_locals.add name
     @shadowed.add name
   end
