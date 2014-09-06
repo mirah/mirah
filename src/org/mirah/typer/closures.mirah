@@ -28,7 +28,7 @@ import java.io.File
 # Note: This is ugly. It depends on the internals of the JVM scope and jvm_bytecode classes,
 # and the BindingReference node is a hack. This should really all be cleaned up.
 class ClosureBuilder
-  def self.initialize:void
+  def self.initialize: void
     @@log = Logger.getLogger(ClosureBuilder.class.getName)
   end
 
@@ -207,8 +207,19 @@ class ClosureBuilder
   def build_closure_class block: Block, parent_type: ResolvedType, parent_scope: Scope
     klass = build_class(block.position, parent_type, temp_name_from_outer_scope(block, "Closure"))
     enclosing_body = find_enclosing_body block
-    # TODO(ribrdb) binding
-    build_constructor(enclosing_body, klass, parent_scope)
+
+    parent_scope.binding_type ||= begin
+                                    name = temp_name_from_outer_scope(klass, "Binding")
+                                    @@log.fine("building binding #{name}")
+                                    binding_klass = build_class(klass.position,
+                                                                nil,
+                                                                name)
+                                    insert_into_body enclosing_body, binding_klass
+                                    infer(binding_klass).resolve
+                                  end
+    binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
+
+    build_constructor(enclosing_body, klass, binding_type_name)
 
 
     insert_into_body enclosing_body, klass
@@ -412,15 +423,7 @@ class ClosureBuilder
     end
   end
 
-  def build_constructor(enclosing_body: NodeList, klass: ClassDefinition, parent_scope: Scope): void
-    parent_scope.binding_type ||= begin
-                                    binding_klass = build_class(klass.position,
-                                                                nil,
-                                                                temp_name_from_outer_scope(klass, "Binding"))
-                                    insert_into_body enclosing_body, binding_klass
-                                    infer(binding_klass).resolve
-                                  end
-    binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
+  def build_constructor(enclosing_body: NodeList, klass: ClassDefinition, binding_type_name: Constant): void
     args = Arguments.new(klass.position,
                          [RequiredArgument.new(SimpleString.new('binding'), binding_type_name)],
                          Collections.emptyList,
