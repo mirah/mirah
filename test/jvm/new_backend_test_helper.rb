@@ -89,7 +89,7 @@ module JVMCompiler
   end
 
   def tmp_script_name
-    "script#{name.gsub(/\)|\(/,'_').capitalize}#{System.nano_time}"
+    "#{name.gsub(/\)|\(/,'_').capitalize}#{System.nano_time.to_s[10..15]}"
   end
 
   def assert_raise_java(type, message=nil)
