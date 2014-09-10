@@ -37,7 +37,6 @@ class Compile < Task
   end
 
   def execute:void
-
     handleOutput("compiling Mirah source in #{expand(@src)} to #{@target}")
     log("classpath: #{@classpath}", 3)
     target = @target
@@ -49,32 +48,19 @@ class Compile < Task
     verbose = @verbose
     exception = Exception(nil)
 
-    t = Thread.new do
-      # JRuby wants to use the context classloader, but that's ant's
-      # classloader, not the one that contains JRuby.
-      Thread.currentThread.setContextClassLoader(Compile.class.getClassLoader())
-      args = ArrayList.new(
-          ['--jvm', jvm_version,
-           '-d', target,
-           '--cd', dir,
-           '-c', classpath,
-           src])
-      args.add(0, '-V') if verbose
+    args = ArrayList.new(
+        ['--jvm', jvm_version,
+         '-d', target,
+         #'--cd', dir,
+         '-c', classpath,
+         src])
+    args.add(0, '-V') if verbose
 
-      # scoping hack
-      inner_exception = Exception(nil)
-      begin
-        MirahCommand.compile(args)
-      rescue => ex
-        inner_exception = ex
-      end
-      # scoping hack
-      exception = inner_exception
+    begin
+      MirahCommand.compile(args)
+    rescue => ex
+      raise BuildException.new(exception)
     end
-    t.start
-    t.join
-
-    raise BuildException.new(exception) if exception
   end
 
   def setSrc(a:File):void
@@ -82,6 +68,10 @@ class Compile < Task
   end
 
   def setDestdir(a:File):void
+    @target = a.toString
+  end
+
+  def setTarget(a:File):void
     @target = a.toString
   end
 
