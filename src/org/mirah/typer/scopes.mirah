@@ -38,13 +38,20 @@ interface Scope do
   def temp(name:String):String; end
   def imports:Map; end  # Map of short -> long; probably should be reversed.
   def search_packages:List; end
+  # type of the binding for this scope, if it has one
+  # this walks up parents to find the right one to attach to
   def binding_type:ResolvedType; end
   def binding_type=(type:ResolvedType):void; end
+  # type of the binding for exactly this scope
+  def declared_binding_type:ResolvedType; end
 end
 
 interface Scoper do
+  # parent scope of node
   def getScope(node:Node):Scope; end
+  # add scope to nodes below node
   def addScope(node:Node):Scope; end
+  # get scope of node
   def getIntroducedScope(node:Node):Scope; end
   def copyScopeFrom(from:Node, to:Node):void; end
 end

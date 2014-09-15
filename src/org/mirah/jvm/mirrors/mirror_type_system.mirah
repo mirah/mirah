@@ -284,7 +284,7 @@ class MirrorTypeSystem implements TypeSystem
       end
       target.addMethodListener(method_name, listener)
       unless call.explicitTarget || call.scope.nil?
-        JVMScope(call.scope).staticImports.each do |f:TypeFuture|
+        MirrorScope(call.scope).staticImports.each do |f:TypeFuture|
           f.onUpdate do |x, resolved|
             if resolved.kind_of?(MirrorType)
               MirrorType(resolved).addMethodListener(method_name, listener)
@@ -372,7 +372,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getLocalType(scope, name, position)
-    JVMScope(scope).getLocalType(name, position)
+    MirrorScope(scope).getLocalType(name, position)
   end
 
   def getAbstractMethods(type)

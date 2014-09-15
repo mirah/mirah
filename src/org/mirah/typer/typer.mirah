@@ -1206,7 +1206,7 @@ class Typer < SimpleNodeVisitor
 
   def addScopeForMethod(mdef: MethodDefinition): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    scope.resetDefaultSelfNode
+    addScopeUnder(mdef)
   end
 
   def addScopeWithSelfType(node: Node, selfType: TypeFuture)

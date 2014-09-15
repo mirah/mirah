@@ -18,9 +18,16 @@ package org.mirah.typer
 import mirah.lang.ast.*
 import java.util.logging.Logger
 import java.util.Collections
+import java.util.LinkedHashMap
 import java.util.List
+import java.util.Map.Entry
 import java.util.ArrayList
 import java.io.File
+
+
+
+import org.mirah.jvm.mirrors.MirrorScope
+import org.mirah.macros.MacroBuilder
 
 # This class transforms a Block into an anonymous class once the Typer has figured out
 # the interface to implement (or the abstract superclass).

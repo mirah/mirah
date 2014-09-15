@@ -295,7 +295,7 @@ class MethodLookup
     is_static_scope = (
         scope && scope.selfType && target == scope.selfType.resolve)
     if includeStaticImports && potentials.isEmpty && is_static_scope
-      potentials = gatherStaticImports(JVMScope(scope), name)
+      potentials = gatherStaticImports(MirrorScope(scope), name)
     end
     state = LookupState.new(@context, scope, target, potentials, position)
     state.search(params, macro_params)
@@ -349,7 +349,7 @@ class MethodLookup
     gatherMethodsInternal(target, name, methods, types)
   end
 
-  def gatherStaticImports(scope:JVMScope, name:String):List
+  def gatherStaticImports(scope:MirrorScope, name:String):List
     methods = LinkedList.new
     types = HashSet.new
     scope.staticImports.each do |type|

@@ -29,7 +29,26 @@ import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
 import org.mirah.typer.TypeFuture
 
+
+# additional extensions on the base scope interface used by the
+# mirror typesystem
+interface MirrorScope < Scope
+
+  def getLocalType(name: String, position: Position):LocalFuture; end
+  # scope of the AST outside the current node. It may not be the parent scope.
+  def outer_scope: MirrorScope; end
+  # Currently available static imports
+  def staticImports: Set; end
+  # the fetch methods are internal bookkeeping for recursively looking up
+  # available imports / packages
+  def fetch_imports(something: Map): Map; end
+  def fetch_static_imports(something: Set): Set; end
+  def fetch_packages(list: List): List; end
+end
+
 class JVMScope < SimpleScope
+  implements MirrorScope
+
   def initialize(scoper: Scoper=nil)
     @defined_locals = HashSet.new
     @local_types = {}
@@ -56,6 +75,7 @@ class JVMScope < SimpleScope
       @binding_type = type
     end
   end
+  def declared_binding_type; @binding_type; end
 
   def getLocalType(name: String, position: Position)
     type = LocalFuture(@local_types[name])
@@ -119,7 +139,8 @@ class JVMScope < SimpleScope
     flush
   end
 
-  def outer_scope: JVMScope
+  # override
+  def outer_scope
     node = self.context
     return nil if @scoper.nil? || node.nil? || node.parent.nil?
     JVMScope(@scoper.getScope(node))

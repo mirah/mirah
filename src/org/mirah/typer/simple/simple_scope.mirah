@@ -78,6 +78,4 @@ class SimpleScope; implements Scope
   def shadow(name:String):void
     raise UnsupportedOperationException, "Simple scope doesn't know how to shadow."
   end
-
-  def resetDefaultSelfNode:void; end
 end

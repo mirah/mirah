@@ -40,7 +40,6 @@ import org.mirah.jvm.compiler.Backend
 import org.mirah.jvm.compiler.BytecodeConsumer
 import org.mirah.jvm.compiler.JvmVersion
 import org.mirah.jvm.mirrors.MirrorTypeSystem
-import org.mirah.jvm.mirrors.JVMScope
 import org.mirah.jvm.mirrors.ClassResourceLoader
 import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
 import org.mirah.jvm.mirrors.FilteredResources
