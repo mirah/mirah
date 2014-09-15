@@ -1327,6 +1327,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def sourceContent node: Node
+    return "<source non-existent>" unless node
     sourceContent node.position
   end
   def sourceContent pos: Position
