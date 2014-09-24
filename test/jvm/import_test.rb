@@ -62,7 +62,9 @@ class ImportTest < Test::Unit::TestCase
     list = cls.list(o)
     assert_kind_of(Java::JavaUtil::List, list)
     assert_equal(["1", "2", "3"], list.to_a)
+  end
 
+  def test_static_import_nested_in_class
     cls, = compile(<<-EOF)
       import java.util.Arrays
       class StaticImports
@@ -73,6 +75,7 @@ class ImportTest < Test::Unit::TestCase
       end
     EOF
 
+    o = ["1", "2", "3"].to_java(:object)
     list = cls.new.list(o)
     assert_kind_of(Java::JavaUtil::List, list)
     assert_equal(["1", "2", "3"], list.to_a)
