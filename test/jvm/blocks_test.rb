@@ -255,7 +255,7 @@ class BlocksTest < Test::Unit::TestCase
       parse_and_type(<<-CODE)
         interface RunOrRun2 do
           def run:void;end
-          def run2:void;end;
+          def run2:void;end
         end
 
         class RunOrRun2Fooer
