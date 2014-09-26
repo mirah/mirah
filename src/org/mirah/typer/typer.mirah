@@ -58,8 +58,14 @@ class Typer < SimpleNodeVisitor
     @futures = HashMap.new
     @types = types
     @scopes = scopes
-    @closures = ClosureBuilder.new(self)
     @macros = MacroBuilder.new(self, jvm_backend, parser)
+
+#    @closures = BetterClosureBuilder.new(self, @macros)
+    @closures = ClosureBuilder.new(self)
+  end
+
+  def finish_closures
+    @closures.finish
   end
 
   def macro_compiler
@@ -991,36 +997,15 @@ class Typer < SimpleNodeVisitor
 
     closures = @closures
     typer = self
-
+    typer.logger.fine "before block future"
     BlockFuture.new(block) do |block_future, resolvedType|
+      typer.logger.fine "in block future"
       new_scope = typer.addNestedScope block
-
+      typer.logger.fine "block is closure with scope #{new_scope}"
       typer.infer(block.arguments) if block.arguments
 
       unless resolvedType.isError || block.parent.nil?
-# if Method-having-closure
-#   selfType of new scope is block type future
-#   && infer body as non-expression
-# else
-#   selfType of newscope stays outer class
-#   infer body as expression
-# end
-        closures.insert_closure block, resolvedType
-#        if typer.contains_methods block
-#          closures.insert_closure block, resolvedType
-#          #new_scope.selfType = block_future
-#          #typer.infer(block.body)
-#        else
-#          methods = typer.type_system.getAbstractMethods(resolvedType)
-#          if methods.size != 1
-#            raise UnsupportedOperationException,
-#                  "Multiple abstract methods in #{resolvedType}: #{methods}"
-#          end
-#          # TODO should be able to call methods on abstract classes that are the closures,
-#          # which needs a self type of some kind
-#          BlockFuture(block_future).basic_block_method_type = MethodType(methods.get(0))
-#          typer.infer(block.body, true)
-#        end
+        closures.add_todo block, resolvedType
       end
     end
   end

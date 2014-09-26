@@ -29,12 +29,26 @@ import java.io.File
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.macros.MacroBuilder
 
+
+interface ClosureBuilderer
+  def insert_closure(block: Block, parent_type: ResolvedType): TypeFuture; end
+  def add_todo(block: Block, parent_type: ResolvedType): void; end
+  def finish: void; end
+end
+
 # This class transforms a Block into an anonymous class once the Typer has figured out
 # the interface to implement (or the abstract superclass).
 #
 # Note: This is ugly. It depends on the internals of the JVM scope and jvm_bytecode classes,
 # and the BindingReference node is a hack. This should really all be cleaned up.
 class ClosureBuilder
+  implements ClosureBuilderer
+  # finish is a noop here
+  def finish; end
+  def add_todo block, parent_type
+    insert_closure block, parent_type
+  end
+
   def self.initialize: void
     @@log = Logger.getLogger(ClosureBuilder.class.getName)
   end
@@ -162,10 +176,10 @@ class ClosureBuilder
                    File.new(source_name).getName.
                      replace("\.duby|\.mirah", "").
                      split("[_-]").each do |word|
-                      id += word.substring(0,1).toUpperCase + word.substring(1) 
+                       id += word.substring(0,1).toUpperCase + word.substring(1)
                      end
                    id
-                 end
+                  end
     get_scope(class_or_script).temp "#{outer_name}$#{scoped_name}"
   end
 
