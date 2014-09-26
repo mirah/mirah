@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2013-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -96,6 +96,7 @@ class MirahCompiler implements JvmBackend
     @context[Context] = @macro_context
 
     createTypeSystems(classpath, bootclasspath, macroclasspath)
+
     useBetterScope = true
     if useBetterScope
        # TODO allow this. ambiguous for parser?
