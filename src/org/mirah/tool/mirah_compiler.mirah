@@ -96,11 +96,19 @@ class MirahCompiler implements JvmBackend
     @context[Context] = @macro_context
 
     createTypeSystems(classpath, bootclasspath, macroclasspath)
-    context[Scoper] = @scoper = SimpleScoper.new do |s, node|
-      scope = JVMScope.new(s)
-      scope.context = node
-      scope
+    useBetterScope = true
+    if useBetterScope
+       # TODO allow this. ambiguous for parser?
+       #context[Scoper] = @scoper = SimpleScoper.new BetterScopeFactory.new
+       context[Scoper] = @scoper = SimpleScoper.new(BetterScopeFactory.new)
+    else
+      context[Scoper] = @scoper = SimpleScoper.new do |s, node|
+         scope = JVMScope.new(s)
+         scope.context = node
+         scope
+       end
     end
+
     context[MirahParser] = @parser = MirahParser.new
     BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics)
 

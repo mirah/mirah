@@ -257,26 +257,26 @@ class BetterScope
     end
   end
 
-  macro def self.has_own_bindingType
+  macro def self.does_binding_type_thing
     quote do
       def declared_binding_type
         @binding_type
       end
-        def binding_type: ResolvedType
-    if parent
-      parent.binding_type
-    else
-      @binding_type
-    end
-  end
+      def binding_type: ResolvedType
+        if parent
+          parent.binding_type
+        else
+          @binding_type
+        end
+      end
 
-  def binding_type=(type: ResolvedType): void
-    if parent
-      parent.binding_type = type
-    else
-      @binding_type = type
-    end
-  end
+      def binding_type=(type: ResolvedType): void
+        if parent
+          parent.binding_type = type
+        else
+          @binding_type = type
+        end
+      end
       #def binding_type
       #  @binding_type
       #end
@@ -340,7 +340,22 @@ class BetterScope
         @locals.each {|name| captured.add(name) if isCaptured(String(name))}
         captured
       end
+    end
+  end
 
+  macro def self.defers_captures
+    quote do
+      def isCaptured(name)
+        parent && parent.isCaptured(name)
+      end
+
+      def capturedLocals
+        if parent
+          parent.capturedLocals
+        else
+          []
+        end
+      end
     end
   end
 
@@ -484,6 +499,7 @@ class ClassScope < BetterScope
   has_own_selfType
   no_shadowing
   has_no_locals
+  does_binding_type_thing
 end
 
 class ClosureScope < BetterScope
@@ -525,6 +541,7 @@ class RescueScope < BetterScope
   
 
   supports_locals
+  defers_captures
   def shadow(name)
     @shadowed.add name
   end
@@ -551,7 +568,7 @@ class MethodScope < BetterScope
   can_have_locals_captured
   has_own_selfType # is the method type
   deferred_packages_and_imports
-  has_own_bindingType
+  does_binding_type_thing
 
   # methods can't shadow locals, because scopes outside them can't share locals w/ them.
   no_shadowing
@@ -571,7 +588,7 @@ class ScriptScope < BetterScope
   has_own_selfType
   # scripts can't shadow locals, because there are no scopes outside them.
   no_shadowing
-  has_own_bindingType
+  does_binding_type_thing
   has_own_imports_and_looks_up
 
   # scripts can have packages
