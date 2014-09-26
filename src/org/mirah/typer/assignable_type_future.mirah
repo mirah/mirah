@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ import mirah.lang.ast.*
 # that will hold all the assignments. It may also have a declared type, in
 # which case all assignments must be compatible with the declared type.
 class AssignableTypeFuture < BaseTypeFuture
-  def initialize(position:Position)
+  def initialize(position: Position)
     super(position)
     @assignments = LinkedHashMap.new
     @declarations = LinkedHashMap.new
@@ -37,7 +37,7 @@ class AssignableTypeFuture < BaseTypeFuture
   end
 
   # Set the declared type. Only one declaration is allowed.
-  def declare(type:TypeFuture, position:Position):TypeFuture
+  def declare(type: TypeFuture, position: Position): TypeFuture
     @lock.lock
     if @declarations.containsKey(type)
       @@log.finest "already visited declaration for #{type}"
@@ -72,7 +72,7 @@ class AssignableTypeFuture < BaseTypeFuture
 
   # Adds an assigment. The returned future will resolve to 'value',
   # or an error if this assignment is incompatible.
-  def assign(value:TypeFuture, position:Position):TypeFuture
+  def assign(value: TypeFuture, position: Position): TypeFuture
     @lock.lock
     if @assignments.containsKey(value)
       TypeFuture(@assignments[value])
@@ -92,25 +92,25 @@ class AssignableTypeFuture < BaseTypeFuture
 
   # Returns an error type for an incompatible assignment.
   # Subclasses may override this to customize the error message.
-  def incompatibleWith(value:ResolvedType, position:Position)
+  def incompatibleWith(value: ResolvedType, position: Position)
     ErrorType.new([["Cannot assign #{value} to #{inferredType}", position]])
   end
 
-  def hasDeclaration:boolean
+  def hasDeclaration: boolean
     @lock.lock
     !@declarations.isEmpty
   ensure
     @lock.unlock
   end
 
-  def assignedValues(includeParent:boolean, includeChildren:boolean):Collection
+  def assignedValues(includeParent: boolean, includeChildren: boolean): Collection
     @lock.lock
     Collection(@assignments.keySet)
   ensure
     @lock.unlock
   end
 
-  def declaredType:TypeFuture
+  def declaredType: TypeFuture
     @lock.lock
     if @declarations.isEmpty
       nil
@@ -121,15 +121,14 @@ class AssignableTypeFuture < BaseTypeFuture
     @lock.unlock
   end
 
-  def dump(out:FuturePrinter)
+  def dump(out: FuturePrinter)
     out.write("resolved: ")
     super
     if hasDeclaration
       out.write("declared: ")
       out.printFuture(declaredType)
     end
-    assignedValues(true, true).each do |_value|
-      value = TypeFuture(_value)
+    assignedValues(true, true).each do |value: TypeFuture|
       out.printFuture(value)
       unless value.isResolved
         out.writeLine("(resolved: #{value.resolve})")
@@ -193,8 +192,7 @@ class AssignableTypeFuture < BaseTypeFuture
     
       # Now check if that broke anything. Revert to our previous value
       if saved_type && type
-        values.each do |_value|
-          value = TypeFuture(value)
+        values.each do |value: TypeFuture|
           is_resolved = value.isResolved && !value.resolve.isError
           unless is_resolved || errors.contains(value)
             @@log.fine("#{self}: checkAssignments: conflict found, reverting to #{saved_type}")
@@ -216,11 +214,11 @@ class AssignableTypeFuture < BaseTypeFuture
           @resolving = true
           if hasDeclaration
             @@log.finer("#{self}: Resolving declarations")
-            @declarations.keySet.each {|t| TypeFuture(t).resolve}
+            @declarations.keySet.each {|t: TypeFuture| t.resolve }
             @@log.finer("#{self}: done")
           else
             @@log.finer("#{self}: Resolving assignments")
-            assignedValues(true, true).each {|v| TypeFuture(v).resolve }
+            assignedValues(true, true).each {|v: TypeFuture| v.resolve }
             @@log.finer("#{self}: done")
           end
           @resolving = false
