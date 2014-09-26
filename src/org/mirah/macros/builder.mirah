@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,7 +50,7 @@ import org.mirah.typer.TypeFuture
 import org.mirah.typer.Typer
 
 class ValueSetter < NodeScanner
-  def initialize(objects:List)
+  def initialize(objects: List)
     @index = 0
     @objects = objects
   end
@@ -87,7 +87,7 @@ end
 # managing intrinsics.
 #
 class MacroBuilder; implements Compiler
-  def initialize(typer:Typer, backend:JvmBackend, parser:MirahParser=nil)
+  def initialize(typer: Typer, backend: JvmBackend, parser: MirahParser=nil)
     @typer = typer
     @types = typer.type_system
     @scopes = typer.scoper
@@ -97,15 +97,15 @@ class MacroBuilder; implements Compiler
     @loader = Typer(nil)
   end
 
-  def self.initialize:void
+  def self.initialize: void
     @@log = java::util::logging::Logger.getLogger(MacroBuilder.class.getName)
   end
 
-  def setMacroLoader(loader:Typer)
+  def setMacroLoader(loader: Typer)
     @loader = loader
   end
 
-  def buildExtension(macroDef:MacroDefinition)
+  def buildExtension(macroDef: MacroDefinition)
     ast = constructAst(macroDef)
     @backend.logExtensionAst(ast)
     @typer.infer(ast)
@@ -146,7 +146,7 @@ class MacroBuilder; implements Compiler
     Cast.new(t, v)
   end
 
-  def serializeAst(node:Node):Object
+  def serializeAst(node: Node): Object
     raise IllegalArgumentException, "No position for #{node}" unless node.position
     result = Object[5]
     result[0] = SimpleString.new(node.position.source.name)
@@ -160,13 +160,13 @@ class MacroBuilder; implements Compiler
     Arrays.asList(result)
   end
 
-  def deserializeScript(filename:String, code:InputStream, values:List):Script
+  def deserializeScript(filename: String, code: InputStream, values: List): Script
     script = Script(@parser.parse(StreamCodeSource.new(filename, code)))
     ValueSetter.new(values).scan(script)
     script
   end
 
-  def deserializeAst(filename:String, startLine:int, startCol:int, code:String, values:List):Node
+  def deserializeAst(filename: String, startLine: int, startCol: int, code: String, values: List): Node
     script = Script(@parser.parse(StringCodeSource.new(filename, code, startLine, startCol)))
     # TODO(ribrdb) scope
     ValueSetter.new(values).scan(script)
@@ -180,7 +180,7 @@ class MacroBuilder; implements Compiler
   end
 
   # If the string is too long split it into multiple string constants.
-  def splitString(string:String):Node
+  def splitString(string: String): Node
     if string.length < 65535
       Node(SimpleString.new(string))
     else
@@ -194,7 +194,7 @@ class MacroBuilder; implements Compiler
     end
   end
 
-  def constructAst(macroDef:MacroDefinition):Script
+  def constructAst(macroDef: MacroDefinition): Script
     name = extensionName(macroDef)
     addMissingTypes(macroDef)
     argdef = makeArgAnnotation(macroDef.arguments)
@@ -210,22 +210,22 @@ class MacroBuilder; implements Compiler
       import mirah.lang.ast.Node
       import mirah.lang.ast.*
 
-      $MacroDef[name: `macroDef.name`, arguments:`argdef`, isStatic:`isStatic`]
+      $MacroDef[name: `macroDef.name`, arguments: `argdef`, isStatic: `isStatic`]
       class `name` implements Macro
-        def initialize(mirah:Compiler, call:CallSite)
+        def initialize(mirah: Compiler, call: CallSite)
           @mirah = mirah
           @call = call
         end
 
-        def _expand(`macroDef.arguments.clone`):Node
+        def _expand(`macroDef.arguments.clone`): Node
           `macroDef.body`
         end
 
-        def expand:Node
+        def expand: Node
           _expand(`casts`)
         end
 
-        def gensym:String
+        def gensym: String
           @mirah.scoper.getScope(@call).temp('gensym')
         end
       end
@@ -247,7 +247,7 @@ class MacroBuilder; implements Compiler
     script
   end
 
-  def extensionName(macroDef:MacroDefinition)
+  def extensionName(macroDef: MacroDefinition)
     enclosing_type = @scopes.getScope(macroDef).selfType.resolve
     counter = Integer(@extension_counters.get(enclosing_type))
     if counter.nil?
@@ -261,12 +261,11 @@ class MacroBuilder; implements Compiler
 
   # Adds types to the arguments with none specified.
   # Uses Block for a block argument and Node for any other argument.
-  def addMissingTypes(macroDef:MacroDefinition):void
+  def addMissingTypes(macroDef: MacroDefinition): void
     macroDef.arguments ||= Arguments.new(Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
     macroDef.body ||= NodeList.new
     # TODO optional, rest args
-    macroDef.arguments.required.each do |_arg|
-      arg = RequiredArgument(_arg)
+    macroDef.arguments.required.each do |arg: RequiredArgument|
       if arg.type.nil?
         arg.type = SimpleString.new('mirah.lang.ast.Node')
       elsif arg.type.typeref.name.indexOf('.') == -1
@@ -282,11 +281,10 @@ class MacroBuilder; implements Compiler
     end
   end
 
-  def makeCasts(args:Arguments):List
+  def makeCasts(args: Arguments): List
     casts = LinkedList.new
     i = 0
-    args.required.each do |_arg|
-      arg = RequiredArgument(_arg)
+    args.required.each do |arg: RequiredArgument|
       if i == args.required_size() - 1 && arg.type.typeref.name.endsWith("Block")
         casts.add(fetchMacroBlock)
       else
@@ -297,7 +295,7 @@ class MacroBuilder; implements Compiler
     casts
   end
 
-  def makeArgAnnotation(args:Arguments):Annotation
+  def makeArgAnnotation(args: Arguments): Annotation
     # TODO other args
     required = LinkedList.new
     args.required_size.times do |i|
@@ -312,19 +310,19 @@ class MacroBuilder; implements Compiler
   end
 
   # Returns a node to fetch the i'th macro argument during expansion.
-  def fetchMacroArg(i:int):Node
+  def fetchMacroArg(i: int): Node
     Call.new(
       Call.new(FieldAccess.new(SimpleString.new('call')),
                SimpleString.new('parameters'), Collections.emptyList, nil),
       SimpleString.new('get'), [Fixnum.new(i)], nil)
   end
 
-  def fetchMacroBlock:Node
+  def fetchMacroBlock: Node
     Call.new(FieldAccess.new(SimpleString.new('call')),
              SimpleString.new('block'), Collections.emptyList, nil)
   end
 
-  def addToExtensions(macrodef:MacroDefinition, klass:Class):void
+  def addToExtensions(macrodef: MacroDefinition, klass: Class): void
     classdef = ClassDefinition(macrodef.findAncestor(ClassDefinition.class))
     if classdef.nil?
       return
@@ -341,8 +339,9 @@ class MacroBuilder; implements Compiler
     if extensions.nil?
       entries = [HashEntry.new(SimpleString.new('macros'), Array.new(Collections.emptyList))]
       extensions = Annotation.new(SimpleString.new('org.mirah.macros.anno.Extensions'), entries)
-      extensions_type = @typer.infer(extensions)
       classdef.annotations.add(extensions)
+
+      extensions_type = @typer.infer(extensions)
       if @loader
         @loader.learnType(extensions, extensions_type)
       end
@@ -357,7 +356,7 @@ class MacroBuilder; implements Compiler
     end
   end
 
-  def registerLoadedMacro(macroDef:MacroDefinition, klass:Class):void
+  def registerLoadedMacro(macroDef: MacroDefinition, klass: Class): void
     typer = if @loader
       @loader
     else
