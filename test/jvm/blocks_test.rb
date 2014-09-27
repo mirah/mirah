@@ -634,6 +634,27 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
+  def test_closures_in_a_rescue
+    cls, = compile(<<-EOF)
+      def foo(a: Runnable)
+        a.run
+      end
+      def regular: String
+        begin
+          foo { puts "Closure!" }
+          raise "wut"
+        rescue
+          foo { puts "We Want it" }
+        end
+        "finish"
+      end
+      regular
+    EOF
+    assert_output "Closure!\nWe Want it\n" do
+      cls.main(nil)
+    end
+  end
+
   # nested nlr scopes
 
 # works with script as end

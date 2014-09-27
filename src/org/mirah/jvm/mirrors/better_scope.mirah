@@ -257,6 +257,21 @@ class BetterScope
     end
   end
 
+  macro def self.defers_binding_type
+    quote do
+      def declared_binding_type
+        nil
+      end
+      def binding_type: ResolvedType
+        if parent
+          parent.binding_type
+        else
+          nil
+        end
+      end
+    end
+  end
+
   macro def self.does_binding_type_thing
     quote do
       def declared_binding_type
@@ -530,6 +545,7 @@ class RescueScope < BetterScope
   end
   deferred_packages_and_imports
   defers_selfType
+  defers_binding_type
   # for now, until declarations. rescues should defer locals, apart from args
   # eg
   # begin
