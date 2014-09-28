@@ -172,7 +172,10 @@ class MirahCompiler implements JvmBackend
         logAst(node, @typer)
       end
     end
-    @asts.each do |node:Node|
+
+    @typer.finish_closures
+
+    sorted_asts.each do |node: Node|
       processInferenceErrors(node, @context)
     end
     if @diagnostics.errorCount > 0
