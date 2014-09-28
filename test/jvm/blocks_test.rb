@@ -202,16 +202,11 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_parameter_used_in_block
-    cls, = compile(<<-EOF)
-      def foo(x:String):void
-        thread = Thread.new do
-          puts "Hello \#{x}"
-        end
-        begin
-          thread.run
-          thread.join
-        rescue
-          puts "Uh Oh!"
+    cls, = compile(<<-'EOF')
+      def r(r:Runnable); r.run; end
+      def foo(x: String): void
+        r do
+          puts "Hello #{x}"
         end
       end
 
