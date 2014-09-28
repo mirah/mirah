@@ -94,7 +94,6 @@ class AsyncTypeBuilder < SignatureVisitor
   end
 
   def visitInnerClassType(name)
-#    puts "visitInnerClassType #{name}"
     @outer = @type
     @typeArguments = []
     @class_name = "#{@class_name}$#{name}"
