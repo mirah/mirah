@@ -31,7 +31,6 @@ import mirah.lang.ast.RescueClause
 import mirah.lang.ast.Script
 import mirah.lang.ast.Package
 
-#import org.mirah.typer.simple.SimpleScope
 import org.mirah.typer.LocalFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
@@ -41,6 +40,12 @@ import org.mirah.typer.simple.ScopeFactory
 import org.mirah.typer.TypeFuture
 
 
+# The idea behind "better" scope is to break out all the 
+# different types of scope, to make it easier to define how
+# different scopes work.
+#
+# The current impl has one type of scope for everything, which
+# ends up making certain kinds of things tricky.
 
 # contains locals for scope
 class Locals
