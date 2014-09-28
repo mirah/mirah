@@ -39,6 +39,7 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.GenericTypeFuture
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.util.Context
 
@@ -106,6 +107,13 @@ class GenericMethodLookup
       if future.kind_of?(GenericTypeFuture)
         # This is an unsolved variable. Create a type variable so we can try
         # to infer its type.
+
+
+        if future.resolve.kind_of?(ErrorType)
+          # TODO figure out how to exercise this with a test
+          raise "attempting to resolve a generic type failed for #{method} #{future.resolve}"
+        end
+
         new_map[k] = BaseTypeFuture.new.resolved(
             TypeVariable.new(@context, k, MirrorType(future.resolve)))
       else
