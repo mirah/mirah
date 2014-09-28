@@ -60,8 +60,12 @@ class Typer < SimpleNodeVisitor
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
 
-#    @closures = BetterClosureBuilder.new(self, @macros)
-    @closures = ClosureBuilder.new(self)
+    betterClosures = false
+    if betterClosures
+      @closures = BetterClosureBuilder.new(self, @macros)
+    else
+      @closures = ClosureBuilder.new(self)
+    end
   end
 
   def finish_closures
