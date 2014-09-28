@@ -49,7 +49,12 @@ class Locals
     @defined_locals = HashSet.new
     @local_types = {}
   end
-  def local_type name: String, position: Position, parent: BetterScope, shadowed: boolean
+  def local_type(
+    name: String,
+    position: Position,
+    parent: BetterScope,
+    shadowed: boolean
+  )
     type = LocalFuture(@local_types[name])
     if type.nil?
       type = LocalFuture.new(name, position)
@@ -118,15 +123,6 @@ class ImportsAndSearchPackages
   end
 end
 
-
-class Util
-  def self.outer_scope node: Node, scoper: Scoper
-    return nil if scoper.nil? || node.nil? || node.parent.nil?
-    MirrorScope(scoper.getScope(node))
-  end
-end
-
-
 class BetterScopeFactory
   implements ScopeFactory
   def newScope(scoper: Scoper, node: Node): Scope
@@ -169,17 +165,23 @@ class BetterScope
   # override
   def parent; @parent; end
   # override
-  def parent=(parent: Scope):void
+  def parent=(new_parent: Scope):void
+    # maybe loops are ok!!!!
+    #raise "wut" if new_parent == self
+
     @parent.removeChild(self) if @parent
-    BetterScope(parent).addChild(self)
-    @parent = BetterScope(parent)
+
+    BetterScope(new_parent).addChild(self)
+    @parent = BetterScope(new_parent)
+
     flush
   end
 
   def flush
     flush_selfType
     flush_imports
-    @children.each{|c: BetterScope| c.flush }
+    # the existing version doesn't flush children, so it might have loops!!!
+    #@children.each{|c: BetterScope| c.flush }
   end
 
   # override
@@ -381,22 +383,27 @@ class BetterScope
     end
   end
 
+  macro def self.has_outer_scope
+    quote do
+      def outer_scope
+        return nil if @scoper.nil? || context.nil? || context.parent.nil?
+        MirrorScope(@scoper.getScope(context))
+      end
+    end
+  end
+
   # reqs @imports
   # this means the scope both can have imports, and also looks them up in outer scopes
   macro def self.has_own_imports_and_looks_up
     quote do
-
+      has_outer_scope
       def flush_imports: void
         @cached_imports = nil
         @cached_package = nil
         @cached_search_packages = nil
         @cached_static_imports = nil
       end
-
-      def outer_scope: MirrorScope
-        Util.outer_scope(context, @scoper)
-      end
-
+      
       def fetch_imports(map: Map)
         @imports.collect_imports map, outer_scope
       end
@@ -441,9 +448,9 @@ class BetterScope
 
   macro def self.deferred_package
     quote do
-      #defer to parent
+      #defer to parent^H^H^H^H^H outer_scope
       def package
-        @cached_package ||= parent.package if parent
+        @cached_package ||= outer_scope && outer_scope.package#parent.package if parent
       end
     end
   end
@@ -454,6 +461,7 @@ class BetterScope
   macro def self.deferred_packages_and_imports
     quote do
       deferred_package
+      has_outer_scope
 
       def flush_imports: void
         @cached_imports = nil
@@ -472,9 +480,6 @@ class BetterScope
       end
       def imports
         @cached_imports ||= fetch_imports({})
-      end
-      def outer_scope: MirrorScope
-        Util.outer_scope(context, @scoper)
       end
 
       def fetch_packages(list)
@@ -529,6 +534,9 @@ class ClosureScope < BetterScope
   deferred_packages_and_imports
 
   can_have_locals_captured
+  
+  # weird that I didn't seem to need this. Trying it
+  defers_binding_type
 
   # for the moment, no shadowing,
   # but once scopes support declarations, then yes
@@ -615,4 +623,9 @@ class ScriptScope < BetterScope
   def package=(p: String): void
     @package = p
   end
+
+  # scripts have no outer scope, they are the outer most, but has_own_imports_and_looks_up adds one
+#  def outer_scope
+#    nil
+#  end
 end
