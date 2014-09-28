@@ -28,11 +28,7 @@ import java.util.regex.Pattern
 import javax.tools.Diagnostic.Kind
 import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser
-import mirah.lang.ast.CodeSource
-import mirah.lang.ast.Node
-import mirah.lang.ast.Script
-import mirah.lang.ast.StreamCodeSource
-import mirah.lang.ast.StringCodeSource
+import mirah.lang.ast.*
 import org.mirah.IsolatedResourceLoader
 import org.mirah.MirahClassLoader
 import org.mirah.MirahLogFormatter
@@ -167,7 +163,9 @@ class MirahCompiler implements JvmBackend
   end
 
   def infer
-    @asts.each do |node: Node|
+    sorted_asts = ImportSorter.new.sort(@asts)
+
+    sorted_asts.each do |node: Node|
       begin
         @typer.infer(node, false)
       ensure
