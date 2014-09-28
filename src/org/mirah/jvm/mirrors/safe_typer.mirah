@@ -16,6 +16,7 @@
 package org.mirah.jvm.mirrors
 
 import java.util.logging.Logger
+import java.util.logging.Level
 import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser
 import mirah.lang.ast.Node
@@ -41,17 +42,27 @@ class SafeTyper < Typer
   def infer(node:Node, expression:boolean)
     super
   rescue => ex
+    raise betterException(ex, node)
+  end
 
+  def finish_closures
+    super
+  rescue => ex
+    raise betterException(ex)
+  end
+
+  def betterException(ex: Throwable, node: Node=nil): Throwable
     if ex.kind_of?(ReportedException)
-      raise ReportedException.new(ex.getCause)
+      ReportedException.new(ex.getCause)
     elsif ex.getCause.kind_of?(ReportedException)
-      raise ex.getCause
+      ex.getCause
     # For test running, otherwise you get Internal compiler error over and over
     elsif ex.getClass.getName.equals "org.jruby.exceptions.RaiseException"
-      raise ex
+      ex
     else
+      @@log.log Level.FINE, "Exception in typer for #{node}\n  #{sourceContent node}", ex
       @diagnostics.report(MirahDiagnostic.error(node.position, "Internal compiler error: #{ex} #{ex.getMessage}"))
-      raise ReportedException.new(ex)
+      ReportedException.new(ex)
     end
   end
 end
