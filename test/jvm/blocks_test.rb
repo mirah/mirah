@@ -650,6 +650,34 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
+  def test_lambda_with_type_defined_before
+    cls, = compile(<<-EOF)
+      interface Fooable
+        def foo: void; end
+      end
+      x = lambda(Fooable) { puts "hey you" }
+      x.foo
+    EOF
+    assert_output "hey you\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_lambda_with_type_defined_later
+    pend "I think it'd be nice if this worked" do
+      cls, = compile(<<-EOF)
+        x = lambda(Fooable) { puts "hey you" }
+        interface Fooable
+          def foo: void; end
+        end
+        x.foo
+      EOF
+      assert_output "hey you\n" do
+        cls.main(nil)
+      end
+    end
+  end
+
   # nested nlr scopes
 
 # works with script as end
