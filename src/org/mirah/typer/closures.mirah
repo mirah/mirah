@@ -72,6 +72,8 @@ class ClosureBuilder
     infer(new_node)
   end
 
+  # creates closure class, inserts it
+  # returns Call Node that is the instantiation of the closure
   def prepare(block: Block, parent_type: ResolvedType): Call
     Call(prepare_regular_closure(block, parent_type))
   end
@@ -368,6 +370,7 @@ class ClosureBuilder
   # Builds an anonymous class.
   def build_class(position: Position, parent_type: ResolvedType, name:String=nil)
     interfaces = if (parent_type && parent_type.isInterface)
+                    @@log.fine "making anon class w/ interface type #{parent_type}"
                    [makeTypeName(position, parent_type)]
                  else
                    Collections.emptyList
