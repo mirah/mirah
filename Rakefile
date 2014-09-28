@@ -41,7 +41,7 @@ end
 task :default => :new_ci
 
 desc "run new backend ci"
-task :new_ci => [:'test:core', :'test:jvm', :'test:artifacts']
+task :new_ci => [:'test:core', :'test:jvm', :'test:artifacts', 'dist/mirahc3.jar']
 
 def run_tests tests
   results = tests.map do |name|
