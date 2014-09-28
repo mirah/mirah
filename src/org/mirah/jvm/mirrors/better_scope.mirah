@@ -171,8 +171,9 @@ class BetterScope
   def parent; @parent; end
   # override
   def parent=(new_parent: Scope):void
-    # maybe loops are ok!!!!
-    #raise "wut" if new_parent == self
+    # Don't add self as my parent, this means that
+    # we're in a closure in the process of being replaced
+    return if new_parent == self
 
     @parent.removeChild(self) if @parent
 
@@ -185,8 +186,7 @@ class BetterScope
   def flush
     flush_selfType
     flush_imports
-    # the existing version doesn't flush children, so it might have loops!!!
-    #@children.each{|c: BetterScope| c.flush }
+    @children.each{|c: BetterScope| c.flush }
   end
 
   # override
