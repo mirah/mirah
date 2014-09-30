@@ -23,27 +23,31 @@ import mirah.lang.ast.*
 # if file's package are ==, have same val
 # if file has import for other file, other file is less than
 # if other file has import for file, file is greater than
-class ImportSorter < SimpleNodeVisitor
+class ImportSorter < NodeScanner
   def sort(asts: List): List
     infos = asts.map do |ast: Node|
       info = FileInfo.new(ast)
-      ast.accept(self, info)
+      ast.accept self, info
       info
     end
     Collections.sort(infos)
     infos.map { |info: FileInfo| info.ast }
   end
 
-  #todo handle multiple packages in one file, because that can happen
-  def visitPackage(node, _info)
+  #todo handle multiple packages in one file
+  # parser allows packages to have bodies
+  def enterPackage(node, _info)
     info = FileInfo(_info)
     info.pkg = node.name.identifier
+    false
   end
-  def visitImport(node, _info)
+
+  def enterImport(node, _info)
     info = FileInfo(_info)
     fullName = node.fullName.identifier
     simpleName = node.simpleName.identifier
     info.add_import fullName
+    false
   end
 
   class FileInfo
