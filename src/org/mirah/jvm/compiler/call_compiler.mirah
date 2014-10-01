@@ -31,7 +31,6 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.commons.GeneratorAdapter
 import org.objectweb.asm.commons.Method
 
-
 class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void
     @@log = Logger.getLogger(CallCompiler.class.getName)
@@ -126,7 +125,9 @@ class CallCompiler < BaseCompiler implements MemberVisitor
         @args.length.times do |i|
           argTypes[i] = getInferredType(@args[i])
         end
-        getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
+        method = getInferredType(@target).getMethod(@name, Arrays.asList(argTypes))
+        raise "couldn't find method with name '#{@name}' for #{@target} with type #{getInferredType(@target)} #{getInferredType(@target).getClass} during compile." unless method
+        method
       end
     end
   end

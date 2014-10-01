@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,8 @@
 
 package org.mirah.jvm.compiler
 
+import java.util.logging.Logger
+import java.util.logging.Level
 import java.util.List
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.AnnotationList
@@ -80,6 +82,7 @@ class BaseCompiler < SimpleNodeVisitor
       ENUM: Opcodes.ACC_ENUM,
       DEPRECATED: Opcodes.ACC_DEPRECATED
     }
+    @@log = Logger.getLogger(BaseCompiler.class.getName)
   end
   
   def reportError(message:String, position:Position)
@@ -99,8 +102,15 @@ class BaseCompiler < SimpleNodeVisitor
       raise ex
     elsif ex.getCause.kind_of?(ReportedException)
       raise ex.getCause
+    # For test running, otherwise you get Internal compiler error over and over
+    elsif ex.getClass.getName.equals "org.jruby.exceptions.RaiseException"
+      raise ex
     else
-      reportError("Internal error: #{ex.getMessage}", position)
+      @@log.log Level.SEVERE, "Exception in compiler for #{position}", ex
+      reportError("Internal error in compiler: #{ex} #{ex.getMessage}", position)
+      
+     # @diagnostics.report(MirahDiagnostic.error(position, "Internal compiler error: #{ex} #{ex.getMessage}"))
+      
       raise ReportedException.new(ex)
     end
     RuntimeException(nil)  # unreachable
@@ -114,6 +124,7 @@ class BaseCompiler < SimpleNodeVisitor
     end
     JVMType(type)
   rescue Exception => ex
+    @@log.log Level.SEVERE, "this node: #{node}, #{node.position}"
     raise reportICE(ex, node.position)
   end
 

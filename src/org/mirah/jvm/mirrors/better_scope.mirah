@@ -281,8 +281,11 @@ class BetterScope
 
   macro def self.does_binding_type_thing
     quote do
+      def declared_binding_type=(type: ResolvedType): void
+        @declared_binding_type = type
+      end
       def declared_binding_type
-        @binding_type
+        @declared_binding_type
       end
       def binding_type: ResolvedType
         if parent
@@ -299,12 +302,6 @@ class BetterScope
           @binding_type = type
         end
       end
-      #def binding_type
-      #  @binding_type
-      #end
-      #def binding_type= type
-      #  @binding_type = type
-      #end
     end
   end
 
@@ -535,7 +532,8 @@ class ClosureScope < BetterScope
     @locals = Locals.new
   end
   supports_locals
-  defers_selfType
+  #defers_selfType
+  has_own_selfType
   deferred_packages_and_imports
 
   can_have_locals_captured

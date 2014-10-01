@@ -60,7 +60,7 @@ class Typer < SimpleNodeVisitor
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
 
-    betterClosures = false
+    betterClosures = true
     if betterClosures
       @closures = BetterClosureBuilder.new(self, @macros)
     else
@@ -156,6 +156,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitVCall(call, expression)
+    @@log.fine "visitVCall #{call}"
     workaroundASTBug call
 
     # This might be a local, method call, or primitive access,
@@ -925,6 +926,102 @@ class Typer < SimpleNodeVisitor
     end
   end
 
+
+
+
+
+  def addScopeForMethod(mdef: Block): void
+    scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
+    addScopeUnder(mdef)
+  end
+
+  #def addScopeWithSelfType(node: Node, selfType: TypeFuture)
+  #  scope = addScopeUnder(node)
+  #  scope.selfType = selfType
+  #  scope
+  #end
+
+
+  def selfTypeOf(mdef: Block): TypeFuture
+    selfType = scopeOf(mdef).selfType
+    if mdef.kind_of?(StaticMethodDefinition)
+      selfType = @types.getMetaType(selfType)
+    end
+    selfType
+  end
+
+
+  # cp of method def
+  def inferClosureBlock(block:Block, method_type: MethodType)
+    @@log.entering("Typer", "inferClosureBlock", "inferClosureBlock(#{block})")
+    # TODO optional arguments
+
+    #inferAll(block.annotations) # blocks have no annotations
+    # block args can be nil...
+    parameters = if block.arguments
+        infer(block.arguments)
+        inferAll(block.arguments)
+      else
+        []
+      end
+
+    if parameters.size != method_type.parameterTypes.size
+      position = block.arguments.position if block.arguments
+      position ||= block.position
+      return @futures[block] = ErrorType.new([["Wrong number of methods for block implementing #{method_type}", position]])
+
+    end
+    # parameters.zip(method_type.parameterTypes).each do |...
+    i = 0
+    parameters.each do |param_type: AssignableTypeFuture|
+      if !param_type.hasDeclaration
+        future = @types.get(
+          scopeOf(block),
+          TypeRefImpl.new(
+            ResolvedType(method_type.parameterTypes.get(i)).name))
+        param_type.declare(
+                future,
+                block.arguments.position)
+      end
+      i += 1
+    end
+
+    selfType = selfTypeOf(block)
+
+  ret_future = AssignableTypeFuture.new(block.position)
+  rtype = BaseTypeFuture.new(block.position)
+  rtype.resolved((method_type.returnType))
+  ret_future.declare(rtype, block.position)
+
+
+  type = MethodFuture.new(
+    method_type.name,
+    method_type.parameterTypes,
+    ret_future,
+    method_type.isVararg,
+    block.position)
+
+    @futures[block] = type
+   # TODO default arg versions, what do default args even mean for blocks?
+   # maybe null -> default?
+   # declareOptionalMethods(selfType,
+   #                        block,
+   #                        parameters,
+   #                        type.returnType)
+
+    # TODO deal with overridden methods?
+    # TODO throws
+    # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
+    if isVoid type
+      infer(block.body, false)
+      type.returnType.assign(@types.getVoidType, block.position)
+    else
+      type.returnType.assign(infer(block.body), block.body.position)
+    end
+    type
+  end
+
+
   def visitMethodDefinition(mdef, expression)
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
@@ -1001,13 +1098,9 @@ class Typer < SimpleNodeVisitor
 
     closures = @closures
     typer = self
-    typer.logger.fine "before block future"
+    typer.logger.fine "at block future registration for #{block}"
     BlockFuture.new(block) do |block_future, resolvedType|
-      typer.logger.fine "in block future"
-      new_scope = typer.addNestedScope block
-      typer.logger.fine "block is closure with scope #{new_scope}"
-      typer.infer(block.arguments) if block.arguments
-
+      typer.logger.fine "in block future for #{block}\n  #{typer.sourceContent block}"
       unless resolvedType.isError || block.parent.nil?
         closures.add_todo block, resolvedType
       end

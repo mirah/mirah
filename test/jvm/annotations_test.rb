@@ -54,5 +54,24 @@ class AnnotationsTest < Test::Unit::TestCase
       cls.main nil
     end
   end
+  def test_annotation_from_constant
+    return
+    cls, = compile(<<-EOF)
+      import org.foo.IntAnno
+      class IntValAnnotation
+        Value = 1
+        $IntAnno[name: "bar", value: Value]
+        def bar
+        end
+      end
+      method = IntValAnnotation.class.getMethod("bar")
+      anno = method.getAnnotation(IntAnno.class)
+      puts anno.value
+    EOF
+
+    assert_output "1\n" do
+      cls.main nil
+    end
+  end
 
 end

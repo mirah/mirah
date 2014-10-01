@@ -95,4 +95,18 @@ class InterfaceTest < Test::Unit::TestCase
       end
     EOF
   end
+
+
+  def test_interface_adds_to_list
+    interface, a_impl = compile(<<-EOF)
+      interface Stringy
+        def act(messages:String):void; end
+      end
+
+      class Something implements Stringy
+        def initialize; @a = []; end
+        def act(messages) @a.add(messages); puts @a ;end
+      end
+    EOF
+  end
 end

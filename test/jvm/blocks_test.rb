@@ -20,7 +20,7 @@ class BlocksTest < Test::Unit::TestCase
     parse_and_resolve_types name, code
   end
 
-  #this should probably be a core test
+  # #this should probably be a core test
   def test_empty_block_parses_and_types_without_error
     assert_nothing_raised do
       parse_and_type(<<-CODE)
@@ -47,7 +47,7 @@ class BlocksTest < Test::Unit::TestCase
 
         class NotEmptyAccepter
           def initialize; end
-          def foo(a:Bar)
+          def foo(a: Bar)
             1
           end
         end
@@ -131,12 +131,12 @@ class BlocksTest < Test::Unit::TestCase
 
 
   def test_int_closure_with_int_as_method_param
-    cls, = compile(<<-EOF)
+    cls, = with_finest_logging{compile(<<-EOF)}
       def run(x:Runnable)
         x.run
       end
       def foo a: int
-        run {a += 1}
+        run { a += 1 }
         a
       end
     EOF
@@ -290,7 +290,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_with_too_many_params
-    assert_raises Mirah::MirahError do
+    exception = assert_raises Mirah::MirahError do
       parse_and_type(<<-CODE)
         interface SingleArgMethod do
           def run(a:String):void;end
@@ -305,7 +305,9 @@ class BlocksTest < Test::Unit::TestCase
           1
         end
         CODE
-      end
+    end
+    assert_equal 'Does not override a method from a supertype.',
+                  exception.message
   end
 
   def test_nested_closure_in_closure_doesnt_raise_error
@@ -331,6 +333,7 @@ class BlocksTest < Test::Unit::TestCase
 
   def test_nested_closure_with_var_from_outer_closure
     pend "bindings in nested closures are incorrectly generated" do
+      #cls, = with_finest_logging{compile(<<-'CODE')}
       cls, = compile(<<-'CODE')
         interface BarRunner do;def run:void;end;end
 
@@ -456,7 +459,6 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_when_non_local_return_types_incompatible_has_error
-    pend "nlr doesnt work right now" do
     error = assert_raises Mirah::MirahError do
       parse_and_type(<<-CODE)
       class NonLocalMe
@@ -472,8 +474,8 @@ class BlocksTest < Test::Unit::TestCase
 
       CODE
     end
-    assert error.message.include? 'int'
-    end
+    # could be better, if future knew it was a return type
+    assert_equal "Cannot assign java.lang.String to int", error.message
   end
 
   def test_closures_non_local_return_to_a_script

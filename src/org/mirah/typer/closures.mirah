@@ -45,7 +45,12 @@ class ClosureBuilder
   implements ClosureBuilderer
   # finish is a noop here
   def finish; end
+
   def add_todo block, parent_type
+    new_scope = @typer.addNestedScope block
+    @typer.logger.fine "block is closure with scope #{new_scope}"
+    @typer.infer(block.arguments) if block.arguments
+
     insert_closure block, parent_type
   end
 

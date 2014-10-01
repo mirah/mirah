@@ -34,7 +34,15 @@ class ScriptCompiler < BaseCompiler
   def visitScript(script, expression)
     visit(script.body, expression)
   rescue Exception => ex
-    TypePrinter.new(@typer, System.out).scan(script, nil)
+    #TypePrinter.new(@typer, System.out).scan(script, nil)
+
+    buf = java::io::ByteArrayOutputStream.new
+    ps = java::io::PrintStream.new(buf)
+    printer = TypePrinter.new(@typer, ps)
+    printer.scan(script, nil)
+    ps.close()
+    @@log.fine("Inferred types for expression with errors:\n#{String.new(buf.toByteArray)}")
+
     raise ex
   end
     

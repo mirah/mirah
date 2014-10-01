@@ -71,7 +71,7 @@ class BaseTypeFuture; implements TypeFuture
 
   # The error message used if this future doesn't resolve.
   def error_message
-    @error_message || "InferenceError #{position}"
+    @error_message || "InferenceError #{position} #{getClass}"
   end
 
   def error_message=(message: String)

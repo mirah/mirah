@@ -44,6 +44,8 @@ interface MirrorScope < Scope
   def fetch_imports(something: Map): Map; end
   def fetch_static_imports(something: Set): Set; end
   def fetch_packages(list: List): List; end
+
+  def declared_binding_type=(type: ResolvedType): void; end
 end
 
 class JVMScope < SimpleScope
@@ -76,6 +78,7 @@ class JVMScope < SimpleScope
     end
   end
   def declared_binding_type; @binding_type; end
+  def declared_binding_type=(type: ResolvedType): void; @binding_type=type; end
 
   def getLocalType(name: String, position: Position)
     type = LocalFuture(@local_types[name])

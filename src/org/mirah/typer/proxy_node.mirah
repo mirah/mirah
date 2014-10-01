@@ -22,6 +22,7 @@ import java.util.NoSuchElementException
 import mirah.lang.ast.Identifier
 import mirah.lang.ast.Node
 import mirah.lang.ast.NodeList
+import mirah.lang.ast.NodeVisitor
 import mirah.lang.ast.TypeName
 import mirah.lang.ast.Unquote
 
@@ -34,10 +35,26 @@ class ProxyNode < NodeList implements TypeName, Identifier
     @original = node
   end
   
+  #def accept(visitor:NodeVisitor, arg:Object):Object
+  #  if @selectedNode
+  #    #puts "WHOOO accepting proxy node w/ selected #{@selectedNode}"
+  #    @selectedNode.accept visitor, arg
+  #  else
+  #    @original.accept visitor, arg
+  #  end
+  #end
+
+
   def clone
-    cloned = Node(@original.clone)
-    fireWasCloned(cloned)
-    cloned
+    if @selectedNode
+      cloned = Node(@selectedNode.clone)
+      fireWasCloned(cloned)
+      cloned
+    else
+      cloned = Node(@original.clone)
+      fireWasCloned(cloned)
+      cloned
+    end
   end
 
   def size
@@ -67,23 +84,23 @@ class ProxyNode < NodeList implements TypeName, Identifier
   end
 
   def add(node)
-    raise UnsupportedOperationException
+    raise UnsupportedOperationException, "ProxyNode doesn't support add"
   end
 
   def insert(i, value)
-    raise UnsupportedOperationException
+    raise UnsupportedOperationException, "ProxyNode doesn't support insert"
   end
 
   def set(i, value)
-    raise UnsupportedOperationException
+    raise UnsupportedOperationException, "ProxyNode doesn't support set"
   end
 
   def remove(i)
-    raise UnsupportedOperationException
+    raise UnsupportedOperationException, "ProxyNode doesn't support remove"
   end
 
   def removeChild(node)
-    raise UnsupportedOperationException
+    raise UnsupportedOperationException, "ProxyNode doesn't support removeChild"
   end
 
   def setChildren(nodes:List, defaultChild:int=-1):void
@@ -168,5 +185,9 @@ class ProxyNode < NodeList implements TypeName, Identifier
       @selectedNode = clone
     end
     clone
+  end
+
+  def toString
+    "<org.mirah.typer.ProxyNode: selected:#{@selectedNode}>"
   end
 end

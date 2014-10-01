@@ -15,12 +15,10 @@
 
 package org.mirah.typer.simple
 
+import org.mirah.typer.MethodType
 import java.util.*
 import org.mirah.typer.*
-import mirah.lang.ast.NodeScanner
-import mirah.lang.ast.Node
-import mirah.lang.ast.Position
-import mirah.lang.ast.StreamCodeSource
+import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -97,3 +95,169 @@ class TypePrinter < NodeScanner
     nil
   end
 end
+
+
+
+
+
+
+class TypePrinter2 < NodeScanner
+  def initialize(typer:Typer)
+    initialize(typer, System.out)
+  end
+
+  def initialize(typer:Typer, writer:PrintWriter)
+    @indent = 0
+    @typer = typer
+    @args = Object[1]
+    @args[0] = ""
+    @out = writer
+    @lineLength = 0
+  end
+
+  def initialize(typer:Typer, writer:PrintStream)
+    initialize(typer, PrintWriter.new(PrintStreamAdapter.new(writer)))
+  end
+
+  def printIndent:void
+    @lineLength+=@indent
+    @out.printf("%#{@indent}s", @args) if @indent > 0
+  end
+
+  def exitClassDefinition(node, arg)
+    @out.print "\n"
+    @indent -= 2
+    printIndent
+    @out.print "end\n"
+  end
+
+  #def enterCall(node, arg)
+#scan lhs
+# print '.'
+#scan rhs
+# print types
+# end
+
+  def enterClassDefinition(node, arg)
+    printClass node
+    false
+  end
+
+  def enterClosureDefinition(node, arg)
+    printClass node
+    false
+  end
+
+  def enterConstructorDefinition(node, arg)
+    enterMethodDefinition node, arg
+  end
+
+  def enterMethodDefinition(node, arg)
+    type = @typer.getInferredType(node)
+    
+    printIndent
+    @out.print "$TODOAnnotations\n"
+    printIndent
+    @out.print "def "
+    @out.print "(self.)" # if MethodType(type).isStatic
+    @out.print node.name.identifier
+    node.arguments.accept(self, arg)
+    type = @typer.getInferredType(node)
+    if type
+      @out.print "# #{type.resolve}"
+    end
+    @indent += 2
+    node.body.accept(self, arg)
+    @indent -= 2
+    printIndent
+    @out.print "end\n"
+    false
+  end
+
+  def enterArguments(node, arg)
+    #printIndent
+    @out.print "(\n"
+    @indent += 2
+    true
+  end
+
+  def exitArguments(node, arg)
+    printIndent
+    @out.print ")\n"
+    @indent += 2
+    nil
+  end
+
+  def enterFieldAccess(node, arg)
+    @out.print "@#{node.name.identifier}"
+
+    type = @typer.getInferredType(node)
+    if type
+      @out.print "# #{type.resolve}"
+    end
+    @out.println
+    false
+  end
+
+
+  def enterFieldAssign(node, arg)
+    @out.print "@#{node.name.identifier} ="
+
+    type = @typer.getInferredType(node)
+    if type
+      @out.print "# #{type.resolve}"
+    end
+    @out.println
+    node.value.accept self, arg
+    false
+  end
+
+  def printClass node: ClassDefinition
+    printIndent
+    @out.print "$TODO Annotations\n"
+    printIndent
+    @out.print "class #{node.name.identifier}"
+    @out.print "< #{node.superclass.typeref.name}" if node.superclass
+    @out.print "\n"
+
+    @indent += 2
+    # unless node.interfaces.isEmpty
+    if node.interfaces.size > 0
+      node.interfaces.each do |iface: TypeName|
+        printIndent
+        @out.print "implements #{iface.typeref.name}\n"
+      end
+    end
+    scan node.body
+  end
+
+  def enterDefault(node, arg)
+    printIndent
+    @out.print(node)
+    type = @typer.getInferredType(node)
+    if type
+      @out.print "# #{type.resolve}"
+    end
+    @out.println
+    @indent += 2
+    true
+  end
+  def enterUnquote(node, arg)
+    super(node, arg)
+    if node.object
+      if node.object.kind_of?(Node)
+        Node(node.object).accept(self, arg)
+      else
+        printIndent
+        @out.print node.object
+        @out.println
+      end
+    end
+    node.object.nil?
+  end
+  def exitDefault(node, arg)
+    @indent -= 2
+    nil
+  end
+end
+
