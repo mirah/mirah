@@ -17,6 +17,7 @@ package org.mirah.tool
 
 import java.util.Collections
 import java.util.List
+import java.util.logging.Logger
 import mirah.lang.ast.*
 
 # Sorts lists of AST nodes roughly by package / imports
@@ -24,6 +25,14 @@ import mirah.lang.ast.*
 # if file has import for other file, other file is less than
 # if other file has import for file, file is greater than
 class ImportSorter < NodeScanner
+  def self.initialize
+    @@log = Logger.getLogger(ImportSorter.class.getName)
+  end
+
+  def self.log
+    @@log
+  end
+
   def sort(asts: List): List
     infos = asts.map do |ast: Node|
       info = FileInfo.new(ast)
@@ -59,8 +68,8 @@ class ImportSorter < NodeScanner
     end
 
     def pkg= pkg: String
-      raise "already have a package for #{ast}" if @pkg
-      @pkg = pkg
+      ImportSorter.log.fine "already have a package for #{ast}" if @pkg
+      @pkg ||= pkg
     end
 
     def add_import pkg: String
