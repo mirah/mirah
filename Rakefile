@@ -203,7 +203,8 @@ task :dist => [:gem, :zip]
 file_create 'javalib/asm-5.jar' do
   require 'open-uri'
   puts "Downloading asm-5.jar"
-  open('https://central.maven.org/maven2/org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar', 'rb') do |src|
+  url = 'https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar'
+  open(url, 'rb') do |src|
     open('javalib/asm-5.jar', 'wb') do |dest|
       dest.write(src.read)
     end
