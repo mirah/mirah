@@ -203,7 +203,7 @@ task :dist => [:gem, :zip]
 file_create 'javalib/asm-5.jar' do
   require 'open-uri'
   puts "Downloading asm-5.jar"
-  open('http://central.maven.org/maven2/org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar', 'rb') do |src|
+  open('https://central.maven.org/maven2/org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar', 'rb') do |src|
     open('javalib/asm-5.jar', 'wb') do |dest|
       dest.write(src.read)
     end
@@ -212,7 +212,7 @@ end
 
 file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
-  url = 'http://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.1.3/mirah-0.1.3.jar'
+  url = 'https://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.1.3/mirah-0.1.3.jar'
 
   puts "Downloading mirahc-prev.jar from #{url}"
 
