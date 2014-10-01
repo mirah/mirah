@@ -534,7 +534,6 @@ class BlocksTest < Test::Unit::TestCase
       end
       ClosureInVoidMethodInClass.new.nlr
     EOF
-    puts "before running"
     assert_output "before\n" do
       cls.main(nil)
     end
