@@ -174,6 +174,23 @@ class TypePrinter2 < NodeScanner
     false
   end
 
+  def enterRequiredArgumentList(node, arg)
+    true
+  end
+
+  def enterRequiredArgument(node, arg)
+    printIndent
+    @out.print "#{node.name.identifier}"
+    @out.print ": #{node.type.typeref}" if node.type
+
+    type = @typer.getInferredType(node)
+    if type
+      @out.print "# #{type.resolve}\n"
+    end
+    
+    false
+  end
+
   def enterArguments(node, arg)
     #printIndent
     @out.print "(\n"
@@ -183,7 +200,7 @@ class TypePrinter2 < NodeScanner
 
   def exitArguments(node, arg)
     printIndent
-    @out.print ")\n"
+    @out.print ")"
     @indent += 2
     nil
   end

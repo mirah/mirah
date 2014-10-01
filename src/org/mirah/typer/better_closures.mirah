@@ -30,6 +30,8 @@ import java.util.ArrayList
 import java.io.File
 
 
+import org.mirah.jvm.compiler.ProxyCleanup
+
 
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.macros.MacroBuilder
@@ -87,6 +89,8 @@ class BindingAdjuster < NodeScanner
   end
 
   def adjust(node: Node): void
+    ProxyCleanup.new.scan node
+
     @@log.fine "adjusting #{node}"
     @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals}"
 
@@ -217,7 +221,6 @@ class BindingAdjuster < NodeScanner
           local.position,
           SimpleString.new(@bindingName))
       end
-    @builder.typer.learnType new_node, @binding_type
     new_node
   end
 
@@ -228,8 +231,9 @@ class BindingAdjuster < NodeScanner
       @@log.fine "visitLocalAssignment: replacing #{local.name.identifier} with #{@bindingName}.#{local.name.identifier}="
       maybeNoteBlockBinding
       
-      local.value.setParent(nil)
-      new_value = local.value
+      #local.value.setParent(nil)
+      new_value = Node(local.value)#.clone)
+      new_value.setParent(nil)
       replacement = Call.new(
         blockAccessNode(local),
         #SimpleString.new("#{local.name.identifier}="),
@@ -241,10 +245,22 @@ class BindingAdjuster < NodeScanner
       
       replaceSelf(local, replacement)
 
+      @builder.typer.learnType replacement.target, @binding_type
+@@log.fine "---------------------------------------------------------"
+@@log.fine "visitLocalAssignment infer value "
+@@log.fine "---------------------------------------------------------"
       local.value.setParent replacement
       @builder.typer.infer new_value
+@@log.fine "---------------------------------------------------------"
+@@log.fine "END visitLocalAssignment infer value "
+@@log.fine "---------------------------------------------------------"
 
       @builder.typer.infer replacement
+
+@@log.fine "---------------------------------------------------------"
+@@log.fine "END visitLocalAssignment infer replacement in total "
+@@log.fine "---------------------------------------------------------"
+
     end
     nil
   end
@@ -266,7 +282,9 @@ class BindingAdjuster < NodeScanner
             # TODO create a callfuture
       
       replaceSelf(local, replacement)
-
+      
+      @builder.typer.learnType replacement.target, @binding_type
+      
       @@log.fine "does replacement have parent?: #{replacement.parent}"
       @@log.fine "does replacement parent 0th child: #{NodeList(replacement.parent).get(0)}" if replacement.parent.kind_of? NodeList
       @@log.fine "does replacement have parent?: #{replacement.parent.parent}" if replacement.parent

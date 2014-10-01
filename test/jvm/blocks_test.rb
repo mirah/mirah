@@ -131,7 +131,7 @@ class BlocksTest < Test::Unit::TestCase
 
 
   def test_int_closure_with_int_as_method_param
-    cls, = with_finest_logging{compile(<<-EOF)}
+    cls, = compile(<<-EOF)
       def run(x:Runnable)
         x.run
       end
@@ -218,7 +218,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_with_mirah_interface
-    cls, interface = compile(<<-EOF)
+    cls, interface = with_finest_logging{compile(<<-EOF)}
       interface MyProc do
         def call:void; end
       end
