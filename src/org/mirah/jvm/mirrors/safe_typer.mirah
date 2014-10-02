@@ -60,9 +60,10 @@ class SafeTyper < Typer
     elsif ex.getClass.getName.equals "org.jruby.exceptions.RaiseException"
       ex
     else
-      #@@log.log Level.FINE, "Exception in typer for #{node}\n  #{sourceContent node}", ex
-      @@log.log Level.SEVERE, "Exception in typer for #{node}\n  #{sourceContent node}", ex
-      @diagnostics.report(MirahDiagnostic.error(node.position, "Internal compiler error: #{ex} #{ex.getMessage}"))
+      if @@log.isLoggable Level.FINE
+        @@log.log Level.SEVERE, "Exception in typer for #{node}\n  #{sourceContent node}", ex
+      end
+      @diagnostics.report(MirahDiagnostic.error(node.position, "Internal compiler error: #{ex} #{ex.getMessage}. Rerun in verbose mode for stacktrace."))
       ReportedException.new(ex)
     end
   end
