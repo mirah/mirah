@@ -29,13 +29,9 @@ import java.util.Map.Entry
 import java.util.ArrayList
 import java.io.File
 
-
 import org.mirah.jvm.compiler.ProxyCleanup
-
-
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.macros.MacroBuilder
-
 import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
 import org.mirah.util.AstFormatter
@@ -60,263 +56,212 @@ class BetterClosureBuilder
     @todo_closures = LinkedHashMap.new
     @macros = macros
   end
-# TODO better positions!!
-# the positions should be synthetic, or should be carefully pointed at the closest thing
-# maybe source locations could encode some info...
-class BindingAdjuster < NodeScanner
-  def self.initialize
-    @@log = Logger.getLogger(BindingAdjuster.class.getName)
-  end
-  def initialize(
-     builder:BetterClosureBuilder,
-     bindingName:String,
-     captured: List, 
-     parent_scope: MirrorScope,
-     blockToBindings: Map,
-     bindingLocalNamesToTypes: Map)
 
-    @builder = builder
-    @captured = captured
-
-    @blockToBindings = blockToBindings
-    @bindingLocalNamesToTypes = bindingLocalNamesToTypes
-    
-    @blocks = Stack.new
-    @parent_scope = parent_scope
-    @bindingName = bindingName
-
-    @@log.fine "instantiated adjuster"
-  end
-
-  def adjust(node: Node): void
-    ProxyCleanup.new.scan node
-
-    @@log.fine "adjusting #{node}"
-    @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals}"
-
-    if @captured.isEmpty
-      @@log.fine "no need for binding adjustment here. Nothing captured"
-      return
-    end
-    if @parent_scope.declared_binding_type
-      @@log.fine "no need for binding adjustment here. already bound to #{@parent_scope.declared_binding_type}"
-      return
+  # TODO better positions!!
+  # the positions should be synthetic, or should be carefully pointed at the closest thing
+  # maybe source locations could encode some info...
+  class BindingAdjuster < NodeScanner
+    def self.initialize
+      @@log = Logger.getLogger(BindingAdjuster.class.getName)
     end
 
-    name = @builder.temp_name_from_outer_scope(node, "Binding")
-    
-    @@log.fine("building binding #{name} with captures #{@captured}")
-    binding_klass = @builder.build_class(
-      node.position,
-      nil,
-      name)
+    def initialize(
+       builder: BetterClosureBuilder,
+       bindingName: String,
+       parent_scope: MirrorScope,
+       blockToBindings: Map,
+       bindingLocalNamesToTypes: Map)
 
-    entries = @captured.map do |cap: String|
-      type = @parent_scope.getLocalType(cap, node.position).resolve
-      HashEntry.new(SimpleString.new(cap), Constant.new(SimpleString.new(type.name)))
+      @builder = builder
+      @captured = parent_scope.capturedLocals
+
+      @blockToBindings = blockToBindings
+      @bindingLocalNamesToTypes = bindingLocalNamesToTypes
+
+      @blocks = Stack.new
+      @parent_scope = parent_scope
+      @bindingName = bindingName
     end
 
-    attr_def = FunctionalCall.new(
-      SimpleString.new("attr_accessor"),
-      [Hash.new(node.position, entries)],
-      nil)
-    binding_klass.body.insert(0, attr_def)
+    def adjust(node: Node): void
+      ProxyCleanup.new.scan node
 
-    binding_type = @builder.infer(binding_klass).resolve
-    @parent_scope.declared_binding_type = binding_type
-    @bindingLocalNamesToTypes[@bindingName] = binding_type
+      @@log.fine "adjusting #{node}"
+      @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals}"
 
-    binding_new_call = Call.new(node.position, Constant.new(SimpleString.new(name)), SimpleString.new("new"), [], nil)
-    @builder.typer.workaroundASTBug binding_new_call
-
-    assign_binding_dot_new = LocalAssignment.new(
-        node.position,
-        SimpleString.new(@bindingName),
-        binding_new_call
-      )
-    
-    @builder.insert_into_body NodeList(node), assign_binding_dot_new
-    @builder.insert_into_body NodeList(node), binding_klass
-    @@log.fine "inserted binding class"
-
-    @binding_type = @builder.infer(binding_klass)
-    @builder.infer assign_binding_dot_new
-    @@log.fine "binding assignment inference done"
-
-    @@log.fine "replacing references to captures"
-
-    mdef = node.findAncestor{ |n| n.kind_of? MethodDefinition }
-    block_parent = node.findAncestor { |n| n.kind_of? Block }
-
-    arguments = if mdef
-      MethodDefinition(mdef).arguments
-    elsif block_parent
-      Block(block_parent).arguments
-    end
-
-    
-
-    node.accept self, 1
-    @@log.fine "finished phase one of capture replacement"
-
-
-    arg_names = []
-    arguments.required.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required
-    arguments.optional.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.optional
-    arg_names.add arguments.rest.name.identifier if arguments.rest
-    arguments.required2.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required2
-    arg_names.add arguments.block.name.identifier if arguments.block
-
-
-    @@log.fine "adding assignments from args to captures"
-    arg_names.each do |arg|
-      if @captured.contains arg
-        addition = Call.new(
-          blockAccessNode(node),
-          #SimpleString.new("#{local.name.identifier}="),
-          SimpleString.new("#{arg}_set"),
-          [LocalAccess.new(node.position, SimpleString.new(arg))],
-          nil)
-        @builder.typer.workaroundASTBug addition
-         # insert after binding class & binding instantiation
-         # if we were less lazy, we'd find the binding construction, and insert after
-        NodeList(node).insert 2, addition
-
-        @builder.infer addition
+      if @captured.isEmpty
+        @@log.fine "no need for binding adjustment here. Nothing captured"
+        return
       end
-    end
-
-    @@log.fine "done replacing references"
-
-  end
-
-  def enterBlock(node, blah)
-    @blocks.push node
-    @blockToBindings[@blocks.peek] ||= HashSet.new
-    
-    true
-  end
-
-  def exitBlock(node, blah)
-    @blocks.pop
-  end
-
-# need to note args as well, because we need to copy them to the binding
-# enter arguments
-# exit arguments
-
-  def maybeNoteBlockBinding
-    @blocks.each do |block: Block|
-      Collection(@blockToBindings[block]).add @bindingName
-    end
-  end
-
-  def blockAccessNode(local: Node)
-    new_node = if @blocks.isEmpty
-        LocalAccess.new(
-          local.position,
-          SimpleString.new(@bindingName))
-      else
-        FieldAccess.new(
-          local.position,
-          SimpleString.new(@bindingName))
+      if @parent_scope.declared_binding_type
+        @@log.fine "no need for binding adjustment here. already bound to #{@parent_scope.declared_binding_type}"
+        return
       end
-    new_node
-  end
 
-  def exitLocalAssignment(local, blah)
-    @@log.fine "visitLocalAssignment #{local} #{@builder.typer.getInferredType(local)}"
-    local_name = local.name.identifier
-    if @captured.contains local_name
-      @@log.fine "visitLocalAssignment: replacing #{local.name.identifier} with #{@bindingName}.#{local.name.identifier}="
-      maybeNoteBlockBinding
+      name = @builder.temp_name_from_outer_scope(node, "Binding")
       
-      #local.value.setParent(nil)
-      new_value = Node(local.value)#.clone)
+      @@log.fine("building binding #{name} with captures #{@captured}")
+      binding_klass = @builder.build_class(
+        node.position,
+        nil,
+        name)
+
+      entries = @captured.map do |cap: String|
+        type = @parent_scope.getLocalType(cap, node.position).resolve
+        HashEntry.new(SimpleString.new(cap), Constant.new(SimpleString.new(type.name)))
+      end
+
+      attr_def = FunctionalCall.new(
+        SimpleString.new("attr_accessor"),
+        [Hash.new(node.position, entries)],
+        nil)
+      binding_klass.body.insert(0, attr_def)
+
+      binding_type = @builder.infer(binding_klass).resolve
+      @parent_scope.declared_binding_type = binding_type
+      @bindingLocalNamesToTypes[@bindingName] = binding_type
+
+      binding_new_call = Call.new(node.position, Constant.new(SimpleString.new(name)), SimpleString.new("new"), [], nil)
+      @builder.typer.workaroundASTBug binding_new_call
+
+      assign_binding_dot_new = LocalAssignment.new(
+          node.position,
+          SimpleString.new(@bindingName),
+          binding_new_call)
+      
+      @builder.insert_into_body NodeList(node), assign_binding_dot_new
+      @builder.insert_into_body NodeList(node), binding_klass
+      @@log.fine "inserted binding class"
+
+      @binding_type = @builder.infer(binding_klass)
+      @builder.infer assign_binding_dot_new
+      @@log.fine "binding assignment inference done"
+
+      @@log.fine "replacing references to captures"
+
+      mdef = node.findAncestor{ |n| n.kind_of? MethodDefinition }
+      block_parent = node.findAncestor { |n| n.kind_of? Block }
+
+      arguments = if mdef
+        MethodDefinition(mdef).arguments
+      elsif block_parent
+        Block(block_parent).arguments
+      end
+
+      node.accept self, 1
+      @@log.fine "finished phase one of capture replacement"
+
+      arg_names = []
+      arguments.required.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required
+      arguments.optional.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.optional
+      arg_names.add arguments.rest.name.identifier if arguments.rest
+      arguments.required2.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required2
+      arg_names.add arguments.block.name.identifier if arguments.block
+
+      @@log.fine "adding assignments from args to captures"
+      arg_names.each do |arg|
+        if @captured.contains arg
+          addition = Call.new(
+            blockAccessNode(node.position),
+            SimpleString.new("#{arg}_set"),
+            [LocalAccess.new(node.position, SimpleString.new(arg))],
+            nil)
+          @builder.typer.workaroundASTBug addition
+           # insert after binding class & binding instantiation
+           # if we were less lazy, we'd find the binding construction, and insert after
+          NodeList(node).insert 2, addition
+
+          @builder.infer addition
+        end
+      end
+
+      @@log.fine "done replacing references"
+    end
+
+    def enterBlock(node, blah)
+      @blocks.push node
+      @blockToBindings[@blocks.peek] ||= HashSet.new
+
+      true
+    end
+
+    def exitBlock(node, blah)
+      @blocks.pop
+    end
+
+    def maybeNoteBlockBinding
+      @blocks.each do |block: Block|
+        Collection(@blockToBindings[block]).add @bindingName
+      end
+    end
+
+    def blockAccessNode(position: Position)
+      name_node = SimpleString.new(@bindingName)
+      if @blocks.isEmpty
+        LocalAccess.new(position, name_node)
+      else
+        FieldAccess.new(position, name_node)
+      end
+    end
+
+    def exitLocalAssignment(local, blah)
+      local_name = local.name.identifier
+      return nil unless @captured.contains local_name
+
+      @@log.finest "enterLocalAssignment: replacing #{local.name.identifier} with #{@bindingName}.#{local.name.identifier}="
+      @@log.finest "  Type: #{@builder.typer.getInferredType(local)}"
+
+      maybeNoteBlockBinding
+
+      new_value = Node(local.value)
       new_value.setParent(nil)
       replacement = Call.new(
-        blockAccessNode(local),
-        #SimpleString.new("#{local.name.identifier}="),
+        blockAccessNode(local.position),
         SimpleString.new("#{local.name.identifier}_set"),
         [new_value],
         nil)
 
       @builder.typer.workaroundASTBug replacement
-      
+
       replaceSelf(local, replacement)
+      local.value.setParent replacement
 
       @builder.typer.learnType replacement.target, @binding_type
-@@log.fine "---------------------------------------------------------"
-@@log.fine "visitLocalAssignment infer value "
-@@log.fine "---------------------------------------------------------"
-      local.value.setParent replacement
       @builder.typer.infer new_value
-@@log.fine "---------------------------------------------------------"
-@@log.fine "END visitLocalAssignment infer value "
-@@log.fine "---------------------------------------------------------"
-
       @builder.typer.infer replacement
-
-@@log.fine "---------------------------------------------------------"
-@@log.fine "END visitLocalAssignment infer replacement in total "
-@@log.fine "---------------------------------------------------------"
-
     end
-    nil
-  end
 
-  def exitLocalAccess(local, blah)
-    @@log.fine "visitLocalAccess #{local}  #{@builder.typer.getInferredType(local)}"
-    local_name = local.name.identifier
-    if @captured.contains local_name
-      @@log.fine "visitLocalAccess: replacing #{local.name.identifier} with #{@bindingName}.#{local.name.identifier}"
+    def exitLocalAccess(local, blah)
+      local_name = local.name.identifier
+      return nil unless @captured.contains local_name
+
+      @@log.finest "enterLocalAccess: replacing #{local.name.identifier} with #{@bindingName}.#{local.name.identifier}="
+      @@log.finest "  Type: #{@builder.typer.getInferredType(local)}"
+      
       maybeNoteBlockBinding
 
       replacement = Call.new(
-        blockAccessNode(local),
+        blockAccessNode(local.position),
         SimpleString.new(local.position,local.name.identifier),
         [],
         nil)
 
       @builder.typer.workaroundASTBug replacement
-            # TODO create a callfuture
-      
+
       replaceSelf(local, replacement)
-      
+
       @builder.typer.learnType replacement.target, @binding_type
-      
+
       @@log.fine "does replacement have parent?: #{replacement.parent}"
       @@log.fine "does replacement parent 0th child: #{NodeList(replacement.parent).get(0)}" if replacement.parent.kind_of? NodeList
       @@log.fine "does replacement have parent?: #{replacement.parent.parent}" if replacement.parent
-  #    @builder.typer.learnType(replacement, @builder.typer.infer(local))
       @builder.typer.infer replacement
     end
-    
-    nil  
-  end
 
- # def enterStringConcat(node, blah)
-  #  @@log.fine "enter #{node}"
-  #  true
-  #end
-
-#  def enterNodeList(node, blah)
-#    @@log.fine "enterNodeList #{node} #{node.size}"
-#    true
-#  end
-#def enterOther(node, blah)
-#  @@log.fine "enterOther #{node}"
-#    true
-#end
-  def replaceSelf me: Node, replacement: Node
-    # argh, proxy nodes!
-    #if me.parent.kind_of? ProxyNode
-    #  me.parent.parent.replaceChild(me.parent, replacement)
-    #else
+    def replaceSelf me: Node, replacement: Node
       me.parent.replaceChild(me, replacement)
-    #end
+    end
   end
-end
 
   def finish
     # reverse closures s.t. we do nested closures 
@@ -326,22 +271,20 @@ end
     Collections.reverse(closures)
 
 
-    blockToBindings=LinkedHashMap.new
-    bindingLocalNamesToTypes=LinkedHashMap.new
+    blockToBindings = LinkedHashMap.new
+    bindingLocalNamesToTypes = LinkedHashMap.new
     i = 0
     closures.each do |entry: Entry|
-      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
-      i+=1
+      @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
+      i += 1
       block = Block(entry.getKey)
-      enclosing_b = get_body(
-        find_enclosing_node(block)
-        )
+      enclosing_b = get_body(find_enclosing_node(block))
       enclosing_scope = get_scope(enclosing_b)
+
       adjuster = BindingAdjuster.new(
         self,
        "b#{i}",
-        get_scope(block).capturedLocals,
-        MirrorScope(get_scope(block)),
+        MirrorScope(get_scope(block)), #TODO pull up declared_binding_type
         blockToBindings,
         bindingLocalNamesToTypes)
 
@@ -351,30 +294,16 @@ end
     i = 0
     closures.each do |entry: Entry|
       @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
-      i+=1
+      i += 1
 
       block = Block(entry.getKey)
       parent_type = ResolvedType(entry.getValue)
-      binding_list = Collection(blockToBindings.get(block)) || Collections.emptyList
-
+      
       closure_name = temp_name_from_outer_scope(block, "Closure")
-
       closure_klass = build_class(block.position, parent_type, closure_name)
 
-
-      enclosing_b  = find_enclosing_body block
-
-      block_scope = get_scope block.body
-      @@log.fine "block body scope #{block_scope.getClass} #{MirrorScope(block_scope).capturedLocals}"
-
-
-      block_scope = get_scope block
-      @@log.fine "block scope #{block_scope} #{MirrorScope(block_scope).capturedLocals}"
-      #@@log.fine "parent scope #{parent_scope} #{MirrorScope(parent_scope).capturedLocals}"
-      enclosing_scope = get_scope(enclosing_b)
-      @@log.fine "enclosing scope #{enclosing_scope} #{MirrorScope(enclosing_scope).capturedLocals}"
-
-# build closure class
+      # build closure class
+      binding_list = Collection(blockToBindings.get(block)) || Collections.emptyList
       binding_args = binding_list.map do |name: String|
         RequiredArgument.new(SimpleString.new(name), SimpleString.new(ResolvedType(bindingLocalNamesToTypes[name]).name))
       end
@@ -389,13 +318,11 @@ end
         FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil)
       end
       constructor = ConstructorDefinition.new(
-        SimpleString.new('initialize'),
-        args,
-        SimpleString.new('void'),
-        binding_assigns,
-        nil)
+        SimpleString.new('initialize'), args,
+        SimpleString.new('void'), binding_assigns, nil)
       closure_klass.body.add(constructor)
 
+      enclosing_b  = find_enclosing_body block
       if binding_assigns.isEmpty
         insert_into_body enclosing_b, closure_klass
       else 
@@ -404,14 +331,14 @@ end
         enclosing_b.insert(1, closure_klass)
       end
 
+      block_scope = get_scope block
       if contains_methods(block)
         copy_methods(closure_klass, block, block_scope)
       else
         build_method(closure_klass, block, parent_type, block_scope)
       end
 
-
-    closure_type = infer(closure_klass)
+      closure_type = infer(closure_klass)
 
 
       has_block_parent = block.findAncestor { |node| node.parent.kind_of? Block }
@@ -423,62 +350,40 @@ end
           LocalAccess.new(SimpleString.new(name))
         end
       end
-    target = makeTypeName(block.position, closure_type.resolve)
-    new_node = Call.new(
-      block.position,
-      target,
-      SimpleString.new("new"), 
-      binding_locals,
-      nil)
+      target = makeTypeName(block.position, closure_type.resolve)
+      new_node = Call.new(
+        block.position, target,
+        SimpleString.new("new"), 
+        binding_locals, nil)
       @typer.workaroundASTBug new_node
       parent = CallSite(block.parent)
       replace_block_with_closure_in_call parent, block, new_node
-      
+
       infer new_node
       infer enclosing_b
 
+      @@log.fine "done with #{enclosing_b}"
+      @@log.log(Level.FINE, "Inferred types:\n{0}", AstFormatter.new(enclosing_b))
 
-
-    @@log.fine "done with #{enclosing_b}"
-    @@log.log(Level.FINE, "Inferred types:\n{0}", AstFormatter.new(enclosing_b))
-
-            buf = java::io::ByteArrayOutputStream.new
-        ps = java::io::PrintStream.new(buf)
-        printer = TypePrinter2.new(@typer, ps)
-        printer.scan(enclosing_b, nil)
-        ps.close()
+      buf = java::io::ByteArrayOutputStream.new
+      ps = java::io::PrintStream.new(buf)
+      printer = TypePrinter2.new(@typer, ps)
+      printer.scan(enclosing_b, nil)
+      ps.close()
       @@log.fine("Inferred types for expr:\n#{String.new(buf.toByteArray)}")
-
-
     end
   end
 
-
-
   def add_todo(block: Block, parent_type: ResolvedType)
-
-# need to infer block contents so that capture list in scopes is right
-# could do this another way tho
-#
-#   -  create closure structures
-#   -  reassign scopes to closure scopes in original tree
-#   -  type all the things
-#   -  add bindings
-# since we're going backwards, it might just work!
-    new_scope = @typer.addNestedScope block
-
-
-
     rtype = BaseTypeFuture.new(block.position)
     rtype.resolved parent_type
   
+    new_scope = @typer.addNestedScope block
     new_scope.selfType = rtype
     if contains_methods block
       @typer.infer block.body
     else
-      method_type = method_for(parent_type)
-      @typer.logger.fine "block is closure with scope #{new_scope}"
-      @typer.inferClosureBlock block, method_type
+      @typer.inferClosureBlock block, method_for(parent_type)
     end
     @todo_closures[block]=parent_type
   end
