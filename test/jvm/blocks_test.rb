@@ -218,7 +218,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_block_with_mirah_interface
-    cls, interface = with_finest_logging{compile(<<-EOF)}
+    cls, interface = compile(<<-EOF)
       interface MyProc do
         def call:void; end
       end
