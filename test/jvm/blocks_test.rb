@@ -234,17 +234,6 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
-  def assert_jraise(klass)
-    assert_block("#{klass} expected, but none thrown") do
-      begin
-        yield
-      rescue klass
-        break
-      end
-      false
-    end
-  end
-
   def test_block_impling_interface_w_multiple_methods
    begin
       parse_and_type(<<-CODE)
