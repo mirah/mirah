@@ -396,14 +396,18 @@ end
         nil)
       closure_klass.body.add(constructor)
 
-      # insert after binding class, for happier typing
-      enclosing_b.insert(1, closure_klass)
-      #insert_into_body enclosing_b, closure_klass
+      if binding_assigns.isEmpty
+        insert_into_body enclosing_b, closure_klass
+      else 
+        # insert after binding class, for happier typing
+        # also causes weird issues in the compiler if things are out of order
+        enclosing_b.insert(1, closure_klass)
+      end
 
       if contains_methods(block)
         copy_methods(closure_klass, block, block_scope)
       else
-        build_method(closure_klass, block, parent_type,block_scope)
+        build_method(closure_klass, block, parent_type, block_scope)
       end
 
 
@@ -831,6 +835,10 @@ enclosing_scope = get_scope(enclosing_body)
     Constant.new(position, SimpleString.new(position, type.name))
   end
 
+  def makeSimpleTypeName(position: Position, type: ResolvedType)
+    SimpleString.new(position, type.name)
+  end
+
   def makeTypeName(position: Position, type: ClassDefinition)
     Constant.new(position, SimpleString.new(position, type.name.identifier))
   end
@@ -879,10 +887,11 @@ enclosing_scope = get_scope(enclosing_body)
              Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
            end
     while args.required.size < mtype.parameterTypes.size
-      arg = RequiredArgument.new(block.position, SimpleString.new("arg#{args.required.size}"), nil)
+      arg = RequiredArgument.new(
+        block.position, SimpleString.new("arg#{args.required.size}"), nil)
       args.required.add(arg)
     end
-    return_type = makeTypeName(block.position, mtype.returnType)
+    return_type = makeSimpleTypeName(block.position, mtype.returnType)
     method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
     # at this point it's safe to modify them I think, because the typer's done
@@ -890,9 +899,6 @@ enclosing_scope = get_scope(enclosing_body)
     # arg set does a clone if parent is set!!
     block.body.setParent nil
     method.body = NodeList(block.body)
-
-# stop mucking w/ scope for now
-   # set_parent_scope method, parent_scope
 
     klass.body.add(method)
   end
