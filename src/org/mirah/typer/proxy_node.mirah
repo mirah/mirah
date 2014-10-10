@@ -44,7 +44,6 @@ class ProxyNode < NodeList implements TypeName, Identifier
   #  end
   #end
 
-
   def clone
     #if @selectedNode
     #  cloned = Node(@selectedNode.clone)

@@ -22,6 +22,7 @@ import java.util.Collections
 import java.util.Collection
 import java.util.LinkedHashMap
 import java.util.HashSet
+import java.util.LinkedHashSet
 import java.util.List
 import java.util.Stack
 import java.util.Map
@@ -34,12 +35,20 @@ import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.macros.MacroBuilder
 import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
+import org.mirah.typer.BaseTypeFuture
 import org.mirah.util.AstFormatter
 # This class transforms a Block into an anonymous class once the Typer has figured out
 # the interface to implement (or the abstract superclass).
 #
 # Note: This is ugly. It depends on the internals of the JVM scope and jvm_bytecode classes,
 # and the BindingReference node is a hack. This should really all be cleaned up.
+
+
+# better idea:
+#   add_todo doesn't add blocks + types.
+#      it adds Script parents to set of them
+#      finish iters over scripts to find block -> type map
+#      then does them
 class BetterClosureBuilder
   implements ClosureBuilderer
 
@@ -53,9 +62,27 @@ class BetterClosureBuilder
     @typer = typer
     @types = typer.type_system
     @scoper = typer.scoper
+    
     @todo_closures = LinkedHashMap.new
+    @scripts = LinkedHashSet.new
     @macros = macros
   end
+
+
+# NLR
+# in finish
+# iter blocks
+#  check for returns
+#  next if !returns
+#  gen up exception type
+#  replace returns with raise of exception type
+#  re-infer
+#  enclosing = find Script or MethodDefinition
+#  save (exceptiontype, enclosing) tuple
+# iter enclosings
+#  wrap w/ rescue of exceptiontype
+#  re-infer
+
 
   # TODO better positions!!
   # the positions should be synthetic, or should be carefully pointed at the closest thing
@@ -263,13 +290,46 @@ class BetterClosureBuilder
     end
   end
 
+
+# r1{r2{}}
+class BlockFinder < NodeScanner
+  def initialize(typer: Typer, todo_closures: Map)
+    @typer = typer
+    @todo_closures = todo_closures
+  end
+  def find(node: Script): Map
+    collection = LinkedHashMap.new
+    node.accept(self, collection)
+    collection
+  end
+  def exitBlock(node, notes)
+    future = @typer.getInferredType(node)
+    unless future
+      puts "#{node.position} has no type ..."
+      return nil
+    end
+    return nil unless future.kind_of? BaseTypeFuture
+    resolved_type = BaseTypeFuture(future).inferredType
+    Map(notes).put node, resolved_type
+    notes
+  end
+end
+
+
   def finish
+    closures = []
+    scripts = ArrayList.new(@scripts)
+    Collections.reverse(scripts)
+    scripts.each do |s: Script|
+      closures.addAll BlockFinder.new(@typer, @todo_closures).find(s).entrySet
+    end
     # reverse closures s.t. we do nested closures 
     # before doing the ones they nest inside
     # TODO add extension for this Collection#reverse
-    closures = ArrayList.new(@todo_closures.entrySet)
-    Collections.reverse(closures)
+    #closures = ArrayList.new(@todo_closures.entrySet)
+    #Collections.reverse(closures)
 
+    closures_to_skip = []
 
     blockToBindings = LinkedHashMap.new
     bindingLocalNamesToTypes = LinkedHashMap.new
@@ -278,11 +338,18 @@ class BetterClosureBuilder
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
       block = Block(entry.getKey)
-      enclosing_b = get_body(find_enclosing_node(block))
-      
-      next unless enclosing_b
 
-      enclosing_scope = get_scope(enclosing_b)
+      enclosing_node = find_enclosing_node(block)
+
+      if find_enclosing_node(block).nil?
+        # this likely means a macro exists and made things confusing 
+        # by copying the tree
+        @@log.fine "enclosing node was nil, removing  #{entry.getKey} #{entry.getValue} #{i}"
+        closures_to_skip.add entry
+        next
+      end
+
+      enclosing_b = get_body(enclosing_node)
 
       adjuster = BindingAdjuster.new(
         self,
@@ -294,6 +361,9 @@ class BetterClosureBuilder
       adjuster.adjust enclosing_b
     end
 
+    # ignore closures with no parents, they aren't in the final AST, maybe
+    closures.removeAll closures_to_skip
+
     i = 0
     closures.each do |entry: Entry|
       @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
@@ -303,7 +373,7 @@ class BetterClosureBuilder
 
       block = Block(entry.getKey)
       parent_type = ResolvedType(entry.getValue)
-      
+
       closure_name = temp_name_from_outer_scope(block, "Closure")
       closure_klass = build_class(block.position, parent_type, closure_name)
 
@@ -380,6 +450,9 @@ class BetterClosureBuilder
   end
 
   def add_todo(block: Block, parent_type: ResolvedType)
+    return if parent_type.isError || block.parent.nil?
+    puts "#{block.position} type: #{parent_type}"
+    
     rtype = BaseTypeFuture.new(block.position)
     rtype.resolved parent_type
   
@@ -390,24 +463,15 @@ class BetterClosureBuilder
     else
       @typer.inferClosureBlock block, method_for(parent_type)
     end
-    @todo_closures[block]=parent_type
+
+    script = block.findAncestor{|n| n.kind_of? Script}
+
+    @todo_closures[block] = parent_type
+    @scripts.add script
   end
 
   def insert_closure(block: Block, parent_type: ResolvedType)
-    # TODO: This will fail if the block's class changes.
-    #new_node =  if has_non_local_return block
-    #              prepare_non_local_return_closure(block, parent_type)
-    #            else
-    new_node =               prepare_regular_closure(block, parent_type)
-    #            end
-
-    parent = CallSite(block.parent)
-    replace_block_with_closure_in_call parent, block, new_node
-    infer(new_node)
-  end
-
-  def prepare(block: Block, parent_type: ResolvedType): Call
-    Call(prepare_regular_closure(block, parent_type))
+    raise "BetterClosureBuilder doesn't support insert_closure"
   end
 
   def prepare_non_local_return_closure(block: Block, parent_type: ResolvedType): Node
@@ -779,6 +843,8 @@ enclosing_scope = get_scope(enclosing_body)
   end
 
   def method_for(iface: ResolvedType): MethodType
+    return MethodType(iface) if iface.kind_of? MethodType
+
     methods = @types.getAbstractMethods(iface)
     if methods.size == 0
       @@log.warning("No abstract methods in #{iface}")

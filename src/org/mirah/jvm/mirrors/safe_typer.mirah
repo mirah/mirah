@@ -64,6 +64,7 @@ class SafeTyper < Typer
         @@log.log Level.SEVERE, "Exception in typer for #{node}\n  #{sourceContent node}", ex
       end
       @diagnostics.report(MirahDiagnostic.error(node && node.position, "Internal compiler error: #{ex} #{ex.getMessage}. Rerun in verbose mode for stacktrace."))
+
       ReportedException.new(ex)
     end
   end

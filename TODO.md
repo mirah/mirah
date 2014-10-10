@@ -50,6 +50,7 @@ Compiler Internals Improvements
 - move build artifacts to javalib for gem so that we don't depend on dist directory
 - clean up javalib dir
 - don't use 1.5 as java compile target
+- make it obvious when ASTs have been dropped during macro expansion
 
 - break compiler into phases
 ---------------

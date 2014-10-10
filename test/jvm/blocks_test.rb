@@ -299,6 +299,29 @@ class BlocksTest < Test::Unit::TestCase
                   exception.message
   end
 
+  def test_call_with_block_assigned_to_macro
+    #cls, = with_finest_logging{compile(<<-CODE)}
+    cls, = compile(<<-CODE)
+        class S
+          def initialize(run: Runnable)
+            run.run
+          end
+          def toString
+            "1"
+          end
+        end
+        if true
+          a = {}
+          a["wut"]= b = S.new { puts "hey" }
+          puts a
+          puts b
+        end
+      CODE
+    assert_output "hey\n{wut=1}\n1\n" do
+      cls.main(nil)
+    end
+  end
+
   def test_nested_closure_in_closure_doesnt_raise_error
     cls, = compile(<<-CODE)
         interface BarRunner do;def run:void;end;end
@@ -457,7 +480,7 @@ class BlocksTest < Test::Unit::TestCase
         end
       end
       def nlr: int
-        NonLocalMe.new.foo { return "not an int"}
+        NonLocalMe.new.foo { return "not an int" }
         5678
       end
 
@@ -668,6 +691,28 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
+
+def test_wut_wut
+  cls, = compile(<<-EOF)
+        class Blah
+          def declaredType
+            'yay'
+          end
+          def hasDeclaration
+            true
+          end
+          def me
+            map = {}
+            map['declaration'] = declaredType if hasDeclaration
+          end
+        end
+        puts Blah.new.me
+      EOF
+      assert_output "hey you\n" do
+        cls.main(nil)
+      end
+
+end
   # nested nlr scopes
 
 # works with script as end

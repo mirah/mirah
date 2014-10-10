@@ -119,8 +119,8 @@ end
 
 
 
-task :build_test_fixtures =>  'tmp_test/fixtures/fixtures_built.txt'
-
+task :build_test_fixtures => 'tmp_test/fixtures/fixtures_built.txt'
+directory 'tmp_test/fixtures'
 file 'tmp_test/fixtures/fixtures_built.txt' => ['tmp_test/fixtures'] + Dir['test/fixtures/**/*.java'] do
   `touch tmp_test/fixtures/fixtures_built.txt`
   ant.javac 'destdir' => "tmp_test/fixtures",
@@ -351,6 +351,9 @@ else # original
             '-d', build_dir,
             '-classpath', default_class_path,
             '--jvm', build_version,
+            
+            #'--verbose',
+
             *mirah_srcs)
   
       # compile ant stuff

@@ -62,6 +62,7 @@ class Typer < SimpleNodeVisitor
 
     betterClosures = false
     if betterClosures
+      # might want one of these for each script
       @closures = BetterClosureBuilder.new(self, @macros)
     else
       @closures = ClosureBuilder.new(self)
@@ -935,13 +936,6 @@ class Typer < SimpleNodeVisitor
     addScopeUnder(mdef)
   end
 
-  #def addScopeWithSelfType(node: Node, selfType: TypeFuture)
-  #  scope = addScopeUnder(node)
-  #  scope.selfType = selfType
-  #  scope
-  #end
-
-
   def selfTypeOf(mdef: Block): TypeFuture
     selfType = scopeOf(mdef).selfType
     if mdef.kind_of?(StaticMethodDefinition)
@@ -1101,9 +1095,7 @@ class Typer < SimpleNodeVisitor
     typer.logger.fine "at block future registration for #{block}"
     BlockFuture.new(block) do |block_future, resolvedType|
       typer.logger.fine "in block future for #{block}\n  #{typer.sourceContent block}"
-      unless resolvedType.isError || block.parent.nil?
-        closures.add_todo block, resolvedType
-      end
+      closures.add_todo block, resolvedType
     end
   end
 
