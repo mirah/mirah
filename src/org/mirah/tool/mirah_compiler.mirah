@@ -163,7 +163,8 @@ class MirahCompiler implements JvmBackend
   end
 
   def infer
-    sorted_asts = ImportSorter.new.sort(@asts)
+    sorted_asts = @asts # ImportSorter.new.sort(@asts)
+
 
     sorted_asts.each do |node: Node|
       begin

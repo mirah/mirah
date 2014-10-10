@@ -20,6 +20,14 @@ import java.util.List
 import java.util.logging.Logger
 import mirah.lang.ast.*
 
+# this didn't work
+# for a proper sort, we need to a proper graph sort:
+#   http://en.wikipedia.org/wiki/Topological_sorting
+# first, turn the list of scripts into a graph
+# then do a topo sort on the graph
+# easier said then done though.
+
+
 # Sorts lists of AST nodes roughly by package / imports
 # if file's package are ==, have same val
 # if file has import for other file, other file is less than
