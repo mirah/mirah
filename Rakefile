@@ -91,7 +91,7 @@ namespace :test do
   task :jvm => 'test:jvm:all'
 
   namespace :jvm do
-    task :test_setup =>  [:clean_tmp_test_directory, :build_test_fixtures]
+    task :test_setup =>  [:clean_tmp_test_classes, :build_test_fixtures]
 
     desc "run jvm tests using the new self hosted backend"
     task :all do
@@ -112,14 +112,17 @@ namespace :test do
   end
 end
 
-task :clean_tmp_test_directory do
-  FileUtils.rm_rf "tmp_test"
-  FileUtils.mkdir_p "tmp_test"
+task :clean_tmp_test_classes do
+  FileUtils.rm_rf "tmp_test/test_classes"
   FileUtils.mkdir_p "tmp_test/test_classes"
-  FileUtils.mkdir_p "tmp_test/fixtures"
 end
 
-task :build_test_fixtures do
+
+
+task :build_test_fixtures =>  'tmp_test/fixtures/fixtures_built.txt'
+
+file 'tmp_test/fixtures/fixtures_built.txt' => ['tmp_test/fixtures'] + Dir['test/fixtures/**/*.java'] do
+  `touch tmp_test/fixtures/fixtures_built.txt`
   ant.javac 'destdir' => "tmp_test/fixtures",
             'srcdir' => 'test/fixtures',
             'includeantruntime' => false,
