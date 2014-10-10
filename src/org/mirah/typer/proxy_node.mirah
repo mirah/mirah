@@ -46,15 +46,15 @@ class ProxyNode < NodeList implements TypeName, Identifier
 
 
   def clone
-    if @selectedNode
-      cloned = Node(@selectedNode.clone)
-      fireWasCloned(cloned)
-      cloned
-    else
+    #if @selectedNode
+    #  cloned = Node(@selectedNode.clone)
+    #  fireWasCloned(cloned)
+    #  cloned
+    #else
       cloned = Node(@original.clone)
       fireWasCloned(cloned)
       cloned
-    end
+    #end
   end
 
   def size

@@ -60,7 +60,7 @@ class Typer < SimpleNodeVisitor
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
 
-    betterClosures = true
+    betterClosures = false
     if betterClosures
       @closures = BetterClosureBuilder.new(self, @macros)
     else
