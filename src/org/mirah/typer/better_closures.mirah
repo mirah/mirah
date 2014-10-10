@@ -279,6 +279,9 @@ class BetterClosureBuilder
       i += 1
       block = Block(entry.getKey)
       enclosing_b = get_body(find_enclosing_node(block))
+      
+      next unless enclosing_b
+
       enclosing_scope = get_scope(enclosing_b)
 
       adjuster = BindingAdjuster.new(
@@ -295,6 +298,8 @@ class BetterClosureBuilder
     closures.each do |entry: Entry|
       @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
+
+      next unless get_body(find_enclosing_node(block))
 
       block = Block(entry.getKey)
       parent_type = ResolvedType(entry.getValue)
@@ -475,8 +480,10 @@ class BetterClosureBuilder
   def get_body node: Node
     if node.kind_of?(MethodDefinition)
       MethodDefinition(node).body
-    else
+    elsif node.kind_of?(Script)
       Script(node).body
+    else
+      nil
     end
   end
 
