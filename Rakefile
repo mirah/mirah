@@ -243,8 +243,8 @@ if false
     mkdir_p java_build_dir
 
     # Compile Java sources
-    ant.javac 'source' => '1.5',
-              'target' => '1.5',
+    ant.javac 'source' => '1.6',
+              'target' => '1.6',
               'destdir' => java_build_dir,
               'srcdir' => 'src',
               'includeantruntime' => false,
@@ -329,8 +329,8 @@ else # original
     mkdir_p build_dir
 
     # Compile Java sources
-    ant.javac 'source' => '1.5',
-              'target' => '1.5',
+    ant.javac 'source' => '1.6',
+              'target' => '1.6',
               'destdir' => build_dir,
               'srcdir' => 'src',
               'includeantruntime' => false,
