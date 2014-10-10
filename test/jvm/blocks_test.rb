@@ -708,7 +708,7 @@ def test_wut_wut
         end
         puts Blah.new.me
       EOF
-      assert_output "hey you\n" do
+      assert_output "yay\n" do
         cls.main(nil)
       end
 

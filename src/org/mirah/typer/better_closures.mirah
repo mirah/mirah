@@ -111,8 +111,6 @@ class BetterClosureBuilder
     end
 
     def adjust(node: Node): void
-      ProxyCleanup.new.scan node
-
       @@log.fine "adjusting #{node}"
       @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals}"
 
@@ -290,30 +288,30 @@ class BetterClosureBuilder
     end
   end
 
-
-# r1{r2{}}
-class BlockFinder < NodeScanner
-  def initialize(typer: Typer, todo_closures: Map)
-    @typer = typer
-    @todo_closures = todo_closures
-  end
-  def find(node: Script): Map
-    collection = LinkedHashMap.new
-    node.accept(self, collection)
-    collection
-  end
-  def exitBlock(node, notes)
-    future = @typer.getInferredType(node)
-    unless future
-      puts "#{node.position} has no type ..."
-      return nil
+  class BlockFinder < NodeScanner
+    def initialize(typer: Typer, todo_closures: Map)
+      @typer = typer
+      @todo_closures = todo_closures
     end
-    return nil unless future.kind_of? BaseTypeFuture
-    resolved_type = BaseTypeFuture(future).inferredType
-    Map(notes).put node, resolved_type
-    notes
+    def find(node: Script): Map
+      collection = LinkedHashMap.new
+      node.accept(self, collection)
+      collection
+    end
+    def exitBlock(node, notes)
+      type = if @todo_closures[node]
+        @todo_closures[node]
+      else
+        #t = @typer.getInferredType(node).resolve
+        #if t.kind_of? MethodType
+          fs = CallFuture(@typer.getInferredType(node.parent)).futures
+          TypeFuture(fs.get(fs.size-1)).resolve
+        #else
+        #end
+      end
+      Map(notes).put node, type
+    end
   end
-end
 
 
   def finish
@@ -322,12 +320,8 @@ end
     Collections.reverse(scripts)
     scripts.each do |s: Script|
       closures.addAll BlockFinder.new(@typer, @todo_closures).find(s).entrySet
+
     end
-    # reverse closures s.t. we do nested closures 
-    # before doing the ones they nest inside
-    # TODO add extension for this Collection#reverse
-    #closures = ArrayList.new(@todo_closures.entrySet)
-    #Collections.reverse(closures)
 
     closures_to_skip = []
 
@@ -349,6 +343,8 @@ end
         next
       end
 
+      ProxyCleanup.new.scan enclosing_node
+
       enclosing_b = get_body(enclosing_node)
 
       adjuster = BindingAdjuster.new(
@@ -369,10 +365,14 @@ end
       @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
 
-      next unless get_body(find_enclosing_node(block))
-
       block = Block(entry.getKey)
       parent_type = ResolvedType(entry.getValue)
+
+      unless get_body(find_enclosing_node(block))
+        @@log.fine "  enclosing node was nil, removing  #{entry.getKey} #{entry.getValue} #{i}"
+        next
+      end
+
 
       closure_name = temp_name_from_outer_scope(block, "Closure")
       closure_klass = build_class(block.position, parent_type, closure_name)
@@ -431,6 +431,9 @@ end
         SimpleString.new("new"), 
         binding_locals, nil)
       @typer.workaroundASTBug new_node
+
+      
+
       parent = CallSite(block.parent)
       replace_block_with_closure_in_call parent, block, new_node
 
@@ -451,7 +454,6 @@ end
 
   def add_todo(block: Block, parent_type: ResolvedType)
     return if parent_type.isError || block.parent.nil?
-    puts "#{block.position} type: #{parent_type}"
     
     rtype = BaseTypeFuture.new(block.position)
     rtype.resolved parent_type

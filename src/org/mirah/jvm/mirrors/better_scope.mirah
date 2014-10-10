@@ -205,7 +205,10 @@ class BetterScope
 
   # override
   def isCaptured(name:String):boolean; raise "isCaptured: no captures for #{getClass}" end
-  def capturedLocals:List; raise "capturedLocals no captures for #{getClass}" end  # List of captured local variable names
+  def capturedLocals:List;
+  # raise "capturedLocals no captures for #{getClass}"
+  []
+  end  # List of captured local variable names
 
   # override
   def import(fullname:String, shortname:String):void; raise "import: no imports for #{getClass}" end
