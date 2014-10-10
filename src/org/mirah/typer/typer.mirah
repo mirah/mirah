@@ -1377,7 +1377,10 @@ class Typer < SimpleNodeVisitor
     InlineCode(inline_type).expand(node, self)
   end
 
-  def replaceAndInfer future: DelegateFuture, current_node: Node, replacement: Node, expression: boolean
+  def replaceAndInfer(future: DelegateFuture,
+    current_node: Node,
+    replacement: Node,
+    expression: boolean)
     node = replaceSelf(current_node, replacement)
     future.type = infer(node, expression)
     node
