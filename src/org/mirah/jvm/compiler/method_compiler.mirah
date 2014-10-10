@@ -340,18 +340,24 @@ class MethodCompiler < BaseCompiler
   end
 
   def visitFunctionalCall(call, expression)
+    raise "call to #{call.name.identifier}'s block has not been converted to a closure at #{call.position}" if call.block
+
     name = call.name.identifier
+
     # if this is the first line of a constructor, a call to 'initialize' is really a call to another
     # constructor.
     if @lookingForDelegate && name.equals("initialize")
       name = "<init>"
     end
     @lookingForDelegate = false
+
     compiler = CallCompiler.new(self, @builder, call.position, call.target, name, call.parameters, getInferredType(call))
     compiler.compile(expression != nil)
   end
   
   def visitCall(call, expression)
+    raise "call to #{call.name.identifier}'s block has not been converted to a closure at #{call.position}" if call.block
+
     compiler = CallCompiler.new(self, @builder, call.position, call.target, call.name.identifier, call.parameters, getInferredType(call))
     compiler.compile(expression != nil)
   end

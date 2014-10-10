@@ -95,6 +95,8 @@ class ConditionCompiler < BaseCompiler
   end
   
   def visitCall(node, expression)
+    raise "call to #{node.name.identifier}'s block has not been converted to a closure at #{node.position}" if node.block
+
     call = CallCompiler.new(@method, @bytecode, node.position, node.target, node.name.identifier, node.parameters, getInferredType(node))
     member = call.getMethod
     kind = member.kind
