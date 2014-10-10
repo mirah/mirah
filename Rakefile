@@ -141,6 +141,7 @@ task :clean do
   ant.delete 'quiet' => true, 'dir' => 'dist'
   rm_f 'dist/mirahc.jar'
   rm_rf 'tmp'
+  rm_rf 'tmp_test'
 end
 
 desc "clean downloaded dependencies"
