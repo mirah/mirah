@@ -124,13 +124,14 @@ class MirrorTypeSystem implements TypeSystem
   def box(type:TypeFuture)
     DerivedFuture.new(type) do |r|
       unless r.kind_of?(MirrorType)
-        return r
-      end
-      resolved = MirrorType(r)
-      if JVMTypeUtils.isPrimitive(resolved)
-        resolved.box
+        r
       else
-        resolved
+        resolved = MirrorType(r)
+        if JVMTypeUtils.isPrimitive(resolved)
+          resolved.box
+        else
+          resolved
+        end
       end
     end
   end
