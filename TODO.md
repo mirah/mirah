@@ -16,8 +16,8 @@ points logrithmicy difficulty 0-3
 
 Dist
 ===========
-- mirah-parser maven artifact
-- Java 8
+- mirah-parser maven artifact https://github.com/mirah/mirah-parser/issues/16
+- Java 8 ...
 - look at java 9 features we could use
 - update mvn compiler plugin
 - add regression test for ant task example!
@@ -74,20 +74,20 @@ Compiler Internals Improvements
 # compile
 
 - maybe after parse, check built files to see if they need to be rebuilt, and ignore them otherwise
-
+- investigate using Java 8 Lambda impl hooks for closures.
 
 Warnings / Logging
 ============
-- fix import not found so that it says can't find com.blah for import com.blah, or at least both package scoped & absolute packages.
-- warn about unused imports
-- initial not found should not be error in fine logging
-- log bindings as they are created
-- don't warn on self.initialize
-- can't find method error could list nearly matching methods
-- warn on not all methods implemented for interfaces
-- should be a duplicate name/sig error when multiple method defs w/ same sig
--- ^^ sorta exists, but not as good as could be + msg not great
-- return type errors should have tailored error messages, not just assign based
+- fix import not found so that it says can't find com.blah for import com.blah, or at least both package scoped & absolute packages. mirah#267
+- warn about unused imports mirah#268
+- initial not found should not be error in fine logging mirah#269
+- log bindings as they are created 
+- don't warn on self.initialize mirah#270
+- can't find method error could list nearly matching methods mirah#271
+- error on not all methods implemented for interfaces mirah#272
+
+- improve duplicate name/sig error when multiple method defs w/ same sig mirah#273
+- return type errors should have tailored error messages, not just assign based mirah#274
 Parser
 ======
 - variables w/ name package are not allowed :/
@@ -125,6 +125,14 @@ should work
 - macro helpers for inserting things into initializers
 - macro helpers for add method if not already there
 - reverse macro on collections
+- inner classes don't get nested names
+    class A
+      class B
+      end
+    end
+    # => pkg.A, pkg.B
+- understand Java 8 default methods
+
 
 Bugs
 ==========
