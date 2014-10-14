@@ -68,7 +68,7 @@ class MirahCompiler implements JvmBackend
   def initialize(
       diagnostics:SimpleDiagnostics, jvm:JvmVersion, classpath:URL[],
       bootclasspath:URL[], macroclasspath:URL[], macro_destination:String,
-      debugger:DebuggerInterface=nil)
+      debugger:DebuggerInterface=nil, new_closures:boolean=false)
     @diagnostics = diagnostics
     @jvm = jvm
     @destination = macro_destination

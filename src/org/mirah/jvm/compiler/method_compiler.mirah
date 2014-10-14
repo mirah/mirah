@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,8 +20,9 @@ import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
-import org.mirah.util.Context
+import org.mirah.typer.ErrorType
 import org.mirah.typer.Scope
+import org.mirah.util.Context
 import org.objectweb.asm.*
 import org.objectweb.asm.Type as AsmType
 import org.objectweb.asm.commons.GeneratorAdapter
@@ -278,9 +279,13 @@ class MethodCompiler < BaseCompiler
     if isCaptured
       @builder.loadLocal(@binding)
     end
+    future = typer.type_system.getLocalType(
+        getScope(local), name, local.position)
+    raise "error type found by compiler #{future.resolve}" if future.resolve.kind_of? ErrorType
 
-    type = JVMType(typer.type_system.getLocalType(
-        getScope(local), name, local.position).resolve)
+    type = JVMType(
+      future.resolve
+      )
     valueType = getInferredType(local.value)
     if local.value.kind_of?(NodeList)
       compileBody(NodeList(local.value), Boolean.TRUE, type)

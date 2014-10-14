@@ -42,8 +42,14 @@ class DebugTyper < SafeTyper
     @@log = Logger.getLogger(SafeTyper.class.getName)
   end
 
-  def initialize(debugger:DebuggerInterface, context:Context, types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser=nil)
-    super(context, types, scopes, jvm_backend, parser)
+  def initialize(
+    debugger:DebuggerInterface,
+    context:Context,
+    types:TypeSystem,
+    scopes:Scoper,
+    jvm_backend:JvmBackend, parser:MirahParser=nil,
+    new_closures=false)
+    super(context, types, scopes, jvm_backend, parser, new_closures)
     @debugger = debugger
     @context = context
   end

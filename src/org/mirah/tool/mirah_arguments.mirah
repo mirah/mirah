@@ -73,6 +73,7 @@ class MirahArguments
                 silent: boolean,
                 max_errors: int,
                 use_type_debugger: boolean,
+                use_new_closures: boolean,
                 exit_status: int
 
   def initialize
@@ -80,6 +81,7 @@ class MirahArguments
     @use_type_debugger = false
     @code_sources = []
     @destination = "."
+    @use_new_closures = false
 
     @jvm_version = JvmVersion.new
     @classpath = nil
@@ -211,6 +213,10 @@ class MirahArguments
     parser.addFlag(
         ['tdb'], 'Start the interactive type debugger.'
     ) { compiler_args.use_type_debugger = true }
+
+    parser.addFlag(
+        ['new-closures'], 'Use new closure implementation'
+    ) { compiler_args.use_new_closures = true }
 
     begin
       parser.parse(args).each do |filename: String|

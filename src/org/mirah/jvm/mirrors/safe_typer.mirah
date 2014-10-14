@@ -34,7 +34,12 @@ class SafeTyper < Typer
     @@log = Logger.getLogger(SafeTyper.class.getName)
   end
 
-  def initialize(context:Context, types:TypeSystem, scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser=nil)
+  def initialize(context: Context,
+                 types: TypeSystem,
+                 scopes: Scoper,
+                 jvm_backend: JvmBackend,
+                 parser: MirahParser=nil,
+                 new_closures:boolean=false)
     super(types, scopes, jvm_backend, parser)
     @diagnostics = context[DiagnosticListener]
   end
