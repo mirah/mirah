@@ -486,8 +486,10 @@ class BlocksTest < Test::Unit::TestCase
 
       CODE
     end
-    # could be better, if future knew it was a return type
-    assert_equal "Cannot assign java.lang.String to int", error.message
+    pend "differing type signatures for nlr" do
+      # could be better, if future knew it was a return type
+      assert_equal "Cannot assign java.lang.String to int", error.message
+    end
   end
 
   def test_closures_non_local_return_to_a_script
