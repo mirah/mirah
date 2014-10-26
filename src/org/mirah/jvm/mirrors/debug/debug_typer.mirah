@@ -47,7 +47,8 @@ class DebugTyper < SafeTyper
     context:Context,
     types:TypeSystem,
     scopes:Scoper,
-    jvm_backend:JvmBackend, parser:MirahParser=nil,
+    jvm_backend:JvmBackend,
+    parser:MirahParser=nil,
     new_closures=false)
     super(context, types, scopes, jvm_backend, parser, new_closures)
     @debugger = debugger
