@@ -37,7 +37,6 @@ import org.mirah.jvm.compiler.BytecodeConsumer
 import org.mirah.jvm.compiler.JvmVersion
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.BetterScopeFactory
-import org.mirah.jvm.mirrors.JVMScope
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.jvm.mirrors.ClassResourceLoader
 import org.mirah.jvm.mirrors.ClassLoaderResourceLoader
@@ -93,18 +92,9 @@ class MirahCompiler implements JvmBackend
 
     createTypeSystems(classpath, bootclasspath, macroclasspath)
 
-    useBetterScope = true
-    if useBetterScope
-       # TODO allow this. ambiguous for parser?
-       #context[Scoper] = @scoper = SimpleScoper.new BetterScopeFactory.new
-       context[Scoper] = @scoper = SimpleScoper.new(BetterScopeFactory.new)
-    else
-      context[Scoper] = @scoper = SimpleScoper.new do |s, node|
-         scope = JVMScope.new(s)
-         scope.context = node
-         scope
-       end
-    end
+    # TODO allow this. ambiguous for parser?
+    #context[Scoper] = @scoper = SimpleScoper.new BetterScopeFactory.new
+    context[Scoper] = @scoper = SimpleScoper.new(BetterScopeFactory.new)
 
     context[MirahParser] = @parser = MirahParser.new
     BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics)

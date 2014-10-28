@@ -28,7 +28,7 @@ import java.io.FileInputStream
 import java.io.PrintStream
 
 # Minimal Scope implementation for SimpleScoper.
-# The main Scope is JVMScope in src/org/mirah/jvm/mirrors/jvm_scope.mirah.
+# The main Scopes are is BetterScope in src/org/mirah/jvm/mirrors/better_scope.mirah.
 class SimpleScope; implements Scope
   def initialize
     @nextTemp = -1

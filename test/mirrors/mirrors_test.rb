@@ -19,13 +19,14 @@ require 'dist/mirahc.jar'
 
 class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
-  java_import 'org.mirah.jvm.mirrors.JVMScope'
+  java_import 'org.mirah.jvm.mirrors.BetterScopeFactory'
   java_import 'org.mirah.jvm.types.JVMType'
   java_import 'org.mirah.jvm.types.JVMTypeUtils'
   java_import 'org.mirah.typer.AssignableTypeFuture'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.CallFuture'
   java_import 'org.mirah.typer.TypeFuture'
+  java_import 'org.mirah.typer.simple.SimpleScoper'
   java_import 'mirah.lang.ast.ClassDefinition'
   java_import 'mirah.lang.ast.ConstructorDefinition'
   java_import 'mirah.lang.ast.PositionImpl'
@@ -37,8 +38,12 @@ class BaseMirrorsTest < Test::Unit::TestCase
 
   def setup
     @types = MirrorTypeSystem.new
-    @scope = JVMScope.new
+    @scope = new_scope
     set_filename('foo-bar.mirah')
+  end
+
+  def new_scope opts={}
+    BetterScopeFactory.new.newScope(SimpleScoper.new, opts[:context] || Script.new)
   end
 
   def set_filename(filename)
@@ -251,7 +256,7 @@ class MirrorsTest < BaseMirrorsTest
 
   def test_multiple_scopes
     type1 = @types.getLocalType(@scope, "a", nil)
-    type2 = @types.getLocalType(JVMScope.new, "a", nil)
+    type2 = @types.getLocalType(new_scope, "a", nil)
     assert_error(type1)
     assert_error(type2)
     type1.assign(@types.getFixnumType(0), nil)
@@ -596,8 +601,9 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   end
 
   def test_super_in_constructor
+    @scope = new_scope context: ConstructorDefinition.new
     @scope.selfType_set(main_type)
-    @scope.context_set(ConstructorDefinition.new)
+
     future = CallFuture.new(
         @types, @scope,
         @types.getSuperClass(main_type), true, 'initialize', [], [], nil)

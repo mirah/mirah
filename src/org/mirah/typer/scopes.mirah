@@ -44,6 +44,7 @@ interface Scope do
   def binding_type=(type:ResolvedType):void; end
   # type of the binding for exactly this scope
   def declared_binding_type:ResolvedType; end
+  def declared_binding_type=(type: ResolvedType): void; end
 end
 
 interface Scoper do

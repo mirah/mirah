@@ -19,7 +19,7 @@ require 'dist/mirahc.jar'
 
 class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
-  java_import 'org.mirah.jvm.mirrors.JVMScope'
+  java_import 'org.mirah.jvm.mirrors.BetterScopeFactory'
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.MethodLookup'
   java_import 'org.mirah.jvm.mirrors.LookupState'
@@ -31,6 +31,8 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.mirah.typer.ErrorType'
+  java_import 'org.mirah.typer.simple.SimpleScoper'
+  java_import 'mirah.lang.ast.Script'
   java_import 'org.objectweb.asm.Opcodes'
   java_import 'org.objectweb.asm.Type'
 
@@ -41,7 +43,6 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
     end
 
     def add_field(name, flags=Opcodes.ACC_PUBLIC)
-      
       kind = if (flags & Opcodes.ACC_STATIC) == 0
         MemberKind::FIELD_ACCESS
       else
@@ -57,8 +58,12 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
 
   def setup
     @types = MirrorTypeSystem.new
-    @scope = JVMScope.new
+    @scope = new_scope
     @lookup = MethodLookup.new(@types.context)
+  end
+
+  def new_scope opts={}
+    BetterScopeFactory.new.newScope(SimpleScoper.new, opts[:context] || Script.new)
   end
 
   def jvmtype(internal_name, flags=0, superclass=nil)
@@ -534,7 +539,7 @@ class FieldTest < BaseMethodLookupTest
     super
     @a = FakeMirror.new('LA;')
     @b = FakeMirror.new('LB;', @a)
-    @scope = JVMScope.new
+    @scope = new_scope
     @selfType = BaseTypeFuture.new
     @selfType.resolved(@b)
     @scope.selfType_set(@selfType)
@@ -545,15 +550,16 @@ class FieldTest < BaseMethodLookupTest
     a_bar = @a.add_field("bar")
     b_foo = @b.add_field("foo")
     foos = @lookup.gatherFields(@b, 'foo').to_a
+ 
     assert_equal([b_foo, a_foo], foos)
-    
     assert_equal([a_bar], @lookup.gatherFields(@b, 'bar').to_a)
   end
 
   def test_find_super_field
     @a.add_field("foo")
     future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
-    assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)    
+
+    assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)
   end
 
   def test_field_override
