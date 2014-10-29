@@ -433,8 +433,6 @@ class BetterScope
         @cached_static_imports ||= fetch_static_imports(HashSet.new)
       end
 
-
-      /* Wrapper around import() to make it accessible from java */
       def add_import(fullname: String, shortname: String)
         self.import(fullname, shortname)
       end

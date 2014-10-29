@@ -31,6 +31,8 @@ interface Scope do
   def isCaptured(name:String):boolean; end
   def capturedLocals:List; end  # List of captured local variable names
   def import(fullname:String, shortname:String):void; end
+  # Wrapper around import() to make it accessible from java
+  def add_import(fullname: String, shortname: String):void; end
   def staticImport(type:TypeFuture):void; end
   def package:String; end
   def package=(package:String):void; end
