@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2010-2014 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,10 +88,13 @@ class MethodLookupTest < BaseMethodLookupTest
     main_future = @types.getMainType(nil, nil)
     object = @types.getSuperClass(main_future).resolve
     main = main_future.resolve
+
     assert(MethodLookup.isSubType(main, main))
     assert(MethodLookup.isSubType(main, object))
     assert_false(MethodLookup.isSubType(object, main))
+
     error = ErrorType.new([['Error']])
+
     assert(MethodLookup.isSubType(error, main))
     assert(MethodLookup.isSubType(main, error))
   end
@@ -128,6 +131,7 @@ class MethodLookupTest < BaseMethodLookupTest
     char = wrap('C')
     byte = wrap('B')
     bool = wrap('Z')
+
     check_supertypes(double, double)
     check_not_supertypes(double, float, long, int, short, char, byte, bool)
     check_supertypes(float, double, float)
@@ -185,6 +189,7 @@ class MethodLookupTest < BaseMethodLookupTest
     double = wrap('D')
     int = wrap('I')
     short = wrap('S')
+
     assert_equal(0.0, MethodLookup.subtypeComparison(double, double))
     assert_equal(0.0, MethodLookup.subtypeComparison(int, int))
     assert_equal(1.0, MethodLookup.subtypeComparison(int, double))
@@ -193,6 +198,7 @@ class MethodLookupTest < BaseMethodLookupTest
     assert_equal(1.0, MethodLookup.subtypeComparison(short, int))
     
     main = @types.getMainType(nil, nil).resolve
+
     assert_equal(0.0, MethodLookup.subtypeComparison(main, main))
     assert(MethodLookup.subtypeComparison(double, main).nan?)
     assert(MethodLookup.subtypeComparison(main, int).nan?)
@@ -202,6 +208,7 @@ class MethodLookupTest < BaseMethodLookupTest
     a = @types.getBooleanType.resolve
     b = @types.wrap(Type.getType('Ljava/lang/Boolean;')).resolve
     c = @types.getFixnumType(1).resolve
+
     assert(!MethodLookup.isSubType(a, b))
     assert(!MethodLookup.isSubType(b, a))
     assert(MethodLookup.isSubTypeWithConversion(a, b))
