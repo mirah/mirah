@@ -88,10 +88,12 @@ Warnings / Logging
 
 - improve duplicate name/sig error when multiple method defs w/ same sig mirah#273
 - return type errors should have tailored error messages, not just assign based mirah#274
+
 Parser
 ======
-- variables w/ name package are not allowed :/
-- case expressions
+- variables w/ name package are not allowed :/ mirah-parser#18
+- case expressions mirah-parser#17
+- lambda literals mirah-parser#19
 
 Features
 ==========
@@ -158,6 +160,14 @@ class C
       end
     end
   end
+
+- if with no else has type of the bool expression not type of the body. It should return nil w/ the body type, or just be an error
+  This might be just a error reporting issue
+    ERROR: Invalid return type org.mirah.typer.Scope, expected org.mirah.typer.ResolvedType
+            if parent
+            ^^^^^^^^^
+
+
 Libraries
 ===============
 - delegation macro library
