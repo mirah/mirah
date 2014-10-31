@@ -228,7 +228,10 @@ class BetterScope
   # override
   def binding_type:ResolvedType; raise "no binding_type for #{getClass}"  end
   def binding_type=(type: ResolvedType):void; raise "no binding_type= for #{getClass}" end
+
+  # override
   def declared_binding_type: ResolvedType; raise "no declared_binding_type for #{getClass}"  end
+  def declared_binding_type=(type):void; raise "no declared_binding_type= for #{getClass}"  end
 
   #mirrorscope overrides
   def getLocalType(name: String, position: Position):LocalFuture; raise "no locals for #{getClass}.getLocalType" end
@@ -269,14 +272,19 @@ class BetterScope
 
   macro def self.defers_binding_type
     quote do
-      def declared_binding_type
-        nil
+      def declared_binding_type=(type): void
+        if parent
+          parent.declared_binding_type= type
+        end
+      end
+      def declared_binding_type: ResolvedType
+        if parent
+          parent.declared_binding_type
+        end
       end
       def binding_type: ResolvedType
         if parent
           parent.binding_type
-        else
-          nil
         end
       end
     end
