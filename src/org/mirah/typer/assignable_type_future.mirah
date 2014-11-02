@@ -164,8 +164,7 @@ class AssignableTypeFuture < BaseTypeFuture
       end
 
       # Loop through the assigned values and widen
-      values.each do |_value|
-        value = TypeFuture(_value)
+      values.each do |value: TypeFuture|
         if value.isResolved
           resolved = value.resolve
           if resolved.isError
