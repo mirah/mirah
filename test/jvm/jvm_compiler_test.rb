@@ -1832,4 +1832,15 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("2\n") { cls.foo(arg.new)}
   end
 
+  def test_incompatible_return_type_error_message
+    e = assert_raise_kind_of Mirah::MirahError do
+      compile(<<-EOF)
+      def a: int
+        return 1.2 if true
+        1
+      end
+      EOF
+    end
+    assert_equal "Invalid return type double, expected int",e.message
+  end
 end

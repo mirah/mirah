@@ -45,7 +45,7 @@ class ReturnTypeFuture < AssignableTypeFuture
   end
 
   def resolved(type)
-    # We don't support generic methods in Mirah classes
+    # TODO We don't support generic methods in Mirah classes
     if type && type.name.equals("null")
       type = @context[MirrorTypeSystem].loadNamedType('java.lang.Object').resolve
     elsif type.kind_of?(MirrorType)
@@ -54,6 +54,10 @@ class ReturnTypeFuture < AssignableTypeFuture
       type = VoidType.new
     end
     super
+  end
+
+  def incompatibleWith(value: ResolvedType, position: Position)
+    ErrorType.new([["Invalid return type #{value}, expected #{inferredType}", position]])
   end
 end
 
