@@ -87,7 +87,7 @@ Warnings / Logging
 - error on not all methods implemented for interfaces mirah#272
 
 - improve duplicate name/sig error when multiple method defs w/ same sig mirah#273
-- return type errors should have tailored error messages, not just assign based mirah#274
+- code sources from macro expansion should know both the macro location and the invoke location and report both on errors so that users know where to look to debug
 
 Parser
 ======
@@ -134,7 +134,8 @@ should work
     end
     # => pkg.A, pkg.B
 - understand Java 8 default methods
-
+- default args on non-last position params. eg when a method takes a block(read: functional interface), it should be allowed to have default args before the block arg.
+- do jruby style method lookup
 
 Bugs
 ==========
