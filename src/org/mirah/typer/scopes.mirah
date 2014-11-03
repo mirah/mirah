@@ -20,41 +20,41 @@ import java.util.List
 import java.util.Map
 
 interface Scope do
-  def selfType:TypeFuture; end  # Should this be resolved?
-  def selfType=(type:TypeFuture):void; end
-  def context:Node; end
-  def parent:Scope; end
-  def parent=(scope:Scope):void; end
-  def shadow(name:String):void; end
-  def shadowed?(name:String):boolean; end
-  def hasLocal(name:String, includeParent:boolean=true):boolean;end
-  def isCaptured(name:String):boolean; end
-  def capturedLocals:List; end  # List of captured local variable names
-  def import(fullname:String, shortname:String):void; end
+  def selfType: TypeFuture; end  # Should this be resolved?
+  def selfType=(type: TypeFuture): void; end
+  def context: Node; end
+  def parent: Scope; end
+  def parent=(scope: Scope): void; end
+  def shadow(name: String): void; end
+  def shadowed?(name: String):boolean; end
+  def hasLocal(name: String, includeParent:boolean=true):boolean;end
+  def isCaptured(name: String):boolean; end
+  def capturedLocals: List; end  # List of captured local variable names
+  def import(fullname: String, shortname: String): void; end
   # Wrapper around import() to make it accessible from java
-  def add_import(fullname: String, shortname: String):void; end
-  def staticImport(type:TypeFuture):void; end
-  def package:String; end
-  def package=(package:String):void; end
-  def resetDefaultSelfNode:void; end
-  def temp(name:String):String; end
-  def imports:Map; end  # Map of short -> long; probably should be reversed.
-  def search_packages:List; end
+  def add_import(fullname: String, shortname: String): void; end
+  def staticImport(type: TypeFuture): void; end
+  def package: String; end
+  def package=(package: String): void; end
+  def resetDefaultSelfNode: void; end
+  def temp(name: String): String; end
+  def imports: Map; end  # Map of short -> long; probably should be reversed.
+  def search_packages: List; end
   # type of the binding for this scope, if it has one
   # this walks up parents to find the right one to attach to
-  def binding_type:ResolvedType; end
-  def binding_type=(type:ResolvedType):void; end
+  def binding_type: ResolvedType; end
+  def binding_type=(type: ResolvedType): void; end
   # type of the binding for exactly this scope
-  def declared_binding_type:ResolvedType; end
+  def declared_binding_type: ResolvedType; end
   def declared_binding_type=(type: ResolvedType): void; end
 end
 
 interface Scoper do
   # parent scope of node
-  def getScope(node:Node):Scope; end
+  def getScope(node: Node): Scope; end
   # add scope to nodes below node
-  def addScope(node:Node):Scope; end
+  def addScope(node: Node): Scope; end
   # get scope of node
-  def getIntroducedScope(node:Node):Scope; end
-  def copyScopeFrom(from:Node, to:Node):void; end
+  def getIntroducedScope(node: Node): Scope; end
+  def copyScopeFrom(from: Node, to: Node): void; end
 end
