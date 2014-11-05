@@ -20,7 +20,7 @@ class BlocksTest < Test::Unit::TestCase
     parse_and_resolve_types name, code
   end
 
-  # #this should probably be a core test
+  # this should probably be a core test
   def test_empty_block_parses_and_types_without_error
     assert_nothing_raised do
       parse_and_type(<<-CODE)
@@ -488,7 +488,7 @@ class BlocksTest < Test::Unit::TestCase
     end
     pend "differing type signatures for nlr" do
       # could be better, if future knew it was a return type
-      assert_equal "Cannot assign java.lang.String to int", error.message
+      assert_equal "Invalid return type java.lang.String, expected int", error.message
     end
   end
 
@@ -627,6 +627,56 @@ class BlocksTest < Test::Unit::TestCase
   end
 
 
+  def test_method_returning_init_call_with_closure
+    cls, = compile(<<-EOF)
+      class InitWithRunnable
+        def initialize(a: Runnable)
+          a.run
+        end
+        def finish
+          "finish"
+        end
+      end
+      class Huh
+      def wut(i: InitWithRunnable)
+        puts i.finish
+      end
+      def regular
+        InitWithRunnable.new { puts "Closure!"; nil }
+      end
+    end
+      Huh.new.wut(Huh.new.regular)
+    EOF
+
+    assert_output "Closure!\nfinish\n" do
+      cls.main(nil)
+    end
+  end
+
+
+  def test_closure_with_or
+    cls, = with_finest_logging{compile(<<-EOF)}
+    def r(run: Runnable) run.run; end
+    r { puts "a" || "b"}
+    EOF
+
+    assert_output "a\n" do
+      cls.main(nil)
+    end
+  end
+
+  def test_closure_with_or_ii
+    cls, = with_finest_logging{compile(<<-EOF)}
+    interface C; def c(): String;end;end
+    def r(cee: C) puts cee.c; end
+    r { "a" || "b"}
+    EOF
+
+    assert_output "a\n" do
+      cls.main(nil)
+    end
+  end
+
   def test_two_closures_in_the_same_method
     cls, = compile(<<-EOF)
       def foo(a: Runnable)
@@ -693,28 +743,38 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
+  def test_closure_with_primitive_array_param
+    cls, = compile(<<-EOF)
+      interface Byter
+        def byteme(bytes: byte[]): void; end
+      end
+      def r b: Byter
+        b.byteme "yay".getBytes
+      end
+      r {|b| puts String.new(b) }
+    EOF
+    assert_output "yay\n" do
+      cls.main(nil)
+    end
+  end
 
-def test_wut_wut
-  cls, = compile(<<-EOF)
-        class Blah
-          def declaredType
-            'yay'
-          end
-          def hasDeclaration
-            true
-          end
-          def me
-            map = {}
-            map['declaration'] = declaredType if hasDeclaration
-          end
+
+  def test_lambda_closure
+    pend "not working yet" do
+      cls, = compile(<<-EOF)
+        def r b: Runnable
+          b.run
         end
-        puts Blah.new.me
+        msg = "yay"
+        l = lambda(Runnable) { puts msg }
+        r l
       EOF
       assert_output "yay\n" do
         cls.main(nil)
       end
+    end
+  end
 
-end
   # nested nlr scopes
 
 # works with script as end
