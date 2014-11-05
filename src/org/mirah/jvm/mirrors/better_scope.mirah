@@ -274,7 +274,7 @@ class BetterScope
     quote do
       def declared_binding_type=(type): void
         if parent
-          parent.declared_binding_type= type
+          parent.declared_binding_type = type
         end
       end
       def declared_binding_type: ResolvedType

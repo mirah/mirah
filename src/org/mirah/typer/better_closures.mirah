@@ -123,9 +123,10 @@ class BetterClosureBuilder
         return
       end
 
-      name = @builder.temp_name_from_outer_scope(node, "Binding")
+      name = @builder.temp_name_from_outer_scope(node, "ZBinding")
       
       @@log.fine("building binding #{name} with captures #{@captured}")
+
       binding_klass = @builder.build_class(
         node.position,
         nil,
@@ -143,6 +144,8 @@ class BetterClosureBuilder
       binding_klass.body.insert(0, attr_def)
 
       binding_type = @builder.infer(binding_klass).resolve
+
+      raise "parent_scope had declared_binding_type already #{@parent_scope}" if @parent_scope.declared_binding_type
       @parent_scope.declared_binding_type = binding_type
       @bindingLocalNamesToTypes[@bindingName] = binding_type
 
@@ -154,11 +157,13 @@ class BetterClosureBuilder
           SimpleString.new(@bindingName),
           binding_new_call)
       
+      @@log.fine "inserted binding assign / binding class "
       @builder.insert_into_body NodeList(node), assign_binding_dot_new
       @builder.insert_into_body NodeList(node), binding_klass
-      @@log.fine "inserted binding class"
+      
 
       @binding_type = @builder.infer(binding_klass)
+      @binding_klass_node = binding_klass
       @builder.infer assign_binding_dot_new
       @@log.fine "binding assignment inference done"
 
@@ -201,6 +206,21 @@ class BetterClosureBuilder
       end
 
       @@log.fine "done replacing references"
+    end
+
+    def enterClosureDefinition(node, blah)
+      # skip the definition of the binding we're in the process of inserting
+      @binding_klass_node != node
+    end
+
+
+    def exitClosureDefinition(node, blah)
+      # might be a lambda created by the lambda macro
+      # if contained captures?
+      #  ; containing captures here implies a closure not built via this, because this builds them inside out
+      #    adjust initializer to add binding
+      #    add method for referring to binding by name
+      #    find new call, and adjust it to include the binding just added to the initializer
     end
 
     def enterBlock(node, blah)
@@ -298,13 +318,23 @@ class BetterClosureBuilder
       node.accept(self, collection)
       collection
     end
+
+    def enterMacroDefinition(node, notes)
+      false
+    end
+
     def exitBlock(node, notes)
       type = if @todo_closures[node]
         @todo_closures[node]
       else
         #t = @typer.getInferredType(node).resolve
         #if t.kind_of? MethodType
-          fs = CallFuture(@typer.getInferredType(node.parent)).futures
+          parent_type_future = @typer.getInferredType(node.parent)
+          unless parent_type_future
+            puts "#{CallSite(node.parent).name} call with block has no type at #{node.parent.position}"
+            puts "  block type: #{@typer.getInferredType(node)}"
+          end
+          fs = CallFuture(parent_type_future).futures
           TypeFuture(fs.get(fs.size-1)).resolve
         #else
         #end
@@ -315,12 +345,13 @@ class BetterClosureBuilder
 
 
   def finish
+    old_level = @@log.getLevel
+    @@log.setLevel Level.FINEST
     closures = []
     scripts = ArrayList.new(@scripts)
     Collections.reverse(scripts)
     scripts.each do |s: Script|
       closures.addAll BlockFinder.new(@typer, @todo_closures).find(s).entrySet
-
     end
 
     closures_to_skip = []
@@ -328,7 +359,9 @@ class BetterClosureBuilder
     blockToBindings = LinkedHashMap.new
     bindingLocalNamesToTypes = LinkedHashMap.new
     i = 0
+
     closures.each do |entry: Entry|
+
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
       block = Block(entry.getKey)
@@ -350,7 +383,7 @@ class BetterClosureBuilder
       adjuster = BindingAdjuster.new(
         self,
        "b#{i}",
-        MirrorScope(get_scope(block)), #TODO pull up declared_binding_type
+        MirrorScope(get_scope(block)),
         blockToBindings,
         bindingLocalNamesToTypes)
 
@@ -450,6 +483,7 @@ class BetterClosureBuilder
       ps.close()
       @@log.fine("Inferred types for expr:\n#{String.new(buf.toByteArray)}")
     end
+    @@log.setLevel old_level
   end
 
   def add_todo(block: Block, parent_type: ResolvedType)
@@ -875,10 +909,10 @@ enclosing_scope = get_scope(enclosing_body)
     method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
     # at this point it's safe to modify them I think, because the typer's done
-    #method.body = NodeList(block.body.clone)
+    method.body = NodeList(block.body.clone)
     # arg set does a clone if parent is set!!
-    block.body.setParent nil
-    method.body = NodeList(block.body)
+    #block.body.setParent nil
+    #method.body = NodeList(block.body)
 
     klass.body.add(method)
   end
