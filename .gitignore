@@ -13,6 +13,10 @@ Gemfile.lock
 vendor/
 *~
 
+.ruby-*
+
+tmp_test
+
 # ignore generated jar files
 javalib/mirah-bootstrap.jar
 javalib/mirah-builtins.jar
