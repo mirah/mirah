@@ -1,3 +1,95 @@
+=== 0.1.4 November Chill / 2014-11-13
+
+d73e6d4 ignore ruby version management / test temp files
+4090b8d add a number of new block tests
+b29a845 some work in progress wrt new closure impl.
+aa92d0f add some whitespace to scopes.mirah
+010e16a add a few things to TODO, rm return error message todo
+140cd96 catch another explicit cast that could be implicit in a block
+78122d6 change type incompat error on returns to use be clearer
+71d9ea3 add declared_binding_type= definitions to BetterScope
+5fad461 update TODO w/ some more issue numbers
+c6bbd73 reformat method_lookup_test
+266889f add add_import to Scope interface for java interop
+2e0b0de rm old scope impl
+8e15cd0 pass new closure flag through to typers
+6067583 mark differing type sig test as pending
+2ecbea4 add flag for enabling new closures, default to off
+a6d6e54 add a couple TODOs, make issues for most warnings related todos
+c68c5a1 rm local return in mirror_type_system.mirah
+c2cdd2d clean should rm generated test files
+0f9b6ce bytecode generation should blow up if it encounters a call with a block
+bc4f351 reenable better closures, now that some bugs are fixed
+2e7118b attempt to fix test fixtures
+8ee1764 reformat long line in typer
+0fc0cb2 add some things to better closures
+c33f4f8 fix build by moving back to old closure impl + fixing ProxyNode clone
+56c528f if a node doesn't have a position, still have a good error
+2c23611 rm usage of import sorter
+f40f2e5 update java bits to 1.6 from 1.5 in Rakefile, to get rid of warnings
+2d983ff only compile test fixtures if needed
+7946057 rm unused file from previous closure rewrite attempt
+1f8590f rm unused assert method
+5210e2f clean up better closures a bit
+54fe717 rm finest logging call in test
+d94068e only drop stacktraces when fine logging enabled
+25efb58 fix interface problem. It was a problem w/ a closure w/o a binding having its class def inserted incorrectly
+508fb5a rm puts in test
+4d9363d do a proxy cleanup before adjusting bindings
+f054ae6 WIP I
+f91eec0 better asm download link in Rakefile
+104082e fix import sorter so that nested packages don't cause it to blow up
+bdf29f9 use https for maven
+dbc36ea fix import sorter by using NodeScanner
+7eecc9d add new closure impl, but off
+006622e bump copyright
+6b9439e rm nlr from old closure builder
+73f9866 add call to finish closures to mirah_compiler.mirah
+6e8ce48 if we're about to create a loop in scope, just continue
+4cc0841 dump stack trace on internal typer errors when running in verbose mode
+1249e63 do something slightly more reasonable when a lambda's type arg is no good
+80a7151 add expln at top of better_scope.mirah
+2f3606d add new args tests
+9fe02d0 update maven instructions w/ dist/mirahc.jar
+993135c roughly sort asts before performing type inference.
+32e2189 add building mirah w/ mirah to ci
+8adf80b adding some fine logging to closure building / commentary
+69ffe75 complain in a better way if generic inference has a problem
+5ef8965 add some tests for lambdas in the blocks test
+245badf clean up block test for param to not use threads
+16c4071 rm commented puts from async_type_builder
+7717d61 fix up better scope to act like JVMScope
+9c4cf81 fix blocks in rescues
+6d5e408 add interface for closure building to make it easier to defer it later
+8e538e7 format org/mirah/macros/builder.mirah / move inference of annotation to after ast attachment
+b4876e4 bump copyright on mirah_compiler.mirah
+5d41f16 format src/org/mirah/typer/assignable_type_future.mirah
+eae844d flesh out remaining better scope bits, use better scope
+0526803 break up import test a bit
+bfbeaae rm unneeded semi colon in test
+b7079fd add more information to default error message
+aa84912 start putting together a MirrorScope interface
+28a6a15 update ant task, update ant example
+c8b4930 make tmp script names for tests shorter
+b367886 move binding creation to class building
+e0344c4 formatting jvm_scope + base_type_future, w/ better logging in base_type_future
+a373f3b format array_compiler.mirah
+829e85a move scope related typer methods together
+676394d name closure inner classes w/ good names
+6ffe551 add ant classes to mirahc.jar
+52f0acd add pending test for bad nested closure binding generation
+fd3d1cb update versions in readme
+7a47048 start converting to implicit casting in block arg defs
+6a814e6 add whitespace, rm unneeded manual boxing
+ba7ef3e rm unneeded ruby files
+aec965b add constant support
+0fcf899 rm unnecessary test logging
+4a080d4 Merge branch 'shannah-parser_issue_14_fix2'
+89b56fc Merge branch 'parser_issue_14_fix2' of git://github.com/shannah/mirah into shannah-parser_issue_14_fix2
+b377e66 fix version test
+40cd50f bump version
+839416d use released mirah for builds
+60aa9be Updated parser to include support for including whitespace and comment tokens in the lexer.  https://github.com/mirah/mirah-parser/issues/14
 
 === 0.1.3 Metacircularity: Achieved / 2014-08-08
 
