@@ -16,6 +16,7 @@ require 'test_helper'
 
 class MirahArgumentsTest < Test::Unit::TestCase
   java_import 'org.mirah.tool.MirahArguments'
+
   def test_arg_dash_v_prints_version_and_has_exit_0
     arg_processor = MirahArguments.new
 
@@ -26,7 +27,6 @@ class MirahArgumentsTest < Test::Unit::TestCase
     assert arg_processor.exit?
     assert_equal 0, arg_processor.exit_status
   end
-
 
   def test_on_invalid_arg_prints_error_and_exits_1
     arg_processor = MirahArguments.new
@@ -45,8 +45,46 @@ class MirahArgumentsTest < Test::Unit::TestCase
     
     arg_processor.apply_args ["--bootclasspath", path]
 
-    assert_equal path.split(":").map{|p|"file:%s" % File.expand_path(p) }.join(":"),
-                 arg_processor.real_bootclasspath.map{|u| u.to_s }.join(":")
+    assert_equal_classpaths path,
+                 arg_processor.real_bootclasspath
+  end
+
+  def test_flag_classpath_overrides_env
+    env = { "CLASSPATH" => "some:classpath" }
+    path = "class:path"
+
+    arg_processor = MirahArguments.new env
+    arg_processor.apply_args ["--classpath", path]
+
+    assert_equal_classpaths path,
+                 arg_processor.real_classpath
+  end
+
+  def test_classpath_is_from_env_without_flag
+    path = "class:path"
+    env = { "CLASSPATH" => path }
+    
+    arg_processor = MirahArguments.new env
+    arg_processor.apply_args []
+
+    assert_equal_classpaths path,
+                 arg_processor.real_classpath
+  end
+
+  def test_classpath_defaults_to_cwd
+    arg_processor = MirahArguments.new({})
+    arg_processor.apply_args []
+
+    assert_equal_classpaths ".",
+                 arg_processor.real_classpath
+  end
+
+  def test_classpath_is_destination_when_no_flag_or_env
+    arg_processor = MirahArguments.new({})
+    arg_processor.apply_args ["-d", "some/path"]
+
+    assert_equal_classpaths "some/path",
+                 arg_processor.real_classpath
   end
 
   def test_dash_h_prints_help_and_exits
@@ -61,5 +99,12 @@ class MirahArgumentsTest < Test::Unit::TestCase
 
     assert arg_processor.exit?
     assert_equal 0, arg_processor.exit_status
+  end
+
+  def assert_equal_classpaths expected, actual_classpath_list
+    normalized_expected = expected.split(":").
+      map { |p| "file:#{File.expand_path(p)}#{"/./" if p == "." }" }.join(":")
+    assert_equal normalized_expected,
+                 actual_classpath_list.map{|u| u.to_s }.join(":")
   end
 end

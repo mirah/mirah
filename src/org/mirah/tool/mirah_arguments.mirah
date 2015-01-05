@@ -76,7 +76,7 @@ class MirahArguments
                 use_new_closures: boolean,
                 exit_status: int
 
-  def initialize
+  def initialize(env=System.getenv)
     @logger_color = true
     @use_type_debugger = false
     @code_sources = []
@@ -86,6 +86,7 @@ class MirahArguments
     @jvm_version = JvmVersion.new
     @classpath = nil
     @diagnostics = SimpleDiagnostics.new true
+    @env = env
   end
 
   def classpath= classpath: String
@@ -100,7 +101,18 @@ class MirahArguments
   end
 
   def real_classpath
-    @classpath ||= parseClassPath destination
+    # if flag set, use flag
+    # else look at env
+    # else use destination directory
+    return @classpath if @classpath
+
+    env_classpath = String(@env["CLASSPATH"])
+    if env_classpath
+      @classpath = parseClassPath env_classpath
+    elsif destination
+      @classpath = parseClassPath destination
+    end
+
     @classpath
   end
 
