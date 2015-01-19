@@ -203,7 +203,6 @@ end
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
 
-#TODO find/create ssl location for this jar 
 file_create 'javalib/asm-5.jar' do
   require 'open-uri'
   puts "Downloading asm-5.jar"
