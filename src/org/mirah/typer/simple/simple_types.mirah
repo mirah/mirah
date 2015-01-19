@@ -27,6 +27,7 @@ import java.io.InputStreamReader
 import java.io.FileInputStream
 import java.io.PrintStream
 
+# TODO(nh) this appears unused
 # A minimal TypeSystem for the Typer tests.
 # The main TypeSystem is Mirah::JVM::Types::TypeFactory, in
 # lib/mirah/jvm/types/factory.rb
@@ -35,7 +36,7 @@ class SimpleTypes; implements TypeSystem
     @types = {}
     [ :Null, :Void, :Exception, :Regex,
       :String, :Bool, :Int, :Char, :Float,
-      :Hash, 'mirah.impl.Builtin'
+      :Hash
       ].each { |t| @types[t] = SimpleType.new(String(t), false, false)}
     @meta_types = {}
     @array_types = {}
