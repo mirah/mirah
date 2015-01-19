@@ -88,6 +88,7 @@ Warnings / Logging
 
 - improve duplicate name/sig error when multiple method defs w/ same sig mirah#273
 - code sources from macro expansion should know both the macro location and the invoke location and report both on errors so that users know where to look to debug
+- -v should only show the version, it currently says no main method too. :/
 
 Parser
 ======
@@ -136,6 +137,7 @@ should work
 - understand Java 8 default methods
 - default args on non-last position params. eg when a method takes a block(read: functional interface), it should be allowed to have default args before the block arg.
 - do jruby style method lookup
+- add env var hash constant ala Ruby's ENV.
 
 Bugs
 ==========
@@ -167,6 +169,12 @@ class C
     ERROR: Invalid return type org.mirah.typer.Scope, expected org.mirah.typer.ResolvedType
             if parent
             ^^^^^^^^^
+
+
+- constants are not referrable outside the defining scope :/ because they are private
+- referring to classes as constants causes crashes
+  java -jar dist/mirahc.jar -cp test/fixtures/ -e 'puts org::foo::A' blows up w/ a asm error
+  java -jar dist/mirahc.jar -cp test/fixtures/ -e 'puts org::foo::A.class' doesn't
 
 
 Libraries
