@@ -62,15 +62,19 @@ Compiler Internals Improvements
 - load type systems
 - load types for System, & predefs maybe?
 - load scoped macros / extensions
+
 # typer
 - visit script body / class bodies, skipping method bodies
 - compile macros
 - visit method bodies
+
 # finishs resolving typer wip
 - resolve proxies
 - change captured locals into binding fields
+
 # clean up / compiler prep
 - clean ast up
+
 # compile
 
 - maybe after parse, check built files to see if they need to be rebuilt, and ignore them otherwise
@@ -89,6 +93,9 @@ Warnings / Logging
 - improve duplicate name/sig error when multiple method defs w/ same sig mirah#273
 - code sources from macro expansion should know both the macro location and the invoke location and report both on errors so that users know where to look to debug
 - -v should only show the version, it currently says no main method too. :/
+- add -Werror where warnings become errors
+-   make block mirror type string a little nicer somehow 
+eg Can't find method java.util.concurrent.locks.ReentrantLock.synchronize(org.mirah.jvm.mirrors.BlockType)
 
 Parser
 ======
@@ -138,6 +145,8 @@ should work
 - default args on non-last position params. eg when a method takes a block(read: functional interface), it should be allowed to have default args before the block arg.
 - do jruby style method lookup
 - add env var hash constant ala Ruby's ENV.
+- Thread extensions:
+  Thread.start {}, which does t=Thread.new{};t.start;t
 
 Bugs
 ==========
