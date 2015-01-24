@@ -182,12 +182,15 @@ class BetterClosureBuilder
       @@log.fine "finished phase one of capture replacement"
 
       arg_names = []
-      arguments.required.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required
-      arguments.optional.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.optional
-      arg_names.add arguments.rest.name.identifier if arguments.rest
-      arguments.required2.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required2
-      arg_names.add arguments.block.name.identifier if arguments.block
-
+      if arguments
+        arguments.required.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required
+        arguments.optional.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.optional
+        arg_names.add arguments.rest.name.identifier if arguments.rest
+        arguments.required2.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required2
+        arg_names.add arguments.block.name.identifier if arguments.block
+      else
+        @@log.fine "block had null arguments"
+      end
       @@log.fine "adding assignments from args to captures"
       arg_names.each do |arg|
         if @captured.contains arg
