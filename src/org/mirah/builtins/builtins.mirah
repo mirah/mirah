@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -28,8 +28,10 @@ class Builtins
     type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
     type_system.extendClass('java.lang.String', StringExtensions.class)
     type_system.extendClass('java.lang.StringBuilder', StringBuilderExtensions.class)
-    type_system.extendClass('int', IntExtensions.class)
 
+    type_system.extendClass('java.util.concurrent.locks.Lock', LockExtensions.class)
+
+    type_system.extendClass('int', IntExtensions.class)
     type_system.extendClass('byte', NumberExtensions.class)
     type_system.extendClass('short', NumberExtensions.class)
     type_system.extendClass('int', NumberExtensions.class)
