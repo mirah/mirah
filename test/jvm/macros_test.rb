@@ -219,7 +219,7 @@ class MacrosTest < Test::Unit::TestCase
               @`name`
             end
             def `"#{name}_set"`(`name`: `type`)
-              @`name` = `name`
+              @`name` = `name` # silly parsing `
             end
           end
         end
