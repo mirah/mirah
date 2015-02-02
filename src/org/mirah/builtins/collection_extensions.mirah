@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,8 +15,13 @@
 
 package org.mirah.builtins
 
-
 class CollectionExtensions
+  # returns true if is empty
+  # an alias for isEmpty
+  macro def empty?
+    quote { `@call.target`.isEmpty }
+  end
+
   macro def map(block:Block)
     x = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0)

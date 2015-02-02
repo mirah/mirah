@@ -1,4 +1,14 @@
 class ListExtensionsTest < Test::Unit::TestCase
+  def test_empty_q
+    cls, = compile(<<-EOF)
+      x = []
+      puts x.empty?
+    EOF
+    assert_output("true\n") do
+      cls.main(nil)
+    end
+  end
+
   def test_bracket_getter
     cls, = compile(<<-EOF)
       x = [1,2]
