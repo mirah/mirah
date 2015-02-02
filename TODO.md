@@ -106,6 +106,7 @@ Parser
 
 Features
 ==========
+- each macro for Maps
 - Reflection Macros
 - AST formatter that converts back to something the parser can parse
 - default toString?

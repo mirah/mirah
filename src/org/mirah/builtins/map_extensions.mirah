@@ -32,4 +32,6 @@ class MapExtensions
   macro def keys
     quote { `@call.target`.keySet }
   end
+
+  # TODO each
 end
