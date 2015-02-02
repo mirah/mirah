@@ -67,6 +67,7 @@ class MirahArguments
                 code_sources: List,
                 jvm_version: JvmVersion,
                 destination: String,
+                macro_destination: String,
                 diagnostics: SimpleDiagnostics,
                 vloggers: String,
                 verbose: boolean,
@@ -87,6 +88,10 @@ class MirahArguments
     @classpath = nil
     @diagnostics = SimpleDiagnostics.new true
     @env = env
+  end
+
+  def real_macro_destination
+    @macro_destination || @destination
   end
 
   def classpath= classpath: String
@@ -206,7 +211,12 @@ class MirahArguments
     parser.addFlag(
         ['dest', 'd'], 'DESTINATION',
         'Directory where class files should be saved.'
-    ) {|dest| compiler_args.destination = dest }
+    ) { |dest| compiler_args.destination = dest }
+
+    parser.addFlag(
+        ['macro-dest'], 'DESTINATION',
+        'Directory where macro class files should be saved. Defaults to dest.'
+    ) { |dest| compiler_args.macro_destination = dest }
 
     parser.addFlag(['all-errors'],
         'Display all compilation errors, even if there are a lot.') {

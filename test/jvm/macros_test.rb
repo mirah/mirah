@@ -389,4 +389,20 @@ class MacrosTest < Test::Unit::TestCase
     CODE
     assert_output("one\n") {script.main(nil)}
   end
+
+  def test_separate_compilation_different_macro_dest
+    compile(<<-CODE, separate_macro_dest: true)
+      class InlineTwoSayer
+        macro def say_two
+          quote do
+            puts "two"
+          end
+        end
+      end
+    CODE
+    script, _ =compile(<<-CODE, separate_macro_dest: true)
+      InlineTwoSayer.new.say_two
+    CODE
+    assert_output("two\n") {script.main(nil)}
+  end
 end

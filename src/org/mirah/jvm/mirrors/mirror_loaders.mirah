@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -274,10 +274,12 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     @context = context
     @loader = resourceLoader
     @ancestorLoader = OrErrorLoader.new(self)
+    @parent=parent
   end
 
   def findMirror(type)
     super || begin
+      @@log.fine "findMirror #{type}"
       if type.getSort == Type.ARRAY
         return findArrayMirror(Type.getType(type.getDescriptor.substring(1)))
       end
@@ -285,15 +287,13 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
       while true
         bytecode = @loader.getResourceAsStream(classfile)
         if bytecode
-          node = ClassNode.new
-          reader = ClassReader.new(bytecode)
-          reader.accept(node, ClassReader.SKIP_CODE)
+          node = BytecodeMirrorLoader.class_node_for(bytecode)
           if "#{node.name}.class".equals(classfile)
             @@log.fine("Found #{classfile}")
             mirror = BytecodeMirror.new(@context, node, @ancestorLoader)
-            BytecodeMirrorLoader.findMacros(node).each do |name|
-              BytecodeMirrorLoader.addMacro(mirror, String(name))
-            end
+            macro_loader = @context[ClassLoader]
+            BytecodeMirrorLoader.findOldAndNewStyleMacros(macro_loader, mirror, node, classfile)
+
             return mirror
           end
         end
@@ -301,7 +301,7 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
         break if lastSlash == -1
         classfile = classfile.substring(0, lastSlash) + "$" + classfile.substring(lastSlash + 1)
       end
-      @@log.finer("Cannot find #{classfile}")
+      @@log.fine("Cannot find #{classfile}")
       nil
     end
   end
@@ -325,12 +325,46 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     @@log.fine("Loaded macro #{member}")
   end
 
-  def self.extendClass(type:BaseType, extensions:Class)
-    path = "/#{extensions.getName.replace(?., ?/)}.class"
-    stream = extensions.getResourceAsStream(path)
-    node = ClassNode.new
-    ClassReader.new(stream).accept(node, ClassReader.SKIP_CODE)
+  def self.extendClass(type: BaseType, extensions: Class)
+    @@log.fine "extend class #{type} with #{extensions}"
+    mirah_classloader = extensions.getClassLoader
+
+    path = "#{extensions.getName.replace(?., ?/)}.class"
+    node = class_node_for(mirah_classloader.getResourceAsStream(path))
+    
+    findOldAndNewStyleMacros(mirah_classloader, type, node, path)
+  end
+
+  def self.findOldAndNewStyleMacros(macro_loader: ClassLoader,
+                      type: BaseType,
+                      initialByteCode: ClassNode,
+                      classfile: String): void
+    return unless initialByteCode # class doesn't exist then
+    unless macro_loader # there's no macro loader, so we're in a badly constructed something
+      return
+    end
+
+    @@log.finer "  attempting old style lookup on: #{classfile}"
+    BytecodeMirrorLoader.findAndAddMacros(initialByteCode, type)
+
+    # instead of looking on node, find node$Extensions, and load from there
+    new_style_extension_classname = classfile.replace(".class", "$Extensions.class")
+    @@log.finer "  attempting new style: #{new_style_extension_classname}"
+    
+    bytecode = macro_loader.getResourceAsStream(new_style_extension_classname)
+    if bytecode
+      @@log.fine "  class found"
+      node = BytecodeMirrorLoader.class_node_for(bytecode)
+      BytecodeMirrorLoader.findAndAddMacros(node, type)
+    else
+      @@log.finer "  class not found"
+    end
+        
+  end
+
+  def self.findAndAddMacros(node: ClassNode, type: BaseType): void
     macros = findMacros(node)
+    @@log.fine "  found #{macros.size} macros"
     macros.each do |name|
       addMacro(type, String(name))
     end
@@ -343,6 +377,13 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
         return List(annotation.values.get(1))
       end
     end if klass.invisibleAnnotations
-    return Collections.emptyList
+    Collections.emptyList
+  end
+
+  def self.class_node_for(bytecode: InputStream)
+    node = ClassNode.new
+    reader = ClassReader.new(bytecode)
+    reader.accept(node, ClassReader.SKIP_CODE)
+    node
   end
 end

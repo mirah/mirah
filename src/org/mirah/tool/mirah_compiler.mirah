@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2014 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,14 +25,19 @@ import java.util.List
 import java.util.logging.Logger
 import java.util.logging.Level
 import java.util.regex.Pattern
+import java.util.Collections
+import java.util.Map
+import java.util.HashMap
 import javax.tools.Diagnostic.Kind
 import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser
+import mirah.lang.ast.Package as MirahPackage
 import mirah.lang.ast.*
 import org.mirah.IsolatedResourceLoader
 import org.mirah.MirahClassLoader
 import org.mirah.MirahLogFormatter
 import org.mirah.jvm.compiler.Backend
+import org.mirah.jvm.compiler.ExtensionCleanup
 import org.mirah.jvm.compiler.BytecodeConsumer
 import org.mirah.jvm.compiler.JvmVersion
 import org.mirah.jvm.mirrors.MirrorTypeSystem
@@ -65,12 +70,14 @@ end
 class MirahCompiler implements JvmBackend
 
   def initialize(
-      diagnostics:SimpleDiagnostics, jvm:JvmVersion, classpath:URL[],
-      bootclasspath:URL[], macroclasspath:URL[], macro_destination:String,
-      debugger:DebuggerInterface=nil, new_closures:boolean=false)
+      diagnostics: SimpleDiagnostics, jvm: JvmVersion, classpath: URL[],
+      bootclasspath: URL[], macroclasspath: URL[], destination: String,
+      macro_destination: String,
+      debugger: DebuggerInterface=nil, new_closures: boolean=false)
     @diagnostics = diagnostics
     @jvm = jvm
-    @destination = macro_destination
+    @destination = destination
+    @macro_destination = macro_destination
     @debugger = debugger
 
     @context = context = Context.new
@@ -147,9 +154,7 @@ class MirahCompiler implements JvmBackend
         @debugger.parsedNode(node)
       end
     end
-    if @diagnostics.errorCount > 0
-      raise CompilationFailure.new
-    end
+    failIfErrors
     node
   end
 
@@ -170,9 +175,7 @@ class MirahCompiler implements JvmBackend
     sorted_asts.each do |node: Node|
       processInferenceErrors(node, @context)
     end
-    if @diagnostics.errorCount > 0
-      raise CompilationFailure.new
-    end
+    failIfErrors
   end
 
   def processInferenceErrors(node:Node, context:Context):void
@@ -188,48 +191,51 @@ class MirahCompiler implements JvmBackend
     @@log.log(Level.FINE, "Inferred types:\n{0}", AstFormatter.new(ast))
   end
 
+  def failIfErrors
+    if @diagnostics.errorCount > 0
+      raise CompilationFailure.new
+    end
+  end
+
   def compileAndLoadExtension(ast)
     logAst(ast, @macro_typer)
     processInferenceErrors(ast, @macro_context)
-    if @diagnostics.errorCount > 0
-      raise CompilationFailure.new
-    end
+    failIfErrors
+
     @macro_backend.clean(ast, nil)
     processInferenceErrors(ast, @macro_context)
-    if @diagnostics.errorCount > 0
-      raise CompilationFailure.new
-    end
+    failIfErrors
+
     @macro_backend.compile(ast, nil)
-    first_class_name = nil
-    destination = @destination
-    class_map = @extension_classes
-    @macro_backend.generate do |filename, bytes|
-      classname = filename.replace(?/, ?.)
-      first_class_name ||= classname if classname.contains('$Extension')
-      class_map[classname] = bytes
-      file = File.new(destination, "#{filename.replace(?., ?/)}.class")
-      parent = file.getParentFile
-      parent.mkdirs if parent
-      output = BufferedOutputStream.new(FileOutputStream.new(file))
-      output.write(bytes)
-      output.close
-    end
-    @extension_loader.loadClass(first_class_name)
+
+    class_name = Backend.write_out_file(
+      @macro_backend, @extension_classes, @macro_destination)
+
+    @extension_loader.loadClass(class_name)
   end
 
-  def compile(generator:BytecodeConsumer)
+  def compile(generator: BytecodeConsumer)
     @asts.each do |node: Script|
       @backend.clean(node, nil)
+      node.accept(ExtensionCleanup.new(@macro_backend,
+                 @extension_classes,
+                 @macro_destination,
+                 @macro_typer),
+                HashMap.new)
+
       processInferenceErrors(node, @context)
-      if @diagnostics.errorCount > 0
-        raise CompilationFailure.new
-      end
+    end
+
+    failIfErrors()
+
+    @asts.each do |node: Script|
       @backend.compile(node, nil)
     end
     @backend.generate(generator)
   end
 
-  def createTypeSystems(classpath:URL[], bootcp:URL[], macrocp:URL[]):void
+
+  def createBootLoader(bootcp: URL[])
     # Construct a loader with the standard Java classes plus the classpath
     bootloader = if bootcp
       ClassLoaderResourceLoader.new(IsolatedResourceLoader.new(bootcp))
@@ -240,15 +246,12 @@ class MirahCompiler implements JvmBackend
           Pattern.compile("^/?(mirah/|org/mirah|org/jruby)"))
     end
     # Annotations used by the compiler also need to be loadable
-    bootloader = FilteredResources.new(
+    FilteredResources.new(
         ClassResourceLoader.new(Mirahc.class),
         Pattern.compile("^/?org/mirah/jvm/(types/(Flags|Member|Modifiers))|compiler/Cleaned"), bootloader)
-    classloader = ClassLoaderResourceLoader.new(
-        IsolatedResourceLoader.new(classpath), bootloader)
-    
-    # Now one for macros: These will be loaded into this JVM,
-    # so we don't support bootclasspath.
-    macrocp ||= classpath
+  end
+
+  def createMacroLoader(macrocp: URL[])
     bootloader = ClassResourceLoader.new(System.class)
     macroloader = ClassLoaderResourceLoader.new(
         IsolatedResourceLoader.new(macrocp),
@@ -256,18 +259,31 @@ class MirahCompiler implements JvmBackend
             ClassResourceLoader.new(Mirahc.class),
             Pattern.compile("^/?(mirah/|org/mirah)"),
             bootloader))
+  end
+
+  def createTypeSystems(classpath: URL[], bootcp: URL[], macrocp: URL[]): void
+    # Construct a loader with the standard Java classes plus the classpath
+    bootloader = createBootLoader(bootcp)
+
+    classloader = ClassLoaderResourceLoader.new(
+        IsolatedResourceLoader.new(classpath), bootloader)
+
+    # Now one for macros: These will be loaded into this JVM,
+    # so we don't support bootclasspath.
+    macrocp ||= classpath
+    macroloader = createMacroLoader(macrocp)
 
     macro_class_loader = URLClassLoader.new(
         macrocp, MirahCompiler.class.getClassLoader())
     @context[ClassLoader] = macro_class_loader
     @macro_context[ClassLoader] = macro_class_loader
-        
+
     @extension_classes = {}
     extension_parent = URLClassLoader.new(
        macrocp, Mirahc.class.getClassLoader())
     @extension_loader = MirahClassLoader.new(
        extension_parent, @extension_classes)
-    
+
     @macro_context[TypeSystem] = @macro_types = MirrorTypeSystem.new(
         @macro_context, macroloader)
     @context[TypeSystem] = @types = MirrorTypeSystem.new(

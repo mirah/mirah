@@ -29,6 +29,8 @@ class Compile < Task
   def initialize
     @src = '.'
     @target = '.'
+    @macro_target = nil
+    @macro_classpath = nil
     @classpath = Path.new(getProject)
     @dir = '.'
     @bytecode = true
@@ -52,9 +54,11 @@ class Compile < Task
         ['--jvm', jvm_version,
          '-d', target,
          #'--cd', dir,
-         '-c', classpath,
-         src])
-    args.add(0, '-V') if verbose
+         '-c', classpath])
+    args.add('-V') if verbose
+    args.addAll(['--macro-dest', @macro_target]) if @macro_target
+    args.addAll(['--macroclasspath', @macro_classpath]) if @macro_classpath
+    args.add(src)
 
     begin
       MirahCommand.compile(args)
@@ -75,6 +79,10 @@ class Compile < Task
     @target = a.toString
   end
 
+  def setMacrotarget(a:File):void
+    @macro_target = a.toString
+  end
+
   def setDir(a:File):void
     @dir = a.toString
   end
@@ -85,6 +93,14 @@ class Compile < Task
 
   def setClasspathref(ref:Reference):void
     createClasspath.setRefid(ref)
+  end
+
+  def setMacroclasspath(s:Path):void
+    createMacroClasspath.append(s)
+  end
+
+  def setMacroclasspathref(ref:Reference):void
+    createMacroClasspath.setRefid(ref)
   end
 
   def setBytecode(bytecode:boolean):void
@@ -101,6 +117,12 @@ class Compile < Task
 
   def createClasspath
     @classpath.createPath
+  end
+
+
+  def createMacroClasspath
+    @macro_classpath ||= Path.new(getProject)
+    @macro_classpath.createPath
   end
 
   def expand(path:String)

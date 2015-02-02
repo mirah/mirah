@@ -38,14 +38,21 @@ module JVMCompiler
   def compile(code, options = {})
     name = options.fetch :name, tmp_script_name
 
-    java_version = options.fetch :java_version, JVMCompiler::JVM_VERSION
     args = ["-d", TEST_DEST,
             "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF",
             "--new-closures",
            # "--verbose",
             "--classpath", Mirah::Env.encode_paths([FIXTURE_TEST_DEST, TEST_DEST]) ]
+
+    java_version = options.fetch :java_version, JVMCompiler::JVM_VERSION
     if java_version
       args += ["--jvm", java_version]
+    end
+
+    if options[:separate_macro_dest]
+      macro_dest = TEST_DEST.sub('classes','macro_classes')
+      args += ["--macro-dest", macro_dest,
+               "--macroclasspath", Mirah::Env.encode_paths([macro_dest])]
     end
 
     cmd = build_command name, code
