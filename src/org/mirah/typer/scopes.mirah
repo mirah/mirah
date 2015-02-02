@@ -34,9 +34,10 @@ interface Scope do
   # Wrapper around import() to make it accessible from java
   def add_import(fullname: String, shortname: String): void; end
   def staticImport(type: TypeFuture): void; end
+  # package for this scope
   def package: String; end
   def package=(package: String): void; end
-  def resetDefaultSelfNode: void; end
+  # create a temp var for this scope with name
   def temp(name: String): String; end
   def imports: Map; end  # Map of short -> long; probably should be reversed.
   def search_packages: List; end
