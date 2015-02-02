@@ -51,6 +51,7 @@ Compiler Internals Improvements
 - clean up javalib dir
 - don't use 1.5 as java compile target
 - make it obvious when ASTs have been dropped during macro expansion
+- add timing to phases
 
 - break compiler into phases
 ---------------
@@ -111,11 +112,10 @@ Features
 - default hashCode / equals
 - change == to use equals
 - default val/no type that defers to indy
-
-eg
-def foo(x: int, y=1)
-end
-should work
+    eg
+      def foo(x: int, y=1)
+      end
+    should work
 
 - attr_reader/et al as varargs instead of just Hash. It would mean that the type info would have to come from somewhere else
 - goto: headius wants it
@@ -124,6 +124,36 @@ should work
 - extension syntax
 - move macro / mirahc anno to separate class dir to improve javac interop
 - public / private / protected / package scope helpers
+
+
+  # test cases
+  #  - method w/ no modifier, modifier statement, method
+  #  - modifier statement, method
+  #  - modifier statement, method, same modifier statement, method
+  #  - modifier statement, method, different modifier statement, method
+  #  - modifier statement, method containing closure w/ mdefs
+  #  - modifier fn w/ undefined method
+  #  - mdef, modifier fn mname
+  #  - modifier statement, modifiered method
+  #  - modifier statement, differently modifiered method
+  #  - modifier statement, modifiered method, unmodifiered method
+  #  - modifier statement, differently modifiered method, unmodifiered method
+
+  #  pub
+  #  def a
+  # macro def self.public(mdef: MethodDefinition)
+  # set annotation on it directly
+
+  # macro def self.public(method_names: NodeList<Symbol> or something)
+  #   find methods w/ those names, set anno on them directly
+  #   if they don't exist, blow up
+  #macro def self.public()
+    # options
+    # 1) grab typer & set current scope's default access *** best most likely
+    # 2) don't expand here, instead throw into a queue, expand all at end
+    # 3) try to infer defs needed to do it
+  #end
+
 - subclass access to super protected fields w/ @syntax
 - (0) add a gets function like Ruby
 - (2) a more "batteries included" set of imports
@@ -184,7 +214,6 @@ class C
 - referring to classes as constants causes crashes
   java -jar dist/mirahc.jar -cp test/fixtures/ -e 'puts org::foo::A' blows up w/ a asm error
   java -jar dist/mirahc.jar -cp test/fixtures/ -e 'puts org::foo::A.class' doesn't
-
 
 Libraries
 ===============
