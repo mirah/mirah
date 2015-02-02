@@ -324,7 +324,7 @@ else # original
                Dir['src/org/mirah/tool/*.mirah'].sort
 
   file new_jar => mirah_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
-    build_dir = 'build/bootstrap'
+    build_dir = 'build/bootstrap'+new_jar.gsub(/[.-\/]/, '_')
     rm_rf build_dir
     mkdir_p build_dir
 
@@ -343,7 +343,8 @@ else # original
       build_version = '1.7'
     end
 
-    default_class_path = ["javalib/mirah-parser.jar", build_dir,"javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
+    default_class_path = ["javalib/mirah-parser.jar", build_dir, "javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
+
 
     # Compile Mirah sources
     runjava('-Xmx512m',
