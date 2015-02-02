@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,8 +19,10 @@ import java.util.logging.Logger
 import java.util.logging.Level
 import java.util.List
 import javax.tools.DiagnosticListener
+import mirah.lang.ast.Annotation
 import mirah.lang.ast.AnnotationList
 import mirah.lang.ast.Array
+import mirah.lang.ast.HashEntry
 import mirah.lang.ast.Identifier
 import mirah.lang.ast.MethodDefinition
 import mirah.lang.ast.Node
@@ -223,21 +225,22 @@ class BaseCompiler < SimpleNodeVisitor
   def calculateFlagsFromAnnotations(defaultAccess:int, annotations:AnnotationList):int
     access = defaultAccess
     flags = 0
-    annotations.size.times do |i|
-      anno = annotations.get(i)
-      if "org.mirah.jvm.types.Modifiers".equals(anno.type.typeref.name)
-        anno.values_size.times do |j|
-          entry = anno.values(j)
-          key = Identifier(entry.key).identifier
-          if "access".equals(key)
-            access = Integer(@@ACCESS[Identifier(entry.value).identifier]).intValue
-          elsif "flags".equals(key)
-            values = Array(entry.value)
-            values.values_size.times do |k|
-              flag = Identifier(values.values(k)).identifier
-              flags |= Integer(@@FLAGS[flag]).intValue
-            end
+    annotations.each do |anno: Annotation|
+      next unless "org.mirah.jvm.types.Modifiers".equals(anno.type.typeref.name)
+      anno.values.each do |entry: HashEntry|
+        key = Identifier(entry.key).identifier
+        if "access".equals(key)
+          #access = @@ACCESS[Identifier(entry.value).identifier] # TODO better boxing
+          access = Integer(@@ACCESS[Identifier(entry.value).identifier]).intValue
+        elsif "flags".equals(key) # TODO better boxing
+          values = Array(entry.value)
+          values.values.each do |id: Identifier| # cast from Node
+            flag = id.identifier
+            # flags |= @@FLAGS[flag]
+            flags |= Integer(@@FLAGS[flag]).intValue
           end
+        else
+          raise "unknown modifier entry: #{entry}"
         end
       end
     end
