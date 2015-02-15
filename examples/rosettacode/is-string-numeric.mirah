@@ -99,7 +99,7 @@ puts '1.2.3 is not numeric' unless is_numeric3?('1.2.3')
 # the end of the string, we can deduce that the entire string was a
 # valid number.
 def is_numeric4?(s:string)
-    return false if s == nil
+    return false if s.nil?
     formatter = NumberFormat.getInstance()
     pos = ParsePosition.new(0)
     formatter.parse(s, pos)
@@ -124,7 +124,7 @@ puts '1.2.3 is not numeric' unless is_numeric4?('1.2.3')
 # as methods for integral types where you may input a base/radix other than
 # 10 (10 is the default, which can be changed using the useRadix method).
 def is_numeric5?(s:string)
-    return false if s == nil
+    return false if s.nil?
     Scanner sc = Scanner.new(s)
     sc.hasNextDouble()
 end

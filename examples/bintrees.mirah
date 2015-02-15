@@ -72,7 +72,7 @@ class TreeNode
 
   def itemCheck
     # if necessary deallocate here
-    if @left == nil
+    if @left.nil?
       @item
     else
       @item + @left.itemCheck - @right.itemCheck
