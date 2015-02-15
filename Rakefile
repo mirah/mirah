@@ -142,6 +142,7 @@ task :clean do
   rm_f 'dist/mirahc.jar'
   rm_rf 'tmp'
   rm_rf 'tmp_test'
+  rm_rf 'pkg'
 end
 
 desc "clean downloaded dependencies"
