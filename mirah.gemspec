@@ -3,7 +3,7 @@ $: << './lib'
 require 'mirah/version'
 
 files = Dir["{bin,lib,test,examples}/**/*"] \
-        + Dir['dist/mirahc.jar']            \
+        + ['dist/mirahc.jar']               \
         + Dir["{*.md,*.txt,Rakefile}"]      \
         - Dir["{examples/wiki/**/*}"]
 
