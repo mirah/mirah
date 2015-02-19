@@ -8,8 +8,6 @@ class MainMethodTest < Test::Unit::TestCase
 
     main_class, = compile code, :name => 'with_main'
 
-    assert_output "bar\n" do
-      main_class.main(nil)
-    end
+    assert_run_output("bar\n", main_class)
   end
 end

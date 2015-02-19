@@ -161,8 +161,6 @@ class ConstructorsTest < Test::Unit::TestCase
       System.out.print DefaultConstructable.new.foo
     EOF
 
-    assert_output("foo") do
-      script.main(nil)
-    end
+    assert_run_output("foo", script)
   end
 end

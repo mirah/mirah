@@ -62,6 +62,12 @@ module CommonAssertions
     end
   end
 
+  def assert_run_output(expected, cls)
+    assert_output expected do
+      cls.main nil
+    end
+  end
+
   def assert_output(expected, &block)
     assert_equal(expected, capture_output(&block))
   end

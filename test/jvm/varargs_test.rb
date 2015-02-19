@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,36 +19,28 @@ class VarargsTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       puts String.format("%s %s's", "rocking", "banana")
     EOF
-    assert_output "rocking banana's\n" do
-      cls.main nil
-    end
+    assert_run_output("rocking banana's\n", cls)
   end
 
   def test_varargs_method_with_passed_including_int_varargs
     cls, = compile(<<-EOF)
       puts String.format("%s %d's", "rocking", 3)
     EOF
-    assert_output "rocking 3's\n" do
-      cls.main nil
-    end
+    assert_run_output("rocking 3's\n", cls)
   end
 
   def test_varargs_method_with_passed_including_integer_varargs
     cls, = compile(<<-EOF)
       puts String.format("%s %d's", "rocking", Integer.valueOf(3))
     EOF
-    assert_output "rocking 3's\n" do
-      cls.main nil
-    end
+    assert_run_output("rocking 3's\n", cls)
   end
 
   def test_varargs_method_lookup_without_passed_varargs
     cls, = compile(<<-EOF)
       puts String.format("rocking with no args")
     EOF
-    assert_output "rocking with no args\n" do
-      cls.main nil
-    end
+    assert_run_output("rocking with no args\n", cls)
   end
 
   def test_varargs_method_lookup_when_passed_array
@@ -57,9 +49,7 @@ class VarargsTest < Test::Unit::TestCase
       args[0] = "an array"
       puts String.format("rocking with %s", args)
     EOF
-    assert_output "rocking with an array\n" do
-      cls.main nil
-    end
+    assert_run_output("rocking with an array\n", cls)
   end
 
 end

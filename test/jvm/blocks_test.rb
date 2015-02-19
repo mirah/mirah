@@ -70,9 +70,7 @@ class BlocksTest < Test::Unit::TestCase
         puts "Uh Oh!"
       end
     EOF
-    assert_output("Hello\n") do
-      cls.main([].to_java :string)
-    end
+    assert_run_output("Hello\n", cls)
   end
 
   def test_arg_types_inferred_from_interface
@@ -88,9 +86,7 @@ class BlocksTest < Test::Unit::TestCase
       o.addObserver {|x, a| puts a}
       o.notifyObservers("Hello Observer")
     EOF
-    assert_output("Hello Observer\n") do
-      script.main([].to_java :string)
-    end
+    assert_run_output("Hello Observer\n", script)
   end
 
   def test_closure
@@ -159,9 +155,7 @@ class BlocksTest < Test::Unit::TestCase
       list.each {|x| puts x }
     EOF
 
-    assert_output("a\nABC\nb\nCats\n") do
-      cls.main(nil)
-    end
+    assert_run_output("a\nABC\nb\nCats\n", cls)
   end
 
   def test_block_with_abstract_from_object
@@ -196,9 +190,7 @@ class BlocksTest < Test::Unit::TestCase
         puts "never get here"
       end
     EOF
-    assert_output("an object\n") do
-      cls.main(nil)
-    end
+    assert_run_output("an object\n", cls)
   end
 
   def test_parameter_used_in_block
@@ -212,9 +204,7 @@ class BlocksTest < Test::Unit::TestCase
 
       foo('there')
     EOF
-    assert_output("Hello there\n") do
-      cls.main(nil)
-    end
+    assert_run_output("Hello there\n", cls)
   end
 
   def test_block_with_mirah_interface
@@ -273,9 +263,7 @@ class BlocksTest < Test::Unit::TestCase
           puts "hi"
         end
         CODE
-    assert_output "hi\n" do
-      cls.main(nil)
-    end
+    assert_run_output("hi\n", cls)
   end
 
   def test_block_with_too_many_params
@@ -317,9 +305,7 @@ class BlocksTest < Test::Unit::TestCase
           puts b
         end
       CODE
-    assert_output "hey\n{wut=1}\n1\n" do
-      cls.main(nil)
-    end
+    assert_run_output("hey\n{wut=1}\n1\n", cls)
   end
 
   def test_nested_closure_in_closure_doesnt_raise_error
@@ -338,9 +324,7 @@ class BlocksTest < Test::Unit::TestCase
           end
         end
       CODE
-    assert_output "first closure\nsecond closure\n" do
-      cls.main(nil)
-    end
+    assert_run_output("first closure\nsecond closure\n", cls)
   end
 
   def test_nested_closure_with_var_from_outer_closure
@@ -360,9 +344,7 @@ class BlocksTest < Test::Unit::TestCase
         end
       end
     CODE
-    assert_output "first closure\nsecond closure\n" do
-      cls.main(nil)
-    end
+    assert_run_output("first closure\nsecond closure\n", cls)
   end
 
 
@@ -377,9 +359,7 @@ class BlocksTest < Test::Unit::TestCase
         puts "writing"
       end
     EOF
-    assert_output "writing\n" do
-      cls.main(nil)
-    end
+    assert_run_output("writing\n", cls)
   end
 
   def test_block_with_interface_method_with_2_arguments_with_types
@@ -398,9 +378,7 @@ class BlocksTest < Test::Unit::TestCase
         puts b
       end
     EOF
-    assert_output "hello\n1243\n" do
-      cls.main(nil)
-    end
+    assert_run_output("hello\n1243\n", cls)
   end
 
   def test_block_with_interface_method_with_2_arguments_without_types
@@ -419,9 +397,7 @@ class BlocksTest < Test::Unit::TestCase
         puts b
       end
     EOF
-    assert_output "hello\n1243\n" do
-      cls.main(nil)
-    end
+    assert_run_output("hello\n1243\n", cls)
   end
 
 
@@ -440,9 +416,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       puts nlr
     EOF
-    assert_output "NLR!\n" do
-      cls.main(nil)
-    end
+    assert_run_output("NLR!\n", cls)
     end
   end
 
@@ -461,9 +435,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       puts nlr
     EOF
-    assert_output "1234\n" do
-      cls.main(nil)
-    end
+    assert_run_output("1234\n", cls)
     end
   end
 
@@ -500,9 +472,7 @@ class BlocksTest < Test::Unit::TestCase
       foo { return }
       puts "or here"
     EOF
-    assert_output "before\n" do
-      cls.main(nil)
-    end
+    assert_run_output("before\n", cls)
     end
   end
 
@@ -523,9 +493,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       puts ClosureInMethodInClass.new.nlr
     EOF
-    assert_output "before\n1234\n" do
-      cls.main(nil)
-    end
+    assert_run_output("before\n1234\n", cls)
     end
   end
 
@@ -545,9 +513,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       ClosureInVoidMethodInClass.new.nlr
     EOF
-    assert_output "before\n" do
-      cls.main(nil)
-    end
+    assert_run_output("before\n", cls)
     end
   end
 
@@ -567,9 +533,7 @@ class BlocksTest < Test::Unit::TestCase
       puts nlr true
       puts nlr false
     EOF
-    assert_output "NLR!\nNLArrrr\n" do
-      cls.main(nil)
-    end
+    assert_run_output("NLR!\nNLArrrr\n", cls)
     end
   end
 
@@ -593,9 +557,7 @@ class BlocksTest < Test::Unit::TestCase
       puts nlr true
       puts nlr false
     EOF
-    assert_output "NLR!\nNLArrrr\n" do
-      cls.main(nil)
-    end
+    assert_run_output("NLR!\nNLArrrr\n", cls)
     end
   end
 
@@ -617,9 +579,7 @@ class BlocksTest < Test::Unit::TestCase
       puts nlr true
       puts nlr false
     EOF
-    assert_output "NLR!\nmay get here\nNLArrrr\n" do
-      cls.main(nil)
-    end
+    assert_run_output("NLR!\nmay get here\nNLArrrr\n", cls)
     end
   end
 
@@ -645,9 +605,7 @@ class BlocksTest < Test::Unit::TestCase
       Huh.new.wut(Huh.new.regular)
     EOF
 
-    assert_output "Closure!\nfinish\n" do
-      cls.main(nil)
-    end
+    assert_run_output("Closure!\nfinish\n", cls)
   end
 
 
@@ -657,9 +615,7 @@ class BlocksTest < Test::Unit::TestCase
     r { puts "a" || "b"}
     EOF
 
-    assert_output "a\n" do
-      cls.main(nil)
-    end
+    assert_run_output("a\n", cls)
   end
 
   def test_closure_with_or_ii
@@ -669,9 +625,7 @@ class BlocksTest < Test::Unit::TestCase
     r { "a" || "b"}
     EOF
 
-    assert_output "a\n" do
-      cls.main(nil)
-    end
+    assert_run_output("a\n", cls)
   end
 
   def test_two_closures_in_the_same_method
@@ -686,9 +640,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       regular
     EOF
-    assert_output "Closure!\nWe Want it\n" do
-      cls.main(nil)
-    end
+    assert_run_output("Closure!\nWe Want it\n", cls)
   end
 
   def test_closures_in_a_rescue
@@ -707,9 +659,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       regular
     EOF
-    assert_output "Closure!\nWe Want it\n" do
-      cls.main(nil)
-    end
+    assert_run_output("Closure!\nWe Want it\n", cls)
   end
 
   def test_lambda_with_type_defined_before
@@ -720,9 +670,7 @@ class BlocksTest < Test::Unit::TestCase
       x = lambda(Fooable) { puts "hey you" }
       x.foo
     EOF
-    assert_output "hey you\n" do
-      cls.main(nil)
-    end
+    assert_run_output("hey you\n", cls)
   end
 
   def test_lambda_with_type_defined_later
@@ -734,9 +682,7 @@ class BlocksTest < Test::Unit::TestCase
         end
         x.foo
       EOF
-      assert_output "hey you\n" do
-        cls.main(nil)
-      end
+      assert_run_output("hey you\n", cls)
     end
   end
 
@@ -750,9 +696,7 @@ class BlocksTest < Test::Unit::TestCase
       end
       r {|b| puts String.new(b) }
     EOF
-    assert_output "yay\n" do
-      cls.main(nil)
-    end
+    assert_run_output("yay\n", cls)
   end
 
 
@@ -766,9 +710,7 @@ class BlocksTest < Test::Unit::TestCase
         l = lambda(Runnable) { puts msg }
         r l
       EOF
-      assert_output "yay\n" do
-        cls.main(nil)
-      end
+      assert_run_output("yay\n", cls)
     end
   end
 

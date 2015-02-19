@@ -50,10 +50,9 @@ class AnnotationsTest < Test::Unit::TestCase
       puts anno.value
     EOF
 
-    assert_output "1\n" do
-      cls.main nil
-    end
+    assert_run_output("1\n", cls)
   end
+
   def test_annotation_from_constant
     return
     cls, = compile(<<-EOF)
@@ -69,9 +68,7 @@ class AnnotationsTest < Test::Unit::TestCase
       puts anno.value
     EOF
 
-    assert_output "1\n" do
-      cls.main nil
-    end
+    assert_run_output("1\n", cls)
   end
 
 end

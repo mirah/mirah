@@ -25,9 +25,7 @@ class LockExtensionsTest < Test::Unit::TestCase
         puts "synchronized. Yay!"
       end
     EOF
-    assert_output("synchronized. Yay!\n") do
-      cls.main(nil)
-    end
+    assert_run_output("synchronized. Yay!\n", cls)
   end
 
   def test_synchronize_lock_unlocks_after_exception
@@ -40,8 +38,6 @@ class LockExtensionsTest < Test::Unit::TestCase
       end
       Thread.new { puts lock.tryLock }.start.join
     EOF
-    assert_output("true\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\n", cls)
   end
 end

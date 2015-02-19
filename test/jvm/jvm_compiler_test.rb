@@ -766,7 +766,7 @@ class JVMCompilerTest < Test::Unit::TestCase
         end
         to_#{primitive} #{primitive}(1)
         EOF
-        assert_output("1\n") { cls.main nil}
+        assert_run_output("1\n", cls)
       rescue => e
         raise "#{primitive} #{e.message}"
       end
@@ -779,7 +779,7 @@ class JVMCompilerTest < Test::Unit::TestCase
         end
         to_#{type} #{type}(1)
         EOF
-      assert_output("1.0\n") { cls.main nil}
+      assert_run_output("1.0\n", cls)
       rescue => e
         raise "#{type} #{e.message}"
       end
@@ -791,7 +791,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
       to_character char(65)
     EOF
-    assert_output("A\n") { cls.main nil}
+    assert_run_output("A\n", cls)
   end
 
   def test_raise
@@ -1238,9 +1238,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts B1.new.foo("There")
     EOF
 
-    assert_output("Hi\nThere\n") do
-      cls.main(nil)
-    end
+    assert_run_output("Hi\nThere\n", cls)
   end
 
   def test_super
@@ -1279,18 +1277,14 @@ class JVMCompilerTest < Test::Unit::TestCase
       foo(0,0)
       foo(0,0,0)
     EOF
-    assert_output("0\n1\n2\n0\n0\n2\n0\n0\n0\n") do
-      cls.main([].to_java :string)
-    end
+    assert_run_output("0\n1\n2\n0\n0\n2\n0\n0\n0\n", cls)
   end
 
   def test_field_read
     cls, = compile(<<-EOF)
       puts System.out.getClass.getName
     EOF
-    assert_output("java.io.PrintStream\n") do
-      cls.main([].to_java :String)
-    end
+    assert_run_output("java.io.PrintStream\n", cls)
   end
 
   def test_array_arguments
@@ -1341,9 +1335,7 @@ class JVMCompilerTest < Test::Unit::TestCase
     cls, = compile <<-CODE
       print "apples \#{'oranges'}".replace('apples', 'oranges')
     CODE
-    assert_output "oranges oranges" do
-      cls.main nil
-    end
+    assert_run_output("oranges oranges", cls)
   end
 
   def test_self_dot_static_methods
@@ -1440,9 +1432,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 #    EOF
 #    raise
 #    cls.main([].to_java :string)
-#    assert_output("3.0\n") do
-#      cls.main([].to_java :string)
-#    end
+#    assert_run_output("3.0\n", cls)
 #  end
 
   def test_class_append_self
@@ -1629,9 +1619,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts java::util::Arrays.toString(String[5])
     EOF
 
-    assert_output("[null, null, null, null, null]\n") do
-      cls.main(nil)
-    end
+    assert_run_output("[null, null, null, null, null]\n", cls)
   end
 
   def test_getClass_on_object_array
@@ -1639,9 +1627,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts Object[0].getClass.getName
     EOF
 
-    assert_output("[Ljava.lang.Object;\n") do
-      cls.main(nil)
-    end
+    assert_run_output("[Ljava.lang.Object;\n", cls)
   end
 
   def test_nil_assign
@@ -1660,9 +1646,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts Object(a)
     EOF
 
-    assert_output("null\n") do
-      cls.main(nil)
-    end
+    assert_run_output("null\n", cls)
   end
 
   def test_long_generation
@@ -1682,16 +1666,12 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_bool_equality
     cls, = compile("puts true == false")
-    assert_output("false\n") do
-      cls.main(nil)
-    end
+    assert_run_output("false\n", cls)
   end
 
   def test_bool_inequality
     cls, = compile("puts true != false")
-    assert_output("true\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\n", cls)
   end
 
   def test_double_equals_calls_equals_when_first_arg_not_nil
@@ -1704,7 +1684,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
       DoubleEqualsCalling.new == nil
     EOF
-    assert_output("called\n") { cls.main(nil) }
+    assert_run_output("called\n", cls)
   end
 
   def test_double_equals_does_not_call_equals_when_first_arg_nil
@@ -1717,16 +1697,14 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
       nil == DoubleEqualsCalling2.new
     EOF
-    assert_output("") { cls.main(nil) }
+    assert_run_output("", cls)
   end
 
   def test_double_equals_nil_literal_equals_nil_literal
     cls, = compile(<<-EOF)
       puts nil == nil
     EOF
-    assert_output("true\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\n", cls)
   end
 
   def test_double_equals_nil_ref_equals_nil_literal
@@ -1734,9 +1712,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       a = nil
       puts a == nil
     EOF
-    assert_output("true\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\n", cls)
   end
 
   def test_double_equals_cast_nil_ref_equals_nil_literal
@@ -1744,9 +1720,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       a = Object(nil)
       puts a == nil
     EOF
-    assert_output("true\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\n", cls)
   end
 
   def test_double_equals_compare_to_self_in_a_equals_method_def_has_warning
@@ -1765,9 +1739,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       "WARNING: == is now an alias for Object#equals(), === is now used for identity.\n" +
       "This use of == with self in equals() definition may cause a stack overflow in next release!",
       output)
-    assert_output("false\n") do
-      cls.main(nil)
-    end
+    assert_run_output("false\n", cls)
   end
 
   def test_double_equals_compare_to_self_in_a_equals_method_def_warning_includes_source
@@ -1786,9 +1758,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 "          def equals(other)
             other == self
           end", output)
-    assert_output("false\n") do
-      cls.main(nil)
-    end
+    assert_run_output("false\n", cls)
   end
 
   def test_double_equals_self_compare_to_other_in_a_equals_method_def_has_warning
@@ -1807,9 +1777,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       "WARNING: == is now an alias for Object#equals(), === is now used for identity.\n" +
       "This use of == with self in equals() definition may cause a stack overflow in next release!",
       output)
-    assert_output("false\n") do
-      cls.main(nil)
-    end
+    assert_run_output("false\n", cls)
   end
 
   def test_triple_equals_with_ints
@@ -1819,9 +1787,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts 1 !== 2
       puts 1 !== 1
     EOF
-    assert_output("true\nfalse\ntrue\nfalse\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\nfalse\ntrue\nfalse\n", cls)
   end
 
   def test_triple_equals_with_objects
@@ -1833,9 +1799,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts a !== b
       puts a !== a
     EOF
-    assert_output("true\nfalse\ntrue\nfalse\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\nfalse\ntrue\nfalse\n", cls)
   end
 
   def test_triple_equals_with_arrays
@@ -1847,9 +1811,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts a !== b
       puts a !== a
     EOF
-    assert_output("true\nfalse\ntrue\nfalse\n") do
-      cls.main(nil)
-    end
+    assert_run_output("true\nfalse\ntrue\nfalse\n", cls)
   end
 
   def test_double_equals_with_arrays
@@ -1862,9 +1824,7 @@ class JVMCompilerTest < Test::Unit::TestCase
         puts a != b
         puts a != a
       EOF
-      assert_output("true\true\nfalse\nfalse\n") do
-        cls.main(nil)
-      end
+      assert_run_output("true\true\nfalse\nfalse\n", cls)
     end
   end
 
@@ -1878,7 +1838,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       print "OK"
     EOF
     
-    assert_output("OK") { cls.main(nil) }
+    assert_run_output("OK", cls)
   end
 
   def test_assign_int_to_double
@@ -1966,9 +1926,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts Child.my_method
     EOF
 
-    assert_output "ran my method\n" do
-      cls.main(nil)
-    end
+    assert_run_output("ran my method\n", cls)
   end
 
   def test_incompatible_meta_change

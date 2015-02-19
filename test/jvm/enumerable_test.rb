@@ -309,36 +309,28 @@ class EnumerableTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
        puts [].map { 'b' }
     EOF
-    assert_output "[]\n" do
-      cls.main(nil)
-    end
+    assert_run_output("[]\n", cls)
   end
 
   def test_map_to_different_type
     cls, = compile(<<-EOF)
       puts [1].map { 'a' }
     EOF
-    assert_output "[a]\n" do
-      cls.main(nil)
-    end
+    assert_run_output("[a]\n", cls)
   end
 
 def test_map_identity
     cls, = compile(<<-EOF)
       puts [1,2,3].map {|x| x}
     EOF
-    assert_output("[1, 2, 3]\n") do
-      cls.main(nil)
-    end
+    assert_run_output("[1, 2, 3]\n", cls)
   end
 
   def test_map_with_type_declaration
     cls, = compile(<<-EOF)
       puts [1,2,3].map {|x:Integer| x.intValue + 1}
     EOF
-    assert_output("[2, 3, 4]\n") do
-      cls.main(nil)
-    end
+    assert_run_output("[2, 3, 4]\n", cls)
   end
 
   def test_zip

@@ -29,7 +29,7 @@ class MacrosTest < Test::Unit::TestCase
       foo [2,3] {|x| puts x }
     EOF
 
-    assert_output("1\n2\n1\n3\n") {cls.main(nil)}
+    assert_run_output("1\n2\n1\n3\n", cls)
   end
 
   def test_block_args_with_pipes_macro
@@ -46,7 +46,7 @@ class MacrosTest < Test::Unit::TestCase
       foo [2,3] {|x| puts x }
     EOF
 
-    assert_output("1\n2\n1\n3\n") {cls.main(nil)}
+    assert_run_output("1\n2\n1\n3\n", cls)
   end
 
 
@@ -59,7 +59,7 @@ class MacrosTest < Test::Unit::TestCase
       puts(Object(foo))
     EOF
 
-    assert_output("null\n") {cls.main(nil)}
+    assert_run_output("null\n", cls)
     assert(!cls.respond_to?(:foo))
   end
 
@@ -74,7 +74,7 @@ class MacrosTest < Test::Unit::TestCase
       foo
     EOF
 
-    assert_output("") {cls.main(nil)}
+    assert_run_output("", cls)
     assert(!cls.respond_to?(:foo))
   end
 
@@ -87,7 +87,7 @@ class MacrosTest < Test::Unit::TestCase
       puts(Object(foo()))
     EOF
 
-    assert_output("null\n") {cls.main(nil)}
+    assert_run_output("null\n", cls)
     assert(!cls.respond_to?(:foo))
   end
 
@@ -100,7 +100,7 @@ class MacrosTest < Test::Unit::TestCase
       puts(Object(foo))
     EOF
 
-    assert_output("null\n") {cls.main(nil)}
+    assert_run_output("null\n", cls)
     assert(!cls.respond_to?(:foo))
   end
 
@@ -233,7 +233,7 @@ class MacrosTest < Test::Unit::TestCase
       puts x.foo
     EOF
 
-    assert_output("0\n3\n") {script.main(nil)}
+    assert_run_output("0\n3\n", script)
   end
 
   def test_macro_hygene
@@ -294,9 +294,7 @@ class MacrosTest < Test::Unit::TestCase
       foo(["a", "b"])
     EOF
 
-    assert_output("1 a b 2\n") do
-      cls.main(nil)
-    end
+    assert_run_output("1 a b 2\n", cls)
   end
 
   def test_block_parameter_uses_outer_scope
@@ -310,9 +308,7 @@ class MacrosTest < Test::Unit::TestCase
       end
     EOF
 
-    assert_output("3\n") do
-      cls.main(nil)
-    end
+    assert_run_output("3\n", cls)
   end
 
 
@@ -326,9 +322,7 @@ class MacrosTest < Test::Unit::TestCase
       end
     EOF
 
-    assert_output("hi\n") do
-      cls.main(nil)
-    end
+    assert_run_output("hi\n", cls)
   end
 
   def test_method_def_after_macro_def_with_same_name_raises_error
@@ -371,7 +365,7 @@ class MacrosTest < Test::Unit::TestCase
       x.foo = 3
       puts x.foo
     EOF
-    assert_output("0\n3\n") {script.main(nil)}
+    assert_run_output("0\n3\n", script)
   end
 
   def test_separate_compilation
@@ -387,7 +381,7 @@ class MacrosTest < Test::Unit::TestCase
     script, _ =compile(<<-CODE)
       InlineOneSayer.new.say_one
     CODE
-    assert_output("one\n") {script.main(nil)}
+    assert_run_output("one\n", script)
   end
 
   def test_separate_compilation_different_macro_dest
@@ -403,6 +397,6 @@ class MacrosTest < Test::Unit::TestCase
     script, _ =compile(<<-CODE, separate_macro_dest: true)
       InlineTwoSayer.new.say_two
     CODE
-    assert_output("two\n") {script.main(nil)}
+    assert_run_output("two\n", script)
   end
 end

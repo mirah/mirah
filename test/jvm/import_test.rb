@@ -92,7 +92,7 @@ class ImportTest < Test::Unit::TestCase
         end
       end
     EOF
-    assert_output("hi\n") { cls.main(nil) }
+    assert_run_output("hi\n", cls)
   end
 
 end

@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -254,9 +254,7 @@ class RescueTest < Test::Unit::TestCase
         puts "else"
       end
     EOF
-    assert_output "else\n" do
-      cls.main nil
-    end
+    assert_run_output("else\n", cls)
   end
 
   def test_ensure
@@ -313,6 +311,6 @@ class RescueTest < Test::Unit::TestCase
     end
     EOF
 
-    assert_output("a\nb\nc\nensure\n") { cls.main(nil) }
+    assert_run_output("a\nb\nc\nensure\n", cls)
   end
 end

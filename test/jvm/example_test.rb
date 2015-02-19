@@ -23,7 +23,7 @@ class ExampleTest < Test::Unit::TestCase
 
   def example_test name, output
     cls = compile_ex name
-    assert_output(output) { cls.main nil }
+    assert_run_output(output, cls)
   end
 
   {

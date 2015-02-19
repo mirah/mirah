@@ -1,4 +1,4 @@
-# Copyright (c) 2014 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,7 @@ class StaticFieldsTest < Test::Unit::TestCase
       puts GregorianCalendar.AM
     EOF
 
-    assert_output "0\n" do
-      cls.main(nil)
-    end
+    assert_run_output("0\n", cls)
   end
 
   def test_static_field_inheritance_lookup_with_double_colon
@@ -34,9 +32,7 @@ class StaticFieldsTest < Test::Unit::TestCase
       puts GregorianCalendar::AM
     EOF
 
-    assert_output "0\n" do
-      cls.main(nil)
-    end
+    assert_run_output("0\n", cls)
     }
   end
 
@@ -45,8 +41,6 @@ class StaticFieldsTest < Test::Unit::TestCase
       CONSTANT = 1
       puts CONSTANT
     EOF
-    assert_output "1\n" do
-      cls.main(nil)
-    end
+    assert_run_output("1\n", cls)
   end
 end

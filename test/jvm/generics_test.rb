@@ -27,9 +27,7 @@ class GenericsTest < Test::Unit::TestCase
       puts(foo.get(1).substring(2))
     EOF
 
-    assert_output("cond string\n") do
-      cls.main(nil)
-    end
+    assert_run_output("cond string\n", cls)
   end
 
   def test_generics_generic_payload
@@ -44,10 +42,7 @@ class GenericsTest < Test::Unit::TestCase
       puts(bar.get(0).get(1).substring(2))
     EOF
 
-    assert_output("cond string\n") do
-      cls.main(nil)
-    end
+    assert_run_output("cond string\n", cls)
   end
-
 end
 
