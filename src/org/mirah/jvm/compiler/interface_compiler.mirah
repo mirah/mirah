@@ -31,10 +31,10 @@ class InterfaceCompiler < ClassCompiler
   end
   
   def methodFlags(mdef:MethodDefinition, isStatic:boolean)
-    if isStatic
-      super
-    else
+    if mdef.body.size == 0
       super | Opcodes.ACC_ABSTRACT
+    else
+      super
     end
   end
 end
