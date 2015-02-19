@@ -587,8 +587,12 @@ EOF
                   "{\n'a' => 'b', c:\nd\n}")
    end
 
-   def test_ne
+   def test_ne_op
      assert_parse("[Script, [[Call, [VCall, [SimpleString, foo]], [SimpleString, !=], [[VCall, [SimpleString, bar]]], null]]]", "foo!=bar")
+   end
+
+   def test_nee_op
+     assert_parse("[Script, [[Call, [VCall, [SimpleString, foo]], [SimpleString, !==], [[VCall, [SimpleString, bar]]], null]]]", "foo!==bar")
    end
 
    def test_command

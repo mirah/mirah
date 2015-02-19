@@ -701,6 +701,7 @@ parser MirahParser {
            | $RShift {">>"}
            | $Bang {"!"}
            | $NE {"!="}
+           | $NEE {"!=="}
            | $NMatch {"!~"}
            | $Slash {"/"}
            | $Pipe {"|"}

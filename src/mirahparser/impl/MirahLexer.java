@@ -764,7 +764,11 @@ public class MirahLexer {
         break;
       case '!':
         if (i.consume('=')) {
-          type = Tokens.tNE;
+          if (i.consume('=')) {
+            type = Tokens.tNEE;
+          } else {
+            type = Tokens.tNE;
+          }
         } else if (i.consume('~')) {
           type = Tokens.tNMatch;
         } else {

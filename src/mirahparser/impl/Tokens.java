@@ -99,6 +99,7 @@ public enum Tokens {
   tNMatch,
   tMatch,
   tNE,
+  tNEE,
   tLT,
   tLE,
   tLEG,
