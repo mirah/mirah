@@ -262,7 +262,8 @@ class ResolvedCall < MirrorProxy implements CallType
   end
 
   def equals(other)
-    if self == other
+    import static org.mirah.util.Comparisons.*
+    if areSame(self, other)
       true
     elsif other.kind_of?(ResolvedCall)
       rc = ResolvedCall(other)

@@ -46,7 +46,8 @@ class Wildcard < BaseType implements WildcardType
   end
 
   def equals(other)
-    other == self
+    import static org.mirah.util.Comparisons.*
+    areSame(other, self)
   end
 
   def hashCode

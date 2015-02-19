@@ -83,6 +83,9 @@ class Number < BaseType implements PrimitiveType
     add_comparison("<=", type, boolean)
     add_comparison("==", type, boolean)
     add_comparison("!=", type, boolean)
+     # todo make non-coersive
+    add_comparison("===", type, boolean)
+    add_comparison("!==", type, boolean)
     add_comparison(">", type, boolean)
     add_comparison(">=", type, boolean)
   end

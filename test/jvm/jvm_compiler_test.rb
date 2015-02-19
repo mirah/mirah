@@ -1694,6 +1694,180 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
+  def test_double_equals_calls_equals_when_first_arg_not_nil
+    cls, = compile(<<-EOF)
+      class DoubleEqualsCalling
+        def equals(other)
+          puts "called"
+          true
+        end
+      end
+      DoubleEqualsCalling.new == nil
+    EOF
+    assert_output("called\n") { cls.main(nil) }
+  end
+
+  def test_double_equals_does_not_call_equals_when_first_arg_nil
+    cls, = compile(<<-EOF)
+      class DoubleEqualsCalling2
+        def equals(other)
+          puts "called"
+          true
+        end
+      end
+      nil == DoubleEqualsCalling2.new
+    EOF
+    assert_output("") { cls.main(nil) }
+  end
+
+  def test_double_equals_nil_literal_equals_nil_literal
+    cls, = compile(<<-EOF)
+      puts nil == nil
+    EOF
+    assert_output("true\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_double_equals_nil_ref_equals_nil_literal
+    cls, = compile(<<-EOF)
+      a = nil
+      puts a == nil
+    EOF
+    assert_output("true\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_double_equals_cast_nil_ref_equals_nil_literal
+    cls, = compile(<<-EOF)
+      a = Object(nil)
+      puts a == nil
+    EOF
+    assert_output("true\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_double_equals_compare_to_self_in_a_equals_method_def_has_warning
+    cls = nil
+    output = capture_output do
+      cls, = compile(<<-EOF)
+        class DoubleEqualsSelf
+          def equals(other)
+            other == self
+          end
+        end
+        puts DoubleEqualsSelf.new == nil
+      EOF
+    end
+    assert_include(
+      "WARNING: == is now an alias for Object#equals(), === is now used for identity.\n" +
+      "This use of == with self in equals() definition may cause a stack overflow in next release!",
+      output)
+    assert_output("false\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_double_equals_compare_to_self_in_a_equals_method_def_warning_includes_source
+    cls = nil
+    output = capture_output do
+      cls, = compile(<<-EOF)
+        class DoubleEqualsSelf
+          def equals(other)
+            other == self
+          end
+        end
+        puts DoubleEqualsSelf.new == nil
+      EOF
+    end
+    assert_include(
+"          def equals(other)
+            other == self
+          end", output)
+    assert_output("false\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_double_equals_self_compare_to_other_in_a_equals_method_def_has_warning
+    cls = nil
+    output = capture_output do
+      cls, = compile(<<-EOF)
+        class SelfDoubleEqualsOther
+          def equals(other)
+            self == other
+          end
+        end
+        puts SelfDoubleEqualsOther.new == nil
+      EOF
+    end
+    assert_include(
+      "WARNING: == is now an alias for Object#equals(), === is now used for identity.\n" +
+      "This use of == with self in equals() definition may cause a stack overflow in next release!",
+      output)
+    assert_output("false\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_triple_equals_with_ints
+    cls, = compile(<<-EOF)
+      puts 1 === 1
+      puts 1 === 2
+      puts 1 !== 2
+      puts 1 !== 1
+    EOF
+    assert_output("true\nfalse\ntrue\nfalse\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_triple_equals_with_objects
+    cls, = compile(<<-EOF)
+      a = Object.new
+      b = Object.new
+      puts a === a
+      puts a === b
+      puts a !== b
+      puts a !== a
+    EOF
+    assert_output("true\nfalse\ntrue\nfalse\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_triple_equals_with_arrays
+    cls, = compile(<<-EOF)
+      a = Object[1]
+      b = Object[1]
+      puts a === a
+      puts a === b
+      puts a !== b
+      puts a !== a
+    EOF
+    assert_output("true\nfalse\ntrue\nfalse\n") do
+      cls.main(nil)
+    end
+  end
+
+  def test_double_equals_with_arrays
+    pend "arrays are tricky" do
+      cls, = compile(<<-EOF)
+        a = Object[1]
+        b = Object[1]
+        puts a == a
+        puts a == b
+        puts a != b
+        puts a != a
+      EOF
+      assert_output("true\true\nfalse\nfalse\n") do
+        cls.main(nil)
+      end
+    end
+  end
+
   def test_field_setter_with_nil
     cls, = compile(<<-EOF)
       class FieldSetter

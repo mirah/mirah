@@ -231,7 +231,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
   
   def self.computeComparisonOp(name:String):int
     name = name.intern
-    if name == '=='
+    if name == '==' || name == '==='
       GeneratorAdapter.EQ
     elsif name == '>='
       GeneratorAdapter.GE
@@ -241,7 +241,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
       GeneratorAdapter.LE
     elsif name == '<'
       GeneratorAdapter.LT
-    elsif name == '!='
+    elsif name == '!=' || name == '!=='
       GeneratorAdapter.NE
     else
       raise IllegalArgumentException, "Unsupported comparison #{name}"

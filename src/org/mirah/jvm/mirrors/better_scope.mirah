@@ -173,7 +173,8 @@ class BetterScope
   def parent=(new_parent: Scope):void
     # Don't add self as my parent, this means that
     # we're in a closure in the process of being replaced
-    return if new_parent == self
+    import static org.mirah.util.Comparisons.*
+    return if areSame(self, new_parent)
 
     @parent.removeChild(self) if @parent
 
@@ -598,12 +599,14 @@ class MethodScope < BetterScope
     super context
     @scoper = scoper
     @locals = Locals.new
+    @imports = ImportsAndSearchPackages.new
   end
 
   supports_locals
   can_have_locals_captured
   has_own_selfType # is the method type
-  deferred_packages_and_imports
+  deferred_package
+  has_own_imports_and_looks_up
   does_binding_type_thing
 
   # methods can't shadow locals, because scopes outside them can't share locals w/ them.

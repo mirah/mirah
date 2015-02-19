@@ -24,6 +24,9 @@ class BooleanType < Number
   end
 
   def load_methods
+    # TODO non-coercive
+    add_comparison('===', self, self)
+    add_comparison('!==', self, self)
     add_comparison('==', self, self)
     add_comparison('!=', self, self)
     add_math("|", self)

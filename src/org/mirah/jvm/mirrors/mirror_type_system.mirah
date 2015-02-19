@@ -568,16 +568,28 @@ class MirrorTypeSystem implements TypeSystem
         Opcodes.ACC_PUBLIC, @object, 'kind_of?', [object_meta],
         bool, MemberKind.INSTANCEOF),
       Member.new(
-        Opcodes.ACC_PUBLIC, @object, '==', [@object],
+        Opcodes.ACC_PUBLIC, @object, '===', [@object],
         bool, MemberKind.COMPARISON_OP),
       Member.new(
-        Opcodes.ACC_PUBLIC, @object, '!=', [@object],
+        Opcodes.ACC_PUBLIC, @object, '!==', [@object],
         bool, MemberKind.COMPARISON_OP),
     ]
     nullType = NullType(getNullType.resolve)
     methods.each do |m:Member|
       @object.add(m)
       nullType.add(m)
+    end
+
+    # null type needs == / != added explicitly still so that nil literals can receive ==
+    [
+      Member.new(
+        Opcodes.ACC_PUBLIC, @object, '==', [@object], # TODO fix all the things
+        bool, MemberKind.COMPARISON_OP),
+      Member.new(
+        Opcodes.ACC_PUBLIC, @object, '!=', [@object], #TODO fix all the things
+        bool, MemberKind.COMPARISON_OP),
+    ].each do |m: Member|
+      nullType.add m
     end
   end
 

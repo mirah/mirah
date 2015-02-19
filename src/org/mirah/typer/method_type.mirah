@@ -55,12 +55,14 @@ class MethodType
   end
 
   def widen(other:ResolvedType):ResolvedType
-    return self if other == self
+    import static org.mirah.util.Comparisons.*
+    return self if areSame(self, other)
     raise IllegalArgumentException
   end
 
   def assignableFrom(other:ResolvedType):boolean
-    other == self
+    import static org.mirah.util.Comparisons.*
+    areSame(self, other)
   end
 
   def isMeta:boolean

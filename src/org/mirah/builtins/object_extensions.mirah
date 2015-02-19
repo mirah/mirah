@@ -18,8 +18,45 @@ package org.mirah.builtins
 import mirah.lang.ast.*
 import org.mirah.typer.ClosureBuilder
 import org.mirah.typer.ErrorType
+import org.mirah.jvm.mirrors.MirrorTypeSystem
 
 class ObjectExtensions
+
+  macro def ==(node)
+    # During the transition, alias == to === inside equals method definitions
+    mdef = MethodDefinition(@call.findAncestor(MethodDefinition.class))
+    if mdef && mdef.name.identifier.equals("equals")
+      if @call.target.kind_of?(Self) || node.kind_of?(Self)
+        message = "WARNING: == is now an alias for Object#equals(), === is now used for identity.\n" +
+          "This use of == with self in equals() definition may cause a stack overflow in next release!"
+
+        puts message
+        puts "#{mdef.position.source.name}:"
+        source = @mirah.typer.sourceContent(mdef)
+        s = source.split("\n")
+        # last end has right whitespace, but def doesn't
+        whitespace = s[s.length - 1].substring(0, s[s.length - 1].indexOf("end"))
+        puts whitespace + source
+        return quote {`@call.target` === `node`}
+      end
+    end
+
+    # TODO this doesn't work, but should
+    #quote { `@call.target`.nil? && `node`.nil? || `@call.target` && `@call.target`.equals(`node`) }
+
+    tmp = gensym
+    quote { `tmp` = `@call.target`.nil? && `node`.nil?
+            `tmp` || `@call.target` && `@call.target`.equals(`node`) }
+  end
+
+  ## TODO handle the negation st def == will be called
+  macro def !=(node)
+    # TODO this doesn't work, but should
+    #quote { ( `@call.target`.nil? && `node`.nil? ) || !`@call.target`.equals(`node`) }
+
+    quote { !(`@call.target` == `node`)}
+  end
+
   macro def puts(node)
     quote {System.out.println(` [node] `)}
   end

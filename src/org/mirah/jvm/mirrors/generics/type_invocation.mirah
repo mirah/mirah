@@ -93,7 +93,8 @@ class TypeInvocation < AsyncMirror implements DeclaredMirrorType
   end
 
   def equals(other)
-    return true if other == self
+    import static org.mirah.util.Comparisons.*
+    return true if areSame(self, other)
     other.kind_of?(MirrorType) && isSameType(MirrorType(other))
   end
 

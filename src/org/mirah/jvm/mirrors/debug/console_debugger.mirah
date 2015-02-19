@@ -123,8 +123,9 @@ class ConsoleDebugger implements DebugListener, Runnable
     printFuture("future", watch.future)
     @console.printf("  from = %s%n", watch.currentValue)
     @console.printf("  to = %s%n", watch.newValue)
-    if watch.currentValue == watch.newValue
-      @console.printf("  (from == to)%n")
+    import static org.mirah.util.Comparisons.*
+    if areSame(watch.currentValue, watch.newValue)
+      @console.printf("  (from === to)%n")
     elsif watch.currentValue && watch.currentValue.equals(watch.newValue)
       @console.printf("  (from.equals(to))%n")
     else

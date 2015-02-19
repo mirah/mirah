@@ -59,7 +59,8 @@ class TypeVariable < BaseType implements TypeVariableModel
     @extendsBound.erasure
   end
   def equals(other)
-    other == self
+    import static org.mirah.util.Comparisons.*
+    areSame(other, self)
   end
   def hashCode
     System.identityHashCode(self)

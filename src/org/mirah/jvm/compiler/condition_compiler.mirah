@@ -29,6 +29,8 @@ class ConditionCompiler < BaseCompiler
   def self.initialize:void
     @@log = Logger.getLogger(ConditionCompiler.class.getName)
     @@NEGATED_OPS = {
+      '===' => '!==',
+      '!==' => '===',
       '==' => '!=',
       '!=' => '==',
       '<' => '>=',

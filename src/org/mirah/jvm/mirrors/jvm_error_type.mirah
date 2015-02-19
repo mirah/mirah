@@ -82,7 +82,8 @@ class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
   def getKind; TypeKind.ERROR; end
   def accept(v, p); v.visitError(self, p); end
   def isSameType(other)
-    other == self
+    import static org.mirah.util.Comparisons.*
+    areSame(self, other)
   end
   def isSupertypeOf(other)
     true

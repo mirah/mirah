@@ -42,7 +42,8 @@ class DelegateFuture < BaseTypeFuture
   # Set the delegate TypeFuture.
   def type=(type:TypeFuture):void
     if @type
-      if @type == type
+      import static org.mirah.util.Comparisons.*
+      if areSame(@type, type)
         return
       else
         @type.removeListener(@listener)
@@ -51,7 +52,8 @@ class DelegateFuture < BaseTypeFuture
     @type = type
     delegate = self
     @listener = type.onUpdate do |t, resolved|
-      if t == delegate.type
+      import static org.mirah.util.Comparisons.*
+      if areSame(t, delegate.type)
         delegate.resolved(resolved)
       end
     end

@@ -264,7 +264,6 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   attr_writer unboxed: JVMType
 
   def equals(other)
-    return true if other == self
     other.kind_of?(MirrorType) && isSameType(MirrorType(other))
   end
 
@@ -274,7 +273,8 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   end
 
   def isSameType(other)
-    return true if other == self
+    import static org.mirah.util.Comparisons.*
+    return true if areSame(self, other)
     return false if other.getKind != TypeKind.DECLARED
     return false unless getTypeArguments.equals(
         DeclaredType(other).getTypeArguments)

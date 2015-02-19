@@ -171,7 +171,8 @@ class ProxyNode < NodeList implements TypeName, Identifier
   end
 
   def replaceChild(child, newChild)
-    if child == newChild
+    import static org.mirah.util.Comparisons.*
+    if areSame(child, newChild)
       return newChild
     end
     clone = childAdded(newChild)
@@ -180,7 +181,7 @@ class ProxyNode < NodeList implements TypeName, Identifier
       @nodes.set(i, clone)
     end
     child.setParent(nil)
-    if child == @selectedNode
+    if areSame(child, @selectedNode)
       @selectedNode = clone
     end
     clone

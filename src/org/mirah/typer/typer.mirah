@@ -1,4 +1,4 @@
-# Copyright (c) 2012-2014 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -865,7 +865,8 @@ class Typer < SimpleNodeVisitor
       next unless new_args
 
       it.remove
-      if it == req2 && new_args.optional.size == 0 && new_args.rest.nil? && new_args.required2.size == 0
+      import static org.mirah.util.Comparisons.*
+      if areSame(it, req2) && new_args.optional.size == 0 && new_args.rest.nil? && new_args.required2.size == 0
         mergeIterators(new_args.required.listIterator, req2)
       else
         mergeIterators(new_args.required.listIterator, req)
