@@ -26,7 +26,7 @@ end
 
 file_create 'javalib/mirahc.jar' do
   require 'open-uri'
-  url = 'http://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.1.3/mirah-0.1.3.jar'
+  url = 'https://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.1.3/mirah-0.1.3.jar'
 
   puts "Downloading mirahc.jar from #{url}"
 
