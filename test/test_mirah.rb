@@ -78,7 +78,7 @@ class TestParsing < Test::Unit::TestCase
   def assert_parse(expected, text)
     ast = parse(text)
     str = AstPrinter.new.scan(ast, ast)
-    assert_equal(expected, str)
+    assert_equal(expected, str, "expected '#{text}' to be converted")
   end
 
   def assert_fails(text)
@@ -355,6 +355,77 @@ EOF
     assert_fails("if;end")
     assert_fails("if a then 1 else 2 elsif b then 3 end")
     assert_fails("if a;elsif end")
+  end
+
+  def test_case
+    # no case arg
+    # single when no body
+    assert_parse(
+      "[Script, [[Case, null, [[WhenClause, [[VCall, [SimpleString, a]]], []]], []]]]",
+      "case; when a; end")
+    # single when body
+    assert_parse(
+      "[Script, [[Case, null, [[WhenClause, [[VCall, [SimpleString, a]]], [[VCall, [SimpleString, b]]]]], []]]]",
+      "case; when a; b end")
+    # multiple when
+    assert_parse(
+      "[Script, [[Case, null, " +
+        "[[WhenClause, [[VCall, [SimpleString, a]]], [[VCall, [SimpleString, b]]]]," +
+        " [WhenClause, [[VCall, [SimpleString, c]]], [[VCall, [SimpleString, d]]]]], []]]]",
+      "case; when a; b; when c; d end")
+    # multiple when args
+    assert_parse(
+      "[Script, [[Case, null, [[WhenClause, [[VCall, [SimpleString, a]], [VCall, [SimpleString, b]]], []]], []]]]",
+      "case; when a, b; end")
+    # multiple when args and body
+    assert_parse(
+      "[Script, [[Case, null, " +
+        "[[WhenClause, [[VCall, [SimpleString, a]], [VCall, [SimpleString, b]]], [[VCall, [SimpleString, c]]]]], []]]]",
+      "case; when a, b; c end")
+    # when arg, else
+    assert_parse(
+      "[Script, [[Case, null, [[WhenClause, [[VCall, [SimpleString, a]]], []]], []]]]",
+      "case; when a; else; end")
+    # when arg, else, with body
+    assert_parse(
+      "[Script, [[Case, null, [[WhenClause, [[VCall, [SimpleString, a]]], []]], [[VCall, [SimpleString, b]]]]]]",
+      "case; when a; else; b end")
+    # case arg, when arg
+    assert_parse(
+      "[Script, [[Case, [VCall, [SimpleString, foo]], [[WhenClause, [[VCall, [SimpleString, a]]], []]], []]]]",
+      "case foo; when a; end")
+
+    # case arg nl when arg
+    assert_parse(
+      "[Script, [[Case, [VCall, [SimpleString, foo]], [[WhenClause, [[VCall, [SimpleString, a]]], []]], []]]]",
+      "case foo
+       when a; end")
+
+    # assign from case
+    assert_parse(
+      "[Script, [[LocalAssignment, [SimpleString, x], " +
+      "[Case, null, [[WhenClause, [[VCall, [SimpleString, a]]], [[VCall, [SimpleString, b]]]]], []]]]]",
+      "x = case; when a; b; end")
+
+    # when literal array
+    assert_parse(
+      "[Script, [[Case, [VCall, [SimpleString, foo]], [[WhenClause, [[Array, [[VCall, [SimpleString, a]]]]], []]], []]]]",
+      "case foo; when [a]; end")
+
+    # case;end
+    # case; else
+    # TODO assert error msgs
+    assert_fails("case; end")
+    # when no args
+    assert_fails("case; when; end")
+    # when no args; then
+    assert_fails("case; when then end")
+    # no when only else
+    assert_fails("case; else; end")
+    # when w/ args, when no args
+    assert_fails("case; when a; when end")
+    # case arg followed by non-when statement
+    assert_fails("case; a; when a; when end")
   end
 
   def test_loop

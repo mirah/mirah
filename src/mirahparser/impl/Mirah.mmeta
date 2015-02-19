@@ -189,6 +189,8 @@ parser MirahParser {
                                            h=-> ^(Call h makeIdentifier(makePosition(t), "[]") a iter)
                              )* {h};
 
+# primary2 is the main entrance into most expression types
+
   $Returns[Node]
   primary2: ($Super)=> primary2_super
           | ($LParen)=> primary2_lparen
@@ -198,6 +200,7 @@ parser MirahParser {
   #        | ($Yield)=> primary2_yield
           | ($Bang)=> primary2_bang
           | ($If)=> primary2_if
+          | ($Case) => primary2_case
           | ($Unless)=> primary2_unless
           | ($While)=> primary2_while
           | ($Until)=> primary2_until
@@ -267,6 +270,13 @@ parser MirahParser {
          : isBEG2 t=$Unless s=block_start(t)! opt_nl cond=value(expr)!
            Then! body=compstmt! tail=Else? verify_end(s)! $End
            -> ^(If cond tail body);
+
+  $Returns[Node]
+  primary2_case
+         : isBEG2 t=$Case s=block_start(t)! cond=(value(expr) | { nil }) term!
+           w=when_clauses els=Else? verify_end(s)! $End
+           -> ^(Case cond w els);
+
   $Scope[@cond]
   $Returns[Node]
   primary2_while
@@ -856,9 +866,19 @@ parser MirahParser {
   Rescue: ($Rescue! c=listOf(:cpath) ($Rocket opt_nl n=identifier)?
            Then b=compstmt -> ^(RescueClause c n b))+;
 
+# case sub components
+  when_clauses: ($When! a=when_args Then! b=compstmt! -> ^(WhenClause a b))+;
+
+  $Returns[List]
+  when_args: c=command { [c] }
+           | a=args { a };
+
+# numeric literals
   fixnum: t=$Integer { n=parseInt(Token(t).text) } -> ^(Fixnum n);
 
   floatLiteral: t=$Float { f=parseFloat(Token(t).text) } -> ^(Float f);
+
+# helper functions
 
   lastdot: ?{_rpeek.indexOf(".") == 0};
 

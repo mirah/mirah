@@ -20,6 +20,23 @@ import java.util.List
 #   child predicate: Node
 # end
 
+
+class Case < NodeImpl
+  init_node do
+     # The value to compare against for the when clauses
+    child condition: Node
+    child_list clauses: Node # really WhenClause
+    child_list elseBody: Node
+  end
+end
+
+class WhenClause < NodeImpl
+  init_node do
+    child_list candidates: Node # possible matching elements
+    child_list body: Node
+  end
+end
+
 class If < NodeImpl
   init_node do
     child condition: Node
