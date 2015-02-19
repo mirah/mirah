@@ -31,6 +31,8 @@ Dist
 
 Compiler Internals Improvements
 ======================
+- add generic warnings / error message facility
+-- right now we've got errors and they're ok. but it'd be better if we had something better.
 - make Mirror type systems addDefaultImports more obvious
 - faster mirah compiler build: src => class is tricky, I could make src => jar, jar => jar tho
 - switch to minitest
@@ -111,13 +113,12 @@ Features
 - AST formatter that converts back to something the parser can parse
 - default toString?
 - default hashCode / equals
-- change == to use equals
 - default val/no type that defers to indy
     eg
       def foo(x: int, y=1)
       end
     should work
-
+- allow defining equals using def ==(other)
 - attr_reader/et al as varargs instead of just Hash. It would mean that the type info would have to come from somewhere else
 - goto: headius wants it
 - synchronize intrinsic ala java's
@@ -181,7 +182,9 @@ Features
 
 Bugs
 ==========
-
+- a[-1] should work
+- array ext size
+- make sure that macro lookup looks at super classes
 - "foo: #{x || y} acts weird", my guess is that interpolation doesn't generate the right code sometimes
 - lambda's can't exist in methods! !! by which I mean that they can't close over things in methods. You can have them there, they just don't close. >:[]
 - parser can't deal w/ unquotes in hash literals when key is unquote
