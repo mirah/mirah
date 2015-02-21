@@ -31,10 +31,18 @@ class InterfaceCompiler < ClassCompiler
   end
   
   def methodFlags(mdef:MethodDefinition, isStatic:boolean)
-    if mdef.body.size == 0
-      super | Opcodes.ACC_ABSTRACT
-    else
+    if method_is_not_abstract(mdef, isStatic)
       super
+    else
+      super | Opcodes.ACC_ABSTRACT
     end
+  end
+
+  def method_is_not_abstract(mdef: MethodDefinition, isStatic: boolean)
+    isStatic || (
+        # TODO not sure if this is how I want IFDEF for JVM supports
+        context[JvmVersion].supports_default_interface_methods &&
+        mdef.body.size > 0
+      )
   end
 end

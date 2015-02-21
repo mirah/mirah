@@ -109,4 +109,19 @@ class InterfaceTest < Test::Unit::TestCase
       end
     EOF
   end
+
+  def test_interface_with_default_method_compiles_on_java_8
+    cls, = compile(<<-'EOF', java_version: '1.8')
+      interface DefaultMe
+        def act(messages:String):void
+          puts "#{messages} all the things!"
+        end
+      end
+
+      class WithDefault implements DefaultMe
+      end
+      WithDefault.new.act("default")
+    EOF
+    assert_run_output "default all the things!\n", cls
+  end
 end

@@ -56,5 +56,9 @@ class JvmVersion
     @version
   end
 
+  def supports_default_interface_methods
+    @version >= Opcodes.V1_8
+  end
+
   attr_reader flags:int, version:int, version_string:String
 end

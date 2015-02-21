@@ -36,6 +36,16 @@ class JvmVersionTest < Test::Unit::TestCase
 		end
   end
 
+  def test_java_8_supports_default_methods
+    jvm_version = JvmVersion.new "1.8"
+    assert jvm_version.supports_default_interface_methods
+  end
+
+  def test_java_7_does_not_support_default_methods
+    jvm_version = JvmVersion.new "1.7"
+    assert !jvm_version.supports_default_interface_methods
+  end
+
   def opcode spec_version
     Opcodes.const_get("V#{spec_version.sub('.','_')}")
   end
