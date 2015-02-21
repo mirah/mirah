@@ -111,6 +111,8 @@ class InterfaceTest < Test::Unit::TestCase
   end
 
   def test_interface_with_default_method_compiles_on_java_8
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+
     cls, = compile(<<-'EOF', java_version: '1.8')
       interface DefaultMe
         def act(messages:String):void
