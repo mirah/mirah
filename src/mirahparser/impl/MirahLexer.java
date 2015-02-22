@@ -1282,7 +1282,7 @@ public class MirahLexer {
     }
     Tokens type = Tokens.tWhitespace;
     int start = input.pos();
-    if ( skipWhitespaceAndComments ){
+    if (skipWhitespaceAndComments) {
         while (type.ordinal() > Tokens.tEOF.ordinal()) {
           start = input.pos();
           type = simpleLex();
