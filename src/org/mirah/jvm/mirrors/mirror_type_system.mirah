@@ -103,6 +103,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   attr_reader context:Context
+  attr_accessor loader:SimpleAsyncMirrorLoader
 
   def self.initialize:void
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)
