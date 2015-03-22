@@ -93,6 +93,30 @@ class ObjectExtensions
     mdef
   end
 
+  macro def self.protected(mthd:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED'))])
+    mthd.annotations.add(anno)
+    mthd.setParent(nil)
+    mthd
+  end
+  
+  macro def self.private(mthd:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE'))])
+    mthd.annotations.add(anno)
+    mthd.setParent(nil)
+    mthd
+  end
+  
+  macro def self.package_private(mthd:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('access'), SimpleString.new('DEFAULT'))])
+    mthd.annotations.add(anno)
+    mthd.setParent(nil)
+    mthd
+  end
+
   macro def self.attr_accessor(hash:Hash)
     args = [hash]
     quote do
