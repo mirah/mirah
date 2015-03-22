@@ -124,7 +124,6 @@ Features
 - synchronize intrinsic ala java's
 - file scoped macros / extensions
 - extension syntax
-- move macro / mirahc anno to separate class dir to improve javac interop
 - public / private / protected / package scope helpers
 
 
