@@ -43,4 +43,33 @@ class StaticFieldsTest < Test::Unit::TestCase
     EOF
     assert_run_output("1\n", cls)
   end
+  
+  def test_static_final_constant
+    cls, = compile(<<-EOF)
+      class Bar
+        macro def self.static_final(s:SimpleString,v:Fixnum)
+          field_assign = FieldAssign.new(Constant.new(s),v,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+            HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE')),
+            HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("STATIC"),SimpleString.new("FINAL")]))
+          ])])
+          field_assign.isStatic = true
+          field_assign.isFinal = true
+          field_assign
+        end
+        
+        static_final :serialVersionUID, -1234567890123456789
+        
+        class << self
+          def reflect
+            field = Bar.class.getDeclaredField("serialVersionUID")
+            puts field.getModifiers
+            puts field.get(nil)
+          end
+        end
+      end
+      
+      Bar.reflect
+    EOF
+    assert_run_output("26\n-1234567890123456789\n", cls)
+  end
 end

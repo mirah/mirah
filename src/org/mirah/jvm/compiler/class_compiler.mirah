@@ -35,6 +35,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
     super(context)
     @classdef = classdef
     @fields = {}
+    @constant_field_assignments = {}
     @innerClasses = LinkedList.new
     @type = getInferredType(@classdef)
   end
@@ -62,6 +63,12 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
     visit(node.body, expression)
     @static = saved
     nil
+  end
+  
+  def visitFieldAssign(node, expression)
+    if node.isStatic && node.isFinal
+      @constant_field_assignments[node.name.identifier] = node
+    end
   end
   
   def visitMethodDefinition(node, expression)
@@ -115,7 +122,20 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   
   def visitFieldDeclaration(node, expression)
     flags = calculateFlagsFromAnnotations(Opcodes.ACC_PRIVATE, node.annotations)
-    fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, nil)
+    initial_value = nil
+    if (flags&(Opcodes.ACC_FINAL|Opcodes.ACC_STATIC))==Opcodes.ACC_FINAL|Opcodes.ACC_STATIC
+      field_assign = FieldAssign(@constant_field_assignments[node.name.identifier])
+      if field_assign
+        if field_assign.value.getClass==mirah::lang::ast::Fixnum.class 
+          initial_value = Long.new(mirah::lang::ast::Fixnum(field_assign.value).value)
+        else # If you want to support more types of final static fields, add type handling here
+          raise "Cannot support field_assign #{field_assign}." 
+        end
+      else
+        raise "Missing field_assign for node #{node}."
+      end
+    end
+    fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, initial_value)
     context[AnnotationCompiler].compile(node.annotations, fv)
     fv.visitEnd
   end

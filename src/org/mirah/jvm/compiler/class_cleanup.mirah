@@ -247,7 +247,11 @@ class ClassCleanup < NodeScanner
   def enterFieldAssign(node, arg)
     @field_annotations.collect(node)
     if node.isStatic || isStatic(node)
-      @static_init_nodes.add(node)
+      if node.isFinal
+        # do not generate any static initializer, as we should actually precompute the final static value at compile time and store it in the ConstantValue attribute of the field.
+      else
+        @static_init_nodes.add(node)
+      end
     else
       @init_nodes.add(node)
       node.parent.removeChild(node)
