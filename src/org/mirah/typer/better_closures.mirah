@@ -108,6 +108,7 @@ class BetterClosureBuilder
       @blocks = Stack.new
       @parent_scope = parent_scope
       @bindingName = bindingName
+
     end
 
     def adjust(node: Node): void
@@ -142,13 +143,7 @@ class BetterClosureBuilder
         [Hash.new(node.position, entries)],
         nil)
       binding_klass.body.insert(0, attr_def)
-
-      binding_type = @builder.infer(binding_klass).resolve
-
-      raise "parent_scope had declared_binding_type already #{@parent_scope}" if @parent_scope.declared_binding_type
-      @parent_scope.declared_binding_type = binding_type
-      @bindingLocalNamesToTypes[@bindingName] = binding_type
-
+            
       binding_new_call = Call.new(node.position, Constant.new(SimpleString.new(name)), SimpleString.new("new"), [], nil)
       @builder.typer.workaroundASTBug binding_new_call
 
@@ -161,7 +156,12 @@ class BetterClosureBuilder
       @builder.insert_into_body NodeList(node), assign_binding_dot_new
       @builder.insert_into_body NodeList(node), binding_klass
       
+      binding_type = @builder.infer(binding_klass).resolve
 
+      raise "parent_scope had declared_binding_type already #{@parent_scope}" if @parent_scope.declared_binding_type
+      @parent_scope.declared_binding_type = binding_type
+      @bindingLocalNamesToTypes[@bindingName] = binding_type
+      
       @binding_type = @builder.infer(binding_klass)
       @binding_klass_node = binding_klass
       @builder.infer assign_binding_dot_new
@@ -381,8 +381,8 @@ class BetterClosureBuilder
 
       ProxyCleanup.new.scan enclosing_node
 
-      enclosing_b = get_body(enclosing_node)
-
+      enclosing_b = get_body(enclosing_node)      
+      
       adjuster = BindingAdjuster.new(
         self,
        "b#{i}",
