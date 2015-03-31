@@ -714,6 +714,27 @@ class BlocksTest < Test::Unit::TestCase
     end
   end
 
+
+  def test_binding_has_right_namespace
+    classes = compile(<<-'EOF')
+      package test
+      class Something
+        def create(a: Runnable):void
+          a.run
+        end
+        def with_binding
+          loc = 1
+          create do
+            puts "test #{loc}"
+          end
+        end
+      end
+    EOF
+    class_names = classes.map(&:java_class).map(&:name)
+    pattern = /test\.Something\$.*?Binding\d*/
+    assert class_names.find{|c| c.match pattern },
+      "generated classes: #{class_names} didn't contain #{pattern}."
+  end
   # nested nlr scopes
 
 # works with script as end
