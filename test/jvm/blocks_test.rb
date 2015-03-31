@@ -702,6 +702,17 @@ class BlocksTest < Test::Unit::TestCase
   end
 
 
+  def test_block_syntax_for_anonymous_class_implementing_inner_interface
+    cls, = compile('
+      import org.foo.InnerInterfaceClass
+      
+      InnerInterfaceClass.forward("foo") do |param|
+        puts param
+      end
+    ')
+    assert_run_output("foo\n", cls)
+  end
+
   def test_lambda_closure
     pend "not working yet" do
       cls, = compile(<<-EOF)
