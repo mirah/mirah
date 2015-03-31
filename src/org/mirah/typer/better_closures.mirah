@@ -348,8 +348,6 @@ class BetterClosureBuilder
 
 
   def finish
-    old_level = @@log.getLevel
-    @@log.setLevel Level.FINEST
     closures = []
     scripts = ArrayList.new(@scripts)
     Collections.reverse(scripts)
@@ -486,7 +484,6 @@ class BetterClosureBuilder
       ps.close()
       @@log.fine("Inferred types for expr:\n#{String.new(buf.toByteArray)}")
     end
-    @@log.setLevel old_level
   end
 
   def add_todo(block: Block, parent_type: ResolvedType)
