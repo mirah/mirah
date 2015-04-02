@@ -53,7 +53,8 @@ module CommonAssertions
     begin
       yield
       output.rewind
-      output.read
+      text = output.read
+      text.gsub("\r",'')
     ensure
       System.setOut(saved_output)
       System.setErr(saved_err)
