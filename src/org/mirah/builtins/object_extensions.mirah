@@ -19,7 +19,9 @@ import mirah.lang.ast.*
 import org.mirah.typer.ClosureBuilder
 import org.mirah.typer.ErrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
+import org.mirah.macros.anno.ExtensionsRegistration
 
+$ExtensionsRegistration[['java.lang.Object']]
 class ObjectExtensions
 
   macro def ==(node)
