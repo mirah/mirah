@@ -15,6 +15,8 @@
 
 package org.mirah.builtins
 
+import org.mirah.macros.anno.ExtensionsRegistration
+$ExtensionsRegistration[['java.util.Map']]
 class MapExtensions
   macro def [](key)
     quote { `@call.target`.get(`key`) }

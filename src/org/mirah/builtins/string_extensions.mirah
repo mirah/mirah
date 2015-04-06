@@ -15,6 +15,9 @@
 
 package org.mirah.builtins
 
+import org.mirah.macros.anno.ExtensionsRegistration
+
+$ExtensionsRegistration[['java.lang.String']]
 class StringExtensions
   macro def +(arg)
     quote { "#{`@call.target`}#{`arg`}" }

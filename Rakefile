@@ -263,6 +263,7 @@ if false
     build_mirah_stuff old_jar, bootstrap_build_dir, bootstrap_srcs
     ant.jar 'jarfile' => bootstrap_jar do
       fileset 'dir' => bootstrap_build_dir
+      metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 'includes' => 'services/*'
     end
   end
 
@@ -373,6 +374,7 @@ else # original
       zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
       zipfileset 'src' => 'javalib/mirah-parser.jar'
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
+      metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 'includes' => 'services/*'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end

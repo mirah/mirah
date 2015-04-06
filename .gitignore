@@ -27,3 +27,6 @@ javalib/mirah-compiler.jar
 javalib/mirah-mirrors.jar
 javalib/mirahc-prev.jar
 javalib/asm-5.jar
+
+#git ignore netbeans files
+nb-configuration.xml
