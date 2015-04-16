@@ -356,6 +356,13 @@ def test_map_identity
     EOF
     assert_run_output("[1, 3]\n", cls)
   end
+  
+  def test_join
+    cls, = compile(<<-EOF)
+      puts [1,23,4].join
+    EOF
+    assert_run_output("1234\n", cls)
+  end
 
   def test_zip
     cls, = compile(<<-'EOF')
