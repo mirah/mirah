@@ -103,6 +103,14 @@ class ObjectExtensions
     mdef
   end
 
+  macro def self.synchronized(mthd:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('SYNCHRONIZED')]))])
+    mthd.annotations.add(anno)
+    mthd.setParent(nil)
+    mthd
+  end
+
   macro def self.protected(mthd:MethodDefinition)
     anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
                           [HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED'))])

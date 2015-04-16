@@ -1496,6 +1496,54 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
+  def test_synchronized
+    cls, = compile(<<-EOF)
+      class Synchronized
+        attr_accessor locked:boolean
+        
+        synchronized def lock_and_unlock:void
+          puts "Locking."
+          Thread.sleep(100)
+          self.locked = true
+          puts "Waiting."
+          self.wait
+          puts "Unlocking."
+          self.locked = false
+        end
+        
+        synchronized def locked?
+          self.locked
+        end
+        
+        synchronized def notify_synchronized:void
+          puts "Notifying."
+          self.notify
+          puts "Notified."
+        end
+        
+        def trigger:void
+          while ! locked?
+            Thread.sleep(10)
+          end
+          self.notify_synchronized
+        end
+        
+        def start_trigger
+          s = self
+          Thread.new do
+            s.trigger
+          end.start
+        end
+      end
+    EOF
+
+    assert_output("Locking.\nWaiting.\nNotifying.\nNotified.\nUnlocking.\n") do
+      a = cls.new
+      a.start_trigger
+      a.lock_and_unlock
+    end
+  end
+
   def test_return_void
     script, = compile(<<-EOF)
       def foo:void
