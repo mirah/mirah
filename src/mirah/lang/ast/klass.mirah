@@ -28,6 +28,7 @@ class FieldDeclaration < NodeImpl
   init_node do
     child name: Identifier
     child type: TypeName
+    child value: Node
     child_list annotations: Annotation
     attr_accessor isStatic: 'boolean'
   end
