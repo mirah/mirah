@@ -137,7 +137,7 @@ class ClassCleanup < NodeScanner
         HashEntry.new(SimpleString.new('flags'), flags)
         ])
       annotations.add(modifiers)
-      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), Collections.emptyList)
+      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), nil, Collections.emptyList)
       decl.isStatic = isStatic
       decl.annotations = annotations
       @klass.body.add(decl)
