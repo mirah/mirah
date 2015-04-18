@@ -87,6 +87,25 @@ class ObjectExtensions
     quote { while true do `block.body` end }
   end
 
+  macro def self.final(s:SimpleString,v:Fixnum)
+    FieldAnnotationRequest.new(s,v,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+      HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("FINAL")]))
+    ])])
+  end
+
+  macro def self.static_field(s:SimpleString,v:Fixnum)
+    field_assign = FieldAssign.new(s,v,[]) # trigger generation of the field, v is actually ignored if the field becomes static final
+    field_assign.isStatic = true
+    field_assign
+  end
+  
+  macro def self.static_final(s:SimpleString,v:Fixnum)
+    quote do
+      final(`s`,`v`)
+      static_field(`s`,`v`)
+    end
+  end
+  
   macro def self.abstract(klass:ClassDefinition)
     anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
                           [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('ABSTRACT')]))])
