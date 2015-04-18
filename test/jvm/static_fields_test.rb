@@ -63,4 +63,32 @@ class StaticFieldsTest < Test::Unit::TestCase
     EOF
     assert_run_output("26\n-1234567890123456789\n", cls)
   end
+  
+  def test_transient
+    cls, = compile(%q[
+      class Bar implements java::io::Serializable
+      
+        static_final :serialVersionUID, -1234567890123456789
+        
+        transient :b
+        
+        def initialize(a:int,b:int)
+          @a = a
+          @b = b
+        end
+        
+        def toString
+          "Bar(#{@a},#{@b})"
+        end
+      end
+      
+      bout = java::io::ByteArrayOutputStream.new
+      oout = java::io::ObjectOutputStream.new(bout)
+      oout.writeObject(Bar.new(5,7))
+      oout.close
+      bin  = java::io::ObjectInputStream.new(java::io::ByteArrayInputStream.new(bout.toByteArray))
+      puts Bar(bin.readObject)
+    ])
+    assert_run_output("Bar(5,0)\n", cls) # b=7 should be forgotten, because b is a transient field. 
+  end
 end

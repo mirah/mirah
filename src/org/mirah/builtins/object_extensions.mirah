@@ -87,6 +87,12 @@ class ObjectExtensions
     quote { while true do `block.body` end }
   end
 
+  macro def self.transient(s:SimpleString)
+    FieldAnnotationRequest.new(s,nil,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+      HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("TRANSIENT")]))
+    ])])
+  end
+
   macro def self.final(s:SimpleString,v:Fixnum)
     FieldAnnotationRequest.new(s,v,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
       HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("FINAL")]))
