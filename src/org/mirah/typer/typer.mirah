@@ -487,6 +487,10 @@ class Typer < SimpleNodeVisitor
     visitClassDefinition(idef, expression)
   end
 
+  def visitFieldAnnotationRequest(decl, expression)
+    @types.getNullType()
+  end
+  
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
     getFieldTypeOrDeclare(decl, decl.isStatic).declare(

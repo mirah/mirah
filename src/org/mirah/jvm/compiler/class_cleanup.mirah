@@ -44,6 +44,7 @@ class ClassCleanup < NodeScanner
     @init_nodes = ArrayList.new
     @constructors = ArrayList.new
     @field_annotations = AnnotationCollector.new(context)
+    @field_annotation_requests = {}
     @methods = ArrayList.new
     @method_states = {}
   end
@@ -137,7 +138,15 @@ class ClassCleanup < NodeScanner
         HashEntry.new(SimpleString.new('flags'), flags)
         ])
       annotations.add(modifiers)
-      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), nil, Collections.emptyList)
+      field_annotation_request = FieldAnnotationRequest(field_annotation_requests[name])
+      if field_annotation_request && field_annotation_request.annotations
+        field_annotation_request.annotations.each do |a|
+          annotation = Annotation(a)
+          annotation.parent.removeChild(annotation)
+          annotations.add(annotation)
+        end
+      end
+      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), field_annotation_request ? field_annotation_request.value : nil, Collections.emptyList)
       decl.isStatic = isStatic
       decl.annotations = annotations
       @klass.body.add(decl)
@@ -252,6 +261,10 @@ class ClassCleanup < NodeScanner
       @init_nodes.add(node)
       node.parent.removeChild(node)
     end
+    false
+  end
+  def enterFieldAnnotationRequest(node, arg)
+    field_annotation_requests[node.name.identifier] = node
     false
   end
   def enterFieldDeclaration(node, arg)
