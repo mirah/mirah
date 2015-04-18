@@ -23,6 +23,28 @@ class ClosureDefinition < ClassDefinition
   init_subclass(ClassDefinition)
 end
 
+#
+# A wish by the source code author that a field
+#   should have a certain value (e.g. if it is static final)
+#   should have certain annotations.
+#
+# The wish is expressed as a FieldAnnotationRequest node instead of a
+# FieldDeclaration node, as current compiler code expects FieldDeclaration nodes
+# to be synthesized by the compiler itself, not by the source code author
+# or macros invoked by the author.
+#
+# FieldAnnotationRequest nodes are to be created by macros. Hence, they can be
+# removed by a better implementation and just macros need to be changed.
+#
+class FieldAnnotationRequest < NodeImpl
+  implements Annotated, Named
+  init_node do
+    child name: Identifier
+    child value: Node
+    child_list annotations: Annotation
+  end
+end
+
 class FieldDeclaration < NodeImpl
   implements Annotated, Named
   init_node do
