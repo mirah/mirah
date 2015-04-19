@@ -393,7 +393,7 @@ class MethodLookup
       visited.add(target)
       target.getAllDeclaredMethods.each do |m|
         member = JVMMethod(m)
-        if member.isAbstract
+        if member.isAbstract && member.kind != MemberKind.CLASS_LITERAL
           type = MethodType.new(member.name, member.argumentTypes, member.returnType, member.isVararg)
           abstract_methods[[member.name, member.argumentTypes]] = type
         else
