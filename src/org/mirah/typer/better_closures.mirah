@@ -895,26 +895,71 @@ enclosing_scope = get_scope(enclosing_body)
   def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope):void
     mtype = method_for(iface)
     name = SimpleString.new(block.position, mtype.name)
+
+    # TODO handle all arg types allowed
     args = if block.arguments
              Arguments(block.arguments.clone)
            else
              Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
            end
+
     while args.required.size < mtype.parameterTypes.size
       arg = RequiredArgument.new(
         block.position, SimpleString.new("arg#{args.required.size}"), nil)
       args.required.add(arg)
     end
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
-    method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
+    block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
-    # at this point it's safe to modify them I think, because the typer's done
-    method.body = NodeList(block.body.clone)
-    # arg set does a clone if parent is set!!
-    #block.body.setParent nil
-    #method.body = NodeList(block.body)
+    block_method.body = NodeList(block.body.clone)
+    klass.body.add(block_method)
 
-    klass.body.add(method)
+    # create a bridge method if necessary
+    m_types= mtype.parameterTypes
+    i=0
+    requires_bridge = false
+    # What I'd like it to look like:
+    # args.required.zip(m_types).each do |a, m|
+    #   next unless a.type
+    #   a_type = @types.get(parent_scope, a.type.typeref)
+    #   if a_type !=  m
+    #     requires_bridge = true
+    #     break
+    #   end
+    # end
+    args.required.each do |a: RequiredArgument|
+      if a.type
+        m_type = m_types[i]
+        a_type = @types.get(parent_scope, a.type.typeref).resolve
+        if !a_type.equals(m_type)
+          @@log.fine("#{name} requires bridge method because declared type: #{a_type} != iface type: #{m_type}")
+          requires_bridge = true
+          break
+        end
+      end
+      i+=1
+    end
+
+    if requires_bridge
+      # Copy args without type information so that the normal iface lookup will happen
+      # for the args with types args, add a cast to the arg for the call
+      bridge_args = Arguments.new(args.position, [], Collections.emptyList, nil, Collections.emptyList, nil)
+      call = FunctionalCall.new(name, [], nil)
+      args.required.each do |a: RequiredArgument|
+        bridge_args.required.add(RequiredArgument.new(a.position, a.name, nil))
+        local = LocalAccess.new(a.position, a.name)
+        param = if a.type
+          Cast.new(a.position, a.type, local)
+        else
+          local
+        end
+        call.parameters.add param
+      end
+      # TODO bridge / synthetic annotation for code gen
+      bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil)
+      bridge_method.body = NodeList.new(args.position, [call])
+      klass.body.add(bridge_method)
+    end
   end
 
   def build_constructor(klass: ClassDefinition, binding_type_name: Constant): void
