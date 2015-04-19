@@ -40,4 +40,11 @@ class ListExtensionsTest < Test::Unit::TestCase
     assert_run_output("[1, 2, 3]\n", cls)
   end
 
+  def test_sort_without_comparator
+    cls, = compile(<<-EOF)
+      puts [5,1,3].sort
+    EOF
+    assert_run_output("[1, 3, 5]\n", cls)
+  end
+
 end
