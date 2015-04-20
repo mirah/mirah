@@ -88,7 +88,9 @@ class MethodLookup
     end
 
     def isSubType(subtype:ResolvedType, supertype:ResolvedType):boolean
-      return true if subtype == supertype
+      import static org.mirah.util.Comparisons.*
+      return true if areSame(subtype, supertype)
+      return true if subtype.equals(supertype)
       if subtype.kind_of?(JVMType) && supertype.kind_of?(JVMType)
         return isJvmSubType(JVMType(subtype), JVMType(supertype))
       end
