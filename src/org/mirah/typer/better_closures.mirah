@@ -32,6 +32,8 @@ import java.io.File
 
 import org.mirah.jvm.compiler.ProxyCleanup
 import org.mirah.jvm.mirrors.MirrorScope
+import org.mirah.jvm.mirrors.BaseType
+import org.mirah.jvm.mirrors.MirrorFuture
 import org.mirah.macros.MacroBuilder
 import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
@@ -444,11 +446,10 @@ class BetterClosureBuilder
       if contains_methods(block)
         copy_methods(closure_klass, block, block_scope)
       else
-        build_method(closure_klass, block, parent_type, block_scope)
+        build_and_inject_methods(closure_klass, block, parent_type, block_scope)
       end
 
       closure_type = infer(closure_klass)
-
 
       has_block_parent = block.findAncestor { |node| node.parent.kind_of? Block }
 
@@ -553,11 +554,10 @@ class BetterClosureBuilder
   def prepare_regular_closure(block: Block, parent_type: ResolvedType): Node
     parent_scope = get_scope block
     klass = build_closure_class block, parent_type, parent_scope
-    
     if contains_methods(block)
       copy_methods(klass, block, parent_scope)
     else
-      build_method(klass, block, parent_type, parent_scope)
+      build_and_inject_methods(klass, block, parent_type, parent_scope)
     end
     new_closure_call_node(block, klass)
   end
@@ -657,7 +657,7 @@ class BetterClosureBuilder
     parent_scope = get_scope block
     klass = build_closure_class block, parent_type, parent_scope
     
-    build_method(klass, block, parent_type, parent_scope)
+    build_and_inject_methods(klass, block, parent_type, parent_scope)
   
     new_closure_call_node(block, klass)
   end
@@ -891,9 +891,9 @@ enclosing_scope = get_scope(enclosing_body)
     MethodType(List(methods).get(0))
   end
 
-  # Builds MethodDefinitions in klass for the abstract methods in iface.
-  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope):void
-    mtype = method_for(iface)
+  # builds the method definitios for inserting into the closure class
+  def build_methods_for(mtype: MethodType, block: Block, parent_scope: Scope): List #<MethodDefinition>
+    methods = []
     name = SimpleString.new(block.position, mtype.name)
 
     # TODO handle all arg types allowed
@@ -912,26 +912,45 @@ enclosing_scope = get_scope(enclosing_body)
     block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
     block_method.body = NodeList(block.body.clone)
-    klass.body.add(block_method)
+
+    m_types= mtype.parameterTypes
+
+
+    # Add check casts in if the argument has a type
+    i=0
+    args.required.each do |a: RequiredArgument|
+      if a.type
+        m_type = BaseType(m_types[i])
+        a_type = @types.get(parent_scope, a.type.typeref).resolve
+        if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type) # could do this, then it'd only add the checkcast if it will fail...
+          block_method.body.insert(0, 
+            Cast.new(a.position, 
+              Constant.new(SimpleString.new(m_type.name)), LocalAccess.new(a.position, a.name))
+            )
+        end
+      end
+      i+=1
+    end
+
+    methods.add(block_method)
 
     # create a bridge method if necessary
-    m_types= mtype.parameterTypes
-    i=0
     requires_bridge = false
     # What I'd like it to look like:
     # args.required.zip(m_types).each do |a, m|
     #   next unless a.type
     #   a_type = @types.get(parent_scope, a.type.typeref)
-    #   if a_type !=  m
+    #   if a_type != m
     #     requires_bridge = true
     #     break
     #   end
     # end
+    i=0
     args.required.each do |a: RequiredArgument|
       if a.type
-        m_type = m_types[i]
+        m_type = BaseType(m_types[i])
         a_type = @types.get(parent_scope, a.type.typeref).resolve
-        if !a_type.equals(m_type)
+        if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type)
           @@log.fine("#{name} requires bridge method because declared type: #{a_type} != iface type: #{m_type}")
           requires_bridge = true
           break
@@ -949,16 +968,30 @@ enclosing_scope = get_scope(enclosing_body)
         bridge_args.required.add(RequiredArgument.new(a.position, a.name, nil))
         local = LocalAccess.new(a.position, a.name)
         param = if a.type
-          Cast.new(a.position, a.type, local)
-        else
-          local
-        end
+                  Cast.new(a.position, a.type, local)
+                else
+                  local
+                end
         call.parameters.add param
       end
-      # TODO bridge / synthetic annotation for code gen
+        
       bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil)
       bridge_method.body = NodeList.new(args.position, [call])
-      klass.body.add(bridge_method)
+      anno = Annotation.new(args.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                         [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('BRIDGE')]))])
+      bridge_method.annotations.add(anno)
+      methods.add(bridge_method)
+    end
+    methods
+  end
+
+  # Builds MethodDefinitions in klass for the abstract methods in iface.
+  def build_and_inject_methods(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope):void
+    mtype = method_for(iface)
+
+    methods = build_methods_for mtype, block, parent_scope
+    methods.each do |m: Node|
+      klass.body.add m
     end
   end
 
