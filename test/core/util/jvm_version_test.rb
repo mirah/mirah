@@ -18,7 +18,7 @@ require 'test_helper'
 
 class JvmVersionTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.compiler.JvmVersion'
-  java_import 'org.objectweb.asm.Opcodes'
+  java_import 'mirah.objectweb.asm.Opcodes'
 
   def test_defaults_to_current_java
     jvm_version = JvmVersion.new

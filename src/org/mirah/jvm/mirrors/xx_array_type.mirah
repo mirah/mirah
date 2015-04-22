@@ -21,8 +21,8 @@ import java.util.logging.Logger
 import javax.lang.model.type.ArrayType as ArrayModel
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
 import org.mirah.builtins.ArrayExtensions
 import org.mirah.builtins.EnumerableExtensions
 import org.mirah.jvm.types.JVMType

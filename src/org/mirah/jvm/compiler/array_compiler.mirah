@@ -18,8 +18,8 @@ package org.mirah.jvm.compiler
 import java.util.logging.Logger
 import mirah.lang.ast.Array
 import org.mirah.jvm.types.MemberKind
-import org.objectweb.asm.commons.Method
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.commons.Method
+import mirah.objectweb.asm.Type
 
 class ArrayCompiler < BaseCompiler
   def self.initialize: void

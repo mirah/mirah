@@ -15,8 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
 import org.mirah.jvm.types.MemberKind
 import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeKind

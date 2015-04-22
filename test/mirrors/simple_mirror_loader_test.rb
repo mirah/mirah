@@ -34,7 +34,7 @@ class ParentLoader < SimpleMirrorLoader
 end
 
 class SimpleMirrorLoaderTest < Test::Unit::TestCase
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Type'
 
   def setup
     @parent = ParentLoader.new
@@ -63,7 +63,7 @@ end
 
 class PrimitiveLoaderTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.PrimitiveLoader'
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Type'
 
   def test_primitives
     loader = PrimitiveLoader.new(nil)
@@ -85,7 +85,7 @@ end
 
 class OrErrorLoaderTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.OrErrorLoader'
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Type'
 
   def test_loader
     loader = OrErrorLoader.new(nil)

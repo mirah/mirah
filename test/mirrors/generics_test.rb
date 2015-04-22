@@ -32,7 +32,7 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.model.Cycle'
   java_import 'org.mirah.jvm.model.IntersectionType'
   java_import 'org.mirah.typer.BaseTypeFuture'
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Type'
   java_import 'javax.lang.model.util.Types'
 
   def setup

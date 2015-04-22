@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.mirrors
 
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Type
 import org.mirah.util.Context
 
 class BooleanType < Number

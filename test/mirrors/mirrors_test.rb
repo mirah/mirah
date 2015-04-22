@@ -33,8 +33,8 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'mirah.lang.ast.Script'
   java_import 'mirah.lang.ast.StringCodeSource'
   java_import 'mirah.lang.ast.TypeRefImpl'
-  java_import 'org.objectweb.asm.Opcodes'
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Opcodes'
+  java_import 'mirah.objectweb.asm.Type'
 
   def setup
     @types = MirrorTypeSystem.new

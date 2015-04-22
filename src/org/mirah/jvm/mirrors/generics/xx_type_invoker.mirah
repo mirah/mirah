@@ -24,10 +24,10 @@ import javax.lang.model.element.TypeElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.Types
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.signature.SignatureReader
-import org.objectweb.asm.signature.SignatureVisitor
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.signature.SignatureReader
+import mirah.objectweb.asm.signature.SignatureVisitor
 import org.mirah.jvm.mirrors.DeclaredMirrorType
 import org.mirah.jvm.mirrors.MirrorLoader
 import org.mirah.jvm.mirrors.MirrorType

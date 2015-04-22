@@ -40,9 +40,9 @@ import org.mirah.typer.Typer
 import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
 import org.mirah.typer.UnreachableType
-import org.objectweb.asm.Type
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.commons.Method
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.commons.Method
 
 class ReportedException < RuntimeException
   def initialize(ex:Throwable)

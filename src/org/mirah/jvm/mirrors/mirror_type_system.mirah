@@ -26,8 +26,8 @@ import java.util.logging.Level
 
 import javax.lang.model.util.Types as JavaxTypes
 
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
 
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.ConstructorDefinition

@@ -24,9 +24,9 @@ import org.mirah.util.Context
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.commons.Method
+import mirah.objectweb.asm.ClassWriter
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.commons.Method
 
 class ClassCompiler < BaseCompiler implements InnerClassCompiler
   def self.initialize:void

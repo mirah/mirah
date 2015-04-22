@@ -1,8 +1,8 @@
 package org.mirah.jvm.types
 
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
 import mirah.lang.ast.AnnotationList
 import mirah.lang.ast.Annotation
 import mirah.lang.ast.HashEntry

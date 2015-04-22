@@ -26,7 +26,7 @@ import javax.lang.model.util.AbstractTypeVisitor6
 import javax.lang.model.util.SimpleTypeVisitor6
 import javax.lang.model.util.Types
 import org.mirah.jvm.mirrors.MirrorType
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Type
 
 import org.mirah.jvm.types.JVMTypeUtils
 
