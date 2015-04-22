@@ -74,4 +74,29 @@ class StringExtensionsTest < Test::Unit::TestCase
       compile("def match_wrong_type; 'abcdef' =~ 'd'; end")
     end
   end
+  
+  def test_string_to_int_invalid_number
+    cls, = compile(<<-EOF)
+      puts 'abc'.to_int
+    EOF
+    assert_raise_java Java::JavaLang::NumberFormatException do
+      cls.main nil
+    end
+  end
+
+  def test_string_to_int_valid_number
+    cls, = compile(<<-EOF)
+      puts '-987654321'.to_int
+    EOF
+    assert_run_output("-987654321\n", cls)
+  end
+
+  def test_string_to_int_too_big_number
+    cls, = compile(<<-EOF)
+      puts '-9876543210'.to_int
+    EOF
+    assert_raise_java Java::JavaLang::NumberFormatException do
+      cls.main nil
+    end
+  end
 end

@@ -39,4 +39,10 @@ class StringExtensions
       end
     end
   end
+  
+  # separate to to_i(), as to_i() (in order to maintain Ruby compatibility) could return a BigInteger,
+  # while to_int() always returns an int.
+  macro def to_int:int
+    quote { Integer.parseInt(`@call.target`) }
+  end
 end
