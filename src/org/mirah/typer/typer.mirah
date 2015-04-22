@@ -404,7 +404,7 @@ class Typer < SimpleNodeVisitor
       Annotation.new(field.name.position,
         Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
         [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))])
-    ]
+    ], nil
     newField.isStatic = true
     newField.position = field.position
 
@@ -817,7 +817,7 @@ class Typer < SimpleNodeVisitor
     object = node.unquote.object
     if object.kind_of?(FieldAccess)
       fa = FieldAccess(node.name)
-      replacement = FieldAssign.new(fa.position, fa.name, node.value, nil)
+      replacement = FieldAssign.new(fa.position, fa.name, node.value, nil, nil)
     else
       replacement = LocalAssignment.new(node.position, node.name, node.value)
     end

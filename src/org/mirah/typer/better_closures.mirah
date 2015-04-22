@@ -424,7 +424,7 @@ class BetterClosureBuilder
                            Collections.emptyList,
                            nil)
       binding_assigns = binding_list.map do |name: String|
-        FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil)
+        FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil, nil)
       end
       constructor = ConstructorDefinition.new(
         SimpleString.new('initialize'), args,
@@ -634,7 +634,7 @@ class BetterClosureBuilder
                          Collections.emptyList,
                          nil)
     body = unless void_type? return_value_type
-             [FieldAssign.new(SimpleString.new('return_value'), LocalAccess.new(SimpleString.new('return_value')), nil)]
+             [FieldAssign.new(SimpleString.new('return_value'), LocalAccess.new(SimpleString.new('return_value')), nil, nil)]
            else
              Collections.emptyList
            end
@@ -924,7 +924,7 @@ enclosing_scope = get_scope(enclosing_body)
                          nil,
                          Collections.emptyList,
                          nil)
-    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil)
+    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil, nil)
     constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil, nil)
     klass.body.add(constructor)
   end
