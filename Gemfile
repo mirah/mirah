@@ -6,4 +6,4 @@ gem "rake"
 # To test against a local copy of bitescript,
 # replace ":git => ''" with ":path => '<path to your local copy>'"
 #gem 'ruby-debug'
-gem 'test-unit'
+gem 'test-unit', '~> 3.0'
