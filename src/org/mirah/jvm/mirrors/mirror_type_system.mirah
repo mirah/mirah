@@ -439,11 +439,12 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     superclass ||= @object_future
     interfaceArray = TypeFuture[interfaces.size]
     interfaces.toArray(interfaceArray)
-    flags = Opcodes.ACC_PUBLIC
+    flags = JVMTypeUtils.calculateFlags(Opcodes.ACC_PUBLIC, node)
+
     if node.kind_of?(InterfaceDeclaration)
       flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
     end
-
+       
     # Ugh. So typically we might define a type for the main type,
     # then later we find the ClassDefinition that declares
     # the supertypes. We can't create a new type, or we'll lose
@@ -456,7 +457,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
       existing_type.flags = flags
       return existing_future
     end
-
+    
     mirror = MirahMirror.new(@context, type, flags,
                              superclass, interfaceArray)
     addClassIntrinsic(mirror)
@@ -799,7 +800,7 @@ class FakeMember < Member
     unless m.matches
       raise IllegalArgumentException, "Invalid method specification #{description}"
     end
-    abstract = !m.group(1).nil?
+    _abstract = !m.group(1).nil?
     klass = wrap(types, Type.getType(m.group(2)))
     method = Type.getType(m.group(3))
     returnType = wrap(types, method.getReturnType)
@@ -808,7 +809,7 @@ class FakeMember < Member
       args.add(wrap(types, arg))
     end
     flags = Opcodes.ACC_PUBLIC if flags == -1
-    flags |= Opcodes.ACC_ABSTRACT if abstract
+    flags |= Opcodes.ACC_ABSTRACT if _abstract
     FakeMember.new(description, flags, klass, returnType, args)
   end
 

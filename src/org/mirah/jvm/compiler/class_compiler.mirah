@@ -22,6 +22,7 @@ import java.util.logging.Logger
 import mirah.lang.ast.*
 import org.mirah.util.Context
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
@@ -114,18 +115,18 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   end
   
   def visitFieldDeclaration(node, expression)
-    flags = calculateFlagsFromAnnotations(Opcodes.ACC_PRIVATE, node.annotations)
+    flags = JVMTypeUtils.calculateFlags(Opcodes.ACC_PRIVATE, node)
     fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, nil)
     context[AnnotationCompiler].compile(node.annotations, fv)
     fv.visitEnd
   end
   
   def flags
-    calculateFlagsFromAnnotations(Opcodes.ACC_PUBLIC, @classdef.annotations) | Opcodes.ACC_SUPER
+    JVMTypeUtils.calculateFlags(Opcodes.ACC_PUBLIC, @classdef) | Opcodes.ACC_SUPER
   end
   
   def methodFlags(mdef:MethodDefinition, isStatic:boolean)
-    flags = calculateFlagsFromAnnotations(Opcodes.ACC_PUBLIC, mdef.annotations)
+    flags = JVMTypeUtils.calculateFlags(Opcodes.ACC_PUBLIC, mdef)
     if isStatic
       flags | Opcodes.ACC_STATIC
     else
