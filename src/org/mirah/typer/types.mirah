@@ -75,6 +75,7 @@ interface TypeSystem do
   # returnType is nil if there is no declared return type
   def getMethodDefType(target:TypeFuture,
                        name:String,
+                       flags: int,
                        argTypes:List,
                        returnType:TypeFuture,
                        position:Position):MethodFuture; end

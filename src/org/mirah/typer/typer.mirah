@@ -21,6 +21,8 @@ import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
 import org.mirah.macros.MacroBuilder
+import mirah.objectweb.asm.Opcodes
+import org.mirah.jvm.types.JVMTypeUtils
 
 # Type inference engine.
 # Makes a single pass over the AST nodes building a graph of the type
@@ -1035,14 +1037,19 @@ class Typer < SimpleNodeVisitor
     end
 
     selfType = selfTypeOf(mdef)
+
+    flags = JVMTypeUtils.calculateFlags(Opcodes.ACC_PUBLIC, mdef)
+
     type = @types.getMethodDefType(selfType,
                                    mdef.name.identifier,
+                                   flags,
                                    parameters,
                                    returnType,
                                    mdef.name.position)
     @futures[mdef] = type
     declareOptionalMethods(selfType,
                            mdef,
+                           flags,
                            parameters,
                            type.returnType)
 
@@ -1058,14 +1065,14 @@ class Typer < SimpleNodeVisitor
     type
   end
   
-  def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
+  def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, flags:int, argTypes:List, type:TypeFuture):void
     if mdef.arguments.optional_size > 0
       args = ArrayList.new(argTypes)
       first_optional_arg = mdef.arguments.required_size
       last_optional_arg = first_optional_arg + mdef.arguments.optional_size - 1
       last_optional_arg.downto(first_optional_arg) do |i|
         args.remove(i)
-        @types.getMethodDefType(target, mdef.name.identifier, args, type, mdef.name.position)
+        @types.getMethodDefType(target, mdef.name.identifier, flags, args, type, mdef.name.position)
       end
     end
   end

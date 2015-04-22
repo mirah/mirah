@@ -109,6 +109,13 @@ namespace :test do
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
+
+    Rake::TestTask.new :modifiers  => ["dist/mirahc.jar", :test_setup] do |t|
+	    t.libs << 'test' << 'test/jvm'
+	    t.ruby_opts.concat ["-r", "new_backend_test_helper"]
+	    t.test_files = FileList["test/jvm/**/modifiers_test.rb"]
+    end
+
   end
 end
 
