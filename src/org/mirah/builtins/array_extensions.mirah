@@ -43,6 +43,25 @@ class ArrayExtensions
     end
   end
 
+  macro def map(block:Block)
+    x = if block.arguments && block.arguments.required_size() > 0
+      block.arguments.required(0)
+    else
+      gensym
+    end
+
+    list = gensym
+    result = gensym
+    quote do
+      `list` = `@call.target`
+      `result` = java::util::ArrayList.new(`list`.length)
+      `list`.each do |`x`|
+        `result`.add(` [block.body] `)
+      end
+      `result`
+    end
+  end
+
   macro def self.cast(array)
     Cast.new(@call.position, TypeName(@call.target), array)
   end
