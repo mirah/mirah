@@ -63,4 +63,20 @@ class ListExtensions
       `result`
     end
   end
+  
+  # Returns first element of the list.
+  # Because Mirah has Ruby syntax but Java semantics, in case the list is empty, nil is not returned, but an instance of java.lang.IndexOutOfBoundsException is raised. 
+  macro def first()
+    quote do
+      `call.target`[0]
+    end
+  end
+  
+  # Returns last  element of the list.
+  # Because Mirah has Ruby syntax but Java semantics, in case the list is empty, nil is not returned, but an instance of java.lang.IndexOutOfBoundsException is raised. 
+  macro def last()
+    quote do
+      `call.target`[`call.target`.size()-1]
+    end
+  end
 end
