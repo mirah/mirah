@@ -105,7 +105,6 @@ class TypePrinter2 < NodeScanner
   def initialize(typer:Typer)
     initialize(typer, System.out)
   end
-
   def initialize(typer:Typer, writer:PrintWriter)
     @indent = 0
     @typer = typer
@@ -119,6 +118,15 @@ class TypePrinter2 < NodeScanner
     initialize(typer, PrintWriter.new(PrintStreamAdapter.new(writer)))
   end
 
+  def incIndent: void
+    @indent+=2
+  end
+  def decIndent: void
+    @indent -= 2
+    if @indent < 0
+      @indent = 0
+    end
+  end
   def printIndent:void
     @lineLength+=@indent
     @out.printf("%#{@indent}s", @args) if @indent > 0
@@ -126,17 +134,10 @@ class TypePrinter2 < NodeScanner
 
   def exitClassDefinition(node, arg)
     @out.print "\n"
-    @indent -= 2
+    decIndent
     printIndent
     @out.print "end\n"
   end
-
-  #def enterCall(node, arg)
-#scan lhs
-# print '.'
-#scan rhs
-# print types
-# end
 
   def enterClassDefinition(node, arg)
     printClass node
@@ -166,9 +167,11 @@ class TypePrinter2 < NodeScanner
     if type
       @out.print "# #{type.resolve}"
     end
-    @indent += 2
+    @out.println
+    incIndent
     node.body.accept(self, arg)
-    @indent -= 2
+    decIndent
+    @out.println
     printIndent
     @out.print "end\n"
     false
@@ -191,17 +194,46 @@ class TypePrinter2 < NodeScanner
     false
   end
 
+  def enterOptionalArgumentList(node, arg)
+    @out.print("<TODO optional args>")
+    false
+  end
+  def enterFixnum(node, arg)
+    @out.print(node.value)
+    false
+  end
+
+  def enterCall(node, arg)
+    node.target.accept(self, arg)
+    # todo gather types
+    @out.print(".")
+    @out.print(node.name.identifier)
+    if node.parameters && node.parameters_size > 0
+      @out.print("(\n")
+      printIndent
+      node.parameters.accept(self, arg)
+      @out.print("\n")
+      printIndent
+      @out.print(")")
+    end
+    if node.block
+      @out.print(" ")
+      node.block.accept(self, arg)
+    end
+    false
+  end
+
   def enterArguments(node, arg)
     #printIndent
     @out.print "(\n"
-    @indent += 2
+    incIndent
     true
   end
 
   def exitArguments(node, arg)
     printIndent
     @out.print ")"
-    @indent += 2
+    incIndent
     nil
   end
 
@@ -216,9 +248,54 @@ class TypePrinter2 < NodeScanner
     false
   end
 
-
   def enterFieldAssign(node, arg)
     @out.print "@#{node.name.identifier} ="
+
+    type = @typer.getInferredType(node)
+    if type
+      @out.print "# #{type.resolve}"
+    end
+    @out.println
+    node.value.accept self, arg
+    false
+  end
+  
+  def enterStringConcat(node, arg)
+    @out.print "\""
+    node.strings.accept self, arg
+    @out.print "\""
+    false
+  end
+def enterStringEval(node, arg)
+    @out.print '#{'
+    node.value.accept self, arg
+    @out.print '}'
+    false
+  end
+
+  def enterStringPieceList(node, arg)
+    true
+  end
+  def exitStringPieceList(node, arg)
+    nil
+  end
+  def enterSimpleString(node, arg)
+    @out.print node.identifier
+    false
+  end
+
+  def enterConstant(node, arg)
+    @out.print node.name.identifier
+    false
+  end
+
+  def enterLocalAccess(node, arg)
+    @out.print node.name.identifier
+    false
+  end
+
+  def enterLocalAssignment(node, arg)
+    @out.print "#{node.name.identifier} = "
 
     type = @typer.getInferredType(node)
     if type
@@ -237,7 +314,7 @@ class TypePrinter2 < NodeScanner
     @out.print "< #{node.superclass.typeref.name}" if node.superclass
     @out.print "\n"
 
-    @indent += 2
+    incIndent
     # unless node.interfaces.isEmpty
     if node.interfaces.size > 0
       node.interfaces.each do |iface: TypeName|
@@ -256,8 +333,12 @@ class TypePrinter2 < NodeScanner
       @out.print "# #{type.resolve}"
     end
     @out.println
-    @indent += 2
+    incIndent
     true
+  end
+  def exitDefault(node, arg)
+    decIndent
+    nil
   end
   def enterUnquote(node, arg)
     super(node, arg)
@@ -272,9 +353,19 @@ class TypePrinter2 < NodeScanner
     end
     node.object.nil?
   end
-  def exitDefault(node, arg)
-    @indent -= 2
+  def exitUnquote(node, arg)
+    # don't dedent
+  end
+  def enterNodeList(node, arg)
+    #usually are already a body of something, so no need to indent
+    #incIndent
+
+    true
+  end
+  def exitNodeList(node, arg)
+    #decIndent
     nil
   end
+  
 end
 
