@@ -116,6 +116,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   
   def visitFieldDeclaration(node, expression)
     flags = JVMTypeUtils.calculateFlags(Opcodes.ACC_PRIVATE, node)
+    flags |=Opcodes.ACC_STATIC if node.isStatic
     fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, nil)
     context[AnnotationCompiler].compile(node.annotations, fv)
     fv.visitEnd

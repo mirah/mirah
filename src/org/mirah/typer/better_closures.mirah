@@ -424,7 +424,7 @@ class BetterClosureBuilder
                            Collections.emptyList,
                            nil)
       binding_assigns = binding_list.map do |name: String|
-        FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil, nil)
+        FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil, [Modifier.new('PROTECTED')])
       end
       constructor = ConstructorDefinition.new(
         SimpleString.new('initialize'), args,
@@ -634,7 +634,7 @@ class BetterClosureBuilder
                          Collections.emptyList,
                          nil)
     body = unless void_type? return_value_type
-             [FieldAssign.new(SimpleString.new('return_value'), LocalAccess.new(SimpleString.new('return_value')), nil, nil)]
+             [FieldAssign.new(SimpleString.new('return_value'), LocalAccess.new(SimpleString.new('return_value')), nil, [Modifier.new('PROTECTED')])]
            else
              Collections.emptyList
            end
