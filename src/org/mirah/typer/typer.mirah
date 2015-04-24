@@ -21,8 +21,6 @@ import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
 import org.mirah.macros.MacroBuilder
-import mirah.objectweb.asm.Opcodes
-import org.mirah.jvm.types.JVMTypeUtils
 
 # Type inference engine.
 # Makes a single pass over the AST nodes building a graph of the type
@@ -400,11 +398,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitConstantAssign(field, expression)
-    newField = FieldAssign.new field.name, field.value, [
-      Annotation.new(field.name.position,
-        Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
-        [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))])
-    ], nil
+    newField = FieldAssign.new field.name, field.value, nil, [Modifier.new("PUBLIC")]
     newField.isStatic = true
     newField.position = field.position
 

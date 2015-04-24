@@ -29,10 +29,11 @@ import java.util.ArrayList
 # Helper for annotating fields in ClassCleanup: Finds and removes
 # annotations on FieldAssignments. ClassCleanup will generate
 # FieldDeclarations containing the annotations.
-class AnnotationCollector < NodeScanner
+class FieldCollector < NodeScanner
   def initialize(context:Context)
     @context = context
     @field_annotations = {}
+    @field_modifiers = {}
   end
 
   def error(message:String, position:Position)
@@ -44,7 +45,11 @@ class AnnotationCollector < NodeScanner
   end
 
   def getAnnotations(field:String):AnnotationList
-    AnnotationList(@field_annotations[field])
+    AnnotationList(@field_annotations[field]) || AnnotationList.new
+  end
+
+  def getModifiers(field:String):ModifierList
+    ModifierList(@field_modifiers[field]) || ModifierList.new
   end
   
   def enterFieldAssign(node, arg)
@@ -54,7 +59,15 @@ class AnnotationCollector < NodeScanner
         error("Multiple declarations for field #{name}", node.position)
       else
         @field_annotations[name] = node.annotations
-        node.annotations = AnnotationList.new()
+        node.annotations = AnnotationList.new
+      end
+    end
+    if node.modifiers && node.modifiers_size > 0
+      if @field_modifiers[name]
+        error("Multiple declarations for field #{name}", node.position)
+      else
+        @field_modifiers[name] = node.modifiers
+         node.modifiers = ModifierList.new
       end
     end
     false
