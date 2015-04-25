@@ -288,7 +288,6 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_call_with_block_assigned_to_macro
-    # cls, = with_finest_logging{compile(<<-CODE)}
     cls, = compile(<<-CODE)
         class S
           def initialize(run: Runnable)
@@ -348,7 +347,7 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_nested_closure_with_nested_closed_over_args
-    cls, = with_finest_logging{ compile(<<-'CODE')}
+    cls, = compile(<<-'CODE')
       interface Jogger do;def jog(pace:int):void;end;end
 
       class Nestable
@@ -644,7 +643,6 @@ class BlocksTest < Test::Unit::TestCase
 
 
   def test_closure_with_or
-    # cls, = with_finest_logging{compile(<<-EOF)}
     cls, = compile(<<-EOF)
     def r(run: Runnable) run.run; end
     r { puts "a" || "b"}
@@ -654,7 +652,6 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closure_with_or_ii
-    # cls, = with_finest_logging{compile(<<-EOF)}
     cls, = compile(<<-EOF)
     interface C; def c(): String;end;end
     def r(cee: C) puts cee.c; end
