@@ -178,6 +178,7 @@ Features
 - add env var hash constant ala Ruby's ENV.
 - Thread extensions:
   Thread.start {}, which does t=Thread.new{};t.start;t
+- macro for typecheck & cast. replace the x.kind_of? Y; Y(Object(x))
 
 Bugs
 ==========

@@ -666,7 +666,7 @@ class GenericsTest < Test::Unit::TestCase
     a = @types.getArrayType(s)
     assert_equal('java.util.Set<java.lang.String>[]', a.toString)
     supertypes = a.directSupertypes
-    assert_equal('[java.util.Set[], java.util.Collection<java.lang.String>[]]',
+    assert_equal('[java.lang.Object, java.util.Set[], java.util.Collection<java.lang.String>[]]',
                  supertypes.toString)
 
   end

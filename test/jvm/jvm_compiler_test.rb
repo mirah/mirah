@@ -1656,6 +1656,41 @@ class JVMCompilerTest < Test::Unit::TestCase
     EOF
   end
 
+
+  def test_inconvertible_classes_cause_cast_error
+    pend "waiting on better error picking" do
+      ex = assert_raise Mirah::MirahError  do
+        compile(<<-EOF)
+        class A;end
+        class B;end
+        def f(a:A): B
+          B(a)
+        end
+        EOF
+      end
+      assert_equal("Cannot cast A to B.", ex.message)
+    end
+  end
+
+  def test_inconvertible_default_classes_cause_cast_error
+    pend "waiting on better error picking" do
+      ex = assert_raise Mirah::MirahError  do
+        compile(<<-EOF)
+        import java.lang.Integer
+        java.lang.Integer("a string")
+        EOF
+      end
+      assert_equal("Cannot cast java.lang.Integer to java.lang.String.", ex.message)
+    end
+  end
+
+  def test_casting_up_should_work
+    cls, = compile(<<-EOF)
+    puts Object("a string")
+    EOF
+    assert_run_output("a string\n", cls)
+  end
+
   def test_missing_class_with_block_raises_inference_error
     # TODO(ribrdb): What is this test for?
     ex = assert_raise Mirah::MirahError  do

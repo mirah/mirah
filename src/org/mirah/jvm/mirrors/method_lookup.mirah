@@ -333,7 +333,7 @@ class MethodLookup
       type = if resolved.kind_of?(InlineCode)
         resolved
       else
-        ResolvedCall.new(target, method)
+        ResolvedCall.create(target, method)
       end
       MethodType.new(method.name, method.argumentTypes, type, method.isVararg)
     end

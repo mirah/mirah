@@ -46,7 +46,7 @@ class SimpleTypes; implements TypeSystem
     @types[main_type] = @main_type = SimpleType.new(main_type, false, false)
   end
   def lookup(name:String)
-    TypeFuture(@types[name])
+    SpecialType(@types[name])
   end
   def getNullType
     lookup :Null
@@ -95,7 +95,7 @@ class SimpleTypes; implements TypeSystem
     t
   end
   def getMetaType(type:TypeFuture):TypeFuture
-    TypeFuture(getMetaType(ResolvedType(type)))
+    SpecialType(getMetaType(ResolvedType(SpecialType(type))))
   end
   def getArrayType(componentType:ResolvedType):ResolvedType
     # What about multi-dimensional arrays?
@@ -107,7 +107,7 @@ class SimpleTypes; implements TypeSystem
     t
   end
   def getArrayType(componentType:TypeFuture):TypeFuture
-    TypeFuture(getArrayType(componentType.resolve))
+    SpecialType(getArrayType(componentType.resolve))
   end
   def createType(name:String)
     if name.equals(name.toLowerCase())

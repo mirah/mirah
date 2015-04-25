@@ -115,7 +115,12 @@ class ArrayType < BaseType implements ArrayModel
 
   def isSameType(other)
     result = if other.getKind == TypeKind.ARRAY
-      @componentType.isSameType(MirrorType(ArrayModel(other).getComponentType))
+      cast_type = if other.kind_of? MirrorProxy
+                    MirrorProxy(other)
+                  elsif other.kind_of? ArrayType
+                    ArrayType(other)
+                  end
+      @componentType.isSameType(MirrorType(cast_type.getComponentType))
     else
       false
     end

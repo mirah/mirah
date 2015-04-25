@@ -70,7 +70,7 @@ class LubFinder
         IntersectionType.new(@context, supertypes)
       end
       @cycles.remove(types)
-      cycle_guard.target = MirrorType(result)
+      cycle_guard.target = MirrorType(Object(result))
       result
     end
   end

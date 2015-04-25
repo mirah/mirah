@@ -110,12 +110,11 @@ class BetterClosureBuilder
       @blocks = Stack.new
       @parent_scope = parent_scope
       @bindingName = bindingName
-
     end
 
     def adjust(node: Node): void
-      @@log.fine "adjusting #{node}"
-      @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals}"
+      @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}"
+      @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals} parent scope: #{@parent_scope}"
 
       if @captured.isEmpty
         @@log.fine "no need for binding adjustment here. Nothing captured"
@@ -126,14 +125,12 @@ class BetterClosureBuilder
         return
       end
 
+      # construct binding
       name = @builder.temp_name_from_outer_scope(node, "ZBinding")
       
       @@log.fine("building binding #{name} with captures #{@captured}")
-
       binding_klass = @builder.build_class(
-        node.position,
-        nil,
-        name)
+        node.position, nil, name)
 
       entries = @captured.map do |cap: String|
         type = @parent_scope.getLocalType(cap, node.position).resolve
@@ -191,7 +188,11 @@ class BetterClosureBuilder
         arguments.required2.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required2
         arg_names.add arguments.block.name.identifier if arguments.block
       else
-        @@log.fine "block had null arguments"
+        if mdef || block_parent
+          @@log.fine "parent had no arguments: parent #{mdef} #{block_parent}"
+        else
+          @@log.fine "had no parent"
+        end
       end
       @@log.fine "adding assignments from args to captures"
       arg_names.each do |arg|
@@ -359,33 +360,39 @@ class BetterClosureBuilder
 
     closures_to_skip = []
 
-    blockToBindings = LinkedHashMap.new
+    blockToBindings = LinkedHashMap.new # the list of bindings a block closes over
     bindingLocalNamesToTypes = LinkedHashMap.new
+
+    bindingForBlocks = LinkedHashMap.new # the specific binding for a given block
     i = 0
-
     closures.each do |entry: Entry|
-
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
       block = Block(entry.getKey)
-
+      @@log.fine "#{typer.sourceContent block}"
       enclosing_node = find_enclosing_node(block)
-
-      if find_enclosing_node(block).nil?
+      if enclosing_node.nil?
         # this likely means a macro exists and made things confusing 
         # by copying the tree
         @@log.fine "enclosing node was nil, removing  #{entry.getKey} #{entry.getValue} #{i}"
         closures_to_skip.add entry
         next
       end
+      @@log.fine "enclosing node #{enclosing_node}"
+      @@log.fine "#{typer.sourceContent enclosing_node}"
 
       ProxyCleanup.new.scan enclosing_node
 
       enclosing_b = get_body(enclosing_node)      
-      
+      if enclosing_b.nil?
+        closures_to_skip.add entry
+        next
+      end
+      bindingName = "b#{i}"
+      bindingForBlocks.put block, bindingName
       adjuster = BindingAdjuster.new(
         self,
-       "b#{i}",
+        bindingName,
         MirrorScope(get_scope(block)),
         blockToBindings,
         bindingLocalNamesToTypes)
@@ -408,7 +415,6 @@ class BetterClosureBuilder
         @@log.fine "  enclosing node was nil, removing  #{entry.getKey} #{entry.getValue} #{i}"
         next
       end
-
 
       closure_name = temp_name_from_outer_scope(block, "Closure")
       closure_klass = build_class(block.position, parent_type, closure_name)
@@ -454,7 +460,8 @@ class BetterClosureBuilder
       has_block_parent = block.findAncestor { |node| node.parent.kind_of? Block }
 
       binding_locals = binding_list.map do |name: String|
-        if has_block_parent
+        # the current block's binding won't be a field
+        if has_block_parent && !name.equals(bindingForBlocks.get(block))
           FieldAccess.new(SimpleString.new(name))
         else
           LocalAccess.new(SimpleString.new(name))
@@ -578,17 +585,27 @@ class BetterClosureBuilder
   end
 
   def get_body node: Node
+    # TODO create an interface for nodes with bodies
     if node.kind_of?(MethodDefinition)
       MethodDefinition(node).body
     elsif node.kind_of?(Script)
       Script(node).body
+    elsif node.kind_of?(Block)
+      Block(node).body
     else
-      nil
+      raise "Unknown type for finding a body #{node.getClass}"
     end
   end
 
   def find_enclosing_node block: Node
-    block.findAncestor {|node| node.kind_of?(MethodDefinition) || node.kind_of?(Script)}
+    if block.parent
+      # findAncestor includes the start node, so we start with the parent
+      block.parent.findAncestor do |node|
+        node.kind_of?(MethodDefinition) ||
+        node.kind_of?(Script) ||
+        node.kind_of?(Block)
+      end
+    end
   end
 
   def has_non_local_return(block: Block): boolean

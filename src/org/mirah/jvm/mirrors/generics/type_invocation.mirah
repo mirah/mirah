@@ -105,7 +105,7 @@ class TypeInvocation < AsyncMirror implements DeclaredMirrorType
 
   def isSameType(other)
     return false if other.getKind != TypeKind.DECLARED
-    getTypeArguments.zip(DeclaredType(other).getTypeArguments) do
+    getTypeArguments.zip(DeclaredType(Object(other)).getTypeArguments) do
       |a:MirrorType, b:MirrorType|
       return false if b.nil?
       return false unless a.isSameType(b)
@@ -115,7 +115,7 @@ class TypeInvocation < AsyncMirror implements DeclaredMirrorType
 
   def isSupertypeOf(other)
     if getAsmType.equals(other.getAsmType) && other.getKind == TypeKind.DECLARED
-      other_args = DeclaredType(other).getTypeArguments
+      other_args = DeclaredType(Object(other)).getTypeArguments
       if other_args.nil? || other_args.isEmpty
         # Allow unchecked conversion
         return true

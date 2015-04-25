@@ -18,6 +18,7 @@ package org.mirah.jvm.mirrors
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.mirah.jvm.types.MemberKind
+import org.mirah.typer.ErrorType
 import javax.lang.model.type.NoType
 import javax.lang.model.type.TypeKind
 
@@ -41,4 +42,13 @@ class VoidType < BaseType implements NoType
   def hashCode
     TypeKind.VOID.hashCode
   end
+
+  def directSupertypes
+    []
+  end
+
+  def widen(other)
+    ErrorType.new([["Incompatible types #{self}, #{other}"]])
+  end
+
 end

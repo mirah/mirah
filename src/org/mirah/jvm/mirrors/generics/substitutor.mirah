@@ -107,7 +107,7 @@ class Substitutor < SimpleTypeVisitor6
     begin
       @type_parameters = LinkedList.new
       if t.kind_of?(MirrorType)
-        erasure = DeclaredMirrorType(MirrorType(t).erasure)
+        erasure = DeclaredMirrorType(MirrorType(Object(t)).erasure)
         @type_parameters.addAll(erasure.getTypeVariableMap.values)
       end
       @@log.fine("Type parameters for #{t} = #{@type_parameters}")
@@ -118,7 +118,7 @@ class Substitutor < SimpleTypeVisitor6
         future(t)
       else
         # If any type parameters were substituted, re-invoke the type
-        @types.parameterize(future(MirrorType(t).erasure), newArgs)
+        @types.parameterize(future(MirrorType(Object(t)).erasure), newArgs)
       end
     ensure
       @type_parameters = saved_parameters
@@ -135,7 +135,7 @@ class Substitutor < SimpleTypeVisitor6
     end
     if t.getExtendsBound && !upper.isSameType(MirrorType(t.getExtendsBound))
       lub = LubFinder.new(@context)
-      upper = MirrorType(lub.leastUpperBound([upper, t.getExtendsBound]))
+      upper = MirrorType(Object(lub.leastUpperBound([upper, t.getExtendsBound])))
     end
     @substitutions += 1
     future(CapturedWildcard.new(@context, upper, MirrorType(lower)))

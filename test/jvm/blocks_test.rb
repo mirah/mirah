@@ -347,6 +347,40 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("first closure\nsecond closure\n", cls)
   end
 
+  def test_nested_closure_with_nested_closed_over_args
+    cls, = with_finest_logging{ compile(<<-'CODE')}
+      interface Jogger do;def jog(pace:int):void;end;end
+
+      class Nestable
+        def foo(pace: int, a: Jogger)
+          a.jog(pace)
+        end
+      end
+      Nestable.new.foo 10 do |pace|
+        puts "first #{pace}"
+        Nestable.new.foo 20 do |inner_pace|
+          puts "second #{pace} #{inner_pace}"
+        end
+      end
+    CODE
+    assert_run_output("first 10\nsecond 10 20\n", cls)
+  end
+
+  def test_uncastable_block_arg_type_fails
+    error = assert_raises Mirah::MirahError do
+      compile(<<-EOF)
+        import java.io.OutputStream
+        def foo x:OutputStream
+          x.write byte(1)
+        rescue
+        end
+        foo do |b:String|
+          puts "writing"
+        end
+      EOF
+    end
+    assert_equal "Cannot cast java.lang.String to int.", error.message
+  end
 
   def test_method_requiring_subclass_of_abstract_class_finds_abstract_method
     cls, = compile(<<-EOF)

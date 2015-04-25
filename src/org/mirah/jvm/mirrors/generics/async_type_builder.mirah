@@ -25,10 +25,12 @@ import org.objectweb.asm.Type
 import org.objectweb.asm.signature.SignatureVisitor
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.mirrors.generics.Wildcard
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
+
 
 interface AsyncTypeBuilderResult
   def getResult:TypeFuture; end
@@ -68,7 +70,7 @@ class AsyncTypeBuilder < SignatureVisitor
 
   def visitTypeArgument
     @typeArguments.add(BaseTypeFuture.new.resolved(
-        MirrorType(@type_utils.getWildcardType(nil, nil))))
+        Wildcard(@type_utils.getWildcardType(nil, nil))))
   end
 
   def visitTypeArgument(kind)
@@ -81,9 +83,9 @@ class AsyncTypeBuilder < SignatureVisitor
           if kind == ?=
             type
           elsif kind == ?-
-            MirrorType(utils.getWildcardType(type, nil))
+            Wildcard(utils.getWildcardType(type, nil))
           else
-            MirrorType(utils.getWildcardType(nil, type))
+            Wildcard(utils.getWildcardType(nil, type))
           end
         end
       else
@@ -116,7 +118,7 @@ class AsyncTypeBuilder < SignatureVisitor
     # once the parser is fixed to support it
     all_question_marks=args.all? do |ar: TypeFuture|
       if ar
-        MirrorType(utils.getWildcardType(nil, nil)).equals(ar.resolve)
+        Wildcard(utils.getWildcardType(nil, nil)).equals(ar.resolve)
       else
         true
       end

@@ -22,6 +22,10 @@ import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
 import org.mirah.macros.MacroBuilder
 
+import org.mirah.jvm.types.JVMTypeUtils
+import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.mirrors.*
+
 # Type inference engine.
 # Makes a single pass over the AST nodes building a graph of the type
 # dependencies. Whenever a new type is learned or a type changes any dependent
@@ -326,10 +330,109 @@ class Typer < SimpleNodeVisitor
     end
   end
 
+
+  def isCastable(resolved_cast_type: ResolvedType, resolved_value_type: ResolvedType): boolean
+    if resolved_cast_type.kind_of?(JVMType)                   &&
+       resolved_value_type.kind_of?(JVMType)                  &&
+       JVMTypeUtils.isPrimitive(JVMType(resolved_cast_type))  &&
+       JVMTypeUtils.isPrimitive(JVMType(resolved_value_type))
+      true
+    elsif resolved_value_type.assignableFrom(resolved_cast_type)
+      true
+    elsif resolved_cast_type.assignableFrom(resolved_value_type)
+      true
+    else
+      false
+    end
+  end
+
+  def isNotReallyResolvedDoOnIncompatibility(resolved: ResolvedType, runnable: Runnable): boolean
+    import org.mirah.jvm.mirrors.AsyncMirror
+    if resolved.kind_of?(AsyncMirror) && AsyncMirror(resolved).superclass.nil?
+      AsyncMirror(resolved).onIncompatibleChange runnable
+      true
+    elsif resolved.kind_of?(MirrorProxy)                            &&
+          MirrorProxy(resolved).target.kind_of?(AsyncMirror)        &&
+          AsyncMirror(MirrorProxy(resolved).target).superclass.nil?
+      AsyncMirror(MirrorProxy(resolved).target).onIncompatibleChange runnable
+      true
+    else
+      false
+    end
+  end
+
+  def checkCastabilityAndUpdate(future: DelegateFuture,
+                                resolved_cast_type: ResolvedType,
+                                resolved_value_type: ResolvedType,
+                                cast_position: Position,
+                                cast_future: TypeFuture)
+    if isCastable(resolved_cast_type, resolved_value_type)
+      # fine, but may need to undo erroring
+      future.type = cast_future
+    else
+      future.type = ErrorType.new([["Cannot cast #{resolved_value_type} to #{resolved_cast_type}.", cast_position]])
+    end
+  end
+
+  def updateCastFuture(future: DelegateFuture,
+                       resolved_cast_type: ResolvedType,
+                       resolved_value_type: ResolvedType,
+                       cast_position: Position,
+                       cast_type: TypeFuture)
+    typer = self
+    if typer.isNotReallyResolvedDoOnIncompatibility(resolved_cast_type) do
+        typer.checkCastabilityAndUpdate(future,
+                                        resolved_cast_type,
+                                        resolved_value_type,
+                                        cast_position,
+                                        cast_type)
+      end
+    elsif typer.isNotReallyResolvedDoOnIncompatibility(resolved_value_type) do
+        typer.checkCastabilityAndUpdate(future,
+                                        resolved_cast_type,
+                                        resolved_value_type,
+                                        cast_position,
+                                        cast_type)
+      end
+    else
+      typer.checkCastabilityAndUpdate(future,
+                                      resolved_cast_type,
+                                      resolved_value_type,
+                                      cast_position,
+                                      cast_type)
+    end
+  end
+
   def visitCast(cast, expression)
-    # TODO check for compatibility
-    infer(cast.value)
-    getTypeOf(cast, cast.type.typeref)
+    value_type = infer(cast.value)
+    cast_type = getTypeOf(cast, cast.type.typeref)
+
+    future = DelegateFuture.new
+    future.type = cast_type
+    log = @@log
+    typer = self
+
+    value_type.onUpdate do |x, resolved_value_type|
+      if cast_type.isResolved
+        resolved_cast_type = cast_type.resolve
+        typer.updateCastFuture(future,
+                               resolved_cast_type,
+                               resolved_value_type,
+                               cast.position,
+                               cast_type)
+      end
+    end
+    cast_type.onUpdate do |x, resolved_cast_type|
+      if value_type.isResolved
+        resolved_value_type = value_type.resolve
+        typer.updateCastFuture(future,
+                               resolved_cast_type,
+                               resolved_value_type,
+                               cast.position,
+                               cast_type)
+      end
+    end
+    future
   end
 
   def visitColon2(colon2, expression)
@@ -755,13 +858,13 @@ class Typer < SimpleNodeVisitor
     simpleName = node.simpleName.identifier
     imported_type = if ".*".equals(simpleName)
       # TODO support static importing a single method
-      type = @types.getMetaType(@types.get(scope, TypeName(node.fullName).typeref))
+      type = @types.getMetaType(@types.get(scope, TypeName(Node(node.fullName)).typeref))
       scope.staticImport(type)
       type
     else
       scope.import(fullName, simpleName)
       unless '*'.equals(simpleName)
-        @types.get(scope, TypeName(node.fullName).typeref)
+        @types.get(scope, TypeName(Node(node.fullName)).typeref)
       end
     end
     void_type = @types.getVoidType()
@@ -814,7 +917,7 @@ class Typer < SimpleNodeVisitor
     replacement = Node(nil)
     object = node.unquote.object
     if object.kind_of?(FieldAccess)
-      fa = FieldAccess(node.name)
+      fa = FieldAccess(Object(node.name))
       replacement = FieldAssign.new(fa.position, fa.name, node.value, nil)
     else
       replacement = LocalAssignment.new(node.position, node.name, node.value)
