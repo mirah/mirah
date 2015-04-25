@@ -25,6 +25,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.objectweb.asm.signature.SignatureReader
 import org.objectweb.asm.signature.SignatureVisitor
+import org.mirah.jvm.types.MemberKind
 import org.mirah.jvm.mirrors.Member
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
@@ -75,11 +76,19 @@ class MethodSignatureReader < BaseSignatureReader
   end
 
   def readMember(member:Member)
-    if member.signature
+    # Hack!!  Currently fields also have signatures, but I'm not sure
+    # how the processing of generics is different so we will just 
+    # skip generic processing for field members.  FIX ME
+    if member.signature and isParsable(member) 
       read(member.signature)
     else
       @forced_params = ArrayList.new(member.argumentTypes)
       @forced_return = member.returnType
     end
+  end
+  
+  def isParsable(member:Member)
+    member.kind != MemberKind.STATIC_FIELD_ACCESS and
+      member.kind != MemberKind.FIELD_ACCESS
   end
 end
