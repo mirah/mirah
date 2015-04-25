@@ -50,7 +50,7 @@
   </modules>
 
   <properties>
-    <jruby.version>1.6.0</jruby.version>
+    <jruby.version>1.7.19</jruby.version>
   </properties>
 
   <build>
