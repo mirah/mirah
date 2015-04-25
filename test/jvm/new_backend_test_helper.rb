@@ -65,7 +65,13 @@ module JVMCompiler
 
   def build_command(name, code)
     cmd = RunCommand.new
-    cmd.addFakeFile(name, code)
+    if code.is_a?(Array)
+      code.each.with_index do |c,i|
+        cmd.addFakeFile("#{name}_#{i}", c)
+      end
+    else
+      cmd.addFakeFile(name, code)
+    end
     cmd.setDiagnostics(TestDiagnostics.new(false))
     cmd
   end

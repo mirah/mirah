@@ -399,4 +399,88 @@ class MacrosTest < Test::Unit::TestCase
     CODE
     assert_run_output("two\n", script)
   end
+  
+  def test_multi_package_compilation_implicit_class_reference
+    compile([%q[
+      package org.bar.p1
+      
+      # import org.bar.p2.Class2
+      import org.bar.p2.*
+      
+      class Class1
+        macro def foo1
+        end
+      
+        class << self
+          def something
+            1
+          end
+          def return_class2
+            Class2.something
+          end
+        end
+      end
+    ],%q[
+      package org.bar.p2
+      
+      # import org.bar.p1.Class1
+      import org.bar.p1.*
+      
+      class Class2
+        macro def foo2
+        end
+        
+        class << self
+          def something
+            1
+          end
+          def return_class1
+            Class1.something
+          end
+        end
+      end
+    ]])
+  end
+  
+  def test_multi_package_compilation_explicit_class_reference
+    compile([%q[
+      package org.bar.p1
+      
+      import org.bar.p2.Class2
+      # import org.bar.p2.*
+      
+      class Class1
+        macro def foo1
+        end
+      
+        class << self
+          def something
+            1
+          end
+          def return_class2
+            Class2.something
+          end
+        end
+      end
+    ],%q[
+      package org.bar.p2
+      
+      import org.bar.p1.Class1
+      # import org.bar.p1.*
+      
+      class Class2
+        macro def foo2
+        end
+        
+        class << self
+          def something
+            1
+          end
+          def return_class1
+            Class1.something
+          end
+        end
+      end
+    ]])
+  end
 end
