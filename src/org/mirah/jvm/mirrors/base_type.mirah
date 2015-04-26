@@ -36,6 +36,7 @@ import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
@@ -181,8 +182,10 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @methods_loaded ||= load_methods
     methods = ArrayList.new
     @members.values.each do |list: List|
-      list.each do |m|
-        methods.add(m)
+      list.each do |m: Member|
+        if m.kind != MemberKind.CLASS_LITERAL
+          methods.add(m)
+        end
       end
     end
     methods

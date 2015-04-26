@@ -393,9 +393,8 @@ class MethodLookup
     end
     unless target.nil? || target.isError || visited.contains(target)
       visited.add(target)
-      target.getAllDeclaredMethods.each do |m|
-        member = JVMMethod(m)
-        if member.isAbstract && member.kind != MemberKind.CLASS_LITERAL
+      target.getAllDeclaredMethods.each do |member: JVMMethod|
+        if member.isAbstract
           type = MethodType.new(member.name, member.argumentTypes, member.returnType, member.isVararg)
           abstract_methods[[member.name, member.argumentTypes]] = type
         else
