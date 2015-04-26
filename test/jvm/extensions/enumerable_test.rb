@@ -333,6 +333,30 @@ def test_map_identity
     assert_run_output("[2, 3, 4]\n", cls)
   end
 
+  def test_select_identity
+    cls, = compile(<<-EOF)
+      puts [1,2,3].select {|x| true}
+    EOF
+    assert_run_output("[1, 2, 3]\n", cls)
+  end
+
+  def test_select_odd
+    cls, = compile(<<-EOF)
+      puts [1,2,3].select {|x| (x.intValue&1)==1}
+    EOF
+    assert_run_output("[1, 3]\n", cls)
+  end
+
+  def test_select_multistatement_block
+    cls, = compile(<<-EOF)
+      puts ([1,2,3].select do |x|
+       v = x.intValue
+       v&1==1
+      end)
+    EOF
+    assert_run_output("[1, 3]\n", cls)
+  end
+
   def test_zip
     cls, = compile(<<-'EOF')
       def bar
