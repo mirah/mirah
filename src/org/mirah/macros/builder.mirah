@@ -240,8 +240,11 @@ class MacroBuilder; implements Compiler
     end
     imports = scope.imports
     imports.keySet.each do |key|
-      preamble.add(Import.new(SimpleString.new(String(imports.get(key))),
-                              SimpleString.new(String(key))))
+      future = @types.get scope, SimpleString.new(String(imports.get(key))).typeref
+      if future.isResolved
+        preamble.add(Import.new(SimpleString.new(String(imports.get(key))),
+                                SimpleString.new(String(key))))
+      end
     end
     script.body.insert(0, preamble)
     script

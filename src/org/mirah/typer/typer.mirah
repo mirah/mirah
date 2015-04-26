@@ -856,18 +856,20 @@ class Typer < SimpleNodeVisitor
     scope = scopeOf(node)
     fullName = node.fullName.identifier
     simpleName = node.simpleName.identifier
+    @@log.fine "import full: #{fullName} simple: #{simpleName}"
     imported_type = if ".*".equals(simpleName)
-      # TODO support static importing a single method
-      type = @types.getMetaType(@types.get(scope, TypeName(Node(node.fullName)).typeref))
-      scope.staticImport(type)
-      type
-    else
-      scope.import(fullName, simpleName)
-      unless '*'.equals(simpleName)
-        @types.get(scope, TypeName(Node(node.fullName)).typeref)
-      end
-    end
-    void_type = @types.getVoidType()
+                      # TODO support static importing a single method
+                      type = @types.getMetaType(@types.get(scope, TypeName(Node(node.fullName)).typeref))
+                      scope.staticImport(type)
+                      type
+                    else
+                      scope.import(fullName, simpleName)
+                      unless '*'.equals(simpleName)
+                        @@log.fine "wut wut. "
+                        @types.get(scope, TypeName(Node(node.fullName)).typeref)
+                      end
+                    end
+    void_type = @types.getVoidType
     if imported_type
       DerivedFuture.new(imported_type) do |resolved|
         if resolved.isError

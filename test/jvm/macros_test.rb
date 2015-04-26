@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'test_helper'
 
 class MacrosTest < Test::Unit::TestCase
   #TODO perhaps one of these should be an error
@@ -400,87 +401,49 @@ class MacrosTest < Test::Unit::TestCase
     assert_run_output("two\n", script)
   end
   
-  def test_multi_package_compilation_implicit_class_reference
-    compile([%q[
+  def test_import_star_with_macro_def
+    cls1, cls2 = compile([<<-EOF1, <<-EOF2])
       package org.bar.p1
-      
-      # import org.bar.p2.Class2
       import org.bar.p2.*
-      
-      class Class1
-        macro def foo1
-        end
-      
-        class << self
-          def something
-            1
-          end
-          def return_class2
-            Class2.something
-          end
-        end
-      end
-    ],%q[
+      macro def foo1; end
+      puts MultiPackageImplicitRef.class
+    EOF1
       package org.bar.p2
-      
-      # import org.bar.p1.Class1
-      import org.bar.p1.*
-      
-      class Class2
-        macro def foo2
-        end
-        
-        class << self
-          def something
-            1
-          end
-          def return_class1
-            Class1.something
-          end
-        end
-      end
-    ]])
+      class MultiPackageImplicitRef; end
+    EOF2
+
+    assert_run_output "class org.bar.p2.MultiPackageImplicitRef\n", cls1
   end
   
-  def test_multi_package_compilation_explicit_class_reference
-    compile([%q[
+  def test_explicit_import_of_as_yet_unresolved_type_in_file_with_macro
+    cls1, cls2 = compile([<<-EOF1, <<-EOF2])
       package org.bar.p1
+      import org.bar.p2.MultiPackageExplicitRef
       
-      import org.bar.p2.Class2
-      # import org.bar.p2.*
-      
-      class Class1
-        macro def foo1
-        end
-      
-        class << self
-          def something
-            1
-          end
-          def return_class2
-            Class2.something
-          end
-        end
-      end
-    ],%q[
+      macro def foo1; end
+      puts MultiPackageExplicitRef.class
+    EOF1
       package org.bar.p2
-      
-      import org.bar.p1.Class1
-      # import org.bar.p1.*
-      
-      class Class2
-        macro def foo2
-        end
+      class MultiPackageExplicitRef; end
+    EOF2
+
+    assert_run_output "class org.bar.p2.MultiPackageExplicitRef\n", cls1
+  end
+
+  def test_macro_using_imported_unresolved_type_fails_to_compile
+    e = assert_raises Mirah::MirahError do
+      compile([<<-EOF1, <<-EOF2])
+        package org.bar.p1
+        import org.bar.p2.UsedInMacro
         
-        class << self
-          def something
-            1
-          end
-          def return_class1
-            Class1.something
-          end
-        end
-      end
-    ]])
+        macro def foo1; puts UsedInMacro; quote {}; end
+        foo1
+      EOF1
+        package org.bar.p2
+        class MultiPackageExplicitRef2; end
+      EOF2
+    end
+    assert_equal "UsedInMacro;", e.position
+    assert_equal "Cannot find class org.bar.p1.UsedInMacro", e.message
   end
 end
