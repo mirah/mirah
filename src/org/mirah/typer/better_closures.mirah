@@ -858,7 +858,7 @@ enclosing_scope = get_scope(enclosing_body)
                  end
     constant = nil
     constant = Constant.new(position, SimpleString.new(position, name)) if name
-    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil)
+    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil, nil)
   end
 
   def makeTypeName(position: Position, type: ResolvedType)
@@ -927,7 +927,7 @@ enclosing_scope = get_scope(enclosing_body)
       args.required.add(arg)
     end
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
-    method = MethodDefinition.new(block.position, name, args, return_type, nil, nil, nil)
+    block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil, nil)
 
     block_method.body = NodeList(block.body.clone)
 
@@ -993,7 +993,7 @@ enclosing_scope = get_scope(enclosing_body)
         call.parameters.add param
       end
         
-      bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil)
+      bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil, nil)
       bridge_method.body = NodeList.new(args.position, [call])
       anno = Annotation.new(args.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
                          [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('BRIDGE')]))])

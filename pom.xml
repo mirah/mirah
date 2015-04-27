@@ -1,19 +1,32 @@
 <?xml version="1.0"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+
   <parent>
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
     <version>7</version>
   </parent>
+
+  <modelVersion>4.0.0</modelVersion>
   <groupId>org.mirah</groupId>
   <artifactId>shared</artifactId>
-  <version>0.1.4</version>
   <packaging>pom</packaging>
+  <version>0.1.4</version>
   <name>Mirah Shared</name>
-  <description>The Mirah Programming Language</description>
   <url>http://mirah.org</url>
+  <description>The Mirah Programming Language</description>
+
+  <issueManagement>
+    <system>Github issues</system>
+    <url>https://github.com/mirah/mirah/issues</url>
+  </issueManagement>
+
+  <scm>
+    <connection>scm:git:git://github.com/mirah/mirah.git</connection>
+    <developerConnection>scm:git:git@github.com:mirah/mirah.git</developerConnection>
+    <url>http://github.com/mirah/mirah</url>
+  </scm>
+
   <licenses>
     <license>
       <name>Apache License, Version 2</name>
@@ -21,145 +34,30 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
+
   <developers>
     <developer>
       <id>headius</id>
       <name>Charles Nutter</name>
       <email>headius@headius.com</email>
     </developer>
+    <!-- TODO: Add other developers -->
   </developers>
+
   <modules>
     <module>maven/mirah</module>
     <module>maven/mirah-complete</module>
   </modules>
-  <scm>
-    <connection>scm:git:git://github.com/mirah/mirah.git</connection>
-    <developerConnection>scm:git:git@github.com:mirah/mirah.git</developerConnection>
-    <url>http://github.com/mirah/mirah</url>
-  </scm>
-  <issueManagement>
-    <system>Github issues</system>
-    <url>https://github.com/mirah/mirah/issues</url>
-  </issueManagement>
+
   <properties>
     <jruby.version>1.6.0</jruby.version>
   </properties>
-  <dependencies>
-    <dependency>
-      <groupId>org.ow2.asm</groupId>
-      <artifactId>asm-all</artifactId>
-      <version>5.0.3</version>
-    </dependency>   
-  </dependencies>
+
   <build>
     <defaultGoal>install</defaultGoal>
+
     <pluginManagement>
       <plugins>
-        <plugin>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>2.3.2</version>
-          <configuration>
-            <source>1.7</source>
-            <target>1.7</target>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.mirah.maven</groupId>
-          <artifactId>maven-mirah-plugin</artifactId>
-          <version>1.2-SNAPSHOT</version>
-          <executions>
-            <execution>
-              <id>mirah-compile</id>
-              <phase>compile</phase>
-              <goals>
-                <goal>compile</goal>
-              </goals>
-            </execution>
-            <execution>
-              <id>mirah-test-compile</id>
-              <phase>test-compile</phase>
-              <goals>
-                <goal>testCompile</goal>
-              </goals>
-            </execution>
-          </executions>
-          <dependencies>
-            <dependency>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <version>2.3.2</version>
-            </dependency>
-            <dependency>
-              <groupId>org.mirah</groupId>
-              <artifactId>mirah-complete</artifactId>
-              <version>0.1.5-SNAPSHOT</version>
-            </dependency>
-          </dependencies>
-          <configuration>
-            <verbose>false</verbose>
-            <newClosures>true</newClosures>
-          </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>build-helper-maven-plugin</artifactId>
-          <version>1.9.1</version>
-          <executions>
-            <execution>
-              <id>mirah-ide-sources</id>
-              <phase>generate-sources</phase>
-              <goals>
-                <goal>add-source</goal>
-              </goals>
-              <configuration>
-                <sources>
-                  <source>src</source>
-                </sources>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.18.1</version>
-          <configuration>
-            <includes>
-              <include>%regex[.*Test.*]</include>
-            </includes>
-          </configuration>
-        </plugin>
-        <plugin>
-          <artifactId>maven-clean-plugin</artifactId>
-          <version>2.5</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-deploy-plugin</artifactId>
-          <version>2.8.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-install-plugin</artifactId>
-          <version>2.5.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-jar-plugin</artifactId>
-          <version>2.4</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-javadoc-plugin</artifactId>
-          <version>2.9.1</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-resources-plugin</artifactId>
-          <version>2.6</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-site-plugin</artifactId>
-          <version>3.3</version>
-        </plugin>
-        <plugin>
-          <artifactId>maven-source-plugin</artifactId>
-          <version>2.2.1</version>
-        </plugin>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>2.4</version>
@@ -175,22 +73,12 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.0</version>
           <configuration>
-            <excludes>
-              <exclude>**/*.*</exclude>
-            </excludes>
+            <excludes><exclude>**/*.*</exclude></excludes>
           </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins>
-      <plugin>
-        <groupId>org.mirah.maven</groupId>
-        <artifactId>maven-mirah-plugin</artifactId>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-      </plugin>      
-    </plugins>
+
   </build>
+
 </project>
