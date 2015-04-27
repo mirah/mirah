@@ -97,7 +97,7 @@ namespace :test do
     task :all do
       run_tests ["test:jvm:mirror_compilation", "test:jvm:mirrors"]
     end
-    
+
     desc "run tests for mirror type system"
     Rake::TestTask.new :mirrors  => "dist/mirahc.jar" do |t|
       t.libs << 'test'
@@ -109,6 +109,13 @@ namespace :test do
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
     end
+
+    Rake::TestTask.new :modifiers  => ["dist/mirahc.jar", :test_setup] do |t|
+	    t.libs << 'test' << 'test/jvm'
+	    t.ruby_opts.concat ["-r", "new_backend_test_helper"]
+	    t.test_files = FileList["test/jvm/**/modifiers_test.rb"]
+    end
+
   end
 end
 
@@ -150,6 +157,8 @@ task :clean_downloads do
   rm_f "javalib/mirahc-prev.jar"
   rm_f 'javalib/jruby-complete.jar'
   rm_f 'javalib/asm-5.jar'
+  rm_f 'javalib/mirah-asm-5.jar'
+  rm_f 'javalib/jarjar.jar'
 end
 
 task :compile => 'dist/mirahc.jar'
@@ -170,10 +179,10 @@ end
 
 namespace :jar do
   desc "build self-contained, complete ruby jar"
-  task :complete => [:jar, 'javalib/asm-5.jar'] do
+  task :complete => [:jar, 'javalib/mirah-asm-5.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
       zipfileset 'src' => 'dist/mirah.jar'
-      zipfileset 'src' => 'javalib/asm-5.jar'
+      zipfileset 'src' => 'javalib/mirah-asm-5.jar'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
@@ -204,7 +213,7 @@ end
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
 
-file_create 'javalib/asm-5.jar' do
+file_create 'javalib/mirah-asm-5.jar' => 'javalib/jarjar.jar' do
   require 'open-uri'
   puts "Downloading asm-5.jar"
   url = 'https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-all/5.0.3/asm-all-5.0.3.jar'
@@ -213,6 +222,13 @@ file_create 'javalib/asm-5.jar' do
       dest.write(src.read)
     end
   end
+  runjava('-Xmx512m',
+          '-jar',
+          'javalib/jarjar.jar',
+          'process',
+          'javalib/rename-asm.jarjar',
+          'javalib/asm-5.jar',
+          'javalib/mirah-asm-5.jar')
 end
 
 file_create 'javalib/mirahc-prev.jar' do
@@ -228,15 +244,28 @@ file_create 'javalib/mirahc-prev.jar' do
   end
 end
 
+file_create 'javalib/jarjar.jar' do
+	require 'open-uri'
+	puts "Downloading jarjar.jar"
+	url = 'https://search.maven.org/remotecontent?filepath=com/googlecode/jarjar/jarjar/1.3/jarjar-1.3.jar'
+	open(url, 'rb') do |src|
+		open('javalib/jarjar.jar', 'wb') do |dest|
+			dest.write(src.read)
+		end
+	end
+	open('javalib/rename-asm.jarjar', 'wb') do |dest|
+		dest.write("rule org.objectweb.** mirah.objectweb.@1")
+	end
+end
 
 def bootstrap_mirah_from(old_jar, new_jar)
-  
+
   #typer_srcs = Dir['src/org/mirah/typer/**/*.mirah'].sort
   #typer_classes = typer_srcs.map {|s| s.sub 'src', build_dir }
 if false
   name = new_jar.sub /[.\/]/, '_'
 
-  
+
   java_build_dir = "build/#{name}-java"
   java_jar = "#{java_build_dir}.jar"
   file java_jar => Dir["src/**/*.java"].sort do
@@ -263,6 +292,7 @@ if false
     build_mirah_stuff old_jar, bootstrap_build_dir, bootstrap_srcs
     ant.jar 'jarfile' => bootstrap_jar do
       fileset 'dir' => bootstrap_build_dir
+      metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 'includes' => 'services/*'
     end
   end
 
@@ -303,10 +333,10 @@ if false
   end
   jars = [java_jar, bootstrap_jar, typer_jar, compiler_jar, tool_jar, ant_jar]
   file new_jar => jars +
-                  [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+                  [old_jar, 'javalib/mirah-asm-5.jar', 'javalib/mirah-parser.jar'] do
     ant.jar 'jarfile' => new_jar do
       jars.each {|j| zipfileset 'src' => j }
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/mirah-asm-5.jar', 'includes' => 'mirah/objectweb/**/*'
       zipfileset 'src' => 'javalib/mirah-parser.jar'
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
       manifest do
@@ -324,7 +354,7 @@ else # original
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
 
-  file new_jar => mirah_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+  file new_jar => mirah_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/mirah-asm-5.jar', 'javalib/mirah-parser.jar'] do
     build_dir = 'build/bootstrap'+new_jar.gsub(/[.-\/]/, '_')
     rm_rf build_dir
     mkdir_p build_dir
@@ -344,7 +374,7 @@ else # original
       build_version = '1.7'
     end
 
-    default_class_path = ["javalib/mirah-parser.jar", build_dir, "javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
+    default_class_path = ["javalib/mirah-parser.jar", build_dir, "javalib/mirah-asm-5.jar"].join(File::PATH_SEPARATOR)
 
 
     # Compile Mirah sources
@@ -353,11 +383,11 @@ else # original
             '-d', build_dir,
             '-classpath', default_class_path,
             '--jvm', build_version,
-            
+
             #'--verbose',
 
             *mirah_srcs)
-  
+
       # compile ant stuff
       ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
       runjava '-Xmx512m',
@@ -367,12 +397,13 @@ else # original
             '--jvm', build_version,
             'src/org/mirah/ant'
 
-    # Build the jar                    
+    # Build the jar
     ant.jar 'jarfile' => new_jar do
       fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/mirah-asm-5.jar', 'includes' => 'mirah/objectweb/**/*'
       zipfileset 'src' => 'javalib/mirah-parser.jar'
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
+      metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 'includes' => 'services/*'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
@@ -393,7 +424,7 @@ def build_mirah_stuff old_jar, build_dir, mirah_srcs
       build_version = '1.7'
     end
 
-    default_class_path = ["javalib/mirah-parser.jar", build_dir,"javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
+    default_class_path = ["javalib/mirah-parser.jar", build_dir,"javalib/mirah-asm-5.jar"].join(File::PATH_SEPARATOR)
 
     # Compile Mirah sources
     runjava('-Xmx512m',
@@ -404,7 +435,7 @@ def build_mirah_stuff old_jar, build_dir, mirah_srcs
             *mirah_srcs)
 
 
-  
+
       # compile ant stuff
 #      ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
 #      runjava '-Xmx512m',
@@ -414,10 +445,10 @@ def build_mirah_stuff old_jar, build_dir, mirah_srcs
 #            '--jvm', build_version,
 #            'src/org/mirah/ant'
 
-    # Build the jar                    
+    # Build the jar
     ant.jar 'jarfile' => new_jar do
       fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/mirah-asm-5.jar', 'includes' => 'mirah/objectweb/**/*'
       zipfileset 'src' => 'javalib/mirah-parser.jar'
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
       manifest do

@@ -16,8 +16,8 @@
 package org.mirah.jvm.compiler
 
 import java.util.logging.Logger
-import org.objectweb.asm.Type
-import org.objectweb.asm.commons.Method
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.commons.Method
 
 import mirah.lang.ast.Hash
 import org.mirah.jvm.types.MemberKind

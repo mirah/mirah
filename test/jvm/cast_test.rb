@@ -159,4 +159,32 @@ class CastTest < Test::Unit::TestCase
 
     assert_equal(2, cls.foo([2, 3].to_java(:int)))
   end
+  
+  def test_implisit_unboxing_array_iteration  
+     cls, = compile(<<-EOF)
+      def foo():int
+		list = [1,2,3]
+		m = 0
+		list.each do |x:int|
+			m += x
+		end
+		return m
+      end
+    EOF
+	assert_equal(6, cls.foo())
+  end
+  
+  def test_explisit_unboxing_array_iteration  
+     cls, = compile(<<-EOF)
+      def foo():int
+		list = [1,2,3]
+		m = 0
+		list.each do |x|
+			m = int(x) + m
+		end
+		return m
+      end
+    EOF
+	assert_equal(6, cls.foo())
+  end
 end

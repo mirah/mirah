@@ -33,8 +33,9 @@ class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'mirah.lang.ast.Script'
   java_import 'mirah.lang.ast.StringCodeSource'
   java_import 'mirah.lang.ast.TypeRefImpl'
-  java_import 'org.objectweb.asm.Opcodes'
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Opcodes'
+  java_import 'mirah.objectweb.asm.Type'
+  java_import 'org.jruby.Ruby'
 
   def setup
     @types = MirrorTypeSystem.new
@@ -214,10 +215,10 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_method_def
-    type = @types.getMethodDefType(main_type, 'foobar', [], nil, nil)
+    type = @types.getMethodDefType(main_type, 'foobar', 1, [], nil, nil)
     assert_error(type.returnType)
     type = @types.getMethodDefType(
-        main_type, 'foobar', [], @types.getVoidType, nil)
+        main_type, 'foobar', 1, [], @types.getVoidType, nil)
     assert_descriptor('V', type.returnType)
   end
 
@@ -420,15 +421,15 @@ class MTS_MethodLookupTest < BaseMirrorsTest
 
 
   def test_simple_method_def
-    @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
+    @types.getMethodDefType(main_type, 'foobar', 1, [], @types.getVoidType, nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
     assert_resolved_to('LFooBar;', type.resolve.returnType)
   end
 
   def test_multiple_method_defs
-    @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
-    @types.getMethodDefType(main_type, 'foo', [], @types.getFixnumType(1), nil)
+    @types.getMethodDefType(main_type, 'foobar', 1, [], @types.getVoidType, nil)
+    @types.getMethodDefType(main_type, 'foo', 1, [], @types.getFixnumType(1), nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
     assert_not_error(type)
@@ -440,7 +441,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   end
 
   def test_method_def_nil
-    @types.getMethodDefType(main_type, 'foobar', [], @types.getNullType, nil)
+    @types.getMethodDefType(main_type, 'foobar', 1, [], @types.getNullType, nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
     assert_not_equal('null', type.resolve.returnType.name)
@@ -449,7 +450,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
 
   def test_async_return_type
     future = BaseTypeFuture.new
-    @types.getMethodDefType(main_type, 'foo', [], future, nil)
+    @types.getMethodDefType(main_type, 'foo',1,  [], future, nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foo', [], [], nil))
     assert_error(type)
@@ -463,7 +464,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     b = define_type('B', a)
     type = CallFuture.new(@types, @scope, b, true, 'foo', [], [], nil)
     assert_error(type)
-    @types.getMethodDefType(a, 'foo', [], a, nil)
+    @types.getMethodDefType(a, 'foo', 1, [], a, nil)
     assert_not_error(type)
     assert_descriptor('LA;', type)
   end
@@ -473,13 +474,13 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     b = define_type('B', main_type, [a])
     type = CallFuture.new(@types, @scope, b, true, 'foo', [], [], nil)
     assert_error(type)
-    @types.getMethodDefType(a, 'foo', [], a, nil)
+    @types.getMethodDefType(a, 'foo',1,  [], a, nil)
     assert_not_error(type)
     assert_descriptor('LA;', type)
   end
 
   def test_infer_return_type_from_body
-    future = @types.getMethodDefType(main_type, 'foo', [], nil, nil)
+    future = @types.getMethodDefType(main_type, 'foo', 1, [], nil, nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foo', [], [], nil))
     assert_error(type)
@@ -495,11 +496,11 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     short = @types.wrap(Type.getType("S"))
     decl = AssignableTypeFuture.new(nil)
     decl.declare(int, nil)
-    @types.getMethodDefType(type, 'foo', [decl], int, nil)
+    @types.getMethodDefType(type, 'foo', 1, [decl], int, nil)
     argument_future = BaseTypeFuture.new
     decl = AssignableTypeFuture.new(nil)
     decl.declare(argument_future, nil)
-    @types.getMethodDefType(type, 'foo', [decl], short, nil)
+    @types.getMethodDefType(type, 'foo', 1, [decl], short, nil)
 
     call_future = CallFuture.new(@types, @scope, type, true, 'foo', [short], [], nil)
     assert_not_error(call_future)
@@ -515,11 +516,11 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     short = @types.wrap(Type.getType("S"))
     decl = AssignableTypeFuture.new(nil)
     decl.declare(int, nil)
-    @types.getMethodDefType(main_type, 'foo', [decl], int, nil)
+    @types.getMethodDefType(main_type, 'foo', 1, [decl], int, nil)
     argument_future = BaseTypeFuture.new
     decl = AssignableTypeFuture.new(nil)
     decl.declare(argument_future, nil)
-    @types.getMethodDefType(main_type, 'foo', [decl], short, nil)
+    @types.getMethodDefType(main_type, 'foo', 1, [decl], short, nil)
 
     call_future = CallFuture.new(@types, @scope, main_type, true, 'foo', [short], [], nil)
     assert_not_error(call_future)
@@ -541,7 +542,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     decl = AssignableTypeFuture.new(nil)
     decl.declare(superclass, nil)
     
-    @types.getMethodDefType(main_type, 'foobar', [decl],
+    @types.getMethodDefType(main_type, 'foobar', 1, [decl],
                             @types.getFixnumType(0), nil)
     type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [subclass], [], nil)
     assert_error(type)
@@ -555,7 +556,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     decl = AssignableTypeFuture.new(nil)
     decl.declare(superclass, nil)
 
-    @types.getMethodDefType(main_type, 'foobar', [decl],
+    @types.getMethodDefType(main_type, 'foobar', 1, [decl],
                             @types.getFixnumType(0), nil)
     type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [sub_subclass], [], nil)
     assert_error(type)
@@ -568,7 +569,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     decl = AssignableTypeFuture.new(nil)
     decl.declare(superclass, nil)
 
-    @types.getMethodDefType(main_type, 'foobar', [decl],
+    @types.getMethodDefType(main_type, 'foobar', 1, [decl],
                             @types.getFixnumType(0), nil)
 
     type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [subclass], [], nil)
@@ -585,7 +586,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     superclass   = @types.defineType(@scope, ClassDefinition.new, "UltimateSuperClass", nil, [])
     decl = AssignableTypeFuture.new(nil)
     decl.declare(superclass, nil)
-    @types.getMethodDefType(main_type, 'foobar', [decl],
+    @types.getMethodDefType(main_type, 'foobar', 1, [decl],
                             @types.getFixnumType(0), nil)
     type = CallFuture.new(@types, @scope, main_type, true, 'foobar', [sub_subclass], [], nil)
 

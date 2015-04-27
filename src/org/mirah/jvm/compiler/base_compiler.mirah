@@ -40,9 +40,9 @@ import org.mirah.typer.Typer
 import org.mirah.typer.Scope
 import org.mirah.typer.Scoper
 import org.mirah.typer.UnreachableType
-import org.objectweb.asm.Type
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.commons.Method
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.commons.Method
 
 class ReportedException < RuntimeException
   def initialize(ex:Throwable)
@@ -59,31 +59,7 @@ class BaseCompiler < SimpleNodeVisitor
     @scoper = @typer.scoper
   end
   
-  def self.initialize:void
-    @@ACCESS = {
-      PUBLIC: Opcodes.ACC_PUBLIC,
-      PRIVATE: Opcodes.ACC_PRIVATE,
-      PROTECTED: Opcodes.ACC_PROTECTED,
-      DEFAULT: 0
-    }
-    @@FLAGS = {
-      STATIC: Opcodes.ACC_STATIC,
-      FINAL: Opcodes.ACC_FINAL,
-      SUPER: Opcodes.ACC_SUPER,
-      SYNCHRONIZED: Opcodes.ACC_SYNCHRONIZED,
-      VOLATILE: Opcodes.ACC_VOLATILE,
-      BRIDGE: Opcodes.ACC_BRIDGE,
-      VARARGS: Opcodes.ACC_VARARGS,
-      TRANSIENT: Opcodes.ACC_TRANSIENT,
-      NATIVE: Opcodes.ACC_NATIVE,
-      INTERFACE: Opcodes.ACC_INTERFACE,
-      ABSTRACT: Opcodes.ACC_ABSTRACT,
-      STRICT: Opcodes.ACC_STRICT,
-      SYNTHETIC: Opcodes.ACC_SYNTHETIC,
-      ANNOTATION: Opcodes.ACC_ANNOTATION,
-      ENUM: Opcodes.ACC_ENUM,
-      DEPRECATED: Opcodes.ACC_DEPRECATED
-    }
+  def self.initialize:void    
     @@log = Logger.getLogger(BaseCompiler.class.getName)
   end
   
@@ -222,28 +198,4 @@ class BaseCompiler < SimpleNodeVisitor
     # ignore. It was already compiled
   end
   
-  def calculateFlagsFromAnnotations(defaultAccess:int, annotations:AnnotationList):int
-    access = defaultAccess
-    flags = 0
-    annotations.each do |anno: Annotation|
-      next unless "org.mirah.jvm.types.Modifiers".equals(anno.type.typeref.name)
-      anno.values.each do |entry: HashEntry|
-        key = Identifier(entry.key).identifier
-        if "access".equals(key)
-          #access = @@ACCESS[Identifier(entry.value).identifier] # TODO better boxing
-          access = Integer(@@ACCESS[Identifier(entry.value).identifier]).intValue
-        elsif "flags".equals(key) # TODO better boxing
-          values = Array(entry.value)
-          values.values.each do |id: Identifier| # cast from Node
-            flag = id.identifier
-            # flags |= @@FLAGS[flag]
-            flags |= Integer(@@FLAGS[flag]).intValue
-          end
-        else
-          raise "unknown modifier entry: #{entry}"
-        end
-      end
-    end
-    flags | access
-  end
 end

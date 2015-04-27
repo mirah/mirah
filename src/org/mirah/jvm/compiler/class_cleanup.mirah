@@ -43,7 +43,7 @@ class ClassCleanup < NodeScanner
     @static_init_nodes = ArrayList.new
     @init_nodes = ArrayList.new
     @constructors = ArrayList.new
-    @field_annotations = AnnotationCollector.new(context)
+    @field_collector = FieldCollector.new(context)
     @methods = ArrayList.new
     @method_states = {}
   end
@@ -126,22 +126,11 @@ class ClassCleanup < NodeScanner
     type.getDeclaredFields.each do |f|
       @@log.finest "creating field declaration for #{f.name}"
       name = f.name
-      annotations = @field_annotations.getAnnotations(name) || AnnotationList.new
-      isStatic = type.hasStaticField(f.name)
-      flags = Array.new(Collections.emptyList)
-      if isStatic
-        flags.values.add(SimpleString.new("STATIC"))
-      end
-      modifiers = Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
-        HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE')),
-        HashEntry.new(SimpleString.new('flags'), flags)
-        ])
-      annotations.add(modifiers)
-      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), Collections.emptyList)
-      decl.isStatic = isStatic
-      decl.annotations = annotations
+      decl = FieldDeclaration.new(SimpleString.new(name), makeTypeRef(f.returnType), Collections.emptyList,  Collections.emptyList)
+      decl.isStatic = type.hasStaticField(f.name)
+      decl.annotations = @field_collector.getAnnotations(name)
+      decl.modifiers = @field_collector.getModifiers(name)
       @klass.body.add(decl)
-      @typer.infer(modifiers)
       @typer.infer(decl)
     end
   end
@@ -186,7 +175,7 @@ class ClassCleanup < NodeScanner
   end
   def enterStaticMethodDefinition(node, arg)
     if "initialize".equals(node.name.identifier)
-      @field_annotations.collect(node.body)
+      @field_collector.collect(node.body)
       setCinit(node)
     end
     @methods.add(node)
@@ -208,7 +197,7 @@ class ClassCleanup < NodeScanner
   end
   def enterConstructorDefinition(node, arg)
     @constructors.add(node)
-    @field_annotations.collect(node.body)
+    @field_collector.collect(node.body)
     MethodCleanup.new(@context, node).clean
     @methods.add(node)
     addMethodState(MethodState.new(
@@ -245,7 +234,7 @@ class ClassCleanup < NodeScanner
     false
   end
   def enterFieldAssign(node, arg)
-    @field_annotations.collect(node)
+    @field_collector.collect(node)
     if node.isStatic || isStatic(node)
       @static_init_nodes.add(node)
     else

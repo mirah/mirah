@@ -17,6 +17,7 @@ require 'test_helper'
 module JVMCompiler
   java_import 'org.mirah.tool.RunCommand'
   java_import 'org.mirah.util.SimpleDiagnostics'
+  
   System = java.lang.System
   JVM_VERSION = ENV['MIRAH_TEST_JVM_VERSION'] || '1.7'
 
@@ -106,7 +107,11 @@ module JVMCompiler
 
   def clean_tmp_files
     return unless @tmp_classes
-    File.unlink(*@tmp_classes)
+    begin
+      File.unlink(*@tmp_classes)
+    rescue 
+      JavaFile.unlink *@tmp_classes      
+    end
   end
 
   def dump_class_files class_map
@@ -136,6 +141,21 @@ module JVMCompiler
                   "expected error message to be '#{message}' but was '#{ex.message}'"
     end
     ex
+  end
+  
+  class JavaFile
+    java_import 'java.io.File'
+    java_import 'java.util.concurrent.ArrayBlockingQueue'
+    
+    def self.unlink *files            
+      files.each do |f| 
+        jf = File.new(f)
+        unless jf.delete 
+          jf.deleteOnExit
+          puts "\nwarn: locked #{jf}"
+        end
+      end            
+    end
   end
 end
 

@@ -26,8 +26,8 @@ import java.util.logging.Level
 
 import javax.lang.model.util.Types as JavaxTypes
 
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
 
 import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.ConstructorDefinition
@@ -38,7 +38,6 @@ import mirah.lang.ast.Script
 import mirah.lang.ast.SimpleString
 
 import org.mirah.MirahLogFormatter
-import org.mirah.builtins.Builtins
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
@@ -65,7 +64,15 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 
-class MirrorTypeSystem implements TypeSystem
+import org.mirah.macros.anno.ExtensionsRegistration
+import org.mirah.builtins.ExtensionsService
+import org.mirah.builtins.ExtensionsProvider
+import java.util.ServiceLoader
+
+import java.net.URL
+import java.net.URLClassLoader
+
+class MirrorTypeSystem implements TypeSystem, ExtensionsService
   def initialize(
       context:Context=nil,
       classloader:ResourceLoader=nil)
@@ -97,7 +104,7 @@ class MirrorTypeSystem implements TypeSystem
     @object = BaseType(@object_future.resolve)
     @anonymousClasses = {}
     @unpinned_field_futures = {}
-    Builtins.initialize_builtins(self)
+    register_extensions
     addObjectIntrinsics
     initBoxes
   end
@@ -235,10 +242,10 @@ class MirrorTypeSystem implements TypeSystem
     parameterize(loadNamedType("java.util.Map"), [keyVar, valueVar])
   end
 
-  def getMethodDefType(target, name, argTypes, declaredReturnType, position)
+  def getMethodDefType(target, name, flags, argTypes, declaredReturnType, position)
     name = name.replaceAll('=$', '_set')
     createMember(
-        MirrorType(target.resolve), name, argTypes, declaredReturnType,
+        MirrorType(target.resolve), name, flags, argTypes, declaredReturnType,
         position)
   end
 
@@ -432,11 +439,12 @@ class MirrorTypeSystem implements TypeSystem
     superclass ||= @object_future
     interfaceArray = TypeFuture[interfaces.size]
     interfaces.toArray(interfaceArray)
-    flags = Opcodes.ACC_PUBLIC
+    flags = JVMTypeUtils.calculateFlags(Opcodes.ACC_PUBLIC, node)
+
     if node.kind_of?(InterfaceDeclaration)
       flags |= Opcodes.ACC_INTERFACE | Opcodes.ACC_ABSTRACT
     end
-
+       
     # Ugh. So typically we might define a type for the main type,
     # then later we find the ClassDefinition that declares
     # the supertypes. We can't create a new type, or we'll lose
@@ -449,7 +457,7 @@ class MirrorTypeSystem implements TypeSystem
       existing_type.flags = flags
       return existing_future
     end
-
+    
     mirror = MirahMirror.new(@context, type, flags,
                              superclass, interfaceArray)
     addClassIntrinsic(mirror)
@@ -606,11 +614,10 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
-  def createMember(target:MirrorType, name:String, arguments:List,
+  def createMember(target:MirrorType, name:String, flags:int, arguments:List,
                    returnType:TypeFuture, position:Position):MethodFuture
     returnFuture = AssignableTypeFuture.new(position)
 
-    flags = Opcodes.ACC_PUBLIC
     kind = MemberKind.METHOD
     isMeta = target.isMeta
     if isMeta
@@ -744,6 +751,46 @@ class MirrorTypeSystem implements TypeSystem
     c = a.widen(b)
     puts c
   end
+
+  def register_extensions:void
+    boot_class_loader = MirrorTypeSystem.class.getClassLoader
+    register_extensions boot_class_loader
+    
+    compile_class_loader = ClassLoader(@context[ClassLoader])
+    
+    if compile_class_loader != boot_class_loader
+      register_extensions compile_class_loader
+    end
+  end
+  # use java service SPI to load all extensions registrations from context classloader
+  def register_extensions(class_loader:ClassLoader):void    
+    return unless class_loader
+    services = ServiceLoader.load(ExtensionsProvider.class, class_loader)
+    type_system = self
+    iter = Iterable(services).iterator
+    while iter.hasNext
+      provider = ExtensionsProvider(iter.next)
+      provider.register(type_system)
+    end
+  rescue Error => ex
+    puts "Unable to load regtistration service: #{ex}"
+  end
+
+  # ExtensionsService implementation
+  def macro_registration(clazz:Class):void
+    anno = clazz.getAnnotation(ExtensionsRegistration.class)
+    macro_clazz = @context[ClassLoader].loadClass("#{clazz.getName}$Extensions") rescue nil
+    # different ways for extensions annotations
+    macro_clazz = clazz unless macro_clazz
+    type_system = self
+    unless anno.nil?
+      anno.value.each do |class_name|
+        type_system.extendClass(class_name, macro_clazz)
+      end
+    end
+  rescue Error => ex
+    puts "Unable to register macro: #{ex}"   
+  end  
 end
 
 class FakeMember < Member
@@ -752,7 +799,7 @@ class FakeMember < Member
     unless m.matches
       raise IllegalArgumentException, "Invalid method specification #{description}"
     end
-    abstract = !m.group(1).nil?
+    _abstract = !m.group(1).nil?
     klass = wrap(types, Type.getType(m.group(2)))
     method = Type.getType(m.group(3))
     returnType = wrap(types, method.getReturnType)
@@ -761,7 +808,7 @@ class FakeMember < Member
       args.add(wrap(types, arg))
     end
     flags = Opcodes.ACC_PUBLIC if flags == -1
-    flags |= Opcodes.ACC_ABSTRACT if abstract
+    flags |= Opcodes.ACC_ABSTRACT if _abstract
     FakeMember.new(description, flags, klass, returnType, args)
   end
 

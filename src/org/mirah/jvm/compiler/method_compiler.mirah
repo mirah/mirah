@@ -23,10 +23,10 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.typer.ErrorType
 import org.mirah.typer.Scope
 import org.mirah.util.Context
-import org.objectweb.asm.*
-import org.objectweb.asm.Type as AsmType
-import org.objectweb.asm.commons.GeneratorAdapter
-import org.objectweb.asm.commons.Method as AsmMethod
+import mirah.objectweb.asm.*
+import mirah.objectweb.asm.Type as AsmType
+import mirah.objectweb.asm.commons.GeneratorAdapter
+import mirah.objectweb.asm.commons.Method as AsmMethod
 
 import org.mirah.jvm.types.JVMTypeUtils
 
@@ -421,11 +421,7 @@ class MethodCompiler < BaseCompiler
     compile(node.value)
     from = getInferredType(node.value)
     to = getInferredType(node)
-    if JVMTypeUtils.isPrimitive(from)
-      @builder.cast(from.getAsmType, to.getAsmType)
-    else
-      @builder.checkCast(to.getAsmType)
-    end
+    @builder.convertValue(from, to)
     @builder.pop(to) unless expression
   end
   

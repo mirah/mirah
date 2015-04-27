@@ -19,25 +19,21 @@ import org.mirah.typer.TypeSystem
 import java.util.Collections
 
 class Builtins
-  def self.initialize_builtins(type_system:TypeSystem)
-    type_system.extendClass('java.util.Collection', CollectionExtensions.class)
-    type_system.extendClass('java.util.Map', MapExtensions.class)
-    type_system.extendClass('java.util.List', ListExtensions.class)
-    type_system.extendClass('java.lang.Object', ObjectExtensions.class)
-    type_system.extendClass('java.lang.Iterable', EnumerableExtensions.class)
-    type_system.extendClass('java.lang.Iterable', IterableExtensions.class)
-    type_system.extendClass('java.lang.String', StringExtensions.class)
-    type_system.extendClass('java.lang.StringBuilder', StringBuilderExtensions.class)
+    implements ExtensionsProvider
+  def register(type_system:ExtensionsService):void
+    type_system.macro_registration(CollectionExtensions.class)
+    type_system.macro_registration(MapExtensions.class)
+    type_system.macro_registration(ListExtensions.class)
+    type_system.macro_registration(ObjectExtensions.class)
+    type_system.macro_registration(EnumerableExtensions.class)
+    type_system.macro_registration(IterableExtensions.class)
+    type_system.macro_registration(StringExtensions.class)
+    type_system.macro_registration(StringBuilderExtensions.class)
 
-    type_system.extendClass('java.util.concurrent.locks.Lock', LockExtensions.class)
+    type_system.macro_registration(LockExtensions.class)
 
-    type_system.extendClass('int', IntExtensions.class)
-    type_system.extendClass('byte', NumberExtensions.class)
-    type_system.extendClass('short', NumberExtensions.class)
-    type_system.extendClass('int', NumberExtensions.class)
-    type_system.extendClass('long', NumberExtensions.class)
-    type_system.extendClass('float', NumberExtensions.class)
-    type_system.extendClass('double', NumberExtensions.class)
+    type_system.macro_registration(IntExtensions.class)
+    type_system.macro_registration(NumberExtensions.class)
   end
 
   macro def newHash(hash:Hash)

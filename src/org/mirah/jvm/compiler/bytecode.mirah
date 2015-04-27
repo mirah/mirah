@@ -18,13 +18,13 @@ package org.mirah.jvm.compiler
 import java.util.LinkedHashMap
 import java.util.LinkedList
 
-import org.objectweb.asm.ClassVisitor
-import org.objectweb.asm.Label
-import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.commons.GeneratorAdapter
-import org.objectweb.asm.commons.Method
+import mirah.objectweb.asm.ClassVisitor
+import mirah.objectweb.asm.Label
+import mirah.objectweb.asm.MethodVisitor
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.commons.GeneratorAdapter
+import mirah.objectweb.asm.commons.Method
 
 import mirah.lang.ast.CodeSource
 import mirah.lang.ast.Position
@@ -175,18 +175,18 @@ class Bytecode < GeneratorAdapter
     end
   end
 
-  def convertValue(currentType:JVMType, wantedType:JVMType):void
+  def convertValue(currentType:JVMType, wantedType:JVMType):void    
     unless currentType.equals(wantedType)
-      if isPrimitive(currentType) && isPrimitive(wantedType)
+      if isPrimitive(currentType) && isPrimitive(wantedType)        
         cast(currentType.getAsmType, wantedType.getAsmType)
       elsif isPrimitive(currentType)
         # TODO make sure types match
         box(currentType.getAsmType)
       elsif isPrimitive(wantedType)
         # TODO make sure types match
-        unbox(currentType.getAsmType)
-      elsif !wantedType.assignableFrom(currentType)
-        checkCast(wantedType.getAsmType)
+        unbox(wantedType.getAsmType)
+      elsif !wantedType.assignableFrom(currentType)        
+        checkCast(wantedType.getAsmType)      
       end
     end
   end

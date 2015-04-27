@@ -15,7 +15,7 @@ package org.mirah.jvm.mirrors.generics
 import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.WildcardType
-import org.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Opcodes
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.util.Context

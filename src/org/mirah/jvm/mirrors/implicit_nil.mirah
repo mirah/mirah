@@ -15,8 +15,8 @@
 
 package org.mirah.jvm.mirrors
 
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
 
 class ImplicitNil < BaseType
   def initialize

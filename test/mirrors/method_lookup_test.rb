@@ -33,8 +33,8 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.typer.ErrorType'
   java_import 'org.mirah.typer.simple.SimpleScoper'
   java_import 'mirah.lang.ast.Script'
-  java_import 'org.objectweb.asm.Opcodes'
-  java_import 'org.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Opcodes'
+  java_import 'mirah.objectweb.asm.Type'
 
   class FakeMirror < BaseType
     def initialize(desc, superclass=nil, flags=Opcodes.ACC_PUBLIC)

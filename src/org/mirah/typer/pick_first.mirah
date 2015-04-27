@@ -38,10 +38,10 @@ class PickFirst < BaseTypeFuture
     initialize(items, TypeFuture(items.get(0)), listener)
   end
 
-  def initialize(items:List, default:TypeFuture, listener:PickerListener)
+  def initialize(items:List, _default:TypeFuture, listener:PickerListener)
     @picked = -1
     @listener = listener
-    @default = default
+    @default = _default
     @items = ArrayList.new(items.size / 2)
     items.size.times do |i|
       next if i % 2 != 0

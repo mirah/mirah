@@ -416,6 +416,7 @@ class BetterClosureBuilder
         next
       end
 
+
       closure_name = temp_name_from_outer_scope(block, "Closure")
       closure_klass = build_class(block.position, parent_type, closure_name)
 
@@ -432,11 +433,11 @@ class BetterClosureBuilder
                            Collections.emptyList,
                            nil)
       binding_assigns = binding_list.map do |name: String|
-        FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil)
+        FieldAssign.new(SimpleString.new(name), LocalAccess.new(SimpleString.new(name)), nil, [Modifier.new('PROTECTED')])
       end
       constructor = ConstructorDefinition.new(
         SimpleString.new('initialize'), args,
-        SimpleString.new('void'), binding_assigns, nil)
+        SimpleString.new('void'), binding_assigns, nil, nil)
       closure_klass.body.add(constructor)
 
       enclosing_b  = find_enclosing_body block
@@ -651,17 +652,17 @@ class BetterClosureBuilder
                          Collections.emptyList,
                          nil)
     body = unless void_type? return_value_type
-             [FieldAssign.new(SimpleString.new('return_value'), LocalAccess.new(SimpleString.new('return_value')), nil)]
+             [FieldAssign.new(SimpleString.new('return_value'), LocalAccess.new(SimpleString.new('return_value')), nil, [Modifier.new('PROTECTED')])]
            else
              Collections.emptyList
            end
-    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), body, nil)
+    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), body, nil, nil)
     nlr_klass.body.add(constructor)
 
     unless void_type? return_value_type
       name = SimpleString.new(block.position, 'return_value')
       args = Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
-      method = MethodDefinition.new(block.position, name, args, value_type_name, nil, nil)
+      method = MethodDefinition.new(block.position, name, args, value_type_name, nil, nil, nil)
       method.body = NodeList.new
       method.body.add Return.new(block.position, FieldAccess.new(SimpleString.new 'return_value'))
 
@@ -857,7 +858,7 @@ enclosing_scope = get_scope(enclosing_body)
                  end
     constant = nil
     constant = Constant.new(position, SimpleString.new(position, name)) if name
-    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil)
+    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil, nil)
   end
 
   def makeTypeName(position: Position, type: ResolvedType)
@@ -926,7 +927,7 @@ enclosing_scope = get_scope(enclosing_body)
       args.required.add(arg)
     end
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
-    block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
+    block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil, nil)
 
     block_method.body = NodeList(block.body.clone)
 
@@ -992,7 +993,7 @@ enclosing_scope = get_scope(enclosing_body)
         call.parameters.add param
       end
         
-      bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil)
+      bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil, nil)
       bridge_method.body = NodeList.new(args.position, [call])
       anno = Annotation.new(args.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
                          [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('BRIDGE')]))])
@@ -1019,8 +1020,8 @@ enclosing_scope = get_scope(enclosing_body)
                          nil,
                          Collections.emptyList,
                          nil)
-    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil)
-    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil)
+    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil, nil)
+    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil, nil)
     klass.body.add(constructor)
   end
 

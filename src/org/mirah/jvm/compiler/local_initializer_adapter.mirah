@@ -17,10 +17,10 @@ package org.mirah.jvm.compiler
 
 import java.util.List
 import java.util.ArrayList
-import org.objectweb.asm.MethodVisitor
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.tree.*
-import org.objectweb.asm.tree.analysis.*
+import mirah.objectweb.asm.MethodVisitor
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.tree.*
+import mirah.objectweb.asm.tree.analysis.*
 
 class FlexibleFrame < Frame
   def initialize

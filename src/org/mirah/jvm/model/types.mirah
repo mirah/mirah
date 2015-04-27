@@ -34,7 +34,7 @@ import javax.lang.model.type.TypeMirror
 import javax.lang.model.type.WildcardType
 import javax.lang.model.util.SimpleTypeVisitor6
 import javax.lang.model.util.Types as TypesModel
-import org.objectweb.asm.Type
+import mirah.objectweb.asm.Type
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.DeclaredMirrorType

@@ -86,8 +86,8 @@ class ExtensionCleanup < NodeScanner
       nil,
       Collections.emptyList, # body
       Collections.emptyList, # interfaces
-      [extensions_anno]
-       )
+      [extensions_anno],
+       nil)
     pkg_str = String(Map(map).get(:package))
     pkg_name = Unquote.new(pos, SimpleString.new(pkg_str))
     new_pkg = MirahPackage.new(pos, pkg_name, nil)

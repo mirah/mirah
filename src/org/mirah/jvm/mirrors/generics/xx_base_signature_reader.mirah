@@ -18,10 +18,10 @@ package org.mirah.jvm.mirrors.generics
 import java.util.Collections
 import java.util.Map
 import javax.lang.model.util.Types
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.signature.SignatureReader
-import org.objectweb.asm.signature.SignatureVisitor
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.signature.SignatureReader
+import mirah.objectweb.asm.signature.SignatureVisitor
 import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.model.IntersectionType

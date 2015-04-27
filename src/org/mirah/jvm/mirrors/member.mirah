@@ -19,7 +19,7 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.List
 import java.util.logging.Logger
-import org.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Opcodes
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.GenericMethod
 import org.mirah.jvm.types.MemberKind

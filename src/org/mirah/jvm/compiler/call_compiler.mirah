@@ -25,11 +25,11 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberVisitor
 import org.mirah.util.Context
 
-import org.objectweb.asm.ClassWriter
-import org.objectweb.asm.Opcodes
-import org.objectweb.asm.Type
-import org.objectweb.asm.commons.GeneratorAdapter
-import org.objectweb.asm.commons.Method
+import mirah.objectweb.asm.ClassWriter
+import mirah.objectweb.asm.Opcodes
+import mirah.objectweb.asm.Type
+import mirah.objectweb.asm.commons.GeneratorAdapter
+import mirah.objectweb.asm.commons.Method
 
 class CallCompiler < BaseCompiler implements MemberVisitor
   def self.initialize:void

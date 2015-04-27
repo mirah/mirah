@@ -16,8 +16,8 @@
 require 'test_helper'
 
 class BaseTypeTest < Test::Unit::TestCase
-  java_import 'org.objectweb.asm.Type'
-  java_import 'org.objectweb.asm.Opcodes'
+  java_import 'mirah.objectweb.asm.Type'
+  java_import 'mirah.objectweb.asm.Opcodes'
   java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.VoidType'
   java_import 'org.mirah.jvm.mirrors.Member'

@@ -184,7 +184,7 @@ class ClosureBuilder
                  end
     constant = nil
     constant = Constant.new(position, SimpleString.new(position, name)) if name
-    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil)
+    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil, nil)
   end
 
   def makeTypeName(position: Position, type: ResolvedType)
@@ -240,7 +240,7 @@ class ClosureBuilder
         args.required.add(arg)
       end
       return_type = makeTypeName(block.position, mtype.returnType)
-      method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
+      method = MethodDefinition.new(block.position, name, args, return_type, nil, nil, nil)
       method.body = NodeList(block.body.clone)
 
       set_parent_scope method, parent_scope
@@ -256,8 +256,8 @@ class ClosureBuilder
                          nil,
                          Collections.emptyList,
                          nil)
-    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil)
-    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil)
+    body = FieldAssign.new(SimpleString.new('binding'), LocalAccess.new(SimpleString.new('binding')), nil, nil)
+    constructor = ConstructorDefinition.new(SimpleString.new('initialize'), args, SimpleString.new('void'), [body], nil, nil)
     klass.body.add(constructor)
   end
 
