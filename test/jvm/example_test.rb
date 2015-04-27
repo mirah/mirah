@@ -30,7 +30,10 @@ class ExampleTest < Test::Unit::TestCase
     'simple_class' => "constructor\nHello, \nMirah\n",
     'macros/square' => "2.0\n8.0\n",
     'macros/square_int' => "2.0\n8.0\n",
-    'macros/string_each_char' => "l\na\na\nt\n \nd\ne\n \nl\ne\ne\ne\nu\nw\n \nn\ni\ne\nt\n \ni\nn\n \nz\ni\nj\nn\n \nh\ne\nm\np\ni\ne\n \ns\nt\na\na\nn\n"
+    'macros/string_each_char' => "l\na\na\nt\n \nd\ne\n \nl\ne\ne\ne\nu\nw\n \nn\ni\ne\nt\n \ni\nn\n \nz\ni\nj\nn\n \nh\ne\nm\np\ni\ne\n \ns\nt\na\na\nn\n",
+    'sort_closure' =>
+      "unsorted: [9, 5, 2, 6, 8, 5, 0, 3, 6, 1, 8, 3, 6, 4, 7, 5, 0, 8, 5, 6, 7, 2, 3]\n" +
+      "sorted:   [0, 0, 1, 2, 2, 3, 3, 3, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 8, 8, 8, 9]\n"
   }.each do |example,output|
     define_method "test_#{example}" do
       example_test example, output

@@ -19,10 +19,14 @@ import java.util.Arrays
 import java.util.ArrayList
 import java.util.EnumMap
 import javax.lang.model.element.TypeElement as ITypeElement
-import javax.lang.model.type.ArrayType
+#import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType
-import javax.lang.model.type.NoType
-import javax.lang.model.type.NullType
+#import javax.lang.model.type.NoType
+#import javax.lang.model.type.NullType
+import org.mirah.jvm.mirrors.NullType
+import org.mirah.jvm.mirrors.Number
+import org.mirah.jvm.mirrors.VoidType
+import org.mirah.jvm.mirrors.ArrayType
 import javax.lang.model.type.PrimitiveType
 import javax.lang.model.type.TypeVariable as TypeVariableModel
 import javax.lang.model.type.TypeKind
@@ -33,6 +37,7 @@ import javax.lang.model.util.Types as TypesModel
 import mirah.objectweb.asm.Type
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorType
+import org.mirah.jvm.mirrors.DeclaredMirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.generics.TypeInvocation
 import org.mirah.jvm.mirrors.generics.Wildcard
@@ -62,7 +67,7 @@ class Types implements TypesModel
   end
 
   def boxedClass(p)
-    TypeElement.new(MirrorType(MirrorType(p).box))
+    TypeElement.new(MirrorType(Number(p).box))
   end
 
   def getArrayType(component)
@@ -71,7 +76,7 @@ class Types implements TypesModel
 
   def getNoType(kind)
     if kind == TypeKind.VOID
-      return NoType(@types.getVoidType.resolve)
+      return VoidType(@types.getVoidType.resolve)
     end
   end
 
@@ -110,7 +115,7 @@ class Types implements TypesModel
     args.each do |arg|
       arg_futures.add(BaseTypeFuture.new.resolved(MirrorType(arg)))
     end
-    DeclaredType(@types.parameterize(type, arg_futures).resolve)
+    DeclaredMirrorType(@types.parameterize(type, arg_futures).resolve)
   end
 
   def getWildcardType(extendsBound, superBound)

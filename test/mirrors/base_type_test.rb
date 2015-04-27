@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'test/unit'
-require 'java'
-require 'dist/mirahc.jar'
+require 'test_helper'
 
 class BaseTypeTest < Test::Unit::TestCase
   java_import 'mirah.objectweb.asm.Type'
   java_import 'mirah.objectweb.asm.Opcodes'
   java_import 'org.mirah.jvm.mirrors.BaseType'
+  java_import 'org.mirah.jvm.mirrors.VoidType'
   java_import 'org.mirah.jvm.mirrors.Member'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
   java_import 'org.mirah.jvm.types.MemberKind'
@@ -29,7 +28,7 @@ class BaseTypeTest < Test::Unit::TestCase
   def setup
     @types = MirrorTypeSystem.new
     @type = BaseType.new(@types.context, Type.getType("LFooBar;"), 0, nil)
-    @void = BaseType.new(@types.context, Type.getType("V"), 0, nil)
+    @void = VoidType.new
   end
 
   def type(name)
@@ -89,9 +88,23 @@ class BaseTypeTest < Test::Unit::TestCase
     assert_equal(object, map.widen(int))
   end
 
-  def test_widen_error
+  def test_widen_void_to_map_is_error
     map = type('java.util.Map')
-    assert(@void.widen(map).isError)
-    assert(map.widen(@void).isError)
+    assert(@void.widen(map).isError, @void.widen(map).to_s)
+  end
+
+  def test_widen_to_void_is_error
+    map = type('java.util.Map')
+    assert(map.widen(@void).isError, map.widen(@void).to_s)
+  end
+
+  def test_void_assignable_from_map
+    map = type('java.util.Map')
+    refute(@void.assignableFrom(map))
+  end
+
+  def test_map_assignable_from_void
+    map = type('java.util.Map')
+    refute(map.assignableFrom(@void))
   end
 end

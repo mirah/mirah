@@ -88,7 +88,9 @@ class MethodLookup
     end
 
     def isSubType(subtype:ResolvedType, supertype:ResolvedType):boolean
-      return true if subtype == supertype
+      import static org.mirah.util.Comparisons.*
+      return true if areSame(subtype, supertype)
+      return true if subtype.equals(supertype)
       if subtype.kind_of?(JVMType) && supertype.kind_of?(JVMType)
         return isJvmSubType(JVMType(subtype), JVMType(supertype))
       end
@@ -331,7 +333,7 @@ class MethodLookup
       type = if resolved.kind_of?(InlineCode)
         resolved
       else
-        ResolvedCall.new(target, method)
+        ResolvedCall.create(target, method)
       end
       MethodType.new(method.name, method.argumentTypes, type, method.isVararg)
     end
@@ -391,8 +393,7 @@ class MethodLookup
     end
     unless target.nil? || target.isError || visited.contains(target)
       visited.add(target)
-      target.getAllDeclaredMethods.each do |m|
-        member = JVMMethod(m)
+      target.getAllDeclaredMethods.each do |member: JVMMethod|
         if member.isAbstract
           type = MethodType.new(member.name, member.argumentTypes, member.returnType, member.isVararg)
           abstract_methods[[member.name, member.argumentTypes]] = type

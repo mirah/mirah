@@ -192,7 +192,7 @@ class GenericMethodLookup
       return result
     end
     generic_target = DeclaredMirrorType(inference.findMatchingSupertype(
-        target, DeclaredType(method.declaringClass)))
+        target, DeclaredMirrorType(method.declaringClass)))
     if generic_target.nil?
       # This happens for static imports.
       return result

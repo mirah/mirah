@@ -374,7 +374,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
       if resolved.isError
         resolved
       else
-        MirrorProxy.new(MirrorType(types.getMetaType(resolved)))
+        MirrorProxy.create(MirrorType(types.getMetaType(resolved)))
       end
     end
   end
@@ -708,7 +708,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     i = 0
     args.each do |arg|
       if arg.kind_of?(TypeFuture)
-        future = TypeFuture(arg)
+        future = TypeFuture(Object(arg))
         if future.isResolved
           arg = future.resolve
         end

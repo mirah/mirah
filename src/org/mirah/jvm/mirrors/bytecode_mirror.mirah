@@ -166,11 +166,13 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
         field = FieldNode(it.next)
         type = lookup(Type.getType(field.desc))
         kind = if Opcodes.ACC_STATIC == (field.access & Opcodes.ACC_STATIC)
-          MemberKind.STATIC_FIELD_ACCESS
-        else
-          MemberKind.FIELD_ACCESS
-        end
-        mirrors[i] = Member.new(field.access, self, field.name, [], type, kind)
+                 MemberKind.STATIC_FIELD_ACCESS
+               else
+                 MemberKind.FIELD_ACCESS
+               end
+        member = Member.new(field.access, self, field.name, [], type, kind)
+        member.signature = field.signature
+        mirrors[i] = member
       end
       @fields = nil
       mirrors

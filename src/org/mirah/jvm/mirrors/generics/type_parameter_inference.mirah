@@ -60,7 +60,7 @@ class TypeParameterInference
                                typeParameters:Map):void
     if argument.kind_of?(MirrorType) &&
         JVMTypeUtils.isPrimitive(MirrorType(argument))
-      argument = TypeMirror(MirrorType(argument).box)
+      argument = MirrorType(MirrorType(argument).box)
     end
     tpi = self
     visitor = lambda(SimpleTypeVisitor6) do

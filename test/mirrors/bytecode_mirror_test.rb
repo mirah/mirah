@@ -13,9 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'test/unit'
-require 'java'
-require 'dist/mirahc.jar'
+require 'test_helper'
 
 class BytecodeMirrorTest < Test::Unit::TestCase
   java_import 'mirah.objectweb.asm.Type'
@@ -81,6 +79,13 @@ class BytecodeMirrorTest < Test::Unit::TestCase
     assert(!field.isVararg)
     assert(!field.isAbstract)
     assert_equal('FIELD_ACCESS', field.kind.name)
+  end
+
+  def test_declared_field_signature
+    mirror = load(Type.getType("Ljava/lang/String;"))
+    field = mirror.getDeclaredField 'CASE_INSENSITIVE_ORDER'
+
+    assert_equal('Ljava/util/Comparator<Ljava/lang/String;>;', field.signature)
   end
 
   def test_array

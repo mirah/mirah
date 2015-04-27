@@ -36,6 +36,7 @@ import org.mirah.jvm.model.IntersectionType
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
@@ -134,7 +135,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     else
       # This may spread intersection types to places java wouldn't allow them.
       # Do we care?
-      lub = MirrorType(LubFinder.new(@context).leastUpperBound([self, other]))
+      lub = MirrorType(Object(LubFinder.new(@context).leastUpperBound([self, other])))
       lub || ErrorType.new([["Incompatible types #{self} and #{other}."]])
     end
   end
@@ -181,8 +182,10 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @methods_loaded ||= load_methods
     methods = ArrayList.new
     @members.values.each do |list: List|
-      list.each do |m|
-        methods.add(m)
+      list.each do |m: Member|
+        if m.kind != MemberKind.CLASS_LITERAL
+          methods.add(m)
+        end
       end
     end
     methods
@@ -276,8 +279,9 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     import static org.mirah.util.Comparisons.*
     return true if areSame(self, other)
     return false if other.getKind != TypeKind.DECLARED
-    return false unless getTypeArguments.equals(
-        DeclaredType(other).getTypeArguments)
+    return false unless other.kind_of?(DeclaredType) &&
+                        getTypeArguments.equals(
+                          DeclaredType(Object(other)).getTypeArguments)
     getAsmType().equals(other.getAsmType)
   end
 
@@ -285,13 +289,24 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @cached_supertypes ||= begin
       supertypes = LinkedList.new
       skip_super = JVMTypeUtils.isInterface(self) && interfaces.length > 0
-      unless superclass.nil? || skip_super
-        supertypes.add(superclass)
+      if skip_super
+        # N/A
+      elsif superclass
+        supertypes.add superclass
+      elsif @context
+        object_type = MirrorType(
+               @context[MirrorTypeSystem].loadNamedType(
+                  "java.lang.Object").resolve)
+        unless self.isSameType object_type
+          supertypes.add(object_type)
+        end
       end
       interfaces.each do |i|
         resolved = i.resolve
         # Skip error supertypes
-        supertypes.add(resolved) if resolved.kind_of?(MirrorType)
+        if resolved.kind_of?(MirrorType)
+          supertypes.add(resolved)
+        end
       end
       supertypes
     end

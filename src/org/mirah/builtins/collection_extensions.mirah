@@ -42,4 +42,20 @@ class CollectionExtensions
       `result`
     end
   end
+
+  macro def select(block:Block)
+    x      = block.arguments.required(0)
+    list   = gensym
+    result = gensym
+    quote do
+      `list`   = `@call.target`
+      `result` = java::util::ArrayList.new(`list`.size)
+      `list`.each do |`x`|
+        if (` [block.body] `)
+          `result`.add(`x.name.identifier`)
+        end
+      end
+      `result`
+    end
+  end
 end

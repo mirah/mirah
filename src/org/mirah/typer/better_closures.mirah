@@ -32,6 +32,8 @@ import java.io.File
 
 import org.mirah.jvm.compiler.ProxyCleanup
 import org.mirah.jvm.mirrors.MirrorScope
+import org.mirah.jvm.mirrors.BaseType
+import org.mirah.jvm.mirrors.MirrorFuture
 import org.mirah.macros.MacroBuilder
 import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
@@ -108,12 +110,11 @@ class BetterClosureBuilder
       @blocks = Stack.new
       @parent_scope = parent_scope
       @bindingName = bindingName
-
     end
 
     def adjust(node: Node): void
-      @@log.fine "adjusting #{node}"
-      @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals}"
+      @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}"
+      @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals} parent scope: #{@parent_scope}"
 
       if @captured.isEmpty
         @@log.fine "no need for binding adjustment here. Nothing captured"
@@ -124,14 +125,12 @@ class BetterClosureBuilder
         return
       end
 
+      # construct binding
       name = @builder.temp_name_from_outer_scope(node, "ZBinding")
       
       @@log.fine("building binding #{name} with captures #{@captured}")
-
       binding_klass = @builder.build_class(
-        node.position,
-        nil,
-        name)
+        node.position, nil, name)
 
       entries = @captured.map do |cap: String|
         type = @parent_scope.getLocalType(cap, node.position).resolve
@@ -189,7 +188,11 @@ class BetterClosureBuilder
         arguments.required2.each {|a: FormalArgument| arg_names.add a.name.identifier } if arguments.required2
         arg_names.add arguments.block.name.identifier if arguments.block
       else
-        @@log.fine "block had null arguments"
+        if mdef || block_parent
+          @@log.fine "parent had no arguments: parent #{mdef} #{block_parent}"
+        else
+          @@log.fine "had no parent"
+        end
       end
       @@log.fine "adding assignments from args to captures"
       arg_names.each do |arg|
@@ -357,33 +360,39 @@ class BetterClosureBuilder
 
     closures_to_skip = []
 
-    blockToBindings = LinkedHashMap.new
+    blockToBindings = LinkedHashMap.new # the list of bindings a block closes over
     bindingLocalNamesToTypes = LinkedHashMap.new
+
+    bindingForBlocks = LinkedHashMap.new # the specific binding for a given block
     i = 0
-
     closures.each do |entry: Entry|
-
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
       block = Block(entry.getKey)
-
+      @@log.fine "#{typer.sourceContent block}"
       enclosing_node = find_enclosing_node(block)
-
-      if find_enclosing_node(block).nil?
+      if enclosing_node.nil?
         # this likely means a macro exists and made things confusing 
         # by copying the tree
         @@log.fine "enclosing node was nil, removing  #{entry.getKey} #{entry.getValue} #{i}"
         closures_to_skip.add entry
         next
       end
+      @@log.fine "enclosing node #{enclosing_node}"
+      @@log.fine "#{typer.sourceContent enclosing_node}"
 
       ProxyCleanup.new.scan enclosing_node
 
       enclosing_b = get_body(enclosing_node)      
-      
+      if enclosing_b.nil?
+        closures_to_skip.add entry
+        next
+      end
+      bindingName = "b#{i}"
+      bindingForBlocks.put block, bindingName
       adjuster = BindingAdjuster.new(
         self,
-       "b#{i}",
+        bindingName,
         MirrorScope(get_scope(block)),
         blockToBindings,
         bindingLocalNamesToTypes)
@@ -444,16 +453,16 @@ class BetterClosureBuilder
       if contains_methods(block)
         copy_methods(closure_klass, block, block_scope)
       else
-        build_method(closure_klass, block, parent_type, block_scope)
+        build_and_inject_methods(closure_klass, block, parent_type, block_scope)
       end
 
       closure_type = infer(closure_klass)
 
-
       has_block_parent = block.findAncestor { |node| node.parent.kind_of? Block }
 
       binding_locals = binding_list.map do |name: String|
-        if has_block_parent
+        # the current block's binding won't be a field
+        if has_block_parent && !name.equals(bindingForBlocks.get(block))
           FieldAccess.new(SimpleString.new(name))
         else
           LocalAccess.new(SimpleString.new(name))
@@ -553,11 +562,10 @@ class BetterClosureBuilder
   def prepare_regular_closure(block: Block, parent_type: ResolvedType): Node
     parent_scope = get_scope block
     klass = build_closure_class block, parent_type, parent_scope
-    
     if contains_methods(block)
       copy_methods(klass, block, parent_scope)
     else
-      build_method(klass, block, parent_type, parent_scope)
+      build_and_inject_methods(klass, block, parent_type, parent_scope)
     end
     new_closure_call_node(block, klass)
   end
@@ -578,17 +586,27 @@ class BetterClosureBuilder
   end
 
   def get_body node: Node
+    # TODO create an interface for nodes with bodies
     if node.kind_of?(MethodDefinition)
       MethodDefinition(node).body
     elsif node.kind_of?(Script)
       Script(node).body
+    elsif node.kind_of?(Block)
+      Block(node).body
     else
-      nil
+      raise "Unknown type for finding a body #{node.getClass}"
     end
   end
 
   def find_enclosing_node block: Node
-    block.findAncestor {|node| node.kind_of?(MethodDefinition) || node.kind_of?(Script)}
+    if block.parent
+      # findAncestor includes the start node, so we start with the parent
+      block.parent.findAncestor do |node|
+        node.kind_of?(MethodDefinition) ||
+        node.kind_of?(Script) ||
+        node.kind_of?(Block)
+      end
+    end
   end
 
   def has_non_local_return(block: Block): boolean
@@ -657,7 +675,7 @@ class BetterClosureBuilder
     parent_scope = get_scope block
     klass = build_closure_class block, parent_type, parent_scope
     
-    build_method(klass, block, parent_type, parent_scope)
+    build_and_inject_methods(klass, block, parent_type, parent_scope)
   
     new_closure_call_node(block, klass)
   end
@@ -831,7 +849,7 @@ enclosing_scope = get_scope(enclosing_body)
     interfaces = if (parent_type && parent_type.isInterface)
                    [makeTypeName(position, parent_type)]
                  else
-                   nil
+                   Collections.emptyList
                  end
     superclass = if (parent_type.nil? || parent_type.isInterface)
                    nil
@@ -840,7 +858,7 @@ enclosing_scope = get_scope(enclosing_body)
                  end
     constant = nil
     constant = Constant.new(position, SimpleString.new(position, name)) if name
-    ClosureDefinition.new(position, constant, superclass, nil, interfaces, nil, nil)
+    ClosureDefinition.new(position, constant, superclass, Collections.emptyList, interfaces, nil)
   end
 
   def makeTypeName(position: Position, type: ResolvedType)
@@ -891,15 +909,18 @@ enclosing_scope = get_scope(enclosing_body)
     MethodType(List(methods).get(0))
   end
 
-  # Builds MethodDefinitions in klass for the abstract methods in iface.
-  def build_method(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope):void
-    mtype = method_for(iface)
+  # builds the method definitios for inserting into the closure class
+  def build_methods_for(mtype: MethodType, block: Block, parent_scope: Scope): List #<MethodDefinition>
+    methods = []
     name = SimpleString.new(block.position, mtype.name)
+
+    # TODO handle all arg types allowed
     args = if block.arguments
              Arguments(block.arguments.clone)
            else
              Arguments.new(block.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil)
            end
+
     while args.required.size < mtype.parameterTypes.size
       arg = RequiredArgument.new(
         block.position, SimpleString.new("arg#{args.required.size}"), nil)
@@ -908,13 +929,88 @@ enclosing_scope = get_scope(enclosing_body)
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
     method = MethodDefinition.new(block.position, name, args, return_type, nil, nil, nil)
 
-    # at this point it's safe to modify them I think, because the typer's done
-    method.body = NodeList(block.body.clone)
-    # arg set does a clone if parent is set!!
-    #block.body.setParent nil
-    #method.body = NodeList(block.body)
+    block_method.body = NodeList(block.body.clone)
 
-    klass.body.add(method)
+    m_types= mtype.parameterTypes
+
+
+    # Add check casts in if the argument has a type
+    i=0
+    args.required.each do |a: RequiredArgument|
+      if a.type
+        m_type = BaseType(m_types[i])
+        a_type = @types.get(parent_scope, a.type.typeref).resolve
+        if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type) # could do this, then it'd only add the checkcast if it will fail...
+          block_method.body.insert(0, 
+            Cast.new(a.position, 
+              Constant.new(SimpleString.new(m_type.name)), LocalAccess.new(a.position, a.name))
+            )
+        end
+      end
+      i+=1
+    end
+
+    methods.add(block_method)
+
+    # create a bridge method if necessary
+    requires_bridge = false
+    # What I'd like it to look like:
+    # args.required.zip(m_types).each do |a, m|
+    #   next unless a.type
+    #   a_type = @types.get(parent_scope, a.type.typeref)
+    #   if a_type != m
+    #     requires_bridge = true
+    #     break
+    #   end
+    # end
+    i=0
+    args.required.each do |a: RequiredArgument|
+      if a.type
+        m_type = BaseType(m_types[i])
+        a_type = @types.get(parent_scope, a.type.typeref).resolve
+        if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type)
+          @@log.fine("#{name} requires bridge method because declared type: #{a_type} != iface type: #{m_type}")
+          requires_bridge = true
+          break
+        end
+      end
+      i+=1
+    end
+
+    if requires_bridge
+      # Copy args without type information so that the normal iface lookup will happen
+      # for the args with types args, add a cast to the arg for the call
+      bridge_args = Arguments.new(args.position, [], Collections.emptyList, nil, Collections.emptyList, nil)
+      call = FunctionalCall.new(name, [], nil)
+      args.required.each do |a: RequiredArgument|
+        bridge_args.required.add(RequiredArgument.new(a.position, a.name, nil))
+        local = LocalAccess.new(a.position, a.name)
+        param = if a.type
+                  Cast.new(a.position, a.type, local)
+                else
+                  local
+                end
+        call.parameters.add param
+      end
+        
+      bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil)
+      bridge_method.body = NodeList.new(args.position, [call])
+      anno = Annotation.new(args.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                         [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('BRIDGE')]))])
+      bridge_method.annotations.add(anno)
+      methods.add(bridge_method)
+    end
+    methods
+  end
+
+  # Builds MethodDefinitions in klass for the abstract methods in iface.
+  def build_and_inject_methods(klass: ClassDefinition, block: Block, iface: ResolvedType, parent_scope: Scope):void
+    mtype = method_for(iface)
+
+    methods = build_methods_for mtype, block, parent_scope
+    methods.each do |m: Node|
+      klass.body.add m
+    end
   end
 
   def build_constructor(klass: ClassDefinition, binding_type_name: Constant): void

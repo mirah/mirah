@@ -25,7 +25,22 @@ module JVMCompiler
     java_import 'java.util.Locale'
     def report(diagnostic)
       if diagnostic.kind.name == "ERROR"
-        raise Mirah::MirahError, diagnostic.getMessage(Locale.getDefault)
+        source =  if diagnostic.source
+
+                    line_no = [0, diagnostic.getLineNumber - diagnostic.source.initial_line].max
+                    line = diagnostic.source.contents.lines.to_a[line_no]
+                    start_col = if line_no == 0
+                                  diagnostic.column_number - diagnostic.source.initial_column
+                                else
+                                  diagnostic.column_number - 1
+                                end
+                    end_col = [start_col + (diagnostic.end_position - diagnostic.start_position),
+                               line.size - 1].min
+                    line[start_col..end_col]
+                  else
+                    "<unknown>"
+                  end
+        raise Mirah::MirahError.new(diagnostic.getMessage(Locale.getDefault), source)
       end
       super
     end
@@ -66,7 +81,13 @@ module JVMCompiler
 
   def build_command(name, code)
     cmd = RunCommand.new
-    cmd.addFakeFile(name, code)
+    if code.is_a?(Array)
+      code.each.with_index do |c,i|
+        cmd.addFakeFile("#{name}_#{i}", c)
+      end
+    else
+      cmd.addFakeFile(name, code)
+    end
     cmd.setDiagnostics(TestDiagnostics.new(false))
     cmd
   end
