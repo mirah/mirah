@@ -421,11 +421,7 @@ class MethodCompiler < BaseCompiler
     compile(node.value)
     from = getInferredType(node.value)
     to = getInferredType(node)
-    if JVMTypeUtils.isPrimitive(from)
-      @builder.cast(from.getAsmType, to.getAsmType)
-    else
-      @builder.checkCast(to.getAsmType)
-    end
+    @builder.convertValue(from, to)
     @builder.pop(to) unless expression
   end
   
