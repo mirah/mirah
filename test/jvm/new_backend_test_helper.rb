@@ -145,7 +145,6 @@ module JVMCompiler
   
   class JavaFile
     java_import 'java.io.File'
-    java_import 'java.util.concurrent.ArrayBlockingQueue'
     
     def self.unlink *files            
       files.each do |f| 

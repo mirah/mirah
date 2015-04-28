@@ -41,7 +41,7 @@ class MirahArgumentsTest < Test::Unit::TestCase
   end
 
   def test_arg_bootclasspath_sets_bootclasspath_with_absolute_paths
-    path = "class#{File::pathSeparator}path"
+    path = Mirah::Env.encode_paths %w[class path]
     arg_processor = MirahArguments.new
     
     arg_processor.apply_args ["--bootclasspath", path]
@@ -51,9 +51,9 @@ class MirahArgumentsTest < Test::Unit::TestCase
   end
 
   def test_flag_classpath_overrides_env
-    env = { "CLASSPATH" => "some#{File::pathSeparator}classpath" }
+    env = { "CLASSPATH" => Mirah::Env.encode_paths(%w[some classpath]) }
             
-    path = "class#{File::pathSeparator}path"
+    path = Mirah::Env.encode_paths %w[class path]
     
     arg_processor = MirahArguments.new env
     arg_processor.apply_args ["--classpath", path]
@@ -63,7 +63,7 @@ class MirahArgumentsTest < Test::Unit::TestCase
   end
 
   def test_classpath_is_from_env_without_flag
-    path = "class#{File::pathSeparator}path"
+    path = Mirah::Env.encode_paths %w[class path]
     env = { "CLASSPATH" => path }
     
     arg_processor = MirahArguments.new env
@@ -104,9 +104,9 @@ class MirahArgumentsTest < Test::Unit::TestCase
   end
 
   def assert_equal_classpaths expected, actual_classpath_list
-    normalized_expected = expected.split(File::pathSeparator).
-      map { |p| "#{File.new(::File.expand_path(p)).toURI.toURL}#{"./" if p == "." }" }.join(":")
-    assert_equal normalized_expected,
-                 actual_classpath_list.map{|u| u.to_s }.join(":")
+    normalized_expected = Mirah::Env.decode_paths(expected).
+      map { |p| "#{File.new(::File.expand_path(p)).toURI.toURL}#{"./" if p == "." }" }
+    assert_equal Mirah::Env.encode_paths(normalized_expected),
+                 Mirah::Env.encode_paths(actual_classpath_list.map{ |u| u.to_s })
   end
 end
