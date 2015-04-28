@@ -1531,6 +1531,19 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
+  def test_native
+    cls, = compile(<<-EOF)
+      class Foo
+        native def foo; end
+      end
+    EOF
+
+    assert_raise_java java.lang.UnsatisfiedLinkError do
+      a = cls.new
+      a.foo
+    end
+  end
+
   def test_abstract
     abstract_class, concrete_class = compile(<<-EOF)
       abstract class Abstract
