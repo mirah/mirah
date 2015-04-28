@@ -15,6 +15,8 @@
 
 package org.mirah.builtins
 
+import org.mirah.macros.anno.ExtensionsRegistration
+$ExtensionsRegistration[['java.util.List']]
 class ListExtensions
   macro def [](index)
     quote { `@call.target`.get `index` }
