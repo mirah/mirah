@@ -49,4 +49,10 @@ class JVMCommandsTest < Test::Unit::TestCase
                               )
     end
   end
+
+  def test_encoding
+    assert_output "test\n" do
+      Mirah.run('-encoding','utf-8',File.dirname(__FILE__)+"/../fixtures/utf8_test.mirah")
+    end
+  end
 end

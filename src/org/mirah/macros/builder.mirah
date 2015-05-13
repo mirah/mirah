@@ -41,7 +41,6 @@ import mirah.lang.ast.Package
 import mirah.lang.ast.RequiredArgument
 import mirah.lang.ast.Script
 import mirah.lang.ast.SimpleString
-import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
@@ -158,12 +157,6 @@ class MacroBuilder; implements org.mirah.macros.Compiler
     collector.scan(node)
     result[4] = collector.values
     Arrays.asList(result)
-  end
-
-  def deserializeScript(filename: String, code: InputStream, values: List): Script
-    script = Script(@parser.parse(StreamCodeSource.new(filename, code)))
-    ValueSetter.new(values).scan(script)
-    script
   end
 
   def deserializeAst(filename: String, startLine: int, startCol: int, code: String, values: List): Node

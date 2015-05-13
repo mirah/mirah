@@ -30,7 +30,6 @@ import mirah.impl.MirahParser
 import mirah.lang.ast.CodeSource
 import mirah.lang.ast.Node
 import mirah.lang.ast.Script
-import mirah.lang.ast.StreamCodeSource
 import mirah.lang.ast.StringCodeSource
 import org.mirah.IsolatedResourceLoader
 import org.mirah.MirahClassLoader

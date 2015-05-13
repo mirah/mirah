@@ -20,7 +20,6 @@ import org.mirah.typer.*
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Node
 import mirah.lang.ast.Position
-import mirah.lang.ast.StreamCodeSource
 import mirah.impl.MirahParser
 import java.io.BufferedReader
 import java.io.InputStreamReader
