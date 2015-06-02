@@ -1281,39 +1281,47 @@ public class MirahLexer {
   
 
   public Token<Tokens> lex(int pos) {
-    return lex(pos, true);
+    return lex(pos, true, true);
   }
 
-  public Token<Tokens> lex(int pos, boolean skipWhitespaceAndComments) {
-    if (pos < input.pos()) {
-      ListIterator<Token<Tokens>> it = tokens.listIterator(tokens.size());
-      while (it.hasPrevious()) {
-        Token<Tokens> savedToken = it.previous();
-        if (pos >= savedToken.pos && pos <= savedToken.startpos) {
-          logger.fine("Warning, uncached token " + savedToken.type + " at " + pos);
-          parser._pos = savedToken.endpos;
-          return savedToken;
-        }
+  public Token<Tokens> lex(int pos, boolean skipWhitespaceAndAllComments) {
+      return lex(pos, skipWhitespaceAndAllComments, skipWhitespaceAndAllComments);
+  }
+
+  public Token<Tokens> lex(int pos, boolean skipWhitespaceAndComments, boolean skipJavaDocs) {
+      if (pos < input.pos()) {
+          ListIterator<Token<Tokens>> it = tokens.listIterator(tokens.size());
+          while (it.hasPrevious()) {
+              Token<Tokens> savedToken = it.previous();
+              if (pos >= savedToken.pos && pos <= savedToken.startpos) {
+                  logger.fine("Warning, uncached token " + savedToken.type + " at " + pos);
+                  parser._pos = savedToken.endpos;
+                  return savedToken;
+              }
+          }
+          throw new IllegalArgumentException("" + pos + " < " + input.pos());
+      } else if (!input.hasNext()) {
+          return parser.build_token(state.hereDocs.isEmpty() ? Tokens.tEOF : Tokens.tHereDocBegin, pos, pos);
       }
-      throw new IllegalArgumentException("" + pos + " < " + input.pos());
-    } else if (!input.hasNext()) {
-      return parser.build_token(state.hereDocs.isEmpty() ? Tokens.tEOF : Tokens.tHereDocBegin, pos, pos);
-    }
-    Tokens type = Tokens.tWhitespace;
-    int start = input.pos();
-    if (skipWhitespaceAndComments) {
-        while (type.ordinal() > Tokens.tEOF.ordinal()) {
+      Tokens type;
+      int start;
+
+      while (true) {
           start = input.pos();
           type = simpleLex();
-        }
-    } else {
-        start = input.pos();
-        type = simpleLex();
-    }
-    parser._pos = input.pos();
-    Token<Tokens> token = parser.build_token(type, pos, start);
-    tokens.add(token);
-    return token;
+          if (skipWhitespaceAndComments && (type == Tokens.tWhitespace || type == Tokens.tComment)) {
+              continue;
+          } else if (skipJavaDocs && type == Tokens.tJavaDoc) {
+              continue;
+          } else {
+              break;
+          }
+      }
+
+      parser._pos = input.pos();
+      Token<Tokens> token = parser.build_token(type, pos, start);
+      tokens.add(token);
+      return token;
   }
   
   void noteNewline() {

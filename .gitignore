@@ -1,4 +1,7 @@
+.idea
 build
 dist
 javalib/mirah-complete_parsersupport.jar
 javalib/mirahc.jar
+*.iml
+out
