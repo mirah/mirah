@@ -639,5 +639,22 @@ class MacrosTest < Test::Unit::TestCase
     })
     assert_run_output("[]\n", script)
   end
+
+  def test_optional_args_macro
+    cls, = compile(<<-CODE)
+        macro def test(block:Block = nil)
+          if block
+            block.body
+          else
+            quote { puts "nil" }
+          end
+        end
+
+        test
+        test { puts "block"}
+    CODE
+
+    assert_run_output("nil\nblock\n", cls)
+  end
 end
 
