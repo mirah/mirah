@@ -97,4 +97,32 @@ class ArrayExtensionsTest < Test::Unit::TestCase
       cls.main nil
     end
   end
+  
+  def test_array_join
+    cls, = compile(<<-EOF)
+      x = int[3]
+      x[0] = 5
+      x[1] = 1
+      x[2] = 3
+      puts x.join(':')
+    EOF
+    assert_run_output("5:1:3\n", cls)
+  end
+  
+  def test_array_join_empty
+    cls, = compile(<<-EOF)
+      x = int[0]
+      puts x.join(':')
+    EOF
+    assert_run_output("\n", cls)
+  end
+  
+  def test_array_join_single
+    cls, = compile(<<-EOF)
+      x = int[1]
+      x[0] = 4
+      puts x.join(':')
+    EOF
+    assert_run_output("4\n", cls)
+  end
 end
