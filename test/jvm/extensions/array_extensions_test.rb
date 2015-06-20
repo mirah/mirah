@@ -27,6 +27,19 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     assert_run_output("[2]\n", cls)
   end
   
+  def test_each_with_index
+    cls, = compile(%q{
+      x = int[3]
+      x[0] = 9
+      x[1] = 7
+      x[2] = 5
+      x.each_with_index do |value,index|
+        puts "#{value} #{index}"
+      end
+    })
+    assert_run_output("9 0\n7 1\n5 2\n", cls)
+  end
+  
   def test_sort_with_comparator_block # comparators are only support for non-primitive types
     cls, = compile(%q{
       x = Integer[3]

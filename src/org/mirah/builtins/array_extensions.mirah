@@ -43,6 +43,28 @@ class ArrayExtensions
     end
   end
 
+  macro def each_with_index(block:Block)
+    arg = block.arguments.required(0)
+    x = arg.name.identifier
+    type = arg.type if arg.type
+    i = block.arguments.required(1).name.identifier
+    array = gensym
+
+    getter = quote { `array`[`i`] }
+    if type
+      getter = Cast.new(type.position, type, getter)
+    end
+
+    quote do
+      while `i` < `array`.length
+        init {`array` = `@call.target`; `i` = 0}
+        pre {`x` = `getter`}
+        post {`i` = `i` + 1}
+        `block.body`
+      end
+    end
+  end
+
   macro def map(block:Block)
     x = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0)
