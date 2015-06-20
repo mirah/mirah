@@ -59,6 +59,6 @@ class StringCompiler < BaseCompiler
   end
   
   def visitStringEval(node, expression)
-    node.value.accept(self, expression)
+    defaultNode(node.value,expression)
   end
 end
