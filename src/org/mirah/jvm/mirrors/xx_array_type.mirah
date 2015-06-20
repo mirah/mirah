@@ -25,6 +25,7 @@ import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
 import org.mirah.builtins.ArrayExtensions
 import org.mirah.builtins.EnumerableExtensions
+import org.mirah.builtins.CollectionExtensions
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
@@ -59,6 +60,7 @@ class ArrayType < BaseType implements ArrayModel
     @componentType = component
     BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class)
     BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class)
+    BytecodeMirrorLoader.extendClass(self, CollectionExtensions.class)
   end
 
   def interfaces:TypeFuture[]
