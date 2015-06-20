@@ -84,6 +84,12 @@ class ArrayExtensions
     end
   end
   
+  macro def as_list
+    quote do
+      java::util::Arrays.asList(`@call.target`)
+    end
+  end
+  
   macro def sort!(comparator:Block)
     target = gensym
     quote do
