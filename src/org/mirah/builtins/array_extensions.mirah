@@ -71,6 +71,12 @@ class ArrayExtensions
     end
   end
 
+  macro def size
+    quote do
+      `@call.target`.length
+    end
+  end
+
   # map to an array of the return type of the block
   macro def mapa(block:Block)
     type_future        = @mirah.typer.infer(block.body)
