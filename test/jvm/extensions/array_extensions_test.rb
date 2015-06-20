@@ -125,4 +125,32 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     EOF
     assert_run_output("4\n", cls)
   end
+  
+  def test_array_join_direct
+    cls, = compile(<<-EOF)
+      x = int[3]
+      x[0] = 5
+      x[1] = 1
+      x[2] = 3
+      puts x.join
+    EOF
+    assert_run_output("513\n", cls)
+  end
+  
+  def test_array_join_direct_empty
+    cls, = compile(<<-EOF)
+      x = int[0]
+      puts x.join
+    EOF
+    assert_run_output("\n", cls)
+  end
+  
+  def test_array_join_direct_single
+    cls, = compile(<<-EOF)
+      x = int[1]
+      x[0] = 4
+      puts x.join
+    EOF
+    assert_run_output("4\n", cls)
+  end
 end

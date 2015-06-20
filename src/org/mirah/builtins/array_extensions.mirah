@@ -136,4 +136,18 @@ class ArrayExtensions
       `b`.toString
     end
   end
+  
+  macro def join()
+    b     = gensym
+    list  = gensym
+    entry = gensym
+    quote do
+      `list` = `@call.target`
+      `b`    = StringBuilder.new
+      `list`.each do |`entry`|
+        `b`.append(`entry`)
+      end
+      `b`.toString
+    end
+  end
 end
