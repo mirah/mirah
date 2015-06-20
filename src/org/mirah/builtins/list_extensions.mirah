@@ -48,6 +48,26 @@ class ListExtensions
     end
   end
   
+  macro def sort!(comparator)
+    list = gensym
+    quote do
+      `list` = `@call.target`
+      java::util::Collections.sort(`list`,`comparator`)
+      `list`
+    end
+  end
+
+  macro def sort(comparator)
+    list   = gensym
+    result = gensym
+    quote do
+      `list` = `@call.target`
+      `result` = java::util::ArrayList.new(`list`)
+      `result`.sort!(`comparator`)
+      `result`
+    end
+  end
+
   macro def sort!()
     list = gensym
     quote do
