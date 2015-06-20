@@ -170,25 +170,4 @@ class ArrayExtensions
   macro def self.cast(array)
     Cast.new(@call.position, TypeName(@call.target), array)
   end
-  
-  macro def join(separator)
-    b     = gensym
-    list  = gensym
-    entry = gensym
-    nonfirst = gensym
-    quote do
-      `list` = `@call.target`
-      `b`    = StringBuilder.new
-      `nonfirst` = false
-      `list`.each do |`entry`|
-        if `nonfirst`
-          `b`.append(`separator`)
-        else
-          `nonfirst` = true
-        end
-        `b`.append(`entry`)
-      end
-      `b`.toString
-    end
-  end
 end

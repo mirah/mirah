@@ -70,21 +70,21 @@ class CollectionExtensions
       `b`.toString
     end
   end
-
+  
   macro def join(separator)
-    b             = gensym
-    list          = gensym
-    entry         = gensym
-    first_element = gensym
+    b     = gensym
+    list  = gensym
+    entry = gensym
+    nonfirst = gensym
     quote do
-      `first_element` = true
       `list` = `@call.target`
       `b`    = StringBuilder.new
+      `nonfirst` = false
       `list`.each do |`entry`|
-        if `first_element`
-          `first_element` = false
-        else
+        if `nonfirst`
           `b`.append(`separator`)
+        else
+          `nonfirst` = true
         end
         `b`.append(`entry`)
       end
