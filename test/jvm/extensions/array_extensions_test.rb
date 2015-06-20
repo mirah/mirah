@@ -1,6 +1,5 @@
 class ArrayExtensionsTest < Test::Unit::TestCase
   def test_empty_q
-    pend
     cls, = compile(<<-EOF)
       x = int[0]
       puts x.empty?

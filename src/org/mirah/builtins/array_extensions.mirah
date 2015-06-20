@@ -64,6 +64,12 @@ class ArrayExtensions
       end
     end
   end
+  
+  macro def isEmpty
+    quote do
+      `@call.target`.length == 0
+    end
+  end
 
   # map to an array of the return type of the block
   macro def mapa(block:Block)
