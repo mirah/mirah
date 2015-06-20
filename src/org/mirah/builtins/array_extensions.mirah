@@ -61,6 +61,56 @@ class ArrayExtensions
       `result`
     end
   end
+  
+  macro def sort!(comparator:Block)
+    target = gensym
+    quote do
+      `target` = `@call.target`
+#      java::util::Arrays.sort(`target`,&`comparator`)
+      `Call.new(quote{java::util::Arrays},SimpleString.new('sort'),[quote{`target`}],comparator)`
+      `target`
+    end
+  end
+
+  macro def sort(comparator:Block)
+    array = gensym 
+    quote do
+      `array` = `@call.target`.dup
+#     `array`.sort!(&`comparator`)
+      `Call.new(quote{`array`},SimpleString.new('sort!'),[],comparator)`
+    end
+  end
+
+  macro def sort!()
+    quote do
+      java::util::Arrays.sort(`@call.target`)
+      `@call.target`
+    end
+  end
+
+  macro def sort()
+    array = gensym 
+    quote do
+      `array` = `@call.target`.dup
+      `array`.sort!()
+    end
+  end
+
+  macro def dup
+    type_future        = @mirah.typer.infer(@call.target)
+    # This code fails in case we cannot resolve the type at the time the macro is invoked
+    # (e.g. in case the type is defined after the macro invocation).
+    # We should modify the compiler to allow for a TypeFuture to be used as typeref instead.
+    arraytype_name     = type_future.resolve.name
+    arraytype_basename = arraytype_name.substring(0,arraytype_name.length-2) # remove trailing "[]", should be improved once mirah's array support is improved
+    typeref            = TypeRefImpl.new(arraytype_basename,true,false,@call.target.position)
+    
+    Cast.new(@call.position,typeref,
+      quote do
+        `@call.target`.clone
+      end
+    )
+  end
 
   macro def self.cast(array)
     Cast.new(@call.position, TypeName(@call.target), array)
