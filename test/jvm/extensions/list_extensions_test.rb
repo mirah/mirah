@@ -25,7 +25,7 @@ class ListExtensionsTest < Test::Unit::TestCase
     assert_run_output("[2]\n", cls)
   end
   
-  def test_sort_with_comparator
+  def test_sort_with_block
     cls, = compile(<<-EOF)
       puts ([3,1,2].sort do |o0:Comparable,o1:Comparable|
         -o0.compareTo(o1)
@@ -34,7 +34,7 @@ class ListExtensionsTest < Test::Unit::TestCase
     assert_run_output("[3, 2, 1]\n", cls)
   end
 
-  def test_sort_with_comparator2
+  def test_sort_bang_with_block
     cls, = compile(<<-EOF)
       puts ([3,1,2].sort! do |o0:Comparable,o1:Comparable|
         -o0.compareTo(o1)
