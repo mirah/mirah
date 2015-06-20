@@ -32,12 +32,12 @@ class ListExtensionsTest < Test::Unit::TestCase
           compare(Comparable(o0),Comparable(o1))
         end
         def compare(o0:Comparable,o1:Comparable)
-          o0.compareTo(o1)
+          -o0.compareTo(o1)
         end
       end
       puts [3,1,2].sort(Co.new)
     EOF
-    assert_run_output("[1, 2, 3]\n", cls)
+    assert_run_output("[3, 2, 1]\n", cls)
   end
 
   def test_sort_without_comparator
