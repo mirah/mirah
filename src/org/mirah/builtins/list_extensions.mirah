@@ -24,22 +24,26 @@ class ListExtensions
     quote { `@call.target`.add `index`, `value` }
   end
   
-  macro def sort!(comparator)
+  # Note that this macro is shadowed by Java 1.8 java::util::List#sort(java.util.Comparator)
+  # So if the compiler has the Java 1.8 bootclasspath available, it will not pick up this macro. 
+  macro def sort!(comparator:Block)
     list = gensym
     quote do
       `list` = `@call.target`
-      java::util::Collections.sort(`list`,`comparator`)
+#     java::util::Collections.sort(`list`,`comparator`)
+      `Call.new(quote{java::util::Collections},SimpleString.new('sort'),[quote{`list`}],comparator)`
       `list`
     end
   end
 
-  macro def sort(comparator)
+  macro def sort(comparator:Block)
     list   = gensym
     result = gensym
     quote do
       `list` = `@call.target`
       `result` = java::util::ArrayList.new(`list`)
-      `result`.sort!(`comparator`)
+#     `result`.sort!(`comparator`)
+      `Call.new(quote{`result`},SimpleString.new('sort!'),[],comparator)`
       `result`
     end
   end
