@@ -118,4 +118,28 @@ class CollectionExtensions
       `b`.toString
     end
   end
+    
+#  macro def to_a_complex(basetype) # just for complex types, maybe this implementation could be auto-choosen if the compiler can deduce that the type supplied is indeed a complex type
+#    list  = gensym
+#    quote do
+#      `list` = `@call.target`
+#      `list`.toArray(`basetype`[`list`.size])
+#    end
+#  end
+
+  # convert this collection to a Java-style array
+  macro def to_a(basetype) # for primitive types and complex types
+    list  = gensym
+    res   = gensym
+    value = gensym
+    index = gensym
+    quote do
+      `list` = `@call.target`
+      `res`  = `basetype`[`list`.size]
+      `list`.each_with_index do |`value`,`index`|
+        `Call.new(quote{`res`},SimpleString.new('[]='),[ quote { `index` } , quote { ` value ` } ],nil)`
+      end
+      `res`
+    end
+  end
 end
