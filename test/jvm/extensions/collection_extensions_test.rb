@@ -111,5 +111,51 @@ class CollectionExtensionsTest < Test::Unit::TestCase
     assert_run_output("0,0,0,0\n", cls)
   end
 
+  # implicitly tests each_with_index
+  def test_mapa_on_list
+    cls, = compile(%q[
+      x = ["a","b","c","d"].mapa do |s|
+        "#{s}x"
+      end
+      puts x[2]
+      puts x.getClass.getName
+    ])
+    assert_run_output("cx\n[Ljava.lang.String;\n", cls)
+  end
+
+  # implicitly tests each_with_index
+  def test_mapa_on_java_array_with_complex_basetype
+    cls, = compile(%q[
+      x = ["a","b","c","d"].to_a(String).mapa do |s|
+        "#{s}x"
+      end
+      puts x[2]
+      puts x.getClass.getName
+    ])
+    assert_run_output("cx\n[Ljava.lang.String;\n", cls)
+  end
+
+  # implicitly tests each_with_index
+  def test_mapa_on_java_array_with_primitive_basetype
+    cls, = compile(%q[
+      x = [1,2,3,4].to_a(int).mapa do |s|
+        "#{s}x"
+      end
+      puts x[2]
+      puts x.getClass.getName
+    ])
+    assert_run_output("3x\n[Ljava.lang.String;\n", cls)
+  end
+
+  def test_map
+    cls, = compile(%q[
+      x = ["a","b","c","d"].map do |s|
+        "#{s}x"
+      end
+      puts x[2]
+      puts x.getClass.getName
+    ])
+    assert_run_output("cx\njava.util.ArrayList\n", cls)
+  end
 end
 
