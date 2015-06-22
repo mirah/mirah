@@ -26,6 +26,13 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     assert_run_output("[2]\n", cls)
   end
   
+  def test_size
+    cls, = compile(%q{
+      puts int[4].size
+    })
+    assert_run_output("4\n", cls)
+  end
+  
   def test_each_with_index
     cls, = compile(%q{
       x = int[3]
