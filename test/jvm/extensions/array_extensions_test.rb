@@ -65,7 +65,6 @@ class ArrayExtensionsTest < Test::Unit::TestCase
   end
 
   def test_first
-    pend
     cls, = compile(<<-EOF)
       x = int[3]
       x[0] = 5
@@ -77,18 +76,16 @@ class ArrayExtensionsTest < Test::Unit::TestCase
   end
 
   def test_empty_array_first
-    pend
     cls, = compile(<<-EOF)
       x = int[0]
       puts x.first
     EOF
-    assert_raise_java(java.lang.IndexOutOfBoundsException) do
+    assert_raise_java(java.lang.ArrayIndexOutOfBoundsException) do
       cls.main nil
     end
   end
 
   def test_last
-    pend
     cls, = compile(<<-EOF)
       x = int[3]
       x[0] = 5
@@ -100,7 +97,6 @@ class ArrayExtensionsTest < Test::Unit::TestCase
   end
 
   def test_empty_array_last
-    pend
     cls, = compile(<<-EOF)
       x = int[0]
       puts x.last
