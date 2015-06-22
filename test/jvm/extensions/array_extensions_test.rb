@@ -168,4 +168,14 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     EOF
     assert_run_output("4\n", cls)
   end
+  
+  def test_array_new
+    cls, = compile(<<-EOF)
+      x = int[].new(5) do |i|
+        i*2+1
+      end
+      puts x.join(",")
+    EOF
+    assert_run_output("1,3,5,7,9\n", cls)
+  end
 end

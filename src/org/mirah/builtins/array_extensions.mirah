@@ -65,6 +65,33 @@ class ArrayExtensions
     end
   end
   
+  #
+  # int[].new(5) do |i|
+  #   i+3
+  # end
+  #
+  macro def self.new(size,block:Block)
+    if block.arguments && block.arguments.required_size() > 0
+      counter = block.arguments.required(0)
+      i = counter.name.identifier
+    else
+      i = gensym
+    end
+    res           = gensym
+    arraytype     = @call.target
+    # basetype    = TypeName(arraytype).typeref.array_basetype
+    array_typeref = TypeName(arraytype).typeref
+    basetype      = TypeRefImpl.new(array_typeref.name,false,array_typeref.isStatic,array_typeref.position)
+    quote do
+      `res` = `basetype`[`size`]
+      `size`.times do |`i`|
+#       `res`[`i`] = `block.body`
+        `Call.new(quote{`res`},SimpleString.new('[]='),[quote{`i`},quote{`block.body`}],nil)`
+      end
+      `res`
+    end
+  end
+  
   macro def isEmpty
     quote do
       `@call.target`.length == 0
