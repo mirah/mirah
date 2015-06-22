@@ -370,6 +370,7 @@ class MacrosTest < Test::Unit::TestCase
   end
   
   def test_macro_in_abstract_class
+    pend
     script, cls = compile(%q{
       interface I1
       end
