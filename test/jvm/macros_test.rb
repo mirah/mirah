@@ -494,4 +494,28 @@ class MacrosTest < Test::Unit::TestCase
     })
     assert_run_output("called\n", script)
   end
+
+  def test_macro_changes_body_of_class_last_element
+    script, cls = compile(%q{
+      class ChangeableClass
+        macro def self.method_adding_macro
+          node  = @call
+          node  = node.parent until node.nil? || node.kind_of?(ClassDefinition) # cannot call enclosing_class(), currently
+          klass = ClassDefinition(node)
+          
+          klass.body.add(quote do
+            def another_method
+              puts "called"
+            end
+          end)
+          nil
+        end
+        
+        method_adding_macro
+      end
+      
+      ChangeableClass.new.another_method
+    })
+    assert_run_output("called\n", script)
+  end
 end
