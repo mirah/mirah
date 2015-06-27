@@ -88,6 +88,9 @@ class MirrorProxy implements MirrorType,
   def add(member):void
     @target.add(member)
   end
+  def hasMember(name)
+    @target.hasMember(name)
+  end
   def superclass
     @target.superclass
   end

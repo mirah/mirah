@@ -55,6 +55,7 @@ interface MirrorType < JVMType, TypeMirror
   def addMethodListener(name:String, listener:MethodListener):void; end
   def invalidateMethod(name:String):void; end
   def add(member:JVMMethod):void; end
+  def hasMember(name:String):boolean; end
   def declareField(field:JVMMethod):void; end
   def unmeta:MirrorType; end
   def isSameType(other:MirrorType):boolean; end
@@ -319,6 +320,10 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
 
   def getMembers(name:String)
     List(@members[name])
+  end
+  
+  def hasMember(name:String)
+    @members[name] != nil
   end
 
   def getMethod(name:String, params:List):JVMMethod

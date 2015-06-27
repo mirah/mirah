@@ -192,13 +192,16 @@ class SimpleTypes; implements TypeSystem
   def getSuperClass(type)
     nil
   end
-  def defineType(scope, node, name, superclass, interfaces)
+  def createType(scope, node, name, superclass, interfaces)
     type = lookup(name)
     unless type
       type = SimpleType.new(name, false, false)
       @types[name] = type
     end
     type
+  end
+  def publishType(type_future)
+#   @types[type_future.name] = type_future # it happens already in createType
   end
   def addDefaultImports(scope)
   end

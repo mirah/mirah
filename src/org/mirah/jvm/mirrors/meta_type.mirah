@@ -55,6 +55,10 @@ class MetaType < BaseType
     unmeta.addMethodListener(name, listener)
   end
 
+  def hasMember(name:String)
+    unmeta.hasMember(name)
+  end
+
   def getDeclaredField(name)
     field = unmeta.getDeclaredField(name)
     if field && Opcodes.ACC_STATIC == (Member(field).flags & Opcodes.ACC_STATIC)
