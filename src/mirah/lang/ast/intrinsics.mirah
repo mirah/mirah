@@ -61,7 +61,7 @@ class Unquote < NodeImpl
   def nodes:List
     value = self.object
     return Collections.emptyList if value.nil?
-    if value.kind_of?(Iterable) && !value.kind_of?(Hash)
+    if value.kind_of?(Iterable) && !value.kind_of?(Hash) && !value.kind_of?(Node)
       values = List(ArrayList.new)
       Iterable(value).each {|o| values.add(nodeValue(o))}
       values
