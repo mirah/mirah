@@ -283,6 +283,10 @@ class MacrosTest < Test::Unit::TestCase
   end
 
   def test_add_args_in_macro
+    pend "This is poor-man's splat-operator. It should be replaced by a proper splat-operator or abolished entirely."
+    # This unquote is intended to evaluate to more than just exactly one AST node (that is, 2 nodes in this case) and hence
+    # modifies the NodeList higher in the syntax tree, surprisingly.
+    # Hence, the intention of this unquote violates the Principle of Least Surprise. 
     cls, = compile(<<-EOF)
       macro def foo(a:Array)
         quote { bar "1", `a.values`, "2"}
