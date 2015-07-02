@@ -22,6 +22,15 @@ class CollectionExtensions
     quote { `@call.target`.isEmpty }
   end
 
+  macro def <<(arg)
+    target = gensym
+    quote do
+      `target` = `@call.target` 
+      `target`.add(`arg`)
+      `target` # return the target, such that we can chain "<<" operators one after another.
+    end
+  end
+
   macro def map(block:Block)
     x = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0)
