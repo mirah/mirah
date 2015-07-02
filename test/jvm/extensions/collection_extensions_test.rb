@@ -157,5 +157,16 @@ class CollectionExtensionsTest < Test::Unit::TestCase
     ])
     assert_run_output("cx\njava.util.ArrayList\n", cls)
   end
+
+  def test_operator_append
+    cls, = compile(%q{
+      x = ["a"]
+      x << "b"
+      x << "c" << "d"
+      x << "e"
+      puts x
+    })
+    assert_run_output("[a, b, c, d, e]\n", cls)
+  end
 end
 
