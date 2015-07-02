@@ -20,10 +20,17 @@ import mirah.lang.ast.ClassDefinition
 import mirah.lang.ast.InterfaceDeclaration
 import mirah.lang.ast.MethodDefinition
 import org.mirah.util.Context
+import org.mirah.jvm.types.JVMType
+
+import org.objectweb.asm.commons.Method
 
 class InterfaceCompiler < ClassCompiler
   def initialize(context:Context, classdef:InterfaceDeclaration)
     super(context, ClassDefinition(classdef))
+  end
+  
+  def initialize(context:Context, classdef:InterfaceDeclaration, outerClass:JVMType, method:Method)
+    super(context, ClassDefinition(classdef), outerClass, method)
   end
   
   def flags
