@@ -45,4 +45,21 @@ class StringExtensions
   macro def to_int:int
     quote { Integer.parseInt(`@call.target`) }
   end
+  
+  macro def each_codepoint(block:Block)
+    target    = gensym
+    offset    = gensym
+    length    = gensym
+    codepoint = block.arguments.required(0).name.identifier
+    quote do
+      `target` = `@call.target` 
+      `offset` = 0
+      `length` = `target`.length
+      while `offset` < `length`
+        `codepoint` = `target`.codePointAt(`offset`)
+        `block.body`
+        `offset` = `offset` + Character.charCount(`codepoint`)
+      end
+    end
+  end
 end

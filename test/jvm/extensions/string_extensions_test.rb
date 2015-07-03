@@ -1,3 +1,5 @@
+# encoding: UTF-8
+#
 # Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
@@ -99,4 +101,14 @@ class StringExtensionsTest < Test::Unit::TestCase
       cls.main nil
     end
   end
+  
+  def test_string_each_codepoint
+    cls, = compile(%q{
+      "abc\u1234\U0010FFFF\u5678de𠀘f".each_codepoint do |codepoint|
+        puts codepoint
+      end
+    })
+    assert_run_output("97\n98\n99\n4660\n1114111\n22136\n100\n101\n131096\n102\n", cls)
+  end
 end
+
