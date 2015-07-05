@@ -368,6 +368,26 @@ class MacrosTest < Test::Unit::TestCase
     EOF
     assert_run_output("0\n3\n", script)
   end
+  
+  def test_macro_in_abstract_class
+    pend
+    script, cls = compile(%q{
+      interface I1
+      end
+      
+      abstract class C2 implements I1
+        macro def self.bar
+          quote do
+            puts "bar"
+          end
+        end
+      end
+    })
+    script, _ =compile(%q{
+      C2.bar
+    })
+    assert_run_output("bar\n", script)
+  end
 
   def test_separate_compilation
     compile(<<-CODE)
