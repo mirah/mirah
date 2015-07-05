@@ -319,7 +319,7 @@ class EnumerableTest < Test::Unit::TestCase
     assert_run_output("[a]\n", cls)
   end
 
-def test_map_identity
+  def test_map_identity
     cls, = compile(<<-EOF)
       puts [1,2,3].map {|x| x}
     EOF

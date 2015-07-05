@@ -11,7 +11,7 @@
   <groupId>org.mirah</groupId>
   <artifactId>shared</artifactId>
   <packaging>pom</packaging>
-  <version>0.1.4</version>
+  <version>0.1.5-SNAPSHOT</version>
   <name>Mirah Shared</name>
   <url>http://mirah.org</url>
   <description>The Mirah Programming Language</description>
@@ -50,7 +50,7 @@
   </modules>
 
   <properties>
-    <jruby.version>1.6.0</jruby.version>
+    <jruby.version>1.7.19</jruby.version>
   </properties>
 
   <build>
