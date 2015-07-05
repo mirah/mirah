@@ -15,28 +15,8 @@
 
 package org.mirah.builtins
 
-class StringExtensions
-  macro def +(arg)
-    quote { "#{`@call.target`}#{`arg`}" }
-  end
-
-  macro def include?(arg)
-    quote { `@call.target`.contains(`arg`) }
-  end
-
-  macro def =~(arg)
-    quote { `arg`.matcher(`@call.target`).find }
-  end
-  
-  macro def match(arg)
-    m = gensym
-    quote do
-      `m` = `arg`.matcher(`@call.target`)
-      if `m`.find
-        `m`
-      else
-        nil
-      end
-    end
+class MatcherExtensions
+  macro def [](index)
+    quote { `@call.target`.group `index` }
   end
 end

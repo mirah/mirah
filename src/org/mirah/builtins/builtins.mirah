@@ -30,6 +30,7 @@ class Builtins
     type_system.extendClass('java.lang.StringBuilder', StringBuilderExtensions.class)
 
     type_system.extendClass('java.util.concurrent.locks.Lock', LockExtensions.class)
+    type_system.extendClass('java.util.regex.Matcher', MatcherExtensions.class)
 
     type_system.extendClass('int', IntExtensions.class)
     type_system.extendClass('byte', NumberExtensions.class)
