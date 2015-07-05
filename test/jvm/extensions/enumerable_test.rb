@@ -364,6 +364,13 @@ def test_map_identity
     assert_run_output("1234\n", cls)
   end
 
+  def test_join_with_separator
+    cls, = compile(<<-EOF)
+      puts [1,23,4].join ', '
+    EOF
+    assert_run_output("1, 23, 4\n", cls)
+  end
+
   def test_zip
     cls, = compile(<<-'EOF')
       def bar

@@ -70,4 +70,25 @@ class CollectionExtensions
       `b`.toString
     end
   end
+
+  macro def join(separator)
+    b             = gensym
+    list          = gensym
+    entry         = gensym
+    first_element = gensym
+    quote do
+      `first_element` = true
+      `list` = `@call.target`
+      `b`    = StringBuilder.new
+      `list`.each do |`entry`|
+        if `first_element`
+          `first_element` = false
+        else
+          `b`.append(`separator`)
+        end
+        `b`.append(`entry`)
+      end
+      `b`.toString
+    end
+  end
 end
