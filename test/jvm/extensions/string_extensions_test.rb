@@ -55,16 +55,21 @@ class StringExtensionsTest < Test::Unit::TestCase
   end
 
   def test_string_match
+    cls, = compile(%q{puts 'byeby'.match(/b(.*)y/)[1]})
+    assert_run_output("yeb\n", cls)
+  end
+
+  def test_string_matches
     cls, = compile("def match; 'abcdef' =~ /d/; end")
     assert cls.match, 'failed to match string'
   end
 
-  def test_string_dont_match
-    cls, = compile("def dont_match; 'abcdef' =~ /g/; end")
-    refute cls.dont_match, 'mistakenly matched string'
+  def test_string_doesnt_match
+    cls, = compile("def doesnt_match; 'abcdef' =~ /g/; end")
+    refute cls.doesnt_match, 'mistakenly matched string'
   end
 
-  def test_string_match_wrong_type
+  def test_string_matches_wrong_type
     assert_raises Mirah::MirahError do
       compile("def match_wrong_type; 'abcdef' =~ 'd'; end")
     end
