@@ -333,6 +333,44 @@ def test_map_identity
     assert_run_output("[2, 3, 4]\n", cls)
   end
 
+  def test_native_array_map_empty_literal
+    cls, = compile(<<-EOF)
+      puts int[0].map { 'b' }
+    EOF
+    assert_run_output("[]\n", cls)
+  end
+
+  def test_native_array_map_to_different_type
+    cls, = compile(<<-EOF)
+    	a = int[1]
+    	a[0] = 1
+      puts a.map { 'a' }
+    EOF
+    assert_run_output("[a]\n", cls)
+  end
+
+  def test_native_array_map_identity
+    cls, = compile(<<-EOF)
+    	a = int[3]
+    	a[0] = 1
+    	a[1] = 2
+    	a[2] = 3
+      puts a.map {|x| x}
+    EOF
+    assert_run_output("[1, 2, 3]\n", cls)
+  end
+
+  def test_native_array_map_with_type_declaration
+    cls, = compile(<<-EOF)
+    	a = int[3]
+    	a[0] = 1
+    	a[1] = 2
+    	a[2] = 3
+      puts a.map {|x:int| x + 1}
+    EOF
+    assert_run_output("[2, 3, 4]\n", cls)
+  end
+
   def test_select_identity
     cls, = compile(<<-EOF)
       puts [1,2,3].select {|x| true}
