@@ -85,8 +85,20 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
     compileInnerClass(node, nil)
   end
   
+  def visitInterfaceDeclaration(node, expression)
+    compileInnerInterface(node, nil)
+  end
+  
   def compileInnerClass(node:ClassDefinition, method:Method):void
     compiler = ClassCompiler.new(context, node, @type, method)
+    @innerClasses.add(compiler)
+    # TODO only supporting anonymous inner classes for now.
+    @classwriter.visitInnerClass(compiler.internal_name, nil, nil, 0)
+    compiler.compile
+  end
+  
+  def compileInnerInterface(node:InterfaceDeclaration, method:Method):void
+    compiler = InterfaceCompiler.new(context, node, @type, method)
     @innerClasses.add(compiler)
     # TODO only supporting anonymous inner classes for now.
     @classwriter.visitInnerClass(compiler.internal_name, nil, nil, 0)

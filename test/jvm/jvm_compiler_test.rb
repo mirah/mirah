@@ -2010,4 +2010,27 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
     assert_equal "Invalid return type double, expected int",e.message
   end
+
+  def test_inner_interface
+    cls, arg = compile(%q{
+      
+      class Foo1
+        
+        interface Bar
+          def baz:String; end
+        end
+        
+        class Foo2 implements Bar
+          def baz
+            "BAZ"
+          end
+        end
+      end
+      
+
+      puts Foo2.new.baz
+    })
+    assert_run_output("BAZ\n", cls)
+  end
+
 end
