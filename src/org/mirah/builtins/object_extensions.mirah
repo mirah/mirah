@@ -56,6 +56,16 @@ class ObjectExtensions
 
     quote { !(`@call.target` == `node`)}
   end
+  
+  macro def tap(block:Block)
+    x = gensym
+    quote do
+      `x` = `@call.target`
+      `block.arguments.required(0).name.identifier` = `x`
+      `block.body`
+      `x`
+    end
+  end
 
   macro def puts(node)
     quote {System.out.println(` [node] `)}
