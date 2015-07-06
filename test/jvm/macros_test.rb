@@ -391,6 +391,23 @@ class MacrosTest < Test::Unit::TestCase
     assert_equal nil, cls.new.testing
   end
   
+  def test_attr_Rw
+    script, cls = compile(<<-EOF)
+      class AttrRwTest
+        attr_Rw foo:int
+        attr_Rw bar:int
+        
+        def selfreflect
+          puts self.getClass.getDeclaredMethod("foo").getModifiers
+          puts self.getClass.getDeclaredMethod("foo_set",[int.class].toArray(Class[0])).getModifiers
+        end
+      end
+
+      AttrRwTest.new.selfreflect
+    EOF
+    assert_run_output("1\n4\n", script)
+  end
+
   def test_attr_accessor
     script, cls = compile(<<-EOF)
       class AttrAccessorTest

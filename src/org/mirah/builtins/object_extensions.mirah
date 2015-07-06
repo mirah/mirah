@@ -206,6 +206,14 @@ class ObjectExtensions
     end
   end
   
+  macro def self.attr_Rw(hash:Hash)
+    args = [hash]
+    quote do
+                attr_reader `args` # public by default
+      protected attr_writer `args`
+    end
+  end
+  
   macro def self.attr_reader(hash:Hash)
     methods = NodeList.new
     i = 0
