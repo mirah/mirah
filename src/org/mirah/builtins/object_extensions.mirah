@@ -41,12 +41,13 @@ class ObjectExtensions
       end
     end
 
-    # TODO this doesn't work, but should
-    #quote { `@call.target`.nil? && `node`.nil? || `@call.target` && `@call.target`.equals(`node`) }
-
-    tmp = gensym
-    quote { `tmp` = `@call.target`.nil? && `node`.nil?
-            `tmp` || `@call.target` && `@call.target`.equals(`node`) }
+    left  = gensym
+    right = gensym
+    quote do
+      `left`  = `@call.target`
+      `right` = `node`
+      `left`.nil? ? `right`.nil? : `left`.equals(`right`)
+    end
   end
 
   ## TODO handle the negation st def == will be called
