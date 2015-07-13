@@ -303,7 +303,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getFieldType(target, name, position)
-    resolved = MirrorType(target.resolve)
+    resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     if member
@@ -324,7 +324,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getFieldTypeOrDeclare(target, name, position)
-    resolved = MirrorType(target.resolve)
+    resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     future = if member

@@ -45,6 +45,9 @@ interface TypeFuture do
   # Returns the resolved type for this future, or an ErrorType if not yet resolved.
   def resolve:ResolvedType; end
 
+  # Allows to peek into the current state of what could be the resolved type, without triggering resolution.
+  def peekInferredType:ResolvedType; end
+
   # Add a listener for this future.
   # listener will be called whenever this future resolves to a different type.
   # If the future is already resolved listener will be immediately called.

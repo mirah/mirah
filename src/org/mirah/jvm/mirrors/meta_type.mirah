@@ -47,6 +47,10 @@ class MetaType < BaseType
     unmeta.onIncompatibleChange(listener)
   end
 
+  def isFullyResolved():boolean
+    unmeta.isFullyResolved()
+  end
+
   def invalidateMethod(name)
     unmeta.invalidateMethod(name)
   end
