@@ -2033,4 +2033,29 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_run_output("BAZ\n", cls)
   end
 
+  def test_late_superclass
+    cls, arg = compile(%q{
+      package subclass_test
+      
+      class TestSubclassAsMethodParameter
+        def bar(b:SuperClass)
+          "baz"
+        end
+      
+        def foo
+          a = SubClass.new
+          bar(a)
+        end 
+      end
+      
+      class SubClass < SuperClass
+      end
+      
+      class SuperClass
+      end
+      
+      puts TestSubclassAsMethodParameter.new.foo
+    })
+    assert_run_output("baz\n", cls)
+  end
 end
