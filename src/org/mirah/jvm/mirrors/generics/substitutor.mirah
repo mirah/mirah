@@ -17,7 +17,7 @@ package org.mirah.jvm.mirrors.generics
 
 import java.util.LinkedList
 import java.util.Map
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import javax.lang.model.type.TypeMirror
 import javax.lang.model.util.SimpleTypeVisitor6
 import org.mirah.util.Context

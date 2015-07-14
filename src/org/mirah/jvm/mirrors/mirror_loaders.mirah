@@ -17,7 +17,7 @@ package org.mirah.jvm.mirrors
 
 import java.util.Collections
 import java.util.List
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.regex.Pattern
 import java.io.InputStream
 

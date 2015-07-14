@@ -16,7 +16,7 @@
 package org.mirah.jvm.compiler
 
 import java.util.LinkedList
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType

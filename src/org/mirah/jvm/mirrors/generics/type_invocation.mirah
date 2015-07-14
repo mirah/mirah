@@ -12,7 +12,7 @@
 
 package org.mirah.jvm.mirrors.generics
 
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.Collections
 import java.util.HashMap
 import java.util.List

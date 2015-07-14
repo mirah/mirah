@@ -16,7 +16,7 @@
 package org.mirah.typer
 
 import mirah.lang.ast.*
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.List

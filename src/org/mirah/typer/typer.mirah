@@ -16,7 +16,7 @@
 package org.mirah.typer
 
 import java.util.*
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend

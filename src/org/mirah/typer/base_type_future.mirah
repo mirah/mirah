@@ -17,7 +17,7 @@ package org.mirah.typer
 
 import java.util.*
 import java.util.concurrent.locks.ReentrantLock
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 import mirah.lang.ast.*
 
