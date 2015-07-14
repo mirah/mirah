@@ -279,6 +279,62 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal('ClassDashTest', foo.java_class.name)
   end
 
+  def test_class_name_from_file_used_within_source_match
+    cls, = compile(%q{
+
+      package array_subclass_test
+      
+      class Subclass < Superclass2
+        def self.run
+          ArraySubclassTest.new.baz
+        end
+      end
+      
+      class ArraySubclassTest
+      
+        def baz()
+          bar(Subclass[3])
+        end
+      
+        def bar(foo:Superclass2[])
+          "Success"
+        end
+      end
+      
+      class Superclass2
+      end
+    }, :name => 'Superclass2.mirah')
+    assert_equal('Success', cls.run)
+  end
+
+  def test_class_name_from_file_used_within_source_mismatch
+    cls, = compile(%q{
+
+      package array_subclass_test
+      
+      class Subclass < Superclass2
+        def self.run
+          ArraySubclassTest.new.baz
+        end
+      end
+      
+      class ArraySubclassTest
+      
+        def baz()
+          bar(Subclass[3])
+        end
+      
+        def bar(foo:Superclass2[])
+          "Success"
+        end
+      end
+      
+      class Superclass2
+      end
+    }, :name => 'Superclass3.mirah')
+    assert_equal('Success', cls.run)
+  end
+
   def test_puts
     cls, = compile("def foo;puts 'Hello World!';end")
     output = capture_output do
