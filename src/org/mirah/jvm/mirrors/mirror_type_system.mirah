@@ -432,7 +432,7 @@ class MirrorTypeSystem implements TypeSystem
     position = node ? node.position : nil
     fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
-    existing_future = wrap(type)
+    existing_future = DelegateFuture(wrap(type)).type
     existing_type = findTypeDefinition(existing_future)
     if existing_type
       if superclass.nil? && (interfaces.nil? || interfaces.size == 0)
