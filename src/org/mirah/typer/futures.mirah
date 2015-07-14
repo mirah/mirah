@@ -33,6 +33,7 @@ interface ResolvedType do
   def isInterface:boolean; end
   def isError:boolean; end
   def matchesAnything:boolean; end
+  def isFullyResolved:boolean; end
 end
 
 interface GenericType do
@@ -40,8 +41,12 @@ interface GenericType do
 end
 
 interface TypeFuture do
+  # Whether the ResolvedType is available.
   def isResolved:boolean; end
 
+#  # Whether the ResolvedType is available and will not change anymore, even regarding its superclasses and superinterfaces.
+#  def isFullyResolved:boolean; end
+    
   # Returns the resolved type for this future, or an ErrorType if not yet resolved.
   def resolve:ResolvedType; end
 

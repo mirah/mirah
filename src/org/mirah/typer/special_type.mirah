@@ -64,4 +64,7 @@ class SpecialType; implements ResolvedType, TypeFuture
   def getComponents
     Collections.emptyMap
   end
+  def isFullyResolved:boolean
+    true
+  end
 end
