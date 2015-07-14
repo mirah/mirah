@@ -129,21 +129,6 @@ class CallFuture < BaseTypeFuture
     "#{type} (#{(type &&type.isResolved) ? type.resolve.toString : 'unresolved'})"
   end
 
-  def log(level:Level, message:String, arg1:Object, arg2:Object):void
-    args = Object[2]
-    args[0] = arg1
-    args[1] = arg2
-    @@log.log(level, message, args)
-  end
-
-  def log(level:Level, message:String, arg1:Object, arg2:Object, arg3:Object):void
-    args = Object[3]
-    args[0] = arg1
-    args[1] = arg2
-    args[2] = arg3
-    @@log.log(level, message, args)
-  end
-
   def setupListeners
     call = self
     @@log.finer("Adding target listener for #{dt(@target)}")
@@ -213,7 +198,7 @@ class CallFuture < BaseTypeFuture
   end
 
   def maybeUpdate:void
-    log(Level.FINER, "maybeUpdate(name={0}, target={1}, args={2})", @name, @resolved_target, @resolved_args)
+    @@log.log(Level.FINER, "maybeUpdate(name=#{name}, target=#{@resolved_target}, args=#{@resolved_args})")
     if @resolved_target
       if @resolved_target.isError
         @method = TypeFuture(nil)
