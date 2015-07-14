@@ -410,8 +410,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def findTypeDefinition(future:TypeFuture):MirahMirror
-    return nil unless future.isResolved
-    resolved = future.resolve
+    resolved = future.peekInferredType
     while resolved.kind_of?(MirrorProxy)
       resolved = MirrorProxy(resolved).target
     end
