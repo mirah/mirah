@@ -74,7 +74,7 @@ class MirahMethod < AsyncMember implements MethodListener
     @super_return_type = DelegateFuture.new
     @declared_return_type = returnType
     @return_type.declare(wrap(@super_return_type), position)
-    @return_type.resolved(nil)
+#   @return_type.resolved(nil)
     @return_type.error_message = "Cannot determine return type."
     @arity = argumentTypes.size
     setupOverrides(argumentTypes)
@@ -179,7 +179,7 @@ class MirahMethod < AsyncMember implements MethodListener
     end
     if filtered.isEmpty
       @super_return_type.type = generate_error
-      @return_type.resolved(nil)
+#     @return_type.resolved(nil)
       @return_type.setHasDeclaration(false)
     else
       @return_type.setHasDeclaration(true)
