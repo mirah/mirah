@@ -752,6 +752,7 @@ class MirrorTypeSystem implements TypeSystem
         sb.append(s.substring(1, s.length))
       end
     end
+    sb.append("TopLevel")
     sb.toString
   end
 
