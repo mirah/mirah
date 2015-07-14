@@ -470,7 +470,8 @@ class MirrorTypeSystem implements TypeSystem
   
   def publishType(future:TypeFuture)
     if future.kind_of?(MirrorFuture)
-      publishType(MirahMirror(MirrorProxy(MirrorFuture(future).inferredType).target),MirrorFuture(future))
+      mirror_future = MirrorFuture(future)
+      publishType(MirahMirror(mirror_future.peekInferredType),mirror_future)
     end
   end
   
