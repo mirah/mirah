@@ -321,6 +321,13 @@ class MirrorFuture < BaseTypeFuture
   def isResolved
     super && @type.isFullyResolved
   end
+  
+  # MirrorFuture does not support the generic contract that the inferred type is always the resolved type.
+  # The represented type is always set. However, resolution may happen only when also the parent types are resolved.
+  # Hence, if we were not implementing our own #peekInferredType, the supermethod would return nil when we could actually return @type.
+  def peekInferredType
+    @type
+  end
 end
 
 class ResolvedCall < MirrorProxy implements CallType
