@@ -422,7 +422,7 @@ class AsyncMirror < BaseType
       if interfaces
         interfaces.length.times do |i|
           interfacE = interfaces[i]
-          if !interfacE.isResolved
+          if !(interfacE.isResolved && !interfacE.resolve.isError)
             return false
           end
         end
