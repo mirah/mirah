@@ -97,6 +97,7 @@ class MirrorTypeSystem implements TypeSystem
     @object = BaseType(@object_future.resolve)
     @anonymousClasses = {}
     @unpinned_field_futures = {}
+    @cached_array_types = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
     initBoxes
@@ -540,7 +541,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getResolvedArrayType(componentType:ResolvedType):ResolvedType
-    ArrayType.new(@context, cast(componentType))
+    ResolvedType(@cached_array_types[componentType] ||= ArrayType.new(@context, cast(componentType)))
   end
 
   def getArrayType(componentType:ResolvedType):ResolvedType
