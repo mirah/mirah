@@ -373,7 +373,6 @@ class AsyncMirror < BaseType
         mirror.resolveSupertype(resolved)
       end
     end
-    updateFullyResolved
   end
 
   def resolveSuperclass(resolved:JVMType):void
