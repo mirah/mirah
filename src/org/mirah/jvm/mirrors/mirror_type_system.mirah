@@ -143,10 +143,10 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
+    getMetaType(defineType(scope, script, MirrorTypeSystem.getMainClassName(script), nil, []))
   end
 
-  def getMainClassName(script:Script):String
+  def self.getMainClassName(script:Script):String
     (script && script.position && script.position.source &&
          script.position.source.name &&
          MirrorTypeSystem.classnameFromFilename(script.position.source.name)) ||
