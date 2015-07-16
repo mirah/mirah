@@ -2058,4 +2058,19 @@ class JVMCompilerTest < Test::Unit::TestCase
     })
     assert_run_output("baz\n", cls)
   end
+  
+  def test_late_superinterface
+    cls, arg = compile(%q{
+      package late_superinterface
+      
+      interface Interface2 < Interface1
+      end
+      
+      interface Interface3 < Interface2
+      end
+      
+      interface Interface1
+      end
+    })
+  end
 end
