@@ -68,6 +68,6 @@ class ErrorType < SpecialType
   end
 
   def isFullyResolved:boolean
-    true # false?
+    false
   end
 end
