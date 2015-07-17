@@ -89,8 +89,8 @@ class Logger
   end
     
   macro def log(level,arg1)
-    javalogger = gensym
-    levellocal = gensym
+    javalogger = "#{gensym}_javalogger"
+    levellocal = "#{gensym}_levellocal"
     quote do
       `javalogger` = `@call.target`.internal_logger
       `levellocal` = `level`
