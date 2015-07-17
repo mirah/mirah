@@ -19,7 +19,7 @@ class Logger
   end
   
   macro def finest(arg)
-    javalogger = gensym 
+    javalogger = "#{gensym}_javalogger"
     quote do
       `javalogger` = `@call.target`.internal_logger
       if `javalogger`.isLoggable(java::util::logging::Level.FINEST)
