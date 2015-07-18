@@ -461,7 +461,7 @@ EOF
                  "def foo(a, b); 1; end")
     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList, [OptionalArgument, [SimpleString, a], null, [Fixnum, 1]]], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(a = 1); 1; end")
-    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList, [OptionalArgument, [SimpleString, a], [SimpleString, int], [Fixnum, 1]]], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
+    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList, [OptionalArgument, [SimpleString, a], [Constant, [SimpleString, int]], [Fixnum, 1]]], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(a:int = 1); 1; end")
     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList, [OptionalArgument, [SimpleString, a], null, [Fixnum, 1]], [OptionalArgument, [SimpleString, b], null, [Fixnum, 2]]], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(a = 1, b=2); 1; end")
@@ -493,9 +493,9 @@ EOF
                  "def foo(*c, d, &e); 1; end")
     assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList], [OptionalArgumentList], [RestArgument, [SimpleString, c], null], [RequiredArgumentList], [BlockArgument, [SimpleString, e], null]], null, [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(*c, &e); 1; end")
-    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [SimpleString, int], [[Fixnum, 1]], [AnnotationList]]]]",
+    assert_parse("[Script, [[MethodDefinition, [SimpleString, foo], [Arguments, [RequiredArgumentList, [RequiredArgument, [SimpleString, a], null]], [OptionalArgumentList], null, [RequiredArgumentList], null], [Constant, [SimpleString, int]], [[Fixnum, 1]], [AnnotationList]]]]",
                  "def foo(a):int; 1; end")
-    assert_parse("[Script, [[MethodDefinition, [SimpleString, bar], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], [SimpleString, int], [[Fixnum, 1]], [AnnotationList]]]]",
+    assert_parse("[Script, [[MethodDefinition, [SimpleString, bar], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], [Constant, [SimpleString, int]], [[Fixnum, 1]], [AnnotationList]]]]",
                  "def bar:int; 1; end")
     assert_fails("def foo(*a, *b);end")
     assert_fails("def foo(&a, &b);end")
