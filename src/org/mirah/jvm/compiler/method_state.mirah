@@ -17,6 +17,7 @@ package org.mirah.jvm.compiler
 
 import mirah.lang.ast.MacroDefinition
 import mirah.lang.ast.MethodDefinition
+import mirah.lang.ast.StaticMethodDefinition
 import mirah.lang.ast.Position
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.MethodType
@@ -41,6 +42,7 @@ class MethodState
       signature.append(t.getAsmType.getDescriptor)
     end
     @signature = signature.toString
+    @static    = method.kind_of?(StaticMethodDefinition) # "def self.initialize" is supported. "class << self; def initialize" is not supported, but this is currently broken, anyway.
   end
 
   def conflictsWith(other:MethodState):Kind
@@ -61,15 +63,19 @@ class MethodState
     else
       # Two methods
       if @signature.equals(other.signature)
-        # TODO, generate bridge methods automatically and make this an error
-        Kind.WARNING
+        if self.static==other.static || !name.equals("initialize")
+          # TODO, generate bridge methods automatically and make this an error
+          Kind.WARNING
+        else # methods differ in their staticity, but the name is "initialize". As these methods are compiled to "<init>" and "<clinit>", there is actually no conflict.
+          nil
+        end
       else
         nil
       end
     end
   end
 
-  attr_accessor num_args:int, name:String, position:Position, returnType:JVMType
+  attr_accessor num_args:int, name:String, position:Position, returnType:JVMType, static:boolean
   attr_accessor signature:String
 
   def toString
