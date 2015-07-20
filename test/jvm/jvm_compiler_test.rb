@@ -2032,5 +2032,41 @@ class JVMCompilerTest < Test::Unit::TestCase
     })
     assert_run_output("BAZ\n", cls)
   end
+  
+  def test_line_number_increase_by_multiline_sstring_literal
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, arg = compile(%q{
+        class Foo
+          CONST = 'a
+        
+        
+        
+          b'
+        end
+        
+        
+        ERROR_SHOULD_BE_HERE
+      })
+    end
+    assert_equal 11,e.diagnostic.getLineNumber
+  end
+  
+  def test_line_number_increase_by_multiline_dstring_literal
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, arg = compile(%q{
+        class Foo
+          CONST = "a
+        
+        
+        
+          b"
+        end
+        
+        
+        ERROR_SHOULD_BE_HERE
+      })
+    end
+    assert_equal 11,e.diagnostic.getLineNumber
+  end
 
 end
