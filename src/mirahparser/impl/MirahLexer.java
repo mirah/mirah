@@ -254,8 +254,12 @@ public class MirahLexer {
             return Tokens.tStrEvBegin;
           }
           i.backup(1);
+        break;
+        case '\n':
+          l.noteNewline();
+        break;
       }
-      readRestOfString(i);
+      readRestOfString(l, i);
       return Tokens.tStringContent;
     }
     public Tokens readEndOfString(Input i) {
@@ -290,7 +294,7 @@ public class MirahLexer {
       }
     }
 
-    private void readRestOfString(Input i) {
+    private void readRestOfString(MirahLexer l, Input i) {
       int c = 0;
       for (c = i.read(); c != EOF; c = i.read()) {
         if (isEndOfString(c)) {
@@ -307,6 +311,8 @@ public class MirahLexer {
         } else if (c == '\\') {
           i.backup(1);
           break;
+        } else if (c == '\n') {
+          l.noteNewline();
         }
       }
       if ( c == EOF ){
