@@ -203,14 +203,20 @@ public class MirahLexer {
           if (isEscape(i)) {
             return Tokens.tEscape;
           }
+        break;
+        case '\n':
+          l.noteNewline();
       }
-      readRestOfString(i);
+      readRestOfString(l, i);
       return Tokens.tStringContent;
     }
 
-    private void readRestOfString(Input i) {
+    private void readRestOfString(MirahLexer l, Input i) {
       int c = 0;
       for (c = i.read(); c != EOF;c = i.read()) {
+        if (c == '\n') {
+          l.noteNewline();
+        }
         if (c == '\'') {
           i.backup(1);
           break;
