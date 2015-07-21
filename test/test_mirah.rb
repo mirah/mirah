@@ -143,6 +143,26 @@ EOF
     assert_equal("TestParsing-1", ast.position.source.name)
   end
 
+  def test_position_after_multiline_sstring_literal
+    ast = parse("SOMECONST = \'\n\n\n\'\n  foo  ").body.get(1)
+    assert_equal("foo", ast.name.identifier)
+    assert_equal(5, ast.position.start_line)
+    assert_equal(3, ast.position.start_column)
+    assert_equal(5, ast.position.end_line)
+    assert_equal(6, ast.position.end_column)
+    assert_equal("TestParsing-1", ast.position.source.name)
+  end
+
+  def test_position_after_multiline_dstring_literal
+    ast = parse("SOMECONST = \"\n\n\n\"\n  foo  ").body.get(1)
+    assert_equal("foo", ast.name.identifier)
+    assert_equal(5, ast.position.start_line)
+    assert_equal(3, ast.position.start_column)
+    assert_equal(5, ast.position.end_line)
+    assert_equal(6, ast.position.end_column)
+    assert_equal("TestParsing-1", ast.position.source.name)
+  end
+
   def test_modified_position
     ast = MirahParser.new.parse(
         StringCodeSource.new("test_modified_position", "foo", 3, 5)).body.get(0)
