@@ -815,13 +815,13 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitNodeList(body, expression)
-    i = 0
-    while i < body.size - 1
-      infer(body.get(i), false)
-      i += 1
-    end
     if body.size > 0
-      infer(body.get(body.size - 1), expression != nil)
+      i = 0
+      while i < body.size # note that we re-evaluate body.size each time, as body.size may change _during_ infer(), as macros may change the AST
+        res = infer(body.get(i),(i<body.size-1) ? false : expression != nil)
+        i += 1
+      end
+      res
     else
       @types.getImplicitNilType()
     end
