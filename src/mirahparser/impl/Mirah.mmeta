@@ -1263,10 +1263,8 @@ parser MirahParser {
   def verify_columns(_start:Object, _end:Object) {
     start_pos = Position(_start)
     end_pos = Position(_end)
-    if end_pos.col != start_pos.col
-      if start_of_line(start_pos) && start_of_line(end_pos)
-        warn("Misaligned end", "closes block", start_pos.pos)
-      end
+    if (end_pos.col != start_pos.col) && (end_pos.line != start_pos.line) # either one line "def ...; ...; end" or multiline, but correct column is required in multiline variant
+      warn("Misaligned end", "closes block", start_pos.pos)
     end
   }
 
