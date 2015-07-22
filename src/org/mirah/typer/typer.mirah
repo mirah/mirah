@@ -473,9 +473,10 @@ class Typer < SimpleNodeVisitor
     name = if classdef.name
       classdef.name.identifier
     end
-    type = @types.defineType(scope, classdef, name, superclass, interfaces)
+    type = @types.createType(scope, classdef, name, superclass, interfaces)
     addScopeWithSelfType(classdef, type)
     infer(classdef.body, false) if classdef.body
+    @types.publishType(type)
     type
   end
 

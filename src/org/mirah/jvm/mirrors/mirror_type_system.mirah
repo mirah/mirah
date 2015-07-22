@@ -289,6 +289,11 @@ class MirrorTypeSystem implements TypeSystem
           f.onUpdate do |x, resolved|
             if resolved.kind_of?(MirrorType)
               MirrorType(resolved).addMethodListener(method_name, listener)
+              if resolved.kind_of?(MirrorProxy)
+                if BaseType(MirrorProxy(resolved).target).hasMember(method_name) # if the method was already created, then
+                  listener.methodChanged(MirrorType(resolved),method_name)       #   fire the listener right away
+                end
+              end
             end
           end
         end
@@ -417,7 +422,13 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
-  def defineType(scope, node, name, superclass, interfaces)
+  def defineType(scope:Scope, node:Node, name:String, superclass:TypeFuture, interfaces:List)
+    type_future = createType(scope,node,name,superclass,interfaces)
+    publishType(type_future)
+    type_future
+  end
+
+  def createType(scope:Scope, node:Node, name:String, superclass:TypeFuture, interfaces:List)
     position = node ? node.position : nil
     fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
@@ -454,10 +465,19 @@ class MirrorTypeSystem implements TypeSystem
                              superclass, interfaceArray)
     addClassIntrinsic(mirror)
     future = MirrorFuture.new(mirror, position)
-    @loader.defineMirror(type, future)
     future
   end
-
+  
+  def publishType(future:TypeFuture)
+    if future.kind_of?(MirrorFuture)
+      publishType(MirahMirror(MirrorProxy(MirrorFuture(future).inferredType).target),MirrorFuture(future))
+    end
+  end
+  
+  def publishType(mirror:MirahMirror,future:MirrorFuture):void
+    @loader.defineMirror(mirror.getAsmType, future)
+  end
+  
   def get(scope, typeref)
     name = resolveName(scope, typeref.name)
     type = if scope.nil?
