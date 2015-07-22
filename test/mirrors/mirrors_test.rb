@@ -15,7 +15,7 @@
 
 
 require "test_helper"
-require 'dist/mirahc.jar'
+require File.expand_path('../../../dist/mirahc.jar',__FILE__)
 
 class BaseMirrorsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
