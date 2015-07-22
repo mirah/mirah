@@ -1261,10 +1261,12 @@ parser MirahParser {
   }
 
   def verify_columns(_start:Object, _end:Object) {
-    start_pos = Position(_start)
-    end_pos = Position(_end)
-    if (end_pos.col != start_pos.col) && (end_pos.line != start_pos.line) # either one line "def ...; ...; end" or multiline, but correct column is required in multiline variant
-      warn("Misaligned end", "closes block", start_pos.pos)
+    if false # disable veriy_columns for the time being, as it is incompatible with "quote do\n  class Foo\n    def bar; end\n  end\nend", as the inner class statement is converted to "class Foo\n    def bar; end\n  end" and the spaces "  " before "class" are missing then. 
+      start_pos = Position(_start)
+      end_pos = Position(_end)
+      if (end_pos.col != start_pos.col) && (end_pos.line != start_pos.line) # either one line "def ...; ...; end" or multiline, but correct column is required in multiline variant
+        warn("Misaligned end", "closes block", start_pos.pos)
+      end
     end
   }
 
