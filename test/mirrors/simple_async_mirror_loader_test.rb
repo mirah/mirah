@@ -15,7 +15,7 @@
 
 require 'test/unit'
 require 'java'
-require 'dist/mirahc.jar'
+require File.expand_path('../../../dist/mirahc.jar',__FILE__)
 
 class SimpleAsyncMirrorLoaderTest < Test::Unit::TestCase
   java_import 'org.objectweb.asm.Type'

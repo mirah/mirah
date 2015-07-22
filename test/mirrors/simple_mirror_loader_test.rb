@@ -15,7 +15,7 @@
 
 require 'test/unit'
 require 'java'
-require 'dist/mirahc.jar'
+require File.expand_path('../../../dist/mirahc.jar',__FILE__)
 
 java_import 'org.mirah.jvm.mirrors.SimpleMirrorLoader'
 java_import 'org.mirah.jvm.mirrors.BaseType'
