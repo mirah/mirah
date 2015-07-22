@@ -25,6 +25,7 @@ import java.util.LinkedList
 import java.util.Collections
 import java.util.EnumSet
 import mmeta.BaseParser.Token
+import mmeta.SyntaxError
 import mirahparser.lang.ast.*
 import mirahparser.lang.ast.Position as IPosition
 import mirahparser.lang.ast.Float
@@ -1076,7 +1077,7 @@ parser MirahParser {
       begin
         String(@escape.parse(character, rule))
       rescue SyntaxError
-        raise syntaxError("valid escape", nil);
+        raise SyntaxError.new("valid escape", nil, _pos, _string, _list);
       end
     else
       character
@@ -1186,7 +1187,7 @@ parser MirahParser {
     begin
       Long.parseLong(string.replace('_', ''), radix)
     rescue NumberFormatException
-      raise syntaxError('valid number', nil)
+      raise SyntaxError.new('valid number', nil, _pos, _string, _list)
     end
   }
 
