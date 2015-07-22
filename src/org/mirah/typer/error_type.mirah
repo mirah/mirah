@@ -66,4 +66,8 @@ class ErrorType < SpecialType
     end
     new_message
   end
+
+  def isFullyResolved:boolean
+    false
+  end
 end

@@ -86,7 +86,7 @@ end
 # It is also responsible for transformations of things like optional arguments and I think,
 # managing intrinsics.
 #
-class MacroBuilder; implements Compiler
+class MacroBuilder; implements org.mirah.macros.Compiler
   def initialize(typer: Typer, backend: JvmBackend, parser: MirahParser=nil)
     @typer = typer
     @types = typer.type_system

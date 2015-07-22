@@ -525,7 +525,7 @@ class MethodLookup
     elsif scope.nil? || scope.selfType.nil?
       return 0 != (access & Opcodes.ACC_PUBLIC)
     end
-    selfType = MirrorType(scope.selfType.resolve)
+    selfType = MirrorType(scope.selfType.peekInferredType)
     if (0 != (access & Opcodes.ACC_PUBLIC) ||
         type.getAsmType.getDescriptor.equals(
             selfType.getAsmType.getDescriptor))

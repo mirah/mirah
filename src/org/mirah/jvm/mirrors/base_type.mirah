@@ -50,6 +50,7 @@ end
 interface MirrorType < JVMType, TypeMirror
   def notifyOfIncompatibleChange:void; end
   def onIncompatibleChange(listener:Runnable):void; end
+  def isFullyResolved():boolean; end # Whether the type itself is resolved and its superclasses and its superinterfaces.
   def getDeclaredMethods(name:String):List; end  # List<Member>
   def getAllDeclaredMethods:List; end
   def addMethodListener(name:String, listener:MethodListener):void; end
@@ -118,6 +119,10 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
 
   def onIncompatibleChange(listener:Runnable)
     @compatibility_listeners.add(listener)
+  end
+  
+  def isFullyResolved():boolean
+    false
   end
 
   def assignableFrom(other)
@@ -344,17 +349,20 @@ class AsyncMirror < BaseType
   def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
     super(context, type, flags, nil)
     @watched_methods = HashSet.new
+    @fullyResolved = false
     setSupertypes(superclass, interfaces)
   end
 
   def initialize(context:Context, type:Type, flags:int)
     super(context, type, flags, nil)
+    @fullyResolved = false
     @watched_methods = HashSet.new
   end
 
   def setSupertypes(superclass:TypeFuture, interfaces:TypeFuture[]):void
     mirror = self
     @interfaces = interfaces
+    @orig_superclass = superclass
     if superclass
       superclass.onUpdate do |x, resolved|
         mirror.resolveSuperclass(JVMType(resolved))
@@ -380,7 +388,7 @@ class AsyncMirror < BaseType
         parent.addMethodListener(name, self)
       end
     end
-    notifyOfIncompatibleChange
+    updateFullyResolved
   end
 
   def addMethodListener(name, listener)
@@ -394,5 +402,33 @@ class AsyncMirror < BaseType
 
   def interfaces:TypeFuture[]
     @interfaces
+  end
+  
+  def isFullyResolved():boolean
+    @fullyResolved
+  end
+
+  def updateFullyResolved:void
+    oldFullyResolved = @fullyResolved
+    @fullyResolved = checkFullyResolved
+    if oldFullyResolved!=@fullyResolved
+      notifyOfIncompatibleChange
+    end
+  end
+  
+  def checkFullyResolved
+    if (!@orig_superclass || @orig_superclass.isResolved)
+      if interfaces
+        interfaces.length.times do |i|
+          interfacE = interfaces[i]
+          if !(interfacE.isResolved && interfacE.resolve.isFullyResolved)
+            return false
+          end
+        end
+      end
+      true
+    else
+      false
+    end
   end
 end

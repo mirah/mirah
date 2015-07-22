@@ -60,6 +60,10 @@ class BaseTypeFuture; implements TypeFuture
     @resolved
   end
 
+  def peekInferredType
+    @resolved
+  end
+
   def resolve
     unless @resolved
       @@log.finest("#{self}: error: #{error_message}")

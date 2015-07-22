@@ -57,7 +57,7 @@ class DelegateFuture < BaseTypeFuture
         delegate.resolved(resolved)
       end
     end
-    resolved(nil) unless type.isResolved
+#   resolved(nil) unless type.isResolved
   end
 
   def dump(out)

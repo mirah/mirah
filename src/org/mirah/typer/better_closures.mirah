@@ -33,6 +33,7 @@ import java.io.File
 import org.mirah.jvm.compiler.ProxyCleanup
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.jvm.mirrors.BaseType
+import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorFuture
 import org.mirah.macros.MacroBuilder
 import org.mirah.typer.simple.TypePrinter2
@@ -625,14 +626,7 @@ class BetterClosureBuilder
                    ClassDefinition(class_or_script).name.identifier
                  else
                   @@log.fine "#{class_or_script} is not a class"
-                   source_name = class_or_script.position.source.name || 'DashE'
-                   id = ""
-                   File.new(source_name).getName.
-                     replace("\.duby|\.mirah", "").
-                     split("[_-]").each do |word|
-                      id += word.substring(0,1).toUpperCase + word.substring(1) 
-                     end
-                   id
+                   MirrorTypeSystem.getMainClassName(Script(class_or_script))
                  end
     get_scope(class_or_script).temp "#{outer_name}$#{scoped_name}"
   end

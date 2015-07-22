@@ -271,12 +271,68 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_class_name_from_file_with_underscore
     foo, = compile("puts 'blah'", :name => 'class_name_test.mirah')
-    assert_equal('ClassNameTest', foo.java_class.name)
+    assert_equal('ClassNameTestTopLevel', foo.java_class.name)
   end
 
   def test_class_name_from_file_with_dash
     foo, = compile("puts 'blah'", :name => 'class-dash-test.mirah')
-    assert_equal('ClassDashTest', foo.java_class.name)
+    assert_equal('ClassDashTestTopLevel', foo.java_class.name)
+  end
+
+  def test_class_name_from_file_used_within_source_match
+    cls, = compile(%q{
+
+      package array_subclass_test
+      
+      class Subclass < Superclass2
+        def self.run
+          ArraySubclassTest.new.baz
+        end
+      end
+      
+      class ArraySubclassTest
+      
+        def baz()
+          bar(Subclass[3])
+        end
+      
+        def bar(foo:Superclass2[])
+          "Success"
+        end
+      end
+      
+      class Superclass2
+      end
+    }, :name => 'Superclass2.mirah')
+    assert_equal('Success', cls.run)
+  end
+
+  def test_class_name_from_file_used_within_source_mismatch
+    cls, = compile(%q{
+
+      package array_subclass_test
+      
+      class Subclass < Superclass2
+        def self.run
+          ArraySubclassTest.new.baz
+        end
+      end
+      
+      class ArraySubclassTest
+      
+        def baz()
+          bar(Subclass[3])
+        end
+      
+        def bar(foo:Superclass2[])
+          "Success"
+        end
+      end
+      
+      class Superclass2
+      end
+    }, :name => 'Superclass3.mirah')
+    assert_equal('Success', cls.run)
   end
 
   def test_puts
@@ -2033,4 +2089,44 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_run_output("BAZ\n", cls)
   end
 
+  def test_late_superclass
+    cls, arg = compile(%q{
+      package subclass_test
+      
+      class TestSubclassAsMethodParameter
+        def bar(b:SuperClass)
+          "baz"
+        end
+      
+        def foo
+          a = SubClass.new
+          bar(a)
+        end 
+      end
+      
+      class SubClass < SuperClass
+      end
+      
+      class SuperClass
+      end
+      
+      puts TestSubclassAsMethodParameter.new.foo
+    })
+    assert_run_output("baz\n", cls)
+  end
+  
+  def test_late_superinterface
+    cls, arg = compile(%q{
+      package late_superinterface
+      
+      interface Interface2 < Interface1
+      end
+      
+      interface Interface3 < Interface2
+      end
+      
+      interface Interface1
+      end
+    })
+  end
 end

@@ -157,12 +157,12 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_main_type
-    assert_descriptor("LFooBar;", main_type)
+    assert_descriptor("LFooBarTopLevel;", main_type)
   end
   
   def test_main_type2
     set_filename("some_class.mirah")
-    assert_descriptor("LSomeClass;", main_type)
+    assert_descriptor("LSomeClassTopLevel;", main_type)
   end
 
   def test_main_type_is_meta
@@ -171,7 +171,7 @@ class MirrorsTest < BaseMirrorsTest
 
   def test_main_type_with_package
     @scope.package_set("foo.bar")
-    assert_descriptor("Lfoo/bar/FooBar;", main_type)
+    assert_descriptor("Lfoo/bar/FooBarTopLevel;", main_type)
   end
 
   def test_regex
@@ -270,19 +270,19 @@ class MirrorsTest < BaseMirrorsTest
   def test_define_type
     type = define_type("Subclass", main_type)
     assert_descriptor("LSubclass;", type)
-    assert_descriptor("LFooBar;", @types.getSuperClass(type))
+    assert_descriptor("LFooBarTopLevel;", @types.getSuperClass(type))
   end
 
   def test_define_inner_class_type
-    type = define_type("Subclass$Inner", main_type)
-    assert_descriptor("LSubclass$Inner;", type)
-    assert_descriptor("LFooBar;", @types.getSuperClass(type))
+    type = define_type("SubclassTopLevel$Inner", main_type)
+    assert_descriptor("LSubclassTopLevel$Inner;", type)
+    assert_descriptor("LFooBarTopLevel;", @types.getSuperClass(type))
   end
 
   def test_redefine_main_type
     existing = main_type.resolve.unmeta
-    type = @types.defineType(@scope, ClassDefinition.new, "FooBar", nil, [])
-    assert_descriptor("LFooBar;", type)
+    type = @types.defineType(@scope, ClassDefinition.new, "FooBarTopLevel", nil, [])
+    assert_descriptor("LFooBarTopLevel;", type)
     assert_same(existing, type.resolve)
   end
 
@@ -339,16 +339,16 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_classname_from_filename
-    assert_equal("SomeClass",
+    assert_equal("SomeClassTopLevel",
                  MirrorTypeSystem.classnameFromFilename("SomeClass.mirah"))
-    assert_equal("FooBar",
+    assert_equal("FooBarTopLevel",
                  MirrorTypeSystem.classnameFromFilename("FooBar.mirah"))
-    assert_equal("SomeClass",
+    assert_equal("SomeClassTopLevel",
                  MirrorTypeSystem.classnameFromFilename("some_class.mirah"))
-    assert_equal("FooBar",
+    assert_equal("FooBarTopLevel",
                  MirrorTypeSystem.classnameFromFilename("foo-bar.mirah"))
     assert_equal(
-        "SomeClass",
+        "SomeClassTopLevel",
         MirrorTypeSystem.classnameFromFilename("foo/bar/some_class.mirah"))
   end
 
@@ -423,7 +423,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     @types.getMethodDefType(main_type, 'foobar', [], @types.getVoidType, nil)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
-    assert_resolved_to('LFooBar;', type.resolve.returnType)
+    assert_resolved_to('LFooBarTopLevel;', type.resolve.returnType)
   end
 
   def test_multiple_method_defs
@@ -432,7 +432,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foobar', [], [], nil))
     assert_not_error(type)
-    assert_resolved_to('LFooBar;', type.resolve.returnType)
+    assert_resolved_to('LFooBarTopLevel;', type.resolve.returnType)
     type = @types.getMethodType(
         CallFuture.new(@types, @scope, main_type, true, 'foo', [], [], nil))
     assert_not_error(type)
@@ -489,7 +489,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
   end
 
   def test_async_arguments
-    type = @types.wrap(Type.getType("LFooBar;"))
+    type = @types.wrap(Type.getType("LFooBarTopLevel;"))
     @scope.selfType_set(type)
     int = @types.wrap(Type.getType("I"))
     short = @types.wrap(Type.getType("S"))
@@ -680,7 +680,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
 
     method = CallFuture.new(
         @types, @scope, main_type, true, 'class', [], [], nil)
-    assert_equal('java.lang.Class<FooBar>', method.resolve.toString)
+    assert_equal('java.lang.Class<FooBarTopLevel>', method.resolve.toString)
   end
 
   def test_generic_method
@@ -691,7 +691,7 @@ class MTS_MethodLookupTest < BaseMirrorsTest
     set = @types.get(@scope, typeref('java.util.Set'))
     checked = CallFuture.new(
         @types, @scope, collections, true, 'checkedSet', [set, klass], [], nil)
-    assert_equal('java.util.Set<FooBar>', checked.resolve.toString)
+    assert_equal('java.util.Set<FooBarTopLevel>', checked.resolve.toString)
   end
 
   def test_wildcard_return
