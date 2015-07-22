@@ -979,7 +979,7 @@ parser MirahParser {
   }
 
   def getDiagnosticSource {
-	Object(@source)
+    Object(@source)
   }
 
   def self.readToString(stream:InputStream) {
