@@ -51,7 +51,7 @@ class StringExtensions
     target    = gensym
     offset    = gensym
     length    = gensym
-    codepoint = block.arguments.required(0).name.identifier
+    codepoint = (block.arguments && block.arguments.required_size() > 0) ? block.arguments.required(0).name.identifier : gensym
     quote do
       `target` = `@call.target` 
       `offset` = 0
