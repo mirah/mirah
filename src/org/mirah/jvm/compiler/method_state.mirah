@@ -30,6 +30,8 @@ class MethodState
     @num_args += 1 if macrodef.arguments.block
     @name = macrodef.name.identifier
     @position = macrodef.name.position
+    @signature = nil
+    @static    = macrodef.isStatic
   end
 
   def initialize(method:MethodDefinition, type:MethodType)
@@ -52,9 +54,11 @@ class MethodState
       other.conflictsWith(self)
     elsif @signature.nil? || other.signature.nil?
       if @num_args == 0
-        # We know there's a conflict
-        # TODO: unless these are macros and one of them is static
-        Kind.ERROR
+        if self.isMacro && other.isMacro && (self.static ^ other.static) # unless these are macros and one of them is static
+          nil
+        else                                                             # we know there's a conflict
+          Kind.ERROR
+        end
       else
         # At least one of these is a macro, so it's hard to tell if
         # the arguments will actually conflict. Just emit a warning.
@@ -80,5 +84,9 @@ class MethodState
 
   def toString
     "#{@signature ? 'method' : 'macro'} #{@name}"
+  end
+  
+  def isMacro
+    @signature==nil
   end
 end

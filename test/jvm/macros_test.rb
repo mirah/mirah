@@ -209,6 +209,38 @@ class MacrosTest < Test::Unit::TestCase
     assert_equal("foobar", script.function)
   end
 
+  def test_static_macro_instance_macro_coexistence_vcall
+    script, cls = compile(%q[
+      class StaticMacrosWithInstanceMacros
+        def foobar
+          "foobar"
+        end
+
+        macro def macro_foobar
+          quote {`@call.target`.foobar}
+        end
+
+        def call_foobar_instance
+          macro_foobar
+        end
+
+        macro def self.macro_foobar
+          quote {`@call.target`.new.foobar}
+        end
+
+        def self.call_foobar_static
+          macro_foobar
+        end
+      end
+
+      def function
+        "#{StaticMacrosWithInstanceMacros.call_foobar_static}\n#{StaticMacrosWithInstanceMacros.new.call_foobar_instance}"
+      end
+    ])
+
+    assert_equal("foobar\nfoobar", script.function)
+  end
+
 
   def test_unquote_method_definitions_with_main
     script, cls = compile(<<-'EOF')
