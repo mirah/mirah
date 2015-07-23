@@ -2203,4 +2203,24 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
     })
   end
+
+  def test_init_before_use_in_loop
+    cls, arg = compile(%q{
+      macro def loop_with_init(block:Block)
+        i = block.arguments.required(0).name.identifier
+        last = gensym
+        quote do
+          while `i` < `last`
+            init { `i` = 0; `last` = 4}
+            post { `i` = `i` + 1 }
+            `block.body`
+          end
+        end
+      end
+      loop_with_init do |i|
+        print i
+      end
+    })
+    assert_run_output("0123", cls)
+  end
 end
