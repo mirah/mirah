@@ -50,9 +50,9 @@ class MethodState
   def conflictsWith(other:MethodState):Kind
     return nil unless @name.equals(other.name)
     return nil unless @num_args == other.num_args
-    if @signature.nil? && other.signature
+    if self.isMacro && other.signature
       other.conflictsWith(self)
-    elsif @signature.nil? || other.signature.nil?
+    elsif self.isMacro || other.isMacro
       if @num_args == 0
         if self.isMacro && other.isMacro && (self.static ^ other.static) # unless these are macros and one of them is static
           nil
