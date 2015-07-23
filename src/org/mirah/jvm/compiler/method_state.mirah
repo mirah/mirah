@@ -54,7 +54,7 @@ class MethodState
       other.conflictsWith(self)
     elsif self.isMacro || other.isMacro
       if @num_args == 0
-        if self.isMacro && other.isMacro && (self.static ^ other.static) # unless these are macros and one of them is static
+        if self.isMacro && other.isMacro && (self.static ^ other.static) # Macros are allowed to have overlapping no-arg signatures if exactgly one of them is static.
           nil
         else                                                             # we know there's a conflict
           Kind.ERROR
