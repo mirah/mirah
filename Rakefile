@@ -339,8 +339,9 @@ else # original
                Dir['src/org/mirah/tool/*.mirah'].sort
 
   extensions_srcs = Dir['src/org/mirah/builtins/*_extensions.mirah'].sort
+  ant_srcs        =    ['src/org/mirah/ant/compile.mirah']
 
-  file new_jar => mirah_srcs + extensions_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+  file new_jar => mirah_srcs + extensions_srcs + ant_srcs + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
     build_dir = 'build/bootstrap'+new_jar.gsub(/[.-\/]/, '_')
     rm_rf build_dir
     mkdir_p build_dir
