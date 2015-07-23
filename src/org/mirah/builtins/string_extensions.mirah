@@ -46,6 +46,7 @@ class StringExtensions
     quote { Integer.parseInt(`@call.target`) }
   end
   
+  # Iterates over each unicode codepoint of the String, yielding an int.
   macro def each_codepoint(block:Block)
     target    = gensym
     offset    = gensym
