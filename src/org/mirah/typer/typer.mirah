@@ -558,10 +558,10 @@ class Typer < SimpleNodeVisitor
 
   def visitLoop(node, expression)
     enhanceLoop(node)
-    infer(node.condition, true)
-    infer(node.body, false)
     infer(node.init, false)
+    infer(node.condition, true)
     infer(node.pre, false)
+    infer(node.body, false)
     infer(node.post, false)
     @types.getNullType()
   end
