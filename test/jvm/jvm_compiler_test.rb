@@ -343,6 +343,35 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal("Hello World!\n", output)
   end
 
+  def test_puts_classmethod_no_args
+    cls, = compile(%q{
+      def foo
+        puts
+        puts
+      end
+    })
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("\n\n", output)
+  end
+
+  def test_puts_instancemethod_no_args
+    cls, = compile(%q{
+      class Foo
+        def foo
+          puts
+          puts
+          puts
+        end
+      end
+    })
+    output = capture_output do
+      cls.new.foo
+    end
+    assert_equal("\n\n\n", output)
+  end
+
   def test_print
     cls, = compile("def foo;print 'Hello World!';end")
     output = capture_output do
