@@ -112,6 +112,14 @@ class ObjectExtensions
     end
   end
   
+  macro def self.native(mdef:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                          [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('NATIVE')]))])
+    mdef.annotations.add(anno)
+    mdef.setParent(nil)
+    mdef
+  end
+
   macro def self.abstract(klass:ClassDefinition)
     anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
                           [HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('ABSTRACT')]))])

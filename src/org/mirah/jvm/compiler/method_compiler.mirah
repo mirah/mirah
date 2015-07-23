@@ -68,7 +68,7 @@ class MethodCompiler < BaseCompiler
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
     isExpression = isVoid() ? nil : Boolean.TRUE
-    if (@flags & Opcodes.ACC_ABSTRACT) == 0
+    if (@flags & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0
       prepareBinding(mdef)
       @lookingForDelegate = mdef.kind_of?(ConstructorDefinition)
       compileBody(mdef.body, isExpression, @returnType)
