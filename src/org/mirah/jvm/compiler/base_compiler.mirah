@@ -222,6 +222,10 @@ class BaseCompiler < SimpleNodeVisitor
     # ignore. It was already compiled
   end
   
+  def visitFieldAnnotationRequest(node, expression)
+    # ignore
+  end
+  
   def calculateFlagsFromAnnotations(defaultAccess:int, annotations:AnnotationList):int
     access = defaultAccess
     flags = 0

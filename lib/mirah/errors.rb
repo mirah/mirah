@@ -16,11 +16,13 @@
 module Mirah
   class MirahError < StandardError
     attr_accessor :position
+    attr_accessor :diagnostic
     attr_accessor :cause
 
-    def initialize(message, position=nil)
+    def initialize(message, position=nil, diagnostic=nil)
       super(message)
       @position = position
+      @diagnostic = diagnostic
     end
 
     def inspect

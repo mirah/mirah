@@ -2054,6 +2054,44 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("0\n") { cls.foo(nil)}
     assert_output("2\n") { cls.foo(arg.new)}
   end
+  
+  def test_local_method_conflict2
+    cls, arg = compile(%q{
+      
+      class Foo1
+        
+        def equals(o:Foo1)
+          self===o
+        end
+      end
+      
+      class Bar
+        attr_reader   foo1:Foo1
+        attr_reader   foo2:Foo2
+        
+        def foo1method(foo1:Foo1)
+          puts (@foo1==foo1)
+          @foo1 = foo1
+        end
+        
+        def foo2method(foo2:Foo2)
+          puts (@foo2==foo2)
+          @foo2 = foo2
+        end
+      end
+      
+      class Foo2
+        
+        def equals(o:Foo2)
+          self===o
+        end
+      end
+      
+      Bar.new.foo1method(Foo1.new)
+      Bar.new.foo2method(Foo2.new)
+    })
+    assert_run_output("false\nfalse\n", cls)
+  end
 
   def test_incompatible_return_type_error_message
     e = assert_raise_kind_of Mirah::MirahError do
@@ -2087,6 +2125,42 @@ class JVMCompilerTest < Test::Unit::TestCase
       puts Foo2.new.baz
     })
     assert_run_output("BAZ\n", cls)
+  end
+  
+  def test_line_number_increase_by_multiline_sstring_literal
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, arg = compile(%q{
+        class Foo
+          CONST = 'a
+        
+        
+        
+          b'
+        end
+        
+        
+        ERROR_SHOULD_BE_HERE
+      })
+    end
+    assert_equal 11,e.diagnostic.getLineNumber
+  end
+  
+  def test_line_number_increase_by_multiline_dstring_literal
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, arg = compile(%q{
+        class Foo
+          CONST = "a
+        
+        
+        
+          b"
+        end
+        
+        
+        ERROR_SHOULD_BE_HERE
+      })
+    end
+    assert_equal 11,e.diagnostic.getLineNumber
   end
 
   def test_late_superclass

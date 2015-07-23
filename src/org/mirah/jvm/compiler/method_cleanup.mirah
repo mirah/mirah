@@ -52,7 +52,7 @@ class MethodCleanup < NodeScanner
           type = JVMType(Object(MirrorType(type).erasure))
         end
         typeref = TypeRefImpl.new(type.name, JVMTypeUtils.isArray(type), false, node.position)
-        decl = FieldDeclaration.new(SimpleString.new(String(name)), typeref, [
+        decl = FieldDeclaration.new(SimpleString.new(String(name)), typeref, nil, [
           Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
             HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED')),
             ])

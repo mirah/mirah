@@ -40,7 +40,7 @@ module JVMCompiler
                   else
                     "<unknown>"
                   end
-        raise Mirah::MirahError.new(diagnostic.getMessage(Locale.getDefault), source)
+        raise Mirah::MirahError.new(diagnostic.getMessage(Locale.getDefault), source, diagnostic)
       end
       super
     end

@@ -644,7 +644,7 @@ class BlocksTest < Test::Unit::TestCase
 
   def test_closure_with_or
     cls, = compile(<<-EOF)
-    def r(run: Runnable) run.run; end
+    def r(run: java.lang.Runnable) run.run; end
     r { puts "a" || "b"}
     EOF
 
