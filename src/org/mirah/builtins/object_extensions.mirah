@@ -73,9 +73,9 @@ class ObjectExtensions
   macro def puts()
     quote {System.out.println()}
   end
-# macro def self.puts()
-#   quote {System.out.println()}
-# end
+  macro def self.puts()
+    quote {System.out.println()}
+  end
 
   macro def print(node)
     quote {System.out.print(` [node] `)}

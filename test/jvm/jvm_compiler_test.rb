@@ -344,7 +344,6 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_puts_classmethod_no_args
-    pend "Newer compiler needed."
     cls, = compile(%q{
       def foo
         puts
