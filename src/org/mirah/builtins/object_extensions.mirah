@@ -127,6 +127,30 @@ class ObjectExtensions
     mthd
   end
 
+  # "protected" on a list of methods
+  macro def self.protected(methods_proxy:NodeList)
+    import org.mirah.typer.ProxyNode
+    import java.util.LinkedList
+    work = LinkedList.new([methods_proxy])
+    
+    while !work.isEmpty
+      node = work.poll
+      if node.kind_of?(MethodDefinition)
+        anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),[HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED'))])
+        MethodDefinition(node).annotations.add(anno)
+      elsif node.kind_of?(ProxyNode)
+        work.add(ProxyNode(node).get(0))
+      elsif node.kind_of?(NodeList)
+        list = NodeList(node)
+        list.size.times do |i|
+          work.add(list.get(i))
+        end
+      end
+    end
+    methods_proxy.get(0).setParent(nil)
+    methods_proxy.get(0) # FIXME: if we used methods_proxy instead of methods_proxy.get(0) as return value, then the annotation is not effective
+  end
+  
   macro def self.attr_accessor(hash:Hash)
     args = [hash]
     quote do
