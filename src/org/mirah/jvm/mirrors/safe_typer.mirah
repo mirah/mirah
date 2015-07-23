@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.mirrors
 
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser

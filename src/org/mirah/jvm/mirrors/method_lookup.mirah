@@ -24,7 +24,7 @@ import java.util.List
 import java.util.Map
 import java.util.Set
 import java.util.logging.Level
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.Position
 import org.objectweb.asm.Opcodes
 import org.mirah.MirahLogFormatter
