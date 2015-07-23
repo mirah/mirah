@@ -14,7 +14,7 @@
 # limitations under the License.
 
 class BinaryTrees
-  def self.main(args:String[])
+  def self.main(args:String[]):void
     n = 0
     n = Integer.parseInt(args[0]) if args.length > 0
 

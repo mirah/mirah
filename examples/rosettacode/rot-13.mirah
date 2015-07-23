@@ -15,7 +15,7 @@
 
 
 
-def rot13 (value:string)
+def rot13 (value:String)
     result = ""
     d = ' '.toCharArray[0]
     value.toCharArray.each do |c|
