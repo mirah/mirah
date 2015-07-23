@@ -330,10 +330,10 @@ if false
 
 else # original
 
-  naked_mirahc_jar = new_jar.gsub(".jar","-naked.jar")
+  naked_mirahc_jar = new_jar.sub(".jar","-naked.jar")
 
   mirah_srcs = Dir['src/org/mirah/{jvm/types,macros,util,}/*.mirah'].sort +
-               Dir['src/org/mirah/builtins/builtins.mirah'].sort +
+               Dir['src/org/mirah/builtins/builtins.mirah'] +
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
