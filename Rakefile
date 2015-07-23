@@ -318,13 +318,17 @@ if false
 
 else # original
 
+  naked_mirahc_jar = new_jar.gsub(".jar","-naked.jar")
 
-  mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah'].sort +
+  mirah_srcs = Dir['src/org/mirah/{jvm/types,macros,util,}/*.mirah'].sort +
+               Dir['src/org/mirah/builtins/builtins.mirah'].sort +
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
 
-  file new_jar => mirah_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+  extensions_srcs = Dir['src/org/mirah/builtins/*_extensions.mirah'].sort
+
+  file new_jar => mirah_srcs + extensions_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
     build_dir = 'build/bootstrap'+new_jar.gsub(/[.-\/]/, '_')
     rm_rf build_dir
     mkdir_p build_dir
@@ -358,6 +362,17 @@ else # original
 
             *mirah_srcs)
   
+    # Build the jar                    
+    ant.jar 'jarfile' => naked_mirahc_jar do
+      fileset 'dir' => build_dir
+      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/mirah-parser.jar'
+      metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
+      manifest do
+        attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
+      end
+    end
+
       # compile ant stuff
       ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
       runjava '-Xmx512m',
@@ -366,6 +381,9 @@ else # original
             '-classpath', [default_class_path, ant_classpath].join(File::PATH_SEPARATOR),
             '--jvm', build_version,
             'src/org/mirah/ant'
+
+    # compile extensions stuff
+    runjava('-Xmx512m', '-Dorg.mirah.builtins.enabled=false', naked_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *extensions_srcs)
 
     # Build the jar                    
     ant.jar 'jarfile' => new_jar do
