@@ -228,6 +228,18 @@ file_create 'javalib/mirahc-prev.jar' do
   end
 end
 
+def build_jar(new_jar,build_dir)
+  # Build the jar                    
+  ant.jar 'jarfile' => new_jar do
+    fileset 'dir' => build_dir
+    zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+    zipfileset 'src' => 'javalib/mirah-parser.jar'
+    metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
+    manifest do
+      attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
+    end
+  end
+end
 
 def bootstrap_mirah_from(old_jar, new_jar)
   
@@ -362,16 +374,7 @@ else # original
 
             *mirah_srcs)
   
-    # Build the jar                    
-    ant.jar 'jarfile' => naked_mirahc_jar do
-      fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
-      zipfileset 'src' => 'javalib/mirah-parser.jar'
-      metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
-      manifest do
-        attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
-      end
-    end
+    build_jar(naked_mirahc_jar,build_dir)
 
       # compile ant stuff
       ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
@@ -385,16 +388,7 @@ else # original
     # compile extensions stuff
     runjava('-Xmx512m', '-Dorg.mirah.builtins.enabled=false', naked_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *extensions_srcs)
 
-    # Build the jar                    
-    ant.jar 'jarfile' => new_jar do
-      fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
-      zipfileset 'src' => 'javalib/mirah-parser.jar'
-      metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
-      manifest do
-        attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
-      end
-    end
+    build_jar(new_jar,build_dir)
   end
 end # feature flag
 end
