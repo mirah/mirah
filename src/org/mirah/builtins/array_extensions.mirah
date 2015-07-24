@@ -109,7 +109,9 @@ class ArrayExtensions
     end
   end
 
-  # View this array as a java.util.List
+  # View this array as a java.util.List.
+  # Note that this is different from (a possible) #to_a in that #to_a returns a new List which is then independent of this array,
+  # while #as_list returns a List which is linked to this array. Hence, changes to the List are reflected in this array, and vice versa.
   macro def as_list
     quote do
       java::util::Arrays.asList(`@call.target`)
