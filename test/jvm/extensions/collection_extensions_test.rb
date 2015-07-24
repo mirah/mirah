@@ -33,7 +33,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
 
   def test_java_array_join_single
     cls, = compile(<<-EOF)
-      x = ["a"].to_a(String).join
+      x = ["a"].to_array(String).join
       puts x
     EOF
     assert_run_output("a\n", cls)
@@ -41,7 +41,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
 
   def test_java_array_join_multiple
     cls, = compile(<<-EOF)
-      x = ["a",1,"c"].to_a(Object).join
+      x = ["a",1,"c"].to_array(Object).join
       puts x
     EOF
     assert_run_output("a1c\n", cls)
@@ -89,7 +89,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
 
   def test_java_array_join_separator_single
     cls, = compile(<<-EOF)
-      x = ["a"].to_a(String).join(",")
+      x = ["a"].to_array(String).join(",")
       puts x
     EOF
     assert_run_output("a\n", cls)
@@ -97,7 +97,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
 
   def test_java_array_join_separator_multiple
     cls, = compile(<<-EOF)
-      x = ["a",1,"c"].to_a(Object).join(",")
+      x = ["a",1,"c"].to_array(Object).join(",")
       puts x
     EOF
     assert_run_output("a,1,c\n", cls)
@@ -126,7 +126,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
   # implicitly tests each_with_index
   def test_mapa_on_java_array_with_complex_basetype
     cls, = compile(%q[
-      x = ["a","b","c","d"].to_a(String).mapa do |s|
+      x = ["a","b","c","d"].to_array(String).mapa do |s|
         "#{s}x"
       end
       puts x[2]
@@ -138,7 +138,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
   # implicitly tests each_with_index
   def test_mapa_on_java_array_with_primitive_basetype
     cls, = compile(%q[
-      x = [1,2,3,4].to_a(int).mapa do |s|
+      x = [1,2,3,4].to_array(int).mapa do |s|
         "#{s}x"
       end
       puts x[2]

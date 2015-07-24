@@ -132,7 +132,7 @@ class CollectionExtensions
     end
   end
     
-#  macro def to_a_complex(basetype) # just for complex types, maybe this implementation could be auto-choosen if the compiler can deduce that the type supplied is indeed a complex type
+#  macro def to_array_complex(basetype) # just for complex types, maybe this implementation could be auto-choosen if the compiler can deduce that the type supplied is indeed a complex type
 #    list  = gensym
 #    quote do
 #      `list` = `@call.target`
@@ -140,8 +140,10 @@ class CollectionExtensions
 #    end
 #  end
 
-  # Convert this Collection to a Java-style array.
-  macro def to_a(basetype) # for primitive types and complex types
+  # Convert this Collection to a Java-style array. You have to supply the base-type of the array, currently.
+  #
+  #   [1,2,3,4].to_array(int)
+  macro def to_array(basetype) # for primitive types and complex types
     list  = gensym
     res   = gensym
     value = gensym
