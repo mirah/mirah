@@ -187,8 +187,10 @@ class ObjectExtensions
         work.add(ProxyNode(node).get(0))
       elsif node.kind_of?(NodeList)
         list = NodeList(node)
-        list.size.times do |i|
+        i = 0
+        while i < list.size
           work.add(list.get(i))
+          i+=1
         end
       end
     end
