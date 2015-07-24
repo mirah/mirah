@@ -4,7 +4,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import java.util.Arrays
 import java.util.List
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Formatter
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level

@@ -16,7 +16,7 @@
 package org.mirah.typer
 
 import java.util.*
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 import mirah.lang.ast.*
 
@@ -57,7 +57,7 @@ class DelegateFuture < BaseTypeFuture
         delegate.resolved(resolved)
       end
     end
-    resolved(nil) unless type.isResolved
+#   resolved(nil) unless type.isResolved
   end
 
   def dump(out)

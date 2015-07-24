@@ -16,7 +16,7 @@
 package org.mirah.typer
 
 import java.util.*
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 import mirah.lang.ast.*
 
@@ -33,6 +33,7 @@ class DerivedFuture < BaseTypeFuture
       self.position = BaseTypeFuture(target).position
     end
     @target = target
+    @transformer = transformer
     future = self
     target.onUpdate do |x, resolved|
       if resolved.isError
@@ -48,6 +49,10 @@ class DerivedFuture < BaseTypeFuture
       @target.resolve
     end
     super
+  end
+  
+  def peekInferredType
+    @transformer.transform(@target.peekInferredType)
   end
 
   def dump(out)

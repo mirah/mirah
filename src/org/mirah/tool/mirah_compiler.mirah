@@ -22,7 +22,7 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.util.HashSet
 import java.util.List
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 import java.util.regex.Pattern
 import java.util.Collections
@@ -104,7 +104,7 @@ class MirahCompiler implements JvmBackend
     context[Scoper] = @scoper = SimpleScoper.new(BetterScopeFactory.new)
 
     context[MirahParser] = @parser = MirahParser.new
-    BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics)
+    # BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics) # Field "diagnostics" does not seem to exist in the current mirah/mmeta source code, but it did exist in an ancient mmeta.jar. 
 
     @macro_context[Scoper] = @scoper
     @macro_context[MirahParser] = @parser

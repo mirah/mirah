@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.compiler
 
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.ClassWriter
 

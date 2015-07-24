@@ -18,7 +18,7 @@ package org.mirah.jvm.compiler
 import java.io.File
 import java.util.Collections
 import java.util.LinkedList
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.*
 import org.mirah.util.Context
 import org.mirah.jvm.types.JVMType
@@ -127,7 +127,15 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   
   def visitFieldDeclaration(node, expression)
     flags = calculateFlagsFromAnnotations(Opcodes.ACC_PRIVATE, node.annotations)
-    fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, nil)
+    initial_value = nil
+    if (flags&(Opcodes.ACC_FINAL|Opcodes.ACC_STATIC))==Opcodes.ACC_FINAL|Opcodes.ACC_STATIC
+      if node.type.typeref.name.equals('long') 
+        initial_value = Long.new(mirah::lang::ast::Fixnum(node.value).value)
+      else # If you want to support more types of final static fields, add type handling here
+        raise "Cannot support field declaration #{node}: node.type.typeref.name=#{node.type.typeref.name}." 
+      end
+    end
+    fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, initial_value)
     context[AnnotationCompiler].compile(node.annotations, fv)
     fv.visitEnd
   end

@@ -17,7 +17,7 @@ package org.mirah.tool
 
 import java.util.List
 import java.util.HashSet
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import javax.tools.DiagnosticListener
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Position

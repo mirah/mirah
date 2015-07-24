@@ -16,7 +16,7 @@
 package org.mirah.typer
 
 import java.util.*
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
@@ -473,9 +473,10 @@ class Typer < SimpleNodeVisitor
     name = if classdef.name
       classdef.name.identifier
     end
-    type = @types.defineType(scope, classdef, name, superclass, interfaces)
+    type = @types.createType(scope, classdef, name, superclass, interfaces)
     addScopeWithSelfType(classdef, type)
     infer(classdef.body, false) if classdef.body
+    @types.publishType(type)
     type
   end
 
@@ -487,6 +488,10 @@ class Typer < SimpleNodeVisitor
     visitClassDefinition(idef, expression)
   end
 
+  def visitFieldAnnotationRequest(decl, expression)
+    @types.getNullType()
+  end
+  
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
     getFieldTypeOrDeclare(decl, decl.isStatic).declare(
@@ -553,10 +558,10 @@ class Typer < SimpleNodeVisitor
 
   def visitLoop(node, expression)
     enhanceLoop(node)
-    infer(node.condition, true)
-    infer(node.body, false)
     infer(node.init, false)
+    infer(node.condition, true)
     infer(node.pre, false)
+    infer(node.body, false)
     infer(node.post, false)
     @types.getNullType()
   end
@@ -815,13 +820,13 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitNodeList(body, expression)
-    i = 0
-    while i < body.size - 1
-      infer(body.get(i), false)
-      i += 1
-    end
     if body.size > 0
-      infer(body.get(body.size - 1), expression != nil)
+      i = 0
+      while i < body.size # note that we re-evaluate body.size each time, as body.size may change _during_ infer(), as macros may change the AST
+        res = infer(body.get(i),(i<body.size-1) ? false : expression != nil)
+        i += 1
+      end
+      res
     else
       @types.getImplicitNilType()
     end

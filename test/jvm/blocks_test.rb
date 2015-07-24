@@ -644,7 +644,7 @@ class BlocksTest < Test::Unit::TestCase
 
   def test_closure_with_or
     cls, = compile(<<-EOF)
-    def r(run: Runnable) run.run; end
+    def r(run: java.lang.Runnable) run.run; end
     r { puts "a" || "b"}
     EOF
 
@@ -794,7 +794,7 @@ class BlocksTest < Test::Unit::TestCase
       end
     EOF
     class_names = classes.map(&:java_class).map(&:name)
-    pattern = /MyScript\$.*?Binding\d*/
+    pattern = /MyScriptTopLevel\$.*?Binding\d*/
 
     assert class_names.find{|c| c.match pattern },
       "generated classes: #{class_names} didn't contain #{pattern}."

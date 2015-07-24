@@ -16,7 +16,7 @@
 package org.mirah.typer
 
 import mirah.lang.ast.*
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.Collections
 import java.util.LinkedHashMap
 import java.util.List
@@ -26,6 +26,7 @@ import java.io.File
 
 
 
+import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.macros.MacroBuilder
 
@@ -125,15 +126,8 @@ class ClosureBuilder
     outer_name = if class_or_script.kind_of? ClassDefinition
                    ClassDefinition(class_or_script).name.identifier
                  else
-                   source_name = class_or_script.position.source.name || 'DashE'
-                   id = ""
-                   File.new(source_name).getName.
-                     replace("\.duby|\.mirah", "").
-                     split("[_-]").each do |word|
-                       id += word.substring(0,1).toUpperCase + word.substring(1)
-                     end
-                   id
-                  end
+                   MirrorTypeSystem.getMainClassName(Script(class_or_script))
+                 end
     get_scope(class_or_script).temp "#{outer_name}$#{scoped_name}"
   end
 

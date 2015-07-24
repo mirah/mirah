@@ -24,7 +24,7 @@ import java.util.List
 import java.util.Map
 import java.util.Set
 import java.util.logging.Level
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.Position
 import org.objectweb.asm.Opcodes
 import org.mirah.MirahLogFormatter
@@ -525,7 +525,7 @@ class MethodLookup
     elsif scope.nil? || scope.selfType.nil?
       return 0 != (access & Opcodes.ACC_PUBLIC)
     end
-    selfType = MirrorType(scope.selfType.resolve)
+    selfType = MirrorType(scope.selfType.peekInferredType)
     if (0 != (access & Opcodes.ACC_PUBLIC) ||
         type.getAsmType.getDescriptor.equals(
             selfType.getAsmType.getDescriptor))

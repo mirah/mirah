@@ -35,7 +35,7 @@ public class MirahClassLoader extends SecureClassLoader {
   }
 
   public Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
-    Class cls = findLoadedClass(name);
+    Class cls = findLoadedClass(name.replace('/', '.'));
     if (cls == null) {
       if (class_map.containsKey(name)) {
         cls = findClass(name);

@@ -209,6 +209,38 @@ class MacrosTest < Test::Unit::TestCase
     assert_equal("foobar", script.function)
   end
 
+  def test_static_macro_instance_macro_coexistence_vcall
+    script, cls = compile(%q[
+      class StaticMacrosWithInstanceMacros
+        def foobar
+          "foobar"
+        end
+
+        macro def macro_foobar
+          quote {`@call.target`.foobar}
+        end
+
+        def call_foobar_instance
+          macro_foobar
+        end
+
+        macro def self.macro_foobar
+          quote {`@call.target`.new.foobar}
+        end
+
+        def self.call_foobar_static
+          macro_foobar
+        end
+      end
+
+      def function
+        "#{StaticMacrosWithInstanceMacros.call_foobar_static}\n#{StaticMacrosWithInstanceMacros.new.call_foobar_instance}"
+      end
+    ])
+
+    assert_equal("foobar\nfoobar", script.function)
+  end
+
 
   def test_unquote_method_definitions_with_main
     script, cls = compile(<<-'EOF')
@@ -283,6 +315,10 @@ class MacrosTest < Test::Unit::TestCase
   end
 
   def test_add_args_in_macro
+    pend "This is poor-man's splat-operator. It should be replaced by a proper splat-operator or abolished entirely."
+    # This unquote is intended to evaluate to more than just exactly one AST node (that is, 2 nodes in this case) and hence
+    # modifies the NodeList higher in the syntax tree, surprisingly.
+    # Hence, the intention of this unquote violates the Principle of Least Surprise. 
     cls, = compile(<<-EOF)
       macro def foo(a:Array)
         quote { bar "1", `a.values`, "2"}
@@ -465,5 +501,57 @@ class MacrosTest < Test::Unit::TestCase
     end
     assert_equal "UsedInMacro;", e.position
     assert_equal "Cannot find class org.bar.p1.UsedInMacro", e.message
+  end
+
+  def test_macro_changes_body_of_class_second_but_last_element
+    script, cls = compile(%q{
+      class ChangeableClass
+        macro def self.method_adding_macro
+          node  = @call
+          node  = node.parent until node.nil? || node.kind_of?(ClassDefinition) # cannot call enclosing_class(), currently
+          klass = ClassDefinition(node)
+          
+          klass.body.add(quote do
+            def another_method
+              puts "called"
+            end
+          end)
+          nil
+        end
+        
+        method_adding_macro
+        
+        def last_body_element
+          1
+        end
+      end
+      
+      ChangeableClass.new.another_method
+    })
+    assert_run_output("called\n", script)
+  end
+
+  def test_macro_changes_body_of_class_last_element
+    script, cls = compile(%q{
+      class ChangeableClass
+        macro def self.method_adding_macro
+          node  = @call
+          node  = node.parent until node.nil? || node.kind_of?(ClassDefinition) # cannot call enclosing_class(), currently
+          klass = ClassDefinition(node)
+          
+          klass.body.add(quote do
+            def another_method
+              puts "called"
+            end
+          end)
+          nil
+        end
+        
+        method_adding_macro
+      end
+      
+      ChangeableClass.new.another_method
+    })
+    assert_run_output("called\n", script)
   end
 end

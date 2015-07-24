@@ -21,7 +21,7 @@ import java.util.LinkedList
 import java.util.List
 import java.util.Collection
 import java.util.Set
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.ArrayType
 import javax.lang.model.type.DeclaredType

@@ -74,11 +74,14 @@ class MirahMethod < AsyncMember implements MethodListener
     @super_return_type = DelegateFuture.new
     @declared_return_type = returnType
     @return_type.declare(wrap(@super_return_type), position)
-    @return_type.resolved(nil)
+#   @return_type.resolved(nil)
     @return_type.error_message = "Cannot determine return type."
-    @error = ErrorType.new([['Does not override a method from a supertype.', @position]])
     @arity = argumentTypes.size
     setupOverrides(argumentTypes)
+  end
+  
+  def generate_error
+    @error ||= ErrorType.new([['Does not override a method from a supertype.', @position]]) 
   end
 
   def wrap(target:TypeFuture):TypeFuture
@@ -116,7 +119,7 @@ class MirahMethod < AsyncMember implements MethodListener
     @arguments = DelegateFuture[size]
     size.times do |i|
       @arguments[i] = DelegateFuture.new
-      @arguments[i].type = @error
+      @arguments[i].type = generate_error
       arg = AssignableTypeFuture(argumentTypes[i])
       # Don't declare it if it's optional or already is declared.
       unless arg.hasDeclaration || arg.assignedValues(false, false).size > 0
@@ -146,7 +149,7 @@ class MirahMethod < AsyncMember implements MethodListener
       end
     else
       error = if supertype_methods.isEmpty
-        @error
+        generate_error
       else
         ErrorType.new([["Ambiguous override: #{supertype_methods}", @position]])
       end
@@ -175,8 +178,8 @@ class MirahMethod < AsyncMember implements MethodListener
       filtered.add(method) if match
     end
     if filtered.isEmpty
-      @super_return_type.type = @error
-      @return_type.resolved(nil)
+      @super_return_type.type = generate_error
+#     @return_type.resolved(nil)
       @return_type.setHasDeclaration(false)
     else
       @return_type.setHasDeclaration(true)

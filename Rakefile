@@ -228,6 +228,18 @@ file_create 'javalib/mirahc-prev.jar' do
   end
 end
 
+def build_jar(new_jar,build_dir)
+  # Build the jar                    
+  ant.jar 'jarfile' => new_jar do
+    fileset 'dir' => build_dir
+    zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+    zipfileset 'src' => 'javalib/mirah-parser.jar'
+    metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
+    manifest do
+      attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
+    end
+  end
+end
 
 def bootstrap_mirah_from(old_jar, new_jar)
   
@@ -318,13 +330,18 @@ if false
 
 else # original
 
+  naked_mirahc_jar = new_jar.sub(".jar","-naked.jar")
 
-  mirah_srcs = Dir['src/org/mirah/{builtins,jvm/types,macros,util,}/*.mirah'].sort +
+  mirah_srcs = Dir['src/org/mirah/{jvm/types,macros,util,}/*.mirah'].sort +
+               Dir['src/org/mirah/builtins/builtins.mirah'] +
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
 
-  file new_jar => mirah_srcs + ['src/org/mirah/ant/compile.mirah'] + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+  extensions_srcs = Dir['src/org/mirah/builtins/*_extensions.mirah'].sort
+  ant_srcs        =    ['src/org/mirah/ant/compile.mirah']
+
+  file new_jar => mirah_srcs + extensions_srcs + ant_srcs + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
     build_dir = 'build/bootstrap'+new_jar.gsub(/[.-\/]/, '_')
     rm_rf build_dir
     mkdir_p build_dir
@@ -358,6 +375,8 @@ else # original
 
             *mirah_srcs)
   
+    build_jar(naked_mirahc_jar,build_dir)
+
       # compile ant stuff
       ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}.join(File::PATH_SEPARATOR)
       runjava '-Xmx512m',
@@ -367,16 +386,10 @@ else # original
             '--jvm', build_version,
             'src/org/mirah/ant'
 
-    # Build the jar                    
-    ant.jar 'jarfile' => new_jar do
-      fileset 'dir' => build_dir
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
-      zipfileset 'src' => 'javalib/mirah-parser.jar'
-      metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
-      manifest do
-        attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
-      end
-    end
+    # compile extensions stuff
+    runjava('-Xmx512m', '-Dorg.mirah.builtins.enabled=false', naked_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *extensions_srcs)
+
+    build_jar(new_jar,build_dir)
   end
 end # feature flag
 end

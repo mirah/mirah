@@ -73,6 +73,9 @@ class MirrorProxy implements MirrorType,
   def onIncompatibleChange(listener):void
     @target.onIncompatibleChange(listener)
   end
+  def isFullyResolved():boolean
+    @target.isFullyResolved()
+  end
   def getDeclaredMethods(name)
     @target.getDeclaredMethods(name)
   end
@@ -87,6 +90,9 @@ class MirrorProxy implements MirrorType,
   end
   def add(member):void
     @target.add(member)
+  end
+  def hasMember(name)
+    @target.hasMember(name)
   end
   def superclass
     @target.superclass
@@ -283,12 +289,44 @@ end
 class MirrorFuture < BaseTypeFuture
   def initialize(type:MirrorType, position:Position=nil)
     super(position)
-    resolved(MirrorProxy.create(type))
+    @type = type
     future = self
     type.onIncompatibleChange do
-      future.forgetType
-      future.resolved(MirrorProxy.create(type))
+      future.maybeResolved
     end
+    maybeResolved
+  end
+  
+  def maybeResolved
+    if checkResolved
+      forgetType
+      @mirror_proxy = MirrorProxy.create(type)
+      resolved(@mirror_proxy)
+    end
+  end
+
+  def checkResolved
+    direct_supertypes = @type.directSupertypes
+    direct_supertypes.size.times do |i|
+      direct_supertype = direct_supertypes[i]
+      if direct_supertype.kind_of?(MirrorProxy)
+        if !MirrorProxy(direct_supertype).isFullyResolved
+          return false
+        end
+      end
+    end
+    true
+  end
+  
+  def isResolved
+    super && @type.isFullyResolved
+  end
+  
+  # MirrorFuture does not support the generic contract that the inferred type is always the resolved type.
+  # The represented type is always set. However, resolution may happen only when also the parent types are resolved.
+  # Hence, if we were not implementing our own #peekInferredType, the supermethod would return nil when we could actually return @type.
+  def peekInferredType
+    @type
   end
 end
 

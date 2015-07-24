@@ -21,7 +21,7 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.LinkedList
 import java.util.List
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 
 import javax.lang.model.util.Types as JavaxTypes
@@ -97,6 +97,7 @@ class MirrorTypeSystem implements TypeSystem
     @object = BaseType(@object_future.resolve)
     @anonymousClasses = {}
     @unpinned_field_futures = {}
+    @cached_array_types = {}
     Builtins.initialize_builtins(self)
     addObjectIntrinsics
     initBoxes
@@ -143,10 +144,10 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getMainType(scope, script)
-    getMetaType(defineType(scope, script, getMainClassName(script), nil, []))
+    getMetaType(defineType(scope, script, MirrorTypeSystem.getMainClassName(script), nil, []))
   end
 
-  def getMainClassName(script:Script):String
+  def self.getMainClassName(script:Script):String
     (script && script.position && script.position.source &&
          script.position.source.name &&
          MirrorTypeSystem.classnameFromFilename(script.position.source.name)) ||
@@ -238,7 +239,7 @@ class MirrorTypeSystem implements TypeSystem
   def getMethodDefType(target, name, argTypes, declaredReturnType, position)
     name = name.replaceAll('=$', '_set')
     createMember(
-        MirrorType(target.resolve), name, argTypes, declaredReturnType,
+        MirrorType(target.peekInferredType), name, argTypes, declaredReturnType,
         position)
   end
 
@@ -289,6 +290,11 @@ class MirrorTypeSystem implements TypeSystem
           f.onUpdate do |x, resolved|
             if resolved.kind_of?(MirrorType)
               MirrorType(resolved).addMethodListener(method_name, listener)
+              if resolved.kind_of?(MirrorProxy)
+                if BaseType(MirrorProxy(resolved).target).hasMember(method_name) # if the method was already created, then
+                  listener.methodChanged(MirrorType(resolved),method_name)       #   fire the listener right away
+                end
+              end
             end
           end
         end
@@ -298,7 +304,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getFieldType(target, name, position)
-    resolved = MirrorType(target.resolve)
+    resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     if member
@@ -319,7 +325,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getFieldTypeOrDeclare(target, name, position)
-    resolved = MirrorType(target.resolve)
+    resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     future = if member
@@ -405,8 +411,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def findTypeDefinition(future:TypeFuture):MirahMirror
-    return nil unless future.isResolved
-    resolved = future.resolve
+    resolved = future.peekInferredType
     while resolved.kind_of?(MirrorProxy)
       resolved = MirrorProxy(resolved).target
     end
@@ -417,11 +422,17 @@ class MirrorTypeSystem implements TypeSystem
     end
   end
 
-  def defineType(scope, node, name, superclass, interfaces)
+  def defineType(scope:Scope, node:Node, name:String, superclass:TypeFuture, interfaces:List)
+    type_future = createType(scope,node,name,superclass,interfaces)
+    publishType(type_future)
+    type_future
+  end
+
+  def createType(scope:Scope, node:Node, name:String, superclass:TypeFuture, interfaces:List)
     position = node ? node.position : nil
     fullname = calculateName(scope, node, name)
     type = Type.getObjectType(fullname.replace(?., ?/))
-    existing_future = wrap(type)
+    existing_future = DelegateFuture(wrap(type)).type
     existing_type = findTypeDefinition(existing_future)
     if existing_type
       if superclass.nil? && (interfaces.nil? || interfaces.size == 0)
@@ -454,10 +465,20 @@ class MirrorTypeSystem implements TypeSystem
                              superclass, interfaceArray)
     addClassIntrinsic(mirror)
     future = MirrorFuture.new(mirror, position)
-    @loader.defineMirror(type, future)
     future
   end
-
+  
+  def publishType(future:TypeFuture)
+    if future.kind_of?(MirrorFuture)
+      mirror_future = MirrorFuture(future)
+      publishType(MirahMirror(mirror_future.peekInferredType),mirror_future)
+    end
+  end
+  
+  def publishType(mirror:MirahMirror,future:MirrorFuture):void
+    @loader.defineMirror(mirror.getAsmType, future)
+  end
+  
   def get(scope, typeref)
     name = resolveName(scope, typeref.name)
     type = if scope.nil?
@@ -520,7 +541,7 @@ class MirrorTypeSystem implements TypeSystem
   end
 
   def getResolvedArrayType(componentType:ResolvedType):ResolvedType
-    ArrayType.new(@context, cast(componentType))
+    ResolvedType(@cached_array_types[componentType] ||= ArrayType.new(@context, cast(componentType)))
   end
 
   def getArrayType(componentType:ResolvedType):ResolvedType
@@ -732,6 +753,7 @@ class MirrorTypeSystem implements TypeSystem
         sb.append(s.substring(1, s.length))
       end
     end
+    sb.append("TopLevel")
     sb.toString
   end
 

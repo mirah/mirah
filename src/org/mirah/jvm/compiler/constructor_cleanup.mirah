@@ -21,7 +21,7 @@ import org.mirah.util.AstFormatter
 import org.mirah.util.Context
 import java.util.Collections
 import java.util.logging.Level
-import java.util.logging.Logger
+import org.mirah.util.Logger
 
 # Ensures the first thing in the constructor is a call to super or another constructor of this class.
 

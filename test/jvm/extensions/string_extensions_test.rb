@@ -1,3 +1,5 @@
+# encoding: UTF-8
+#
 # Copyright (c) 2013 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
@@ -74,4 +76,50 @@ class StringExtensionsTest < Test::Unit::TestCase
       compile("def match_wrong_type; 'abcdef' =~ 'd'; end")
     end
   end
+  
+  def test_string_to_int_invalid_number
+    cls, = compile(<<-EOF)
+      puts 'abc'.to_int
+    EOF
+    assert_raise_java Java::JavaLang::NumberFormatException do
+      cls.main nil
+    end
+  end
+
+  def test_string_to_int_valid_number
+    cls, = compile(<<-EOF)
+      puts '-987654321'.to_int
+    EOF
+    assert_run_output("-987654321\n", cls)
+  end
+
+  def test_string_to_int_too_big_number
+    cls, = compile(<<-EOF)
+      puts '-9876543210'.to_int
+    EOF
+    assert_raise_java Java::JavaLang::NumberFormatException do
+      cls.main nil
+    end
+  end
+  
+  def test_string_each_codepoint
+    cls, = compile(%q{
+      "abc\u1234\U0010FFFF\u5678de𠀘f".each_codepoint do |codepoint|
+        puts codepoint
+      end
+    })
+    assert_run_output("97\n98\n99\n4660\n1114111\n22136\n100\n101\n131096\n102\n", cls)
+  end
+  
+  def test_string_each_codepoint
+    cls, = compile(%q{
+      count = 0
+      "abc\u1234\U0010FFFF\u5678de𠀘f".each_codepoint do
+        count+=1
+      end
+      puts count
+    })
+    assert_run_output("10\n", cls)
+  end
 end
+

@@ -16,7 +16,7 @@
 package org.mirah.jvm.compiler
 
 import java.util.LinkedList
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
@@ -68,7 +68,7 @@ class MethodCompiler < BaseCompiler
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
     isExpression = isVoid() ? nil : Boolean.TRUE
-    if (@flags & Opcodes.ACC_ABSTRACT) == 0
+    if (@flags & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0
       prepareBinding(mdef)
       @lookingForDelegate = mdef.kind_of?(ConstructorDefinition)
       compileBody(mdef.body, isExpression, @returnType)

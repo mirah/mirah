@@ -19,7 +19,7 @@ import java.util.Collections
 import java.util.LinkedList
 import java.util.List
 import java.util.Map
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.DeclaredType
 import javax.lang.model.type.TypeMirror

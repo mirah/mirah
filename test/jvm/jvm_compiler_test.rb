@@ -271,12 +271,68 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_class_name_from_file_with_underscore
     foo, = compile("puts 'blah'", :name => 'class_name_test.mirah')
-    assert_equal('ClassNameTest', foo.java_class.name)
+    assert_equal('ClassNameTestTopLevel', foo.java_class.name)
   end
 
   def test_class_name_from_file_with_dash
     foo, = compile("puts 'blah'", :name => 'class-dash-test.mirah')
-    assert_equal('ClassDashTest', foo.java_class.name)
+    assert_equal('ClassDashTestTopLevel', foo.java_class.name)
+  end
+
+  def test_class_name_from_file_used_within_source_match
+    cls, = compile(%q{
+
+      package array_subclass_test
+      
+      class Subclass < Superclass2
+        def self.run
+          ArraySubclassTest.new.baz
+        end
+      end
+      
+      class ArraySubclassTest
+      
+        def baz()
+          bar(Subclass[3])
+        end
+      
+        def bar(foo:Superclass2[])
+          "Success"
+        end
+      end
+      
+      class Superclass2
+      end
+    }, :name => 'Superclass2.mirah')
+    assert_equal('Success', cls.run)
+  end
+
+  def test_class_name_from_file_used_within_source_mismatch
+    cls, = compile(%q{
+
+      package array_subclass_test
+      
+      class Subclass < Superclass2
+        def self.run
+          ArraySubclassTest.new.baz
+        end
+      end
+      
+      class ArraySubclassTest
+      
+        def baz()
+          bar(Subclass[3])
+        end
+      
+        def bar(foo:Superclass2[])
+          "Success"
+        end
+      end
+      
+      class Superclass2
+      end
+    }, :name => 'Superclass3.mirah')
+    assert_equal('Success', cls.run)
   end
 
   def test_puts
@@ -285,6 +341,35 @@ class JVMCompilerTest < Test::Unit::TestCase
       cls.foo
     end
     assert_equal("Hello World!\n", output)
+  end
+
+  def test_puts_classmethod_no_args
+    cls, = compile(%q{
+      def foo
+        puts
+        puts
+      end
+    })
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("\n\n", output)
+  end
+
+  def test_puts_instancemethod_no_args
+    cls, = compile(%q{
+      class Foo
+        def foo
+          puts
+          puts
+          puts
+        end
+      end
+    })
+    output = capture_output do
+      cls.new.foo
+    end
+    assert_equal("\n\n\n", output)
   end
 
   def test_print
@@ -1475,6 +1560,19 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
+  def test_native
+    cls, = compile(<<-EOF)
+      class Foo
+        native def foo; end
+      end
+    EOF
+
+    assert_raise_java java.lang.UnsatisfiedLinkError do
+      a = cls.new
+      a.foo
+    end
+  end
+
   def test_abstract
     abstract_class, concrete_class = compile(<<-EOF)
       abstract class Abstract
@@ -1493,6 +1591,54 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
     assert_raise_java java.lang.InstantiationException do
       abstract_class.new
+    end
+  end
+
+  def test_synchronized
+    cls, = compile(<<-EOF)
+      class Synchronized
+        attr_accessor locked:boolean
+        
+        synchronized def lock_and_unlock:void
+          puts "Locking."
+          Thread.sleep(100)
+          self.locked = true
+          puts "Waiting."
+          self.wait
+          puts "Unlocking."
+          self.locked = false
+        end
+        
+        synchronized def locked?
+          self.locked
+        end
+        
+        synchronized def notify_synchronized:void
+          puts "Notifying."
+          self.notify
+          puts "Notified."
+        end
+        
+        def trigger:void
+          while ! locked?
+            Thread.sleep(10)
+          end
+          self.notify_synchronized
+        end
+        
+        def start_trigger
+          s = self
+          Thread.new do
+            s.trigger
+          end.start
+        end
+      end
+    EOF
+
+    assert_output("Locking.\nWaiting.\nNotifying.\nNotified.\nUnlocking.\n") do
+      a = cls.new
+      a.start_trigger
+      a.lock_and_unlock
     end
   end
 
@@ -1998,6 +2144,44 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_output("0\n") { cls.foo(nil)}
     assert_output("2\n") { cls.foo(arg.new)}
   end
+  
+  def test_local_method_conflict2
+    cls, arg = compile(%q{
+      
+      class Foo1
+        
+        def equals(o:Foo1)
+          self===o
+        end
+      end
+      
+      class Bar
+        attr_reader   foo1:Foo1
+        attr_reader   foo2:Foo2
+        
+        def foo1method(foo1:Foo1)
+          puts (@foo1==foo1)
+          @foo1 = foo1
+        end
+        
+        def foo2method(foo2:Foo2)
+          puts (@foo2==foo2)
+          @foo2 = foo2
+        end
+      end
+      
+      class Foo2
+        
+        def equals(o:Foo2)
+          self===o
+        end
+      end
+      
+      Bar.new.foo1method(Foo1.new)
+      Bar.new.foo2method(Foo2.new)
+    })
+    assert_run_output("false\nfalse\n", cls)
+  end
 
   def test_incompatible_return_type_error_message
     e = assert_raise_kind_of Mirah::MirahError do
@@ -2032,5 +2216,101 @@ class JVMCompilerTest < Test::Unit::TestCase
     })
     assert_run_output("BAZ\n", cls)
   end
+  
+  def test_line_number_increase_by_multiline_sstring_literal
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, arg = compile(%q{
+        class Foo
+          CONST = 'a
+        
+        
+        
+          b'
+        end
+        
+        
+        ERROR_SHOULD_BE_HERE
+      })
+    end
+    assert_equal 11,e.diagnostic.getLineNumber
+  end
+  
+  def test_line_number_increase_by_multiline_dstring_literal
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, arg = compile(%q{
+        class Foo
+          CONST = "a
+        
+        
+        
+          b"
+        end
+        
+        
+        ERROR_SHOULD_BE_HERE
+      })
+    end
+    assert_equal 11,e.diagnostic.getLineNumber
+  end
 
+  def test_late_superclass
+    cls, arg = compile(%q{
+      package subclass_test
+      
+      class TestSubclassAsMethodParameter
+        def bar(b:SuperClass)
+          "baz"
+        end
+      
+        def foo
+          a = SubClass.new
+          bar(a)
+        end 
+      end
+      
+      class SubClass < SuperClass
+      end
+      
+      class SuperClass
+      end
+      
+      puts TestSubclassAsMethodParameter.new.foo
+    })
+    assert_run_output("baz\n", cls)
+  end
+  
+  def test_late_superinterface
+    cls, arg = compile(%q{
+      package late_superinterface
+      
+      interface Interface2 < Interface1
+      end
+      
+      interface Interface3 < Interface2
+      end
+      
+      interface Interface1
+      end
+    })
+  end
+
+  def test_init_before_use_in_loop
+    cls, arg = compile(%q{
+      macro def loop_with_init(block:Block)
+        i = block.arguments.required(0).name.identifier
+        last = gensym
+        quote do
+          while `i` < `last`
+            init { `i` = 0; `last` = 4}
+            post { `i` = `i` + 1 }
+            `block.body`
+          end
+        end
+      end
+      loop_with_init do |i|
+        print i
+      end
+    })
+    assert_run_output("0123", cls)
+  end
 end

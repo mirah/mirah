@@ -17,6 +17,7 @@ package org.mirah.jvm.compiler
 
 import mirah.lang.ast.MacroDefinition
 import mirah.lang.ast.MethodDefinition
+import mirah.lang.ast.StaticMethodDefinition
 import mirah.lang.ast.Position
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.MethodType
@@ -29,6 +30,8 @@ class MethodState
     @num_args += 1 if macrodef.arguments.block
     @name = macrodef.name.identifier
     @position = macrodef.name.position
+    @signature = nil
+    @static    = macrodef.isStatic
   end
 
   def initialize(method:MethodDefinition, type:MethodType)
@@ -41,38 +44,57 @@ class MethodState
       signature.append(t.getAsmType.getDescriptor)
     end
     @signature = signature.toString
+    @static    = method.kind_of?(StaticMethodDefinition) # "def self.initialize" is supported. "class << self; def initialize" is not supported, but this is currently broken, anyway.
   end
 
   def conflictsWith(other:MethodState):Kind
     return nil unless @name.equals(other.name)
     return nil unless @num_args == other.num_args
-    if @signature.nil? && other.signature
+    if self.isMacro && !other.isMacro 
       other.conflictsWith(self)
-    elsif @signature.nil? || other.signature.nil?
-      if @num_args == 0
-        # We know there's a conflict
-        # TODO: unless these are macros and one of them is static
-        Kind.ERROR
-      else
+    elsif !self.isMacro && other.isMacro
+      if @num_args != 0
         # At least one of these is a macro, so it's hard to tell if
         # the arguments will actually conflict. Just emit a warning.
+        Kind.WARNING
+      else
+        Kind.ERROR
+      end
+    elsif self.isMacro && other.isMacro
+      if @num_args == 0
+        if self.static ^ other.static 
+          # Macros are allowed to have overlapping no-arg signatures if exactly one of them is static.
+          nil
+        else
+          Kind.ERROR
+        end
+      else
+        # Since both of these are macros, it's hard to tell if their arguments will conflict.
         Kind.WARNING
       end
     else
       # Two methods
       if @signature.equals(other.signature)
-        # TODO, generate bridge methods automatically and make this an error
-        Kind.WARNING
+        if self.static==other.static || !name.equals("initialize")
+          # TODO, generate bridge methods automatically and make this an error
+          Kind.WARNING
+        else # methods differ in their staticity, but the name is "initialize". As these methods are compiled to "<init>" and "<clinit>", there is actually no conflict.
+          nil
+        end
       else
         nil
       end
     end
   end
 
-  attr_accessor num_args:int, name:String, position:Position, returnType:JVMType
+  attr_accessor num_args:int, name:String, position:Position, returnType:JVMType, static:boolean
   attr_accessor signature:String
 
   def toString
     "#{@signature ? 'method' : 'macro'} #{@name}"
+  end
+  
+  def isMacro
+    @signature==nil
   end
 end

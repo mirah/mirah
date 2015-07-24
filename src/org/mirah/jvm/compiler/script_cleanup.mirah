@@ -21,7 +21,7 @@ import org.mirah.macros.Compiler as MacroCompiler
 import org.mirah.util.AstFormatter
 import org.mirah.util.Context
 import java.util.logging.Level
-import java.util.logging.Logger
+import org.mirah.util.Logger
 
 import java.util.ArrayList
 

@@ -16,10 +16,11 @@ module Mirah
       #filename = transformer.tag_filename(src, filename)
       parser = MirahParser.new
       source = StringCodeSource.new(filename, src)
-      parser.diagnostics = SimpleDiagnostics.new(true)
+      diagnostics = SimpleDiagnostics.new(true)
+#     parser.diagnostics = diagnostics # Field "diagnostics" does not seem to exist in the current mirah/mmeta source code, but it did exist in an ancient mmeta.jar.
       begin
         ast = parser.parse(source)
-        if parser.diagnostics.error_count > 0
+        if diagnostics.error_count > 0
           puts "#{parser.diagnostics.error_count} errors, exiting"
           throw :exit, 1
         end

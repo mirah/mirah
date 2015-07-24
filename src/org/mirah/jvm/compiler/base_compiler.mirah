@@ -15,7 +15,7 @@
 
 package org.mirah.jvm.compiler
 
-import java.util.logging.Logger
+import org.mirah.util.Logger
 import java.util.logging.Level
 import java.util.List
 import javax.tools.DiagnosticListener
@@ -220,6 +220,10 @@ class BaseCompiler < SimpleNodeVisitor
   
   def visitMacroDefinition(node, expression)
     # ignore. It was already compiled
+  end
+  
+  def visitFieldAnnotationRequest(node, expression)
+    # ignore
   end
   
   def calculateFlagsFromAnnotations(defaultAccess:int, annotations:AnnotationList):int

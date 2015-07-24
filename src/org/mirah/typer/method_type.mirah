@@ -84,4 +84,8 @@ class MethodType
   def toString:String
     "<MethodType: name=#{@name} #{@parameterTypes} : #{@returnType}>"
   end
+
+  def isFullyResolved:boolean
+    true
+  end
 end
