@@ -31,12 +31,6 @@ import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.macros.MacroBuilder
 
 
-interface ClosureBuilderer
-  def insert_closure(block: Block, parent_type: ResolvedType): TypeFuture; end
-  def add_todo(block: Block, parent_type: ResolvedType): void; end
-  def finish: void; end
-end
-
 # This class transforms a Block into an anonymous class once the Typer has figured out
 # the interface to implement (or the abstract superclass).
 #
