@@ -102,7 +102,7 @@ class StringExtensionsTest < Test::Unit::TestCase
     end
   end
   
-  def test_string_each_codepoint
+  def test_string_each_codepoint_1_block_argument
     cls, = compile(%q{
       "abc\u1234\U0010FFFF\u5678de𠀘f".each_codepoint do |codepoint|
         puts codepoint
@@ -111,7 +111,7 @@ class StringExtensionsTest < Test::Unit::TestCase
     assert_run_output("97\n98\n99\n4660\n1114111\n22136\n100\n101\n131096\n102\n", cls)
   end
   
-  def test_string_each_codepoint
+  def test_string_each_codepoint_0_block_arguments
     cls, = compile(%q{
       count = 0
       "abc\u1234\U0010FFFF\u5678de𠀘f".each_codepoint do
