@@ -60,20 +60,15 @@ class Typer < SimpleNodeVisitor
   def initialize(types: TypeSystem,
                  scopes: Scoper,
                  jvm_backend: JvmBackend,
-                 parser: MirahParser=nil,
-                 new_closures=false)
+                 parser: MirahParser=nil)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
     @types = types
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
     
-    if new_closures
-      # might want one of these for each script
-      @closures = BetterClosureBuilder.new(self, @macros)
-    else
-      @closures = ClosureBuilder.new(self)
-    end
+    # might want one of these for each script
+    @closures = BetterClosureBuilder.new(self, @macros)
   end
 
   def finish_closures

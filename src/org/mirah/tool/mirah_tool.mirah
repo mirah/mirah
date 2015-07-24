@@ -102,8 +102,7 @@ abstract class MirahTool implements BytecodeConsumer
         @compiler_args.real_macroclasspath,
         @compiler_args.destination,
         @compiler_args.real_macro_destination,
-        @debugger,
-        @compiler_args.use_new_closures)
+        @debugger)
     parseAllFiles
     @compiler.infer
     @compiler.compile(self)

@@ -73,7 +73,7 @@ class MirahCompiler implements JvmBackend
       diagnostics: SimpleDiagnostics, jvm: JvmVersion, classpath: URL[],
       bootclasspath: URL[], macroclasspath: URL[], destination: String,
       macro_destination: String,
-      debugger: DebuggerInterface=nil, new_closures: boolean=false)
+      debugger: DebuggerInterface=nil)
     @diagnostics = diagnostics
     @jvm = jvm
     @destination = destination
@@ -109,10 +109,10 @@ class MirahCompiler implements JvmBackend
     @macro_context[Scoper] = @scoper
     @macro_context[MirahParser] = @parser
     @macro_context[Typer] = @macro_typer = createTyper(
-        debugger, @macro_context, @macro_types, @scoper, self, @parser, new_closures)
+        debugger, @macro_context, @macro_types, @scoper, self, @parser)
 
     context[Typer] = @typer = createTyper(
-        debugger, context, @types, @scoper, self, @parser, new_closures)
+        debugger, context, @types, @scoper, self, @parser)
 
     # Make sure macros are compiled using the correct type system.
     @typer.macro_compiler = @macro_typer.macro_compiler
@@ -135,12 +135,11 @@ class MirahCompiler implements JvmBackend
   end
 
   def createTyper(debugger:DebuggerInterface, context:Context, types:TypeSystem,
-                  scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser,
-                  new_closures: boolean)
+                  scopes:Scoper, jvm_backend:JvmBackend, parser:MirahParser)
     if debugger.nil?
-      SafeTyper.new(context, types, scopes, jvm_backend, parser, new_closures)
+      SafeTyper.new(context, types, scopes, jvm_backend, parser)
     else
-      DebugTyper.new(debugger, context, types, scopes, jvm_backend, parser, new_closures)
+      DebugTyper.new(debugger, context, types, scopes, jvm_backend, parser)
     end
   end
 

@@ -38,9 +38,8 @@ class SafeTyper < Typer
                  types: TypeSystem,
                  scopes: Scoper,
                  jvm_backend: JvmBackend,
-                 parser: MirahParser=nil,
-                 new_closures:boolean=false)
-    super(types, scopes, jvm_backend, parser, new_closures)
+                 parser: MirahParser=nil)
+    super(types, scopes, jvm_backend, parser)
     @diagnostics = context[DiagnosticListener]
   end
 
