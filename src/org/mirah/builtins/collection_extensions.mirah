@@ -22,6 +22,7 @@ class CollectionExtensions
     quote { `@call.target`.isEmpty }
   end
 
+  # Append the supplied element to this collection. Return this collection.
   macro def <<(arg)
     target = gensym
     quote do
@@ -50,7 +51,7 @@ class CollectionExtensions
     end
   end
 
-  # map to an array of the return type of the block
+  # Map to an array of the return type of the block.
   macro def mapa(block:Block)
     type_future        = @mirah.typer.infer(block.body)
     # This code fails in case we cannot resolve the type at the time the macro is invoked
@@ -107,6 +108,9 @@ class CollectionExtensions
     end
   end
   
+  # Create a String which consists of the String representation of each element of this Collection, interleaved with the supplied separator.
+  #
+  #   [1,2,3].join("+") => "1+2+3"
   macro def join(separator)
     b     = gensym
     list  = gensym
@@ -136,7 +140,7 @@ class CollectionExtensions
 #    end
 #  end
 
-  # convert this collection to a Java-style array
+  # Convert this Collection to a Java-style array.
   macro def to_a(basetype) # for primitive types and complex types
     list  = gensym
     res   = gensym

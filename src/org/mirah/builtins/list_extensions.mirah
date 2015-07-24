@@ -23,9 +23,8 @@ class ListExtensions
   macro def []=(index, value)
     quote { `@call.target`.add `index`, `value` }
   end
-  
-  # Note that this macro is shadowed by Java 1.8 java::util::List#sort(java.util.Comparator)
-  # So if the compiler has the Java 1.8 bootclasspath available, it will not pick up this macro. 
+
+  # Sort this List in-place, using the supplied Comparator.
   macro def sort!(comparator:Block)
     list = gensym
     quote do
@@ -36,6 +35,10 @@ class ListExtensions
     end
   end
 
+  # Return a new List which is a sorted version of this List, using the supplied Comparator.
+  #
+  # Note that this macro is shadowed by Java 1.8 java::util::List#sort(java.util.Comparator)
+  # So if the compiler has the Java 1.8 bootclasspath available, it will not pick up this macro. 
   macro def sort(comparator:Block)
     list   = gensym
     result = gensym

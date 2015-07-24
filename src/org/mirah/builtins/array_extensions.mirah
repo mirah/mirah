@@ -43,6 +43,7 @@ class ArrayExtensions
     end
   end
 
+  # Iterates over each element of the array, yielding each time both the element and the index in the array.
   macro def each_with_index(block:Block)
     arg = block.arguments.required(0)
     x = arg.name.identifier
@@ -92,24 +93,30 @@ class ArrayExtensions
     end
   end
   
+  # Whether the array is empty (meaning: whether it contains 0 elements).
+  # This is for compatibility with java.util.Collection#isEmpty.
   macro def isEmpty
     quote do
       `@call.target`.length == 0
     end
   end
 
+  # The length of the array (meaning: the number of elements it contains).
+  # This is for compatibility with java.util.Collection#size.
   macro def size
     quote do
       `@call.target`.length
     end
   end
 
+  # View this array as a java.util.List
   macro def as_list
     quote do
       java::util::Arrays.asList(`@call.target`)
     end
   end
   
+  # Sort this array in-place, using the supplied Comparator.
   macro def sort!(comparator:Block)
     target = gensym
     quote do
@@ -120,6 +127,7 @@ class ArrayExtensions
     end
   end
 
+  # Return a new array which is a sorted version of this array, using the supplied Comparator.
   macro def sort(comparator:Block)
     array = gensym 
     quote do
@@ -129,6 +137,7 @@ class ArrayExtensions
     end
   end
 
+  # Sort this array in-place.
   macro def sort!()
     quote do
       java::util::Arrays.sort(`@call.target`)
@@ -136,6 +145,7 @@ class ArrayExtensions
     end
   end
 
+  # Return a new array which is a sorted version of this array.
   macro def sort()
     array = gensym 
     quote do
@@ -144,6 +154,7 @@ class ArrayExtensions
     end
   end
 
+  # Create a duplicate of this array.
   macro def dup
     type_future        = @mirah.typer.infer(@call.target)
     # This code fails in case we cannot resolve the type at the time the macro is invoked

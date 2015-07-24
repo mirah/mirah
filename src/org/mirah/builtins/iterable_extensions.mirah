@@ -41,6 +41,7 @@ class IterableExtensions
     end
   end
   
+  # Iterates over each element of the Iterable, yielding each time both the element and the index in the Iterable.
   macro def each_with_index(block:Block)
     value = block.arguments.required(0)
     count = block.arguments.required(1).name.identifier

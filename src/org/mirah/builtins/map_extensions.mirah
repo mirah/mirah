@@ -33,6 +33,7 @@ class MapExtensions
     quote { `@call.target`.keySet }
   end
 
+  # Iterates over each entry of this map, each time yielding the key and the value.
   macro def each(block:Block)
     entry  = gensym
     
