@@ -50,18 +50,26 @@ class MethodState
   def conflictsWith(other:MethodState):Kind
     return nil unless @name.equals(other.name)
     return nil unless @num_args == other.num_args
-    if self.isMacro && other.signature
+    if self.isMacro && !other.isMacro 
       other.conflictsWith(self)
-    elsif self.isMacro || other.isMacro
+    elsif !self.isMacro && other.isMacro
+      if @num_args != 0
+        # At least one of these is a macro, so it's hard to tell if
+        # the arguments will actually conflict. Just emit a warning.
+        Kind.WARNING
+      else
+        Kind.ERROR
+      end
+    elsif self.isMacro && other.isMacro
       if @num_args == 0
-        if self.isMacro && other.isMacro && (self.static ^ other.static) # Macros are allowed to have overlapping no-arg signatures if exactgly one of them is static.
+        if self.static ^ other.static 
+          # Macros are allowed to have overlapping no-arg signatures if exactly one of them is static.
           nil
-        else                                                             # we know there's a conflict
+        else
           Kind.ERROR
         end
       else
-        # At least one of these is a macro, so it's hard to tell if
-        # the arguments will actually conflict. Just emit a warning.
+        # Since both of these are macros, it's hard to tell if their arguments will conflict.
         Kind.WARNING
       end
     else
