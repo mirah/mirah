@@ -27,16 +27,12 @@ class ObjectExtensions
     mdef = MethodDefinition(@call.findAncestor(MethodDefinition.class))
     if mdef && mdef.name.identifier.equals("equals")
       if @call.target.kind_of?(Self) || node.kind_of?(Self)
-        message = "WARNING: == is now an alias for Object#equals(), === is now used for identity.\n" +
-          "This use of == with self in equals() definition may cause a stack overflow in next release!"
-
-        puts message
-        puts "#{mdef.position.source.name}:"
+        System.out.println("WARNING: == is now an alias for Object#equals(), === is now used for identity.\nThis use of == with self in equals() definition may cause a stack overflow in next release!#{mdef.position.source.name}:")
         source = @mirah.typer.sourceContent(mdef)
         s = source.split("\n")
         # last end has right whitespace, but def doesn't
         whitespace = s[s.length - 1].substring(0, s[s.length - 1].indexOf("end"))
-        puts whitespace + source
+        System.out.println("#{whitespace}#{source}")
         return quote {`@call.target` === `node`}
       end
     end
@@ -73,6 +69,13 @@ class ObjectExtensions
   end
   macro def self.puts(node)
     quote {System.out.println(` [node] `)}
+  end
+
+  macro def puts()
+    quote {System.out.println()}
+  end
+  macro def self.puts()
+    quote {System.out.println()}
   end
 
   macro def print(node)
