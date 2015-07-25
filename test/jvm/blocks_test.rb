@@ -433,6 +433,22 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("hello\n1243\n", cls)
   end
 
+  def test_closures_with_static_imports
+    pend "I think this isn't working yet" do
+    cls, = compile(<<-EOF)
+      def foo a:Runnable
+        a.run
+      end
+      foo do
+        x = [2,1]
+        import static java.util.Collections.*
+        sort x
+        puts x
+      end
+    EOF
+    assert_run_output("[1, 2]\n", cls)
+  end
+  end
 
   def test_closures_support_non_local_return
     pend "nlr doesnt work right now" do
