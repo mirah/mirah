@@ -540,11 +540,13 @@ class ClosureScope < BetterScope
     super context
     @scoper = scoper
     @locals = Locals.new
+    @imports = ImportsAndSearchPackages.new
   end
+  has_own_imports_and_looks_up
   supports_locals
   #defers_selfType
   has_own_selfType
-  deferred_packages_and_imports
+  deferred_package
 
   can_have_locals_captured
   
