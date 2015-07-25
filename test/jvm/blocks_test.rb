@@ -434,7 +434,6 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_closures_with_static_imports
-    pend "I think this isn't working yet" do
     cls, = compile(<<-EOF)
       def foo a:Runnable
         a.run
@@ -447,7 +446,6 @@ class BlocksTest < Test::Unit::TestCase
       end
     EOF
     assert_run_output("[1, 2]\n", cls)
-  end
   end
 
   def test_closures_support_non_local_return
