@@ -1203,7 +1203,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     typer.logger.fine "at block future registration for #{block}"
     BlockFuture.new(block) do |block_future, resolvedType|
-      typer.logger.fine "in block future for #{block}\n  #{typer.sourceContent block}"
+      typer.logger.fine "in block future for #{block}: resolvedType=#{resolvedType}\n  #{typer.sourceContent block}"
       closures.add_todo block, resolvedType
     end
   end
