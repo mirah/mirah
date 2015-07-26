@@ -486,8 +486,12 @@ class BetterClosureBuilder
 
       
 
-      parent = CallSite(block.parent)
-      replace_block_with_closure_in_call parent, block, new_node
+      if block.parent.kind_of?(CallSite)
+        parent = CallSite(block.parent)
+        replace_block_with_closure_in_call parent, block, new_node
+      else
+        replace_synthetic_lambda_definiton_with_closure(SyntheticLambdaDefinition(block.parent),new_node)
+      end
 
       infer new_node
       infer enclosing_b
@@ -592,6 +596,16 @@ class BetterClosureBuilder
     else
       new_node.setParent(nil)
       parent.replaceChild(block, new_node)
+    end
+  end
+  
+  def replace_synthetic_lambda_definiton_with_closure(parent: SyntheticLambdaDefinition, new_node: Node): void
+    parentparent = parent.parent
+    new_node.setParent(nil)
+    if parentparent.kind_of?(CallSite) # then the SyntheticLambdaDefinition is not a child of the CallSite itself, but (most likely?) a child of its arguments. FIXME: It is weird that the parent of a child of X is not X. 
+      CallSite(parentparent).parameters.replaceChild(parent,new_node)
+    else
+      parentparent.replaceChild(parent,new_node)
     end
   end
 

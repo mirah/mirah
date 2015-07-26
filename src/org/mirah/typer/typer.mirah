@@ -1242,6 +1242,12 @@ class Typer < SimpleNodeVisitor
     unquoted_args.setParent block
     block.body.removeChild block.body.get(0)
   end
+  
+  def visitSyntheticLambdaDefinition(node, expression)
+    supertype = infer(node.supertype)
+    block     = BlockFuture(infer(node.block))
+    SyntheticLambdaFuture.new(supertype,block,node.position)
+  end
 
   # Returns true if any MethodDefinitions were found.
   def contains_methods(block: Block): boolean
