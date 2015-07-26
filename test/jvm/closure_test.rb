@@ -76,4 +76,29 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("bar\nfoo\n5\n", cls)
   end
+
+  def test_lambda_and_other_closures_coexist
+    cls, = compile(%q[
+      class Foo
+      
+        def anymethod()
+          foo = 5
+          perform do
+            puts "1: #{foo}"
+          end
+          a = lambda(Runnable) do
+            puts "2: #{foo}"
+          end
+          perform(a)
+        end
+        
+        def perform(runnable:Runnable)
+          runnable.run
+        end
+      end
+      Foo.new.anymethod
+    ])
+    assert_run_output("1: 5\n2: 5\n", cls)
+  end
+
 end
