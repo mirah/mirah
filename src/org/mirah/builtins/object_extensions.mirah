@@ -217,7 +217,7 @@ class ObjectExtensions
 
   macro def lambda(type:TypeName, block:Block)
   # TODO, just create a SyntheticLambdaDefinition that the ClosureBuilder picks up
-    builder = ClosureBuilder.new(@mirah.typer)
+    builder = BetterClosureBuilder.new(@mirah.typer)
     scope = @mirah.typer.scoper.getScope(@call)
     resolved = @mirah.type_system.get(scope, type.typeref).resolve
     # TODO, do something better than this
@@ -226,7 +226,7 @@ class ObjectExtensions
   end
 
   macro def self.lambda(type:TypeName, block:Block)
-    builder = ClosureBuilder.new(@mirah.typer)
+    builder = BetterClosureBuilder.new(@mirah.typer)
     scope = @mirah.typer.scoper.getScope(@call)
     resolved = @mirah.type_system.get(scope, type.typeref).resolve
     # TODO, do something better than this
