@@ -101,4 +101,29 @@ class ClosureTest < Test::Unit::TestCase
     assert_run_output("1: 5\n2: 5\n", cls)
   end
 
+  def test_doubly_nested_lambda
+    cls, = compile(%q[
+      class Foo
+        abstract def test(param:String); end
+      end
+      
+      class Bar < Foo
+        def test(param)
+          y = 5
+          x = lambda(Runnable) do
+            puts "so: #{param}"
+            z = lambda(Runnable) do
+              puts "hey you #{y}"
+            end
+            z.run
+          end
+          x.run
+        end
+      end
+      
+      Bar.new.test("bar")
+    ])
+    assert_run_output("so: bar\nhey you 5\n", cls)
+  end
+
 end
