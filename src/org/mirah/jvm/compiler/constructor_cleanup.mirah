@@ -55,11 +55,19 @@ class ConstructorCleanup < SimpleNodeVisitor
   def visitNodeList(node, arg)
     node.size.times do |i|
       child = node.get(i)
-      unless child.kind_of?(ClassDefinition)
-        return child.accept(self, arg)
-      end
+      res = child.accept(self, arg)
+      return res if res
     end
   end
+  
+  def visitClassDefinition(node, arg)
+    nil
+  end
+  
+  def visitClosureDefinition(node, arg)
+    nil
+  end
+  
   # Note: I'm not sure if java allows these:
   def visitEnsure(node, arg)
     node.body.accept(self, arg) if node.body
