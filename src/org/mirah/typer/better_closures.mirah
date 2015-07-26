@@ -568,6 +568,12 @@ class BetterClosureBuilder
     new_node
   end
 
+  # creates closure class, inserts it
+  # returns Call Node that is the instantiation of the closure
+  def prepare(block: Block, parent_type: ResolvedType): Call
+    Call(prepare_regular_closure(block, parent_type))
+  end
+
   def prepare_regular_closure(block: Block, parent_type: ResolvedType): Node
     parent_scope = get_scope block
     klass = build_closure_class block, parent_type, parent_scope
