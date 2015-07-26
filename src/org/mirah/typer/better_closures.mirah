@@ -224,6 +224,10 @@ class BetterClosureBuilder
       @@log.fine "done replacing references"
     end
 
+    def visitClassDefinition(node, blah)
+      nil # do not descent into classes which just happen to be defined in the scope which gets a closure
+    end
+    
     def enterClosureDefinition(node, blah)
       # skip the definition of the binding we're in the process of inserting
       @binding_klass_node != node
