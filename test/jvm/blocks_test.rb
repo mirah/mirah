@@ -707,16 +707,14 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_lambda_with_type_defined_later
-    pend "I think it'd be nice if this worked" do
-      cls, = compile(<<-EOF)
-        x = lambda(Fooable) { puts "hey you" }
-        interface Fooable
-          def foo: void; end
-        end
-        x.foo
-      EOF
-      assert_run_output("hey you\n", cls)
-    end
+    cls, = compile(<<-EOF)
+      x = lambda(Fooable) { puts "hey you" }
+      interface Fooable
+        def foo: void; end
+      end
+      x.foo
+    EOF
+    assert_run_output("hey you\n", cls)
   end
 
   def test_closure_with_primitive_array_param
@@ -745,17 +743,15 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_lambda_closure
-    pend "not working yet" do
-      cls, = compile(<<-EOF)
-        def r b: Runnable
-          b.run
-        end
-        msg = "yay"
-        l = lambda(Runnable) { puts msg }
-        r l
-      EOF
-      assert_run_output("yay\n", cls)
-    end
+    cls, = compile(<<-EOF)
+      def r b: Runnable
+        b.run
+      end
+      msg = "yay"
+      l = lambda(Runnable) { puts msg }
+      r l
+    EOF
+    assert_run_output("yay\n", cls)
   end
 
 
