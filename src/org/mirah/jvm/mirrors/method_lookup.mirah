@@ -296,7 +296,7 @@ class MethodLookup
     potentials = gatherMethods(target, name)
     is_static_scope = (
         scope && scope.selfType && target == scope.selfType.resolve)
-    if includeStaticImports && potentials.isEmpty && is_static_scope
+    if includeStaticImports && potentials.isEmpty # && is_static_scope # FIXME: Why require is_static_scope?
       potentials = gatherStaticImports(MirrorScope(scope), name)
     end
     state = LookupState.new(@context, scope, target, potentials, position)
