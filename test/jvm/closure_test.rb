@@ -47,4 +47,33 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("executed foo2\nexecuted foo1\n", cls)
   end
+  
+  def test_super_is_not_synthesized_when_not_necessary
+    cls, = compile(%q{
+      class Bar
+        def initialize(val:int)
+          puts "bar"
+        end
+      end
+      
+      class Foo < Bar
+        attr_accessor baz:String
+        
+        def initialize(val:int)
+          super
+          foo = 5
+          puts "foo"
+          perform do
+            puts foo
+          end
+        end
+        
+        def perform(runnable:Runnable)
+          runnable.run
+        end
+      end
+      Foo.new(3)
+    })
+    assert_run_output("bar\nfoo\n5\n", cls)
+  end
 end
