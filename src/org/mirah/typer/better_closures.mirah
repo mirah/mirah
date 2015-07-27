@@ -115,7 +115,6 @@ class BetterClosureBuilder
        bindingLocalNamesToTypes: Map)
 
       @builder = builder
-      @captured = parent_scope.capturedLocals
 
       @blockToBindings = blockToBindings
       @bindingLocalNamesToTypes = bindingLocalNamesToTypes
@@ -125,9 +124,10 @@ class BetterClosureBuilder
       @bindingName = bindingName
     end
 
-    def adjust(node: Node): void
-      @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}"
-      @@log.fine "captures for #{@bindingName}: #{@parent_scope.capturedLocals} parent scope: #{@parent_scope}"
+    def adjust(node: Node, block: Block): void
+      @captured = @builder.get_inner_scope(block).capturedLocals
+      @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}\nfor block\n#{@builder.typer.sourceContent block}"
+      @@log.fine "captures for #{@bindingName}: #{@captured} parent scope: #{@parent_scope}"
 
       if @captured.isEmpty
         @@log.fine "no need for binding adjustment here. Nothing captured"
@@ -415,7 +415,7 @@ class BetterClosureBuilder
         blockToBindings,
         bindingLocalNamesToTypes)
 
-      adjuster.adjust enclosing_b
+      adjuster.adjust enclosing_b, block
       @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
 #    end
 #
