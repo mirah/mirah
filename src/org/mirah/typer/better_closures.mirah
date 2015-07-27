@@ -378,6 +378,7 @@ class BetterClosureBuilder
     bindingLocalNamesToTypes = LinkedHashMap.new
 
     bindingForBlocks = LinkedHashMap.new # the specific binding for a given block
+    Collections.reverse(closures) # from outside to inside
     i = 0
     closures.each do |entry: Entry|
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
