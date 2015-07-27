@@ -21,6 +21,7 @@ import org.mirah.util.Logger
 import java.util.Collections
 import java.util.Collection
 import java.util.LinkedHashMap
+import java.util.IdentityHashMap
 import java.util.HashSet
 import java.util.LinkedHashSet
 import java.util.List
@@ -248,7 +249,7 @@ class BetterClosureBuilder
 
     def enterBlock(node, blah)
       @blocks.push node
-      @blockToBindings[@blocks.peek] ||= HashSet.new
+      @blockToBindings[@builder.blockCloneMapNewOld[@blocks.peek]] ||= HashSet.new
 
       true
     end
@@ -259,7 +260,7 @@ class BetterClosureBuilder
 
     def maybeNoteBlockBinding
       @blocks.each do |block: Block|
-        Collection(@blockToBindings[block]).add @bindingName
+        Collection(@blockToBindings[@builder.blockCloneMapNewOld[block]]).add @bindingName
       end
     end
 
@@ -366,6 +367,8 @@ class BetterClosureBuilder
     end
   end
 
+  attr_accessor blockCloneMapOldNew:IdentityHashMap
+  attr_accessor blockCloneMapNewOld:IdentityHashMap
 
   def finish
     closures = []
@@ -382,11 +385,30 @@ class BetterClosureBuilder
 
     bindingForBlocks = LinkedHashMap.new # the specific binding for a given block
     Collections.reverse(closures) # from outside to inside
+    
+    self.blockCloneMapOldNew = IdentityHashMap.new
+    self.blockCloneMapNewOld = IdentityHashMap.new
+    
+    selff = self
+    
+    closures.each do |entry: Entry|
+      block = Block(entry.getKey)
+      block.whenCloned do |interim,new|
+        old = selff.blockCloneMapNewOld.get(interim)
+        selff.blockCloneMapNewOld.put(new,old)
+#       blockCloneMapOldNew.remove(old)
+        selff.blockCloneMapOldNew.put(old,new)
+      end
+      blockCloneMapOldNew.put(block,block)
+      blockCloneMapNewOld.put(block,block)
+    end
+
     i = 0
     closures.each do |entry: Entry|
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
-      block = Block(entry.getKey)
+      uncloned_block = Block(entry.getKey)
+      block = Block(blockCloneMapOldNew.get(uncloned_block))
       @@log.fine "#{typer.sourceContent block}"
       enclosing_node = find_enclosing_node(block)
       if enclosing_node.nil?
@@ -407,7 +429,7 @@ class BetterClosureBuilder
         next
       end
       bindingName = "b#{i}"
-      bindingForBlocks.put block, bindingName
+      bindingForBlocks.put bindingForBlocks.get(block), bindingName
       adjuster = BindingAdjuster.new(
         self,
         bindingName,
@@ -431,7 +453,7 @@ class BetterClosureBuilder
         s.accept(AstChecker.new,nil)
       end
   
-      block = Block(entry.getKey)
+      block = Block(blockCloneMapOldNew.get(entry.getKey))
       parent_type = ResolvedType(entry.getValue)
 
       unless get_body(find_enclosing_node(block))
@@ -443,7 +465,7 @@ class BetterClosureBuilder
       closure_klass = build_class(block.position, parent_type, closure_name)
 
       # build closure class
-      binding_list = Collection(blockToBindings.get(block)) || Collections.emptyList
+      binding_list = Collection(blockToBindings.get(uncloned_block)) || Collections.emptyList
       binding_args = binding_list.map do |name: String|
         RequiredArgument.new(SimpleString.new(name), SimpleString.new(ResolvedType(bindingLocalNamesToTypes[name]).name))
       end
@@ -478,7 +500,7 @@ class BetterClosureBuilder
         build_and_inject_methods(closure_klass, block, parent_type, block_scope)
       end
 
-      closure_type = infer(closure_klass)
+      closure_type = infer(closure_klass) # FIXME: this re-infers also the body of the method (which is the ex-body of the block), which is probably duplicate work.
 
       has_block_parent = block.findAncestor { |node| node.parent.kind_of?(Block) || node.parent.kind_of?(ClosureDefinition) } # block, or converted block
 
