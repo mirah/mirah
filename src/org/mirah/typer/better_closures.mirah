@@ -35,6 +35,8 @@ import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.jvm.mirrors.BaseType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorFuture
+import org.mirah.jvm.mirrors.MethodScope
+import org.mirah.jvm.mirrors.ClosureScope
 import org.mirah.macros.MacroBuilder
 import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
@@ -981,6 +983,8 @@ enclosing_scope = get_scope(enclosing_body)
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
     block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
+    closure_scope = ClosureScope(get_inner_scope(block))
+
     block_body        = block.body
     block.body        = nil        # prevent cloning of block_body, such that later calls to findAncestor actually can find a non-nil ancestor
     block_method.body = block_body
@@ -1003,6 +1007,9 @@ enclosing_scope = get_scope(enclosing_body)
       end
       i+=1
     end
+    
+    method_scope = MethodScope.new(closure_scope,block_method)
+    @scoper.setScope(block_method,method_scope)
 
     methods.add(block_method)
 
