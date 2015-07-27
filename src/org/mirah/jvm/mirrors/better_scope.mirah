@@ -618,9 +618,10 @@ class MethodScope < BetterScope
   
   def initialize(source: ClosureScope, context: Node)
     super(context)
-    @scoper  = source.internal_scoper
-    @locals  = source.internal_locals
-    @imports = source.internal_imports
+    @scoper     = source.internal_scoper
+    @locals     = source.internal_locals
+    @imports    = source.internal_imports
+    self.parent = source.parent
   end
 
   supports_locals
