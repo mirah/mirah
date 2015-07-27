@@ -778,6 +778,10 @@ enclosing_scope = get_scope(enclosing_body)
     @scoper.getScope(block)
   end
 
+  def get_inner_scope(block: Node)
+    @scoper.getIntroducedScope(block)
+  end
+
   def wrap_with_rescue block: Node, nlr_klass: ClosureDefinition, call: Node, nlr_return_type: ResolvedType
     return_value = unless void_type? nlr_return_type
       Node(Call.new(block.position, 
