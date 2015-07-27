@@ -482,9 +482,11 @@ class BetterClosureBuilder
 
       has_block_parent = block.findAncestor { |node| node.parent.kind_of?(Block) || node.parent.kind_of?(ClosureDefinition) } # block, or converted block
 
+      binding_index = -1 # the first binding is our current binding, where we have to use a LocalAccess.
       binding_locals = binding_list.map do |name: String|
         # the current block's binding won't be a field
-        if has_block_parent && !name.equals(bindingForBlocks.get(block))
+        binding_index += 1
+        if has_block_parent && binding_index!=0
           FieldAccess.new(SimpleString.new(name))
         else
           LocalAccess.new(SimpleString.new(name))
