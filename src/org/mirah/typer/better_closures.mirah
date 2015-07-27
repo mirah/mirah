@@ -508,7 +508,9 @@ class BetterClosureBuilder
         replace_synthetic_lambda_definiton_with_closure(SyntheticLambdaDefinition(block.parent),new_node)
       end
 
+      @@log.fine "inferring new_node #{new_node}"
       infer new_node
+      @@log.fine "inferring enclosing_b #{enclosing_b}"
       infer enclosing_b
 
       @@log.fine "done with #{enclosing_b}"
