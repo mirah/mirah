@@ -955,7 +955,9 @@ enclosing_scope = get_scope(enclosing_body)
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
     block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
-    block_method.body = NodeList(block.body.clone)
+    block_body        = block.body
+    block.body        = nil        # prevent cloning of block_body, such that later calls to findAncestor actually can find a non-nil ancestor
+    block_method.body = block_body
 
     m_types= mtype.parameterTypes
 
