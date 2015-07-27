@@ -40,6 +40,7 @@ import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.util.AstFormatter
+import org.mirah.util.AstChecker
 
 
 interface ClosureBuilderer
@@ -423,6 +424,10 @@ class BetterClosureBuilder
       @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
       i += 1
 
+      scripts.each do |s: Script|
+        s.accept(AstChecker.new,nil)
+      end
+  
       block = Block(entry.getKey)
       parent_type = ResolvedType(entry.getValue)
 
