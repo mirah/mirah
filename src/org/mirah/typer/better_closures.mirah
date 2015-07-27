@@ -512,7 +512,7 @@ class BetterClosureBuilder
       infer enclosing_b
 
       @@log.fine "done with #{enclosing_b}"
-      @@log.log(Level.FINE, "Inferred types:\n{0}", AstFormatter.new(enclosing_b))
+      @@log.log(Level.FINE, "Inferred AST:\n{0}", AstFormatter.new(enclosing_b))
 
       buf = java::io::ByteArrayOutputStream.new
       ps = java::io::PrintStream.new(buf)
