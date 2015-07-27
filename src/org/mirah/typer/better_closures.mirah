@@ -990,7 +990,7 @@ enclosing_scope = get_scope(enclosing_body)
     closure_scope = ClosureScope(get_inner_scope(block))
 
     block_body        = block.body
-    block.body        = nil        # prevent cloning of block_body, such that later calls to findAncestor actually can find a non-nil ancestor
+#   block.body        = nil        # prevent cloning of block_body, such that later calls to findAncestor actually can find a non-nil ancestor
     block_method.body = block_body
 
     m_types= mtype.parameterTypes
@@ -1013,7 +1013,7 @@ enclosing_scope = get_scope(enclosing_body)
     end
     
     method_scope = MethodScope.new(closure_scope,block_method)
-    @scoper.setScope(block_method,method_scope)
+#   @scoper.setScope(block_method,method_scope)
 
     methods.add(block_method)
 
