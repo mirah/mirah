@@ -414,6 +414,7 @@ class BetterClosureBuilder
         bindingLocalNamesToTypes)
 
       adjuster.adjust enclosing_b
+      @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
     end
 
     # ignore closures with no parents, they aren't in the final AST, maybe
