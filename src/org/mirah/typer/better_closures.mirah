@@ -625,6 +625,11 @@ class BetterClosureBuilder
     get_body enclosing_node
   end
 
+  def find_enclosing_method_body block: Block
+    enclosing_node = find_enclosing_method block
+    get_body enclosing_node
+  end
+
   def get_body node: Node
     # TODO create an interface for nodes with bodies
     if node.kind_of?(MethodDefinition)
@@ -645,6 +650,16 @@ class BetterClosureBuilder
         node.kind_of?(MethodDefinition) ||
         node.kind_of?(Script) ||
         node.kind_of?(Block)
+      end
+    end
+  end
+
+  def find_enclosing_method block: Node
+    if block.parent
+      # findAncestor includes the start node, so we start with the parent
+      block.parent.findAncestor do |node|
+        node.kind_of?(MethodDefinition) ||
+        node.kind_of?(Script)
       end
     end
   end
