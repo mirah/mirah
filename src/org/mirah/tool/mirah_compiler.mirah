@@ -63,6 +63,7 @@ import org.mirah.util.TooManyErrorsException
 import org.mirah.util.LazyTypePrinter
 import org.mirah.util.Context
 import org.mirah.util.OptionParser
+import org.mirah.util.AstChecker
 
 class CompilationFailure < Exception
 end
@@ -163,7 +164,9 @@ class MirahCompiler implements JvmBackend
 
     sorted_asts.each do |node: Node|
       begin
+      	node.accept(AstChecker.new,nil)
         @typer.infer(node, false)
+      	node.accept(AstChecker.new,nil)
       ensure
         logAst(node, @typer)
       end
