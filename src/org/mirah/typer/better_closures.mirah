@@ -125,18 +125,18 @@ class BetterClosureBuilder
       @bindingName = bindingName
     end
 
-    def adjust(node: Node, block: Block): void
+    def adjust(node: Node, block: Block): boolean
       @captured = @builder.get_inner_scope(block).capturedLocals
       @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}\nfor block\n#{@builder.typer.sourceContent block}"
       @@log.fine "captures for #{@bindingName}: #{@captured} parent scope: #{@parent_scope}"
 
       if @captured.isEmpty
         @@log.fine "no need for binding adjustment here. Nothing captured"
-        return
+        return false
       end
       if @parent_scope.declared_binding_type
         @@log.fine "no need for binding adjustment here. already bound to #{@parent_scope.declared_binding_type}"
-        return
+        return false
       end
 
       # construct binding
@@ -226,6 +226,7 @@ class BetterClosureBuilder
       end
 
       @@log.fine "done replacing references"
+      true
     end
 
     def visitClassDefinition(node, blah)
@@ -437,7 +438,7 @@ class BetterClosureBuilder
         blockToBindings,
         bindingLocalNamesToTypes)
 
-      adjuster.adjust enclosing_b, block
+      binding_generated = adjuster.adjust enclosing_b, block
       @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
 #    end
 #
@@ -506,9 +507,9 @@ class BetterClosureBuilder
 
       binding_index = -1 # the first binding is our current binding, where we have to use a LocalAccess.
       binding_locals = binding_list.map do |name: String|
-        # the current block's binding won't be a field
+        # the current block's binding won't be a field, if there exists such a binding
         binding_index += 1
-        if has_block_parent && binding_index!=0
+        if has_block_parent && (!binding_generated || binding_index!=0)
           FieldAccess.new(SimpleString.new(name))
         else
           LocalAccess.new(SimpleString.new(name))
