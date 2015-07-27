@@ -556,6 +556,18 @@ class ClosureScope < BetterScope
   # for the moment, no shadowing,
   # but once scopes support declarations, then yes
   no_shadowing
+  
+  def internal_locals
+    @locals
+  end
+  
+  def internal_imports
+    @imports
+  end
+  
+  def internal_scoper
+    @scoper
+  end
 end
 
 class RescueScope < BetterScope
@@ -602,6 +614,13 @@ class MethodScope < BetterScope
     @scoper = scoper
     @locals = Locals.new
     @imports = ImportsAndSearchPackages.new
+  end
+  
+  def initialize(source: ClosureScope, context: Node)
+    super(context)
+    @scoper  = source.internal_scoper
+    @locals  = source.internal_locals
+    @imports = source.internal_imports
   end
 
   supports_locals
