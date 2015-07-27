@@ -415,15 +415,15 @@ class BetterClosureBuilder
 
       adjuster.adjust enclosing_b
       @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
-    end
-
-    # ignore closures with no parents, they aren't in the final AST, maybe
-    closures.removeAll closures_to_skip
-
-    i = 0
-    closures.each do |entry: Entry|
-      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
-      i += 1
+#    end
+#
+#    # ignore closures with no parents, they aren't in the final AST, maybe
+#    closures.removeAll closures_to_skip
+#
+#    i = 0
+#    closures.each do |entry: Entry|
+#      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
+#      i += 1
 
       scripts.each do |s: Script|
         s.accept(AstChecker.new,nil)
@@ -478,7 +478,7 @@ class BetterClosureBuilder
 
       closure_type = infer(closure_klass)
 
-      has_block_parent = block.findAncestor { |node| node.parent.kind_of? Block }
+      has_block_parent = block.findAncestor { |node| node.parent.kind_of?(Block) || node.parent.kind_of?(ClosureDefinition) } # block, or converted block
 
       binding_locals = binding_list.map do |name: String|
         # the current block's binding won't be a field
