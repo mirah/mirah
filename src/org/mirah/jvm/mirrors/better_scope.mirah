@@ -362,7 +362,8 @@ class BetterScope
       def isCaptured(name)
         return false unless @locals.has_local(name)
         return true if parent && parent.hasLocal(name)
-        return false
+
+        return children.any? {|child: BetterScope| child.hasLocal(name, false)}
       end
 
       def capturedLocals

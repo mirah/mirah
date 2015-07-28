@@ -126,7 +126,7 @@ class BetterClosureBuilder
     end
 
     def adjust(node: Node, block: Block): boolean
-      @captured = @builder.get_inner_scope(block).capturedLocals
+      @captured = @parent_scope.capturedLocals
       @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}\nfor block\n#{@builder.typer.sourceContent block}"
       @@log.fine "captures for #{@bindingName}: #{@captured} parent scope: #{@parent_scope}"
 
