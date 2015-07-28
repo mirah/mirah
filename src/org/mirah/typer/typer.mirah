@@ -569,6 +569,7 @@ class Typer < SimpleNodeVisitor
     end
     enclosing_node = node.findAncestor {|n| n.kind_of?(MethodDefinition) || n.kind_of?(Script)}
     if enclosing_node.kind_of? MethodDefinition
+      return nil if isMethodInBlock(MethodDefinition(enclosing_node)) # return types are not supported currently for methods which act as templates
       methodType = infer enclosing_node
       returnType = MethodFuture(methodType).returnType
       assignment = returnType.assign(type, node.position)
