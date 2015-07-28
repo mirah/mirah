@@ -174,6 +174,7 @@ class BetterClosureBuilder
       raise "parent_scope had declared_binding_type already #{@parent_scope}" if @parent_scope.declared_binding_type
       @parent_scope.declared_binding_type = binding_type
       @bindingLocalNamesToTypes[@bindingName] = binding_type
+      @builder.parent_scope_to_binding_name[@parent_scope] = @bindingName
       
       @binding_type = @builder.infer(binding_klass)
       @binding_klass_node = binding_klass
@@ -370,6 +371,7 @@ class BetterClosureBuilder
 
   attr_accessor blockCloneMapOldNew:IdentityHashMap
   attr_accessor blockCloneMapNewOld:IdentityHashMap
+  attr_accessor parent_scope_to_binding_name:Map
 
   def finish
     closures = []
@@ -404,6 +406,8 @@ class BetterClosureBuilder
       blockCloneMapNewOld.put(block,block)
     end
 
+    self.parent_scope_to_binding_name = {}
+
     i = 0
     closures.each do |entry: Entry|
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
@@ -431,10 +435,11 @@ class BetterClosureBuilder
       end
       bindingName = "b#{i}"
       bindingForBlocks.put uncloned_block, bindingName
+      parent_scope = MirrorScope(get_scope(block)) 
       adjuster = BindingAdjuster.new(
         self,
         bindingName,
-        MirrorScope(get_scope(block)),
+        parent_scope,
         blockToBindings,
         bindingLocalNamesToTypes)
 
@@ -507,11 +512,8 @@ class BetterClosureBuilder
 
       has_block_parent = block.findAncestor { |node| node.parent.kind_of?(Block) || node.parent.kind_of?(ClosureDefinition) } # block, or converted block
 
-      binding_index = -1 # the first binding is our current binding, where we have to use a LocalAccess.
       binding_locals = binding_list.map do |name: String|
-        # the current block's binding won't be a field, if there exists such a binding
-        binding_index += 1
-        if has_block_parent && (!binding_generated || binding_index!=0)
+        if has_block_parent && !name.equals(parent_scope_to_binding_name[parent_scope])
           FieldAccess.new(SimpleString.new(name))
         else
           LocalAccess.new(SimpleString.new(name))
