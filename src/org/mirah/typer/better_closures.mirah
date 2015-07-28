@@ -493,13 +493,7 @@ class BetterClosureBuilder
       closure_klass.body.add(constructor)
 
       enclosing_b  = find_enclosing_body block
-      if binding_assigns.isEmpty
-        insert_into_body enclosing_b, closure_klass
-      else 
-        # insert after binding class, for happier typing
-        # also causes weird issues in the compiler if things are out of order
-        enclosing_b.insert(1, closure_klass)
-      end
+      insert_into_body enclosing_b, closure_klass
 
       block_scope = get_scope block
       if contains_methods(block)
