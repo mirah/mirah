@@ -1129,38 +1129,51 @@ class Typer < SimpleNodeVisitor
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
 
-    addScopeForMethod(mdef)
 
-    inferAll(mdef.annotations)
-    infer(mdef.arguments)
-    parameters = inferAll(mdef.arguments)
-
-    if mdef.type
-      returnType = getTypeOf(mdef, mdef.type.typeref)
-    end
-
-    selfType = selfTypeOf(mdef)
-    type = @types.getMethodDefType(selfType,
-                                   mdef.name.identifier,
-                                   parameters,
-                                   returnType,
-                                   mdef.name.position)
-    @futures[mdef] = type
-    declareOptionalMethods(selfType,
-                           mdef,
-                           parameters,
-                           type.returnType)
-
-    # TODO deal with overridden methods?
-    # TODO throws
-    # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
-    if isVoid type
+    if !isMethodInBlock(mdef)
+      addScopeForMethod(mdef)
+      @@log.finest "Normal method #{mdef}."
+      inferAll(mdef.annotations)
+      infer(mdef.arguments)
+      parameters = inferAll(mdef.arguments)
+  
+      if mdef.type
+        returnType = getTypeOf(mdef, mdef.type.typeref)
+      end
+  
+      selfType = selfTypeOf(mdef)
+      type = @types.getMethodDefType(selfType,
+                                     mdef.name.identifier,
+                                     parameters,
+                                     returnType,
+                                     mdef.name.position)
+      @futures[mdef] = type
+      declareOptionalMethods(selfType,
+                             mdef,
+                             parameters,
+                             type.returnType)
+  
+      # TODO deal with overridden methods?
+      # TODO throws
+      # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
+      if isVoid type
+        infer(mdef.body, false)
+        type.returnType.assign(@types.getVoidType, mdef.position)
+      else
+        type.returnType.assign(infer(mdef.body), mdef.body.position)
+      end
+      type
+    else  # We are a method defined in a block. We are just a template for a method in a ClosureDefinition
+      block = Block(mdef.parent.parent)
+      @@log.finest "Method #{mdef} is member of #{block}"
+      scope_around_block = scopeOf(block)
+      scope              = addScopeUnder(mdef)
+      scope.selfType     = scope_around_block.selfType
+      scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
+      scope
       infer(mdef.body, false)
-      type.returnType.assign(@types.getVoidType, mdef.position)
-    else
-      type.returnType.assign(infer(mdef.body), mdef.body.position)
+      nil
     end
-    type
   end
   
   def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
