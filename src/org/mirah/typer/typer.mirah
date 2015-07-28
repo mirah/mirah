@@ -1397,6 +1397,10 @@ class Typer < SimpleNodeVisitor
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
     addScopeUnder(mdef)
   end
+  
+  def isMethodInBlock(mdef: MethodDefinition): boolean
+    mdef.parent.kind_of?(NodeList) && mdef.parent.parent.kind_of?(Block)
+  end
 
   def addScopeWithSelfType(node: Node, selfType: TypeFuture)
     scope = addScopeUnder(node)
