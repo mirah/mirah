@@ -405,6 +405,22 @@ class MacrosTest < Test::Unit::TestCase
     assert_run_output("0\n3\n", script)
   end
   
+  def test_protected_attr_accessor
+    script, cls = compile(<<-EOF)
+      class ProtectedAttrAccessorTest
+        protected attr_accessor foo:int
+        
+        def selfreflect
+          puts self.getClass.getDeclaredMethod("foo").getModifiers
+          puts self.getClass.getDeclaredMethod("foo_set",[int.class].toArray(Class[0])).getModifiers
+        end
+      end
+
+      ProtectedAttrAccessorTest.new.selfreflect
+    EOF
+    assert_run_output("4\n4\n", script)
+  end
+
   def test_macro_in_abstract_class
     pend
     script, cls = compile(%q{
