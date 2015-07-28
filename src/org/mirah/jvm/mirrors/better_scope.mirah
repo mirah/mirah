@@ -79,6 +79,10 @@ class Locals
     end
     type
   end
+  
+  def has_local_type(name:String):boolean
+    @local_types.containsKey(name)
+  end
 
   def has_local name: String
     @defined_locals.contains(name)
@@ -327,6 +331,10 @@ class BetterScope
       def hasLocal(name, includeParent:boolean=true)
         @locals.has_local(name) || (includeParent && parent && parent.hasLocal(name))
       end
+      
+      def hasLocalType(name:String)
+        @locals.has_local_type(name)
+      end
     end
   end
 
@@ -363,7 +371,15 @@ class BetterScope
         return false unless @locals.has_local(name)
         return true if parent && parent.hasLocal(name)
 
-        return children.any? {|child: BetterScope| child.hasLocal(name, false)}
+        return children.any? do |child: BetterScope|
+          if child.hasLocal(name, false)
+            true
+          elsif child.kind_of?(ClosureScope)
+            ClosureScope(child).is_captured_by_methods_of_block(name)
+          else
+            false
+          end
+        end
       end
 
       def capturedLocals
@@ -556,6 +572,27 @@ class ClosureScope < BetterScope
   # for the moment, no shadowing,
   # but once scopes support declarations, then yes
   no_shadowing
+
+  # We assume this block's body consists only of MethodDefinitions  
+  def is_captured_by_methods_of_block(name:String)
+    block         = Block(self.context)
+    body          = block.body
+    i             = 0
+    while i < body.size
+      block_member = body.get(i)
+      if block_member.kind_of?(MethodDefinition)
+        method_scope = MethodScope(self.scoper.getIntroducedScope(block_member))
+        if !method_scope.hasLocalType(name)
+          return false
+        end
+      else
+        return false
+      end
+      i+=1
+    end
+    
+    return true
+  end
   
   def internal_locals
     @locals
