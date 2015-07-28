@@ -434,7 +434,7 @@ class BetterClosureBuilder
         closures_to_skip.add entry
         next
       end
-      bindingName = "b#{i}"
+      bindingName = "$b#{i}"
       bindingForBlocks.put uncloned_block, bindingName
       parent_scope = MirrorScope(get_scope(block)) 
       adjuster = BindingAdjuster.new(
