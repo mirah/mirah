@@ -570,4 +570,19 @@ class MacrosTest < Test::Unit::TestCase
     })
     assert_run_output("called\n", script)
   end
+  
+  def test_gensym_clash
+    script, cls = compile(%q{
+      result = []
+      c = lambda(Runnable) do
+        5.times do
+        end
+      end
+      result.each do |r:Runnable|
+      end
+      
+      puts result
+    })
+    assert_run_output("[]\n", script)
+  end
 end
