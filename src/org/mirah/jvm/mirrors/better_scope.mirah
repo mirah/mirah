@@ -252,7 +252,11 @@ class BetterScope
   macro def self.defers_temp
     quote do
       def temp(name)
-      	parent.temp(name)
+        if parent # Lazy defer... if it is not possible, we fall back to ourselves. Hope that does not hurt us (e.g. in case the parent is dynamically added).
+          parent.temp(name)
+        else
+          super
+        end
       end
     end
   end
