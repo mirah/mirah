@@ -44,6 +44,7 @@ import org.mirah.typer.CallFuture
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.util.AstFormatter
 import org.mirah.util.AstChecker
+import org.mirah.util.LazyTypePrinter
 
 
 interface ClosureBuilderer
@@ -536,6 +537,8 @@ class BetterClosureBuilder
 
       @@log.fine "done with #{enclosing_b}"
       @@log.log(Level.FINE, "Inferred AST:\n{0}", AstFormatter.new(enclosing_b))
+      @@log.log(Level.FINE, "Inferred types:\n{0}", LazyTypePrinter.new(typer, enclosing_b))
+      
 
       buf = java::io::ByteArrayOutputStream.new
       ps = java::io::PrintStream.new(buf)
