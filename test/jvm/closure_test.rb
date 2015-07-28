@@ -126,4 +126,13 @@ class ClosureTest < Test::Unit::TestCase
     assert_run_output("so: bar\nhey you 5\n", cls)
   end
 
+  def test_direct_invoke_on_lambda
+    cls, = compile(%q[
+      lambda(Runnable) do
+        puts "abc"
+      end.run
+    ])
+    assert_run_output("abc\n", cls)
+  end
+
 end
