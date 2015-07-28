@@ -226,7 +226,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
         end
 
         def gensym: String
-          @mirah.scoper.getScope(@call).temp('gensym')
+          @mirah.scoper.getScope(@call).temp('$gensym')
         end
       end
     end
