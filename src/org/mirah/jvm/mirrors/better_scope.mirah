@@ -374,8 +374,8 @@ class BetterScope
         return children.any? do |child: BetterScope|
           if child.hasLocal(name, false)
             true
-          elsif child.kind_of?(ClosureScope)
-            ClosureScope(child).is_captured_by_methods_of_block(name)
+#         elsif child.kind_of?(ClosureScope)
+#           ClosureScope(child).is_captured_by_methods_of_block(name)
           else
             false
           end
