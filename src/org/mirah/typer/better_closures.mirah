@@ -450,8 +450,10 @@ class BetterClosureBuilder
 #      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
 #      i += 1
 
-      scripts.each do |s: Script|
-        s.accept(AstChecker.new,nil)
+      if AstChecker.enabled
+        scripts.each do |s: Script|
+          s.accept(AstChecker.new,nil)
+        end
       end
   
       block = Block(blockCloneMapOldNew.get(entry.getKey))

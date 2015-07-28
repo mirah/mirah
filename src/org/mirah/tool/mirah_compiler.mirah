@@ -164,9 +164,9 @@ class MirahCompiler implements JvmBackend
 
     sorted_asts.each do |node: Node|
       begin
-      	node.accept(AstChecker.new,nil)
+        node.accept(AstChecker.new,nil) if AstChecker.enabled 
         @typer.infer(node, false)
-      	node.accept(AstChecker.new,nil)
+        node.accept(AstChecker.new,nil) if AstChecker.enabled
       ensure
         logAst(node, @typer)
       end

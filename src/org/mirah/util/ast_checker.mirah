@@ -27,6 +27,10 @@ class AstChecker < NodeScanner
     @@log = Logger.getLogger(AstChecker.class.getName)
   end
   
+  def self.enabled
+    false
+  end
+  
   def initialize
     self.stack = ArrayDeque.new
   end
