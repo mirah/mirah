@@ -226,10 +226,10 @@ class TypeParameterInference
       end
       
       def visitDeclared(t, p)
-        types = tpi.findMatchingGenericSupertypes(TypeMirror(p), t)
-        return nil if types.nil?
-        args = types[0].getTypeArguments.iterator
-        params = types[1].getTypeArguments.iterator
+        types2 = tpi.findMatchingGenericSupertypes(TypeMirror(p), t)
+        return nil if types2.nil? # FIXME: a compiler bug prevents types2 being called types.
+        args = types2[0].getTypeArguments.iterator
+        params = types2[1].getTypeArguments.iterator
         while args.hasNext
           arg = TypeMirror(args.next)
           param = TypeMirror(params.next)
