@@ -135,4 +135,17 @@ class ClosureTest < Test::Unit::TestCase
     assert_run_output("abc\n", cls)
   end
 
+  def test_lambda_contains_methods
+    cls, = compile(%q[
+      foo = 3
+      
+      lambda(Runnable) do
+        def run
+          puts foo
+        end
+      end.run
+    ])
+    assert_run_output("3\n", cls)
+  end
 end
+
