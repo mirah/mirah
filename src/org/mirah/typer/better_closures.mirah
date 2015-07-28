@@ -430,7 +430,7 @@ class BetterClosureBuilder
         next
       end
       bindingName = "b#{i}"
-      bindingForBlocks.put bindingForBlocks.get(block), bindingName
+      bindingForBlocks.put uncloned_block, bindingName
       adjuster = BindingAdjuster.new(
         self,
         bindingName,
