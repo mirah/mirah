@@ -646,7 +646,7 @@ class BetterClosureBuilder
   def replace_synthetic_lambda_definiton_with_closure(parent: SyntheticLambdaDefinition, new_node: Node): void
     parentparent = parent.parent
     new_node.setParent(nil)
-    if parentparent.kind_of?(CallSite) # then the SyntheticLambdaDefinition is not a child of the CallSite itself, but (most likely?) a child of its arguments. FIXME: It is weird that the parent of a child of X is not X. 
+    if parentparent.kind_of?(CallSite) && CallSite(parentparent).target!=parent # then the SyntheticLambdaDefinition is not a child of the CallSite itself, but (most likely?) a child of its arguments. FIXME: It is weird that the parent of a child of X is not X. 
       CallSite(parentparent).parameters.replaceChild(parent,new_node)
     else
       parentparent.replaceChild(parent,new_node)
