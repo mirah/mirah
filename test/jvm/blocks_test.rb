@@ -395,6 +395,34 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("bazstart\nfirst 10 4\nsecond 10 20 4\nthird 10 30  4\n", cls)
   end
 
+  def test_two_closures_capture_different_variables
+    cls, = compile(%q[
+      interface Jogger do;def jog(param:int):void;end;end
+      
+      class Nestable
+        def operate(blub: int, a: Jogger):void
+          a.jog(blub)
+        end
+      end
+      
+      class Bar
+        def baz(foo:int):void
+          puts "bazstart"
+          bar = 7
+          Nestable.new.operate(40) do |arg1|
+            puts bar
+          end
+          Nestable.new.operate(10) do |arg1|
+            puts "first #{arg1} #{foo}"
+          end
+        end
+      end
+      
+      Bar.new.baz(4)
+    ])
+    assert_run_output("bazstart\n7\nfirst 10 4\n", cls)
+  end
+
   def test_uncastable_block_arg_type_fails
     error = assert_raises Mirah::MirahError do
       compile(<<-EOF)
