@@ -19,6 +19,11 @@ import java.util.ArrayDeque
 import mirah.lang.ast.Node
 import mirah.lang.ast.NodeScanner
 
+#
+# This class checks the semantic integrity of the abstract syntax tree.
+# There is currently only 1 check implemented:
+# - Check for whether a node's child has actually the node as parent.
+#
 class AstChecker < NodeScanner
   
   attr_accessor stack:ArrayDeque
