@@ -63,5 +63,11 @@ class AstChecker < NodeScanner
   def child_parent_mismatch(node:Node,nodes_child:Node,nodes_childs_parent:Node)
     @@log.warning "Child #{nodes_child} of #{node} has parent #{nodes_childs_parent}"
   end
+  
+  def self.maybe_check(node:Node)
+    if self.enabled
+      node.accept(self.new, nil)
+    end
+  end
 end
 
