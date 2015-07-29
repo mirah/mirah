@@ -65,13 +65,13 @@ class AstChecker < NodeScanner
     @@log.warning "Child #{nodes_child} of #{node} has parent #{nodes_childs_parent}"
   end
   
-  def self.maybe_check(node:Node)
+  def self.maybe_check(node:Node):void
     if self.enabled
       node.accept(self.new, nil)
     end
   end
   
-  def self.maybe_check(list:List) # List<Node>
+  def self.maybe_check(list:List):void # List<Node>
     if self.enabled
       list.each do |node:Node|
         self.maybe_check(node)
