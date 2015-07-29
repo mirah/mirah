@@ -1171,8 +1171,8 @@ class Typer < SimpleNodeVisitor
       scope              = addScopeUnder(mdef)
       scope.selfType     = scope_around_block.selfType
       scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
-      infer(mdef.body, false)
-      nil
+      infer(mdef.body, false)                 # We want to determine which free variables are referenced in the MethodDefinition.
+      nil                                     # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
     end
   end
   
