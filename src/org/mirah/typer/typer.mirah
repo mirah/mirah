@@ -1171,7 +1171,6 @@ class Typer < SimpleNodeVisitor
       scope              = addScopeUnder(mdef)
       scope.selfType     = scope_around_block.selfType
       scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
-      scope
       infer(mdef.body, false)
       nil
     end
