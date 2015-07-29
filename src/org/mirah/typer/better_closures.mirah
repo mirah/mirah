@@ -1014,9 +1014,7 @@ enclosing_scope = get_scope(enclosing_body)
 
     closure_scope = ClosureScope(get_inner_scope(block))
 
-    block_body        = block.body
-#   block.body        = nil        # prevent cloning of block_body, such that later calls to findAncestor actually can find a non-nil ancestor
-    block_method.body = block_body
+    block_method.body = block.body
 
     m_types= mtype.parameterTypes
 
