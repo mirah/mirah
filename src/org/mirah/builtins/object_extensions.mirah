@@ -16,9 +16,6 @@
 package org.mirah.builtins
 
 import mirah.lang.ast.*
-import org.mirah.typer.BetterClosureBuilder
-import org.mirah.typer.ErrorType
-import org.mirah.jvm.mirrors.MirrorTypeSystem
 
 class ObjectExtensions
 
