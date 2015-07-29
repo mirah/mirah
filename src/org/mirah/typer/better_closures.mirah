@@ -455,11 +455,7 @@ class BetterClosureBuilder
 #      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
 #      i += 1
 
-      if AstChecker.enabled
-        scripts.each do |s: Script|
-          s.accept(AstChecker.new, nil)
-        end
-      end
+      AstChecker.maybe_check(scripts)
   
       block = Block(blockCloneMapOldNew.get(entry.getKey))
       parent_type = ResolvedType(entry.getValue)

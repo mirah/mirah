@@ -16,6 +16,7 @@
 package org.mirah.util
 
 import java.util.ArrayDeque
+import java.util.List
 import mirah.lang.ast.Node
 import mirah.lang.ast.NodeScanner
 
@@ -67,6 +68,14 @@ class AstChecker < NodeScanner
   def self.maybe_check(node:Node)
     if self.enabled
       node.accept(self.new, nil)
+    end
+  end
+  
+  def self.maybe_check(list:List) # List<Node>
+    if self.enabled
+      list.each do |node:Node|
+        self.maybe_check(node)
+      end
     end
   end
 end
