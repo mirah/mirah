@@ -525,8 +525,10 @@ class BetterClosureBuilder
       if block.parent.kind_of?(CallSite)
         parent = CallSite(block.parent)
         replace_block_with_closure_in_call parent, block, new_node
-      else
+      elsif block.parent.kind_of?(SyntheticLambdaDefinition) 
         replace_synthetic_lambda_definiton_with_closure(SyntheticLambdaDefinition(block.parent),new_node)
+      else
+        raise "Cannot handle parent #{block.parent} of block #{block}."
       end
 
       @@log.fine "inferring new_node #{new_node}"
