@@ -156,16 +156,16 @@ class TypePrinter2 < NodeScanner
   def enterMethodDefinition(node, arg)
     type = @typer.getInferredType(node)
     
-    printIndent
-    @out.print "$TODOAnnotations\n"
+    printIndent if node.annotations_size > 0
+    @out.print "$TODOAnnotations\n"  if node.annotations_size > 0
     printIndent
     @out.print "def "
     @out.print "(self.)" # if MethodType(type).isStatic
     @out.print node.name.identifier
     node.arguments.accept(self, arg)
-    type = @typer.getInferredType(node)
+
     if type
-      @out.print "# #{type.resolve}"
+      @out.print " # #{type.resolve}"
     end
     @out.println
     incIndent
@@ -183,19 +183,24 @@ class TypePrinter2 < NodeScanner
 
   def enterRequiredArgument(node, arg)
     printIndent
-    @out.print "#{node.name.identifier}"
+    @out.print " #{node.name.identifier}"
     @out.print ": #{node.type.typeref}" if node.type
-
+    @out.print ", "
     type = @typer.getInferredType(node)
     if type
-      @out.print "# #{type.resolve}\n"
+      @out.print " # #{type.resolve}\n"
     end
     
     false
   end
 
+  def enterSelf(node, arg)
+    @out.print "self"
+    false
+  end
+
   def enterOptionalArgumentList(node, arg)
-    @out.print("<TODO optional args>")
+    @out.print("<TODO optional args>") if node
     false
   end
   def enterFixnum(node, arg)
@@ -223,11 +228,20 @@ class TypePrinter2 < NodeScanner
     false
   end
 
-  def enterArguments(node, arg)
-    #printIndent
-    @out.print "(\n"
-    incIndent
-    true
+  def enterArguments(arguments, arg)
+    count = 0
+    count += arguments.required.size  if arguments.required
+    count += arguments.optional.size  if arguments.optional
+    count += arguments.required2.size if arguments.required2
+    count += 1 if arguments.rest
+    if count > 0
+      @out.print "(\n"
+      incIndent
+      true
+    else
+      @out.print "("
+      false
+    end
   end
 
   def exitArguments(node, arg)
@@ -242,7 +256,7 @@ class TypePrinter2 < NodeScanner
 
     type = @typer.getInferredType(node)
     if type
-      @out.print "# #{type.resolve}"
+      @out.print " # #{type.resolve}"
     end
     @out.println
     false
@@ -253,7 +267,7 @@ class TypePrinter2 < NodeScanner
 
     type = @typer.getInferredType(node)
     if type
-      @out.print "# #{type.resolve}"
+      @out.print " # #{type.resolve}"
     end
     @out.println
     node.value.accept self, arg
@@ -299,7 +313,7 @@ def enterStringEval(node, arg)
 
     type = @typer.getInferredType(node)
     if type
-      @out.print "# #{type.resolve}"
+      @out.print " # #{type.resolve}"
     end
     @out.println
     node.value.accept self, arg
@@ -330,11 +344,15 @@ def enterStringEval(node, arg)
     @out.print(node)
     type = @typer.getInferredType(node)
     if type
-      @out.print "# #{type.resolve}"
+      @out.print " # #{type.resolve}"
     end
     @out.println
     incIndent
     true
+  end
+  def enterBoolean(node, arg)
+    @out.print node.value
+    false
   end
   def exitDefault(node, arg)
     decIndent
