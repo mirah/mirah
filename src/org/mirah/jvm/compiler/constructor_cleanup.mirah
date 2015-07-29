@@ -60,10 +60,12 @@ class ConstructorCleanup < SimpleNodeVisitor
     end
   end
   
+  # If we find a ClassDefinition in a constructor, then we should ignore it.
   def visitClassDefinition(node, arg)
     nil
   end
   
+  # If we find a ClosureDefinition in a constructor (which may happen if the constructor contains closures), then we should ignore it.
   def visitClosureDefinition(node, arg)
     nil
   end
