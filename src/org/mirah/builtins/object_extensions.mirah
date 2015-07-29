@@ -213,10 +213,10 @@ class ObjectExtensions
   end
 
   macro def lambda(type:TypeName, block:Block)
-    SyntheticLambdaDefinition.new(@call.position,type,block)
+    SyntheticLambdaDefinition.new(@call.position, type, block)
   end
 
   macro def self.lambda(type:TypeName, block:Block)
-    SyntheticLambdaDefinition.new(@call.position,type,block)
+    SyntheticLambdaDefinition.new(@call.position, type, block)
   end
 end

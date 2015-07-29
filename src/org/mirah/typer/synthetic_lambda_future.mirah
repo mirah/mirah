@@ -21,7 +21,7 @@ import mirah.lang.ast.Position
 import org.mirah.jvm.mirrors.MirrorType
 
 class SyntheticLambdaFuture < BaseTypeFuture
-  def initialize(supertype:TypeFuture,block:BlockFuture,position:Position)
+  def initialize(supertype:TypeFuture, block:BlockFuture, position:Position)
     super(position)
     supertype.onUpdate do |x,resolved|
       block.resolved(resolved)

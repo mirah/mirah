@@ -458,7 +458,7 @@ class BetterClosureBuilder
 
       if AstChecker.enabled
         scripts.each do |s: Script|
-          s.accept(AstChecker.new,nil)
+          s.accept(AstChecker.new, nil)
         end
       end
   
