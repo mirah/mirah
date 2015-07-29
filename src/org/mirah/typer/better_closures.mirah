@@ -126,18 +126,18 @@ class BetterClosureBuilder
       @bindingName = bindingName
     end
 
-    def adjust(node: Node, block: Block): boolean
+    def adjust(node: Node, block: Block):void
       @captured = @parent_scope.capturedLocals
       @@log.fine "adjusting #{node}\n#{@builder.typer.sourceContent node}\nfor block\n#{@builder.typer.sourceContent block}"
       @@log.fine "captures for #{@bindingName}: #{@captured} parent scope: #{@parent_scope}"
 
       if @captured.isEmpty
         @@log.fine "no need for binding adjustment here. Nothing captured"
-        return false
+        return
       end
       if @parent_scope.declared_binding_type
         @@log.fine "no need for binding adjustment here. already bound to #{@parent_scope.declared_binding_type}"
-        return false
+        return
       end
 
       # construct binding
@@ -228,7 +228,6 @@ class BetterClosureBuilder
       end
 
       @@log.fine "done replacing references"
-      true
     end
 
     def visitClassDefinition(node, blah)
@@ -444,7 +443,7 @@ class BetterClosureBuilder
         blockToBindings,
         bindingLocalNamesToTypes)
 
-      binding_generated = adjuster.adjust enclosing_b, block
+      adjuster.adjust enclosing_b, block
       @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
 #    end
 #
