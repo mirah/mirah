@@ -15,6 +15,23 @@
 
 class RescueTest < Test::Unit::TestCase
 
+  def test_rescue_with_import
+    cls, = compile(<<-EOF)
+      def foo
+        begin
+          raise "some error"
+        rescue Exception => e
+          import java.util.Collections
+          x = [3, 1, 2]
+          Collections.sort x
+          x
+        end
+      end
+    EOF
+
+    assert_equal [1, 2, 3], cls.foo.to_a
+  end
+
   def test_rescue_with_no_raise_runs_begin_and_not_rescue
     cls, = compile(<<-EOF)
       def foo

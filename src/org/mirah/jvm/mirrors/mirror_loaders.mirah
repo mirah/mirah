@@ -111,6 +111,7 @@ class SimpleMirrorLoader implements MirrorLoader
   def loadMirror(type:Type):MirrorType
     existing = MirrorType(@mirrors[type])
     return existing if existing
+
     mirror = findMirror(type)
     if mirror
       @mirrors[type] = mirror
@@ -314,6 +315,11 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
   end
 
   def self.addMacro(type:BaseType, name:String)
+    member = internalAddMacro type, name
+    @@log.fine("Loaded macro #{member}")
+  end
+
+  def self.internalAddMacro(type: BaseType, name: String)
     classloader = type.context[ClassLoader]
     klass = if classloader
       classloader.loadClass(name)
@@ -322,7 +328,7 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     end
     member = MacroMember.create(klass, type, type.context)
     type.add(member)
-    @@log.fine("Loaded macro #{member}")
+    member
   end
 
   def self.extendClass(type: BaseType, extensions: Class)
@@ -353,20 +359,21 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     
     bytecode = macro_loader.getResourceAsStream(new_style_extension_classname)
     if bytecode
-      @@log.fine "  class found"
+      @@log.fine "  macro class found on classpath"
       node = BytecodeMirrorLoader.class_node_for(bytecode)
       BytecodeMirrorLoader.findAndAddMacros(node, type)
     else
-      @@log.finer "  class not found"
+      @@log.finer "  macro class not found on classpath"
     end
         
   end
 
   def self.findAndAddMacros(node: ClassNode, type: BaseType): void
     macros = findMacros(node)
-    @@log.fine "  found #{macros.size} macros"
+    @@log.fine "  found #{macros.size} macros. Loading"
     macros.each do |name|
-      addMacro(type, String(name))
+      member = internalAddMacro(type, String(name))
+      @@log.fine "    #{member}"
     end
   end
 

@@ -60,20 +60,15 @@ class Typer < SimpleNodeVisitor
   def initialize(types: TypeSystem,
                  scopes: Scoper,
                  jvm_backend: JvmBackend,
-                 parser: MirahParser=nil,
-                 new_closures=false)
+                 parser: MirahParser=nil)
     @trueobj = java::lang::Boolean.valueOf(true)
     @futures = HashMap.new
     @types = types
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
     
-    if new_closures
-      # might want one of these for each script
-      @closures = BetterClosureBuilder.new(self, @macros)
-    else
-      @closures = ClosureBuilder.new(self)
-    end
+    # might want one of these for each script
+    @closures = BetterClosureBuilder.new(self, @macros)
   end
 
   def finish_closures
@@ -574,6 +569,7 @@ class Typer < SimpleNodeVisitor
     end
     enclosing_node = node.findAncestor {|n| n.kind_of?(MethodDefinition) || n.kind_of?(Script)}
     if enclosing_node.kind_of? MethodDefinition
+      return nil if isMethodInBlock(MethodDefinition(enclosing_node)) # return types are not supported currently for methods which act as templates
       methodType = infer enclosing_node
       returnType = MethodFuture(methodType).returnType
       assignment = returnType.assign(type, node.position)
@@ -1134,38 +1130,50 @@ class Typer < SimpleNodeVisitor
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
 
-    addScopeForMethod(mdef)
 
-    inferAll(mdef.annotations)
-    infer(mdef.arguments)
-    parameters = inferAll(mdef.arguments)
-
-    if mdef.type
-      returnType = getTypeOf(mdef, mdef.type.typeref)
+    if !isMethodInBlock(mdef)
+      addScopeForMethod(mdef)
+      @@log.finest "Normal method #{mdef}."
+      inferAll(mdef.annotations)
+      infer(mdef.arguments)
+      parameters = inferAll(mdef.arguments)
+  
+      if mdef.type
+        returnType = getTypeOf(mdef, mdef.type.typeref)
+      end
+  
+      selfType = selfTypeOf(mdef)
+      type = @types.getMethodDefType(selfType,
+                                     mdef.name.identifier,
+                                     parameters,
+                                     returnType,
+                                     mdef.name.position)
+      @futures[mdef] = type
+      declareOptionalMethods(selfType,
+                             mdef,
+                             parameters,
+                             type.returnType)
+  
+      # TODO deal with overridden methods?
+      # TODO throws
+      # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
+      if isVoid type
+        infer(mdef.body, false)
+        type.returnType.assign(@types.getVoidType, mdef.position)
+      else
+        type.returnType.assign(infer(mdef.body), mdef.body.position)
+      end
+      type
+    else  # We are a method defined in a block. We are just a template for a method in a ClosureDefinition
+      block = Block(mdef.parent.parent)
+      @@log.finest "Method #{mdef} is member of #{block}"
+      scope_around_block = scopeOf(block)
+      scope              = addScopeUnder(mdef)
+      scope.selfType     = scope_around_block.selfType
+      scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
+      infer(mdef.body, false)                 # We want to determine which free variables are referenced in the MethodDefinition.
+      nil                                     # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
     end
-
-    selfType = selfTypeOf(mdef)
-    type = @types.getMethodDefType(selfType,
-                                   mdef.name.identifier,
-                                   parameters,
-                                   returnType,
-                                   mdef.name.position)
-    @futures[mdef] = type
-    declareOptionalMethods(selfType,
-                           mdef,
-                           parameters,
-                           type.returnType)
-
-    # TODO deal with overridden methods?
-    # TODO throws
-    # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
-    if isVoid type
-      infer(mdef.body, false)
-      type.returnType.assign(@types.getVoidType, mdef.position)
-    else
-      type.returnType.assign(infer(mdef.body), mdef.body.position)
-    end
-    type
   end
   
   def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
@@ -1208,7 +1216,7 @@ class Typer < SimpleNodeVisitor
     typer = self
     typer.logger.fine "at block future registration for #{block}"
     BlockFuture.new(block) do |block_future, resolvedType|
-      typer.logger.fine "in block future for #{block}\n  #{typer.sourceContent block}"
+      typer.logger.fine "in block future for #{block}: resolvedType=#{resolvedType}\n  #{typer.sourceContent block}"
       closures.add_todo block, resolvedType
     end
   end
@@ -1246,6 +1254,12 @@ class Typer < SimpleNodeVisitor
     block.arguments = unquoted_args
     unquoted_args.setParent block
     block.body.removeChild block.body.get(0)
+  end
+  
+  def visitSyntheticLambdaDefinition(node, expression)
+    supertype = infer(node.supertype)
+    block     = BlockFuture(infer(node.block))
+    SyntheticLambdaFuture.new(supertype,block,node.position)
   end
 
   # Returns true if any MethodDefinitions were found.
@@ -1395,6 +1409,10 @@ class Typer < SimpleNodeVisitor
   def addScopeForMethod(mdef: MethodDefinition): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
     addScopeUnder(mdef)
+  end
+  
+  def isMethodInBlock(mdef: MethodDefinition): boolean
+    mdef.parent.kind_of?(NodeList) && mdef.parent.parent.kind_of?(Block)
   end
 
   def addScopeWithSelfType(node: Node, selfType: TypeFuture)

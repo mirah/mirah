@@ -16,9 +16,6 @@
 package org.mirah.builtins
 
 import mirah.lang.ast.*
-import org.mirah.typer.ClosureBuilder
-import org.mirah.typer.ErrorType
-import org.mirah.jvm.mirrors.MirrorTypeSystem
 
 class ObjectExtensions
 
@@ -242,21 +239,10 @@ class ObjectExtensions
   end
 
   macro def lambda(type:TypeName, block:Block)
-  # TODO, just create a SyntheticLambdaDefinition that the ClosureBuilder picks up
-    builder = ClosureBuilder.new(@mirah.typer)
-    scope = @mirah.typer.scoper.getScope(@call)
-    resolved = @mirah.type_system.get(scope, type.typeref).resolve
-    # TODO, do something better than this
-    raise "can't build lambda for #{type} #{resolved}" if resolved.kind_of? ErrorType
-    builder.prepare(block, resolved)
+    SyntheticLambdaDefinition.new(@call.position, type, block)
   end
 
   macro def self.lambda(type:TypeName, block:Block)
-    builder = ClosureBuilder.new(@mirah.typer)
-    scope = @mirah.typer.scoper.getScope(@call)
-    resolved = @mirah.type_system.get(scope, type.typeref).resolve
-    # TODO, do something better than this
-    raise "can't build lambda for #{type} #{resolved}" if resolved.kind_of? ErrorType
-    builder.prepare(block, resolved)
+    SyntheticLambdaDefinition.new(@call.position, type, block)
   end
 end

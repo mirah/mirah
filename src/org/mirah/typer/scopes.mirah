@@ -58,4 +58,5 @@ interface Scoper do
   # get scope of node
   def getIntroducedScope(node: Node): Scope; end
   def copyScopeFrom(from: Node, to: Node): void; end
+  def setScope(node: Node, scope: Scope): void; end 
 end

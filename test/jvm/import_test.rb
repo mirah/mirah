@@ -95,4 +95,26 @@ class ImportTest < Test::Unit::TestCase
     assert_run_output("hi\n", cls)
   end
 
+  def test_static_import_in_closure
+    cls, = compile(%q[
+      class StaticImportInClosure
+        def baz
+          b = 3
+          perform do
+            import static java.lang.Math.*
+            b = max(-9,-8)
+          end
+          b
+        end
+        
+        def perform(runnable:Runnable)
+          runnable.run
+        end
+      end
+      
+      puts StaticImportInClosure.new.baz
+    ])
+    assert_run_output("-8\n", cls)
+  end
+
 end

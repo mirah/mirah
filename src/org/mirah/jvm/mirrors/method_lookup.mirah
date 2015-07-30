@@ -294,15 +294,14 @@ class MethodLookup
                  position:Position,
                  includeStaticImports:boolean):TypeFuture
     potentials = gatherMethods(target, name)
-    is_static_scope = (
-        scope && scope.selfType && target == scope.selfType.resolve)
-    if includeStaticImports && potentials.isEmpty && is_static_scope
+
+    if includeStaticImports && potentials.isEmpty
       potentials = gatherStaticImports(MirrorScope(scope), name)
     end
     state = LookupState.new(@context, scope, target, potentials, position)
     state.search(params, macro_params)
     state.searchFields(name)
-    @@log.fine("findMatchingMethod(#{target}.#{name}#{params}) => #{state}")
+    @@log.fine("findMethod(#{target}.#{name}#{params}) => #{state}")
     state.future(false)
   end
 

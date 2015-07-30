@@ -74,7 +74,6 @@ class MirahArguments
                 silent: boolean,
                 max_errors: int,
                 use_type_debugger: boolean,
-                use_new_closures: boolean,
                 exit_status: int
 
   def initialize(env=System.getenv)
@@ -82,7 +81,6 @@ class MirahArguments
     @use_type_debugger = false
     @code_sources = []
     @destination = "."
-    @use_new_closures = false
 
     @jvm_version = JvmVersion.new
     @classpath = nil
@@ -237,8 +235,8 @@ class MirahArguments
     ) { compiler_args.use_type_debugger = true }
 
     parser.addFlag(
-        ['new-closures'], 'Use new closure implementation'
-    ) { compiler_args.use_new_closures = true }
+        ['new-closures'], 'Use new closure implementation. DEPRECATED. Has no effect. The "new closure" implementation is now always used.'
+    ) { System.err.puts 'Use of --new-closures has no effect and is deprecated. The "new closure" implementation is now always used.' }
 
     begin
       parser.parse(args).each do |filename: String|
