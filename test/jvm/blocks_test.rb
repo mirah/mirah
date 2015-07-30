@@ -365,6 +365,64 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("first 10\nsecond 10 20\n", cls)
   end
 
+  def test_nested_closure_with_nested_closed_over_args2
+    cls, = compile(%q[
+      interface Jogger do;def jog(param:int):void;end;end
+      
+      class Nestable
+        def operate(blub: int, a: Jogger):void
+          a.jog(blub)
+        end
+      end
+      
+      class Bar
+        def baz(foo:int):void
+          puts "bazstart"
+          Nestable.new.operate(10) do |arg1|
+            puts "first #{arg1} #{foo}"
+            Nestable.new.operate 20 do |inner_pace|
+              puts "second #{arg1} #{inner_pace} #{foo}"
+            end
+            Nestable.new.operate 30 do |inner_pace2|
+              puts "third #{arg1} #{inner_pace2}  #{foo}"
+            end
+          end
+        end
+      end
+      
+      Bar.new.baz(4)
+    ])
+    assert_run_output("bazstart\nfirst 10 4\nsecond 10 20 4\nthird 10 30  4\n", cls)
+  end
+
+  def test_two_closures_capture_different_variables
+    cls, = compile(%q[
+      interface Jogger do;def jog(param:int):void;end;end
+      
+      class Nestable
+        def operate(blub: int, a: Jogger):void
+          a.jog(blub)
+        end
+      end
+      
+      class Bar
+        def baz(foo:int):void
+          puts "bazstart"
+          bar = 7
+          Nestable.new.operate(40) do |arg1|
+            puts bar
+          end
+          Nestable.new.operate(10) do |arg1|
+            puts "first #{arg1} #{foo}"
+          end
+        end
+      end
+      
+      Bar.new.baz(4)
+    ])
+    assert_run_output("bazstart\n7\nfirst 10 4\n", cls)
+  end
+
   def test_uncastable_block_arg_type_fails
     error = assert_raises Mirah::MirahError do
       compile(<<-EOF)
@@ -721,16 +779,14 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_lambda_with_type_defined_later
-    pend "I think it'd be nice if this worked" do
-      cls, = compile(<<-EOF)
-        x = lambda(Fooable) { puts "hey you" }
-        interface Fooable
-          def foo: void; end
-        end
-        x.foo
-      EOF
-      assert_run_output("hey you\n", cls)
-    end
+    cls, = compile(<<-EOF)
+      x = lambda(Fooable) { puts "hey you" }
+      interface Fooable
+        def foo: void; end
+      end
+      x.foo
+    EOF
+    assert_run_output("hey you\n", cls)
   end
 
   def test_closure_with_primitive_array_param
@@ -759,17 +815,15 @@ class BlocksTest < Test::Unit::TestCase
   end
 
   def test_lambda_closure
-    pend "not working yet" do
-      cls, = compile(<<-EOF)
-        def r b: Runnable
-          b.run
-        end
-        msg = "yay"
-        l = lambda(Runnable) { puts msg }
-        r l
-      EOF
-      assert_run_output("yay\n", cls)
-    end
+    cls, = compile(<<-EOF)
+      def r b: Runnable
+        b.run
+      end
+      msg = "yay"
+      l = lambda(Runnable) { puts msg }
+      r l
+    EOF
+    assert_run_output("yay\n", cls)
   end
 
 

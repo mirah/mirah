@@ -63,6 +63,9 @@ class SimpleScoper; implements Scoper
       scope
     end
   end
+  def setScope(node:Node, scope:Scope)
+    @scopes[node] = scope
+  end
   def copyScopeFrom(from, to)
     @scopes[to] = getScope(from)
   end
