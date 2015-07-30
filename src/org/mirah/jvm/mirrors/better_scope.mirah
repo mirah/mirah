@@ -79,7 +79,7 @@ class Locals
     end
     type
   end
-
+  
   def has_local name: String
     @defined_locals.contains(name)
   end
@@ -362,8 +362,14 @@ class BetterScope
       def isCaptured(name)
         return false unless @locals.has_local(name)
         return true if parent && parent.hasLocal(name)
-          
-        return children.any? {|child: BetterScope| child.hasLocal(name, false)}
+
+        return children.any? do |child: BetterScope|
+          if child.hasLocal(name, false)
+            true
+          else
+            false
+          end
+        end
       end
 
       def capturedLocals
@@ -542,12 +548,11 @@ class ClosureScope < BetterScope
     @locals = Locals.new
     @imports = ImportsAndSearchPackages.new
   end
+  has_own_imports_and_looks_up
   supports_locals
   #defers_selfType
   has_own_selfType
-  #deferred_packages_and_imports
   deferred_package
-  has_own_imports_and_looks_up
 
   can_have_locals_captured
   
@@ -557,6 +562,18 @@ class ClosureScope < BetterScope
   # for the moment, no shadowing,
   # but once scopes support declarations, then yes
   no_shadowing
+
+  def internal_locals
+    @locals
+  end
+  
+  def internal_imports
+    @imports
+  end
+  
+  def internal_scoper
+    @scoper
+  end
 end
 
 class RescueScope < BetterScope
@@ -602,6 +619,14 @@ class MethodScope < BetterScope
     @scoper = scoper
     @locals = Locals.new
     @imports = ImportsAndSearchPackages.new
+  end
+  
+  def initialize(source: ClosureScope, context: Node)
+    super(context)
+    @scoper     = source.internal_scoper
+    @locals     = source.internal_locals
+    @imports    = source.internal_imports
+    self.parent = source.parent
   end
 
   supports_locals
