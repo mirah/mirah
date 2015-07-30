@@ -235,8 +235,8 @@ class MirahArguments
     ) { compiler_args.use_type_debugger = true }
 
     parser.addFlag(
-        ['new-closures'], 'Use new closure implementation. DEPRECATED. Has no effect. The "new closure" implementation is now always used.'
-    ) { System.err.puts 'Use of --new-closures has no effect and is deprecated. The "new closure" implementation is now always used.' }
+        ['new-closures'], 'DEPRECATED: Use new closure implementation. Has no effect. The "new closure" implementation is now always used.'
+    ) { System.err.puts 'WARN: Use of --new-closures is deprecated and has no effect. The "new closure" implementation is now always used.' }
 
     begin
       parser.parse(args).each do |filename: String|
