@@ -17,7 +17,7 @@ def run
   puts "Rendering"
   y = -39.0
   while y <= 39.0
-    puts("")
+    puts
     x = -39.0
     while x <= 39.0
       i = iterate(x/40.0,y/40.0)
@@ -30,7 +30,7 @@ def run
     end
     y += 1
   end
-  puts("")
+  puts
 end
 
 def iterate(x:double,y:double)

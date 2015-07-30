@@ -22,7 +22,7 @@ plural = 's'
   plural = '' if i - 1 == 1
   if i > 1
     puts "#{i-1} bottle#{plural} of beer on the wall!"
-    puts("")
+    puts
   else
     puts "No more bottles of beer on the wall!"
   end
