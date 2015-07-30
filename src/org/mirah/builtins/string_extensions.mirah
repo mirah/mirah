@@ -39,4 +39,28 @@ class StringExtensions
       end
     end
   end
+  
+  # separate to to_i(), as to_i() (in order to maintain Ruby compatibility) could return a BigInteger,
+  # while to_int() always returns an int.
+  macro def to_int:int
+    quote { Integer.parseInt(`@call.target`) }
+  end
+  
+  # Iterates over each unicode codepoint of the String, optionally yielding an int.
+  macro def each_codepoint(block:Block)
+    target    = gensym
+    offset    = gensym
+    length    = gensym
+    codepoint = (block.arguments && block.arguments.required_size() > 0) ? block.arguments.required(0).name.identifier : gensym
+    quote do
+      `target` = `@call.target` 
+      `offset` = 0
+      `length` = `target`.length
+      while `offset` < `length`
+        `codepoint` = `target`.codePointAt(`offset`)
+        `block.body`
+        `offset` = `offset` + Character.charCount(`codepoint`)
+      end
+    end
+  end
 end

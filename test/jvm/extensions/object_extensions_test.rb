@@ -26,4 +26,68 @@ class ObjectExtensionsTest < Test::Unit::TestCase
     ])
     assert_equal("abcxyz", cls.taptest.toString)
   end
+  
+  def test_equals_each_side_is_evaluated_exactly_once
+    cls, = compile(%q[
+      def foo
+        puts "foo"
+        "1"
+      end
+      
+      def bar
+        puts "bar"
+        "2"
+      end
+
+      puts foo==bar
+      puts nil==bar # right side is always evaluated exactly once, even in the presence of nil on the other side
+      puts bar==nil # left  side is always evaluated exactly once, even in the presence of nil on the other side
+    ])
+    assert_run_output("foo\nbar\nfalse\nbar\nfalse\nbar\nfalse\n", cls)
+  end
+  
+  def test_equals_method_is_evaluated_as_necessary
+    cls, = compile(%q[
+      class Foo
+        attr_accessor counter:int
+        def equals(o:Object)
+          self.counter += 1
+          true
+        end
+      end
+      
+      class Bar < Foo
+      end
+      
+      class Baz < Foo
+      end
+      
+      bar = Bar.new
+      baz = Baz.new
+      puts bar==baz
+      puts bar.counter
+      puts baz.counter
+      puts nil==bar
+      puts bar.counter
+      puts bar==nil
+      puts bar.counter
+      puts bar==bar
+      puts bar.counter
+    ])
+    assert_run_output("true\n1\n0\nfalse\n1\ntrue\n2\ntrue\n3\n", cls)
+  end
+  
+  def test_equals_method_is_evaluated_exactly_once_even_on_identical_objects
+    cls, = compile(%q[
+      class NaN
+        def equals(o:Object)
+          false
+        end
+      end
+      
+      nan = NaN.new
+      puts nan==nan
+    ])
+    assert_run_output("false\n", cls)
+  end
 end

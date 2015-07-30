@@ -540,11 +540,14 @@ class ClosureScope < BetterScope
     super context
     @scoper = scoper
     @locals = Locals.new
+    @imports = ImportsAndSearchPackages.new
   end
   supports_locals
   #defers_selfType
   has_own_selfType
-  deferred_packages_and_imports
+  #deferred_packages_and_imports
+  deferred_package
+  has_own_imports_and_looks_up
 
   can_have_locals_captured
   
@@ -563,8 +566,10 @@ class RescueScope < BetterScope
     @scoper = scoper
     @locals = Locals.new
     @shadowed = HashSet.new
+    @imports = ImportsAndSearchPackages.new
   end
-  deferred_packages_and_imports
+  deferred_package
+  has_own_imports_and_looks_up
   defers_selfType
   defers_binding_type
   # for now, until declarations. rescues should defer locals, apart from args
@@ -575,7 +580,6 @@ class RescueScope < BetterScope
   #   x = 1
   # end
   # puts x
-  
 
   supports_locals
   defers_captures
@@ -586,11 +590,9 @@ class RescueScope < BetterScope
   def shadowed? name
     @shadowed.contains(name)
   end
-
   #defers_locals
   # no for now, until declarations
   #no_shadowing
-
 end
 
 

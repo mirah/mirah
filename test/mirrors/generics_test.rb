@@ -16,7 +16,7 @@
 require 'java'
 require 'test/unit'
 require 'java'
-require File.expand_path('../../../dist/mirahc.jar',__FILE__)
+require ENV.fetch('MIRAHC_JAR',File.expand_path("../../../dist/mirahc.jar",__FILE__))
 
 class GenericsTest < Test::Unit::TestCase
   java_import 'java.util.HashSet'

@@ -343,6 +343,35 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal("Hello World!\n", output)
   end
 
+  def test_puts_classmethod_no_args
+    cls, = compile(%q{
+      def foo
+        puts
+        puts
+      end
+    })
+    output = capture_output do
+      cls.foo
+    end
+    assert_equal("\n\n", output)
+  end
+
+  def test_puts_instancemethod_no_args
+    cls, = compile(%q{
+      class Foo
+        def foo
+          puts
+          puts
+          puts
+        end
+      end
+    })
+    output = capture_output do
+      cls.new.foo
+    end
+    assert_equal("\n\n\n", output)
+  end
+
   def test_print
     cls, = compile("def foo;print 'Hello World!';end")
     output = capture_output do
@@ -1531,6 +1560,19 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
   end
 
+  def test_native
+    cls, = compile(<<-EOF)
+      class Foo
+        native def foo; end
+      end
+    EOF
+
+    assert_raise_java java.lang.UnsatisfiedLinkError do
+      a = cls.new
+      a.foo
+    end
+  end
+
   def test_abstract
     abstract_class, concrete_class = compile(<<-EOF)
       abstract class Abstract
@@ -1549,6 +1591,54 @@ class JVMCompilerTest < Test::Unit::TestCase
     end
     assert_raise_java java.lang.InstantiationException do
       abstract_class.new
+    end
+  end
+
+  def test_synchronized
+    cls, = compile(<<-EOF)
+      class Synchronized
+        attr_accessor locked:boolean
+        
+        synchronized def lock_and_unlock:void
+          puts "Locking."
+          Thread.sleep(100)
+          self.locked = true
+          puts "Waiting."
+          self.wait
+          puts "Unlocking."
+          self.locked = false
+        end
+        
+        synchronized def locked?
+          self.locked
+        end
+        
+        synchronized def notify_synchronized:void
+          puts "Notifying."
+          self.notify
+          puts "Notified."
+        end
+        
+        def trigger:void
+          while ! locked?
+            Thread.sleep(10)
+          end
+          self.notify_synchronized
+        end
+        
+        def start_trigger
+          s = self
+          Thread.new do
+            s.trigger
+          end.start
+        end
+      end
+    EOF
+
+    assert_output("Locking.\nWaiting.\nNotifying.\nNotified.\nUnlocking.\n") do
+      a = cls.new
+      a.start_trigger
+      a.lock_and_unlock
     end
   end
 
@@ -2202,5 +2292,25 @@ class JVMCompilerTest < Test::Unit::TestCase
       interface Interface1
       end
     })
+  end
+
+  def test_init_before_use_in_loop
+    cls, arg = compile(%q{
+      macro def loop_with_init(block:Block)
+        i = block.arguments.required(0).name.identifier
+        last = gensym
+        quote do
+          while `i` < `last`
+            init { `i` = 0; `last` = 4}
+            post { `i` = `i` + 1 }
+            `block.body`
+          end
+        end
+      end
+      loop_with_init do |i|
+        print i
+      end
+    })
+    assert_run_output("0123", cls)
   end
 end

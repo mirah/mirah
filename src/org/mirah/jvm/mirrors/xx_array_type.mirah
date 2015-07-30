@@ -23,8 +23,6 @@ import javax.lang.model.type.TypeKind
 import javax.lang.model.type.TypeMirror
 import org.objectweb.asm.Opcodes
 import org.objectweb.asm.Type
-import org.mirah.builtins.ArrayExtensions
-import org.mirah.builtins.EnumerableExtensions
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
@@ -57,8 +55,10 @@ class ArrayType < BaseType implements ArrayModel
     @types = @context[MirrorTypeSystem]
     @int_type = MirrorType(@types.wrap(Type.getType('I')).resolve)
     @componentType = component
-    BytecodeMirrorLoader.extendClass(self, ArrayExtensions.class)
-    BytecodeMirrorLoader.extendClass(self, EnumerableExtensions.class)
+    if org::mirah::builtins::Builtins.builtins_enabled 
+      BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.ArrayExtensions"))
+      BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.EnumerableExtensions"))
+    end
   end
 
   def interfaces:TypeFuture[]

@@ -16,7 +16,7 @@
 require 'fileutils'
 require 'rbconfig'
 
-$CLASSPATH << File.dirname(__FILE__) + '/../dist/mirahc.jar'
+$CLASSPATH << ENV.fetch('MIRAHC_JAR',File.expand_path("../../dist/mirahc.jar",__FILE__))
 
 require 'mirah/version'
 require 'mirah/transform'
