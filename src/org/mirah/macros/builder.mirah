@@ -251,7 +251,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
   end
 
   def extensionName(macroDef: MacroDefinition)
-    enclosing_type = @scopes.getScope(macroDef).selfType.resolve
+    enclosing_type = @scopes.getScope(macroDef).selfType.peekInferredType
     if !enclosing_type.isError
       counter = Integer(@extension_counters.get(enclosing_type))
       if counter.nil?
