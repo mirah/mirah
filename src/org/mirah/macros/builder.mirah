@@ -252,14 +252,18 @@ class MacroBuilder; implements org.mirah.macros.Compiler
 
   def extensionName(macroDef: MacroDefinition)
     enclosing_type = @scopes.getScope(macroDef).selfType.resolve
-    counter = Integer(@extension_counters.get(enclosing_type))
-    if counter.nil?
-      id = 1
+    if !enclosing_type.isError
+      counter = Integer(@extension_counters.get(enclosing_type))
+      if counter.nil?
+        id = 1
+      else
+        id = counter.intValue + 1
+      end
+      @extension_counters.put(enclosing_type, Integer.new(id))
+      "#{enclosing_type.name}$Extension#{id}"
     else
-      id = counter.intValue + 1
+      raise InternalError.new("Cannot use error type #{enclosing_type} as base name for macros.")
     end
-    @extension_counters.put(enclosing_type, Integer.new(id))
-    "#{enclosing_type.name}$Extension#{id}"
   end
 
   # Adds types to the arguments with none specified.
