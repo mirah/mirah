@@ -39,25 +39,21 @@ REQUIREMENTS
 INSTALL
 -----------------
 
-RUBY
------------------
+&nbsp; RUBY
 
-If your gem and rake are not from from JRuby, prefix the commands with `jruby -S`
+&nbsp;&nbsp;&nbsp;If your gem and rake are not from from JRuby, prefix the commands with `jruby -S`
 
     $ gem install mirah
 
-ZIP
------------------
+&nbsp; ZIP
 
-You can also install Mirah from a zip file. Download the latest stable
-release from https://github.com/mirah/mirah/downloads. 
-Extract it, and add `bin` to your `$PATH` to be able to use `mirah`, `mirahc`, etc.
 
-SOURCE
------------------
+&nbsp;&nbsp;&nbsp;You can also install Mirah from a zip file. Download the latest stable release from https://github.com/mirah/mirah/downloads.
+&nbsp;&nbsp;&nbsp;Extract it, and add `bin` to your `$PATH` to be able to use `mirah`, `mirahc`, etc.
 
-To build and install from source, you'll need jruby 1.7.0 or
-higher. Then just follow these commands.
+&nbsp; SOURCE
+
+&nbsp;&nbsp;&nbsp;To build and install from source, you'll need jruby 1.7.0 or higher. Then just follow these commands:
 
     $ git clone http://github.com/mirah/mirah.git
     $ cd mirah
@@ -65,7 +61,6 @@ higher. Then just follow these commands.
     $ rake gem
     $ gem install pkg/mirah-*.gem
 
-For Java tools
------------------
+&nbsp; For Java tools
 
-To build the Mirah jar from source run `rake jar` in the mirah directory.
+&nbsp;&nbsp;&nbsp;To build the Mirah jar from source run `rake jar` in the mirah directory.
