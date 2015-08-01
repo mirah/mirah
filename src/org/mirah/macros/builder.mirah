@@ -375,7 +375,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       @scopes
     end
     
-    extended_class = typer.scoper.getScope(macroDef).selfType.resolve
+    extended_class = typer.scoper.getScope(macroDef).selfType.peekInferredType
     typer.type_system.addMacro(extended_class, klass)
   end
 end
