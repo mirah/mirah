@@ -38,6 +38,8 @@ import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorFuture
 import org.mirah.jvm.mirrors.MethodScope
 import org.mirah.jvm.mirrors.ClosureScope
+import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.macros.MacroBuilder
 import org.mirah.typer.simple.TypePrinter2
 import org.mirah.typer.CallFuture
@@ -148,8 +150,12 @@ class BetterClosureBuilder
         node.position, nil, name)
 
       entries = @captured.map do |cap: String|
-        type = @parent_scope.getLocalType(cap, node.position).resolve
-        HashEntry.new(SimpleString.new(cap), Constant.new(SimpleString.new(type.name)))
+        type               = @parent_scope.getLocalType(cap, node.position).resolve
+        is_array           = JVMTypeUtils.isArray(JVMType(type))
+        variable_type_name = type.name
+        variable_type_name = variable_type_name.substring(0,variable_type_name.length-2) if is_array # chop off trailing "[]"
+        variable_type_ref  = TypeRefImpl.new(variable_type_name, is_array, false, node.position)
+        HashEntry.new(SimpleString.new(cap), variable_type_ref) # FIXME: there should be a method type.to_type_ref
       end
 
       attr_def = FunctionalCall.new(
