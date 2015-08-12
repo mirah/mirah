@@ -54,6 +54,7 @@ import org.mirah.typer.PickFirst
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.TypeFutureTypeRef
 import org.mirah.typer.TypeSystem
 import org.mirah.typer.UnreachableType
 import org.mirah.typer.simple.SimpleScope
@@ -480,6 +481,7 @@ class MirrorTypeSystem implements TypeSystem
   end
   
   def get(scope, typeref)
+    return TypeFutureTypeRef(typeref).type_future if typeref.kind_of?(TypeFutureTypeRef)
     name = resolveName(scope, typeref.name)
     type = if scope.nil?
       loadNamedType(name)
