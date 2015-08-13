@@ -159,18 +159,48 @@ class CollectionExtensions
   end
   
   # Returns first element of the list.
-  # Because Mirah has Ruby syntax but Java semantics, in case the list is empty, nil is not returned, but an instance of java.lang.IndexOutOfBoundsException is raised. 
-  macro def first()
+  # In case the list is empty, an instance of java.lang.IndexOutOfBoundsException is raised. 
+  macro def first!()
     quote do
       `call.target`[0]
     end
   end
   
   # Returns last  element of the list.
-  # Because Mirah has Ruby syntax but Java semantics, in case the list is empty, nil is not returned, but an instance of java.lang.IndexOutOfBoundsException is raised. 
-  macro def last()
+  # In case the list is empty, an instance of java.lang.IndexOutOfBoundsException is raised. 
+  macro def last!()
     quote do
-      `call.target`[`call.target`.size()-1]
+      `call.target`[`call.target`.size()-1] # This is inefficient for java.util.LinkedList.
+    end
+  end
+  
+  # Returns first element of the list.
+  # If there is no first element, return nil.
+  # This macro does not work for Java-arrays of primitive types.
+  macro def first()
+    list = gensym
+    quote do
+      `list` = `call.target`
+      if !`list`.isEmpty
+        `list`[0]
+      else
+        nil
+      end
+    end
+  end
+  
+  # Returns last  element of the list.
+  # If there is no first element, return nil.
+  # This macro does not work for Java-arrays of primitive types.
+  macro def last()
+    list = gensym
+    quote do
+      `list` = `call.target`
+      if !`list`.isEmpty
+        `list`[`list`.size()-1] # This is inefficient for java.util.LinkedList.
+      else
+        nil
+      end
     end
   end
 end

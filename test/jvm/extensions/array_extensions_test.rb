@@ -71,42 +71,42 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     assert_run_output("[1, 3, 5]\n", cls)
   end
 
-  def test_first
+  def test_first!
     cls, = compile(<<-EOF)
       x = int[3]
       x[0] = 5
       x[1] = 1
       x[2] = 3
-      puts x.first
+      puts x.first!
     EOF
     assert_run_output("5\n", cls)
   end
 
-  def test_empty_array_first
+  def test_empty_array_first!
     cls, = compile(<<-EOF)
       x = int[0]
-      puts x.first
+      puts x.first!
     EOF
     assert_raise_java(java.lang.ArrayIndexOutOfBoundsException) do
       cls.main nil
     end
   end
 
-  def test_last
+  def test_last!
     cls, = compile(<<-EOF)
       x = int[3]
       x[0] = 5
       x[1] = 1
       x[2] = 3
-      puts x.last
+      puts x.last!
     EOF
     assert_run_output("3\n", cls)
   end
 
-  def test_empty_array_last
+  def test_empty_array_last!
     cls, = compile(<<-EOF)
       x = int[0]
-      puts x.last
+      puts x.last!
     EOF
     assert_raise_java(java.lang.ArrayIndexOutOfBoundsException) do
       cls.main nil
