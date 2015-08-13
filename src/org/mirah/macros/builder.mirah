@@ -226,7 +226,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
         end
 
         def gensym: String
-          @mirah.scoper.getScope(@call).temp('gensym')
+          @mirah.scoper.getScope(@call).temp('$gensym')
         end
       end
     end
@@ -251,15 +251,19 @@ class MacroBuilder; implements org.mirah.macros.Compiler
   end
 
   def extensionName(macroDef: MacroDefinition)
-    enclosing_type = @scopes.getScope(macroDef).selfType.resolve
-    counter = Integer(@extension_counters.get(enclosing_type))
-    if counter.nil?
-      id = 1
+    enclosing_type = @scopes.getScope(macroDef).selfType.peekInferredType
+    if !enclosing_type.isError
+      counter = Integer(@extension_counters.get(enclosing_type))
+      if counter.nil?
+        id = 1
+      else
+        id = counter.intValue + 1
+      end
+      @extension_counters.put(enclosing_type, Integer.new(id))
+      "#{enclosing_type.name}$Extension#{id}"
     else
-      id = counter.intValue + 1
+      raise InternalError.new("Cannot use error type #{enclosing_type} as base name for macros.")
     end
-    @extension_counters.put(enclosing_type, Integer.new(id))
-    "#{enclosing_type.name}$Extension#{id}"
   end
 
   # Adds types to the arguments with none specified.
@@ -371,7 +375,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       @scopes
     end
     
-    extended_class = typer.scoper.getScope(macroDef).selfType.resolve
+    extended_class = typer.scoper.getScope(macroDef).selfType.peekInferredType
     typer.type_system.addMacro(extended_class, klass)
   end
 end

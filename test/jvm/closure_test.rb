@@ -47,4 +47,120 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("executed foo2\nexecuted foo1\n", cls)
   end
+  
+  def test_super_is_not_synthesized_when_not_necessary
+    cls, = compile(%q{
+      class Bar
+        def initialize(val:int)
+          puts "bar"
+        end
+      end
+      
+      class Foo < Bar
+        attr_accessor baz:String
+        
+        def initialize(val:int)
+          super
+          foo = 5
+          puts "foo"
+          perform do
+            puts foo
+          end
+        end
+        
+        def perform(runnable:Runnable)
+          runnable.run
+        end
+      end
+      Foo.new(3)
+    })
+    assert_run_output("bar\nfoo\n5\n", cls)
+  end
+
+  def test_lambda_and_other_closures_coexist
+    cls, = compile(%q[
+      class Foo
+      
+        def anymethod()
+          foo = 5
+          perform do
+            puts "1: #{foo}"
+          end
+          a = lambda(Runnable) do
+            puts "2: #{foo}"
+          end
+          perform(a)
+        end
+        
+        def perform(runnable:Runnable)
+          runnable.run
+        end
+      end
+      Foo.new.anymethod
+    ])
+    assert_run_output("1: 5\n2: 5\n", cls)
+  end
+
+  def test_doubly_nested_lambda
+    cls, = compile(%q[
+      class Foo
+        abstract def test(param:String); end
+      end
+      
+      class Bar < Foo
+        def test(param)
+          y = 5
+          x = lambda(Runnable) do
+            puts "so: #{param}"
+            z = lambda(Runnable) do
+              puts "hey you #{y}"
+            end
+            z.run
+          end
+          x.run
+        end
+      end
+      
+      Bar.new.test("bar")
+    ])
+    assert_run_output("so: bar\nhey you 5\n", cls)
+  end
+
+  def test_direct_invoke_on_lambda
+    cls, = compile(%q[
+      lambda(Runnable) do
+        puts "abc"
+      end.run
+    ])
+    assert_run_output("abc\n", cls)
+  end
+
+  def test_lambda_contains_methods
+    cls, = compile(%q[
+      foo = 3
+      
+      lambda(Runnable) do
+        def run
+          puts foo
+        end
+      end.run
+    ])
+    assert_run_output("3\n", cls)
+  end
+  
+  def test_closure_over_array_parameter
+    cls, = compile(%q{
+      def bar(param:byte[])
+        runnable = lambda(Runnable) do
+          puts param[0]
+        end
+        
+        runnable.run
+      end
+      
+      bar(byte[1])
+    })
+    assert_run_output("0\n", cls)
+  end
 end
+

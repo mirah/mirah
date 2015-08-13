@@ -87,24 +87,28 @@ class AstFormatter < NodeScanner
     startNode(node)
     append " "
     @out.append(node.value)
+    appendLine("")
     true
   end
   def enterFixnum(node, arg)
     startNode(node)
     append " "
     @out.append(node.value)
+    appendLine("")
     true
   end
   def enterFloat(node, arg)
     startNode(node)
     append " "
     @out.append(node.value)
+    appendLine("")
     true
   end
   def enterCharLiteral(node, arg)
     startNode(node)
     append " "
     @out.append(node.value)
+    appendLine("")
     true
   end
 

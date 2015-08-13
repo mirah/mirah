@@ -79,7 +79,7 @@ class Locals
     end
     type
   end
-
+  
   def has_local name: String
     @defined_locals.contains(name)
   end
@@ -362,8 +362,14 @@ class BetterScope
       def isCaptured(name)
         return false unless @locals.has_local(name)
         return true if parent && parent.hasLocal(name)
-          
-        return children.any? {|child: BetterScope| child.hasLocal(name, false)}
+
+        return children.any? do |child: BetterScope|
+          if child.hasLocal(name, false)
+            true
+          else
+            false
+          end
+        end
       end
 
       def capturedLocals
@@ -540,11 +546,13 @@ class ClosureScope < BetterScope
     super context
     @scoper = scoper
     @locals = Locals.new
+    @imports = ImportsAndSearchPackages.new
   end
+  has_own_imports_and_looks_up
   supports_locals
   #defers_selfType
   has_own_selfType
-  deferred_packages_and_imports
+  deferred_package
 
   can_have_locals_captured
   
@@ -554,6 +562,18 @@ class ClosureScope < BetterScope
   # for the moment, no shadowing,
   # but once scopes support declarations, then yes
   no_shadowing
+
+  def internal_locals
+    @locals
+  end
+  
+  def internal_imports
+    @imports
+  end
+  
+  def internal_scoper
+    @scoper
+  end
 end
 
 class RescueScope < BetterScope
@@ -563,8 +583,10 @@ class RescueScope < BetterScope
     @scoper = scoper
     @locals = Locals.new
     @shadowed = HashSet.new
+    @imports = ImportsAndSearchPackages.new
   end
-  deferred_packages_and_imports
+  deferred_package
+  has_own_imports_and_looks_up
   defers_selfType
   defers_binding_type
   # for now, until declarations. rescues should defer locals, apart from args
@@ -575,7 +597,6 @@ class RescueScope < BetterScope
   #   x = 1
   # end
   # puts x
-  
 
   supports_locals
   defers_captures
@@ -586,11 +607,9 @@ class RescueScope < BetterScope
   def shadowed? name
     @shadowed.contains(name)
   end
-
   #defers_locals
   # no for now, until declarations
   #no_shadowing
-
 end
 
 
@@ -600,6 +619,14 @@ class MethodScope < BetterScope
     @scoper = scoper
     @locals = Locals.new
     @imports = ImportsAndSearchPackages.new
+  end
+  
+  def initialize(source: ClosureScope, context: Node)
+    super(context)
+    @scoper     = source.internal_scoper
+    @locals     = source.internal_locals
+    @imports    = source.internal_imports
+    self.parent = source.parent
   end
 
   supports_locals

@@ -16,9 +16,6 @@
 package org.mirah.builtins
 
 import mirah.lang.ast.*
-import org.mirah.typer.ClosureBuilder
-import org.mirah.typer.ErrorType
-import org.mirah.jvm.mirrors.MirrorTypeSystem
 
 class ObjectExtensions
 
@@ -172,6 +169,32 @@ class ObjectExtensions
     mthd
   end
 
+  # "protected" on a list of methods
+  macro def self.protected(methods_proxy:NodeList)
+    import org.mirah.typer.ProxyNode
+    import java.util.LinkedList
+    work = LinkedList.new([methods_proxy])
+    
+    while !work.isEmpty
+      node = work.poll
+      if node.kind_of?(MethodDefinition)
+        anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),[HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED'))])
+        MethodDefinition(node).annotations.add(anno)
+      elsif node.kind_of?(ProxyNode)
+        work.add(ProxyNode(node).get(0))
+      elsif node.kind_of?(NodeList)
+        list = NodeList(node)
+        i = 0
+        while i < list.size
+          work.add(list.get(i))
+          i+=1
+        end
+      end
+    end
+    methods_proxy.get(0).setParent(nil)
+    methods_proxy.get(0) # FIXME: if we used methods_proxy instead of methods_proxy.get(0) as return value, then the annotation is not effective
+  end
+  
   macro def self.attr_accessor(hash:Hash)
     args = [hash]
     quote do
@@ -216,21 +239,10 @@ class ObjectExtensions
   end
 
   macro def lambda(type:TypeName, block:Block)
-  # TODO, just create a SyntheticLambdaDefinition that the ClosureBuilder picks up
-    builder = ClosureBuilder.new(@mirah.typer)
-    scope = @mirah.typer.scoper.getScope(@call)
-    resolved = @mirah.type_system.get(scope, type.typeref).resolve
-    # TODO, do something better than this
-    raise "can't build lambda for #{type} #{resolved}" if resolved.kind_of? ErrorType
-    builder.prepare(block, resolved)
+    SyntheticLambdaDefinition.new(@call.position, type, block)
   end
 
   macro def self.lambda(type:TypeName, block:Block)
-    builder = ClosureBuilder.new(@mirah.typer)
-    scope = @mirah.typer.scoper.getScope(@call)
-    resolved = @mirah.type_system.get(scope, type.typeref).resolve
-    # TODO, do something better than this
-    raise "can't build lambda for #{type} #{resolved}" if resolved.kind_of? ErrorType
-    builder.prepare(block, resolved)
+    SyntheticLambdaDefinition.new(@call.position, type, block)
   end
 end
