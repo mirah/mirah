@@ -249,6 +249,18 @@ class BetterScope
   def flush_imports: void; end
   def children; @children; end
 
+  macro def self.defers_temp
+    quote do
+      def temp(name)
+        if parent # Lazy defer... if it is not possible, we fall back to ourselves. Hope that does not hurt us (e.g. in case the parent is dynamically added).
+          parent.temp(name)
+        else
+          super
+        end
+      end
+    end
+  end
+
   # no self type assign, defers selfType to parent
   macro def self.defers_selfType
     quote do
@@ -532,6 +544,8 @@ class ClassScope < BetterScope
 
     @imports = ImportsAndSearchPackages.new
   end
+
+  defers_temp
   has_own_imports_and_looks_up
   deferred_package
   has_own_selfType
@@ -548,6 +562,8 @@ class ClosureScope < BetterScope
     @locals = Locals.new
     @imports = ImportsAndSearchPackages.new
   end
+
+  defers_temp
   has_own_imports_and_looks_up
   supports_locals
   #defers_selfType
@@ -585,6 +601,8 @@ class RescueScope < BetterScope
     @shadowed = HashSet.new
     @imports = ImportsAndSearchPackages.new
   end
+
+  defers_temp
   deferred_package
   has_own_imports_and_looks_up
   defers_selfType
@@ -629,6 +647,7 @@ class MethodScope < BetterScope
     self.parent = source.parent
   end
 
+  defers_temp
   supports_locals
   can_have_locals_captured
   has_own_selfType # is the method type
