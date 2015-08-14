@@ -571,6 +571,60 @@ class MacrosTest < Test::Unit::TestCase
     assert_run_output("called\n", script)
   end
   
+  def test_macro_in_class_inheriting_from_previously_defined_class_inheriting_from_later_to_be_defined_class
+    script, cls = compile(%q{
+      interface Bar < Baz
+      end
+      
+      class Foo
+        implements Bar
+        
+        macro def self.generate_foo
+          quote do
+            def foo
+              puts "foo"
+            end
+          end
+        end
+        
+        generate_foo
+      end
+      
+      interface Baz
+      end
+      
+      Foo.new.foo
+    })
+    assert_run_output("foo\n", script)
+  end
+  
+  def test_macro_in_class_inheriting_from_previously_defined_class_inheriting_from_later_to_be_defined_class2
+    script, cls = compile(%q{
+      interface Bar < Baz
+      end
+      
+      class Foo
+        implements Bar, Baz
+        
+        macro def self.generate_foo
+          quote do
+            def foo
+              puts "foo"
+            end
+          end
+        end
+        
+        generate_foo
+      end
+      
+      interface Baz
+      end
+      
+      Foo.new.foo
+    })
+    assert_run_output("foo\n", script)
+  end
+  
   def test_gensym_clash
     script, cls = compile(%q{
       result = []
@@ -586,3 +640,4 @@ class MacrosTest < Test::Unit::TestCase
     assert_run_output("[]\n", script)
   end
 end
+

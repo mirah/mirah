@@ -43,23 +43,134 @@ class ArrayExtensions
     end
   end
 
-  macro def map(block:Block)
-    x = if block.arguments && block.arguments.required_size() > 0
-      block.arguments.required(0)
-    else
-      gensym
+  # Iterates over each element of the array, yielding each time both the element and the index in the array.
+  macro def each_with_index(block:Block)
+    arg = block.arguments.required(0)
+    x = arg.name.identifier
+    type = arg.type if arg.type
+    i = block.arguments.required(1).name.identifier
+    array = gensym
+
+    getter = quote { `array`[`i`] }
+    if type
+      getter = Cast.new(type.position, type, getter)
     end
 
-    list = gensym
-    result = gensym
     quote do
-      `list` = `@call.target`
-      `result` = java::util::ArrayList.new(`list`.length)
-      `list`.each do |`x`|
-        `result`.add(` [block.body] `)
+      while `i` < `array`.length
+        init {`array` = `@call.target`; `i` = 0}
+        pre {`x` = `getter`}
+        post {`i` = `i` + 1}
+        `block.body`
       end
-      `result`
     end
+  end
+  
+  #
+  # int[].new(5) do |i|
+  #   i+3
+  # end
+  #
+  macro def self.new(size,block:Block)
+    if block.arguments && block.arguments.required_size() > 0
+      counter = block.arguments.required(0)
+      i = counter.name.identifier
+    else
+      i = gensym
+    end
+    res           = gensym
+    arraytype     = @call.target
+    # basetype    = TypeName(arraytype).typeref.array_basetype
+    array_typeref = TypeName(arraytype).typeref
+    basetype      = TypeRefImpl.new(array_typeref.name,false,array_typeref.isStatic,array_typeref.position)
+    quote do
+      `res` = `basetype`[`size`]
+      `size`.times do |`i`|
+#       `res`[`i`] = `block.body`
+        `Call.new(quote{`res`},SimpleString.new('[]='),[quote{`i`},quote{`block.body`}],nil)`
+      end
+      `res`
+    end
+  end
+  
+  # Whether the array is empty (meaning: whether it contains 0 elements).
+  # This is for compatibility with java.util.Collection#isEmpty.
+  macro def isEmpty
+    quote do
+      `@call.target`.length == 0
+    end
+  end
+
+  # The length of the array (meaning: the number of elements it contains).
+  # This is for compatibility with java.util.Collection#size.
+  macro def size
+    quote do
+      `@call.target`.length
+    end
+  end
+
+  # View this array as a java.util.List.
+  # Note that this is different from (a possible) #to_a in that #to_a returns a new List which is then independent of this array,
+  # while #as_list returns a List which is linked to this array. Hence, changes to the List are reflected in this array, and vice versa.
+  macro def as_list
+    quote do
+      java::util::Arrays.asList(`@call.target`)
+    end
+  end
+  
+  # Sort this array in-place, using the supplied Comparator.
+  macro def sort!(comparator:Block)
+    target = gensym
+    quote do
+      `target` = `@call.target`
+#      java::util::Arrays.sort(`target`,&`comparator`)
+      `Call.new(quote{java::util::Arrays},SimpleString.new('sort'),[quote{`target`}],comparator)`
+      `target`
+    end
+  end
+
+  # Return a new array which is a sorted version of this array, using the supplied Comparator.
+  macro def sort(comparator:Block)
+    array = gensym 
+    quote do
+      `array` = `@call.target`.dup
+#     `array`.sort!(&`comparator`)
+      `Call.new(quote{`array`},SimpleString.new('sort!'),[],comparator)`
+    end
+  end
+
+  # Sort this array in-place.
+  macro def sort!()
+    quote do
+      java::util::Arrays.sort(`@call.target`)
+      `@call.target`
+    end
+  end
+
+  # Return a new array which is a sorted version of this array.
+  macro def sort()
+    array = gensym 
+    quote do
+      `array` = `@call.target`.dup
+      `array`.sort!()
+    end
+  end
+
+  # Create a duplicate of this array.
+  macro def dup
+    type_future        = @mirah.typer.infer(@call.target)
+    # This code fails in case we cannot resolve the type at the time the macro is invoked
+    # (e.g. in case the type is defined after the macro invocation).
+    # We should modify the compiler to allow for a TypeFuture to be used as typeref instead.
+    arraytype_name     = type_future.resolve.name
+    arraytype_basename = arraytype_name.substring(0,arraytype_name.length-2) # remove trailing "[]", should be improved once mirah's array support is improved
+    typeref            = TypeRefImpl.new(arraytype_basename,true,false,@call.target.position)
+    
+    Cast.new(@call.position,typeref,
+      quote do
+        `@call.target`.clone
+      end
+    )
   end
 
   macro def self.cast(array)

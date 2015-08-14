@@ -22,6 +22,16 @@ class CollectionExtensions
     quote { `@call.target`.isEmpty }
   end
 
+  # Append the supplied element to this collection. Return this collection.
+  macro def <<(arg)
+    target = gensym
+    quote do
+      `target` = `@call.target` 
+      `target`.add(`arg`)
+      `target` # return the target, such that we can chain "<<" operators one after another.
+    end
+  end
+
   macro def map(block:Block)
     x = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0)
@@ -41,6 +51,33 @@ class CollectionExtensions
     end
   end
 
+  # Map to an array of the return type of the block.
+  macro def mapa(block:Block)
+    type_future        = @mirah.typer.infer(block.body)
+    # This code fails in case we cannot resolve the type at the time the macro is invoked
+    # (e.g. in case the type is defined after the macro invocation).
+    # We should modify the compiler to allow for a TypeFuture to be used as typeref instead.
+    typeref            = TypeRefImpl.new(type_future.resolve.name,false,false,@call.target.position)
+
+    x = if block.arguments && block.arguments.required_size() > 0
+      block.arguments.required(0)
+    else
+      gensym
+    end
+
+    list = gensym
+    result = gensym
+    index  = gensym
+    quote do
+      `list` = `@call.target`
+      `result` = `typeref`[`list`.size]
+      `list`.each_with_index do |`x`,`index`|
+        `Call.new(quote{`result`},SimpleString.new('[]='),[ quote { `index` } , quote { ` [block.body] ` } ],nil)`
+      end
+      `result`
+    end
+  end
+  
   macro def select(block:Block)
     x      = block.arguments.required(0)
     list   = gensym
@@ -70,25 +107,100 @@ class CollectionExtensions
       `b`.toString
     end
   end
-
+  
+  # Create a String which consists of the String representation of each element of this Collection, interleaved with the supplied separator.
+  #
+  #   [1,2,3].join("+") => "1+2+3"
   macro def join(separator)
-    b             = gensym
-    list          = gensym
-    entry         = gensym
-    first_element = gensym
+    b     = gensym
+    list  = gensym
+    entry = gensym
+    nonfirst = gensym
     quote do
-      `first_element` = true
       `list` = `@call.target`
       `b`    = StringBuilder.new
+      `nonfirst` = false
       `list`.each do |`entry`|
-        if `first_element`
-          `first_element` = false
-        else
+        if `nonfirst`
           `b`.append(`separator`)
+        else
+          `nonfirst` = true
         end
         `b`.append(`entry`)
       end
       `b`.toString
+    end
+  end
+    
+#  macro def to_array_complex(basetype) # just for complex types, maybe this implementation could be auto-choosen if the compiler can deduce that the type supplied is indeed a complex type
+#    list  = gensym
+#    quote do
+#      `list` = `@call.target`
+#      `list`.toArray(`basetype`[`list`.size])
+#    end
+#  end
+
+  # Convert this Collection to a Java-style array. You have to supply the base-type of the array, currently.
+  #
+  #   [1,2,3,4].to_array(int)
+  macro def to_array(basetype) # for primitive types and complex types
+    list  = gensym
+    res   = gensym
+    value = gensym
+    index = gensym
+    quote do
+      `list` = `@call.target`
+      `res`  = `basetype`[`list`.size]
+      `list`.each_with_index do |`value`,`index`|
+        `Call.new(quote{`res`},SimpleString.new('[]='),[ quote { `index` } , quote { ` value ` } ],nil)`
+      end
+      `res`
+    end
+  end
+  
+  # Returns first element of the list.
+  # In case the list is empty, an instance of java.lang.IndexOutOfBoundsException is raised. 
+  macro def first!()
+    quote do
+      `call.target`[0]
+    end
+  end
+  
+  # Returns last  element of the list.
+  # In case the list is empty, an instance of java.lang.IndexOutOfBoundsException is raised. 
+  macro def last!()
+    quote do
+      `call.target`[`call.target`.size()-1] # This is inefficient for java.util.LinkedList.
+    end
+  end
+  
+  # Returns first element of the list.
+  # If there is no first element, return nil.
+  # This macro does not work for Java-arrays of primitive types.
+  macro def first()
+    list = gensym
+    quote do
+      `list` = `call.target`
+      if !`list`.isEmpty
+        `list`[0]
+      else
+        nil
+      end
+    end
+  end
+  
+  # Returns last  element of the list.
+  # If there is no first element, return nil.
+  # This macro does not work for Java-arrays of primitive types.
+  macro def last()
+    list = gensym
+    quote do
+      `list` = `call.target`
+      if !`list`.isEmpty
+        `list`[`list`.size()-1] # This is inefficient for java.util.LinkedList.
+      else
+        nil
+      end
     end
   end
 end

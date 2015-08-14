@@ -40,6 +40,19 @@ class IterableExtensions
       end
     end
   end
+  
+  # Iterates over each element of the Iterable, yielding each time both the element and the index in the Iterable.
+  macro def each_with_index(block:Block)
+    value = block.arguments.required(0)
+    count = block.arguments.required(1).name.identifier
+    quote do
+      `count` = 0
+      `@call.target`.each do |`value`|
+        `block.body`
+        `count` = `count`+1 
+      end
+    end
+  end
 
   macro def zip(other:Node, block:Block)
     if block.arguments && block.arguments.required_size() > 0

@@ -67,7 +67,15 @@ class SimpleDiagnostics; implements DiagnosticListener
         buffer.append(line)
         buffer.append(newline)
         space = char[int(start_col)]
-        Arrays.fill(space, char(32))
+        prefix = line.substring(0,int(start_col))
+        prefix.length.times do |i|
+          c = prefix.charAt(i) 
+          if Character.isWhitespace(c)
+            space[i] = c
+          else
+            space[i] = char(32) 
+          end
+        end
         buffer.append(space)
         length = Math.min(diagnostic.getEndPosition - diagnostic.getStartPosition,
                           line.length - start_col)

@@ -58,6 +58,7 @@ class ArrayType < BaseType implements ArrayModel
     if org::mirah::builtins::Builtins.builtins_enabled 
       BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.ArrayExtensions"))
       BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.EnumerableExtensions"))
+      BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.CollectionExtensions"))
     end
   end
 

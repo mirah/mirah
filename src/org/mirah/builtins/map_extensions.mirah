@@ -33,5 +33,29 @@ class MapExtensions
     quote { `@call.target`.keySet }
   end
 
+  # Iterates over each entry of this map, each time yielding the key and the value.
+  macro def each(block:Block)
+    entry  = gensym
+    
+    k_arg    = block.arguments.required(0)
+    k        = k_arg.name.identifier
+    k_getter = quote { `entry`.getKey   }
+    k_type   = k_arg.type if k_arg.type
+    k_getter = Cast.new(k_type.position, k_type, k_getter) if k_type
+
+    v_arg    = block.arguments.required(1)
+    v        = v_arg.name.identifier
+    v_getter = quote { `entry`.getValue }
+    v_type   = v_arg.type if v_arg.type
+    v_getter = Cast.new(v_type.position, v_type, v_getter) if v_type
+
+    quote do
+      `@call.target`.entrySet.each do |`entry`|
+        `k` = `k_getter`
+        `v` = `v_getter`
+        `block.body`
+      end
+    end
+  end
   # TODO each
 end

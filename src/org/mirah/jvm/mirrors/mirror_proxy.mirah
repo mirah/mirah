@@ -313,6 +313,8 @@ class MirrorFuture < BaseTypeFuture
         if !MirrorProxy(direct_supertype).isFullyResolved
           return false
         end
+      elsif direct_supertype.kind_of?(ErrorType)
+        return false
       end
     end
     true

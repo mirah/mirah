@@ -147,5 +147,20 @@ class ClosureTest < Test::Unit::TestCase
     ])
     assert_run_output("3\n", cls)
   end
+  
+  def test_closure_over_array_parameter
+    cls, = compile(%q{
+      def bar(param:byte[])
+        runnable = lambda(Runnable) do
+          puts param[0]
+        end
+        
+        runnable.run
+      end
+      
+      bar(byte[1])
+    })
+    assert_run_output("0\n", cls)
+  end
 end
 
