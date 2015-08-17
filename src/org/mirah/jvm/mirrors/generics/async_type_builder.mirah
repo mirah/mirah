@@ -38,7 +38,7 @@ end
 
 class AsyncTypeBuilder < SignatureVisitor
   def initialize(context:Context, typeVariables:Map={}):void
-    super(Opcodes.ASM4)
+    super(Opcodes.ASM5)
     @context = context
     @typeVariables = typeVariables
     @types = @context[MirrorTypeSystem]
