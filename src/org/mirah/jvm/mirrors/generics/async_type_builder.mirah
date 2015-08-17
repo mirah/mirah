@@ -38,7 +38,7 @@ end
 
 class AsyncTypeBuilder < SignatureVisitor
   def initialize(context:Context, typeVariables:Map={}):void
-    super(Opcodes.ASM4)
+    super(Opcodes.ASM5)
     @context = context
     @typeVariables = typeVariables
     @types = @context[MirrorTypeSystem]
@@ -57,7 +57,8 @@ class AsyncTypeBuilder < SignatureVisitor
     component = newBuilder
     types = @types
     @result = lambda(AsyncTypeBuilderResult) do
-      types.getArrayType(component.future)
+      f = component.future # f can be nil, as it may refer to a type variable intentionally not defined in TypeInvoker
+      f ? types.getArrayType(f) : nil
     end
     component
   end
