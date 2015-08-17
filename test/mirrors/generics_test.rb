@@ -17,6 +17,7 @@ require 'java'
 require 'test/unit'
 require 'java'
 require ENV.fetch('MIRAHC_JAR',File.expand_path("../../../dist/mirahc.jar",__FILE__))
+require File.expand_path("../../jvm/new_backend_test_helper",__FILE__)
 
 class GenericsTest < Test::Unit::TestCase
   java_import 'java.util.HashSet'
@@ -34,6 +35,7 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.typer.BaseTypeFuture'
   java_import 'org.objectweb.asm.Type'
   java_import 'javax.lang.model.util.Types'
+  java_import 'org.mirah.jvm.mirrors.generics.TypeInvoker'
 
   def setup
     @types = MirrorTypeSystem.new
@@ -782,4 +784,29 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal(["java.lang.Comparable<java.lang.String>"],
                  interfaces.grep(/Comparable/))
   end
+  
+  def test_type_invoker_simple_signature
+    invoker = invoker_for_signature('Ljava/lang/Object;')
+    assert_equal(0,invoker.getFormalTypeParameters.size)
+  end
+  
+  def test_type_invoker_array_as_type_parameter_signature
+    invoker = invoker_for_signature('<T:Ljava/lang/Object;>Ljava/lang/Class<[TT;>;')
+    assert_equal(1,invoker.getFormalTypeParameters.size)
+  end
+  
+  def test_type_invoker_recursive_reference_signature
+    if JVMCompiler::JVM_VERSION.to_f >= 1.8 # Stream API is needed here
+      invoker = invoker_for_signature('<T:Ljava/lang/Object;S::Ljava/util/stream/BaseStream<TT;TS;>;>Ljava/lang/Object;Ljava/lang/AutoCloseable;')
+      assert_equal(2,invoker.getFormalTypeParameters.size)
+    end
+  end
+  
+  def invoker_for_signature(signature)
+    context   = @types.context
+    invoker   = TypeInvoker.new(context, nil, [])
+    invoker.read(signature)
+    invoker
+  end
 end
+
