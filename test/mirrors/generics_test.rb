@@ -21,21 +21,22 @@ require File.expand_path("../../jvm/new_backend_test_helper",__FILE__)
 
 class GenericsTest < Test::Unit::TestCase
   java_import 'java.util.HashSet'
+  java_import 'javax.lang.model.util.Types'
+  java_import 'org.objectweb.asm.Type'
+
+  java_import 'org.mirah.jvm.mirrors.BaseType'
   java_import 'org.mirah.jvm.mirrors.generics.Constraints'
   java_import 'org.mirah.jvm.mirrors.generics.LubFinder'
+  java_import 'org.mirah.jvm.mirrors.generics.TypeInvocation'
+  java_import 'org.mirah.jvm.mirrors.generics.TypeInvoker'
   java_import 'org.mirah.jvm.mirrors.generics.TypeParameterInference'
   java_import 'org.mirah.jvm.mirrors.generics.TypeVariable'
-  java_import 'org.mirah.jvm.mirrors.generics.TypeInvocation'
   java_import 'org.mirah.jvm.mirrors.generics.Wildcard'
-  java_import 'org.mirah.jvm.mirrors.BaseType'
-  java_import 'org.mirah.jvm.mirrors.NullType'
   java_import 'org.mirah.jvm.mirrors.MirrorTypeSystem'
+  java_import 'org.mirah.jvm.mirrors.NullType'
   java_import 'org.mirah.jvm.model.Cycle'
   java_import 'org.mirah.jvm.model.IntersectionType'
   java_import 'org.mirah.typer.BaseTypeFuture'
-  java_import 'org.objectweb.asm.Type'
-  java_import 'javax.lang.model.util.Types'
-  java_import 'org.mirah.jvm.mirrors.generics.TypeInvoker'
 
   def setup
     @types = MirrorTypeSystem.new
