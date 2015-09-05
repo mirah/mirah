@@ -19,7 +19,7 @@ import java.util.Scanner
 
 # this first example relies on catching an exception,
 # which is bad style and poorly performing in Java
-def is_numeric?(s:string)
+def is_numeric?(s:String)
     begin
         Double.parseDouble(s)
         return true
@@ -40,7 +40,7 @@ puts '1.2.3 is not numeric' unless is_numeric?('1.2.3')
 
 
 # check every element of the string
-def is_numeric2?(s: string)
+def is_numeric2?(s: String)
     if (s == nil || s.isEmpty())
         return false
     end
@@ -79,7 +79,7 @@ puts '1.2.3 is not numeric' unless is_numeric2?('1.2.3')
 
 
 # use a regular  expression
-def is_numeric3?(s:string)
+def is_numeric3?(s:String)
   s == nil || s.matches("[-+]?\\d+(\\.\\d+)?")
 end
 
@@ -98,7 +98,7 @@ puts '1.2.3 is not numeric' unless is_numeric3?('1.2.3')
 # (a more robust solution). If, after parsing, the parse position is at
 # the end of the string, we can deduce that the entire string was a
 # valid number.
-def is_numeric4?(s:string)
+def is_numeric4?(s:String)
     return false if s.nil?
     formatter = NumberFormat.getInstance()
     pos = ParsePosition.new(0)
@@ -123,7 +123,7 @@ puts '1.2.3 is not numeric' unless is_numeric4?('1.2.3')
 # shorts, bytes, doubles, floats, BigIntegers, and BigDecimals as well
 # as methods for integral types where you may input a base/radix other than
 # 10 (10 is the default, which can be changed using the useRadix method).
-def is_numeric5?(s:string)
+def is_numeric5?(s:String)
     return false if s.nil?
     Scanner sc = Scanner.new(s)
     sc.hasNextDouble()

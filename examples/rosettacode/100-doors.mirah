@@ -17,8 +17,6 @@
 import java.util.ArrayList
 
 class Door
-	:state
-
 	def initialize
 		@state=false
 	end

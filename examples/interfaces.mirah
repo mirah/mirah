@@ -17,7 +17,7 @@ import java.util.List
 
 interface Printer do
   def printAll(a:List)
-    returns void
+    void
   end
 end
 
