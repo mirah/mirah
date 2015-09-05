@@ -63,7 +63,9 @@ module JVMCompiler
     if java_version
       args += ["--jvm", java_version]
     end
-
+    if options[:verbose]
+      args << '--verbose'
+    end
     if options[:separate_macro_dest]
       macro_dest = TEST_DEST.sub('classes','macro_classes')
       args += ["--macro-dest", macro_dest,
