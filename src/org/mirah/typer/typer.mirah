@@ -102,16 +102,17 @@ class Typer < SimpleNodeVisitor
 
   def learnType(node:Node, type:TypeFuture):void
     existing = @futures[node]
-    raise IllegalArgumentException if existing
+    raise IllegalArgumentException, "had existing type #{existing}" if existing
     @futures[node] = type
   end
 
   def infer(node:Node, expression:boolean=true)
     @@log.entering("Typer", "infer", "infer(#{node})")
-    @@log.fine("source:\n    #{sourceContent node}")
+
     return nil if node.nil?
     type = @futures[node]
     if type.nil?
+      @@log.fine("source:\n    #{sourceContent node}")
       type = node.accept(self, expression ? @trueobj : nil)
       @futures[node] ||= type
     end
