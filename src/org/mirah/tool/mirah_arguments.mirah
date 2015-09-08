@@ -268,7 +268,6 @@ class MirahArguments
       end
     else
       code_sources.add(EncodedCodeSource.new(f.getPath, encoding))
-      #code_sources.add(StreamCodeSource.new(f.getPath))
     end
   end
 

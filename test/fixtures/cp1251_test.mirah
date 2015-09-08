@@ -1,7 +1,7 @@
-class РљРёСЂРёР»РёС†Р°
-  def С‚РµСЃС‚
+class Кирилица1251
+  def тест
   end
   def self.main(args:String[]):void
-    puts 'test'
+    puts 'cp1251 encoding test'
   end
 end

@@ -51,8 +51,11 @@ class JVMCommandsTest < Test::Unit::TestCase
   end
 
   def test_encoding
-    assert_output "test\n" do
-      Mirah.run('-encoding','utf-8',File.dirname(__FILE__)+"/../fixtures/utf8_test.mirah")
+    assert_output "default utf8 encoding test\n" do
+      Mirah.run(File.dirname(__FILE__)+"/../fixtures/utf8_test.mirah")
+    end
+    assert_output "cp1251 encoding test\n" do
+      Mirah.run('-encoding','cp1251',File.dirname(__FILE__)+"/../fixtures/cp1251_test.mirah")
     end
   end
 end
