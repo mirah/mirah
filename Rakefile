@@ -228,13 +228,14 @@ file_create 'javalib/mirahc-prev.jar' do
   end
 end
 
-def build_jar(new_jar,build_dir)
+def build_jar(new_jar,build_dir, extensions=false)
   # Build the jar                    
   ant.jar 'jarfile' => new_jar do
     fileset 'dir' => build_dir
     zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
     zipfileset 'src' => 'javalib/mirah-parser.jar'
     metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
+    metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 'includes' => 'services/*' if extensions
     manifest do
       attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
     end
@@ -333,12 +334,11 @@ else # original
   naked_mirahc_jar = new_jar.sub(".jar","-naked.jar")
 
   mirah_srcs = Dir['src/org/mirah/{jvm/types,macros,util,}/*.mirah'].sort +
-               Dir['src/org/mirah/builtins/builtins.mirah'] +
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
                Dir['src/org/mirah/tool/*.mirah'].sort
 
-  extensions_srcs = Dir['src/org/mirah/builtins/*_extensions.mirah'].sort
+  extensions_srcs = Dir['src/org/mirah/builtins/*.mirah'].sort
   ant_srcs        =    ['src/org/mirah/ant/compile.mirah']
 
   file new_jar => mirah_srcs + extensions_srcs + ant_srcs + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
@@ -387,9 +387,9 @@ else # original
             'src/org/mirah/ant'
 
     # compile extensions stuff
-    runjava('-Xmx512m', '-Dorg.mirah.builtins.enabled=false', naked_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *extensions_srcs)
+    runjava('-Xmx512m', naked_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *extensions_srcs)
 
-    build_jar(new_jar,build_dir)
+    build_jar(new_jar,build_dir, true)
   end
 end # feature flag
 end

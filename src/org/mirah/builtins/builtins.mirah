@@ -17,59 +17,25 @@ package org.mirah.builtins
 
 import org.mirah.typer.TypeSystem
 import java.util.Collections
+import org.mirah.macros.ExtensionsProvider
+import org.mirah.macros.ExtensionsService
 
-class Builtins
-  def self.initialize_builtins(type_system:TypeSystem)
-    if self.builtins_enabled 
-      type_system.extendClass('java.util.Collection', Class.forName("org.mirah.builtins.CollectionExtensions"))
-      type_system.extendClass('java.util.Map', Class.forName("org.mirah.builtins.MapExtensions"))
-      type_system.extendClass('java.util.List', Class.forName("org.mirah.builtins.ListExtensions"))
-      type_system.extendClass('java.lang.Object', Class.forName("org.mirah.builtins.ObjectExtensions"))
-      type_system.extendClass('java.lang.Iterable', Class.forName("org.mirah.builtins.EnumerableExtensions"))
-      type_system.extendClass('java.lang.Iterable', Class.forName("org.mirah.builtins.IterableExtensions"))
-      type_system.extendClass('java.lang.String', Class.forName("org.mirah.builtins.StringExtensions"))
-      type_system.extendClass('java.lang.StringBuilder', Class.forName("org.mirah.builtins.StringBuilderExtensions"))
-  
-      type_system.extendClass('java.util.concurrent.locks.Lock', Class.forName("org.mirah.builtins.LockExtensions"))
-      type_system.extendClass('java.util.regex.Matcher', Class.forName("org.mirah.builtins.MatcherExtensions"))
-  
-      type_system.extendClass('int', Class.forName("org.mirah.builtins.IntExtensions"))
-      type_system.extendClass('byte', Class.forName("org.mirah.builtins.NumberExtensions"))
-      type_system.extendClass('short', Class.forName("org.mirah.builtins.NumberExtensions"))
-      type_system.extendClass('int', Class.forName("org.mirah.builtins.NumberExtensions"))
-      type_system.extendClass('long', Class.forName("org.mirah.builtins.NumberExtensions"))
-      type_system.extendClass('float', Class.forName("org.mirah.builtins.NumberExtensions"))
-      type_system.extendClass('double', Class.forName("org.mirah.builtins.NumberExtensions"))
-    end
-  end
-  
-  def self.builtins_enabled
-    !"false".equals(System.getProperty('org.mirah.builtins.enabled'))
+class Builtins implements ExtensionsProvider
+
+  def register(type_system:ExtensionsService):void
+    type_system.macro_registration(ArrayExtensions.class)
+    type_system.macro_registration(CollectionExtensions.class)
+    type_system.macro_registration(MapExtensions.class)
+    type_system.macro_registration(ListExtensions.class)
+    type_system.macro_registration(ObjectExtensions.class)
+    type_system.macro_registration(EnumerableExtensions.class)
+    type_system.macro_registration(IterableExtensions.class)
+    type_system.macro_registration(StringExtensions.class)
+    type_system.macro_registration(StringBuilderExtensions.class)
+    type_system.macro_registration(LockExtensions.class)
+    type_system.macro_registration(IntExtensions.class)
+    type_system.macro_registration(NumberExtensions.class)
+    type_system.macro_registration(MatcherExtensions.class)
   end
 
-  macro def newHash(hash:Hash)
-    map = gensym
-    capacity = int(hash.size * 0.84)
-    capacity = 16 if capacity < 16
-
-    block = quote do
-      `map` = java::util::HashMap.new(`Fixnum.new(capacity)`)
-      `map`.put()
-      `map`
-    end
-    result = block.remove(2)
-    put_template = block.remove(1)
-    i = 0
-    while i < hash.size
-      entry = hash.get(i)
-      put = Call(put_template.clone)
-      put.position = entry.position
-      put.parameters.add(entry.key)
-      put.parameters.add(entry.value)
-      block.add(put)
-      i += 1
-    end
-    block.add(result)
-    NodeList.new(hash.position, [block])
-  end
 end

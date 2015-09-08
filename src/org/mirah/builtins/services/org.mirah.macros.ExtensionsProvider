@@ -1,0 +1,13 @@
+# Mirah macro extension registration using java SPI specification:
+# https://docs.oracle.com/javase/tutorial/sound/SPI-intro.html
+# To implement custom extensions:
+# 1. Create a classes holding macro definitions and annotate them with  $ExtensionsRegistration:
+#    $ExtensionsRegistration[['[]', 'java.util.Collection']]
+#    use [] for arrays, primitive names (like int) and java class fully qualified names to specify target types for macros
+#    check org.mirah.builtins package for more samples
+# 2. Create class implementing org.mirah.macros.ExtensionsProvider and register
+#    your macro holder classes there (check org.mirah.builtins.Builtins for example)
+# 3. Put org.mirah.macros.ExtensionsProvider implementation class name in META-INF/services/org.mirah.macros.ExtensionsProvider
+#    compile and package your extension as jar file
+# 4. Your custom macros will be available after adding extension jar to the mirac classpath
+org.mirah.builtins.Builtins

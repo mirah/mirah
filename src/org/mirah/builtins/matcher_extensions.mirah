@@ -14,7 +14,9 @@
 # limitations under the License.
 
 package org.mirah.builtins
+import org.mirah.macros.anno.ExtensionsRegistration
 
+$ExtensionsRegistration[['java.util.regex.Matcher']]
 class MatcherExtensions
   macro def [](index)
     quote { `@call.target`.group `index` }
