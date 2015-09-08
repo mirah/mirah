@@ -38,7 +38,10 @@ import mirah.lang.ast.Script
 import mirah.lang.ast.SimpleString
 
 import org.mirah.MirahLogFormatter
-import org.mirah.builtins.Builtins
+import org.mirah.macros.anno.ExtensionsRegistration
+import org.mirah.macros.ExtensionsService
+import org.mirah.macros.ExtensionsProvider
+import java.util.ServiceLoader
 
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.BaseTypeFuture
@@ -65,7 +68,7 @@ import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMTypeUtils
 import org.mirah.jvm.types.MemberKind
 
-class MirrorTypeSystem implements TypeSystem
+class MirrorTypeSystem implements TypeSystem, ExtensionsService
   def initialize(
       context:Context=nil,
       classloader:ResourceLoader=nil)
@@ -98,7 +101,7 @@ class MirrorTypeSystem implements TypeSystem
     @anonymousClasses = {}
     @unpinned_field_futures = {}
     @cached_array_types = {}
-    Builtins.initialize_builtins(self)
+    register_extensions
     addObjectIntrinsics
     initBoxes
   end
@@ -765,6 +768,53 @@ class MirrorTypeSystem implements TypeSystem
     b = types.getRegexType.resolve
     c = a.widen(b)
     puts c
+  end
+
+  def register_extensions:void
+    log.fine("register extensions")
+    boot_class_loader = MirrorTypeSystem.class.getClassLoader
+    register_extensions boot_class_loader
+    
+    compile_class_loader = ClassLoader(@context[ClassLoader])
+    
+    if compile_class_loader != boot_class_loader
+      register_extensions compile_class_loader
+    end
+  end
+  
+  # use java service SPI to load all extensions registrations from context classloader
+  def register_extensions(class_loader:ClassLoader):void    
+    return unless class_loader
+    services = ServiceLoader.load(ExtensionsProvider.class, class_loader)
+    type_system = self
+    log.fine("register extensions for services: #{services}")
+    iter = Iterable(services).iterator
+    while iter.hasNext
+      provider = ExtensionsProvider(iter.next)
+      provider.register(type_system)
+    end
+  end
+
+  # ExtensionsService implementation
+  def macro_registration(clazz:Class):void
+    log.fine("macro registration for: #{clazz}")
+    anno = clazz.getAnnotation(ExtensionsRegistration.class)
+    macro_clazz = @context[ClassLoader].loadClass("#{clazz.getName}$Extensions") rescue nil
+    # different ways for extensions annotations
+    macro_clazz = clazz unless macro_clazz
+    type_system = self
+    log.fine("anotation: #{anno}")
+    unless anno.nil?
+      anno.value.each do |class_name|
+        if class_name.equals('[]')
+          log.fine("array extension: #{class_name} #{macro_clazz}")
+          BytecodeMirrorLoader.registerArrayExtension(macro_clazz)
+        else
+          log.fine("extend class: #{class_name} #{macro_clazz}")
+          type_system.extendClass(class_name, macro_clazz)
+        end
+      end
+    end
   end
 end
 

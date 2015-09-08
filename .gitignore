@@ -18,6 +18,7 @@ vendor/
 tmp_test
 
 # ignore generated jar files
+
 javalib/mirah-bootstrap.jar
 javalib/mirah-builtins.jar
 javalib/mirah-newast-transitional.jar
@@ -27,3 +28,7 @@ javalib/mirah-compiler.jar
 javalib/mirah-mirrors.jar
 javalib/mirahc-prev.jar
 javalib/asm-5.jar
+
+# git ignore netbeans files
+
+nb-configuration.xml

@@ -15,6 +15,9 @@
 
 package org.mirah.builtins
 
+import org.mirah.macros.anno.ExtensionsRegistration
+
+$ExtensionsRegistration[['[]', 'java.util.Collection']]
 class CollectionExtensions
   # returns true if is empty
   # an alias for isEmpty

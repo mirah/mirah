@@ -55,11 +55,7 @@ class ArrayType < BaseType implements ArrayModel
     @types = @context[MirrorTypeSystem]
     @int_type = MirrorType(@types.wrap(Type.getType('I')).resolve)
     @componentType = component
-    if org::mirah::builtins::Builtins.builtins_enabled 
-      BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.ArrayExtensions"))
-      BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.EnumerableExtensions"))
-      BytecodeMirrorLoader.extendClass(self, Class.forName("org.mirah.builtins.CollectionExtensions"))
-    end
+    BytecodeMirrorLoader.extendArray(self)
   end
 
   def interfaces:TypeFuture[]
