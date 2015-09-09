@@ -206,22 +206,3 @@ class SimpleTypes; implements TypeSystem
   def addDefaultImports(scope)
   end
 end
-
-logger = org::mirah::MirahLogFormatter.new(true).install
-logger.setLevel(java::util::logging::Level.ALL)
-parser = MirahParser.new
-code = StreamCodeSource.new("stdin", System.in)
-
-ast = Node(parser.parse(code))
-types = SimpleTypes.new('foo')
-scopes = SimpleScoper.new
-typer = Typer.new(types, scopes, nil, nil)
-
-puts "Original AST:"
-TypePrinter.new(typer).scan(ast, nil)
-puts ""
-puts "Inferring types..."
-
-typer.infer(ast, false)
-
-TypePrinter.new(typer).scan(ast, nil)
