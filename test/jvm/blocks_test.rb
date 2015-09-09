@@ -819,7 +819,7 @@ class BlocksTest < Test::Unit::TestCase
     cls, = compile('
       import org.foo.AbstractExecutorJava8
 
-      AbstractExecutor.execute do
+      AbstractExecutorJava8.execute do
         puts "foo"
       end
     ')
