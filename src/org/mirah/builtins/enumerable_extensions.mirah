@@ -15,6 +15,9 @@
 
 package org.mirah.builtins
 
+import org.mirah.macros.anno.ExtensionsRegistration
+
+$ExtensionsRegistration[['[]', 'java.lang.Iterable']]
 class EnumerableExtensions
   macro def all?(block:Block)
     x = if block.arguments && block.arguments.required_size() > 0

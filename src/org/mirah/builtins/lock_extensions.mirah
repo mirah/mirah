@@ -14,7 +14,9 @@
 # limitations under the License.
 
 package org.mirah.builtins
+import org.mirah.macros.anno.ExtensionsRegistration
 
+$ExtensionsRegistration[['java.util.concurrent.locks.Lock']]
 class LockExtensions
   #
   # Obtain the lock for the provided block, unlocking after executing the block

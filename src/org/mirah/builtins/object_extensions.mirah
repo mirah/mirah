@@ -17,6 +17,9 @@ package org.mirah.builtins
 
 import mirah.lang.ast.*
 
+import org.mirah.macros.anno.ExtensionsRegistration
+
+$ExtensionsRegistration[['java.lang.Object']]
 class ObjectExtensions
 
   macro def ==(node)

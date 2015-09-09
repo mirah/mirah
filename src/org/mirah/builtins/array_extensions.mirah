@@ -15,6 +15,9 @@
 
 package org.mirah.builtins
 
+import org.mirah.macros.anno.ExtensionsRegistration
+
+$ExtensionsRegistration[['[]']]
 class ArrayExtensions
   macro def each(block:Block)
     if block.arguments && block.arguments.required_size() > 0
