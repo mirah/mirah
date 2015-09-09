@@ -814,6 +814,17 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("foo\n", cls)
   end
 
+  def test_block_syntax_for_abstract_class_invoke_self
+    cls, = compile('
+      import org.foo.AbstractExecutor
+
+      AbstractExecutor.execute do
+        puts "foo"
+      end
+    ')
+    assert_run_output("foo\n", cls)
+  end
+
   def test_lambda_closure
     cls, = compile(<<-EOF)
       def r b: Runnable
