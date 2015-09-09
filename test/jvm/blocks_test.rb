@@ -817,7 +817,7 @@ class BlocksTest < Test::Unit::TestCase
   def test_block_syntax_for_abstract_class_invoke_self
     omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
     cls, = compile('
-      import org.foo.AbstractExecutor
+      import org.foo.AbstractExecutorJava8
 
       AbstractExecutor.execute do
         puts "foo"

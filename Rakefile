@@ -120,14 +120,22 @@ end
 
 
 task :build_test_fixtures => 'tmp_test/fixtures/fixtures_built.txt'
-directory 'tmp_test/fixtures'
-file 'tmp_test/fixtures/fixtures_built.txt' => ['tmp_test/fixtures'] + Dir['test/fixtures/**/*.java'] do
+  directory 'tmp_test/fixtures'
+
+  file 'tmp_test/fixtures/fixtures_built.txt' => ['tmp_test/fixtures'] + Dir['test/fixtures/**/*.java'] do
   `touch tmp_test/fixtures/fixtures_built.txt`
-  ant.javac 'destdir' => "tmp_test/fixtures",
-            'srcdir' => 'test/fixtures',
-            'includeantruntime' => false,
-            'debug' => true,
-            'listfiles' => true
+
+  javac_args = {
+      'destdir' => "tmp_test/fixtures",
+      'srcdir' => 'test/fixtures',
+      'includeantruntime' => false,
+      'debug' => true,
+      'listfiles' => true
+  }
+  jvm_version = java.lang.System.getProperty('java.specification.version').to_f
+
+  javac_args['excludes'] = '**/*Java8.java' if jvm_version < 1.8
+  ant.javac javac_args
 end
 
 task :init do
