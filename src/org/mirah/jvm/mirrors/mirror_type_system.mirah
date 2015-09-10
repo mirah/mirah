@@ -800,9 +800,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     services = ServiceLoader.load(ExtensionsProvider.class, class_loader)
     type_system = self
     log.fine("register extensions for services: #{services}")
-    iter = Iterable(services).iterator
-    while iter.hasNext
-      provider = ExtensionsProvider(iter.next)
+    Iterable(services).each do |provider: ExtensionsProvider|
       provider.register(type_system)
     end
   end
