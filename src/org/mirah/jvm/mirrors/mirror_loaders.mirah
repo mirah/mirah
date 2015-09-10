@@ -33,7 +33,6 @@ import org.mirah.typer.DerivedFuture
 import org.mirah.typer.TypeFuture
 
 import org.mirah.util.Context
-import java.util.HashSet
 
 class ResourceLoader
   def initialize(parent:ResourceLoader=nil)
@@ -267,7 +266,6 @@ end
 class BytecodeMirrorLoader < SimpleMirrorLoader
   def self.initialize:void
     @@log = Logger.getLogger(BytecodeMirrorLoader.class.getName)
-    @@array_extensions = HashSet.new
   end
 
   def initialize(context:Context,
@@ -396,14 +394,4 @@ class BytecodeMirrorLoader < SimpleMirrorLoader
     node
   end
 
-  # not sure how to implement in better
-  def self.registerArrayExtension(klass:Class):void
-    @@array_extensions.add(klass)
-  end
-
-  def self.extendArray(type: BaseType)
-    @@array_extensions.each do |klass|
-      extendClass(type, Class(klass))
-    end
-  end
 end

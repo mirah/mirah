@@ -53,9 +53,9 @@ class ArrayType < BaseType implements ArrayModel
           Opcodes.ACC_PUBLIC, nil)
     @context = context
     @types = @context[MirrorTypeSystem]
+    @types.extendArray(self)
     @int_type = MirrorType(@types.wrap(Type.getType('I')).resolve)
     @componentType = component
-    BytecodeMirrorLoader.extendArray(self)
   end
 
   def interfaces:TypeFuture[]

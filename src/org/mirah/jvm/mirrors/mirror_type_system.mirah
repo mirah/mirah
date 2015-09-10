@@ -16,6 +16,7 @@
 package org.mirah.jvm.mirrors
 
 import java.io.File
+import java.util.HashSet
 
 import java.util.ArrayList
 import java.util.Collections
@@ -101,6 +102,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     @anonymousClasses = {}
     @unpinned_field_futures = {}
     @cached_array_types = {}
+    @array_extensions = HashSet.new
     register_extensions
     addObjectIntrinsics
     initBoxes
@@ -570,6 +572,16 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     BytecodeMirrorLoader.extendClass(type, extensions)
   end
 
+  def register_array_extension(clazz:Class)
+    @array_extensions.add clazz
+  end
+
+  def extendArray(type:BaseType)
+    @array_extensions.each do |klass: Class|
+      BytecodeMirrorLoader.extendClass(type, klass)
+    end
+  end
+
   def addClassIntrinsic(type:BaseType)
     future = BaseTypeFuture.new.resolved(type)
     klass = loadNamedType('java.lang.Class')
@@ -803,12 +815,12 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     # different ways for extensions annotations
     macro_clazz = clazz unless macro_clazz
     type_system = self
-    log.fine("anotation: #{anno}")
+    log.fine("annotation: #{anno}")
     unless anno.nil?
       anno.value.each do |class_name|
         if class_name.equals('[]')
           log.fine("array extension: #{class_name} #{macro_clazz}")
-          BytecodeMirrorLoader.registerArrayExtension(macro_clazz)
+          type_system.register_array_extension(macro_clazz)
         else
           log.fine("extend class: #{class_name} #{macro_clazz}")
           type_system.extendClass(class_name, macro_clazz)
