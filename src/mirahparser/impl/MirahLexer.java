@@ -799,8 +799,6 @@ public class MirahLexer {
           if (i.consume('<')) {
             if (i.consume('=')) {
               type = Tokens.tOpAssign;
-            } else {
-              type = Tokens.tLLShift;
             }
           } else if (i.consume('=')) {
             type = Tokens.tOpAssign;
@@ -818,7 +816,11 @@ public class MirahLexer {
           if (i.consume('=')) {
             type = Tokens.tOpAssign;
           } else {
-            type = Tokens.tRShift;
+              if(i.consume('>')) {
+                  type = Tokens.tRRShift;
+              }else {
+                  type = Tokens.tRShift;
+              }
           }
         } else {
           type = Tokens.tGT;

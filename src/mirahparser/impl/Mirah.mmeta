@@ -708,7 +708,7 @@ parser MirahParser {
            | $GT {">"}
            | $GE {">="}
            | $LShift {"<<"}
-           | $LLShift {"<<<"}
+           | $RRShift {">>>"}
            | $RShift {">>"}
            | $Bang {"!"}
            | $NE {"!="}
