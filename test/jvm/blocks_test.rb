@@ -814,6 +814,18 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("foo\n", cls)
   end
 
+  def test_block_syntax_for_abstract_class_invoke_self
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+    cls, = compile('
+      import org.foo.AbstractExecutorJava8
+
+      AbstractExecutorJava8.execute do
+        puts "foo"
+      end
+    ')
+    assert_run_output("foo\n", cls)
+  end
+
   def test_lambda_closure
     cls, = compile(<<-EOF)
       def r b: Runnable
