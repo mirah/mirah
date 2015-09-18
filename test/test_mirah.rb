@@ -460,7 +460,7 @@ EOF
 
   def test_def
     names = %w(foo bar? baz! def= rescue Class & | ^ < > + - * / % ! ~ <=> ==
-               === =~ !~ <= >= << <<< >> != ** []= [] +@ -@)
+               === =~ !~ <= >= << >>> >> != ** []= [] +@ -@)
     names.each do |name|
       assert_parse("[Script, [[MethodDefinition, [SimpleString, #{name}], [Arguments, [RequiredArgumentList], [OptionalArgumentList], null, [RequiredArgumentList], null], null, [[Fixnum, 1]], [AnnotationList]]]]",
                    "def #{name}; 1; end")
