@@ -34,6 +34,7 @@ import java.io.File
 import org.mirah.jvm.compiler.ProxyCleanup
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.jvm.mirrors.BaseType
+import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.mirrors.MirrorTypeSystem
 import org.mirah.jvm.mirrors.MirrorFuture
 import org.mirah.jvm.mirrors.MethodScope
@@ -1025,7 +1026,7 @@ enclosing_scope = get_scope(enclosing_body)
     i=0
     args.required.each do |a: RequiredArgument|
       if a.type
-        m_type = BaseType(m_types[i])
+        m_type = MirrorType(m_types[i])
         a_type = @types.get(parent_scope, a.type.typeref).resolve
         if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type) # could do this, then it'd only add the checkcast if it will fail...
           block_method.body.insert(0, 
@@ -1056,7 +1057,7 @@ enclosing_scope = get_scope(enclosing_body)
     i=0
     args.required.each do |a: RequiredArgument|
       if a.type
-        m_type = BaseType(m_types[i])
+        m_type = MirrorType(m_types[i])
         a_type = @types.get(parent_scope, a.type.typeref).resolve
         if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type)
           @@log.fine("#{name} requires bridge method because declared type: #{a_type} != iface type: #{m_type}")
