@@ -162,5 +162,32 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("0\n", cls)
   end
+  
+  def test_closure_with_typed_parameter
+    cls, = compile(%q{
+      class Bar
+      end
+      
+      interface Foo
+        def action(bar:Bar); end
+      end
+      
+      class FooCaller
+      
+        def with_foo(foo:Foo):void
+          foo.action(Bar.new)
+        end
+      
+        def call_with_foo
+          with_foo do |bar:Bar|
+            puts "Closure called."
+          end
+        end
+      end
+      
+      FooCaller.new.call_with_foo
+    })
+    assert_run_output("Closure called.\n", cls)
+  end
 end
 
