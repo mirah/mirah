@@ -39,6 +39,9 @@ import mirah.lang.ast.NodeList
 import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Package
 import mirah.lang.ast.RequiredArgument
+import mirah.lang.ast.OptionalArgument
+import mirah.lang.ast.RequiredArgumentList
+import mirah.lang.ast.LocalAssignment
 import mirah.lang.ast.Script
 import mirah.lang.ast.SimpleString
 import mirah.lang.ast.StringCodeSource
@@ -105,12 +108,63 @@ class MacroBuilder; implements org.mirah.macros.Compiler
   end
 
   def buildExtension(macroDef: MacroDefinition)
-    ast = constructAst(macroDef)
+    arguments = macroDef.arguments
+    if arguments and  arguments.optional.size > 0
+
+      optional = arguments.optional
+
+      (optional.size + 1).times do |i:int|
+
+        required_list = []
+        local_list = []
+
+        arguments.required.each do |arg: RequiredArgument|
+          required_list.add arg
+        end
+
+        optional.size.times do |j:int|
+          arg = optional.get(j)
+          if j < i
+            required_list.add RequiredArgument.new(arg.position, arg.name, arg.type)
+          else
+            local_list.add arg
+          end
+        end
+
+
+        cloned  = MacroDefinition(macroDef.clone)
+        cloned.arguments = Arguments.new(macroDef.position, required_list, Collections.emptyList, nil, Collections.emptyList, nil)
+
+        local_list.each do |opt_arg:OptionalArgument|
+          cloned.body.insert(0, LocalAssignment.new(cloned.body.position,
+                                  opt_arg.name,
+                                  Cast.new(cloned.body.position,
+                                      opt_arg.type,
+                                      opt_arg.value)
+                                )
+                             )
+        end
+        @@log.fine "build extension required: #{required_list} local: #{local_list}"
+        buildExtension(cloned, macroDef)
+      end
+
+    else
+      buildExtension(macroDef, macroDef)
+    end
+
+  end
+
+  def buildExtension(cloned: MacroDefinition, orig: MacroDefinition )
+    @scopes.copyScopeFrom(orig, cloned)
+    ast = constructAst(cloned)
     @backend.logExtensionAst(ast)
     @typer.infer(ast)
     klass = @backend.compileAndLoadExtension(ast)
-    addToExtensions(macroDef, klass)
-    registerLoadedMacro(macroDef, klass)
+
+    class_def = ClassDefinition(orig.findAncestor(ClassDefinition.class))
+
+    addToExtensions(class_def, klass)
+    registerLoadedMacro(cloned, klass)
   end
 
   def typer
@@ -322,8 +376,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
              SimpleString.new('block'), Collections.emptyList, nil)
   end
 
-  def addToExtensions(macrodef: MacroDefinition, klass: Class): void
-    classdef = ClassDefinition(macrodef.findAncestor(ClassDefinition.class))
+  def addToExtensions(classdef: ClassDefinition, klass: Class): void
     if classdef.nil?
       return
     end
