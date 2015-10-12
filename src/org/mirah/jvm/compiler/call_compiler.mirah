@@ -223,7 +223,7 @@ class CallCompiler < BaseCompiler implements MemberVisitor
     asm_type = type.getAsmType
     compile(@target)
     @method.convertValue(getInferredType(@target), type)
-    convertArgs([type])
+    convertArgs(method.argumentTypes)
     recordPosition
     @method.math(op, asm_type)
     convertResult(type, expression)

@@ -69,9 +69,9 @@ class Number < BaseType implements PrimitiveType
     add_math("%", type)
     sort = type.getAsmType.getSort
     if sort == Type.INT || sort == Type.LONG
-      add_math("<<", type)
-      add_math(">>", type)
-      add_math(">>>", type)
+      add_shift("<<", type)
+      add_shift(">>", type)
+      add_shift(">>>", type)
       add_math("|", type)
       add_math("&", type)
       add_math("^", type)
@@ -95,6 +95,11 @@ class Number < BaseType implements PrimitiveType
         Opcodes.ACC_PUBLIC, type, name, [type], type, MemberKind.MATH_OP))
   end
 
+  def add_shift(name:String, type:MirrorType):void
+    add(Member.new(
+        Opcodes.ACC_PUBLIC, type, name, [@loader.loadMirror(Type.INT_TYPE)], type, MemberKind.MATH_OP))
+  end
+  
   def add_comparison(name:String, type:MirrorType, boolean:MirrorType):void
     add(Member.new(
         Opcodes.ACC_PUBLIC, type, name, [type], boolean,
