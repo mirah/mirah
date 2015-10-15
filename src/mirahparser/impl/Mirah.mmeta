@@ -754,7 +754,7 @@ parser MirahParser {
        ;
 
   $Returns[TypeName]
-  type: n=(identifier | cpath)
+  type: n=(cpath)
         ( $LBrack $RBrack {TypeRefImpl.new(TypeName(n).typeref.name, true, false, n.position)}
         | {TypeName(n)}
         );
