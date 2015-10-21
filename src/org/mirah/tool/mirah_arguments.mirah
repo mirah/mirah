@@ -74,7 +74,8 @@ class MirahArguments
                 max_errors: int,
                 use_type_debugger: boolean,
                 exit_status: int,
-                encoding: String
+                encoding: String,
+                plugins: String
 
   def initialize(env=System.getenv)
     @logger_color = true
@@ -242,6 +243,10 @@ class MirahArguments
     parser.addFlag(
         ['encoding'], 'ENCODING', 'File encoding. Default to OS encoding'
     ) { |v| compiler_args.encoding = v }
+
+    parser.addFlag(
+        ['plugins'], 'PLUGIN_LIST', 'Comma separated plugin list with options. Examples --plugins pluginKeyA[:PROPERTY_A][,pluginKeyB[:PROPERTY_B]]. '
+    ) { |v| compiler_args.plugins = v }
 
     begin
       parser.parse(args).each do |filename: String|
