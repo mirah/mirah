@@ -65,9 +65,9 @@ class JVMCommandsTest < Test::Unit::TestCase
     Mirah.compile('-d', target_dir,  '-plugins', 'stub', fixture_dir + '/stub_plugin_test.mirah')
     generated = File.read target_dir + '/org/foo/AOne.java'
     expected = File.read fixture_dir + '/org/foo/AOne.java'
-    assert_equal expected, generated
+    assert_equal expected.gsub(/\r/, ''), generated.gsub(/\r/, '')
     generated = File.read target_dir + '/org/foo/AOneX.java'
     expected = File.read fixture_dir + '/org/foo/AOneX.java'
-    assert_equal expected, generated
+    assert_equal expected.gsub(/\r/, ''), generated.gsub(/\r/, '')
   end
 end

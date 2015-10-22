@@ -280,7 +280,7 @@ class ClassStubWriter < StubWriter
   end
 
   def add_field(node:FieldDeclaration):void
-    @methods.add FieldStubWriter.new node, typer
+    @fields.add FieldStubWriter.new node, typer
   end
 
   def generate:void
@@ -338,7 +338,11 @@ class ClassStubWriter < StubWriter
   end
 
   def write_fields:void
-    @fields.each do |stub_writer:StubWriter|
+    sorted = @fields.sort do |field1:FieldStubWriter, field2:FieldStubWriter|
+      field1.name.compareTo field2.name
+     end
+
+    sorted.each do |stub_writer:StubWriter|
       stub_writer.writer=writer
       stub_writer.generate
     end
@@ -460,6 +464,11 @@ class FieldStubWriter < StubWriter
   def initialize(node:FieldDeclaration, typer:Typer)
     super(typer)
     @node = node
+    @name = @node.name.identifier
+  end
+
+  def name
+    @name
   end
 
   # TODO modifier
@@ -481,7 +490,7 @@ class FieldStubWriter < StubWriter
 
     write " ", modifier, " "
     iterator = flags.each { |f| write f, ' ' }
-    writeln type.name, " ", @node.name.identifier, ";"
+    writeln type.name, " ", name(), ";"
   end
 
 end

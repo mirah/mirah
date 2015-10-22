@@ -4,6 +4,9 @@ package org.foo;
   java doc
 */
 public class AOne{
+ public static int CONST;
+ private int a;
+ private static java.lang.String test;
  public void call(){}
  public int call(int a,java.lang.String b){ return 0; }
  public java.lang.Integer call(int[] a,java.lang.String b){ return null; }
@@ -12,9 +15,6 @@ public class AOne{
    */
  public void call(int a,int b){}
  public AOne(){}
- private int a;
- private static java.lang.String test;
- public static int CONST;
  // SYNTHETIC
  // BRIDGE
  /**
