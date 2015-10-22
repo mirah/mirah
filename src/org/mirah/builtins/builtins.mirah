@@ -36,6 +36,12 @@ class Builtins implements ExtensionsProvider
     type_system.macro_registration(IntExtensions.class)
     type_system.macro_registration(NumberExtensions.class)
     type_system.macro_registration(MatcherExtensions.class)
+    type_system.macro_registration(IntegerOperators.class)
+    type_system.macro_registration(ByteOperators.class)
+    type_system.macro_registration(ShortOperators.class)
+    type_system.macro_registration(LongOperators.class)
+    type_system.macro_registration(DoubleOperators.class)
+    type_system.macro_registration(FloatOperators.class)
   end
 
 end

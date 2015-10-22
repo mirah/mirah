@@ -26,8 +26,12 @@ import javax.tools.Diagnostic.Kind
 
 class MethodState
   def initialize(macrodef:MacroDefinition)
-    @num_args = macrodef.arguments.required_size
-    @num_args += 1 if macrodef.arguments.block
+    if macrodef.arguments
+      @num_args = macrodef.arguments.required_size
+      @num_args += 1 if macrodef.arguments.block
+    else
+      @num_args = 0
+    end
     @name = macrodef.name.identifier
     @position = macrodef.name.position
     @signature = nil

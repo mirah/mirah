@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import "java.lang.System"
+import java.lang.System
 
 def foo
   home = System.getProperty "java.home"

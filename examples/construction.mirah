@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import "java.lang.StringBuffer"
-import "java.util.ArrayList"
+import java.lang.StringBuffer
+import java.util.ArrayList
 
 list = ArrayList.new
 sb = StringBuffer.new("Hello")

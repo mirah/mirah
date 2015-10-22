@@ -193,6 +193,82 @@ class BlocksTest < Test::Unit::TestCase
     assert_run_output("an object\n", cls)
   end
 
+  def test_nesting_with_abstract_class
+    pend 'test_nesting_with_abstract_class' do
+      cls, main = compile(%q{
+      abstract class Nestable
+        abstract def foo(n: Nestable):void;end
+        def create(n: Nestable):void
+           puts "create #{n}"
+           n.foo(n)
+        end
+
+        def toString:String
+           "nestable"
+        end
+      end
+
+      class Main
+        def self.create(b: Nestable):void
+          b.foo(b)
+        end
+
+        def self.main(args: String[]):void
+          create do |x:Nestable|
+            puts "outer foo"
+            create do |m: Nestable|
+              puts "in foo #{m}"
+            end
+          end
+        end
+      end
+})
+      assert_output "outer foo\ncreate nestable\nin foo nestable\n" do
+        main.main([])
+      end
+    end
+  end
+
+  def test_use_abstract_inplace
+      pend "test_use_abstract_inplace" do
+      #with_finest_logging {
+      cls, main, parent =  compile(%q{
+      abstract class A < P
+
+        def self.empty:A
+          create do
+            puts "empty"
+          end
+        end
+
+        def self.create(n: A):void
+           puts "create #{n}"
+           n.execute
+        end
+
+      end
+
+      class Main
+        def self.create(b: Nestable = A.empty):void
+          b.execute
+        end
+
+        def self.main(args: String[]):void
+          create
+          create { puts "not empty"}
+        end
+      end
+
+      abstract class P
+        abstract def execute:void;end
+      end
+})
+      assert_output "outer foo\ncreate nestable\nin foo nestable\n" do
+        main.main([])
+      end
+    end
+  end
+
   def test_parameter_used_in_block
     cls, = compile(<<-'EOF')
       def r(r:Runnable); r.run; end
@@ -809,6 +885,18 @@ class BlocksTest < Test::Unit::TestCase
       
       InnerInterfaceClass.forward("foo") do |param|
         puts param
+      end
+    ')
+    assert_run_output("foo\n", cls)
+  end
+
+  def test_block_syntax_for_abstract_class_invoke_self
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+    cls, = compile('
+      import org.foo.AbstractExecutorJava8
+
+      AbstractExecutorJava8.execute do
+        puts "foo"
       end
     ')
     assert_run_output("foo\n", cls)

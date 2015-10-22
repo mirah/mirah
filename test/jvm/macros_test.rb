@@ -639,5 +639,41 @@ class MacrosTest < Test::Unit::TestCase
     })
     assert_run_output("[]\n", script)
   end
+
+  def test_optional_args_macro
+    cls, = compile(<<-CODE)
+      class MacroWithBlock
+        macro def self._test(block:Block = nil)
+          if block
+            block.body
+          else
+            quote { puts "self nil" }
+          end
+        end
+
+        macro def test(block:Block = nil)
+          if block
+            block.body
+          else
+            quote { puts "nil" }
+          end
+        end
+
+        def self.main(args: String[]):void
+          mb = MacroWithBlock.new
+          mb.test
+          mb.test do
+            puts "test"
+          end
+          _test
+          _test do
+            puts "self test"
+          end
+        end
+      end
+    CODE
+
+    assert_run_output("nil\ntest\nself nil\nself test\n", cls)
+  end
 end
 

@@ -45,7 +45,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   end  
   
   def compile:void
-    @@log.info "Compiling class #{@classdef.name.identifier}"
+    @@log.fine "Compiling class #{@classdef.name.identifier}"
     startClass
     visit(@classdef.body, nil)
     @classwriter.visitEnd
