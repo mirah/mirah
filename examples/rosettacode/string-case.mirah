@@ -15,5 +15,5 @@
 
 
 str = "alphaBETA"
-puts str.toUpperCase()
-puts str.toLowerCase()
+puts str.toUpperCase
+puts str.toLowerCase

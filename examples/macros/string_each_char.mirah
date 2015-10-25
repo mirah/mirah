@@ -15,14 +15,14 @@
 
 
 macro def eachChar(value, block:Block)
-    quote {
-        `value`.toCharArray.each do |`block.arguments`|
-            `block.body`
-        end
-    }
+  quote do
+    `value`.toCharArray.each do |`block.arguments`|
+      `block.body`
+    end
+  end
 end
 
 eachChar('laat de leeeuw niet in zijn hempie staan') do | my_char |
-    puts my_char
+  puts my_char
 end
 

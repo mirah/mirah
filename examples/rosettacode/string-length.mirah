@@ -21,7 +21,7 @@
 */
 
 s = "Hello, world!"
-puts s.length() * 2
+puts s.length * 2
 
 /**
 * Another way to know the byte length of a string is to explicitly

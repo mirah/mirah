@@ -16,9 +16,9 @@
 
 
 macro def sqrt(input)
-    quote do
-        Math.sqrt(Integer.parseInt(`input`))
-    end
+  quote do
+    Math.sqrt(Integer.parseInt(`input`))
+  end
 end
 
 number = '64'
