@@ -61,21 +61,14 @@ class ConditionCompiler < BaseCompiler
 
   def doJump(label:Label)
     if isPrimitive(@type)
-      if "float".equals(@type.name)
-        @bytecode.push(float(0))
-        @op = "=="
-        doComparison(label)
-      elsif "double".equals(@type.name)
-        @bytecode.push(double(0))
-        @op = "=="
-        doComparison(label)
-      elsif "long".equals(@type.name)
-        @bytecode.push(long(0))
-        @op = "=="
-        doComparison(label)
-      else
+      if "boolean".equals(@type.name)
         mode = @negated ? GeneratorAdapter.EQ : GeneratorAdapter.NE
         @bytecode.ifZCmp(mode, label)
+      else # In all cases where an expression exp in "if exp" is a primitive type and not boolean, the boolean value of "exp" is always "true"
+        ("double".equals(@type.name) || "long".equals(@type.name)) ? @bytecode.pop2 : @bytecode.pop # just ignore the result of the computation 
+        if !@negated
+          @bytecode.goTo(label)
+        end
       end
     else
       if @negated
