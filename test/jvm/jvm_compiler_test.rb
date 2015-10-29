@@ -951,6 +951,48 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(false, cls.foo(nil))
   end
 
+  def test_0_is_true
+    cls, = compile("def foo(a:int);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1))
+    assert_equal(true, cls.foo(0))
+  end
+
+  def test_0L_is_true
+    cls, = compile("def foo(a:long);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1))
+    assert_equal(true, cls.foo(0))
+  end
+
+  def test_0_0f_is_true
+    cls, = compile("def foo(a:float);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1.0))
+    assert_equal(true, cls.foo(0.0))
+  end
+
+  def test_0_0d_is_true
+    cls, = compile("def foo(a:double);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1.0))
+    assert_equal(true, cls.foo(0.0))
+  end
+
+  def test_0_char_is_true
+    cls, = compile("def foo(a:char);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1))
+    assert_equal(true, cls.foo(0))
+  end
+
+  def test_0_short_is_true
+    cls, = compile("def foo(a:short);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1))
+    assert_equal(true, cls.foo(0))
+  end
+
+  def test_0_byte_is_true
+    cls, = compile("def foo(a:byte);if a;true;else;false;end;end")
+    assert_equal(true, cls.foo(1))
+    assert_equal(true, cls.foo(0))
+  end
+
   def test_if_expr
     cls, = compile(<<-EOF)
       def foo(a:int)
