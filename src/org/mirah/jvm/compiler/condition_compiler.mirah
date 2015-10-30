@@ -65,7 +65,7 @@ class ConditionCompiler < BaseCompiler
         mode = @negated ? GeneratorAdapter.EQ : GeneratorAdapter.NE
         @bytecode.ifZCmp(mode, label)
       else # In all cases where an expression exp in "if exp" is a primitive type and not boolean, the boolean value of "exp" is always "true"
-        ("double".equals(@type.name) || "long".equals(@type.name)) ? @bytecode.pop2 : @bytecode.pop # just ignore the result of the computation 
+        pop_from_stack(@type.name) # just ignore the result of the computation
         if !@negated
           @bytecode.goTo(label)
         end
@@ -76,6 +76,16 @@ class ConditionCompiler < BaseCompiler
       else
         @bytecode.ifNonNull(label)
       end
+    end
+  end
+  
+  def pop_from_stack(typename:String)
+    # As of https://docs.oracle.com/javase/specs/jvms/se7/html/jvms-2.html#jvms-2.11.1
+    # "double", "long" are Category 2 Computational types, all other types are Category 1 Computation types.
+    if "double".equals(typename) || "long".equals(typename)
+      @bytecode.pop2
+    else
+      @bytecode.pop
     end
   end
 
