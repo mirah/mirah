@@ -944,11 +944,42 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(2, cls.foo_set(2))
     assert_equal(2, cls.foo)
   end
-
-  def test_null_is_false
-    cls, = compile("def foo(a:String);if a;true;else;false;end;end")
-    assert_equal(true, cls.foo("a"))
-    assert_equal(false, cls.foo(nil))
+  
+  def test_promotion_to_boolean
+    cases = [
+      [ "String",  "a"  => true, nil   => false ],
+      [ "boolean", true => true, false => false ],
+      [ "byte",    1    => true, 0     => true  ],
+      [ "short",   1    => true, 0     => true  ],
+      [ "int",     1    => true, 0     => true  ],
+      [ "long",    1    => true, 0     => true  ],
+      [ "char",    1    => true, 0     => true  ],
+      [ "float",   1.0  => true, 0.0   => true  ],
+      [ "double",  1.0  => true, 0.0   => true  ],
+    ].each do |type, cases|
+      cls, = compile(%Q[
+        class Foo
+          def self.foo(a:#{type})
+            if a
+              true
+            else
+              false
+            end
+          end
+          def self.foo_inverted(a:#{type})
+            unless a
+              true
+            else
+              false
+            end
+          end
+        end
+      ])
+      cases.each do |input,boolean_value|
+        assert_equal( boolean_value, cls.foo(input))
+        assert_equal(!boolean_value, cls.foo_inverted(input))
+      end
+    end
   end
 
   def test_if_expr

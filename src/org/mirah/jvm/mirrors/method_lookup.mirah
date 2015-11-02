@@ -708,7 +708,7 @@ class LookupState
 
   def future(isField:boolean)
     if matches + macro_matches == 0
-      if inaccessible
+      if inaccessible!=0
         @context[MethodLookup].inaccessible(
             @scope, Member(@inaccessible.get(0)), @position, self)
       elsif @context[DebuggerInterface]
