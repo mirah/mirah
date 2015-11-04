@@ -97,9 +97,6 @@ module JVMCompiler
     if 0 != cmd.compile(args)
       raise Mirah::MirahError, "Compilation failed"
     end
-  rescue => e
-    raise e.cause if e.respond_to?(:cause) && e.cause
-    raise e
   end
 
   def compiler_name
