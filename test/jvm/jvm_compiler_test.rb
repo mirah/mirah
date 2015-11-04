@@ -2344,4 +2344,13 @@ class JVMCompilerTest < Test::Unit::TestCase
     })
     assert_run_output("0123", cls)
   end
+
+  def test_filename_shows_up_in_exception_upon_syntax_error
+    begin
+      foo, = compile("puts('foo',)", name: 'somespecificfilename.mirah')
+      assert false
+    rescue => e
+      assert e.message.match(/somespecificfilename/)
+    end
+  end
 end
