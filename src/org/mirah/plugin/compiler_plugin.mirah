@@ -42,8 +42,8 @@ interface CompilerPlugin
   def stop:void;end
 end
 
-# do nothing implementation
-class AbstractCompilerPlugin < NodeScanner
+# do nothing but store plugin params and context
+abstract class AbstractCompilerPlugin < NodeScanner
   implements CompilerPlugin
 
   attr_reader context:Context,
@@ -62,9 +62,18 @@ class AbstractCompilerPlugin < NodeScanner
     @key = key
   end
 
-  def start(param, context):void;
+  def start(param, context):void
     @param = param
     @context = context
+  end
+
+end
+
+# do nothing adapter class for cases where only one extension method needs to be implemented
+class CompilerPluginAdapter < AbstractCompilerPlugin
+
+  def initialize(key:String):void
+    super(key)
   end
 
   def on_parse(node:Node)
@@ -82,4 +91,5 @@ class AbstractCompilerPlugin < NodeScanner
   def stop
     return
   end
+
 end
