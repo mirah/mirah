@@ -44,42 +44,42 @@ end
 
 # do nothing implementation
 class AbstractCompilerPlugin < NodeScanner
-   implements CompilerPlugin
+  implements CompilerPlugin
 
-    attr_reader context:Context,
-                param:String
+  attr_reader context:Context,
+              param:String
 
-    def key:String
-        @key
-    end
+  def key:String
+    @key
+  end
 
 # Plugin implementation constructor must be no args calling super('some_key')
-    def initialize(key:String):void
-      super()
-      @context = nil
-      @param = nil
-      raise "Invalid key: '#{key}'" if key == nil or key.isEmpty or key.contains " "
-      @key = key
-    end
+  def initialize(key:String):void
+    super()
+    @context = nil
+    @param = nil
+    raise "Invalid key: '#{key}'" if key == nil or key.isEmpty or key.contains " "
+    @key = key
+  end
 
-    def start(param, context):void;
-        @param = param
-        @context = context
-    end
+  def start(param, context):void;
+    @param = param
+    @context = context
+  end
 
-    def on_parse(node:Node)
-      return
-    end
+  def on_parse(node:Node)
+    return
+  end
 
-    def on_infer(node:Node)
-      return
-    end
+  def on_infer(node:Node)
+    return
+  end
 
-    def on_clean(node:Node)
-      return
-    end
+  def on_clean(node:Node)
+    return
+  end
 
-    def stop
-      return
-    end
+  def stop
+    return
+  end
 end

@@ -446,9 +446,9 @@ class MethodStubWriter < StubWriter
         write " return null; "
       else
         if 'boolean'.equals(type.name)
-            write ' return false; '
+          write ' return false; '
         else
-            write ' return 0; '
+          write ' return 0; '
         end
       end
     end

@@ -240,7 +240,7 @@ class MirahCompiler implements JvmBackend
     failIfErrors()
 
     @asts.each do |node: Script|
-        @plugins.on_clean(node)
+      @plugins.on_clean(node)
     end
   end
 

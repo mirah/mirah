@@ -45,37 +45,37 @@ class CompilerPlugins
     end
 
     plugin_params.entrySet.each do |entry|
-        plugin = CompilerPlugin(available.get entry.getKey)
-        if plugin
-          plugin.start(String(entry.getValue), context)
-          plugins.add plugin
-        else
-          raise "missing plugin implementation for: " + entry.getKey
-        end
+      plugin = CompilerPlugin(available.get entry.getKey)
+      if plugin
+        plugin.start(String(entry.getValue), context)
+        plugins.add plugin
+      else
+        raise "missing plugin implementation for: " + entry.getKey
+      end
     end
   end
 
   def on_parse(node:Node):void
     @plugins.each do |plugin:CompilerPlugin|
-        plugin.on_parse Script(node)
+      plugin.on_parse Script(node)
     end
   end
 
   def on_infer(node:Node):void
-      @plugins.each do |plugin:CompilerPlugin|
-          plugin.on_infer Script(node)
-      end
+    @plugins.each do |plugin:CompilerPlugin|
+       plugin.on_infer Script(node)
+    end
   end
 
   def on_clean(node:Node):void
     @plugins.each do |plugin:CompilerPlugin|
-        plugin.on_clean Script(node)
+      plugin.on_clean Script(node)
     end
   end
 
   def stop:void
     @plugins.each do |plugin:CompilerPlugin|
-        plugin.stop
+      plugin.stop
     end
   end
 
@@ -87,16 +87,16 @@ class CompilerPlugins
     return result unless plugin_string
     plugins = plugin_string.split ','
     plugins.each do |v|
-        pair = v.split ':', 2
-        old_value = nil
-        if pair.length == 2
-          old_value = result.put pair[0], pair[1]
-        else
-          old_value = result.put v, ""
-        end
-        if old_value
-          raise "multiple plugin keys: " + v + " => " + pair[0] + ":"+ old_value
-        end
+      pair = v.split ':', 2
+      old_value = nil
+      if pair.length == 2
+        old_value = result.put pair[0], pair[1]
+      else
+        old_value = result.put v, ""
+      end
+      if old_value
+        raise "multiple plugin keys: " + v + " => " + pair[0] + ":"+ old_value
+      end
     end
     return result
   end
