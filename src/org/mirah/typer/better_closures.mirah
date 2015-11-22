@@ -111,23 +111,16 @@ class BetterClosureBuilder
     i = 0
 
     closures.each do |entry: Entry|
-      closure_block = Block(entry.getKey)
-      closures_block_id = System.identityHashCode(closure_block)
-      puts "block #{closures_block_id} position #{closure_block.position}"
-
+      block = Block(entry.getKey)
       on_clone = lambda(CloneListener) do |interim,new|
         old = selff.blockCloneMapNewOld.get(interim)
         selff.blockCloneMapNewOld.put(new,old)
-#       blockCloneMapOldNew.remove(old)
         selff.blockCloneMapOldNew.put(old,new)
         new.whenCloned on_clone
-        puts "iter #{i} whenCloned #{closures_block_id}  mapping updated\n interim: #{System.identityHashCode(interim)}\n old:#{System.identityHashCode(old)}\n new: #{System.identityHashCode(new)}"
       end
-
-      closure_block.whenCloned on_clone
-
-      blockCloneMapOldNew.put(closure_block,closure_block)
-      blockCloneMapNewOld.put(closure_block,closure_block)
+      block.whenCloned on_clone
+      blockCloneMapOldNew.put(block,block)
+      blockCloneMapNewOld.put(block,block)
     end
 
     self.parent_scope_to_binding_name = {}

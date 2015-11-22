@@ -189,5 +189,72 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("Closure called.\n", cls)
   end
+
+  def test_deep_nested_closures_with_binding
+    cls, = compile(%q{
+         class TestBuilder
+           def self.create(b: Builder):Builder
+             b.execute()
+             b
+           end
+
+           def self.main(args:String[]):void
+             x = "123"
+             b = create do
+                name x
+                y = "234"
+                create do
+                   name y
+                   create do
+                     name "#{y} #{x}"
+                   end
+                   create do
+                     name "#{y} #{x}"
+                   end
+                end
+            end
+            b.print ''
+            b = create do
+                name x
+                y = "234"
+                create do
+                   name y
+                   create do
+                     name "#{y} #{x}"
+                   end
+                end
+              create do
+                name y
+                create do
+                  name "#{y} #{x}"
+                end
+              end
+            end
+            b.print ''
+          end
+        end
+
+        abstract class Builder
+          def initialize
+           @subs = []
+          end
+          abstract def execute();end
+          def name(name:String):void; @name = name; end
+          def create(sub:Builder):void;
+            sub.execute;
+            @subs.add sub
+          end
+
+          def print(prefix:String):void
+            puts "#{prefix}b: #{@name}"
+            @subs.each do |s: Builder|
+              s.print "#{prefix}\t"
+            end
+          end
+        end
+        TestBuilder.main(String[0])
+    })
+    assert_run_output("b: 123\n\tb: 234\n\t\tb: 234 123\n\t\tb: 234 123\nb: 123\n\tb: 234\n\t\tb: 234 123\n\tb: 234\n\t\tb: 234 123\n", cls)
+  end
 end
 
