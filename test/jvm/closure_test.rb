@@ -190,71 +190,36 @@ class ClosureTest < Test::Unit::TestCase
     assert_run_output("Closure called.\n", cls)
   end
 
-  def test_deep_nested_closures_with_binding
+  def test_deep_nested_runnable_with_binding
     cls, = compile(%q{
          class TestBuilder
-           def self.create(b: Builder):Builder
-             b.execute()
-             b
+           def self.create(b: Runnable):void
+             b.run()
            end
 
            def self.main(args:String[]):void
-             x = "123"
+             level_0 = "level_0"
              b = create do
-                name x
-                y = "234"
-                create do
-                   name y
-                   create do
-                     name "#{y} #{x}"
-                   end
-                   create do
-                     name "#{y} #{x}"
-                   end
-                end
-            end
-            b.print ''
-            b = create do
-                name x
-                y = "234"
-                create do
-                   name y
-                   create do
-                     name "#{y} #{x}"
-                   end
-                end
-              create do
-                name y
-                create do
-                  name "#{y} #{x}"
-                end
-              end
-            end
-            b.print ''
-          end
-        end
+               level_1="level_1"
+               TestBuilder.create do
+                 level_2="level_2"
+                 TestBuilder.create do
+                   level_3="level_3"
+                   puts "#{level_0} #{level_1} #{level_2} #{level_3}"
+                  end
+                 TestBuilder.create do
+                   level_2="level_2_3"
+                   puts "#{level_0} #{level_1} #{level_2}"
+                 end
+                 puts "#{level_0} #{level_1} #{level_2}"
+               end
+             end
+           end
+         end
 
-        abstract class Builder
-          def initialize
-           @subs = []
-          end
-          abstract def execute();end
-          def name(name:String):void; @name = name; end
-          def create(sub:Builder):void;
-            sub.execute;
-            @subs.add sub
-          end
-
-          def print(prefix:String):void
-            puts "#{prefix}b: #{@name}"
-            @subs.each do |s: Builder|
-              s.print "#{prefix}\t"
-            end
-          end
-        end
-        TestBuilder.main(String[0])
+         TestBuilder.main(String[0])
     })
-    assert_run_output("b: 123\n\tb: 234\n\t\tb: 234 123\n\t\tb: 234 123\nb: 123\n\tb: 234\n\t\tb: 234 123\n\tb: 234\n\t\tb: 234 123\n", cls)
+    assert_run_output("level_0 level_1 level_2 level_3\nlevel_0 level_1 level_2_3\nlevel_0 level_1 level_2_3\n", cls)
   end
 end
 
