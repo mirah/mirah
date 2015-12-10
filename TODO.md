@@ -1,3 +1,14 @@
+- missing import should always show up in the summary of errors. eg
+
+ERROR import X
+ERROR fn X(1) doesn't exist
+
+ERROR can't find type for import X
+
+
+
+-- if a macro has a bug, the stacktrace is ugly
+
 
 
 The TODO list of DOOM
