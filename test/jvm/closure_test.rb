@@ -189,5 +189,37 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("Closure called.\n", cls)
   end
+
+  def test_deep_nested_runnable_with_binding
+    cls, = compile(%q{
+         class TestBuilder
+           def self.create(b: Runnable):void
+             b.run()
+           end
+
+           def self.main(args:String[]):void
+             level_0 = "level_0"
+             b = create do
+               level_1="level_1"
+               TestBuilder.create do
+                 level_2="level_2"
+                 TestBuilder.create do
+                   level_3="level_3"
+                   puts "#{level_0} #{level_1} #{level_2} #{level_3}"
+                  end
+                 TestBuilder.create do
+                   level_2="level_2_3"
+                   puts "#{level_0} #{level_1} #{level_2}"
+                 end
+                 puts "#{level_0} #{level_1} #{level_2}"
+               end
+             end
+           end
+         end
+
+         TestBuilder.main(String[0])
+    })
+    assert_run_output("level_0 level_1 level_2 level_3\nlevel_0 level_1 level_2_3\nlevel_0 level_1 level_2_3\n", cls)
+  end
 end
 
