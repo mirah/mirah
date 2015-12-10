@@ -291,6 +291,7 @@ class MethodLookupTest < BaseMethodLookupTest
     expected_invisible = methods - expected_visible
     set_self_type(type)
     invisible = @lookup.removeInaccessible(methods, @scope, nil)
+
     assert_equal(expected_invisible.map {|m| m.toString}, invisible.map {|m| m.toString})
     assert_equal(expected_visible.map {|m| m.toString}, methods.map {|m| m.toString})
     # TODO: fix protected usage. e.g. Foo can call Object.clone() through a foo instance, but not any Object.
@@ -564,6 +565,7 @@ class FieldTest < BaseMethodLookupTest
 
   def test_find_super_field
     @a.add_field("foo")
+
     future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
 
     assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)
@@ -574,6 +576,7 @@ class FieldTest < BaseMethodLookupTest
     @b.add_field("foo")
 
     future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+
     assert_equal("LB;", future.resolve.returnType.asm_type.descriptor)
   end
 
@@ -583,17 +586,21 @@ class FieldTest < BaseMethodLookupTest
     @b.add_field("foo", Opcodes.ACC_PRIVATE)
     
     future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+
     assert_equal("LA;", future.resolve.returnType.asm_type.descriptor)
   end
 
   def test_inaccessible
     @a.add_field("foo", Opcodes.ACC_PRIVATE)
+
     future = @lookup.findMethod(@scope, @b, 'foo', [], nil, nil, false)
+
     assert(future.resolve.isError, "Expected error, got #{future.resolve}")
   end
 
   def test_field_setter
     @a.add_field("foo")
+
     future = @lookup.findMethod(@scope, @a, 'foo_set', [@a], nil, nil, false)
   end
 end
