@@ -152,6 +152,9 @@ class BetterClosureBuilder
 
       entries = @captured.map do |cap: String|
         type               = @parent_scope.getLocalType(cap, node.position).resolve
+        if type.kind_of?(org::mirah::jvm::mirrors::NullType)
+          raise "We have no type for captured variable \"#{cap}\"."
+        end
         is_array           = JVMTypeUtils.isArray(JVMType(type))
         variable_type_name = type.name
         variable_type_name = variable_type_name.substring(0,variable_type_name.length-2) if is_array # chop off trailing "[]"
