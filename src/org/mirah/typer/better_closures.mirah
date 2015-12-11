@@ -152,7 +152,7 @@ class BetterClosureBuilder
 
       entries = @captured.map do |cap: String|
         type               = @parent_scope.getLocalType(cap, node.position).resolve
-        if type.kind_of?(org::mirah::jvm::mirrors::NullType)
+        if type.kind_of?(org::mirah::jvm::mirrors::NullType) # FIXME: This should use an "assert" facility which costs no runtime in case the assertions are disabled
           raise "We have no type for captured variable \"#{cap}\"."
         end
         is_array           = JVMTypeUtils.isArray(JVMType(type))
