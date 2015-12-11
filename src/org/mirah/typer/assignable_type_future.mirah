@@ -99,7 +99,7 @@ class AssignableTypeFuture < BaseTypeFuture
     @lock.unlock
   end
 
-  def assignedValues(includeParent: boolean, includeChildren: boolean): Collection
+  def assignedValues(includeParent: boolean, includeChildren: boolean, forceIncludeChildren = false): Collection
     @lock.lock
     Collection(@assignments.keySet)
   ensure
