@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.MethodNode
 import org.mirah.jvm.mirrors.generics.TypeInvoker
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.JVMField
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.MethodType
@@ -158,9 +159,9 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     true
   end
 
-  def getDeclaredFields:JVMMethod[]
+  def getDeclaredFields:JVMField[]
     @field_mirrors ||= begin
-      mirrors = JVMMethod[@fields.size]
+      mirrors = JVMField[@fields.size]
       it = @fields.iterator
       @fields.size.times do |i|
         field = FieldNode(it.next)
