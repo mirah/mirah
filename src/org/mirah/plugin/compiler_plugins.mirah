@@ -85,6 +85,7 @@ class CompilerPlugins
   def parse_plugin_params(plugin_string:String)
     result = {}
     return result unless plugin_string
+    return result if plugin_string.trim.length == 0
     plugins = plugin_string.split ','
     plugins.each do |v|
       pair = v.split ':', 2

@@ -94,6 +94,16 @@ class JavaStubPlugin < CompilerPluginAdapter
     false
   end
 
+  def enterClassAppendSelf(node, ctx)
+    current.append_self = true
+    true
+  end
+
+  def exitClassAppendSelf(node, ctx)
+    current.append_self = false
+    nil
+  end
+
   def enterMethodDefinition(node, ctx)
     current.add_method node
     false
@@ -130,11 +140,6 @@ class JavaStubPlugin < CompilerPluginAdapter
   end
 
   def enterNodeList(node, ctx)
-    # Scan the children
-    true
-  end
-
-  def enterClassAppendSelf(node, ctx)
     # Scan the children
     true
   end
@@ -261,6 +266,8 @@ class ClassStubWriter < StubWriter
     @@log = Logger.getLogger ClassStubWriter.class.getName
   end
 
+  attr_accessor append_self:boolean
+
   def initialize(ctx:JavaStubPlugin, node:ClassDefinition)
     super(ctx.typer )
     @dest_path = ctx.stub_dir
@@ -269,6 +276,7 @@ class ClassStubWriter < StubWriter
     @node = node
     @fields = []
     @methods = []
+    @append_self = false
   end
 
   def set_package pckg:String
@@ -276,7 +284,8 @@ class ClassStubWriter < StubWriter
   end
 
   def add_method(node:MethodDefinition):void
-    @methods.add MethodStubWriter.new @class_name, node, typer
+    @@log.fine "add method #{class_name} #{node.name} #{@append_self}"
+    @methods.add MethodStubWriter.new @class_name, node, typer, @append_self
   end
 
   def add_field(node:FieldDeclaration):void
@@ -363,10 +372,11 @@ class MethodStubWriter < StubWriter
     @@log = Logger.getLogger MethodStubWriter.class.getName
   end
 
-  def initialize(class_name:String, node:MethodDefinition, typer:Typer)
+  def initialize(class_name:String, node:MethodDefinition, typer:Typer, append_self:boolean)
     super(typer)
     @node = node
     @class_name = class_name
+    @append_self = append_self
   end
 
   # TODO optional args
@@ -376,7 +386,7 @@ class MethodStubWriter < StubWriter
     @@log.fine "node:#{@node} type: #{type}"
     modifier = "public"
     flags = []
-    static = @node.kind_of? StaticMethodDefinition
+    static = @node.kind_of?(StaticMethodDefinition) || @append_self
     this = self
     process_modifiers(Annotated(@node)) do |atype:int, value:String|
       # workaround for PRIVATE and PUBLIC annotations for class constants
@@ -394,15 +404,15 @@ class MethodStubWriter < StubWriter
 
     @@log.finest "access: #{modifier} modifier: #{flags}"
 
-    return if type.name.endsWith 'linit>' and static
+    return if type.name.endsWith 'init>' and static
 
     writeln JavaDoc(@node.java_doc).value if @node.java_doc
-    write ' ', modifier, ' '
+    write '    ', modifier, ' '
     //constructor
-    if type.name.endsWith 'linit>'
+    if type.name.endsWith 'init>'
       write @class_name
     else
-      write " static " if static
+      write 'static ' if static
       flags.each { |f| write f, ' ' }
       write type.returnType, " ", type.name
     end
@@ -488,7 +498,8 @@ class FieldStubWriter < StubWriter
     end
     @@log.fine "access: #{modifier} modifier: #{flags}"
 
-    write " ", modifier, " "
+    write '    ', modifier, ' '
+    #write 'static ' if @node.isStatic
     iterator = flags.each { |f| write f, ' ' }
     writeln type.name, " ", name(), ";"
   end
