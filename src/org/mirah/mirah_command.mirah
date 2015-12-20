@@ -24,13 +24,13 @@ class MirahCommand
   def self.compile(args:List):void
     argv = String[args.size]
     args.toArray(argv)
-    Mirahc.main(argv)
+    Mirahc.new.compile(argv)
   end
 
   def self.run(args:List):void
     argv = String[args.size]
     args.toArray(argv)
-    RunCommand.main(argv)
+    RunCommand.run(argv)
   end
 
   def self.main(args:String[]):void
