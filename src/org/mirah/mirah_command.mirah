@@ -21,13 +21,13 @@ import org.mirah.tool.Mirahc
 import org.mirah.tool.RunCommand
 
 class MirahCommand
-  def self.compile(args:List):void
+  def self.compile(args:List): int
     argv = String[args.size]
     args.toArray(argv)
     Mirahc.new.compile(argv)
   end
 
-  def self.run(args:List):void
+  def self.run(args:List): int
     argv = String[args.size]
     args.toArray(argv)
     RunCommand.run(argv)
@@ -36,11 +36,11 @@ class MirahCommand
   def self.main(args:String[]):void
     list = Arrays.asList(args)
     if list.size > 0 && "run".equals(list.get(0))
-      run(list.subList(1, list.size))
+      System.exit(run(list.subList(1, list.size)))
     elsif list.size > 0 && "compile".equals(list.get(0))
-      compile(list.subList(1, list.size))
+      System.exit(compile(list.subList(1, list.size)))
     else
-      compile(list)
+      System.exit(compile(list))
     end
   end
 end
