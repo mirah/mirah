@@ -17,7 +17,7 @@ class Logger
   def initialize(internal_logger:Object) # old compiler cannot handle def initialize(internal_logger:java.util.logging.Logger) 
     @internal_logger = java::util::logging::Logger(internal_logger)
   end
-  
+
   macro def finest(arg)
     javalogger = "#{gensym}_javalogger"
     quote do
@@ -27,7 +27,7 @@ class Logger
       end
     end
   end
-    
+
   macro def finer(arg)
     javalogger = gensym 
     quote do
@@ -88,7 +88,7 @@ class Logger
     end
   end
     
-  macro def log(level,arg1)
+  macro def log(level, arg1)
     javalogger = "#{gensym}_javalogger"
     levellocal = "#{gensym}_levellocal"
     quote do
