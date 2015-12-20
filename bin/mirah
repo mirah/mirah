@@ -24,4 +24,4 @@ rescue LoadError
   require 'mirah'
 end
 
-Mirah.run(*ARGV)
+org::mirah::tool::RunCommand.main(ARGV)
