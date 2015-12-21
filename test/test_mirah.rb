@@ -675,6 +675,8 @@ EOF
      assert_parse("[Script, [[Super, [[VCall, [SimpleString, a]]], [Block, null, [[VCall, [SimpleString, b]]]]]]]", "super a do;b;end")
      assert_parse("[Script, [[Super, [[Call, [FunctionalCall, [SimpleString, a], [], [Block, null, [[VCall, [SimpleString, b]]]]], [SimpleString, c], [], null]], null]]]", "super a {b}.c")
      assert_parse("[Script, [[Call, [Super, [[VCall, [SimpleString, a]]], [Block, null, [[VCall, [SimpleString, b]]]]], [SimpleString, c], [], null]]]", "super a do;b;end.c")
+     assert_parse("[Script, [[FunctionalCall, [SimpleString, do_call], [[FunctionalCall, [SimpleString, curly_call], [], [Block, null, [[VCall, [SimpleString, curlyblock]]]]]], [Block, null, [[VCall, [SimpleString, doblock]]]]]]]",
+                  "do_call curly_call {curlyblock} do;doblock;end")
    end
 
    def test_opt_nl
