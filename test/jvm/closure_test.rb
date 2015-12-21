@@ -221,5 +221,22 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("level_0 level_1 level_2 level_3\nlevel_0 level_1 level_2_3\nlevel_0 level_1 level_2_3\n", cls)
   end
+  
+  def test_closure_with_assignment_in_rescue
+    cls, = compile(%q{
+      foo = nil
+      t = Thread.new do
+        begin
+          raise Exception
+        rescue => e
+          foo = Integer.new(3)
+        end
+      end
+      t.start
+      t.join
+      puts foo
+    })
+    assert_run_output("3\n", cls)
+  end
 end
 
