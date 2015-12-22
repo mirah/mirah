@@ -43,8 +43,8 @@ class IgnoredTypeBuilder < SignatureVisitor
 end
 
 class TypeInvoker < BaseSignatureReader
-  def initialize(context:Context, typeVars:Map, args:List)
-    super(context, typeVars)
+  def initialize(context:Context, typeVars:Map, args:List, processed_signatures:Map)
+    super(context, typeVars, processed_signatures)
     @typeParams = LinkedList.new
     @args = LinkedList.new(args)
     @interfaces = []
@@ -92,16 +92,20 @@ class TypeInvoker < BaseSignatureReader
   end
 
   def self.invoke(context:Context, type:MirrorType, args:List,
-                  outerTypeArgs:Map):MirrorType
+                  outerTypeArgs:Map, processed_signatures:Map):MirrorType
     dtype = DeclaredMirrorType(type)
     if dtype.signature.nil? || args.any? {|a| a.nil?}
       type
     else
-      invoker = TypeInvoker.new(context, outerTypeArgs, args)
-      invoker.read(dtype.signature)
+      invoker = TypeInvoker processed_signatures[dtype.signature]
+      unless invoker
+        invoker = TypeInvoker.new(context, outerTypeArgs, args, processed_signatures)
+        processed_signatures[dtype.signature] = invoker
+        invoker.read(dtype.signature)
+      end
       TypeInvocation.new(context, type,
-                         invoker.superclass, invoker.interfaces, args,
-                         invoker.getTypeVariableMap)
+                        invoker.superclass, invoker.interfaces, args,
+                        invoker.getTypeVariableMap)
     end
   end
 end

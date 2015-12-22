@@ -30,11 +30,16 @@ import org.mirah.util.Context
 
 abstract class BaseSignatureReader < SignatureVisitor
   def initialize(context:Context, typeVariables:Map=Collections.emptyMap):void
+    initialize(context, typeVariables, {})
+  end
+
+  def initialize(context:Context, typeVariables:Map, processed_signatures:Map):void
     super(Opcodes.ASM4)
     @context = context
     @typeVariables = Collections.checkedMap({}, String.class, TypeFuture.class)
     @typeVariables.putAll(typeVariables) if typeVariables
     @classbound = AsyncTypeBuilder(nil)
+    @processed_signatures = processed_signatures
   end
 
   attr_reader typeVariables:Map
@@ -81,11 +86,15 @@ abstract class BaseSignatureReader < SignatureVisitor
   end
 
   def newBuilder
-    AsyncTypeBuilder.new(@context, @typeVariables)
+    AsyncTypeBuilder.new(@context, @typeVariables, @processed_signatures)
   end
 
   def read(signature:String):void
     reader = SignatureReader.new(signature)
     reader.accept(self)
+  end
+
+  def processed_signatures:Map
+    @processed_signatures
   end
 end

@@ -22,6 +22,7 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import org.mirah.util.Logger
 import java.util.logging.Level
 
@@ -116,14 +117,16 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   def parameterize(type:TypeFuture, args:List)
-    last_resolved = nil
+    parameterize type, args, {}
+  end
+
+  def parameterize(type:TypeFuture, args:List, processed_signatures:Map)
     context = @context
-    invocation = nil
     future = DelegateFuture.new
     future.type = type
     type.onUpdate do |x, resolved|
       future.type = MirrorFuture.new(
-          TypeInvoker.invoke(context, MirrorType(resolved), args, nil))
+          TypeInvoker.invoke(context, MirrorType(resolved), args, nil, processed_signatures))
     end
     future
   end
