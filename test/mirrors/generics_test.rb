@@ -805,7 +805,7 @@ class GenericsTest < Test::Unit::TestCase
   
   def invoker_for_signature(signature)
     context   = @types.context
-    invoker   = TypeInvoker.new(context, nil, [])
+    invoker   = TypeInvoker.new(context, nil, [], {})
     invoker.read(signature)
     invoker
   end
