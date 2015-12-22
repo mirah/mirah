@@ -72,7 +72,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   def link:void
     types = @context[MirrorTypeSystem]
     if @signature
-      invoker = TypeInvoker.new(@context, nil, [])
+      invoker = TypeInvoker.new(@context, nil, [], {})
       invoker.read(@signature)
       setSupertypes(invoker.superclass, invoker.interfaces)
       invoker.getFormalTypeParameters.each do |var|

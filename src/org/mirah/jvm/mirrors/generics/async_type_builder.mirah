@@ -37,12 +37,13 @@ interface AsyncTypeBuilderResult
 end
 
 class AsyncTypeBuilder < SignatureVisitor
-  def initialize(context:Context, typeVariables:Map={}):void
+  def initialize(context:Context, typeVariables:Map, processed_signatures:Map):void
     super(Opcodes.ASM5)
     @context = context
     @typeVariables = typeVariables
     @types = @context[MirrorTypeSystem]
     @type_utils = @context[Types]
+    @processed_signatures = processed_signatures
   end
 
   def visitBaseType(desc)
@@ -125,12 +126,11 @@ class AsyncTypeBuilder < SignatureVisitor
       end
     end
     return if all_question_marks
-    # TODO detect cycles
-    @type = @types.parameterize(@type, args)
+    @type = @types.parameterize(@type, args, @processed_signatures)
   end
 
   def newBuilder
-    AsyncTypeBuilder.new(@context, @typeVariables)
+    AsyncTypeBuilder.new(@context, @typeVariables, @processed_signatures)
   end
 
   def future
