@@ -514,9 +514,39 @@ class Typer < SimpleNodeVisitor
     newField.isStatic = true
     newField.position = field.position
 
-    replaceSelf field, newField
+    destination_body = nil
+    field_parent = field.parent
+    if field_parent.kind_of?(NodeList)
+      field_parent_parent = field_parent.parent
+      if field_parent_parent.kind_of?(ClassDefinition)
+        destination_body = ClassDefinition(field_parent_parent).body
+      elsif field_parent_parent.kind_of?(Script)
+        destination_body = Script(field_parent_parent).body
+      end
+    end
 
-    infer(newField, expression != nil)
+    # we are in class or script context
+    if destination_body
+      # We perform AST transformation early here (and not later in ClassCleanup),
+      # because otherwise local variables declared and used within the construction of the constant have weird scope. 
+      initializer_method_name = self.scoper.getScope(field).temp("$static_initializer_#{field.name.identifier}_")
+      initializer_method      = StaticMethodDefinition.new(field.position, SimpleString.new(initializer_method_name), Arguments.new(field.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil), Constant.new(SimpleString.new('void')), [newField], nil)
+      initializer_method_call = ClassInitializer.new([
+        Call.new(Self.new, SimpleString.new(initializer_method_name), [], nil)
+      ])
+
+      replaceSelf field, NodeList.new([]) # Do not just remove the field, but replace it with a noop-entry such that the iteration indices do not need to change. Else the iteration which currently happens over exactly the list of children skips one of the new children.
+      destination_body.add(initializer_method)
+      destination_body.add(initializer_method_call)
+  
+      @types.getNullType() # nothing to infer now
+    else # we are in some other context, maybe method
+      infer(newField, expression != nil) # keep old behavior, for now
+    end
+  end
+  
+  def visitClassInitializer(field, expression)
+    @types.getNullType() # do nothing here, the body of the ClassInitializer will be inferred during ClassCleanup
   end
 
   def visitFieldAccess(field, expression)

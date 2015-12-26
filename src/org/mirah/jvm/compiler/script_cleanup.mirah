@@ -107,6 +107,10 @@ class ScriptCleanup < NodeScanner
     @methods.add(node)
     false
   end
+  def enterClassInitializer(node, arg)
+    @methods.add(node)
+    false
+  end
   def enterPackage(node, arg)
     # ignore
     false
