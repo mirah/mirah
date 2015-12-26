@@ -112,4 +112,19 @@ class StaticFieldsTest < Test::Unit::TestCase
     EOF
    assert_run_output("8\n4,7,6\n", cls)
   end
+  def test_declare_constant_in_instance_method_is_an_error
+    e = assert_raise_kind_of Mirah::MirahError do
+      cls, = compile(<<-EOF)
+        class Foo
+          def foo
+            CONSTANT = 1
+            puts CONSTANT
+          end
+        end
+        
+        Foo.new.foo
+      EOF
+      assert_run_output("1\n", cls)
+    end
+  end  
 end
