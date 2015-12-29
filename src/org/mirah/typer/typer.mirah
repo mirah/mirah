@@ -540,9 +540,16 @@ class Typer < SimpleNodeVisitor
       # We perform AST transformation early here (and not later in ClassCleanup),
       # because otherwise local variables declared and used within the construction of the constant have weird scope. 
       initializer_method_name = self.scoper.getScope(field).temp("$static_initializer_#{field.name.identifier}_")
-      initializer_method      = StaticMethodDefinition.new(field.position, SimpleString.new(initializer_method_name), Arguments.new(field.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil), Constant.new(SimpleString.new('void')), [newField], [Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
-        HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE')),
-      ])])
+      initializer_method      = StaticMethodDefinition.new(
+        field.position,
+        SimpleString.new(initializer_method_name),
+        Arguments.new(field.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil),
+        Constant.new(SimpleString.new('void')),
+        [newField],
+        [Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+          HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE')),
+        ])]
+      )
       initializer_method_call = ClassInitializer.new([
         Call.new(Self.new, SimpleString.new(initializer_method_name), [], nil)
       ])
