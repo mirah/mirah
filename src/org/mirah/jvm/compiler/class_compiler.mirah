@@ -128,7 +128,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
   def visitFieldDeclaration(node, expression)
     flags = calculateFlagsFromAnnotations(Opcodes.ACC_PRIVATE, node.annotations)
     initial_value = nil
-    if (flags&(Opcodes.ACC_FINAL|Opcodes.ACC_STATIC))==Opcodes.ACC_FINAL|Opcodes.ACC_STATIC
+    if !node.value.nil? && (flags&(Opcodes.ACC_FINAL|Opcodes.ACC_STATIC))==Opcodes.ACC_FINAL|Opcodes.ACC_STATIC
       if node.type.typeref.name.equals('long') 
         initial_value = Long.new(mirah::lang::ast::Fixnum(node.value).value)
       else # If you want to support more types of final static fields, add type handling here
