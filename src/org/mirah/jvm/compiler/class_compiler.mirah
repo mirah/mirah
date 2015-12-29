@@ -132,7 +132,7 @@ class ClassCompiler < BaseCompiler implements InnerClassCompiler
       if node.type.typeref.name.equals('long') 
         initial_value = Long.new(mirah::lang::ast::Fixnum(node.value).value)
       else # If you want to support more types of final static fields, add type handling here
-        raise "Cannot support field declaration #{node}: node.type.typeref.name=#{node.type.typeref.name}." 
+        raise "Cannot support field declaration #{node} with value #{node.value}: node.type.typeref.name=#{node.type.typeref.name}." 
       end
     end
     fv = @classwriter.visitField(flags, node.name.identifier, getInferredType(node).getAsmType.getDescriptor, nil, initial_value)
