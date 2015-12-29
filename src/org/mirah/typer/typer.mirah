@@ -538,7 +538,16 @@ class Typer < SimpleNodeVisitor
     # we are in class or script context
     if destination_body
       # We perform AST transformation early here (and not later in ClassCleanup),
-      # because otherwise local variables declared and used within the construction of the constant have weird scope. 
+      # because otherwise local variables declared and used within the construction of the constant have weird scope.
+      #
+      # We transform each ConstantAssign in class context into a method + a ClassInitializer which calls this method.
+      # The method performs the right-hand-side of the ConstantAssign, and then assigns the result to final static field for the constant.
+      # This is allowed per JVM spec. The JVM spec requires that such an "instruction must occur in the <clinit> method".
+      # Whether this means
+      # 1. just in the body of the <clinit> method (not in methods called by <clinit>) or
+      # 2. during the call of the <clinit> method (also in methods called by <clinit>)
+      # is not very clear. Actual tests show that variant (2) seems to be supported.
+      # Hence, the more simple variant (2) is implemented: one method per constant. 
       initializer_method_name = self.scoper.getScope(field).temp("$static_initializer_#{field.name.identifier}_")
       initializer_method      = StaticMethodDefinition.new(
         field.position,
