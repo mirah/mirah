@@ -509,7 +509,11 @@ class Typer < SimpleNodeVisitor
     newField = FieldAssign.new field.name, field.value, [
       Annotation.new(field.name.position,
         Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
-        [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))])
+        [
+          HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC')),
+          HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('FINAL')])),
+        ]
+       )
     ]
     newField.isStatic = true
     newField.position = field.position
