@@ -517,6 +517,8 @@ class Typer < SimpleNodeVisitor
     ]
     newField.isStatic = true
     newField.position = field.position
+    
+    # annotations to FieldAssign currently do not work, but FieldAnnotationRequests do work. 
     field_annotation_request = FieldAnnotationRequest.new(field.name,nil,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
       HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC')),
       HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("FINAL")])),
