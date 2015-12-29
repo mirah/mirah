@@ -517,6 +517,10 @@ class Typer < SimpleNodeVisitor
     ]
     newField.isStatic = true
     newField.position = field.position
+    field_annotation_request = FieldAnnotationRequest.new(field.name,nil,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+      HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC')),
+      HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("FINAL")])),
+    ])])
 
     destination_body = nil
     field_parent = field.parent
@@ -542,6 +546,7 @@ class Typer < SimpleNodeVisitor
       replaceSelf field, NodeList.new([]) # Do not just remove the field, but replace it with a noop-entry such that the iteration indices do not need to change. Else the iteration which currently happens over exactly the list of children skips one of the new children.
       destination_body.add(initializer_method)
       destination_body.add(initializer_method_call)
+      destination_body.add(field_annotation_request)
   
       @types.getNullType() # nothing to infer now
     else # we are in some other context, maybe method
