@@ -127,4 +127,14 @@ class StaticFieldsTest < Test::Unit::TestCase
       assert_run_output("1\n", cls)
     end
   end  
+  def test_constants_are_public_and_final_and_static
+    cls, = compile(<<-EOF)
+      class Foo
+        CONSTANT = 1
+      end
+      
+      puts Foo.class.getDeclaredField('CONSTANT').getModifiers
+    EOF
+    assert_run_output("#{java.lang.reflect.Modifier::PUBLIC | java.lang.reflect.Modifier::FINAL | java.lang.reflect.Modifier::STATIC}\n", cls)
+  end  
 end
