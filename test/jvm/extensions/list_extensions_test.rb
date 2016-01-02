@@ -152,4 +152,23 @@ class ListExtensionsTest < Test::Unit::TestCase
     assert_run_output("[S\n5,1,3\n[Ljava.lang.String;\nfoo,bar\n", cls)
   end
 
+  def test_array_as_fully_qualified_type_colon2
+    cls, = compile(<<-EOF)
+      a = [5,7,4].as(java::lang::Integer[])
+      puts a.getClass.getName
+      puts a.join(",")
+    EOF
+    assert_run_output("[Ljava.lang.Integer;\n5,7,4\n", cls)
+  end
+
+  def test_array_as_fully_qualified_type_dot1
+    pend "Using a fully qualified type literal concatenated by dots as macro parameter is currently broken" do 
+      cls, = compile(<<-EOF)
+        a = [8,2,7].as(java.lang.Integer[])
+        puts a.getClass.getName
+        puts a.join(",")
+      EOF
+      assert_run_output("[Ljava.lang.Integer;\n8,2,7\n", cls)
+    end
+  end
 end
