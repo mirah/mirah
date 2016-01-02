@@ -139,5 +139,17 @@ class ListExtensionsTest < Test::Unit::TestCase
       cls.main nil
     end
   end
+  
+  def test_array_as_type
+    cls, = compile(<<-EOF)
+      a = [5,1,3].as(short[])
+      puts a.getClass.getName
+      puts a.join(",")
+      b = ["foo","bar"].as(String[])
+      puts b.getClass.getName
+      puts b.join(",")
+    EOF
+    assert_run_output("[S\n5,1,3\n[Ljava.lang.String;\nfoo,bar\n", cls)
+  end
 
 end
