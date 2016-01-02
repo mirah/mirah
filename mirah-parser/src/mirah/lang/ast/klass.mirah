@@ -79,6 +79,7 @@ class FieldDeclaration < NodeImpl
     child value: Node
     child_list annotations: Annotation
     attr_accessor isStatic: 'boolean'
+    attr_accessor isFinal:  'boolean'
   end
 end
 
@@ -89,6 +90,7 @@ class FieldAssign < NodeImpl
     child value: Node
     child_list annotations: Annotation
     attr_accessor isStatic: 'boolean'
+    attr_accessor isFinal:  'boolean'
   end
 
   def initialize(position:Position, name:Identifier, annotations:List, isStatic:boolean)

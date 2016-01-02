@@ -329,14 +329,14 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     AssignableTypeFuture(future)
   end
 
-  def getFieldTypeOrDeclare(target, name, position)
+  def getFieldTypeOrDeclare(target, isFinal, name, position)
     resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     future = if member
       AsyncMember(member).asyncReturnType
     else
-      createField(klass, name, resolved.isMeta, position)
+      createField(klass, name, resolved.isMeta, isFinal, position)
     end
     AssignableTypeFuture(future)
   end
@@ -684,11 +684,15 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   def createField(target:MirrorType, name:String,
-                  isStatic:boolean, position:Position):TypeFuture
+                  isStatic:boolean, isFinal:boolean, position:Position):TypeFuture
     flags = Opcodes.ACC_PRIVATE
     if isStatic
       kind = MemberKind.STATIC_FIELD_ACCESS
-      flags |= Opcodes.ACC_STATIC
+      if isFinal # result of a ConstantAssign
+        flags = Opcodes.ACC_PUBLIC|Opcodes.ACC_FINAL|Opcodes.ACC_STATIC
+      else
+        flags = Opcodes.ACC_PRIVATE|Opcodes.ACC_STATIC
+      end
       access = "static"
     else
       kind = MemberKind.FIELD_ACCESS
