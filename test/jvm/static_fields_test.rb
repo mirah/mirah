@@ -136,5 +136,15 @@ class StaticFieldsTest < Test::Unit::TestCase
       puts Foo.class.getDeclaredField('CONSTANT').getModifiers
     EOF
     assert_run_output("#{java.lang.reflect.Modifier::PUBLIC | java.lang.reflect.Modifier::FINAL | java.lang.reflect.Modifier::STATIC}\n", cls)
-  end  
+  end
+  def test_constants_can_be_accessed_across_class_boundaries
+    cls, = compile(<<-EOF)
+      class Foo
+        CONSTANT = 42
+      end
+      
+      puts Foo.CONSTANT
+    EOF
+    assert_run_output("42\n", cls)
+  end
 end
