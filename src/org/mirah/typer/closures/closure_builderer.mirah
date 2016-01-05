@@ -1,6 +1,4 @@
-#!/usr/bin/env jruby
-
-# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# Copyright (c) 2012-2015 The Mirah project authors. All Rights Reserved.
 # All contributing project authors may be found in the NOTICE file.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'rubygems'
+package org.mirah.typer.closures
 
-begin
-  require 'mirah'
-rescue LoadError
-  $: << File.dirname(File.dirname(__FILE__)) + '/lib'
-  require 'mirah'
+import mirah.lang.ast.*
+import org.mirah.typer.TypeFuture
+import org.mirah.typer.ResolvedType
+
+interface ClosureBuilderer
+  def insert_closure(block: Block, parent_type: ResolvedType): TypeFuture; end
+  def add_todo(block: Block, parent_type: ResolvedType): void; end
+  def finish: void; end
 end
-
-org::mirah::tool::RunCommand.main(ARGV)

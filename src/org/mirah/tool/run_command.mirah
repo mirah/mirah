@@ -83,9 +83,8 @@ class RunCommand < MirahTool
     args = argList.toArray(String[argList.size])
 
     result = mirahc.compile(args)
-    if result == 0
-      result = mirahc.run
-    end
-    result
+    return result if result != 0
+
+    mirahc.run
   end
 end

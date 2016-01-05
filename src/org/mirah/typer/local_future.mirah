@@ -56,7 +56,7 @@ class LocalFuture < AssignableTypeFuture
     (@parent && @parent.declaredType) || super
   end
 
-  def assignedValues(includeParent, includeChildren)
+  def assignedValues(includeParent, includeChildren, forceIncludeChildren = false)
     return super unless includeParent || includeChildren
 
     assignments = LinkedHashSet.new()
@@ -66,9 +66,9 @@ class LocalFuture < AssignableTypeFuture
 
     assignments.addAll super
 
-    if assignments.size > 0 && includeChildren
+    if (forceIncludeChildren || assignments.size > 0) && includeChildren
       @children.each do |child|
-        assignments.addAll(LocalFuture(child).assignedValues(false, true))
+        assignments.addAll(LocalFuture(child).assignedValues(false, true, true))
       end
     end
 

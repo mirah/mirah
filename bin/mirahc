@@ -24,4 +24,4 @@ rescue LoadError
   require 'mirah'
 end
 
-Mirah.compile(*ARGV)
+org::mirah::tool::Mirahc.main(ARGV)
