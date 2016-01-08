@@ -19,6 +19,25 @@ import org.mirah.macros.anno.ExtensionsRegistration
 
 $ExtensionsRegistration[['[]']]
 class ArrayExtensions
+  
+  # Compares 2 arrays (using java::util::Arrays.equals()).
+  #
+  # The arrays are equal if
+  # 1. they have the same size and
+  # 2. each pair of the elements of the arrays with the same index satisfies one of these rules:
+  #   1. both are null, or
+  #   2. the element of the left array is an Object and that object's #equals() methods returns true given the element of the right array, or
+  #   3. the element of the left array is a primitive type (except double and float) and it equals to the element of the right array, or
+  #   4. the element of the left array is a double and new Double(d1).equals(new Double(d2)) holds if d1 is the element of the left array and d2 is the element of the right array, or
+  #   5. the element of the left array is a float  and new Float(f1).equals(new Float(f2))   holds if f1 is the element of the left array and f2 is the element of the right array.
+  #
+  # Note that the basetype of each array does not need to be equal for the arrays to be considered equal.
+  macro def ==(other_array)
+    quote do
+      java::util::Arrays.equals(`call.target`,`other_array`)
+    end
+  end
+
   macro def each(block:Block)
     if block.arguments && block.arguments.required_size() > 0
       arg = block.arguments.required(0)

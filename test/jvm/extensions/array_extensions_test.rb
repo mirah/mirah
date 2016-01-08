@@ -1,4 +1,27 @@
 class ArrayExtensionsTest < Test::Unit::TestCase
+
+  def test_equals
+    cls, = compile(<<-EOF)
+      a = int[3]
+      a[2] = 4
+      b = int[3]
+      b[2] = 4
+      puts a==b # true
+      
+      b[1] = 3
+      puts a==b # false, because contents are not equal
+      
+      c = Object[2]
+      d = String[2]
+      c[0] = "a"
+      c[1] = "1"
+      d[0] = "a"
+      d[1] = "#{1}"
+      puts c==d # true, although the classes of the arrays are different, the contents are equal
+    EOF
+    assert_run_output("true\nfalse\ntrue\n", cls)
+  end
+
   def test_empty_q
     cls, = compile(<<-EOF)
       x = int[0]
