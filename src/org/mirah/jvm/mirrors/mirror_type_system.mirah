@@ -116,17 +116,13 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)
   end
 
-  def parameterize(type:TypeFuture, args:List)
-    parameterize type, args, {}
-  end
-
-  def parameterize(type:TypeFuture, args:List, processed_signatures:Map)
+  def parameterize(type:TypeFuture, args:List, seen_signatures:Map = {})
     context = @context
     future = DelegateFuture.new
     future.type = type
     type.onUpdate do |x, resolved|
       future.type = MirrorFuture.new(
-          TypeInvoker.invoke(context, MirrorType(resolved), args, nil, processed_signatures))
+          TypeInvoker.invoke(context, MirrorType(resolved), args, nil, seen_signatures))
     end
     future
   end

@@ -46,14 +46,14 @@ class GenericsTest < Test::Unit::TestCase
   end
 
   def test_generics_recursion
-    if JVMCompiler::JVM_VERSION.to_f >= 1.8
-      # Class signature for java.util.stream.Stream is recursive
-      #<T:Ljava/lang/Object;>Ljava/lang/Object;Ljava/util/stream/BaseStream<TT;Ljava/util/stream/Stream<TT;>;>;
-      cls, = compile(<<-EOF)
-        [10,5,8].stream.sorted.forEach { |i| puts i}
-      EOF
-      assert_run_output("5\n8\n10\n", cls)
-    end
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+
+    # Class signature for java.util.stream.Stream is recursive
+    #<T:Ljava/lang/Object;>Ljava/lang/Object;Ljava/util/stream/BaseStream<TT;Ljava/util/stream/Stream<TT;>;>;
+    cls, = compile(<<-EOF)
+      [10,5,8].stream.sorted.forEach { |i| puts i}
+    EOF
+    assert_run_output("5\n8\n10\n", cls)
   end
 
 

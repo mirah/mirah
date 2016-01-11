@@ -61,7 +61,7 @@ class GenericsTest < Test::Unit::TestCase
   def g(name, params)
     klass = future(name)
     params = params.map {|x| future(x)}
-    @types.parameterize(klass, params).resolve
+    @types.parameterize(klass, params, {}).resolve
   end
 
   def future(x)
@@ -812,10 +812,10 @@ class GenericsTest < Test::Unit::TestCase
   end
   
   def test_type_invoker_recursive_reference_signature
-    if JVMCompiler::JVM_VERSION.to_f >= 1.8 # Stream API is needed here
-      invoker = invoker_for_signature('<T:Ljava/lang/Object;S::Ljava/util/stream/BaseStream<TT;TS;>;>Ljava/lang/Object;Ljava/lang/AutoCloseable;')
-      assert_equal(2,invoker.getFormalTypeParameters.size)
-    end
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+    # Stream API is needed here
+    invoker = invoker_for_signature('<T:Ljava/lang/Object;S::Ljava/util/stream/BaseStream<TT;TS;>;>Ljava/lang/Object;Ljava/lang/AutoCloseable;')
+    assert_equal(2,invoker.getFormalTypeParameters.size)
   end
   
   def invoker_for_signature(signature)
