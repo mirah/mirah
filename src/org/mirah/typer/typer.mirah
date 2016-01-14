@@ -1135,7 +1135,7 @@ class Typer < SimpleNodeVisitor
     if !isMethodInBlock(mdef)
       addScopeForMethod(mdef)
       @@log.finest "Normal method #{mdef}."
-      inferAll(mdef.annotations)
+      inferAnnotations(mdef)
       infer(mdef.arguments)
       parameters = inferAll(mdef.arguments)
   
