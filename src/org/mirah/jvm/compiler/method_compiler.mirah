@@ -114,6 +114,17 @@ class MethodCompiler < BaseCompiler
   end
 
   def createBuilder(cv:ClassVisitor, mdef:MethodDefinition)
+    @descriptor = descriptor(mdef)
+    @selfType = JVMType(getScope(mdef).selfType.resolve)
+    superclass = @selfType.superclass
+    @superclass = superclass || JVMType(
+        typer.type_system.get(nil, TypeRefImpl.new("java.lang.Object", false, false, nil)).resolve)
+    builder = Bytecode.new(@flags, @descriptor, cv, mdef.findAncestor(Script.class).position.source)
+    collectArgNames(mdef, builder)
+    builder
+  end
+  
+  def descriptor(mdef:MethodDefinition)
     type = getInferredType(mdef)
 
     if @name.endsWith("init>") || ":unreachable".equals(type.returnType.name)
@@ -122,14 +133,7 @@ class MethodCompiler < BaseCompiler
       @returnType = JVMType(type.returnType)
     end
 
-    @descriptor = methodDescriptor(@name, @returnType, type.parameterTypes)
-    @selfType = JVMType(getScope(mdef).selfType.resolve)
-    superclass = @selfType.superclass
-    @superclass = superclass || JVMType(
-        typer.type_system.get(nil, TypeRefImpl.new("java.lang.Object", false, false, nil)).resolve)
-    builder = Bytecode.new(@flags, @descriptor, cv, mdef.findAncestor(Script.class).position.source)
-    collectArgNames(mdef, builder)
-    builder
+    methodDescriptor(@name, @returnType, type.parameterTypes)
   end
   
   def prepareBinding(mdef:MethodDefinition):void
