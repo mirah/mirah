@@ -20,6 +20,9 @@ import org.mirah.util.Logger
 import mirah.lang.ast.*
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.GenericMethod
+import org.mirah.jvm.mirrors.MirrorProxy
+import org.mirah.jvm.mirrors.MethodLookup
 import org.mirah.typer.ErrorType
 import org.mirah.typer.Scope
 import org.mirah.util.Context
@@ -67,6 +70,7 @@ class MethodCompiler < BaseCompiler
     @@log.fine "Compiling method #{mdef.name.identifier}"
     @builder = createBuilder(cv, mdef)
     context[AnnotationCompiler].compile(mdef.annotations, @builder)
+    interpretCompilerLevelAnnotations(mdef)
     isExpression = isVoid() ? nil : Boolean.TRUE
     if (@flags & (Opcodes.ACC_ABSTRACT | Opcodes.ACC_NATIVE)) == 0
       prepareBinding(mdef)
@@ -81,6 +85,37 @@ class MethodCompiler < BaseCompiler
     end
     @builder.endMethod
     @@log.fine "Finished method #{mdef.name.identifier}"
+  end
+  
+  def interpretCompilerLevelAnnotations(mdef:MethodDefinition):void
+    annotations = mdef.annotations
+    
+    annotations.size.times do |i|
+      anno = annotations.get(i)
+      
+      if anno.type.typeref.name.equals("java.lang.Override")
+        checkOverride(mdef)
+      end
+    end
+  end
+  
+  # implements the java.lang.Override check
+  #
+  # The "java.lang.Override" annotation marks a method as inteded to override a method of a supertype.
+  # If that to-be-overridden does not exist, then compiling this method should yield an error. 
+  def checkOverride(mdef:MethodDefinition):void
+    overrides = context[MethodLookup].findOverrides(MirrorProxy(klass).target, mdef.name.identifier, getInferredType(mdef).parameterTypes.size)
+    type = getInferredType(mdef)
+    
+    overrides.each do |overridden:GenericMethod|
+      if type.returnType.equals(overridden.returnType)
+        if type.parameterTypes.equals(overridden.argumentTypes)
+          return # Success. We have found a method we seem to override
+        end
+      end
+    end
+    
+    raise "Method #{mdef} requires to override a method, but no matching method is actually overridden."  # Failure. We have not found a method we seem to override 
   end
 
   def compile(node:Node)
