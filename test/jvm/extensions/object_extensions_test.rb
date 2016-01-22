@@ -90,4 +90,60 @@ class ObjectExtensionsTest < Test::Unit::TestCase
     ])
     assert_run_output("false\n", cls)
   end
+  
+  def test_re_defined_method_does_not_fire_on_actual_override
+    cls, = compile(%q'
+      class AnySuper
+        def foo(a:int, b:java::util::List = nil)
+          "abc"
+        end
+      end
+      
+      class TestReMacro < AnySuper
+        re def foo(a:int)
+          "xy#{a}z"
+        end
+        
+        re def foo(a:int, b:java::util::List)
+          "xy#{a}z#{b.size}"
+        end
+        
+        re def hashCode:int
+          7
+        end
+        
+        re def equals(o:Object):boolean
+          false
+        end
+      end
+      
+      a = TestReMacro.new
+      puts a.foo(4)
+      puts a.foo(5, [])
+      puts a.hashCode
+      puts a.equals(a)
+    ')
+    assert_run_output("xy4z\nxy5z0\n7\nfalse\n", cls)
+  end
+  
+  def test_re_defined_method_does_fire_on_missing_override
+    assert_raise_java(Mirah::MirahError, /requires to override a method, but no matching method is actually overridden/) do
+      cls, = compile(%q'
+        class AnySuper
+          def foo(a:int, b:java::util::List = nil)
+            "abc"
+          end
+        end
+        
+        class TestReMacro < AnySuper
+          re def foo(a:int, b:java::util::ArrayList)
+            "xy#{a}z#{b.size}"
+          end
+        end
+        
+        a = TestReMacro.new
+        puts a.foo(5, [])
+      ')
+    end
+  end
 end
