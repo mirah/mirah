@@ -1,5 +1,7 @@
 package mirahparser.lang.ast
 
+
+# Interface for all call sites.
 interface CallSite < Node, Named, TypeName do
   def name:Identifier; end
   def target:Node; end
@@ -8,6 +10,16 @@ interface CallSite < Node, Named, TypeName do
   def block_set(block:Block):void; end
 end
 
+# A functional call is a call that has an implicit target, and has arguments
+# or parenthesis.
+#
+# For example:
+#
+#   puts "hello"
+#
+# Here, puts is a functional call because it has no target (no '.' operator)
+# and it has arguments, `"hello"`
+#
 class FunctionalCall < NodeImpl
   implements Named, TypeName, CallSite
   init_node do
@@ -25,7 +37,8 @@ class FunctionalCall < NodeImpl
   end
 end
 
-# An identifier with no parens or arguments - may be a variable local access or a call.
+# An identifier with no parens or arguments.
+# A VCall may be a variable local access or a call to a method.
 class VCall < NodeImpl
   implements Named, TypeName, CallSite, Identifier
   init_node do
@@ -61,6 +74,13 @@ class Cast < NodeImpl
   end
 end
 
+# A call with an explicit target.
+#
+# For example
+#
+#    greeter.hello "Steve"
+#
+# greeter is the target, hello is the name and ["Steve"] are the parameters.
 class Call < NodeImpl
   implements Named, TypeName, CallSite
   init_node do
@@ -106,10 +126,14 @@ class Colon2 < NodeImpl
 end
 
 # TODO: Super and ZSuper should probably be CallSites
+# ZSuper is a super call without arguments.
+# In Ruby, a super with no arguments, calls super, copying the
+# current arguments. Mirah has the same behavior.
 class ZSuper < NodeImpl
   init_node
 end
 
+# A Super with arguments.
 class Super < NodeImpl  # < ZSuper?
   init_node do
     child_list parameters: Node
@@ -117,6 +141,7 @@ class Super < NodeImpl  # < ZSuper?
   end
 end
 
+# Block pass is a block argument that is prefixed with an ampersand.
 class BlockPass < NodeImpl
   init_node do
     child value: Node
