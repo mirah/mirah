@@ -491,7 +491,7 @@ class MacrosTest < Test::Unit::TestCase
     cls1, cls2 = compile([<<-EOF1, <<-EOF2])
       package org.bar.p1
       import org.bar.p2.MultiPackageExplicitRef
-      
+
       macro def foo1; end
       puts MultiPackageExplicitRef.class
     EOF1
@@ -674,6 +674,43 @@ class MacrosTest < Test::Unit::TestCase
     CODE
 
     assert_run_output("nil\ntest\nself nil\nself test\n", cls)
+  end
+
+  def test_macro_varargs
+    cls, = compile(<<-CODE)
+      class MacroWithVarargs
+        macro def  self.vararg(first:Node, *args:Node)
+         list = NodeList.new
+         list.add quote do
+           puts `first`
+         end
+
+         args.each do |arg:Node|
+           m = if arg.kind_of? Block
+            body = Block(arg).body
+            quote do
+              puts `body`
+            end
+            else
+            quote do
+              puts `arg`
+            end
+           end
+           list.add m
+         end
+        list
+      end
+
+      def self.main(*args:String):void
+        vararg 1
+        vararg 1, 2
+        vararg 1, 2, 3
+        vararg 1,2 {"test"}
+      end
+    end
+    CODE
+
+    assert_run_output("1\n1\n2\n1\n2\n3\n1\n2\ntest\n", cls)
   end
 end
 
