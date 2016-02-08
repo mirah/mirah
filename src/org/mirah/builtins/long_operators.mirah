@@ -68,12 +68,6 @@ class LongOperators
     }
   end
 
-  macro def ==(n2)
-    quote {
-      `@call.target`.longValue == `n2`
-    }
-  end
-
   macro def <(n2)
     quote {
       `@call.target`.longValue < `n2`

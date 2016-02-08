@@ -68,12 +68,6 @@ class IntegerOperators
     }
   end
 
-  macro def ==(n2)
-    quote {
-      `@call.target`.intValue == `n2`
-    }
-  end
-
   macro def <(n2)
     quote {
       `@call.target`.intValue < `n2`
