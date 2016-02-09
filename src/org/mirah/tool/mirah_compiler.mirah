@@ -104,16 +104,12 @@ class MirahCompiler implements JvmBackend
     #context[Scoper] = @scoper = SimpleScoper.new BetterScopeFactory.new
     context[Scoper] = @scoper = SimpleScoper.new(BetterScopeFactory.new)
 
-    context[MirahParser] = @parser = MirahParser.new
-    # BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics) # Field "diagnostics" does not seem to exist in the current mirah/mmeta source code, but it did exist in an ancient mmeta.jar. 
-
     @macro_context[Scoper] = @scoper
-    @macro_context[MirahParser] = @parser
     @macro_context[Typer] = @macro_typer = createTyper(
-        debugger, @macro_context, @macro_types, @scoper, self, @parser)
+        debugger, @macro_context, @macro_types, @scoper, self, new_mirah_parser)
 
     context[Typer] = @typer = createTyper(
-        debugger, context, @types, @scoper, self, @parser)
+        debugger, context, @types, @scoper, self, new_mirah_parser)
 
     # Make sure macros are compiled using the correct type system.
     @typer.macro_compiler = @macro_typer.macro_compiler
@@ -143,10 +139,14 @@ class MirahCompiler implements JvmBackend
       DebugTyper.new(debugger, context, types, scopes, jvm_backend, parser)
     end
   end
+  
+  def new_mirah_parser
+    MirahParser.new
+  end
 
   def parse(code:CodeSource)
     begin
-      node = Node(@parser.parse(code))
+      node = Node(new_mirah_parser.parse(code))
     rescue org.mirah.mmeta.SyntaxError => e
       raise Exception.new("#{code.name} failed to parse.",e)
     end
