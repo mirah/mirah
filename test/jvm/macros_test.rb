@@ -625,6 +625,37 @@ class MacrosTest < Test::Unit::TestCase
     assert_run_output("foo\n", script)
   end
   
+  def test_macro_calling_macro_calling_method_definition
+    script, cls = compile(%q{
+      class Foo
+        macro def self.foo(method:MethodDefinition)
+          method
+        end
+        
+        macro def self.bar(method:MethodDefinition)
+          method
+        end
+        
+        
+        def method0
+        end
+        
+        foo def method1
+        end
+        
+        bar def method2
+        end
+        
+        foo bar def method3
+          puts "method3"
+        end
+      end
+      
+      Foo.new.method3
+    })
+    assert_run_output("method3\n", script)
+  end
+  
   def test_gensym_clash
     script, cls = compile(%q{
       result = []

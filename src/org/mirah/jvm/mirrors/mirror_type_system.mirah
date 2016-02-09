@@ -56,6 +56,7 @@ import org.mirah.typer.MethodFuture
 import org.mirah.typer.MethodType
 import org.mirah.typer.NarrowingTypeFuture
 import org.mirah.typer.PickFirst
+import org.mirah.typer.ProxyNode
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
@@ -269,8 +270,8 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
       macro_params = LinkedList.new
       nodes = call.parameterNodes
       unless nodes.nil?
-        nodes.each do |n|
-          typename = n.getClass.getName
+        nodes.each do |n:Node|
+          typename = ProxyNode.dereference(n).getClass.getName
           macro_params.add(loadMacroType(typename))
         end
       end
