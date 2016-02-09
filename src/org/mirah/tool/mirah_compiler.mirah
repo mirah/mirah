@@ -153,13 +153,16 @@ class MirahCompiler implements JvmBackend
     if node.nil?
       puts "#{code.name} failed to parse."
     else
-      @asts.add(node)
       if @debugger
         @debugger.parsedNode(node)
       end
     end
     failIfErrors
     node
+  end
+  
+  def addToAst(node:Node)
+    @asts.add(node)
   end
 
   def infer
