@@ -271,9 +271,9 @@ class MirrorProxy implements MirrorType,
     end
   end
 
-  def link
+  def ensure_linked
     if @target.kind_of?(DeclaredMirrorType)
-      DeclaredMirrorType(@target).link
+      DeclaredMirrorType(@target).ensure_linked
     end
   end
 

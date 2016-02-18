@@ -60,6 +60,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     @annotations = klass.visibleAnnotations
     @innerClassNodes = klass.innerClasses
     @typeParams = LinkedHashMap.new
+    @linked = false
   end
 
   def self.lookupType(loader:MirrorLoader, internalName:String)
@@ -69,7 +70,15 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     nil
   end
 
-  def link:void
+  def ensure_linked
+    if !@linked
+      @linked = true
+      link_internal
+    end
+  end
+
+  $org.mirah.jvm.types.Modifiers[access: 'PROTECTED']
+  def link_internal:void
     types = @context[MirrorTypeSystem]
     if @signature
       invoker = TypeInvoker.new(@context, nil, [])

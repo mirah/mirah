@@ -66,7 +66,7 @@ interface MirrorType < JVMType, TypeMirror
 end
 
 interface DeclaredMirrorType < MirrorType, DeclaredType
-  def link:void; end
+  def ensure_linked:void; end
   def signature:String; end
   def getTypeVariableMap:Map; end
 end
