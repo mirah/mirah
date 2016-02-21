@@ -28,7 +28,7 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.generics.Constraints'
   java_import 'org.mirah.jvm.mirrors.generics.LubFinder'
   java_import 'org.mirah.jvm.mirrors.generics.TypeInvocation'
-  java_import 'org.mirah.jvm.mirrors.generics.TypeInvoker'
+  java_import 'org.mirah.jvm.mirrors.generics.GenericsCapableSignatureReader'
   java_import 'org.mirah.jvm.mirrors.generics.TypeParameterInference'
   java_import 'org.mirah.jvm.mirrors.generics.TypeVariable'
   java_import 'org.mirah.jvm.mirrors.generics.Wildcard'
@@ -820,7 +820,7 @@ class GenericsTest < Test::Unit::TestCase
   
   def invoker_for_signature(signature)
     context   = @types.context
-    invoker   = TypeInvoker.new(context, nil, [], {})
+    invoker   = GenericsCapableSignatureReader.new(context)
     invoker.read(signature)
     invoker
   end
