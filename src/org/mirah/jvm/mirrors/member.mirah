@@ -21,13 +21,14 @@ import java.util.List
 import org.mirah.util.Logger
 import org.objectweb.asm.Opcodes
 import org.mirah.jvm.types.JVMType
+import org.mirah.jvm.types.JVMField
 import org.mirah.jvm.types.GenericMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
-class Member implements GenericMethod
+class Member implements GenericMethod,JVMField
   def self.initialize:void
     @@log = Logger.getLogger(Member.class.getName)
   end
