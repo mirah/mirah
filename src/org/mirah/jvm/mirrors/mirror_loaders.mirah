@@ -116,7 +116,7 @@ class SimpleMirrorLoader implements MirrorLoader
     if mirror
       @mirrors[type] = mirror
       if mirror.kind_of?(DeclaredMirrorType)
-        DeclaredMirrorType(mirror).link
+        DeclaredMirrorType(mirror).ensure_linked
       end
     end
     return mirror
