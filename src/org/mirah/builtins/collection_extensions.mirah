@@ -56,11 +56,8 @@ class CollectionExtensions
 
   # Map to an array of the return type of the block.
   macro def mapa(block:Block)
-    type_future        = @mirah.typer.infer(block.body)
-    # This code fails in case we cannot resolve the type at the time the macro is invoked
-    # (e.g. in case the type is defined after the macro invocation).
-    # We should modify the compiler to allow for a TypeFuture to be used as typeref instead.
-    typeref            = TypeRefImpl.new(type_future.resolve.name,false,false,@call.target.position)
+    type_future = @mirah.typer.infer(block.body)
+    typeref     = org::mirah::typer::TypeFutureTypeRef.new(type_future)
 
     x = if block.arguments && block.arguments.required_size() > 0
       block.arguments.required(0)

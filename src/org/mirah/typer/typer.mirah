@@ -152,6 +152,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def defaultNode(node, expression)
+    return TypeFutureTypeRef(node).type_future if node.kind_of?(TypeFutureTypeRef)
     ErrorType.new([["Inference error: unsupported node #{node}", node.position]])
   end
 
