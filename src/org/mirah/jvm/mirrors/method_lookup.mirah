@@ -352,12 +352,18 @@ class MethodLookup
 
   def gatherStaticImports(scope:MirrorScope, name:String):List
     methods = LinkedList.new
+    fields = ArrayList.new
     types = HashSet.new
     scope.staticImports.each do |type|
       resolved = TypeFuture(type).resolve
       if resolved.kind_of?(MirrorType)
         gatherMethodsInternal(MirrorType(resolved), name, methods, types)
+        gatherFields(MirrorType(resolved), name, fields)
       end
+    end
+    cflags = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC
+    fields.each do |f:Member|
+      methods.add f if f.flags & cflags == cflags
     end
     methods
   end
@@ -406,13 +412,12 @@ class MethodLookup
     end
   end
 
-  def gatherFields(target:MirrorType, name:String):List
+  def gatherFields(target:MirrorType, name:String, fields: List = LinkedList.new):List
     setter = false
     if name.endsWith('_set')
       name = name.substring(0, name.length - 4)
       setter = true
     end
-    fields = LinkedList.new
     mirror = target.unmeta
     gatherFieldsInternal(target, name, setter, fields, HashSet.new)
     fields

@@ -64,6 +64,21 @@ class ImportTest < Test::Unit::TestCase
     assert_equal(["1", "2", "3"], list.to_a)
   end
 
+  def test_static_import_constants
+    cls, = compile(<<-EOF)
+      import java.awt.Color
+      import static java.awt.Color.*
+      def _red:Color
+        red
+      end
+      def _RED:Color
+        RED
+      end
+      puts _RED === _red
+    EOF
+    assert_run_output("true\n", cls)
+  end
+
   def test_static_import_nested_in_class
     cls, = compile(<<-EOF)
       import java.util.Arrays
