@@ -59,14 +59,6 @@ class TypeInvoker < BaseSignatureReader
     @typeParams.add(var)
   end
 
-  def visitClassBound
-    IgnoredTypeBuilder.new
-  end
-
-  def visitInterfaceBound
-    visitClassBound
-  end
-
   def visitSuperclass
     finishTypeParam
     @superclass = newBuilder

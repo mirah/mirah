@@ -123,7 +123,6 @@ task :build_test_fixtures => 'tmp_test/fixtures/fixtures_built.txt'
 directory 'tmp_test/fixtures'
 
 file 'tmp_test/fixtures/fixtures_built.txt' => ['tmp_test/fixtures'] + Dir['test/fixtures/**/*.java'] do
-  `touch tmp_test/fixtures/fixtures_built.txt`
 
   javac_args = {
       'destdir' => "tmp_test/fixtures",
@@ -136,6 +135,7 @@ file 'tmp_test/fixtures/fixtures_built.txt' => ['tmp_test/fixtures'] + Dir['test
 
   javac_args['excludes'] = '**/*Java8.java' if jvm_version < 1.8
   ant.javac javac_args
+  `touch tmp_test/fixtures/fixtures_built.txt`
 end
 
 task :init do
