@@ -886,7 +886,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
 
       def unbox:boolean
-        return Boolean.new false
+        return Boolean.new(false)
       end
 
     EOF
