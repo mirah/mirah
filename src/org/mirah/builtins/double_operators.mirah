@@ -68,12 +68,6 @@ class DoubleOperators
     }
   end
 
-  macro def ==(n2)
-    quote {
-      `@call.target`.doubleValue == `n2`
-    }
-  end
-
   macro def >(n2)
     quote {
       `@call.target`.doubleValue > `n2`

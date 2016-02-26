@@ -68,12 +68,6 @@ class FloatOperators
     }
   end
 
-  macro def ==(n2)
-    quote {
-      `@call.target`.floatValue == `n2`
-    }
-  end
-
   macro def <(n2)
     quote {
       `@call.target`.floatValue < `n2`
