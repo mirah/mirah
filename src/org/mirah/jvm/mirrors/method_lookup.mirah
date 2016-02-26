@@ -717,7 +717,7 @@ class LookupState
         @context[MethodLookup].inaccessible(
             @scope, Member(@inaccessible.get(0)), @position, self)
       elsif @context[DebuggerInterface]
-        DebugError.new([["Can't find method #{@target}#{@params} II"]], @context, self)
+        DebugError.new([["Can't find method #{@target}#{@params} II #{@methods}"]], @context, self)
       else
         nil
       end
