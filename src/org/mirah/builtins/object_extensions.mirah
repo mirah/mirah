@@ -42,10 +42,8 @@ class ObjectExtensions
     quote do
       `left`  = `@call.target`
       `right` = `node`
-       if `left` === nil and `right` === nil
-         true
-       elsif `left` === nil
-         false
+       if `left` === nil
+         `right` === nil
        else
          `left`.equals `right`
        end
