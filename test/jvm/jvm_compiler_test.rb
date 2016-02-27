@@ -879,6 +879,21 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_run_output("A\n", cls)
   end
 
+  def test_return_boxing_and_unboxing
+    cls, = compile(<<-EOF)
+      def box:Boolean
+        return true
+      end
+
+      def unbox:boolean
+        return Boolean.new(false)
+      end
+
+    EOF
+    assert_equal(true, cls.box)
+    assert_equal(false, cls.unbox)
+  end
+
   def test_raise
     cls, = compile(<<-EOF)
       def foo
@@ -2343,5 +2358,14 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
     })
     assert_run_output("0123", cls)
+  end
+
+  def test_filename_shows_up_in_exception_upon_syntax_error
+    begin
+      foo, = compile("puts('foo',)", name: 'somespecificfilename.mirah')
+      assert false
+    rescue => e
+      assert e.message.match(/somespecificfilename/)
+    end
   end
 end

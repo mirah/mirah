@@ -42,7 +42,11 @@ class ObjectExtensions
     quote do
       `left`  = `@call.target`
       `right` = `node`
-      `left`.nil? ? `right`.nil? : `left`.equals(`right`)
+       if `left` === nil
+         `right` === nil
+       else
+         `left`.equals `right`
+       end
     end
   end
 

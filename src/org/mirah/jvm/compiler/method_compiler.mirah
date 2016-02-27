@@ -453,6 +453,8 @@ class MethodCompiler < BaseCompiler
   def visitReturn(node, expression)
     compile(node.value) unless isVoid
     handleEnsures(node, MethodDefinition.class)
+    type = getInferredType node.value
+    @builder.convertValue(type, @returnType) unless isVoid || type.nil?
     @builder.returnValue
   end
   

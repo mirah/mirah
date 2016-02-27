@@ -22,6 +22,7 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import org.mirah.util.Logger
 import java.util.logging.Level
 
@@ -58,6 +59,7 @@ import org.mirah.typer.PickFirst
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.TypeFutureTypeRef
 import org.mirah.typer.TypeSystem
 import org.mirah.typer.UnreachableType
 import org.mirah.typer.simple.SimpleScope
@@ -114,15 +116,13 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)
   end
 
-  def parameterize(type:TypeFuture, args:List)
-    last_resolved = nil
+  def parameterize(type:TypeFuture, args:List, seen_signatures:Map = {})
     context = @context
-    invocation = nil
     future = DelegateFuture.new
     future.type = type
     type.onUpdate do |x, resolved|
       future.type = MirrorFuture.new(
-          TypeInvoker.invoke(context, MirrorType(resolved), args, nil))
+          TypeInvoker.invoke(context, MirrorType(resolved), args, nil, seen_signatures))
     end
     future
   end
@@ -485,6 +485,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
   
   def get(scope, typeref)
+    return TypeFutureTypeRef(typeref).type_future if typeref.kind_of?(TypeFutureTypeRef)
     name = resolveName(scope, typeref.name)
     type = if scope.nil?
       loadNamedType(name)

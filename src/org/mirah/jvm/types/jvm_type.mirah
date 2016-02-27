@@ -6,7 +6,7 @@ import org.objectweb.asm.Type
 import java.util.List
 import java.util.Set
 
-interface JVMMethod
+interface JVMMember
   def declaringClass:JVMType; end
   def name:String; end
   def argumentTypes:List; end
@@ -15,6 +15,12 @@ interface JVMMethod
   def kind:MemberKind; end
   def isVararg:boolean; end
   def isAbstract:boolean; end
+end
+
+interface JVMMethod < JVMMember
+end
+
+interface JVMField < JVMMember
 end
 
 interface GenericMethod < JVMMethod
@@ -42,8 +48,8 @@ interface JVMType < ResolvedType
   # we could save that instead of doing the full search again.
   def getMethod(name:String, params:List):JVMMethod; end
 
-  def getDeclaredFields:JVMMethod[]; end
-  def getDeclaredField(name:String):JVMMethod; end
+  def getDeclaredFields:JVMField[]; end
+  def getDeclaredField(name:String):JVMField; end
 end
 
 interface CallType < JVMType

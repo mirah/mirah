@@ -152,6 +152,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def defaultNode(node, expression)
+    return TypeFutureTypeRef(node).type_future if node.kind_of?(TypeFutureTypeRef)
     ErrorType.new([["Inference error: unsupported node #{node}", node.position]])
   end
 
@@ -525,15 +526,33 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitConstant(constant, expression)
-    proxy = ProxyNode.new self, constant
 
     @futures[constant] = @types.getMetaType(getTypeOf(constant, constant.typeref))
 
-    fieldAccess = FieldAccess.new(constant.name)
+    fieldAccess = FieldAccess.new(constant.position, Identifier(constant.name.clone))
     fieldAccess.isStatic = true
     fieldAccess.position = constant.position
+    variants = [constant, fieldAccess]
 
-    proxy.setChildren([constant, fieldAccess], 0)
+    # This could be Constant in static import, currently implemented by method lookup
+    # Not sure should we restrict method lookup to select constants only
+    # and not to infer to methods as well
+    # If adding fcall without expression check - getting method duplicates in
+    # macros_test.rb#test_macro_changes_body_of_class_last_element
+    if expression
+      fcall = FunctionalCall.new(constant.position,
+                               Identifier(constant.name.clone),
+                               nil, nil)
+      fcall.setParent(constant.parent)
+      workaroundASTBug fcall
+      methodType = callMethodType fcall, Collections.emptyList
+      targetType = infer(fcall.target)
+      @futures[fcall] = methodType
+      @futures[fcall.target] = targetType
+      variants.add fcall
+    end
+    proxy = ProxyNode.new self, constant
+    proxy.setChildren(variants, 0)
 
     @futures[proxy] = proxy.inferChildren(expression != nil)
   end

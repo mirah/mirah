@@ -48,6 +48,8 @@ import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
 import mirah.lang.ast.Unquote
+import mirah.lang.ast.FunctionalCall
+import mirah.lang.ast.TypeRefImpl
 import org.mirah.typer.TypeFuture
 import org.mirah.typer.Typer
 
@@ -256,6 +258,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       import mirah.lang.ast.CallSite
       import mirah.lang.ast.Node
       import mirah.lang.ast.*
+      import java.lang.reflect.Array as ReflectArray
 
       $MacroDef[name: `macroDef.name`, arguments: `argdef`, isStatic: `isStatic`]
       class `name` implements Macro
@@ -270,6 +273,28 @@ class MacroBuilder; implements org.mirah.macros.Compiler
 
         def expand: Node
           _expand(`casts`)
+        end
+
+        def _varargs(index:int, type:Class ):Object
+          parameters = @call.parameters
+          block = @call.block
+          vsize = parameters.size - index
+
+          vargs = if block
+            ReflectArray.newInstance(type, vsize + 1)
+          else
+            ReflectArray.newInstance(type, vsize)
+          end
+
+          # add block as last item
+          ReflectArray.set(vargs, vsize, type.cast(block)) if block
+
+          # downcount
+          while vsize > 0
+            vsize -= 1
+            ReflectArray.set(vargs, vsize, type.cast(parameters.get(index + vsize)))
+          end
+          vargs
         end
 
         def gensym: String
@@ -326,6 +351,24 @@ class MacroBuilder; implements org.mirah.macros.Compiler
         arg.type = SimpleString.new("mirah.lang.ast.#{arg.type.typeref.name}")
       end
     end
+
+    macroDef.arguments.optional.each do |oarg: RequiredArgument|
+      if oarg.type.nil?
+        oarg.type = SimpleString.new('mirah.lang.ast.Node')
+      elsif oarg.type.typeref.name.indexOf('.') == -1
+        oarg.type = SimpleString.new("mirah.lang.ast.#{oarg.type.typeref.name}")
+      end
+    end
+
+    rarg = macroDef.arguments.rest
+    if rarg
+      if rarg.type.nil?
+        rarg.type = SimpleString.new('mirah.lang.ast.Node')
+      elsif rarg.type.typeref.name.indexOf('.') == -1
+        rarg.type = SimpleString.new("mirah.lang.ast.#{rarg.type.typeref.name}")
+      end
+    end
+
     block = macroDef.arguments.block
     if block
       type = block.type || SimpleString.new('mirah.lang.ast.Block')
@@ -346,6 +389,14 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       end
       i += 1
     end
+    if args.rest
+      rtype_name = args.rest.type.typeref.name
+      array_type = TypeRefImpl.new(rtype_name, true)
+      type = TypeRefImpl.new(rtype_name, false)
+      casts.add(
+        Cast.new(array_type, fetchMacroVarArg(i, type))
+      )
+    end
     casts
   end
 
@@ -360,6 +411,12 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       required.add(SimpleString.new(arg.position, name))
     end
     entries = [HashEntry.new(SimpleString.new('required'), Array.new(required))]
+    if args.rest
+      name = args.rest.type.typeref.name
+      # FIXME these should probably be inferred instead of assuming the package.
+      name = "mirah.lang.ast.#{name}" unless name.startsWith('mirah.lang.ast.')
+      entries.add HashEntry.new(SimpleString.new('rest'), SimpleString.new(name))
+    end
     Annotation.new(SimpleString.new('org.mirah.macros.anno.MacroArgs'), entries)
   end
 
@@ -369,6 +426,13 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       Call.new(FieldAccess.new(SimpleString.new('call')),
                SimpleString.new('parameters'), Collections.emptyList, nil),
       SimpleString.new('get'), [Fixnum.new(i)], nil)
+  end
+
+  # Returns a node to fetch the i'th macro argument during expansion.
+  def fetchMacroVarArg(i: int, type: TypeName): Node
+    index = Fixnum.new(i)
+    clazz = Call.new(type, SimpleString.new('class'), Collections.emptyList, nil)
+    FunctionalCall.new(SimpleString.new('_varargs'), [Fixnum.new(i), clazz], nil)
   end
 
   def fetchMacroBlock: Node

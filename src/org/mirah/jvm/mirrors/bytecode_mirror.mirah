@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.MethodNode
 import org.mirah.jvm.mirrors.generics.TypeInvoker
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.JVMField
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.MethodType
@@ -60,6 +61,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     @annotations = klass.visibleAnnotations
     @innerClassNodes = klass.innerClasses
     @typeParams = LinkedHashMap.new
+    @linked = false
   end
 
   def self.lookupType(loader:MirrorLoader, internalName:String)
@@ -69,10 +71,18 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     nil
   end
 
-  def link:void
+  def ensure_linked
+    if !@linked
+      @linked = true
+      link_internal
+    end
+  end
+
+  $org.mirah.jvm.types.Modifiers[access: 'PROTECTED']
+  def link_internal:void
     types = @context[MirrorTypeSystem]
     if @signature
-      invoker = TypeInvoker.new(@context, nil, [])
+      invoker = TypeInvoker.new(@context, nil, [], {})
       invoker.read(@signature)
       setSupertypes(invoker.superclass, invoker.interfaces)
       invoker.getFormalTypeParameters.each do |var|
@@ -158,9 +168,9 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     true
   end
 
-  def getDeclaredFields:JVMMethod[]
+  def getDeclaredFields:JVMField[]
     @field_mirrors ||= begin
-      mirrors = JVMMethod[@fields.size]
+      mirrors = JVMField[@fields.size]
       it = @fields.iterator
       @fields.size.times do |i|
         field = FieldNode(it.next)
