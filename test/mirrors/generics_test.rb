@@ -314,7 +314,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_nil(@tpi.findMatchingSupertype(string, abstract_list))
     
     array_list = @types.loadNamedType('java.util.ArrayList').resolve
-    assert_equal(abstract_list, @tpi.findMatchingSupertype(array_list, abstract_list))
+    assert_equal(abstract_list.name, @tpi.findMatchingSupertype(array_list, abstract_list).name)
   end
 
   def test_equal_variable
@@ -809,6 +809,39 @@ class GenericsTest < Test::Unit::TestCase
       ClassWithSelfReferencingTypeParameter.new.foo.bar.baz
     ])
     assert_run_output("baz\n", cls)
+  end
+  
+  def test_issue_417_npe
+    cls, = compile(%q[
+      import org.foo.TypeFixture
+      import java.util.function.BiConsumer
+      import java.util.Map
+      import java.util.List
+
+      class Issue417Test
+
+         def initialize(filters:List, flags:int)
+            @filters = filters
+            @flags = flags
+            @loader = TypeFixture.new
+            @future = nil
+         end
+
+         def run():void
+             @future = @loader.load(@filters, @flags)
+         end
+
+         def handle(block:BiConsumer):Issue417Test
+            @future.whenComplete(block)
+            self
+         end
+
+         def join():void
+            @future.join
+         end
+
+      end
+    ])
   end
   
   def test_type_invoker_recursive_reference_signature
