@@ -34,6 +34,7 @@ import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.model.Cycle
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.SimpleFuture
 import org.mirah.util.Context
 
 class IgnoredTypeBuilder < SignatureVisitor
@@ -55,7 +56,8 @@ class TypeInvoker < BaseSignatureReader
   end
 
   def saveTypeParam(var)
-    typeVariables[var.toString] = @args.removeFirst unless @args.isEmpty
+    val = @args.isEmpty ? SimpleFuture.new(var) : @args.removeFirst
+    typeVariables[var.toString] = val
     @typeParams.add(var)
   end
 
