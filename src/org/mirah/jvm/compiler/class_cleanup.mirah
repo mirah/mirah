@@ -123,7 +123,7 @@ class ClassCleanup < NodeScanner
   
   def declareFields:void
     return if @alreadyCleaned
-    type = JVMType(@typer.getInferredType(@klass).resolve)
+    type = JVMType(@typer.getResolvedType(@klass))
     type.getDeclaredFields.each do |f|
       @@log.finest "creating field declaration for #{f.name}"
       name = f.name
@@ -194,7 +194,7 @@ class ClassCleanup < NodeScanner
     MethodCleanup.new(@context, node).clean
     @methods.add(node)
     addMethodState(MethodState.new(
-        node, MethodType(@typer.getInferredType(node).resolve)))
+        node, MethodType(@typer.getResolvedType(node))))
     false
   end
   def enterStaticMethodDefinition(node, arg)
@@ -205,7 +205,7 @@ class ClassCleanup < NodeScanner
     @methods.add(node)
     MethodCleanup.new(@context, node).clean
     addMethodState(MethodState.new(
-        node, MethodType(@typer.getInferredType(node).resolve)))
+        node, MethodType(@typer.getResolvedType(node))))
     false
   end
   def isStatic(node:Node)
@@ -225,7 +225,7 @@ class ClassCleanup < NodeScanner
     MethodCleanup.new(@context, node).clean
     @methods.add(node)
     addMethodState(MethodState.new(
-        node, MethodType(@typer.getInferredType(node).resolve)))
+        node, MethodType(@typer.getResolvedType(node))))
     false
   end
   

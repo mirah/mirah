@@ -43,7 +43,7 @@ class BlockFinder < NodeScanner
     type = if @todo_closures[node]
       @todo_closures[node]
     else
-      #t = @typer.getInferredType(node).resolve
+      #t = @typer.getResolvedType(node)
       #if t.kind_of? MethodType
         parent_type_future = @typer.getInferredType(node.parent)
         unless parent_type_future

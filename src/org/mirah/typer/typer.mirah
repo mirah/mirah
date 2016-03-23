@@ -91,8 +91,17 @@ class Typer < SimpleNodeVisitor
     @scopes
   end
 
-  def getInferredType(node:Node)
+  def getInferredType(node: Node)
     TypeFuture(@futures[node])
+  end
+
+  def getResolvedType(node: Node)
+    future = getInferredType(node)
+    if future
+      future.resolve
+    else
+      nil
+    end
   end
 
   def inferTypeName(node:TypeName)
