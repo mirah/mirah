@@ -149,10 +149,11 @@ parser MirahParser {
           | ($Pipes)=> $Pipes opt_nl b=expr a=make_or(a, b)
           | ($And)=> $And opt_nl b=expr a=-> ^(If a [b] nil)
           | ($Or)=> $Or opt_nl b=expr a=make_or(a, b)
+          | tp=cast_type  a=-> ^(Cast tp a)
         )* {a};
 
   make_or(a:Node, b:Node): t={makeIdentifier(a.position, temp(:or))}
-    ->^(NodeList [^(LocalAssignment t a), ^(If ^(LocalAccess clone(t)) [^(LocalAccess clone(t))] [b])]);
+    ->^(NodeList [^(LocalAssignment t a nil), ^(If ^(LocalAccess clone(t)) [^(LocalAccess clone(t))] [b])]);
 
   # Node:command - fcall/call/yield/super [!null]
   $Memo[Node]
@@ -644,8 +645,8 @@ parser MirahParser {
   assignment_op: op_assign | $EQ opt_nl {makeIdentifier(makePosition(_start, _pos), "=")};
 
   $Memo[Assignment]
-  lhs: (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $EQ)=> var_lhs
-       | ($Dollar|$Backtick|$ClassVarBacktick|$InstVarBacktick|acc_modifier)=> (var_lhs | lhs2)
+  lhs: (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) cast_type? $EQ)=> var_lhs
+       | ($Dollar|$Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
        | lhs2;
        
   $Returns[Assignment]
@@ -657,13 +658,13 @@ parser MirahParser {
 
   $Returns[Assignment]
   var_lhs: ( annotations=annotation_list
-             ( ($ClassVar|$ClassVarBacktick)=> n=cvar -> ^(FieldAssign n annotations true)
-             | ($InstVar|$InstVarBacktick)=> n=ivar -> ^(FieldAssign n annotations false)
-             | ($CONSTANT)=> n=constant -> ^(ConstantAssign n nil annotations)
+             ( ($ClassVar|$ClassVarBacktick) => n=cvar th=cast_type?-> ^(FieldAssign n annotations true th)
+             | ($InstVar|$InstVarBacktick) => n=ivar th=cast_type?-> ^(FieldAssign n annotations false th)
+             | ($CONSTANT)=> n=constant  th=cast_type? -> ^(ConstantAssign n nil annotations th)
              )
            )
-         | ($IDENTIFIER)=> n=identifier -> ^(LocalAssignment n nil)
-         | ($Backtick)=> u=unquote -> ^(UnquoteAssign u nil)
+         | ($IDENTIFIER) => n=identifier th=cast_type? -> ^(LocalAssignment n nil th)
+         | ($Backtick)=> u=unquote-> ^(UnquoteAssign u nil)
          ;
 
   assoc: a=arg_value $Rocket! opt_nl BEG b=arg_value -> ^(HashEntry a b)
@@ -907,8 +908,8 @@ parser MirahParser {
   clone(node:Identifier): {node.clone};
 
   op_attr_assign(target:Node, attr:Identifier, args:List, op:Identifier, value:Node)
-               : temp={makeIdentifier(target.position, self.temp)}
-                 target2=-> ^(LocalAssignment temp target)
+               : temp={makeIdentifier(target.position, self.temp)} th=cast_type?
+                 target2=-> ^(LocalAssignment temp target th)
                  args2=save_temps(args)
                  fetch=-> ^(Call ^(LocalAccess clone(temp)) attr get_temps(args2) nil)
                  assign=op_attr_assignment(temp, attr, args2, value)
@@ -936,7 +937,7 @@ parser MirahParser {
       ;
 
   assign_temp(value:Node): temp={makeIdentifier(value.position, self.temp)}
-                           -> ^(LocalAssignment temp value);
+                           -> ^(LocalAssignment temp value nil);
 
   block_start(token:Token) : {pos(token.startpos)};
   verify_end(start:Position) : ( t=&$End {verify_columns(start, pos(t.startpos));nil}
@@ -1056,6 +1057,16 @@ parser MirahParser {
     @reserved = EnumSet.range(Tokens.tBEGIN, Tokens.tYield)
     @heredocs = LinkedList.new
     @escape = EscapeParser.new
+    @skipWhitespaceAndComments = true
+    @skipJavaDoc = true
+  }
+
+  def skip_whitespace(skip:boolean=true) {
+    @skipWhitespaceAndComments = skip
+  }
+
+  def skip_java_doc(skip:boolean=true) {
+    @skipJavaDoc = skip
   }
 
   def init {

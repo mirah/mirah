@@ -63,10 +63,15 @@ class FieldAssign < NodeImpl
     child value: Node
     child_list annotations: Annotation
     attr_accessor isStatic: 'boolean'
+    child type_hint: TypeName
   end
 
   def initialize(position:Position, name:Identifier, annotations:List, isStatic:boolean)
-    initialize(position, name, Node(nil), annotations)
+    initialize(position, name, annotations, isStatic, nil)
+  end
+
+  def initialize(position:Position, name:Identifier, annotations:List, isStatic:boolean, type_hint: TypeName)
+    initialize(position, name, Node(nil), annotations, type_hint)
     self.isStatic = isStatic
   end
 end
@@ -118,7 +123,13 @@ class ConstantAssign < NodeImpl
     child name: Identifier
     child value: Node
     child_list annotations: Annotation
+    child type_hint: TypeName
   end
+
+  def initialize(position:Position, name:Identifier, value: Node, annotations:List)
+    initialize(position, name, value, annotations, nil)
+  end
+
 end
 
 class AttrAssign < NodeImpl

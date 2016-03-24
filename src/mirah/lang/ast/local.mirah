@@ -27,6 +27,7 @@ class LocalAssignment < NodeImpl
   init_node do
     child name: Identifier
     child value: Node
+    child type_hint: TypeName
   end
 end
 
