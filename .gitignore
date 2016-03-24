@@ -1,4 +1,5 @@
 build
+decompile
 dist
 javalib/mirah-complete_parsersupport.jar
 javalib/mirahc.jar
