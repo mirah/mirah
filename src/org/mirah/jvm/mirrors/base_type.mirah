@@ -402,7 +402,7 @@ class AsyncMirror < BaseType
   end
 
   def interfaces:TypeFuture[]
-    @interfaces || super
+    @interfaces
   end
   
   def isFullyResolved():boolean
