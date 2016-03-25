@@ -66,6 +66,14 @@ class FieldAssign < NodeImpl
     child type_hint: TypeName
   end
 
+  def initialize(position:Position, name:Identifier, value:Node, annotations:List)
+    initialize(position, name, value, annotations, nil)
+  end
+
+  def initialize(name:Identifier, value:Node, annotations:List)
+    initialize(name.position, name, value, annotations, nil)
+  end
+
   def initialize(position:Position, name:Identifier, annotations:List, isStatic:boolean)
     initialize(position, name, annotations, isStatic, nil)
   end
@@ -126,8 +134,12 @@ class ConstantAssign < NodeImpl
     child type_hint: TypeName
   end
 
-  def initialize(position:Position, name:Identifier, value: Node, annotations:List)
+  def initialize(position:Position, name:Identifier, value:Node, annotations:List)
     initialize(position, name, value, annotations, nil)
+  end
+
+  def initialize(name:Identifier, value:Node, annotations:List)
+    initialize(name.position, name, value, annotations, nil)
   end
 
 end
