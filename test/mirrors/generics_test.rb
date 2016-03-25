@@ -824,7 +824,7 @@ class GenericsTest < Test::Unit::TestCase
          def initialize(filters:List, flags:int)
             @filters = filters
             @flags = flags
-            @loader = TypeFixture.new
+            @loader = TypeFixtureJava8.new
             @future = nil
          end
 
