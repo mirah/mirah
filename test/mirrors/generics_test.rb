@@ -812,8 +812,9 @@ class GenericsTest < Test::Unit::TestCase
   end
   
   def test_issue_417_npe
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
     cls, = compile(%q[
-      import org.foo.TypeFixture
+      import org.foo.TypeFixtureJava8
       import java.util.function.BiConsumer
       import java.util.Map
       import java.util.List
