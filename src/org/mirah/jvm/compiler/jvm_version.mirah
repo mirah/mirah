@@ -60,5 +60,5 @@ class JvmVersion
     @version >= Opcodes.V1_8
   end
 
-  attr_reader flags:int, version:int, version_string:String
+  attr_reader flags: int, version: int, version_string: String
 end

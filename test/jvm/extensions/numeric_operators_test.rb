@@ -31,13 +31,13 @@ class NumericOperatorsTest < Test::Unit::TestCase
   def self.define_test_methods(cast, i, numeric_class, operator , assert)
     define_method "test_#{numeric_class}_left_arithmetic_#{i}".to_sym do
       cls, = compile(<<-EOF)
-          puts #{numeric_class}.new(#{cast}(5)) #{operator} #{cast}(7)
+          puts #{numeric_class}.new(5:#{cast}) #{operator} 7:#{cast}
       EOF
       assert_run_output("#{assert}\n", cls)
     end
     define_method "test_#{numeric_class}_right_arithmetic_#{i}".to_sym do
       cls, = compile(<<-EOF)
-          puts #{cast}(5) #{operator} #{numeric_class}.new(#{cast}(7))
+          puts 5:#{cast} #{operator} #{numeric_class}.new(7:#{cast})
       EOF
       assert_run_output("#{assert}\n", cls)
     end
@@ -46,13 +46,13 @@ class NumericOperatorsTest < Test::Unit::TestCase
   def self.define_shift_test_methods(cast, i, numeric_class, operator , assert)
     define_method "test_#{numeric_class}_left_arithmetic_#{i}".to_sym do
       cls, = compile(<<-EOF)
-          puts #{numeric_class}.new(#{cast}(5)) #{operator} 7
+          puts #{numeric_class}.new(5:#{cast}) #{operator} 7
       EOF
       assert_run_output("#{assert}\n", cls)
     end
     define_method "test_#{numeric_class}_right_arithmetic_#{i}".to_sym do
       cls, = compile(<<-EOF)
-          puts 5 #{operator} #{numeric_class}.new(#{cast}(7)).intValue
+          puts 5 #{operator} #{numeric_class}.new(7:#{cast}).intValue
       EOF
       assert_run_output("#{assert}\n", cls)
     end

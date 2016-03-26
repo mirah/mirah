@@ -274,7 +274,7 @@ class EnumerableTest < Test::Unit::TestCase
       import java.lang.Integer
       def foo
         puts [1,2,3].any?
-        puts [1,2,3].any? {|x| Integer(x).intValue > 3}
+        puts [1,2,3].any? {|x| x:Integer.intValue > 3}
       end
     EOF
     assert_output("true\nfalse\n") do
@@ -287,7 +287,7 @@ class EnumerableTest < Test::Unit::TestCase
       import java.lang.Integer
       def foo
         puts [1,2,3].all?
-        puts [1,2,3].all? {|x| Integer(x).intValue > 3}
+        puts [1,2,3].all? {|x| x:Integer.intValue > 3}
       end
     EOF
     assert_output("true\nfalse\n") do

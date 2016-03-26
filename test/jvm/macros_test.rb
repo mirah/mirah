@@ -408,7 +408,7 @@ class MacrosTest < Test::Unit::TestCase
   def test_protected_attr_accessor
     script, cls = compile(<<-EOF)
       class ProtectedAttrAccessorTest
-        protected attr_accessor foo:int
+        protected attr_accessor foo: int
         
         def selfreflect
           puts self.getClass.getDeclaredMethod("foo").getModifiers

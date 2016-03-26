@@ -51,7 +51,7 @@ class ReportedException < RuntimeException
 end
 
 class BaseCompiler < SimpleNodeVisitor
-  attr_reader context:Context, typer:Typer, scoper:Scoper
+  attr_reader context: Context, typer: Typer, scoper: Scoper
   
   def initialize(context:Context)
     @context = context

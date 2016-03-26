@@ -22,7 +22,7 @@ import mirah.lang.ast.*
 class TypeFutureTypeRef < NodeImpl
   implements TypeName,TypeRef
   
-  attr_accessor type_future:TypeFuture
+  attr_accessor type_future: TypeFuture
   
   def initialize(type_future:TypeFuture)
     self.type_future = type_future

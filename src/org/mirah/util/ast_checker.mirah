@@ -27,7 +27,7 @@ import mirah.lang.ast.NodeScanner
 #
 class AstChecker < NodeScanner
   
-  attr_accessor stack:ArrayDeque
+  attr_accessor stack: ArrayDeque
 
   def self.initialize:void
     @@log = Logger.getLogger(AstChecker.class.getName)

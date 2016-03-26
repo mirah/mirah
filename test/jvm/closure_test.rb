@@ -57,7 +57,7 @@ class ClosureTest < Test::Unit::TestCase
       end
       
       class Foo < Bar
-        attr_accessor baz:String
+        attr_accessor baz: String
         
         def initialize(val:int)
           super

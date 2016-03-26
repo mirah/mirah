@@ -110,7 +110,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     initBoxes
   end
 
-  attr_reader context:Context
+  attr_reader context: Context
 
   def self.initialize:void
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)

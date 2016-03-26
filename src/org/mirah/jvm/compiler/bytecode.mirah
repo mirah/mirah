@@ -49,7 +49,7 @@ class Bytecode < GeneratorAdapter
     def toString
       "<Local #{index} (#{name}:#{type.getDescriptor})>"
     end
-    attr_reader name:String, index:int, type:Type, scopeStart:Label, scopeEnd:Label
+    attr_reader name: String, index: int, type: Type, scopeStart: Label, scopeEnd: Label
   end
   
   def initialize(flags:int, method:Method, klass:ClassVisitor, codesource:CodeSource)

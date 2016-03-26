@@ -60,7 +60,7 @@ class ScriptCleanup < NodeScanner
     unless @main_code.isEmpty && @methods.isEmpty
       klass = getOrCreateClass(script)
       unless @main_code.isEmpty
-        main = @parser.quote { def self.main(ARGV:String[]):void; end }
+        main = @parser.quote { def self.main(argv:String[]):void; end }
         @main_code.each do |node: Node|
           node.parent.removeChild(node)
           node.setParent(nil)  # TODO: ast bug

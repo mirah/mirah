@@ -1643,7 +1643,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_synchronized
     cls, = compile(<<-EOF)
       class Synchronized
-        attr_accessor locked:boolean
+        attr_accessor locked: boolean
         
         synchronized def lock_and_unlock:void
           puts "Locking."
@@ -1798,7 +1798,7 @@ class JVMCompilerTest < Test::Unit::TestCase
   def test_colon2_cast
     cls, = compile(<<-EOF)
       def foo(x:Object)
-        java.util::Map.Entry(x)
+        x:java::util::Map::Entry
       end
     EOF
 
@@ -1835,7 +1835,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     cls, = compile(<<-EOF)
       a = nil
-      puts Object(a)
+      puts a:Object
     EOF
 
     assert_run_output("null\n", cls)
@@ -1850,18 +1850,16 @@ class JVMCompilerTest < Test::Unit::TestCase
 
 
   def test_inconvertible_classes_cause_cast_error
-    pend "waiting on better error picking" do
-      ex = assert_raise Mirah::MirahError  do
-        compile(<<-EOF)
+    ex = assert_raise Mirah::MirahError  do
+      compile(<<-EOF)
         class A;end
         class B;end
-        def f(a:A): B
-          B(a)
+        def f(a:A):B
+          a:B
         end
-        EOF
-      end
-      assert_equal("Cannot cast A to B.", ex.message)
+      EOF
     end
+    assert_equal("Cannot cast A to B.", ex.message)
   end
 
   def test_inconvertible_default_classes_cause_cast_error
@@ -1869,7 +1867,7 @@ class JVMCompilerTest < Test::Unit::TestCase
       ex = assert_raise Mirah::MirahError  do
         compile(<<-EOF)
         import java.lang.Integer
-        java.lang.Integer("a string")
+        "a string":java::lang::Integer
         EOF
       end
       assert_equal("Cannot cast java.lang.Integer to java.lang.String.", ex.message)
@@ -1878,7 +1876,7 @@ class JVMCompilerTest < Test::Unit::TestCase
 
   def test_casting_up_should_work
     cls, = compile(<<-EOF)
-    puts Object("a string")
+    puts "a string":Object
     EOF
     assert_run_output("a string\n", cls)
   end
@@ -2202,8 +2200,8 @@ class JVMCompilerTest < Test::Unit::TestCase
       end
       
       class Bar
-        attr_reader   foo1:Foo1
-        attr_reader   foo2:Foo2
+        attr_reader foo1: Foo1
+        attr_reader foo2: Foo2
         
         def foo1method(foo1:Foo1)
           puts (@foo1==foo1)

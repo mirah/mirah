@@ -104,7 +104,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @compatibility_listeners = []
   end
 
-  attr_reader superclass:JVMType, name:String, type:Type, flags:int, context:Context
+  attr_reader superclass: JVMType, name: String, type: Type, flags: int, context: Context
 
   def notifyOfIncompatibleChange:void
     @cached_supertypes = List(nil)
