@@ -498,16 +498,23 @@ class Typer < SimpleNodeVisitor
 
   def visitFieldAssign(field, expression)
     inferAnnotations field
-    value = infer(field.value, true)
+    _value = field.value
+    if field.type_hint
+       _value = replaceSelf(_value, Cast.new(_value.position, field.type_hint, _value))
+    end
+    value = infer(_value, true)
     getFieldTypeOrDeclare(field, field.isStatic).assign(value, field.position)
   end
 
   def visitConstantAssign(field, expression)
-    newField = FieldAssign.new field.name, field.value, [
-      Annotation.new(field.name.position,
-        Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
-        [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))])
-    ]
+    newField = FieldAssign.new(field.name,
+                 field.value,
+                 [Annotation.new(field.name.position,
+                  Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
+                  [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))]
+                  )
+                 ],
+                 field.type_hint)
     newField.isStatic = true
     newField.position = field.position
 
@@ -827,7 +834,11 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitLocalAssignment(local, expression)
-    value = infer(local.value, true)
+    _value = local.value
+    if local.type_hint
+      _value = replaceSelf(_value, Cast.new(_value.position, local.type_hint, _value))
+    end
+    value = infer(_value, true)
     getLocalType(local).assign(value, local.position)
   end
 

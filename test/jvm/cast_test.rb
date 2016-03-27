@@ -67,12 +67,12 @@ class CastTest < Test::Unit::TestCase
       def d2f; 1.0:byte; end
 
       def hard_i2f(a:int)
-        float(if a < 0
+        if a < 0
           a *= -1
           a * 2
         else
           a * 2
-        end)
+        end:float
       end
     EOF
 
@@ -187,5 +187,47 @@ class CastTest < Test::Unit::TestCase
     EOF
     assert_equal 6, cls.foo
   end
-  
+
+  def test_cast_array_and_assign
+    cls, = compile(<<-EOF)
+      def foo():Object
+        [1,2,3].toArray(Integer[3])
+      end
+      def bar:int
+        a = foo:Integer[][0]
+        foo:Integer[][1] + a
+      end
+    EOF
+    assert_equal 3, cls.bar
+  end
+
+  def test_chained_casts
+    cls, = compile(<<-EOF)
+      def foo():Object
+        [1,2,3].toArray(Integer[3])
+      end
+
+      def bar:Number
+        foo:Object[][2]:Integer.intValue:Number
+      end
+    EOF
+    assert_equal 3, cls.bar
+  end
+
+  def test_lhs_type_hint
+    cls, = compile(<<-EOF)
+    class LhsTest
+      CONST:Integer = 1:Number
+      def foo():Object
+        [1,2,3].toArray(Integer[3])
+      end
+      def bar:int
+        @a:Integer[] = foo
+        b:int = @a[0]
+        b + @a[1] + CONST
+      end
+    end
+    EOF
+    assert_equal 4, cls.new.bar
+  end
 end
