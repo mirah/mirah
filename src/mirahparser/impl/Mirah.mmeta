@@ -662,7 +662,8 @@ parser MirahParser {
          ;
 
   assoc: a=arg_value $Rocket! opt_nl BEG b=arg_value -> ^(HashEntry a b)
-       | l=label BEG v=arg_value -> ^(HashEntry l v);
+       | l=label BEG v=arg_value -> ^(HashEntry l v)
+       | l=string $Colon! BEG v=arg_value -> ^(HashEntry l v);
 
   label: n=identifier2 nosp $Colon opt_nl -> ^(SimpleString n);
 
