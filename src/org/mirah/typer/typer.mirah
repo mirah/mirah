@@ -176,18 +176,13 @@ class Typer < SimpleNodeVisitor
     # This might be a local, method call, or primitive access,
     # so try them all.
 
-    methodType = callMethodType call, Collections.emptyList
-    targetType = infer(call.target)
     fcall = FunctionalCall.new(call.position,
                                Identifier(call.name.clone),
                                nil, nil)
     fcall.setParent(call.parent)
 
-
-    methodType = callMethodType call, Collections.emptyList
-    targetType = infer(call.target)
-    @futures[fcall] = methodType
-    @futures[fcall.target] = targetType
+    @futures[fcall] = callMethodType call, Collections.emptyList
+    @futures[fcall.target] = infer(call.target)
 
     proxy = ProxyNode.new(self, call)
     proxy.setChildren([LocalAccess.new(call.position, call.name),
@@ -200,7 +195,7 @@ class Typer < SimpleNodeVisitor
   def visitFunctionalCall(call, expression)
     workaroundASTBug call
     parameters = inferParameterTypes call
-    @futures[call] = methodType = callMethodType(call, parameters)
+    @futures[call] = callMethodType(call, parameters)
 
     proxy = ProxyNode.new(self, call)
     children = ArrayList.new(2)
@@ -251,13 +246,13 @@ class Typer < SimpleNodeVisitor
   def visitCall(call, expression)
     target = infer(call.target)
     parameters = inferParameterTypes call
-    methodType = CallFuture.new(@types,
-                                scopeOf(call),
-                                target,
-                                true,
-                                parameters,
-                                call)
-    @futures[call] = methodType
+
+    @futures[call] = CallFuture.new(@types,
+                                    scopeOf(call),
+                                    target,
+                                    true,
+                                    parameters,
+                                    call)
     
     proxy = ProxyNode.new(self, call)
     children = ArrayList.new(2)
