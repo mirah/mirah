@@ -569,6 +569,7 @@ class Typer < SimpleNodeVisitor
   def visitIf(stmt, expression)
     infer(stmt.condition, true)
     a = infer(stmt.body, expression != nil) if stmt.body
+    # Can there just be an else? Maybe we could simplify below.
     b = infer(stmt.elseBody, expression != nil) if stmt.elseBody
     if expression && a && b
       type = AssignableTypeFuture.new(stmt.position)
@@ -1101,7 +1102,8 @@ class Typer < SimpleNodeVisitor
     if parameters.size != method_type.parameterTypes.size
       position = block.arguments.position if block.arguments
       position ||= block.position
-      return @futures[block] = ErrorType.new([["Wrong number of methods for block implementing #{method_type}", position]])
+      return @futures[block] = ErrorType.new([
+        ["Wrong number of methods for block implementing #{method_type}", position]])
 
     end
     # parameters.zip(method_type.parameterTypes).each do |...
