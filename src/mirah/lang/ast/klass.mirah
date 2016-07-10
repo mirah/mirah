@@ -11,16 +11,42 @@ class ClassDefinition < NodeImpl
     child_list body: Node
     child_list interfaces: TypeName
     child_list annotations: Annotation
+    child java_doc: Node
   end
+
+  def initialize(p:Position, name:Identifier, super_class: TypeName, body: List, interfaces: List, annotations: List)
+    initialize(p, name, super_class, body, interfaces, annotations, Node(nil))
+  end
+
+  def initialize(name:Identifier, super_class: TypeName, body: List, interfaces: List, annotations: List)
+      initialize(name, super_class, body, interfaces, annotations, Node(nil))
+  end
+
 end
 
 class InterfaceDeclaration < ClassDefinition
   init_subclass(ClassDefinition)
+
+  def initialize(p:Position, name:Identifier, super_class: TypeName, body: List, interfaces: List, annotations: List)
+    initialize(p, name, super_class, body, interfaces, annotations, Node(nil))
+  end
+
+  def initialize(name:Identifier, super_class: TypeName, body: List, interfaces: List, annotations: List)
+      initialize(name, super_class, body, interfaces, annotations, Node(nil))
+  end
 end
 
 # Is this necessary?
 class ClosureDefinition < ClassDefinition
   init_subclass(ClassDefinition)
+
+  def initialize(p:Position, name:Identifier, super_class: TypeName, body: List, interfaces: List, annotations: List)
+    initialize(p, name, super_class, body, interfaces, annotations, Node(nil))
+  end
+
+  def initialize(name:Identifier, super_class: TypeName, body: List, interfaces: List, annotations: List)
+    initialize(name, super_class, body, interfaces, annotations, Node(nil))
+  end
 end
 
 #

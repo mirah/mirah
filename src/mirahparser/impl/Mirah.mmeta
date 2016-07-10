@@ -216,6 +216,7 @@ parser MirahParser {
           | ($Def)=> primary2_def
           | ($Macro|$Defmacro)=> primary2_macro
           | ($Dollar)=> (primary2_class | primary2_interface | primary2_def | primary2_macro)
+          | (java_doc) => (primary2_class | primary2_interface | primary2_def | primary2_macro)
           | ($Break)=> primary2_break
           | ($Next)=> primary2_next
           | ($Redo)=> primary2_redo
@@ -302,7 +303,8 @@ parser MirahParser {
   $Scope[@BEG]
   $Returns[Node]
   primary2_class
-         : annotations=annotation_list
+         : jdoc = java_doc?
+		   annotations=annotation_list
            t=$Class sp=block_start(t)!
            ( $LShift! BEG e=$Self
              term! b=compstmt! verify_end(sp)! $End
@@ -313,12 +315,13 @@ parser MirahParser {
                           # sense for mirah. Maybe rescuing exceptions
                           # in the static initializer?
              verify_end(sp)! $End
-             -> ^(ClassDefinition n s b ifaces annotations)
+             -> ^(ClassDefinition n s b ifaces annotations jdoc)
            );
   $Scope[@cond]
   $Returns[Node]
   primary2_interface
-         : annotations=annotation_list
+         : jdoc = java_doc?
+		   annotations=annotation_list
            t=$Interface!
            sp=block_start(t)
            n=cname! ifaces=($LT! rlistOf(:cpath)
@@ -327,7 +330,7 @@ parser MirahParser {
            Do!
            b=compstmt!
            verify_end(sp) $End
-            -> ^(InterfaceDeclaration n nil b ifaces annotations)
+            -> ^(InterfaceDeclaration n nil b ifaces annotations jdoc)
            ;
   $Returns[Node]
   primary2_import
@@ -364,30 +367,32 @@ parser MirahParser {
   $Scope[@BEG]
   $Returns[Node]
   primary2_def
-         : annotations=annotation_list
+         : jdoc = java_doc?
+		   annotations=annotation_list
            t=$Def s=block_start(t)!
            ( $Self! dot_or_colons! name=fname!
              arglist=f_arglist! body=bodystmt! verify_end(s)! $End
              {args = arglist.args; type=arglist.returnType}
-             -> ^(StaticMethodDefinition name args type body annotations)
+             -> ^(StaticMethodDefinition name args type body annotations jdoc)
            | name=fname! arglist=f_arglist! body=bodystmt! verify_end(s)! $End
              {args = arglist.args; type=arglist.returnType}
              ( ?{nameIs(name, "initialize")}
-               -> ^(ConstructorDefinition name args type body annotations)
-             | -> ^(MethodDefinition name args type body annotations)
+               -> ^(ConstructorDefinition name args type body annotations jdoc)
+             | -> ^(MethodDefinition name args type body annotations jdoc)
              )
            );
   $Scope[@BEG]
   $Returns[Node]
   primary2_macro
-         : annotations=annotation_list
+         : jdoc = java_doc?
+           annotations=annotation_list
            (t=$Defmacro! | t=$Macro! $Def) s=block_start(t)
            isStatic=($Self dot_or_colons)?
            name=fname!
            ($LParen! opt_nl args=f_args opt_nl $RParen)?
            (?{t == Tokens.tDefmacro} $Do)?
            body=bodystmt! verify_end(s)! $End
-           node=-> ^(MacroDefinition name args body annotations)
+           node=-> ^(MacroDefinition name args body annotations jdoc)
            {node.isStatic = (isStatic != nil); node}
          ;
   primary2_break: $Break -> ^(Break);
@@ -711,6 +716,9 @@ parser MirahParser {
   $Returns[List]
   annotation_list: (a=annotation opt_nl {a})*;
 
+  $Returns[Node]
+  java_doc: txt = (s = $JavaDoc opt_nl {Token(s).text}) -> ^(JavaDoc txt);
+
   op: text=($LT {"<"}
            | $LE {"<="}
            | $LEG {"<=>"}
@@ -985,7 +993,7 @@ parser MirahParser {
   }
 
   $Memo[Token]
-  _lex: {@lexer.lex(_pos)};
+  _lex: {@lexer.lex(_pos, @skipWhitespaceAndComments, @skipJavaDoc)};
 
   def _lex(type:Tokens) {
     token = _lex
