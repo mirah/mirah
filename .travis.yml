@@ -5,7 +5,9 @@ rvm:
 jdk:
   - oraclejdk7
   - oraclejdk8
-script: rake new_ci
+script:
+ - rake new_ci
+ - cd mirah-parser; rake test
 env:
   - MIRAH_TEST_JVM_VERSION=1.5
   - MIRAH_TEST_JVM_VERSION=1.6
