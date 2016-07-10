@@ -170,5 +170,14 @@ class MacroDefinition < NodeImpl
     child_list body: Node
     child_list annotations: Annotation
     attr_accessor isStatic: 'boolean'
+    child java_doc: Node
+  end
+
+  def initialize(name: Identifier, arguments: Arguments, body: List, annotations: List)
+    initialize(name, arguments, body, annotations, Node(nil))
+  end
+
+  def initialize(p:Position, name: Identifier, arguments: Arguments, body: List, annotations: List)
+    initialize(p, name, arguments, body, annotations, Node(nil))
   end
 end
