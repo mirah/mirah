@@ -236,14 +236,14 @@ file_create 'javalib/mirahc-prev.jar' do
   end
 end
 
-def build_jar(new_jar,build_dir, extensions=false)
+def build_jar(new_jar,build_dir)
   # Build the jar                    
   ant.jar 'jarfile' => new_jar do
     fileset 'dir' => build_dir
     zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
     zipfileset 'src' => 'javalib/mirah-parser.jar'
     metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
-    metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 'includes' => 'services/*' if extensions
+    metainf 'dir' => build_dir, 'includes' => 'services/*'
     manifest do
       attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
     end
@@ -344,9 +344,13 @@ else # original
   mirah_srcs = Dir['src/org/mirah/{jvm/types,macros,util,}/*.mirah'].sort +
                Dir['src/org/mirah/typer/**/*.mirah'].sort +
                Dir['src/org/mirah/jvm/{compiler,mirrors,model}/**/*.mirah'].sort +
-               Dir['src/org/mirah/tool/*.mirah'].sort
+               Dir['src/org/mirah/tool/*.mirah'].sort +
+               Dir['src/org/mirah/plugin/*.mirah'].sort
 
   extensions_srcs = Dir['src/org/mirah/builtins/*.mirah'].sort
+
+  plugin_srcs = Dir['src/org/mirah/plugin/impl/*.mirah'].sort
+
   ant_srcs        =    ['src/org/mirah/ant/compile.mirah']
 
   file new_jar => mirah_srcs + extensions_srcs + ant_srcs + [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
@@ -397,7 +401,18 @@ else # original
     # compile extensions stuff
     runjava('-Xmx512m', naked_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *extensions_srcs)
 
-    build_jar(new_jar,build_dir, true)
+    extended_mirahc_jar = new_jar.sub(".jar","-extended.jar")
+
+    cp_r 'src/org/mirah/builtins/services', build_dir
+
+    build_jar(extended_mirahc_jar, build_dir)
+
+    # compile plugin stuff
+    runjava('-Xmx512m', extended_mirahc_jar, '-d', build_dir, '-classpath', default_class_path, '--jvm', build_version, *plugin_srcs)
+
+    cp_r 'src/org/mirah/plugin/impl/services', build_dir
+
+    build_jar(new_jar,build_dir)
   end
 end # feature flag
 end

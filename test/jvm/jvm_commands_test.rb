@@ -55,7 +55,19 @@ class JVMCommandsTest < Test::Unit::TestCase
       Mirah.run(File.dirname(__FILE__)+"/../fixtures/utf8_test.mirah")
     end
     assert_output "cp1251 encoding test\n" do
-      Mirah.run('-encoding','cp1251',File.dirname(__FILE__)+"/../fixtures/cp1251_test.mirah")
+      Mirah.run('-encoding','cp1251', File.dirname(__FILE__)+"/../fixtures/cp1251_test.mirah")
     end
+  end
+
+  def test_stub_plugin
+    target_dir = 'tmp_test/stub'
+    fixture_dir = File.dirname(__FILE__)+'/../fixtures'
+    Mirah.compile('-d', target_dir,  '-plugins', 'stub', fixture_dir + '/stub_plugin_test.mirah')
+    generated = File.read target_dir + '/org/foo/AOne.java'
+    expected = File.read fixture_dir + '/org/foo/AOne.java'
+    assert_equal expected.gsub(/\r/, ''), generated.gsub(/\r/, '')
+    generated = File.read target_dir + '/org/foo/AOneX.java'
+    expected = File.read fixture_dir + '/org/foo/AOneX.java'
+    assert_equal expected.gsub(/\r/, ''), generated.gsub(/\r/, '')
   end
 end

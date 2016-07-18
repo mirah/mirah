@@ -64,24 +64,23 @@ import org.mirah.util.LazyTypePrinter
 import org.mirah.util.Context
 import org.mirah.util.OptionParser
 import org.mirah.util.AstChecker
+import org.mirah.plugin.CompilerPlugin
+import org.mirah.plugin.CompilerPlugins
 
 class CompilationFailure < Exception
 end
 
 class MirahCompiler implements JvmBackend
 
-  def initialize(
-      diagnostics: SimpleDiagnostics, jvm: JvmVersion, classpath: URL[],
-      bootclasspath: URL[], macroclasspath: URL[], destination: String,
-      macro_destination: String,
-      debugger: DebuggerInterface=nil)
+  def initialize(diagnostics: SimpleDiagnostics, compiler_args: MirahArguments, debugger: DebuggerInterface=nil)
     @diagnostics = diagnostics
-    @jvm = jvm
-    @destination = destination
-    @macro_destination = macro_destination
+    @jvm = compiler_args.jvm_version
+    @destination = compiler_args.destination
+    @macro_destination = compiler_args.real_macro_destination
     @debugger = debugger
 
     @context = context = Context.new
+    context[MirahArguments] = compiler_args
     context[JvmBackend] = self
     context[DiagnosticListener] = @diagnostics
     context[SimpleDiagnostics] = @diagnostics
@@ -94,18 +93,17 @@ class MirahCompiler implements JvmBackend
     @macro_context[SimpleDiagnostics] = @diagnostics
     @macro_context[JvmVersion] = @jvm
     @macro_context[DebuggerInterface] = debugger
+    @macro_context[MirahArguments] = compiler_args
 
     # The main type system needs access to the macro one to call macros.
     @context[Context] = @macro_context
 
-    createTypeSystems(classpath, bootclasspath, macroclasspath)
+    createTypeSystems(compiler_args.real_classpath, compiler_args.real_bootclasspath, compiler_args.real_macroclasspath)
 
     # TODO allow this. ambiguous for parser?
-    #context[Scoper] = @scoper = SimpleScoper.new BetterScopeFactory.new
     context[Scoper] = @scoper = SimpleScoper.new(BetterScopeFactory.new)
 
     context[MirahParser] = @parser = MirahParser.new
-    # BaseParser(@parser).diagnostics = ParserDiagnostics.new(@diagnostics) # Field "diagnostics" does not seem to exist in the current mirah/mmeta source code, but it did exist in an ancient mmeta.jar. 
 
     @macro_context[Scoper] = @scoper
     @macro_context[MirahParser] = @parser
@@ -125,6 +123,9 @@ class MirahCompiler implements JvmBackend
     @backend = Backend.new(context)
     @macro_backend = Backend.new(@macro_context)
     @asts = []
+
+    @plugins = CompilerPlugins.new(@context)
+
   end
 
   def self.initialize:void
@@ -165,10 +166,13 @@ class MirahCompiler implements JvmBackend
   def infer
     sorted_asts = @asts # ImportSorter.new.sort(@asts)
 
+    sorted_asts.each do |node: Node|
+      @plugins.on_parse(node)
+    end
 
     sorted_asts.each do |node: Node|
       begin
-        AstChecker.maybe_check(node) 
+        AstChecker.maybe_check(node)
         @typer.infer(node, false)
         AstChecker.maybe_check(node)
       ensure
@@ -181,7 +185,12 @@ class MirahCompiler implements JvmBackend
     sorted_asts.each do |node: Node|
       processInferenceErrors(node, @context)
     end
+
     failIfErrors
+
+    sorted_asts.each do |node: Node|
+      @plugins.on_infer(node)
+    end
   end
 
   def processInferenceErrors(node:Node, context:Context):void
@@ -220,7 +229,7 @@ class MirahCompiler implements JvmBackend
     @extension_loader.loadClass(class_name)
   end
 
-  def compile(generator: BytecodeConsumer)
+  def clean:void
     @asts.each do |node: Script|
       @backend.clean(node, nil)
       node.accept(ExtensionCleanup.new(@macro_backend,
@@ -235,9 +244,17 @@ class MirahCompiler implements JvmBackend
     failIfErrors()
 
     @asts.each do |node: Script|
+      @plugins.on_clean(node)
+    end
+  end
+
+  def compile(generator: BytecodeConsumer)
+    clean
+    @asts.each do |node: Script|
       @backend.compile(node, nil)
     end
     @backend.generate(generator)
+    @plugins.stop
   end
 
 
