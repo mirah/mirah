@@ -1,9 +1,0 @@
-language: ruby
-rvm:
-  - jruby-19mode
-jdk:
-  - oraclejdk7
-  - oraclejdk8
-script: rake test
-notifications:
-  irc: "irc.freenode.org#mirah"
