@@ -9,5 +9,5 @@
 #    your macro holder classes there (check org.mirah.builtins.Builtins for example)
 # 3. Put org.mirah.macros.ExtensionsProvider implementation class name in META-INF/services/org.mirah.macros.ExtensionsProvider
 #    compile and package your extension as jar file
-# 4. Your custom macros will be available after adding extension jar to the mirac classpath
+# 4. Your custom macros will be available after adding extension jar to the mirahc classpath
 org.mirah.builtins.Builtins
