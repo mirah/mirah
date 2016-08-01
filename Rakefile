@@ -284,7 +284,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
                      # org.mirah.MirahCommand depends on .tool., so remove from core
                     ['src/org/mirah/mirah_command.mirah']
 
-  file core_jar => core_mirah_srcs + [java_jar] do
+  file core_jar => core_mirah_srcs + [java_jar, old_jar] do
     compile_mirah_with_jar old_jar, core_build_dir, core_mirah_srcs, [java_jar]
     ant.jar 'jarfile' => core_jar do
       fileset 'dir' => core_build_dir
@@ -296,7 +296,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
                     ['src/org/mirah/mirah_command.mirah'] # add it back in here.
   tool_build_dir = "build/#{name}-tool"
   tool_jar = "#{tool_build_dir}.jar"
-  file tool_jar => tool_mirah_srcs + [core_jar] do
+  file tool_jar => tool_mirah_srcs + [core_jar, old_jar] do
     compile_mirah_with_jar old_jar, tool_build_dir, tool_mirah_srcs, [core_jar, java_jar]
     ant.jar 'jarfile' => tool_jar do
       fileset 'dir' => tool_build_dir
@@ -307,7 +307,7 @@ def bootstrap_mirah_from(old_jar, new_jar)
   ant_mirah_srcs = Dir['src/org/mirah/ant/*.mirah'].sort
   ant_build_dir = "build/#{name}-ant"
   ant_jar = "#{ant_build_dir}.jar"
-  file ant_jar => ant_mirah_srcs + [core_jar, tool_jar, java_jar] do
+  file ant_jar => ant_mirah_srcs + [core_jar, tool_jar, java_jar, old_jar] do
     ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}
     compile_mirah_with_jar old_jar, ant_build_dir, ant_mirah_srcs, [core_jar, tool_jar, java_jar] + ant_classpath
     ant.jar 'jarfile' => ant_jar do
