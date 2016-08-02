@@ -12,7 +12,7 @@ import java.util.logging.Handler
 # is more beautiful than explicitly calling @@log.isLoggable() each time @@log.log is to be called.
 #
 class Logger
-  attr_reader internal_logger:java.util.logging.Logger
+  attr_reader internal_logger: java.util.logging.Logger
   
   def initialize(internal_logger:Object) # old compiler cannot handle def initialize(internal_logger:java.util.logging.Logger) 
     @internal_logger = java::util::logging::Logger(internal_logger)

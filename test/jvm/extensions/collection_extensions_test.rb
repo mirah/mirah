@@ -178,7 +178,7 @@ class CollectionExtensionsTest < Test::Unit::TestCase
       puts x.getClass.getName
       
       class TypeDefinedLater
-        attr_accessor foo:Object
+        attr_accessor foo: Object
         
         def initialize(foo:Object)
           self.foo = foo

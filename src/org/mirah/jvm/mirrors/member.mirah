@@ -43,10 +43,10 @@ class Member implements GenericMethod,JVMField
     @kind = kind
   end
 
-  attr_reader declaringClass:JVMType, name:String, argumentTypes:List
-  attr_reader returnType:JVMType, kind:MemberKind, flags:int
-  attr_accessor signature:String
-  attr_writer genericReturnType:JVMType
+  attr_reader declaringClass: JVMType, name: String, argumentTypes: List
+  attr_reader returnType: JVMType, kind: MemberKind, flags: int
+  attr_accessor signature: String
+  attr_writer genericReturnType: JVMType
 
   def genericReturnType
     @genericReturnType || returnType

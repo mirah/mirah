@@ -17,62 +17,62 @@ class CastTest < Test::Unit::TestCase
 
   def test_cast
     cls, = compile(<<-EOF)
-      def f2b; byte(1.0); end
-      def f2s; short(1.0); end
-      def f2c; char(1.0); end
-      def f2i; int(1.0); end
-      def f2l; long(1.0); end
-      def f2d; int(1.0); end
+      def f2b; 1.0:byte; end
+      def f2s; 1.0:byte; end
+      def f2c; 1.0:byte; end
+      def f2i; 1.0:byte; end
+      def f2l; 1.0:byte; end
+      def f2d; 1.0:byte; end
 
-      def i2b; byte(1); end
-      def i2s; short(1); end
-      def i2c; char(1); end
-      def i2l; long(1); end
-      def i2f; float(1); end
-      def i2d; int(1); end
+      def i2b; 1:byte; end
+      def i2s; 1:byte; end
+      def i2c; 1:byte; end
+      def i2l; 1:byte; end
+      def i2f; 1:byte; end
+      def i2d; 1:byte; end
 
-      def b2s; short(byte(1)); end
-      def b2c; char(byte(1)); end
-      def b2i; int(byte(1)); end
-      def b2l; long(byte(1)); end
-      def b2f; float(byte(1)); end
-      def b2d; double(byte(1)); end
+      def b2s; byte(1:byte); end
+      def b2c; byte(1:byte); end
+      def b2i; byte(1:byte); end
+      def b2l; byte(1:byte); end
+      def b2f; byte(1:byte); end
+      def b2d; byte(1:byte); end
 
-      def s2b; byte(short(1)); end
-      def s2c; char(short(1)); end
-      def s2i; int(short(1)); end
-      def s2l; long(short(1)); end
-      def s2f; float(short(1)); end
-      def s2d; double(short(1)); end
+      def s2b; short(1:byte); end
+      def s2c; short(1:byte); end
+      def s2i; short(1:byte); end
+      def s2l; short(1:byte); end
+      def s2f; short(1:byte); end
+      def s2d; short(1:byte); end
 
-      def c2b; byte(char(1)); end
-      def c2s; short(char(1)); end
-      def c2i; int(char(1)); end
-      def c2l; long(char(1)); end
-      def c2f; float(char(1)); end
-      def c2d; double(char(1)); end
+      def c2b; char(1:byte); end
+      def c2s; char(1:byte); end
+      def c2i; char(1:byte); end
+      def c2l; char(1:byte); end
+      def c2f; char(1:byte); end
+      def c2d; char(1:byte); end
 
-      def l2b; byte(long(1)); end
-      def l2c; char(long(1)); end
-      def l2i; int(long(1)); end
-      def l2l; long(long(1)); end
-      def l2f; float(long(1)); end
-      def l2d; double(long(1)); end
+      def l2b; long(1:byte); end
+      def l2c; long(1:byte); end
+      def l2i; long(1:byte); end
+      def l2l; long(1:byte); end
+      def l2f; long(1:byte); end
+      def l2d; long(1:byte); end
 
-      def d2b; byte(1.0); end
-      def d2s; short(1.0); end
-      def d2c; char(1.0); end
-      def d2i; int(1.0); end
-      def d2l; long(1.0); end
-      def d2f; float(1.0); end
+      def d2b; 1.0:byte; end
+      def d2s; 1.0:byte; end
+      def d2c; 1.0:byte; end
+      def d2i; 1.0:byte; end
+      def d2l; 1.0:byte; end
+      def d2f; 1.0:byte; end
 
       def hard_i2f(a:int)
-        float(if a < 0
+        if a < 0
           a *= -1
           a * 2
         else
           a * 2
-        end)
+        end:float
       end
     EOF
 
@@ -125,7 +125,7 @@ class CastTest < Test::Unit::TestCase
   def test_java_lang_cast
     cls, = compile(<<-EOF)
       def foo(a:Object)
-        Integer(a).intValue
+        a:Integer.intValue
       end
     EOF
 
@@ -180,11 +180,54 @@ class CastTest < Test::Unit::TestCase
         list = [1,2,3]
         m = 0
         list.each do |x|
-          m = int(x) + m
+          m = x:int + m
         end
         return m
       end
     EOF
     assert_equal 6, cls.foo
+  end
+
+  def test_cast_array_and_assign
+    cls, = compile(<<-EOF)
+      def foo():Object
+        [1,2,3].toArray(Integer[3])
+      end
+      def bar:int
+        a = foo:Integer[][0]
+        foo:Integer[][1] + a
+      end
+    EOF
+    assert_equal 3, cls.bar
+  end
+
+  def test_chained_casts
+    cls, = compile(<<-EOF)
+      def foo():Object
+        [1,2,3].toArray(Integer[3])
+      end
+
+      def bar:Number
+        foo:Object[][2]:Integer.intValue:Number
+      end
+    EOF
+    assert_equal 3, cls.bar
+  end
+
+  def test_lhs_type_hint
+    cls, = compile(<<-EOF)
+    class LhsTest
+      CONST:Integer = 1:Number
+      def foo():Object
+        [1,2,3].toArray(Integer[3])
+      end
+      def bar:int
+        @a:Integer[] = foo
+        b:int = @a[0]
+        b + @a[1] + CONST
+      end
+    end
+    EOF
+    assert_equal 4, cls.new.bar
   end
 end

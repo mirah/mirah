@@ -209,7 +209,7 @@ class ObjectExtensions
       attr_writer `args`
     end
   end
-  
+
   macro def self.attr_reader(hash:Hash)
     methods = NodeList.new
     i = 0
@@ -226,7 +226,7 @@ class ObjectExtensions
     end
     methods
   end
-  
+
   macro def self.attr_writer(hash:Hash)
     methods = NodeList.new
     i = 0
@@ -234,7 +234,7 @@ class ObjectExtensions
     while i < size
       e = hash.get(i)
       i += 1
-      name = "#{Identifier(e.key).identifier}_set"
+      name = "#{e.key:Identifier.identifier}_set"
       method = quote do
         def `name`(value:`e.value`):void  #`
           @`e.key` = value

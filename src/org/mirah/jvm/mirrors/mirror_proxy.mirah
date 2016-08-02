@@ -66,7 +66,7 @@ class MirrorProxy implements MirrorType,
     @target = type
   end
 
-  attr_accessor target:MirrorType
+  attr_accessor target: MirrorType
 
   def notifyOfIncompatibleChange:void
     @target.notifyOfIncompatibleChange
@@ -356,7 +356,7 @@ class ResolvedCall < MirrorProxy implements CallType
     end
   end
 
-  attr_reader member:JVMMethod
+  attr_reader member: JVMMethod
 
   def hashCode
     target.hashCode

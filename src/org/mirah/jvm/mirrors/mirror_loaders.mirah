@@ -103,7 +103,7 @@ class SimpleMirrorLoader implements MirrorLoader
     @mirrors = {}
   end
 
-  attr_reader parent:MirrorLoader
+  attr_reader parent: MirrorLoader
 
   # 1) Returns the previously found mirror if one exists for this type.
   # 2) Otherwise calls findMirror() and returns the result.
@@ -170,7 +170,7 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
     @futures = {}
   end
 
-  attr_reader parent:AsyncMirrorLoader
+  attr_reader parent: AsyncMirrorLoader
 
   # Note that the order here is different from SimpleMirrorLoader:
   # We delegate to the parent after checking if we know about the type.

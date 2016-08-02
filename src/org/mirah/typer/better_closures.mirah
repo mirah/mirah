@@ -83,9 +83,9 @@ class BetterClosureBuilder
     @macros = macros
   end
 
-  attr_accessor blockCloneMapOldNew:IdentityHashMap
-  attr_accessor blockCloneMapNewOld:IdentityHashMap
-  attr_accessor parent_scope_to_binding_name:Map
+  attr_accessor blockCloneMapOldNew: IdentityHashMap
+  attr_accessor blockCloneMapNewOld: IdentityHashMap
+  attr_accessor parent_scope_to_binding_name: Map
 
   def finish
     closures = []

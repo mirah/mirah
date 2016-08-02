@@ -91,8 +91,8 @@ class MethodState
     end
   end
 
-  attr_accessor num_args:int, name:String, position:Position, returnType:JVMType, static:boolean
-  attr_accessor signature:String
+  attr_accessor num_args: int, name: String, position: Position, returnType: JVMType, static: boolean
+  attr_accessor signature: String
 
   def toString
     "#{@signature ? 'method' : 'macro'} #{@name}"

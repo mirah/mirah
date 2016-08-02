@@ -49,7 +49,7 @@ class ObjectExtensionsTest < Test::Unit::TestCase
   def test_equals_method_is_evaluated_as_necessary
     cls, = compile(%q[
       class Foo
-        attr_accessor counter:int
+        attr_accessor counter: int
         def equals(o:Object)
           self.counter += 1
           true

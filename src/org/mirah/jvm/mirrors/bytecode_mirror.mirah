@@ -155,7 +155,7 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
     end
   end
 
-  attr_reader signature:String
+  attr_reader signature: String
 
   def load_methods:boolean
     @methods.each do |m: MethodNode|

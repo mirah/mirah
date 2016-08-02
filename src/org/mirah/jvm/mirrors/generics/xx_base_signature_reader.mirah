@@ -42,7 +42,7 @@ abstract class BaseSignatureReader < SignatureVisitor
     @processed_signatures = processed_signatures
   end
 
-  attr_reader typeVariables:Map
+  attr_reader typeVariables: Map
 
   abstract def saveTypeParam(var:TypeVariable):void; end
 

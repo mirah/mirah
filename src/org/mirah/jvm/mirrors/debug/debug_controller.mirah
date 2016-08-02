@@ -125,8 +125,8 @@ class WatchState
     @newValue = newValue
   end
 
-  attr_reader future:BaseTypeFuture, currentValue:ResolvedType
-  attr_reader newValue:ResolvedType
+  attr_reader future: BaseTypeFuture, currentValue: ResolvedType
+  attr_reader newValue: ResolvedType
 end
 
 class StackEntry
@@ -136,9 +136,9 @@ class StackEntry
     @expression = expression
     @parent = parent
   end
-  attr_reader node:Node, expression:boolean, context:Context
-  attr_accessor result:TypeFuture, watch:WatchState
-  attr_accessor parent:StackEntry
+  attr_reader node: Node, expression: boolean, context: Context
+  attr_accessor result: TypeFuture, watch: WatchState
+  attr_accessor parent: StackEntry
 end
 
 class DebugController implements DebuggerInterface, ResolutionWatcher

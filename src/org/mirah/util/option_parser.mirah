@@ -21,8 +21,8 @@ class CommandLineOption
     @placeholder = placeholder
   end
 
-  attr_reader names:List, help:String, callback:Runnable
-  attr_reader placeholder:String, option_callback:OptionCallback
+  attr_reader names: List, help:String, callback: Runnable
+  attr_reader placeholder: String, option_callback: OptionCallback
 end
 
 class OptionParser
