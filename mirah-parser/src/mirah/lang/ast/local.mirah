@@ -27,15 +27,6 @@ class LocalAssignment < NodeImpl
   init_node do
     child name: Identifier
     child value: Node
-    child type_hint: TypeName
-  end
-
-  def initialize(position:Position, name:Identifier, value:Node)
-    initialize(position, name, value, nil)
-  end
-
-  def initialize(name:Identifier, value:Node)
-    initialize(name.position, name, value, nil)
   end
 end
 
