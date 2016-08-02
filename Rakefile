@@ -65,22 +65,22 @@ def run_tests tests
       puts "Errors in #{name}"
     end
   end
-  fail if results.any?{|passed|!passed}
+  fail unless results.all? { |passed| passed }
 end
 
 desc "run full test suite"
 task :test do
-  run_tests [ 'test:core', 'test:plugins', 'test:jvm', 'test:artifacts', 'test:parser' ]
+  run_tests [ 'test:core',
+              'test:jvm',
+              'test:artifacts',
+              'test:parser']
 end
 
 namespace :test do
 
   desc "run parser tests"
   Rake::TestTask.new :parser => ['build/mirah-parser.jar'] do |t|
-    #t.libs << 'mirah-parser/test'
     t.test_files = FileList["mirah-parser/test/**/test*.rb"]
-    # TODO is the duby enabled even doing anything?
-    java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
 
@@ -88,13 +88,6 @@ namespace :test do
   Rake::TestTask.new :core => :compile do |t|
     t.libs << 'test'
     t.test_files = FileList["test/core/**/*test.rb"]
-    java.lang.System.set_property("jruby.duby.enabled", "true")
-  end
-
-  desc "run tests for plugins"
-  Rake::TestTask.new :plugins => :compile do |t|
-    t.libs << 'test'
-    t.test_files = FileList["test/plugins/**/*test.rb"]
     java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
@@ -112,7 +105,7 @@ namespace :test do
 
     desc "run jvm tests using the new self hosted backend"
     task :all do
-      run_tests ["test:jvm:mirror_compilation", "test:jvm:mirrors"]
+      run_tests ["test:jvm:rest", "test:jvm:mirrors"]
     end
     
     desc "run tests for mirror type system"
@@ -121,7 +114,7 @@ namespace :test do
       t.test_files = FileList["test/mirrors/**/*test.rb"]
     end
 
-    Rake::TestTask.new :mirror_compilation  => ["dist/mirahc.jar", :test_setup] do |t|
+    Rake::TestTask.new :rest  => ["dist/mirahc.jar", :test_setup] do |t|
       t.libs << 'test' << 'test/jvm'
       t.ruby_opts.concat ["-r", "new_backend_test_helper"]
       t.test_files = FileList["test/jvm/**/*test.rb"]
