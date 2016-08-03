@@ -28,8 +28,12 @@ class FunctionalCall < NodeImpl
     child block: Block
   end
 
-  def target:Node
-    @target ||= ImplicitSelf.new(position)
+  def target: Node
+    @target ||= begin
+      s = ImplicitSelf.new(position)
+      s.setParent self
+      s
+    end
   end
 
   def typeref: TypeRef
@@ -53,11 +57,19 @@ class VCall < NodeImpl
     TypeRefImpl.new(name.identifier, false, false, name.position)
   end
 
-  def target:Node
-    @target ||= ImplicitSelf.new(position)
+  def target: Node
+    @target ||= begin
+      s = ImplicitSelf.new(position)
+      s.setParent self
+      s
+    end
   end
   def parameters
-    @parameters ||= NodeList.new(position)
+    @parameters ||= begin
+      p = NodeList.new(position)
+      p.setParent self
+      p
+    end
   end
 
   def block: Block

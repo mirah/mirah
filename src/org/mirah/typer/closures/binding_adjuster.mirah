@@ -114,7 +114,6 @@ class BindingAdjuster < NodeScanner
     binding_klass.body.insert(0, attr_def)
 
     binding_new_call = Call.new(node.position, Constant.new(SimpleString.new(name)), SimpleString.new("new"), [], nil)
-    @builder.typer.workaroundASTBug binding_new_call
 
     assign_binding_dot_new = LocalAssignment.new(
         node.position,
@@ -173,7 +172,6 @@ class BindingAdjuster < NodeScanner
           SimpleString.new("#{arg}_set"),
           [LocalAccess.new(node.position, SimpleString.new(arg))],
           nil)
-        @builder.typer.workaroundASTBug addition
          # insert after binding class & binding instantiation
          # if we were less lazy, we'd find the binding construction, and insert after
         NodeList(node).insert 2, addition
@@ -247,8 +245,6 @@ class BindingAdjuster < NodeScanner
       [new_value],
       nil)
 
-    @builder.typer.workaroundASTBug replacement
-
     replaceSelf(local, replacement)
     local.value.setParent replacement
 
@@ -271,8 +267,6 @@ class BindingAdjuster < NodeScanner
       SimpleString.new(local.position,local.name.identifier),
       [],
       nil)
-
-    @builder.typer.workaroundASTBug replacement
 
     replaceSelf(local, replacement)
 

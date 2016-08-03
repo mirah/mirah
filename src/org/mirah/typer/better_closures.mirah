@@ -230,9 +230,6 @@ class BetterClosureBuilder
         block.position, target,
         SimpleString.new("new"), 
         binding_locals, nil)
-      @typer.workaroundASTBug new_node
-
-      
 
       if block.parent.kind_of?(CallSite)
         parent = CallSite(block.parent)
