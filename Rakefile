@@ -88,7 +88,6 @@ namespace :test do
   Rake::TestTask.new :core => :compile do |t|
     t.libs << 'test'
     t.test_files = FileList["test/core/**/*test.rb"]
-    java.lang.System.set_property("jruby.duby.enabled", "true")
   end
 
   desc "run the artifact tests"
