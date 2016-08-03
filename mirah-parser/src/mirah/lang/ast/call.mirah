@@ -3,11 +3,11 @@ package mirahparser.lang.ast
 
 # Interface for all call sites.
 interface CallSite < Node, Named, TypeName do
-  def name:Identifier; end
-  def target:Node; end
+  def name: Identifier; end
+  def target: Node; end
   def parameters: NodeList; end
-  def block:Block; end
-  def block_set(block:Block):void; end
+  def block: Block; end
+  def block_set(block: Block): void; end
 end
 
 # A functional call is a call that has an implicit target, and has arguments
@@ -32,7 +32,7 @@ class FunctionalCall < NodeImpl
     @target ||= ImplicitSelf.new(position)
   end
 
-  def typeref:TypeRef
+  def typeref: TypeRef
     TypeRefImpl.new(name.identifier, false, false, name.position)
   end
 end
@@ -49,7 +49,7 @@ class VCall < NodeImpl
     name.identifier
   end
   
-  def typeref:TypeRef
+  def typeref: TypeRef
     TypeRefImpl.new(name.identifier, false, false, name.position)
   end
 
@@ -59,9 +59,11 @@ class VCall < NodeImpl
   def parameters
     @parameters ||= NodeList.new(position)
   end
-  def block:Block
+
+  def block: Block
     nil
   end
+
   def block_set(block)
     raise UnsupportedOperationException
   end
@@ -90,7 +92,7 @@ class Call < NodeImpl
     child block: Block
   end
 
-  def typeref(maybeCast=false):TypeRef
+  def typeref(maybeCast=false): TypeRef
     return nil if parameters.size > 1
     return nil if parameters.size == 1 && !maybeCast
     return nil unless target.kind_of?(TypeName)
@@ -114,7 +116,7 @@ class Colon2 < NodeImpl
     child name: Identifier
   end
 
-  def typeref:TypeRef
+  def typeref: TypeRef
     if target.kind_of?(TypeName)
       outerType = TypeName(target).typeref.name
       if outerType
