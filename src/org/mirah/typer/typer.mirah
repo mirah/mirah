@@ -53,7 +53,7 @@ import org.mirah.jvm.mirrors.*
 # This typer is type system independent. It relies on a TypeSystem and a Scoper
 # to provide the types for methods, literals, variables, etc.
 class Typer < SimpleNodeVisitor
-  def self.initialize:void
+  def self.initialize: void
     @@log = Logger.getLogger(Typer.class.getName)
   end
 
@@ -79,7 +79,7 @@ class Typer < SimpleNodeVisitor
     @macros
   end
 
-  def macro_compiler=(compiler:MacroBuilder)
+  def macro_compiler=(compiler: MacroBuilder)
     @macros = compiler
   end
 
@@ -104,7 +104,7 @@ class Typer < SimpleNodeVisitor
     end
   end
 
-  def inferTypeName(node:TypeName)
+  def inferTypeName(node: TypeName)
     @futures[node] ||= getTypeOf(node, node.typeref)
     TypeFuture(@futures[node])
   end
@@ -128,33 +128,33 @@ class Typer < SimpleNodeVisitor
     TypeFuture(type)
   end
 
-  def infer(node:Object, expression:boolean=true)
+  def infer(node: Object, expression:boolean=true)
     infer(Node(node), expression)
   end
 
   def inferAll(nodes:NodeList)
     types = ArrayList.new
-    nodes.each {|n| types.add(infer(n))} if nodes
+    nodes.each {|n| types.add infer(n) } if nodes
     types
   end
 
   def inferAll(nodes:AnnotationList)
     types = ArrayList.new
-    nodes.each {|n| types.add(infer(n))} if nodes
+    nodes.each {|n| types.add infer(n) } if nodes
     types
   end
 
-  def inferAll(arguments:Arguments)
+  def inferAll(arguments: Arguments)
     types = ArrayList.new
-    arguments.required.each {|a| types.add(infer(a))} if arguments.required
-    arguments.optional.each {|a| types.add(infer(a))} if arguments.optional
-    types.add(infer(arguments.rest)) if arguments.rest
-    arguments.required2.each {|a| types.add(infer(a))} if arguments.required2
-    types.add(infer(arguments.block)) if arguments.block
+    arguments.required.each {|a| types.add infer(a) } if arguments.required
+    arguments.optional.each {|a| types.add infer(a) } if arguments.optional
+    types.add infer(arguments.rest) if arguments.rest
+    arguments.required2.each {|a| types.add infer(a) } if arguments.required2
+    types.add infer(arguments.block) if arguments.block
     types
   end
 
-  def inferAll(scope:Scope, typeNames:TypeNameList)
+  def inferAll(scope: Scope, typeNames: TypeNameList)
     types = ArrayList.new
     typeNames.each {|n| types.add(inferTypeName(TypeName(n)))}
     types
@@ -162,6 +162,7 @@ class Typer < SimpleNodeVisitor
 
   def defaultNode(node, expression)
     return TypeFutureTypeRef(node).type_future if node.kind_of?(TypeFutureTypeRef)
+
     ErrorType.new([["Inference error: unsupported node #{node}", node.position]])
   end
 
@@ -1557,6 +1558,7 @@ class Typer < SimpleNodeVisitor
     return "<source non-existent>" unless node
     sourceContent node.position
   end
+
   def sourceContent pos: Position
     return "<source non-existent>" if pos.nil? || pos.source.nil?
     return "<source start/end negative start:#{pos.startChar} end:#{pos.endChar}>" if  pos.startChar < 0 || pos.endChar < 0
