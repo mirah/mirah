@@ -95,6 +95,11 @@ class ObjectExtensions
     quote { while true do `block.body` end }
   end
 
+  # Casts the target of the call to the type_name.
+  macro def as!(type_name: TypeName)
+    Cast.new(type_name, @call.target)
+  end
+
   macro def self.transient(s:SimpleString)
     FieldAnnotationRequest.new(s,nil,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
       HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("TRANSIENT")]))
