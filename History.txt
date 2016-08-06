@@ -1,3 +1,534 @@
+0.2.0 Back In Action / 2016-8-6
+===============================
+
+a06d030 version bump to 0.2.0
+7be0829 rm some unused ruby files
+0b9efd0 introduce new cast macro to object
+76316b2 some ws cleanup in the typer
+5cf516f fix worked around issue in call where targets don't have the correct parent
+3036f21 do some formatting in parser's call.mirah
+7e77601 rm unnecessary property setting
+3030b05 rm some unnecessary mirah-parser bits and empty Rakefile targets
+2698579 build and depend on the parser when building mirahc
+7180002 bump rakefile -year
+98ad327 fix test names in mirah parser, comment out things that still fail where I'm not sure why
+86725e5 Revert "Merge branch 'uujava-feature_cast_hint'"
+476e7df missing dep in rake graph of asm 5
+b775c12 missed adding a dep on old jar in Rakefile
+54a5735 first step towards an integrated build.
+8b430ee Clean up rakefile now that new scheme works
+ca39001 in ext provider service file, fix small typo
+754336a new build scheme works
+9039106 add mirah parser tests to travis
+7c940ef merged mirah-parser under a directory
+b78196d Merge branch 'uujava-origin_javadoc_support'
+4fb441d Merge branch 'origin_javadoc_support' of https://github.com/uujava/mirah-parser into uujava-origin_javadoc_support
+8e9fa33 Merge branch 'uujava-feature_cast_hint'
+68550ca Merge branch 'feature_cast_hint' of https://github.com/uujava/mirah-parser into uujava-feature_cast_hint
+d23e768 remove some unnecessary variables in the typer
+569f169 substitute getResolvedType in another place where it makes sense
+a07a53e Merge branch 'master' into introduce_getResolvedType
+294fdd8 add note
+8de3893 Merge pull request #32 from uujava/fix_string_key_for_colon_hash_notation
+5634d78 fixed string key for colon hash notation
+65aa71e feature_type_hint: compatibility constructors added
+9e86811 Merge pull request #434 from uujava/refix_test_for_bug_417_java8
+afabc67 fix bug 417: mark test as pending
+a24076c Merge branch 'master' of https://github.com/mirah/mirah into refix_test_for_bug_417_java8
+e881715 fix bug 471: fixture does not compile under java7
+5f89246 Merge pull request #430 from felixvf/fix_testsuite_failure
+d153a77 fix bug 471: fixture does not compile under java7
+8badcf1 support for type hints for field and local assignments (cherry picked from commit 83d97a0)
+8aaf448 latest java7 compiled versions of mmeta
+f0513c7 use latest mmeta version (cherry picked from commit 62f55cf)
+13f386c cast support for right hand side expressions (cherry picked from commit 9160eda)
+19f9788 replace getInferredType().resolve calls with getResolvedType
+504c6c7 Add Code of Conduct
+df50905 Fix test failure.
+2fbd9c4 Backed out: Fix NPE in generic inference.
+febb591 Merge branch 'felixvf-fix_bug_417'
+ec542f6 Fix NPE in generic inference
+e2f2fe1 minor fix after code review
+5e994d0 support varars for macros
+883645e fixed according to baroquebobcat code review
+8191b1f minor fixes in tests for signature read recursion fix
+aaf2bd4 avoid cycles when parsing class signature (cherry picked from commit fab3e42)
+3f484e9 minor fix after code review
+3f63395 remote == macro from numeric extensions. it's correcly handled by object == macro.
+f8faa76 fix == operator for primitives (cherry picked from commit 853b3d6)
+80ee065 minor fix after code review
+05d79eb fix boxing for explicit return (cherry picked from commit 6c10ee2)
+2b9f90a Merge branch 'fix_bug_417' of https://github.com/felixvf/mirah into felixvf-fix_bug_417
+923ec32 Merge pull request #413 from uujava/varargs_for_macro
+7b9c6b6 Merge pull request #394 from uujava/fix_read_signature_recursion
+4f06a1b Merge pull request #412 from uujava/fix_equals_for_primitives
+34169a3 Merge pull request #411 from uujava/fix_boxing_for_explicit_return
+cd85aed minor fix after code review
+6b82c5d minor fix after code review
+2d53555 minor fix after code review
+60c0b5b Merge pull request #410 from uujava/constants_from_static_imports
+9304c72 Merge pull request #425 from felixvf/feature_do_not_link_twice
+e59345f Merge pull request #392 from felixvf/fix_jvm_field_naming
+64aed2a Merge pull request #385 from felixvf/feature_show_filename_of_syntax_error
+9d57ef4 Merge pull request #366 from felixvf/feature_type_future_type_ref
+221802d Do not link if we have already linked. (This could have happened because SimpleMirrorLoader#loadMirror may obtain a BytecodeMirror from its parent which has already been linked.)
+f017956 remote == macro from numeric extensions. it's correcly handled by object == macro.
+24e1b7d Test for bug https://github.com/mirah/mirah/issues/417.
+24eedd7 Only claim files as built if compilation is actually without exceptions.
+7c9195f Fix bug https://github.com/mirah/mirah/issues/417.
+c31ccf9 support varars for macros
+8c81db6 fix == operator for primitives (cherry picked from commit 853b3d6)
+2aed71d fix boxing for explicit return (cherry picked from commit 6c10ee2)
+04a6d42 support for using constants from static imports
+e319d64 add comments to call.mirah
+7309af7 fixed according to baroquebobcat code review
+f502853 minor fixes in tests for signature read recursion fix
+9249038 avoid cycles when parsing class signature (cherry picked from commit fab3e42)
+b20dbe7 add test case for curly vs do end priority
+1c49718 Merge branch 'felixvf-fix_bug_388'
+836abdb Merge branch 'fix_bug_388' of https://github.com/felixvf/mirah into felixvf-fix_bug_388
+d9a6435 some whitespace in logger
+a7317d3 MirahCommand.main should exit with the exit code of whatever it ran
+613892b Merge branch 'felixvf-fix_ant_incompatibility'
+3a92cc0 Merge branch 'fix_ant_incompatibility' of https://github.com/felixvf/mirah into felixvf-fix_ant_incompatibility
+51d1d78 rename binding_adjuster file
+e967247 If we use JVMMethod as JVMField, then we should call it JVMField.
+559d514 Comment on desirability of an assert facility.
+462d375 Fix bug https://github.com/mirah/mirah/issues/388.
+e279146 Test for bug https://github.com/mirah/mirah/issues/388.
+f1d41da If we find that a capture has no type, then fail early.
+0e28687 Merge branch 'uujava-fix_nested_closures'
+ca167c4 Merge branch 'fix_nested_closures' of https://github.com/uujava/mirah into uujava-fix_nested_closures
+46af807 add notes to TODO
+b55c91c add some whitespace to test/mirrors/method_lookup_test.rb
+59a27a4 reimplement test for nested closures fix for master branch
+c72fe14 added test for deep closures with binding (cherry picked from commit abc75de)
+4bc2d67 fixed hierarchical closures (cherry picked from commit fdec57b)
+1cce3b8 If we encounter a SyntaxError, then we should provide the filename where that error happens.
+909ee67 Test that an exception triggered by a syntax error actually has a message containing the name of the file where the syntax error happens.
+a278535 Do not unpack Exceptions to their cause.
+47d81ce Fix whitespace.
+13bcded Merge pull request #384 from felixvf/fix_bug_383
+624f0e0 Fix code which made use of bug https://github.com/mirah/mirah/issues/383.
+37f9733 Improve tests.
+2395911 Improve readability.
+7b7f471 Fix bug https://github.com/mirah/mirah/issues/383.
+2581f69 Test for bug https://github.com/mirah/mirah/issues/383.
+0af6095 update examples w/ better formatting
+e41a821 ws and paren usage adjustments in some examples
+cfbb689 compiling each class should be logged at fine not info
+e93cca1 merge issue: fixed broken commit: 23460a5 issues/#23
+9c5f0f7 adjust copyright year
+10844a9 Merge pull request #374 from uujava/unboxing_numeric_operators
+863f3d1 Merge pull request #373 from uujava/optional_arguments_for_macro
+74568fb rm usages of imports with string arguments in examples
+fd7812a Merge pull request #378 from felixvf/fix_bug_369
+68968b5 Fix bug https://github.com/mirah/mirah/issues/369.
+5af2a7f Test for bug https://github.com/mirah/mirah/issues/369.
+8bb9632 java doc support
+c1fa175 Merge pull request #28 from uujava/unsigned_shift_operator
+f2b68da Merge pull request #376 from uujava/abstract_class_closure_test
+96255c1 added a test for blocks over abstract class accepting itself as a closure in static method
+2fb2d32 operators support for primitive wrappers
+04e03ac support for unsigned shift operator
+bf92ec2 use .each for Iterable of services
+02c66b0 move array extensions to mirror type
+a6aec7e macro resgistration using java services SPI (cherry picked from commit 8ef0438) merged with mirah master.
+7c956c0 optional macro arguments: fix tests and alignment
+12c24c3 optional arguments for macro: register separate macro for each optional argument (cherry picked from commit 19b49e6)
+5292a0f Merge pull request #370 from uujava/support_source_encoding
+4b11204 fixed minor issues. made utf8 default encoding. added test for cp1251 encoding
+02fe889 fixed minor issues. made utf8 default encoding. added test for cp1251 encoding
+f2295b9 sort imports in mirror generics test
+036ae5c add verbose option arg to test compile helper
+2e5ffbd Typer: only debug log source if the type is unknown
+85f623d whitespace in README
+94f690d Merge pull request #347 from KeenS/remove-edb
+34075a4 Merge branch 'KeenS-fix-examples'
+cebfd58 Merge branch 'fix-examples' of https://github.com/KeenS/mirah into KeenS-fix-examples
+cb95d82 clean up readme, add note about where to get the latest jar
+9141716 change deprecation notice wording
+2615ed5 mirahc support for -encoding option like javac (cherry picked from commit b4af32b)
+9cd5edd Merge pull request #368 from felixvf/fix_type_invoker_array_on_type_variable_bug
+c0d68cb Fix crash when operating on arrays of type variables.
+5818ba7 Update ASM dependency.
+e968a41 Use ASM5 API.
+21b8150 Test whether TypeInvoker can operate on arrays of type variables.
+9422f30 Merge pull request #356 from felixvf/fix_bug_355
+6e7c15e Merge from master.
+681f3a4 Merge pull request #325 from felixvf/featureset_ruby_collections
+97a85f0 Differentiate between #first, #first!, #last, #last!.
+4350f2e Merge from master.
+8040d76 Dynamically infer the type of the array generated by #mapa.
+fb7466c Test for dynamically inferring the type of the array generated by #mapa even if that type is defined later.
+a20aa42 Support for construcing ASTs refering to TypeFutures.
+b3c724f Merge pull request #362 from felixvf/fix_bug_361
+971f161 Fix bug https://github.com/mirah/mirah/issues/361.
+7cd6afd Test for bug https://github.com/mirah/mirah/issues/361.
+8b41384 Honor tabulators and other white space when underlining.
+044a4fd Merge pull request #358 from felixvf/fix_bug_357
+221174a Replace #resolve by #peekInferredType.
+d898c0b Replace #resolve by #peekInferredType.
+c260ed1 Test for another variant of bug https://github.com/mirah/mirah/issues/357.
+6bd71a6 If the supertype of a MirrorFuture is an ErrorType, then the MirrorFuture is apparently not resolved.
+8274dea Test for bug https://github.com/mirah/mirah/issues/357.
+15dfe07 Raise error early if the name of an error type is to be used.
+f06406e Merge from master.
+5f6e8bd Merge branch 'felixvf-feature_only_new_closures'
+a931dae Merge branch 'feature_only_new_closures' of https://github.com/felixvf/mirah into felixvf-feature_only_new_closures
+be60ae7 remove return respecting comment
+2fee3ba revert changes around puts
+9f93a62 Merge branch 'master' into fix-examples
+f447f1b Remove code which has become unnecessary.
+1a72ffc Specify return type.
+7aa8eca Factor-out AstChecker.maybe_check.
+03602cf Factor-out AstChecker.maybe_check.
+ec49847 Comment on the purpose of AstChecker.
+3241d7d Comment on why we infer MethodDefinitions being used as templates for abstract classes.
+f4ca8a2 Remove unnecessary statement.
+a124414 Remove unnecessary code.
+f49f38f Raise an error if the block's parent is neither a Call nor a SyntheticLambdaDefinition.
+c2919c9 Revert determining whether a binding was generated or not. We do not need to know it anymore.
+b3db68a Comment on ConstructorCleanup ignoring ClassDefinitions and ClosureDefinitions.
+8550269 Fix whitespace.
+5a073d9 Remove unnecessary imports.
+868d8da Merge pull request #27 from felixvf/feature_synthetic_lambda_definition
+0e24489 clean up mirror loader debug output a little
+60f1539 add some small improvements to the mirah -> mirah type printer
+99a8709 allow imports in rescues
+62e7175 maybe get static imports working with new closures
+13dc1e8 add static import block test
+1c8a6ba Defer temporary variable names to which-ever top-level Scope is reachable, as ScriptScope is currently not always top-level. This fixes bug https://github.com/mirah/mirah/issues/355.
+83b97d3 Defer temporary variable names to the top-level ScriptScope.
+8defb35 Test for bug https://github.com/mirah/mirah/issues/355.
+368c66e Make synthetic variables inacessible (and thus inclashable) from the user language.
+729e738 Make synthetic variables inacessible (and thus inclashable) from the user language.
+de3993a Implement SyntheticLambdaDefinition.
+b489ab8 Remove old closures implementation.
+af3c037 No need to check whether variables are captured by methods of block anymore.
+02387fd Work around compiler bug for the time being.
+e81af7e Print inferred types next to AST.
+68e8478 If a method is directly in a block, then "return" has no meaning until this method is copied into a ClosureDefinition.
+c57d512 If a method is directly in a block, then do not consider this as a full method.
+cdd40e7 Test for whether a method is directly in a block.
+5cd9bfc A local is also captured in a scope if that scope contains a block which contains a method which refers to such a local.
+f927d7e Test for lambda blocks which contain methods.
+44cab6b Simplify insert location computation of ClosureDefinition.
+dd7876e Fix case where SyntheticLambda is a call target.
+681d7c8 Test for direct invocation on result of lambda.
+fcb4224 Revert to old behavior. A variable is captured in a scope if it is a local variable in the scope and its parent scope and there is a child scope (that is, a child block scope) where this variable is aactually used.
+0879368 Test for 2 closures capturing different variables.
+e18cf23 More complex closure test.
+e8d8c16 Decide when to emit FieldAccess or LocalAccess depending on whether the name of the binding matches the parent scope's binding.
+1313bba Fix.
+8190258 Do not invoke AstChecker by default.
+50aaa29 If a binding was not generated for the current block, then any binding is from enclosing blocks.
+b918a71 But then, there are old Block instances and there are clones of these and we need to keep track of all of them.
+dfd5d14 Go back to cloning instead of reusing the body of the closure.
+47ff54d More logging.
+ba34578 Fix logging message.
+64063c5 Do not emit a FieldAccess but a LocalAccess even if the binding has not been generated for our block, but for a sibling block.
+c254b82 Calculate captured fields from the inner scope, not from the outer scope.
+2d8cbb4 Copy ClosureScope into MethodScope when converting closure into method.
+1955768 Define #get_inner_scope.
+294ecac A variable is captured in a scope if it is a local variable in the scope and its parent scope. Child scopes are not relevant here.
+2b66141 Allow to set a scope for a node.
+e03086c Copy parent as well.
+a4aab57 Ability to copy MethodScope from ClosureScope.
+bca521d Generate closure instantiation directly after binding adjustment, such that next binding adjustment can also adjust the closure instantiation code itself (which in turn has an access to a binding local variable, which may be transformed into a binding field access).
+45535de Implement #find_enclosing_method, #find_enclosing_method_body.
+0f6a89f Print AST after adjusting a closure.
+0f5d298 Perform AST checks during closure generation.
+56c7ec3 Process closures from outside to inside.
+16ad81f Perform AstChecks before and after letting typer run.
+9f2fa25 Do not clone the body of the block of the closure, move it.
+42b32bc Do not descent into classes which just happen to be defined in the scope which gets a closure, but are otherwise unrelated.
+c0f5412 Test for doubly nested lambda.
+000b1c9 Lambda closures work now.
+a6acb7c Use SyntheticLambdaDefinition.
+374e455 Test for coexistence of lambda with other closures.
+7c88ca0 More logging.
+6adefcc Try to adapt.
+dd79d57 Remove reference to old ClosureBuilder.
+669c4b0 Implement AstChecker.
+98d3686 Fix AstFormatter closing bracket location
+0b1e854 Relax requirements when to call the superclass constructor.
+f15f5cf Do not require static scope for resolving static imports.
+2d4ab2b Make ClosureScope have its own imports.
+df7719b Remove internal "new_closures" flag. Deprecate "--new-closures" command line flag.
+3a55c7a Test what happens if Super is not the first node in a constructor due to ClosureDefinitions and LocalAssignment of a Binding object.
+457cd71 Test for static import in closure.
+31939dd Move ClosureBuilderer to "better_closures.mirah".
+680e740 Unshadow shadowed test.
+816a925 Macro int#times is not available in old compiler.
+56a2bef Merge pull request #343 from felixvf/feature_protected_methods
+d66a248 Merge from master.
+08de5f2 Merge pull request #349 from felixvf/fix_missing_0_arguments_puts
+e6ec8ee Merge pull request #333 from felixvf/featureset_rubystyle_string
+4394b90 Clarify that block-argument is optional.
+a01746b Refine comments.
+ca9b0ad Use #to_array to yield a Java [] array, reserve #to_a to yield a Java List.
+65340e2 Fix documenting comments.
+a7fffbe Merge pull request #338 from felixvf/feature_efficient_equals
+7b08338 Apply suggestion from review.
+b0175b2 Make ant sources explicit.
+04c65d4 Merge pull request #308 from felixvf/feature_native_methods
+f4d1703 Test for semantics and side effects of #==().
+03a4cd0 Support 0-arguments block for String#each_codepoint.
+48b0778 Document what this macro does.
+9f8f666 Merge pull request #301 from felixvf/feature_synchronized_methods
+59f0f70 Support "protected" on a list of methods.
+e4ec494 Nicer comment.
+6ed95ba Use #isMacro if we have it available.
+4aab793 Merge pull request #311 from felixvf/feature_string_to_int
+39c9796 Small refinements.
+a086ed2 Testcase for bug https://github.com/mirah/mirah/issues/345.
+9166cfe Enable static 0-arguments puts().
+1bfbccd Refactor.
+1d0a0c4 Compile macro library with new compiler, not with old compiler.
+2e5e973 Do not implement static puts() macro with 0 arguments now, as we need a new compiler binary for this.
+e42f9e1 Implement puts() with 0 arguments.
+1aadffa Test puts() with 0 arguments.
+607c091 Make 0-arguments instance macro coexist with 0-arguments static macro with the same name.
+3984ea3 Fix bug https://github.com/mirah/mirah/issues/345.
+2e3a142 Test "examples/rosettacode/fizz-buzz.mirah".
+70316d2 Make configurable which mirahc.jar to choose.
+b145d00 remove edb examples
+ca11a0e fix examples
+efee957 Merge pull request #336 from felixvf/feature_logging_optimization
+541b691 Merge pull request #302 from felixvf/feature_static_final_fields
+4cfc2eb Merge pull request #342 from felixvf/fix_jruby9000_compatibility
+86b2b68 Merge pull request #339 from felixvf/fix_bug_335
+63116c1 Fix JRUBY9000 compatibility.
+83219e6 Merge pull request #329 from felixvf/fix_bug_328
+def29c2 Remove ugly hack.
+daa6d44 Fix indentation.
+b9b35ca Disable #verify_columns for the time being, as it is currently not usable, as the columns created by macro "quote" are currently not satisfying #verify_columns.
+2559069 Check for matching columns in "def ...; ...; end" and other blocks ended with "end".
+26edbc8 Adapt to more modern MMeta.
+b53ecbb Merge pull request #341 from felixvf/fix_initialize_warning
+c6ba2f4 Merge pull request #327 from felixvf/fix_dynamic_class_body_extension_bug
+b6e2f50 Use more modern MMeta.
+8fc3f74 Test "protected" on a nested list of methods.
+97ab9dc Fix warning that "initialize" and "self.initialize" may conflict, when they actually do not conflict.
+62fcee6 Work around too-early pick bug.
+0056879 Work around gensym clash bug.
+949aec5 Work around gensym clash bug.
+877435f Simplify.
+e7b8959 Use #isFullyResolved().
+2c92376 Use the optimized Logger implementation. This improves compilation speed by factor 1.4.
+e911c0c Optimized Logger implementation.
+7542df3 Standardize logging.
+93571df Infrastructure for #isFullyResolved().
+c6e0fe5 Fix inheritance of interfaces in any order.
+59b9fde Cache Array types instead of regenerating them repeatedly.
+5c293e2 Do not perform superfluous extra-notify.
+f7bcfc2 If an interface is resolved, but it is resolved to an error, then it is not (yet) resolved.
+f4302df Use #peekInferredType instead of #resolve.
+36154f0 Return the same object, regardless of whether we cache or not.
+18df522 Use #peekInferredType instead of #inferredType.
+de98b0d Instead of triggering resolve, just peek inferred type.
+6845ef6 Do not resolve to nil. Better resolve not at all.
+a2c57f6 Implement MirrorFuture#peekInferredType.
+efeac3c Adjust tests to new naming of TopLevel class.
+5927691 Fix bug where the name of the enclosing class of a closure was separately (and wrongly) synthesized.
+2200dc2 Work around bug where class name defined in source code is already used by the enclosing top level scope.
+fb76b12 Test for bug where class name defined in source code is already used by the enclosing top level scope.
+261fc7b Do not generate ErrorType instance until actually needed.
+1ad72d9 Initial draft to fix bug https://github.com/mirah/mirah/issues/335.
+f57d236 Test whether compilation works when we define a superinterface late.
+63a7f37 Test for bug https://github.com/mirah/mirah/issues/335.
+f7736c9 Fix MirahClassLoader bug, where the binary name of the class (as of the Java Language Specification) was not properly deduced.
+dc8c01d Reimplement Object.==(). The previous implementation evaluated each operand more than once, resulting in inefficient bytecode.
+375db86 Merge branch 'felixvf-feature_testcase_bug_320'
+21fbc3c Merge branch 'feature_testcase_bug_320' of https://github.com/felixvf/mirah into felixvf-feature_testcase_bug_320
+fba48ac whitespace in string_compiler
+6719c7f Merge branch 'felixvf-fix_bug_322'
+14f5ce8 Merge branch 'fix_bug_322' of https://github.com/felixvf/mirah into felixvf-fix_bug_322
+2b7e30a bump copyright year for matcher_extensions
+a5b548d Merge branch 'felixvf-feature_string_match'
+dc269b5 Merge branch 'feature_string_match' of https://github.com/felixvf/mirah into felixvf-feature_string_match
+037c95c bump copyright year for object_extensions_test
+5f3dd89 Merge branch 'felixvf-feature_object_tap'
+9638ea0 Merge branch 'feature_object_tap' of https://github.com/felixvf/mirah into felixvf-feature_object_tap
+08085a6 Merge branch 'felixvf-feature_inner_interfaces'
+5bdc681 Merge branch 'feature_inner_interfaces' of https://github.com/felixvf/mirah into felixvf-feature_inner_interfaces
+3fef460 Merge branch 'felixvf-master'
+1e79011 Merge branch 'master' of https://github.com/felixvf/mirah into felixvf-master
+589062d Merge branch 'felixvf-feature_array_map'
+6c22c76 Merge branch 'feature_array_map' of https://github.com/felixvf/mirah into felixvf-feature_array_map
+d7592ca add join(separator) to Collections extensions
+605d38a Merge branch 'felixvf-feature_collection_join'
+ac458ec Implement String#each_codepoint.
+da6ce70 If we support inner classes, then we should also support inner interfaces.
+83fac43 Test Collection.<<().
+6fbb826 Implement Collection.<<().
+7ee1db1 Do not copy the grandchildren in Unquote#nodes, as the child may actually be a ProxyNode, and the currently selected grandchild may not be the correct final grandchild, resulting in subtle compilation errors. This fixes https://github.com/mirah/mirah/issues/330.
+1e0db3a Define Hash#each.
+be94373 Fix bug https://github.com/mirah/mirah/issues/328 .
+bdb6d9d Test for closure on interface which is not defined at the time the closure is encountered. This tests for bug https://github.com/mirah/mirah/issues/328 .
+a05ed3c Fix bug where changes to a class body during execution of a macro were not reflected if the macro was the last element of the body of the class.
+13e6933 Test for possibility to add a method to a class during execution of a macro within that class, even if the macro is the last element of the body of the class.
+1f53dd3 Test for possibility to add a method to a class during execution of a macro within that class.
+ad5eae1 Implement [].new(size.block) for Java-arrays.
+722ab47 Test []#size.
+b325b25 Test Collection#mapa.
+7264894 Test #join(separator).
+8f2443d Test []#join().
+dce3517 Test Collection#join().
+b812438 Move #first, #last from List to Collection.
+ac4b0b1 No fix currently available.
+fb82d7c Define Collection#to_a(basetype).
+01639af Define Iterable#each_with_index.
+54ac8af Move []#mapa to CollectionExtensions#mapa.
+0f56a6a Define []#size.
+bf54440 Define []#isEmpty.
+a0f30f5 Remove []#map, as this is now handled by CollectionExtensions.
+a84a7b1 Move []#join(separator) to CollectionExtensions#join(separator).
+7f01e6a Remove no-arg []#join, as this is now handled by CollectionExtensions.
+a5599bd A Java-native array is a special type of collection, at least for purposes of which macros we want to apply on it.
+2dd9365 Implement []#mapa.
+84a8f30 A StringEval should be evaluated once, not possibly multiple times if it has more than 1 children. This fixes https://github.com/mirah/mirah/issues/322 .
+541f92b Test for bug https://github.com/mirah/mirah/issues/322 .
+6f68fa5 Implement []#as_list.
+af000e3 Implement []#each_with_index.
+8683eca Make ListExtensions#sort!(comparator), ListExtensions#sort(comparator) able to process java.util.Comparators.
+d8ffbf7 Choose more precise test names.
+5df99c6 Make ListExtensions#sort!(comparator), ListExtensions#sort(comparator) able to process block-form comparators.
+2a7d128 Make test more specific.
+3bf01bc Implement []#join().
+04b8255 Implement []#join(separator).
+3d092d7 Implement []#sort, []#sort!, []#dup.
+bd4db83 Support String#match.
+d7a3049 Test for bug mirah/mirah#320.
+ba626b4 Support Object#tap.
+01504c8 Prevent calling System.exit in Mirah.run().
+de04b79 Implement support for native methods.
+edacd65 whitespace and formatting
+9ad36c0 Merge branch 'uujava-fix_boxing_for_casts'
+f331656 Merge branch 'fix_boxing_for_casts' of https://github.com/uujava/mirah into uujava-fix_boxing_for_casts
+5c88493 Merge branch 'felixvf-feature_list_sort'
+d03b037 Merge branch 'feature_list_sort' of https://github.com/felixvf/mirah into felixvf-feature_list_sort
+03f17da use env helpers for classpath encoding in arguments test
+61b9949 Merge branch 'uujava-fix_rake_for_windows'
+722a1dc Merge branch 'fix_rake_for_windows' of https://github.com/uujava/mirah into uujava-fix_rake_for_windows
+5b65c51 fix unboxing issues (cherry picked from commit d348ada)
+55e6cfb fix rake tests to run under windows (cherry picked from commit 37edb12)
+11bed6e Merge branch 'felixvf-feature_collection_select'
+9f1741a Merge branch 'feature_collection_select' of https://github.com/felixvf/mirah into felixvf-feature_collection_select
+321f6fe move class literal filter into getAllDeclaredMethods so innerclasses are not listed as declared methods
+48465b7 Merge branch 'felixvf-feature_testcase_bug_297'
+9845310 Merge branch 'feature_testcase_bug_297' of https://github.com/felixvf/mirah into felixvf-feature_testcase_bug_297
+c88f34a skip unresolved imports when generating macro templates
+9b56eb2 Merge branch 'felixvf-feature_testcase_bug_293'
+0c8e899 Merge branch 'feature_testcase_bug_293' of https://github.com/felixvf/mirah into felixvf-feature_testcase_bug_293
+f9d18b1 rm logging comments in block tests
+7695e36 add test for field signature; refactor a little.
+6bc530f Merge branch 'shannah-field_signature_fix'
+c134ff4 Merge branch 'field_signature_fix' of https://github.com/shannah/mirah into shannah-field_signature_fix
+29e2787 add license comment block & switch to string interpolation in simple character math example
+cb6b853 Merge branch 'aspleenic-master'
+98c9144 Merge branch 'master' of https://github.com/aspleenic/mirah into aspleenic-master
+f811632 add cast checking to closures; fix nested bindings
+253fbee When emitting native methods, do not emit an implementation.
+9ad1ccb Implement List#first, List#last.
+61025ec put a bit more work into TypePrinter2
+751c692 Implement []#map.
+d68b5ee Fix typo.
+e56c061 Use more modern JRuby version.
+56487a2 Bump version.
+0c25ae2 Implement java.lang.String#to_int.
+c17fbd0 Use 'test-unit' gem version 3.0.
+33492a5 add type checks in blocks that have casts
+cc985f8 better error to stdout on parse failures
+cdab381 missed a == check
+ec89ff4 generate bridge methods for closures if they include type declarations in their args
+645eaa9 add block tests for binding names
+cf10112 Fix mirah/mirah#297.
+5c8085b Implement java.util.List#sort().
+a657d3c Implement java.util.List#sort(comparator).
+6ad60a9 Support transient fields.
+bae1b0d Make static_final a standard macro.
+33ee744 Support multiple FieldAnnotationRequests per field.
+c0a54d0 Honor FieldAnnotationRequests.
+97907d7 Support static final long fields.
+acf8423 Deprecate poor-man's splat-operator.
+e4baf96 Add FieldAnnotationRequest.
+5913f64 Add FieldDeclaration#value.
+95dfce8 Merge pull request #26 from felixvf/fix_bug_mirah-parser_25
+7a1fd3a Merge pull request #24 from felixvf/fix_bug_mirah-parser_23
+a900c10 Fix bug https://github.com/mirah/mirah-parser/issues/25 for DStrings.
+a13ebdf Fix bug https://github.com/mirah/mirah-parser/issues/25 for SStrings.
+42af39e Testcase for bug https://github.com/mirah/mirah-parser/issues/25.
+23460a5 Fix bug https://github.com/mirah/mirah-parser/issues/23.
+87dbc31 Test for bug https://github.com/mirah/mirah-parser/issues/23.
+c0285f6 Adjust FieldDeclaration uses.
+329d076 Remove dependencies on MMeta version whose source code is missing.
+8e1dc92 Update "mirah-parser.jar".
+b06fbfe Test for bug https://github.com/mirah/mirah/issues/330.
+54c6708 Test for bug https://github.com/mirah/mirah-parser/issues/25.
+37479b1 Create MirahError#diagnostic.
+9699ad5 Test for bug https://github.com/mirah/mirah-parser/issues/23.
+62c8cf7 Add Collection#join macro.
+1f506d8 Implement synchronized methods. This closes mirah/mirah#221.
+db3832f Add Collection#select macro.
+0c67175 Return proper status code when being called using bin/mirahc.
+2d1af0d remove forced finest logging in better_closures
+a9fa8e2 comment out finest logging
+b5d7b62 add testcase for uujava's changes
+286ae85 Test whether block syntax works when applied to inner interfaces.
+ae651ae Merge branch 'master' of https://github.com/uujava/mirah into uujava-master
+d251904 Test whether compiling 2 files which reference each other and have macros works. One time when importing the other file implicitly, one time when importing the other file explicitly.
+30e8055 Support test-compiling multiple code files in one go.
+f97cd43 Prevent calling System.exit when being embedded into a JVM (e.g. being embedded into ant).
+39163b2 fix null package for new-closures binging
+fb76eaf update maven release instructions slightly.
+d493e40 add a couple tests for method accessibility modifier
+c93df5b Merge branch 'shannah-fix_access_control_flags_for_methods'
+d7c8506 Merge branch 'fix_access_control_flags_for_methods' of https://github.com/shannah/mirah into shannah-fix_access_control_flags_for_methods
+0ba26cb rm completed todo
+7aa407e Added guard in method signature reader so that it skips the signature in field members.  This is just a temporary measure to defer this part of the implementation whilst still retaining the string signature for a field in case other code wants to process it.
+3658cc9 Set signatures in field members of ByteCodeMirrors
+1b15c39 move extension tests into own directory
+3e2cb67 Merge branch 'include_comment_whitespace_in_lexer'
+257f921 minor whitespace change
+bf0a4cc skip java 8 dependent test on earlier javas
+150f50f add test / refactor for default method support
+b9842f9 [mirah] support for java 8 interface virtual extension methods (#279)
+b334669 initial impl of case statement parsing
+c92edd5 test refactor: extract assert_run_output
+d53f6c7 maven.org requires https
+8574e01 missed a file in the == / === change
+7a4bbde bump todos
+54b6fe0 change == / === meaning
+2ccb2d1 add !== support
+1980e6d use an array to get mirahc in the gem closes #278
+cd96cda rm last duby file in src/. It's unused.
+00799c8 replace == nil with nil? in some examples
+1fa9cf7 explicitly rm the pkg directory during clean
+11038a8 add option to compile macros to separate destination
+de51072 separate build dirs for different jar run outputs, add ws
+1c029fd add comment in tests to handle poor syntax highlighting issues
+a3148a2 rm unused test helper file
+9e0277e add comment / rm unused method from Scope interface
+b562663 refactor calculateFlagsFromAnnotations to make it a bit less arrow-y
+122d77c TODO for adding each to Map
+0bffd26 add empty? to collection extensions
+a250ee4 add public/private/etc to TODOs
+ffe16d1 add j.u.concurrent.Lock extension -- synchronize
+65e98fd use new closures as default test compiler, fix pending blocks test wrt null arguments AST
+5173228 bump todos
+21631db rm completed TODO from Rakefile
+a32267a add more todos
+9e2cd42 rm / rm references to src/mirah/impl/builtins.mirah since it's now unused
+67d8898 update classpath chosing to look at env
+2f4934a Removed .DS_Store file.
+fe7d9f4 Added support for including comment and whitespace tokens in lexer. https://github.com/mirah/mirah-parser/issues/14
+3f4c7e9 Added support for private, protected, and package_private keywords on method definitions.  Should probably add them for classes as well, but haven't done that yet. https://github.com/mirah/mirah/issues/220
+4b7178f Adding an example of simple character math.  It asks for name input then counts the characters in the name.
+1d9b144 - Use new AttrAssign and ElemAssign nodes. - Fix bug using treating plain assignment like op_assignment. - Fix [return if x]. - Add a test for parent being set.
+
+
 === 0.1.4 November Chill / 2014-11-13
 
 d73e6d4 ignore ruby version management / test temp files
