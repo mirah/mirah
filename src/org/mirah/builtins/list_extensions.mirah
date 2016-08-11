@@ -24,7 +24,9 @@ class ListExtensions
   end
 
   macro def []=(index, value)
-    quote { `@call.target`.add `index`, `value` }
+    quote {
+     `@call.target`.set `index`, `value`
+    }
   end
 
   # Sort this List in-place, using the supplied Comparator.
