@@ -45,7 +45,7 @@ INSTALL
 
 ### RUBY
 
-If your gem and rake are not from from JRuby, prefix the commands with `jruby -S`
+If your gem and rake are not from JRuby, prefix the commands with `jruby -S`
 
     $ gem install mirah
 
