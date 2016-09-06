@@ -748,16 +748,17 @@ parser MirahParser {
        | unquote
        | i=identifier -> ^(Constant i);
 
+  # NB: more explicit widening of casts that don't necessarily typecheck
   # JRuby allows primary_value in cpath. Do we want that?
   $Returns[TypeName]
   cpath: colon3 n=cname -> ^(Colon3 n)
-       | n=cname {a=TypeName(n)} (dot_or_colon b=cname a=->^(Colon2 a b))* {a}
+       | n=cname {a=TypeName(Object(n))} (dot_or_colon b=cname a=->^(Colon2 a b))* {a}
        ;
 
   $Returns[TypeName]
   type: n=(cpath)
-        ( $LBrack $RBrack {TypeRefImpl.new(TypeName(n).typeref.name, true, false, n.position)}
-        | {TypeName(n)}
+        ( $LBrack $RBrack {TypeRefImpl.new(TypeName(Object(n)).typeref.name, true, false, n.position)}
+        | {TypeName(Object(n))}
         );
 
   superclass: $LT cpath # Should this be expr_value instead of cpath?

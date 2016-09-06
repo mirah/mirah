@@ -28,7 +28,6 @@ javalib/mirah-compiler.jar
 javalib/mirah-mirrors.jar
 javalib/mirahc-prev.jar
 javalib/asm-5.jar
-javalib/mirah-parser.jar
 
 # git ignore netbeans files
 

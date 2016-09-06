@@ -79,7 +79,7 @@ end
 namespace :test do
 
   desc "run parser tests"
-  Rake::TestTask.new :parser => ['build/mirah-parser.jar'] do |t|
+  Rake::TestTask.new :parser => ['dist/mirah-parser.jar'] do |t|
     t.test_files = FileList["mirah-parser/test/**/test*.rb"]
   end
 
@@ -247,6 +247,108 @@ end
 def bootstrap_mirah_from(old_jar, new_jar)
   name = new_jar.gsub /[\.\/]/, '_'
 
+  # Mirah Parser build tasks
+
+  mirah_parser_build_dir = "build/#{name}-parser"
+  mirah_parser_jar = "build/#{name}-parser.jar"
+  mirah_parser_gen_src = "#{mirah_parser_build_dir}-gen/mirahparser/impl/Mirah.mirah"
+
+  parser_node_meta_class = "#{mirah_parser_build_dir}/org/mirahparser/ast/NodeMeta.class"
+  parser_node_java_gen_src = "#{mirah_parser_build_dir}-gen/mirahparser/lang/ast/Node.java"
+  parser_node_class = "#{mirah_parser_build_dir}/mirahparser/lang/ast/Node.class"
+  parser_meta_src = 'mirah-parser/src/org/mirah/ast/meta.mirah'
+  prev_jar = old_jar  #'javalib/mirahc-prev.jar'
+  directory "#{mirah_parser_build_dir}/mirah-parser/mirahparser/impl"
+
+
+  file mirah_parser_jar => ["#{mirah_parser_build_dir}/mirahparser/lang/ast/Node.class",
+                                    "#{mirah_parser_build_dir}/mirahparser/impl/MirahParser.class",
+                                    "#{mirah_parser_build_dir}/mirahparser/impl/MirahLexer.class"] do
+    ant.jarjar 'jarfile' => mirah_parser_jar do
+      fileset 'dir' => mirah_parser_build_dir, 'includes' => 'mirahparser/impl/*.class'
+      fileset 'dir' => mirah_parser_build_dir, 'includes' => 'mirahparser/lang/ast/*.class'
+      fileset 'dir' => mirah_parser_build_dir, 'includes' => 'org/mirahparser/ast/*.class'
+      zipfileset 'src' => 'mirah-parser/javalib/mmeta-runtime.jar'
+      _element 'rule', 'pattern'=>'mmeta.**', 'result'=>'org.mirahparser.mmeta.@1'
+      manifest do
+        attribute 'name'=>"Main-Class", 'value'=>"mirahparser.impl.MirahParser"
+      end
+    end
+  end
+
+  number = new_jar.scan(/dist\/mirahc(\d+)?.jar/).first.first
+  dist_mirah_parser_jar = "dist/mirah-parser#{number}.jar"
+
+  file dist_mirah_parser_jar => mirah_parser_jar do
+    # Mirahc picks up the built in classes instead of our versions.
+    # So we compile in a different package and then jarjar them to the correct
+    # one.
+    ant.jarjar 'jarfile' => dist_mirah_parser_jar do
+      zipfileset 'src' => mirah_parser_jar
+      _element 'rule', 'pattern'=>'mirahparser.**', 'result'=>'mirah.@1'
+      _element 'rule', 'pattern'=>'org.mirahparser.**', 'result'=>'org.mirah.@1'
+      manifest do
+        attribute 'name'=>"Main-Class", 'value'=>"mirah.impl.MirahParser"
+      end
+    end
+  end
+
+  file "#{mirah_parser_build_dir}/mirahparser/impl/MirahParser.class" => [
+      prev_jar,
+      mirah_parser_gen_src,
+      parser_node_meta_class,
+      "#{mirah_parser_build_dir}/mirahparser/impl/MirahLexer.class",
+      #"#{mirah_parser_build_dir}/mirahparser/impl/Tokens.class",
+    ] do
+    compile_mirah_with_jar prev_jar,
+                           mirah_parser_build_dir,
+                           [mirah_parser_gen_src],
+                           [mirah_parser_build_dir,
+                            'mirah-parser/javalib/mmeta-runtime.jar',
+                             prev_jar],
+                            clean=false
+  end
+
+  file parser_node_meta_class => parser_meta_src do
+    compile_mirah_with_jar prev_jar,
+                           mirah_parser_build_dir,
+                           [parser_meta_src],
+                           [mirah_parser_build_dir, prev_jar],
+                           clean=false
+  end
+  parser_ast_srcs = Dir['mirah-parser/src/mirah/lang/ast/*.mirah'].sort
+  file parser_node_class =>
+      [prev_jar, parser_node_meta_class] + parser_ast_srcs do
+          compile_mirah_with_jar prev_jar,
+                           mirah_parser_build_dir,
+                           parser_ast_srcs,
+                           [mirah_parser_build_dir,
+                            'mirah-parser/javalib/mmeta-runtime.jar', prev_jar],
+                           clean = false
+  end
+
+  parser_java_impl_src = Dir['mirah-parser/src/mirahparser/impl/*.java'].sort
+  parser_lexer_class = "#{mirah_parser_build_dir}/mirahparser/impl/MirahLexer.class"
+  file parser_lexer_class => parser_java_impl_src do
+    ant.javac 'srcDir' => 'mirah-parser/src',
+        'destDir' => mirah_parser_build_dir,
+        'source' => '1.6',
+        'target' => '1.6',
+        'debug' => true do
+      include 'name' => 'mirahparser/impl/Tokens.java'
+      include 'name' => 'mirahparser/impl/MirahLexer.java'
+      classpath 'path' => "#{mirah_parser_build_dir}:mirah-parser/javalib/mmeta-runtime.jar"
+    end
+  end
+
+  file mirah_parser_gen_src => 'mirah-parser/src/mirahparser/impl/Mirah.mmeta' do
+    ant.mkdir 'dir' => "#{mirah_parser_build_dir}-gen/mirahparser/impl"
+    runjava '-jar', 'mirah-parser/javalib/mmeta.jar',
+            '--tpl', 'node=mirah-parser/src/mirahparser/impl/node.xtm',
+            'mirah-parser/src/mirahparser/impl/Mirah.mmeta',
+            mirah_parser_gen_src
+  end
+
   # Compile Java parts of the compiler.
   java_build_dir = "build/#{name}-java"
   java_jar = "#{java_build_dir}.jar"
@@ -276,8 +378,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
                      # org.mirah.MirahCommand depends on .tool., so remove from core
                     ['src/org/mirah/mirah_command.mirah']
 
-  file core_jar => core_mirah_srcs + [java_jar, old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
-    compile_mirah_with_jar old_jar, core_build_dir, core_mirah_srcs, [java_jar]
+  file core_jar => core_mirah_srcs + [java_jar, old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
+    compile_mirah_with_jar old_jar, core_build_dir, core_mirah_srcs, [java_jar, dist_mirah_parser_jar, 'javalib/asm-5.jar']
     ant.jar 'jarfile' => core_jar do
       fileset 'dir' => core_build_dir
     end
@@ -288,8 +390,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
                     ['src/org/mirah/mirah_command.mirah'] # add it back in here.
   tool_build_dir = "build/#{name}-tool"
   tool_jar = "#{tool_build_dir}.jar"
-  file tool_jar => tool_mirah_srcs + [core_jar, old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
-    compile_mirah_with_jar old_jar, tool_build_dir, tool_mirah_srcs, [core_jar, java_jar]
+  file tool_jar => tool_mirah_srcs + [core_jar, old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
+    compile_mirah_with_jar old_jar, tool_build_dir, tool_mirah_srcs, [core_jar, java_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar]
     ant.jar 'jarfile' => tool_jar do
       fileset 'dir' => tool_build_dir
     end
@@ -299,9 +401,9 @@ def bootstrap_mirah_from(old_jar, new_jar)
   ant_mirah_srcs = Dir['src/org/mirah/ant/*.mirah'].sort
   ant_build_dir = "build/#{name}-ant"
   ant_jar = "#{ant_build_dir}.jar"
-  file ant_jar => ant_mirah_srcs + [core_jar, tool_jar, java_jar, old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+  file ant_jar => ant_mirah_srcs + [core_jar, tool_jar, java_jar, old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
     ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}
-    compile_mirah_with_jar old_jar, ant_build_dir, ant_mirah_srcs, [core_jar, tool_jar, java_jar] + ant_classpath
+    compile_mirah_with_jar old_jar, ant_build_dir, ant_mirah_srcs, [core_jar, tool_jar, java_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] + ant_classpath
     ant.jar 'jarfile' => ant_jar do
       fileset 'dir' => ant_build_dir
     end
@@ -313,10 +415,10 @@ def bootstrap_mirah_from(old_jar, new_jar)
   extensions_mirah_srcs = Dir['src/org/mirah/builtins/*.mirah'].sort
   extensions_build_dir = "build/#{name}-extensions"
   extensions_jar = "#{extensions_build_dir}.jar"
-  file extensions_jar => extensions_mirah_srcs + [core_jar, tool_jar, java_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+  file extensions_jar => extensions_mirah_srcs + [core_jar, tool_jar, java_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
 
     classpath = [core_jar, tool_jar, java_jar,
-                 "javalib/mirah-parser.jar",
+                 dist_mirah_parser_jar,
                  "javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
 
     runjava('-Xmx512m', 
@@ -336,12 +438,12 @@ def bootstrap_mirah_from(old_jar, new_jar)
   end
   jars = [java_jar, core_jar, tool_jar, ant_jar, extensions_jar]
   file new_jar => jars +
-                  [old_jar, 'javalib/asm-5.jar', 'javalib/mirah-parser.jar'] do
+                  [old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
     # TODO use ant.jarjarto shade asm-5 in the fat jar
     ant.jar 'jarfile' => new_jar do
       jars.each {|j| zipfileset 'src' => j }
       zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
-      zipfileset 'src' => 'javalib/mirah-parser.jar'
+      zipfileset 'src' => dist_mirah_parser_jar
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
       metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 
               'includes' => 'services/*'
@@ -355,155 +457,36 @@ end
 
 # compiles to the build dir
 def compile_mirah_with_jar old_jar, build_dir, mirah_srcs, classpath=[], clean=true
-    if clean
-      puts "cleaning #{build_dir} before compile"
-      rm_rf build_dir
-      mkdir_p build_dir
-    else
-      puts "skipping cleaning #{build_dir}"
-    end
+  if clean
+    puts "cleaning #{build_dir} before compile"
+    rm_rf build_dir
+    mkdir_p build_dir
+  else
+    puts "skipping cleaning #{build_dir}"
+  end
 
-    default_class_path = ["javalib/mirah-parser.jar", build_dir, "javalib/asm-5.jar", *classpath].join(File::PATH_SEPARATOR)
+  default_class_path = classpath.join(File::PATH_SEPARATOR)
 
-    # Compile Mirah sources
-    runjava('-Xmx512m',
-            '-jar',
-            old_jar,
-            '-d', build_dir,
-            '-classpath', default_class_path,
-            '--jvm', build_version,
-            *mirah_srcs)
+  # Compile Mirah sources
+  runjava('-Xmx512m',
+          '-jar',
+          old_jar,
+          '-d', build_dir,
+          '-classpath', default_class_path,
+          '--jvm', build_version,
+          #'-V',
+          *mirah_srcs)
 end
 
 bootstrap_mirah_from('javalib/mirahc-prev.jar', 'dist/mirahc.jar')
 bootstrap_mirah_from('dist/mirahc.jar', 'dist/mirahc2.jar')
 bootstrap_mirah_from('dist/mirahc2.jar', 'dist/mirahc3.jar')
 
-# Parser tasks!
-
-# TODO maybe add these back at some point?
+# TODO maybe add this back at some point?
+# I think we need javadoc support for Mirah first.
 #task :doc => 'build/mirahparser/lang/ast/Node.java' do
 #  ant.javadoc :sourcepath => 'build', :destdir => 'doc'
 #end
-
-mirah_parser_gen_src = 'build/mirah-parser-gen/mirahparser/impl/Mirah.mirah'
-mirah_parser_build_dir = "build/mirah-parser"
-parser_node_meta_class = "#{mirah_parser_build_dir}/org/mirahparser/ast/NodeMeta.class"
-parser_node_java_gen_src = "#{mirah_parser_build_dir}-gen/mirahparser/lang/ast/Node.java"
-parser_node_class = "#{mirah_parser_build_dir}/mirahparser/lang/ast/Node.class"
-parser_meta_src = 'mirah-parser/src/org/mirah/ast/meta.mirah'
-prev_jar = 'javalib/mirahc-prev.jar'
-directory "#{mirah_parser_build_dir}/mirah-parser/mirahparser/impl"
-
-
-file 'build/mirah-parser.jar' => ["#{mirah_parser_build_dir}/mirahparser/lang/ast/Node.class",
-                                  "#{mirah_parser_build_dir}/mirahparser/impl/MirahParser.class",
-                                  "#{mirah_parser_build_dir}/mirahparser/impl/MirahLexer.class"] do
-  ant.jarjar 'jarfile' => 'build/mirah-parser.jar' do
-    fileset 'dir' => mirah_parser_build_dir, 'includes' => 'mirahparser/impl/*.class'
-    fileset 'dir' => mirah_parser_build_dir, 'includes' => 'mirahparser/lang/ast/*.class'
-    fileset 'dir' => mirah_parser_build_dir, 'includes' => 'org/mirahparser/ast/*.class'
-    zipfileset 'src' => 'mirah-parser/javalib/mmeta-runtime.jar'
-    _element 'rule', 'pattern'=>'mmeta.**', 'result'=>'org.mirahparser.mmeta.@1'
-    manifest do
-      attribute 'name'=>"Main-Class", 'value'=>"mirahparser.impl.MirahParser"
-    end
-  end
-end
-
-file 'dist/mirah-parser.jar' => 'build/mirah-parser.jar' do
-  # Mirahc picks up the built in classes instead of our versions.
-  # So we compile in a different package and then jarjar them to the correct
-  # one.
-  ant.jarjar 'jarfile' => 'dist/mirah-parser.jar' do
-    zipfileset 'src' => 'build/mirah-parser.jar'
-    _element 'rule', 'pattern'=>'mirahparser.**', 'result'=>'mirah.@1'
-    _element 'rule', 'pattern'=>'org.mirahparser.**', 'result'=>'org.mirah.@1'
-    manifest do
-      attribute 'name'=>"Main-Class", 'value'=>"mirah.impl.MirahParser"
-    end
-  end
-end
-
-file 'javalib/mirah-parser.jar' => 'dist/mirah-parser.jar' do
-  cp 'dist/mirah-parser.jar', 'javalib/mirah-parser.jar'
-end
-
-file "#{mirah_parser_build_dir}/mirahparser/impl/MirahParser.class" => [
-    prev_jar,
-    mirah_parser_gen_src,
-    parser_node_meta_class,
-    "#{mirah_parser_build_dir}/mirahparser/impl/MirahLexer.class",
-    #"#{mirah_parser_build_dir}/mirahparser/impl/Tokens.class",
-  ] do
-  compile_mirah_with_jar prev_jar,
-                         mirah_parser_build_dir,
-                         [mirah_parser_gen_src],
-                         [mirah_parser_build_dir,
-                          'mirah-parser/javalib/mmeta-runtime.jar',
-                           prev_jar],
-                          clean=false
-end
-
-file parser_node_meta_class => parser_meta_src do
-  compile_mirah_with_jar prev_jar,
-                         mirah_parser_build_dir,
-                         [parser_meta_src],
-                         [mirah_parser_build_dir, prev_jar],
-                         clean=false
-  #mirahc(parser_meta_src,
-  #       :dest => mirah_parser_build_dir
-  #       #:options => ['-V']
-  #      )
-end
-parser_ast_srcs = Dir['mirah-parser/src/mirah/lang/ast/*.mirah'].sort
-file parser_node_class =>
-    [prev_jar, parser_node_meta_class] + parser_ast_srcs do
-        compile_mirah_with_jar prev_jar,
-                         mirah_parser_build_dir,
-                         parser_ast_srcs,
-                         [mirah_parser_build_dir,
-                          'mirah-parser/javalib/mmeta-runtime.jar', prev_jar],
-                         clean = false
-end
-
-file parser_node_java_gen_src =>
-    [parser_node_meta_class] + parser_ast_srcs do
-#TODO. --java is nolonger supported.
-#        compile_mirah_with_jar prev_jar,
-#                         mirah_parser_build_dir,
-#                         parser_ast_srcs,
-#                         [mirah_parser_build_dir,
-#                          'mirah-parser/javalib/mmeta-runtime.jar']
-
-      mirahc('.',
-             :dir => 'mirah-parser/src/mirah/lang/ast',
-             :dest => 'build',
-             :classpath => ['build'],
-             :options => ['--java'])
-end
-
-parser_java_impl_src = Dir['mirah-parser/src/mirahparser/impl/*.java'].sort
-parser_lexer_class = "#{mirah_parser_build_dir}/mirahparser/impl/MirahLexer.class"
-file parser_lexer_class => parser_java_impl_src do
-  ant.javac 'srcDir' => 'mirah-parser/src',
-      'destDir' => mirah_parser_build_dir,
-      'source' => '1.6',
-      'target' => '1.6',
-      'debug' => true do
-    include 'name' => 'mirahparser/impl/Tokens.java'
-    include 'name' => 'mirahparser/impl/MirahLexer.java'
-    classpath 'path' => "#{mirah_parser_build_dir}:mirah-parser/javalib/mmeta-runtime.jar"
-  end
-end
-
-file mirah_parser_gen_src => 'mirah-parser/src/mirahparser/impl/Mirah.mmeta' do
-  ant.mkdir 'dir' => "#{mirah_parser_build_dir}-gen/mirahparser/impl"
-  runjava '-jar', 'mirah-parser/javalib/mmeta.jar',
-          '--tpl', 'node=mirah-parser/src/mirahparser/impl/node.xtm',
-          'mirah-parser/src/mirahparser/impl/Mirah.mmeta',
-          mirah_parser_gen_src
-end
 
 
 def build_version

@@ -160,7 +160,9 @@ class NodeImpl implements Node
 
   def toString
     name = if self.kind_of?(Named)
-      ":#{Named(self).name}"
+      # NB: typesystem can't assume that NodeImpl can be cast to Named right now.
+      # So need to cast up to object before casting down. Not sure if it's absolutely necessary.
+      ":#{Named(Object(self)).name}"
     else
       ""
     end
