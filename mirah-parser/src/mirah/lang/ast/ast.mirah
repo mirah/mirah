@@ -75,7 +75,7 @@ interface Named < Node do
 end
 
 interface Annotated < Node do
-  def annotations:AnnotationList; end
+  def annotations: AnnotationList; end
   # macro def annotation(name)
   #   quote do
   #     annotations.findChild {|c| `name`.equals(c.name.identifier) }

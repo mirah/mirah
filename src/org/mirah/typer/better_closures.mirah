@@ -112,10 +112,10 @@ class BetterClosureBuilder
 
     closures.each do |entry: Entry|
       block = Block(entry.getKey)
-      on_clone = lambda(CloneListener) do |interim,new|
+      on_clone = lambda(CloneListener) do |interim, new|
         old = selff.blockCloneMapNewOld.get(interim)
-        selff.blockCloneMapNewOld.put(new,old)
-        selff.blockCloneMapOldNew.put(old,new)
+        selff.blockCloneMapNewOld.put(new, old)
+        selff.blockCloneMapOldNew.put(old, new)
         new.whenCloned on_clone
       end
       block.whenCloned on_clone

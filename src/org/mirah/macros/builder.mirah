@@ -156,7 +156,7 @@ class MacroBuilder; implements org.mirah.macros.Compiler
 
   end
 
-  def buildExtension(cloned: MacroDefinition, orig: MacroDefinition )
+  def buildExtension(cloned: MacroDefinition, orig: MacroDefinition)
     @scopes.copyScopeFrom(orig, cloned)
     ast = constructAst(cloned)
     @backend.logExtensionAst(ast)
