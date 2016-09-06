@@ -333,7 +333,9 @@ class MacroBuilder; implements org.mirah.macros.Compiler
                       replace('=', 'eq_').
                       replace('>', 'gt_').
                       replace('<', 'lt_').
-                      replace('/', 'div_')
+                      replace('/', 'div_').
+                      replace('?', 'q_').
+                      replace('!', 'not_')
     base_name = "#{registerableTypeName(macroDef)}$#{macro_mangled}"
     ct = counter_for_name(base_name)
     if ct > 0
