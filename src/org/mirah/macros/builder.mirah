@@ -322,17 +322,44 @@ class MacroBuilder; implements org.mirah.macros.Compiler
     script
   end
 
+  # Macro names are defined as <declaring-type>$Extensions$<macro-name><opt-counter>
+  #
   def extensionName(macroDef: MacroDefinition)
+    macro_mangled = macroDef.name.identifier.
+                      replace('[','lbracket_').
+                      replace(']','rbracket_').
+                      replace('+', 'plus_').
+                      replace('-', 'minus_').
+                      replace('=', 'eq_').
+                      replace('>', 'gt_').
+                      replace('<', 'lt_').
+                      replace('/', 'div_')
+    base_name = "#{registerableTypeName(macroDef)}$#{macro_mangled}"
+    ct = counter_for_name(base_name)
+    if ct > 0
+      "#{base_name}#{ct}"
+    else
+      base_name
+    end
+  end
+
+
+  def counter_for_name(macro_def_name_klass: String)
+    # TODO, I think the .intValue / cast in put may be unnecessary
+    counter = Integer(@extension_counters.get(macro_def_name_klass))
+    if counter.nil?
+      id = 0
+    else
+      id = counter.intValue + 1
+    end
+    @extension_counters.put(macro_def_name_klass, Integer.new(id))
+    id
+  end
+
+  def registerableTypeName(macroDef: MacroDefinition)
     enclosing_type = @scopes.getScope(macroDef).selfType.peekInferredType
     if !enclosing_type.isError
-      counter = Integer(@extension_counters.get(enclosing_type))
-      if counter.nil?
-        id = 1
-      else
-        id = counter.intValue + 1
-      end
-      @extension_counters.put(enclosing_type, Integer.new(id))
-      "#{enclosing_type.name}$Extension#{id}"
+      "#{enclosing_type.name}$Extensions"
     else
       raise InternalError.new("Cannot use error type #{enclosing_type} as base name for macros.")
     end
