@@ -47,7 +47,6 @@ import org.mirah.jvm.mirrors.debug.ConsoleDebugger
 import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
-import org.mirah.typer.simple.SimpleScoper
 import org.mirah.typer.Scoper
 import org.mirah.typer.Typer
 import org.mirah.typer.TypeSystem

@@ -22,7 +22,6 @@ import java.util.Map
 import java.util.Set
 
 import mirah.lang.ast.Position
-import org.mirah.typer.simple.SimpleScope
 import org.mirah.typer.LocalFuture
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
