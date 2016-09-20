@@ -15,6 +15,10 @@
 
 class ClosureTest < Test::Unit::TestCase
 
+  #def compile file
+  #  super(file, verbose: true)
+  #end
+
   def test_interface_defined_after_used
     cls, = compile(%q{
       class FooTest1
@@ -238,5 +242,66 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("3\n", cls)
   end
+
+  def test_closing_over_static_method
+    cls, = compile(%q{
+      def foo
+        puts 'yay foo'
+      end
+      lambda(Runnable) { foo }.run
+    })
+    assert_run_output("yay foo\n", cls)
+  end
+
+  def test_closing_over_instance_method
+    cls, = compile(%q{
+      class InstanceMethodCarrier
+        def foo
+          puts 'yay foo'
+        end
+        def bar
+          lambda(Runnable) { foo }.run
+        end
+      end
+      InstanceMethodCarrier.new.bar
+    })
+    assert_run_output("yay foo\n", cls)
+  end
+
+
+  def test_closing_over_field
+    cls, = with_finest_logging{compile(%q{
+      class Bar
+        def bar: void
+          @foo = 'yay foo'
+          lambda(Runnable) { puts @foo }.run
+        end
+      end
+      Bar.new.bar
+    })}
+    assert_run_output("yay foo\n", cls)
+  end
+
+
+  def test_closing_over_self
+    return
+    cls, = compile(%q{
+      class SelfConscious
+        def bar
+          lambda(Runnable) { puts self }.run
+        end
+        def toString
+          "SelfConscious"
+        end
+      end
+      SelfConscious.new.bar
+    })
+
+    assert_run_output("SelfConscious\n", cls)
+  end
+
+
+  # closure type method called
+  # closed over method shadows closure type method
 end
 

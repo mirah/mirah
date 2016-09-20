@@ -192,7 +192,12 @@ class BetterScope
 
   # override
   def selfType:TypeFuture; raise "no self type for #{getClass}" end  # Should this be resolved?
-  def selfType=(type:TypeFuture):void; raise "no self type for #{getClass}" end
+  def selfType=(type:TypeFuture):void; raise "no self type for #{getClass}, so cant assign" end
+
+
+  def selfUsed(): void; raise "selfUsed: no self capturing for #{getClass}" end
+  def capturedSelf: boolean; raise "capturedSelf: no self capturing for #{getClass}" end
+  def hasSelf: boolean; raise "hasSelf: no self capturing for #{getClass}" end
 
   # override
   def context:Node; @context end
@@ -207,8 +212,8 @@ class BetterScope
   # override
   def isCaptured(name:String):boolean; raise "isCaptured: no captures for #{getClass}" end
   def capturedLocals:List;
-  # raise "capturedLocals no captures for #{getClass}"
-  []
+    # raise "capturedLocals no captures for #{getClass}"
+    []
   end  # List of captured local variable names
 
   # override
@@ -234,6 +239,37 @@ class BetterScope
   def declared_binding_type: ResolvedType; raise "no declared_binding_type for #{getClass}"  end
   def declared_binding_type=(type):void; raise "no declared_binding_type= for #{getClass}"  end
 
+  # override
+  def hasField(name: String, includeParent:boolean=true): boolean; raise "no fields for #{getClass}.hasField" end
+  def fieldUsed(name: String): void; raise "no fields for #{getClass}.fieldUsed" end
+  def capturedFields(): List; raise "no fields for #{getClass}.capturedFields" end
+  def isCapturedField(name: String): boolean; raise "no fields for #{getClass}.isCapturedField" end
+
+  def anyChildOrChildsChildHasField(name: String, indent:String="  "): boolean
+    #puts "#{indent}#{getClass}" # self failed
+    #puts "#{indent}#{capturedFields}"
+    #puts "#{indent}#{self} looking for #{name}"
+    children.any? do |child: BetterScope|
+      #puts "#{indent}#{child}"
+      #puts "#{indent}#{child.hasField(name, false)}"
+      if child.hasField(name, false)
+        #puts "#{inde}"
+        true
+      else
+        child.anyChildOrChildsChildHasField name, "  #{indent}"
+      end
+    end
+  end
+  def anyChildOrChildsChildHasSelf: boolean
+    children.any? do |child: BetterScope|
+      if child.hasSelf
+        true
+      else
+        child.anyChildOrChildsChildHasSelf
+      end
+    end
+  end
+
   #mirrorscope overrides
   def getLocalType(name: String, position: Position):LocalFuture; raise "no locals for #{getClass}.getLocalType" end
 
@@ -252,7 +288,8 @@ class BetterScope
   macro def self.defers_temp
     quote do
       def temp(name)
-        if parent # Lazy defer... if it is not possible, we fall back to ourselves. Hope that does not hurt us (e.g. in case the parent is dynamically added).
+        if parent # Lazy defer... if it is not possible, we fall back to ourselves.
+                  # Hope that does not hurt us (e.g. in case the parent is dynamically added).
           parent.temp(name)
         else
           super
@@ -264,13 +301,16 @@ class BetterScope
   # no self type assign, defers selfType to parent
   macro def self.defers_selfType
     quote do
-      def selfType
+      def selfType: TypeFuture 
         # defer to parents, but cache
-        @cachedSelfType ||= parent.selfType if parent
+        #@cachedSelfType ||= 
+        parent.selfType if parent
       end
       def flush_selfType; @cachedSelfType = nil end
     end
   end
+
+
 
   macro def self.has_own_selfType
     quote do
@@ -346,6 +386,7 @@ class BetterScope
     quote do
       def getLocalType(name, position)
         future = LocalFuture.new name, position
+        # TODO This error message could be better.
         future.resolved ErrorType.new([["can't use local '#{name}'. (#{getClass} doesn't support locals)", position]])
         future
       end
@@ -368,6 +409,68 @@ class BetterScope
     end
   end
 
+
+  macro def self.defers_fields
+    quote do
+      def hasField(name, includeParent:boolean=true)
+        (includeParent && parent && parent.hasField(name))
+      end
+
+      def capturedFields
+        # find the parent scope that is a class scope,
+        # then use its captured fields
+        cur_parent = parent
+        while cur_parent && !cur_parent.kind_of?(ClassScope)
+          cur_parent = cur_parent.parent
+        end
+        if cur_parent
+          cur_parent.capturedFields
+        else
+          []
+        end
+      end
+
+
+  def selfUsed(): void
+    parent.selfUsed if parent
+  end
+
+  def capturedSelf: boolean
+        cur_parent = parent
+        while cur_parent && !cur_parent.kind_of?(ClassScope)
+          cur_parent = cur_parent.parent
+        end
+        if cur_parent
+          cur_parent.capturedSelf
+        else
+          false
+        end
+  end
+
+  def hasSelf:boolean
+    #parent && parent.hasSelf
+    false
+  end
+
+
+      def fieldUsed name
+        parent.fieldUsed name if parent
+      end
+
+      #def isCapturedField(name)
+      #  parent && parent.isCapturedField(name)
+      #end
+    end
+  end
+
+
+  # captured self
+  # selfTypeIsCaptured
+  #   return false unless has a self type
+  #   # do we need to check the parent? not sure what that would mean
+  #   # return children.any? { |c| c.references_self_type }
+
+
   # must support locals
   macro def self.can_have_locals_captured
     quote do
@@ -386,8 +489,28 @@ class BetterScope
 
       def capturedLocals
         captured = ArrayList.new(@locals.size)
-        @locals.each {|name| captured.add(name) if isCaptured(String(name))}
+        @locals.each {|name: String| captured.add(name) if isCaptured(name)}
         captured
+      end
+    end
+  end
+
+  macro def self.can_have_fields_captured
+    quote do
+      def isCapturedField(name)
+        return false unless @fields_used.contains(name)
+
+        return anyChildOrChildsChildHasField name
+      end
+
+      def capturedFields
+        captured = ArrayList.new(@fields_used.size)
+        @fields_used.each {|name: String| captured.add(name) if isCapturedField(name)}
+        captured
+      end
+
+      def capturedSelf
+        anyChildOrChildsChildHasSelf
       end
     end
   end
@@ -537,12 +660,17 @@ class BetterScope
   end
 end
 
+#
+# ClassScope is the scope used for a class declaration.
+# Class bodies in Mirah can't have local variables.
+# It can't shadow names.
 class ClassScope < BetterScope
   def initialize(scoper: Scoper, context: Node)
     super context
     @scoper = scoper
 
     @imports = ImportsAndSearchPackages.new
+    @fields_used = HashSet.new
   end
 
   defers_temp
@@ -552,22 +680,32 @@ class ClassScope < BetterScope
   no_shadowing
   has_no_locals
   does_binding_type_thing
+  can_have_fields_captured
+
+  def hasField(name, includeParent)
+    @fields_used.contains(name) || (includeParent && parent.hasField(name))
+  end
+
+  def fieldUsed(name)
+    @fields_used.add name
+  end
+
+  def hasSelf
+    # ignore
+  end
+
 end
 
 class ClosureScope < BetterScope
-  # shadows parameters, everything else captured
-  def initialize(scoper: Scoper, context: Node)
-    super context
-    @scoper = scoper
-    @locals = Locals.new
-    @imports = ImportsAndSearchPackages.new
-  end
 
+  def toString
+    "<ClosureScope local_captures=#{capturedLocals} field_usages=#{@fields_used}>"
+  end
   defers_temp
   has_own_imports_and_looks_up
   supports_locals
   #defers_selfType
-  has_own_selfType
+  #has_own_selfType
   deferred_package
 
   can_have_locals_captured
@@ -578,6 +716,41 @@ class ClosureScope < BetterScope
   # for the moment, no shadowing,
   # but once scopes support declarations, then yes
   no_shadowing
+
+  attr_accessor closureType: TypeFuture, capturesSelf: boolean
+
+
+  # shadows parameters, everything else captured
+  def initialize(scoper: Scoper, context: Node)
+    super context
+    @scoper = scoper
+    @locals = Locals.new
+    @imports = ImportsAndSearchPackages.new
+
+    @fields_used = HashSet.new
+  end
+
+  def fieldUsed name
+    selfUsed
+    @fields_used.add name
+  end
+
+  def hasField(name, includeParent)
+    @fields_used.contains(name) || (includeParent && parent.hasField(name))
+  end
+
+  def selfUsed(): void
+    @capturedSelf = true
+  end
+
+  def hasSelf
+    @capturedSelf
+  end
+
+  def selfType: TypeFuture
+    @capturesSelf = true
+    parent.selfType
+  end
 
   def internal_locals
     @locals
@@ -618,6 +791,8 @@ class RescueScope < BetterScope
 
   supports_locals
   defers_captures
+  defers_fields
+
   def shadow(name)
     @shadowed.add name
   end
@@ -628,35 +803,60 @@ class RescueScope < BetterScope
   #defers_locals
   # no for now, until declarations
   #no_shadowing
+
 end
 
 
 class MethodScope < BetterScope
   def initialize(scoper: Scoper, context: Node)
     super context
-    @scoper = scoper
-    @locals = Locals.new
+    @scoper  = scoper
+    @locals  = Locals.new
     @imports = ImportsAndSearchPackages.new
   end
   
   def initialize(source: ClosureScope, context: Node)
-    super(context)
+    super context
     @scoper     = source.internal_scoper
     @locals     = source.internal_locals
     @imports    = source.internal_imports
     self.parent = source.parent
   end
 
+  def toString
+    "<MethodScope type=#{selfType}>"
+  end
+
+      #def isCapturedField(name)
+      ##  #return false unless @fields_used.contains(name)
+      #  parent_has_field = parent && parent.hasField(name, includeParent=true)
+      #  any_child_has_field = anyChildOrChildsChildHasField name
+      #  puts "#{self} child_has_it? #{any_child_has_field} parent(#{parent}) has it? #{parent_has_field}"
+      #  return false unless parent_has_field
+      #  return anyChildOrChildsChildHasField name
+      #end
+      # if I have the field
+      # if a direct child has the field
+      # if a transitive child has the field
+
   defers_temp
+
   supports_locals
   can_have_locals_captured
+
   has_own_selfType # is the method type
   deferred_package
   has_own_imports_and_looks_up
   does_binding_type_thing
 
+  defers_fields
+
   # methods can't shadow locals, because scopes outside them can't share locals w/ them.
   no_shadowing
+
+  #def selfTypeIsCaptured: boolean; raise "Wut"; end
+
+
 end
 
 class ScriptScope < BetterScope
@@ -666,6 +866,7 @@ class ScriptScope < BetterScope
     
     @imports = ImportsAndSearchPackages.new
     @locals = Locals.new
+    @fields_used = HashSet.new
   end
 
   supports_locals
@@ -676,6 +877,9 @@ class ScriptScope < BetterScope
   does_binding_type_thing
   has_own_imports_and_looks_up
 
+
+  can_have_fields_captured
+
   # scripts can have packages
   def package
     @package
@@ -685,6 +889,14 @@ class ScriptScope < BetterScope
     @package = p
   end
 
+
+  def fieldUsed name
+    @fields_used.add name
+  end
+
+  def hasSelf
+    # ignore
+  end
   # scripts have no outer scope, they are the outer most, but has_own_imports_and_looks_up adds one
 #  def outer_scope
 #    nil

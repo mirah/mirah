@@ -15,9 +15,8 @@
 
 package org.mirah.typer
 
-import mirah.lang.ast.*
+
 import java.util.logging.Level
-import org.mirah.util.Logger
 import java.util.Collections
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -31,6 +30,9 @@ import java.util.Map.Entry
 import java.util.ArrayList
 import java.io.File
 
+import mirah.lang.ast.*
+
+import org.mirah.util.Logger
 import org.mirah.jvm.compiler.ProxyCleanup
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.jvm.mirrors.BaseType
@@ -87,13 +89,21 @@ class BetterClosureBuilder
   attr_accessor blockCloneMapNewOld:IdentityHashMap
   attr_accessor parent_scope_to_binding_name:Map
 
-  def finish
-    closures = []
-    scripts = ArrayList.new(@scripts)
-    Collections.reverse(scripts)
+  def collect_closures scripts: List
+    # returns closures in the reverse order from the scripts
+    closures = []    
     scripts.each do |s: Script|
       closures.addAll BlockFinder.new(@typer, @todo_closures).find(s).entrySet
     end
+    Collections.reverse(closures) # from outside to inside
+    closures
+  end
+
+  def finish
+    scripts = ArrayList.new(@scripts)
+    Collections.reverse(scripts)
+
+    closures = collect_closures scripts
 
     closures_to_skip = []
 
@@ -101,7 +111,7 @@ class BetterClosureBuilder
     bindingLocalNamesToTypes = LinkedHashMap.new
 
     bindingForBlocks = LinkedHashMap.new # the specific binding for a given block
-    Collections.reverse(closures) # from outside to inside
+
     
     self.blockCloneMapOldNew = IdentityHashMap.new
     self.blockCloneMapNewOld = IdentityHashMap.new
@@ -266,14 +276,14 @@ class BetterClosureBuilder
     rtype.resolved parent_type
   
     new_scope = @typer.addNestedScope block
-    new_scope.selfType = rtype
+    ClosureScope(new_scope).closureType = rtype
     if contains_methods block
       @typer.infer block.body
     else
       @typer.inferClosureBlock block, method_for(parent_type)
     end
 
-    script = block.findAncestor{|n| n.kind_of? Script}
+    script = block.findAncestor{ |n| n.kind_of? Script }
 
     @todo_closures[block] = parent_type
     @scripts.add script
@@ -474,19 +484,20 @@ class BetterClosureBuilder
     
     enclosing_body  = find_enclosing_body block
 
-    block_scope = get_scope block.body
-    @@log.fine "block body scope #{block_scope.getClass} #{MirrorScope(block_scope).capturedLocals}"
-
-
+    
     block_scope = get_scope block
-    @@log.fine "block scope #{block_scope} #{MirrorScope(block_scope).capturedLocals}"
-    @@log.fine "parent scope #{parent_scope} #{MirrorScope(parent_scope).capturedLocals}"
     enclosing_scope = get_scope(enclosing_body)
+    block_body_scope = get_scope block.body
+    
+
+    @@log.fine "block scope #{block_scope} #{MirrorScope(block_scope).capturedLocals}"
+    @@log.fine "block body scope #{block_body_scope.getClass} #{MirrorScope(block_body_scope).capturedLocals}"
+    @@log.fine "parent scope #{parent_scope} #{MirrorScope(parent_scope).capturedLocals}"
     @@log.fine "enclosing scope #{enclosing_scope} #{MirrorScope(enclosing_scope).capturedLocals}"
     parent_scope.binding_type ||= begin
                                     name = temp_name_from_outer_scope(block, "Binding")
-                                    captures = MirrorScope(parent_scope).capturedLocals
-                                    @@log.fine("building binding #{name} with captures #{captures}")
+                                    #captures = MirrorScope(parent_scope).capturedLocals
+                                    #@@log.fine("building binding #{name} with captures #{captures}")
                                     binding_klass = build_class(klass.position,
                                                                 nil,
                                                                 name)
@@ -494,15 +505,6 @@ class BetterClosureBuilder
 
               # add methods for captures
               # typer doesn't understand unquoted return types yet, perhaps
-              # TODO write visitor to replace locals w/ calls to bound locals
-             # captures.each do |bound_var: String|
-             #   bound_type = MirrorScope(parent_scope).getLocalType(bound_var, block.position).resolve
-             #   attr_def = @macros.quote do
-             #     attr_accessor `bound_var` => `Constant.new(SimpleString.new(bound_type.name))`
-             #   end
-             #   binding_klass.body.insert(0, attr_def)
-             # end
-
                                     infer(binding_klass).resolve
                                   end
     binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
@@ -669,7 +671,7 @@ class BetterClosureBuilder
     MethodType(List(methods).get(0))
   end
 
-  # builds the method definitios for inserting into the closure class
+  # builds the method definitions for inserting into the closure class
   def build_methods_for(mtype: MethodType, block: Block, parent_scope: Scope): List #<MethodDefinition>
     methods = []
     name = SimpleString.new(block.position, mtype.name)
@@ -688,8 +690,6 @@ class BetterClosureBuilder
     end
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
     block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
-
-    closure_scope = ClosureScope(get_inner_scope(block))
 
     block_method.body = block.body
 
@@ -711,8 +711,9 @@ class BetterClosureBuilder
       end
       i+=1
     end
-    
-    method_scope = MethodScope.new(closure_scope,block_method)
+
+    closure_scope = ClosureScope(get_inner_scope(block))    
+    method_scope = MethodScope.new(closure_scope, block_method)
 #   @scoper.setScope(block_method,method_scope)
 
     methods.add(block_method)

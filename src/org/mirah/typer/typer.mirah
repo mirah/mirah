@@ -502,6 +502,9 @@ class Typer < SimpleNodeVisitor
   def visitFieldAssign(field, expression)
     inferAnnotations field
     value = infer(field.value, true)
+    unless field.isStatic # NB don't need to close over static ones--maybe
+      scopeOf(field).fieldUsed field.name.identifier # TODO do a better thing than this
+    end
     getFieldTypeOrDeclare(field, field.isStatic).assign(value, field.position)
   end
 
@@ -524,6 +527,24 @@ class Typer < SimpleNodeVisitor
     if targetType.nil?
       TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
     else
+      unless field.isStatic # NB don't need to close over static ones--maybe
+        s = scopeOf(field)
+        s.fieldUsed field.name.identifier # TODO do a better thing than this
+        @@log.fine "added field usage of #{field.name.identifier} to #{s}"
+        @@log.fine "parent of #{s}  is #{s.parent}"
+        if s.parent
+        @@log.fine "parent's captures:  is #{s.parent.capturedFields}"
+        
+        if s.parent.parent
+          @@log.fine "parent of parent is #{s.parent.parent}"
+          @@log.fine "     captures:  is #{s.parent.parent.capturedFields}"
+        end
+        else
+          @@log.fine"parent's captures: has no parent"
+        end
+
+      end
+
       getFieldType field, targetType
     end
   end
@@ -1061,13 +1082,10 @@ class Typer < SimpleNodeVisitor
     end
   end
 
-
-
-
-
   def addScopeForMethod(mdef: Block): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    addScopeUnder(mdef)
+#    addScopeUnder(mdef)
+    addNestedScope mdef
   end
 
   def selfTypeOf(mdef: Block): TypeFuture
@@ -1193,7 +1211,7 @@ class Typer < SimpleNodeVisitor
       block = Block(mdef.parent.parent)
       @@log.finest "Method #{mdef} is member of #{block}"
       scope_around_block = scopeOf(block)
-      scope              = addScopeUnder(mdef)
+      scope              = addNestedScope mdef # addScopeUnder(mdef)
       scope.selfType     = scope_around_block.selfType
       scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
       infer(mdef.body, false)                 # We want to determine which free variables are referenced in the MethodDefinition.
@@ -1433,7 +1451,7 @@ class Typer < SimpleNodeVisitor
 
   def addScopeForMethod(mdef: MethodDefinition): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    addScopeUnder(mdef)
+    addNestedScope mdef #    addScopeUnder(mdef)
   end
   
   def isMethodInBlock(mdef: MethodDefinition): boolean

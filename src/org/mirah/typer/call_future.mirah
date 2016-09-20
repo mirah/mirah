@@ -223,7 +223,10 @@ class CallFuture < BaseTypeFuture
                 else
                   call.resolved(mtype.returnType)
                 end
+                # Could ping scope here
+                # letting it know that this is a valid call
               else
+                # And here letting it know it wasn't
                 unless type.isError
                   raise IllegalArgumentException, "Expected MethodType, got #{type}"
                 end
