@@ -1807,7 +1807,6 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_colon2_constant_ref
-  pend "need to fix this" do
     cls, = compile(<<-EOF)
       def foo
         Character::UnicodeBlock::ARROWS
@@ -1816,7 +1815,6 @@ class JVMCompilerTest < Test::Unit::TestCase
 
     subset = cls.foo
     assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
-  end
   end
 
   def test_covariant_arrays

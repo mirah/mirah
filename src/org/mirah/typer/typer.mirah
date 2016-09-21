@@ -436,7 +436,31 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitColon2(colon2, expression)
-    @types.getMetaType(getTypeOf(colon2, colon2.typeref))
+    @futures[colon2] = @types.getMetaType(getTypeOf(colon2, colon2.typeref))
+
+    # A colon2 is either a type ref or a constant ref.
+    # If it's a constant, we need to use Call lookup to find it.
+    # Atleast that's my understanding based on reading Constant.
+    #
+    # This works for external constants, but not internal ones currently.
+    variants = [colon2]
+    if expression
+      call = Call.new(colon2.position,
+                      colon2.target,
+                      Identifier(colon2.name.clone),
+                      nil, nil)
+      call.setParent(colon2.parent)
+
+      methodType = callMethodType call, Collections.emptyList
+      targetType = infer(call.target)
+      @futures[call] = methodType
+      @futures[call.target] = targetType
+      variants.add call
+    end
+    proxy = ProxyNode.new self, colon2
+    proxy.setChildren(variants, 0)
+
+    @futures[proxy] = proxy.inferChildren(expression != nil)
   end
 
   def visitSuper(node, expression)
@@ -1219,7 +1243,7 @@ class Typer < SimpleNodeVisitor
       scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
       infer(mdef.body, false)                 # We want to determine which free variables are referenced in the MethodDefinition.
                                               # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
-      
+
       # TODO this could be cleaner. This ensures that methods can be closed over
 #      unless mdef.kind_of? StaticMethodDefinition
 #        @@log.fine "mark #{mdef.name.identifier} as used in #{scope} so that it can be captured by closures"
