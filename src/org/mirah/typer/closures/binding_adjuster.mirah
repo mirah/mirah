@@ -365,8 +365,6 @@ class BindingAdjuster < NodeScanner
   def exitSelf(selfNode, blah)
     return nil if @blocks.isEmpty # NB if we're not in a block, we don't need to change out self.
 
-    return nil
-    #return nil unless false # selfCaptured
     return nil unless @captured_self
 
     @@log.finest "exitSelf: replacing self with #{@bindingName}.self"
@@ -377,47 +375,13 @@ class BindingAdjuster < NodeScanner
         blockAccessNode(selfNode.position),
         SimpleString.new("$self"),
         [],
-        nil
-      )
+        nil)
 
     replaceSelf(selfNode, replacement)
 
     @builder.typer.learnType replacement.target, @binding_type
-
-    @@log.fine "does replacement have parent?: #{replacement.parent}"
-    @@log.fine "does replacement parent 0th child: #{NodeList(replacement.parent).get(0)}" if replacement.parent.kind_of? NodeList
-    @@log.fine "does replacement have parent?: #{replacement.parent.parent}" if replacement.parent
     @builder.typer.infer replacement
   end
-
-
-  # probably won't work, but might be worth a shot
-  def exitImplicitSelf(selfNode, blah)
-    # this blew everything up. Ha. This.
-    return nil
-    return nil unless false # selfCaptured
-
-    @@log.finest "exitImplicitSelf: replacing self with #{@bindingName}.self"
-
-    maybeNoteBlockBinding
-
-    replacement = Call.new(
-        blockAccessNode(selfNode.position),
-        SimpleString.new("$self"),
-        [],
-        nil
-      )
-
-    replaceSelf(selfNode, replacement)
-
-    @builder.typer.learnType replacement.target, @binding_type
-
-    @@log.fine "does replacement have parent?: #{replacement.parent}"
-    @@log.fine "does replacement parent 0th child: #{NodeList(replacement.parent).get(0)}" if replacement.parent.kind_of? NodeList
-    @@log.fine "does replacement have parent?: #{replacement.parent.parent}" if replacement.parent
-    @builder.typer.infer replacement
-  end
-
 
   def is_binding_field name: String
     name.startsWith "$b"

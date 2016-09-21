@@ -280,7 +280,6 @@ class ClosureTest < Test::Unit::TestCase
 
 
   def test_closing_over_self
-    return
     cls, = compile(%q{
       class SelfConscious
         def bar
