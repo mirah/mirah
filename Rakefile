@@ -500,8 +500,8 @@ def build_version
 end
 
 def runjava(*args)
-  sh 'java',*args
+  sh 'java', *args
   unless $?.success?
-    exit $?.exitstatus
+    raise "command: java #{args.join " "}\n failed with status #{ $?.exitstatus}"
   end
 end
