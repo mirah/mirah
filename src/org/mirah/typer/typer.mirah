@@ -66,7 +66,7 @@ class Typer < SimpleNodeVisitor
     @types = types
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
-    
+
     # might want one of these for each script
     @closures = BetterClosureBuilder.new(self, @macros)
   end
@@ -252,10 +252,10 @@ class Typer < SimpleNodeVisitor
                                     true,
                                     parameters,
                                     call)
-    
+
     proxy = ProxyNode.new(self, call)
     children = ArrayList.new(2)
-    
+
     if  call.parameters.size == 1
       # This might actually be a cast or array instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
@@ -491,7 +491,7 @@ class Typer < SimpleNodeVisitor
   def visitFieldAnnotationRequest(decl, expression)
     @types.getNullType()
   end
-  
+
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
     getFieldTypeOrDeclare(decl, decl.isStatic).declare(
@@ -534,7 +534,7 @@ class Typer < SimpleNodeVisitor
         @@log.fine "parent of #{s}  is #{s.parent}"
         if s.parent
         @@log.fine "parent's captures:  is #{s.parent.capturedFields}"
-        
+
         if s.parent.parent
           @@log.fine "parent of parent is #{s.parent.parent}"
           @@log.fine "     captures:  is #{s.parent.parent.capturedFields}"
@@ -652,7 +652,7 @@ class Typer < SimpleNodeVisitor
     #  - raise *args_for_default_exception_class_constructor
     # We need to figure out which one is being used, and replace the
     # args with a single exception node.
-    
+
     # TODO(ribrdb): Clean this up using ProxyNode.
 
     # Start by saving the old args and creating a new, empty arg list
@@ -802,7 +802,7 @@ class Typer < SimpleNodeVisitor
     end
     @types.getHashLiteralType(keyType, valueType, hash.position)
   end
-  
+
   def visitHashEntry(entry, expression)
     @types.getVoidType
   end
@@ -1084,7 +1084,6 @@ class Typer < SimpleNodeVisitor
 
   def addScopeForMethod(mdef: Block): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-#    addScopeUnder(mdef)
     addNestedScope mdef
   end
 
@@ -1175,16 +1174,20 @@ class Typer < SimpleNodeVisitor
 
 
     if !isMethodInBlock(mdef)
-      addScopeForMethod(mdef)
+      scope = addScopeForMethod(mdef)
+
+      # TODO this could be cleaner. This ensures that methods can be closed over
+      #BetterScope(scope).methodUsed(mdef.name.identifier) unless mdef.kind_of? StaticMethodDefinition
+
       @@log.finest "Normal method #{mdef}."
       inferAll(mdef.annotations)
       infer(mdef.arguments)
       parameters = inferAll(mdef.arguments)
-  
+
       if mdef.type
         returnType = getTypeOf(mdef, mdef.type.typeref)
       end
-  
+
       selfType = selfTypeOf(mdef)
       type = @types.getMethodDefType(selfType,
                                      mdef.name.identifier,
@@ -1196,7 +1199,7 @@ class Typer < SimpleNodeVisitor
                              mdef,
                              parameters,
                              type.returnType)
-  
+
       # TODO deal with overridden methods?
       # TODO throws
       # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
@@ -1211,14 +1214,21 @@ class Typer < SimpleNodeVisitor
       block = Block(mdef.parent.parent)
       @@log.finest "Method #{mdef} is member of #{block}"
       scope_around_block = scopeOf(block)
-      scope              = addNestedScope mdef # addScopeUnder(mdef)
+      scope              = addNestedScope mdef
       scope.selfType     = scope_around_block.selfType
       scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
       infer(mdef.body, false)                 # We want to determine which free variables are referenced in the MethodDefinition.
-      nil                                     # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
+                                              # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
+      
+      # TODO this could be cleaner. This ensures that methods can be closed over
+#      unless mdef.kind_of? StaticMethodDefinition
+#        @@log.fine "mark #{mdef.name.identifier} as used in #{scope} so that it can be captured by closures"
+#        BetterScope(scope).methodUsed(mdef.name.identifier)
+#      end
+      nil
     end
   end
-  
+
   def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
     if mdef.arguments.optional_size > 0
       args = ArrayList.new(argTypes)
@@ -1298,7 +1308,7 @@ class Typer < SimpleNodeVisitor
     unquoted_args.setParent block
     block.body.removeChild block.body.get(0)
   end
-  
+
   def visitSyntheticLambdaDefinition(node, expression)
     supertype = infer(node.supertype)
     block     = BlockFuture(infer(node.block))
@@ -1449,11 +1459,11 @@ class Typer < SimpleNodeVisitor
     targetType
   end
 
-  def addScopeForMethod(mdef: MethodDefinition): void
+  def addScopeForMethod(mdef: MethodDefinition)
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    addNestedScope mdef #    addScopeUnder(mdef)
+    addNestedScope mdef
   end
-  
+
   def isMethodInBlock(mdef: MethodDefinition): boolean
     mdef.parent.kind_of?(NodeList) && mdef.parent.parent.kind_of?(Block)
   end

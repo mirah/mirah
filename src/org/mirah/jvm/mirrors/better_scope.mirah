@@ -45,7 +45,15 @@ import org.mirah.typer.TypeFuture
 # different scopes work.
 #
 # The current impl has one type of scope for everything, which
-# ends up making certain kinds of things tricky.
+# ends up making certain kinds of things tricky because you can't
+# have different behavior for different scopes.
+#
+# things that can be closed over
+# - locals
+# - self, explicit and implicit
+# - fields
+# - methods
+#
 
 # contains locals for scope
 class Locals
@@ -211,10 +219,10 @@ class BetterScope
 
   # override
   def isCaptured(name:String):boolean; raise "isCaptured: no captures for #{getClass}" end
+  # List of captured local variable names
   def capturedLocals:List;
-    # raise "capturedLocals no captures for #{getClass}"
     []
-  end  # List of captured local variable names
+  end
 
   # override
   def import(fullname:String, shortname:String):void; raise "import: no imports for #{getClass}" end
@@ -245,25 +253,44 @@ class BetterScope
   def capturedFields(): List; raise "no fields for #{getClass}.capturedFields" end
   def isCapturedField(name: String): boolean; raise "no fields for #{getClass}.isCapturedField" end
 
-  def anyChildOrChildsChildHasField(name: String, indent:String="  "): boolean
-    #puts "#{indent}#{getClass}" # self failed
-    #puts "#{indent}#{capturedFields}"
-    #puts "#{indent}#{self} looking for #{name}"
+  # override
+  def hasMethodCall(name: String, includeParent:boolean=true): boolean; raise "no hasMethodCall for #{getClass}" end
+  def methodUsed(name: String): void; raise "no methodUsed for #{getClass}" end
+  def capturedMethods(): List; raise "no capturedMethods for #{getClass}" end
+  def isCapturedMethod(name: String): boolean; raise "no isCapturedMethod for #{getClass}" end
+
+  def find_class_parent
+    cur_parent = parent
+    while cur_parent && !cur_parent.kind_of?(ClassScope)
+      cur_parent = cur_parent.parent
+    end
+    cur_parent
+  end
+
+  def anyChildOrChildsChildHasField(name: String): boolean
     children.any? do |child: BetterScope|
-      #puts "#{indent}#{child}"
-      #puts "#{indent}#{child.hasField(name, false)}"
       if child.hasField(name, false)
-        #puts "#{inde}"
         true
       else
-        child.anyChildOrChildsChildHasField name, "  #{indent}"
+        child.anyChildOrChildsChildHasField name
       end
     end
   end
+
+  def anyChildOrChildsChildHasMethodCall(name: String): boolean
+    children.any? do |child: BetterScope|
+      if child.hasMethodCall(name, false)
+        true
+      else
+        child.anyChildOrChildsChildHasMethodCall name
+      end
+    end
+  end
+
   def anyChildOrChildsChildHasSelf: boolean
     children.any? do |child: BetterScope|
-      if child.hasSelf
-        true
+      if child.kind_of? ClosureScope
+        child.hasSelf
       else
         child.anyChildOrChildsChildHasSelf
       end
@@ -303,14 +330,11 @@ class BetterScope
     quote do
       def selfType: TypeFuture 
         # defer to parents, but cache
-        #@cachedSelfType ||= 
-        parent.selfType if parent
+        @cachedSelfType ||= parent.selfType if parent
       end
       def flush_selfType; @cachedSelfType = nil end
     end
   end
-
-
 
   macro def self.has_own_selfType
     quote do
@@ -409,7 +433,6 @@ class BetterScope
     end
   end
 
-
   macro def self.defers_fields
     quote do
       def hasField(name, includeParent:boolean=true)
@@ -419,10 +442,7 @@ class BetterScope
       def capturedFields
         # find the parent scope that is a class scope,
         # then use its captured fields
-        cur_parent = parent
-        while cur_parent && !cur_parent.kind_of?(ClassScope)
-          cur_parent = cur_parent.parent
-        end
+        cur_parent = find_class_parent
         if cur_parent
           cur_parent.capturedFields
         else
@@ -430,46 +450,50 @@ class BetterScope
         end
       end
 
+      def fieldUsed name
+        parent.fieldUsed name if parent
+      end
 
-  def selfUsed(): void
-    parent.selfUsed if parent
-  end
 
-  def capturedSelf: boolean
-        cur_parent = parent
-        while cur_parent && !cur_parent.kind_of?(ClassScope)
-          cur_parent = cur_parent.parent
+      def hasMethodCall(name, includeParent:boolean=true)
+        (includeParent && parent && parent.hasMethodCall(name))
+      end
+
+      def capturedMethods
+        # find the parent scope that is a class scope,
+        # then use its captured fields
+        cur_parent = find_class_parent
+        if cur_parent
+          cur_parent.capturedMethods
+        else
+          []
         end
+      end
+
+      def methodUsed name
+        parent.methodUsed name if parent
+      end
+
+
+      def selfUsed(): void
+        parent.selfUsed if parent
+      end
+
+      def capturedSelf: boolean
+        cur_parent = find_class_parent
         if cur_parent
           cur_parent.capturedSelf
         else
           false
         end
-  end
-
-  def hasSelf:boolean
-    #parent && parent.hasSelf
-    false
-  end
-
-
-      def fieldUsed name
-        parent.fieldUsed name if parent
       end
 
-      #def isCapturedField(name)
-      #  parent && parent.isCapturedField(name)
-      #end
+      def hasSelf:boolean
+        false
+      end
+
     end
   end
-
-
-  # captured self
-  # selfTypeIsCaptured
-  #   return false unless has a self type
-  #   # do we need to check the parent? not sure what that would mean
-  #   # return children.any? { |c| c.references_self_type }
-
 
   # must support locals
   macro def self.can_have_locals_captured
@@ -508,6 +532,20 @@ class BetterScope
         @fields_used.each {|name: String| captured.add(name) if isCapturedField(name)}
         captured
       end
+
+      def isCapturedMethod(name)
+        #return false unless @methods_used.contains(name)
+        # we check the self type before use.
+        # Also, you can't know for sure when a method is declared because it may be from a super class.
+        return anyChildOrChildsChildHasMethodCall name
+      end
+
+      def capturedMethods
+        captured = ArrayList.new(@methods_used.size)
+        @methods_used.each {|name: String| captured.add(name) if isCapturedMethod(name)}
+        captured
+      end
+
 
       def capturedSelf
         anyChildOrChildsChildHasSelf
@@ -671,6 +709,7 @@ class ClassScope < BetterScope
 
     @imports = ImportsAndSearchPackages.new
     @fields_used = HashSet.new
+    @methods_used = HashSet.new
   end
 
   defers_temp
@@ -690,6 +729,16 @@ class ClassScope < BetterScope
     @fields_used.add name
   end
 
+
+  def hasMethodCall(name, includeParent)
+    @methods_used.contains(name) || (includeParent && parent.hasMethodCall(name))
+  end
+
+  def methodUsed(name)
+    @methods_used.add name
+  end
+
+
   def hasSelf
     # ignore
   end
@@ -699,13 +748,12 @@ end
 class ClosureScope < BetterScope
 
   def toString
-    "<ClosureScope local_captures=#{capturedLocals} field_usages=#{@fields_used}>"
+    "<ClosureScope local_captures=#{capturedLocals} field_usages=#{@fields_used} methods_used=#{@methods_used}>"
   end
+
   defers_temp
   has_own_imports_and_looks_up
   supports_locals
-  #defers_selfType
-  #has_own_selfType
   deferred_package
 
   can_have_locals_captured
@@ -717,7 +765,7 @@ class ClosureScope < BetterScope
   # but once scopes support declarations, then yes
   no_shadowing
 
-  attr_accessor closureType: TypeFuture, capturesSelf: boolean
+  attr_accessor closureType: TypeFuture
 
 
   # shadows parameters, everything else captured
@@ -728,6 +776,7 @@ class ClosureScope < BetterScope
     @imports = ImportsAndSearchPackages.new
 
     @fields_used = HashSet.new
+    @methods_used = HashSet.new
   end
 
   def fieldUsed name
@@ -739,6 +788,17 @@ class ClosureScope < BetterScope
     @fields_used.contains(name) || (includeParent && parent.hasField(name))
   end
 
+
+  def methodUsed name
+    selfUsed
+    @methods_used.add name
+  end
+
+  def hasMethodCall(name, includeParent)
+    @methods_used.contains(name) || (includeParent && parent.hasMethodCall(name))
+  end
+
+
   def selfUsed(): void
     @capturedSelf = true
   end
@@ -748,7 +808,6 @@ class ClosureScope < BetterScope
   end
 
   def selfType: TypeFuture
-    @capturesSelf = true
     parent.selfType
   end
 
@@ -827,18 +886,6 @@ class MethodScope < BetterScope
     "<MethodScope type=#{selfType}>"
   end
 
-      #def isCapturedField(name)
-      ##  #return false unless @fields_used.contains(name)
-      #  parent_has_field = parent && parent.hasField(name, includeParent=true)
-      #  any_child_has_field = anyChildOrChildsChildHasField name
-      #  puts "#{self} child_has_it? #{any_child_has_field} parent(#{parent}) has it? #{parent_has_field}"
-      #  return false unless parent_has_field
-      #  return anyChildOrChildsChildHasField name
-      #end
-      # if I have the field
-      # if a direct child has the field
-      # if a transitive child has the field
-
   defers_temp
 
   supports_locals
@@ -854,9 +901,6 @@ class MethodScope < BetterScope
   # methods can't shadow locals, because scopes outside them can't share locals w/ them.
   no_shadowing
 
-  #def selfTypeIsCaptured: boolean; raise "Wut"; end
-
-
 end
 
 class ScriptScope < BetterScope
@@ -867,6 +911,7 @@ class ScriptScope < BetterScope
     @imports = ImportsAndSearchPackages.new
     @locals = Locals.new
     @fields_used = HashSet.new
+    @methods_used = HashSet.new
   end
 
   supports_locals
@@ -892,6 +937,10 @@ class ScriptScope < BetterScope
 
   def fieldUsed name
     @fields_used.add name
+  end
+
+  def methodUsed name
+    @methods_used.add name
   end
 
   def hasSelf

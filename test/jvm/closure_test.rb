@@ -15,10 +15,6 @@
 
 class ClosureTest < Test::Unit::TestCase
 
-  #def compile file
-  #  super(file, verbose: true)
-  #end
-
   def test_interface_defined_after_used
     cls, = compile(%q{
       class FooTest1
@@ -270,7 +266,7 @@ class ClosureTest < Test::Unit::TestCase
 
 
   def test_closing_over_field
-    cls, = with_finest_logging{compile(%q{
+    cls, = compile(%q{
       class Bar
         def bar: void
           @foo = 'yay foo'
@@ -278,7 +274,7 @@ class ClosureTest < Test::Unit::TestCase
         end
       end
       Bar.new.bar
-    })}
+    })
     assert_run_output("yay foo\n", cls)
   end
 
@@ -289,6 +285,23 @@ class ClosureTest < Test::Unit::TestCase
       class SelfConscious
         def bar
           lambda(Runnable) { puts self }.run
+        end
+        def toString
+          "SelfConscious"
+        end
+      end
+      SelfConscious.new.bar
+    })
+
+    assert_run_output("SelfConscious\n", cls)
+  end
+
+  def test_closing_over_self_call
+    return
+    cls, = compile(%q{
+      class SelfConscious
+        def bar
+          lambda(Runnable) { puts self.toString }.run
         end
         def toString
           "SelfConscious"

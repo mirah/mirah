@@ -54,14 +54,15 @@ interface Scope do
   def capturedFields(): List; end
   def isCapturedField(name: String): boolean; end
 
+  def hasMethodCall(name: String, includeParent:boolean=true): boolean; end
+  def methodUsed(name: String): void; end
+  def capturedMethods(): List; end
+  def isCapturedMethod(name: String): boolean; end
 
 
   def selfUsed(): void; end
   def capturedSelf: boolean; end
   def hasSelf: boolean; end
-
-  #def s
-
 end
 
 interface Scoper do
