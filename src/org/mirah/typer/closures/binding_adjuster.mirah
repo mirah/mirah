@@ -478,7 +478,7 @@ class BindingAdjuster < NodeScanner
 
   def exitFunctionalCall call, blah
     # only replace the fn call if we're in a block.
-    return nil if @blocks.empty?
+    return nil if @blocks.isEmpty
 
     # if the target type is the non-meta self type of the class scope,
     # then, do the replacement

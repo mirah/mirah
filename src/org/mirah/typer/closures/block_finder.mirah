@@ -51,7 +51,7 @@ class BlockFinder < NodeScanner
           puts "  block type: #{@typer.getInferredType(node)}"
           # If parent_type_future is nil, then there's likely another type error somewhere.
           # So just ignore this block and it'll bubble up.
-          return
+          return nil
         end
         fs = CallFuture(parent_type_future).futures
         TypeFuture(fs.get(fs.size-1)).resolve

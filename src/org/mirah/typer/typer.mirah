@@ -1594,9 +1594,9 @@ class Typer < SimpleNodeVisitor
           entries.each do |value_ss: SimpleString|
             value = value_ss.identifier
             if key == 'access'
-              flags |= Integer(MirahModifiers.access_modifiers[value])
+              flags |= Integer(MirahModifiers.access_modifiers[value]).intValue
             elsif key == 'flags'
-              flags |= Integer(MirahModifiers.flag_modifiers[value])
+              flags |= Integer(MirahModifiers.flag_modifiers[value]).intValue
             else
               raise "Unexpected mirah modifier annotation #{key} = #{value}"
             end
