@@ -25,15 +25,12 @@ class StaticFieldsTest < Test::Unit::TestCase
   end
 
   def test_static_field_inheritance_lookup_with_double_colon
-    return
-    pend("double colon is treated special for lookup") {
     cls, = compile(<<-EOF)
       import java.util.GregorianCalendar
       puts GregorianCalendar::AM
     EOF
 
     assert_run_output("0\n", cls)
-    }
   end
 
   def test_create_constant

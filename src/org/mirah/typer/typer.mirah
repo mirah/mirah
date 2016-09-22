@@ -17,6 +17,7 @@ package org.mirah.typer
 
 import java.util.*
 import org.mirah.util.Logger
+import org.mirah.util.MirahModifiers
 import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
@@ -1568,9 +1569,50 @@ class Typer < SimpleNodeVisitor
   end
 
   def getFieldTypeOrDeclare field: Named, targetType: TypeFuture
-    @types.getFieldTypeOrDeclare(targetType,
-                        field.name.identifier,
-                        field.position)
+    if field.kind_of? Annotated
+      # TODO make select work here
+      modifier_annotations = []
+      Annotated(Object(field)).annotations.each do |anno: Annotation|
+        modifier_annotations.add anno if anno.type.typeref.name == 'org.mirah.jvm.types.Modifiers'
+      end
+
+      flags = 0
+
+      modifier_annotations.each do |a: Annotation|
+        a.values.each do |entry: HashEntry|
+          key = SimpleString(entry.key).identifier
+
+          entries = if entry.value.kind_of? SimpleString
+            [entry.value]
+          elsif entry.value.kind_of? Array
+            values = entry.value
+            Array(values).values
+          else
+            raise "unexpected annotation contents #{a} #{a.getClass}"
+          end
+
+          entries.each do |value_ss: SimpleString|
+            value = value_ss.identifier
+            if key == 'access'
+              flags |= Integer(MirahModifiers.access_modifiers[value])
+            elsif key == 'flags'
+              flags |= Integer(MirahModifiers.flag_modifiers[value])
+            else
+              raise "Unexpected mirah modifier annotation #{key} = #{value}"
+            end
+          end
+        end
+      end
+      @types.getFieldTypeOrDeclare(targetType,
+                                   field.name.identifier,
+                                   field.position,
+                                   flags)
+    else
+      @types.getFieldTypeOrDeclare(targetType,
+                                   field.name.identifier,
+                                   field.position)
+
+    end
   end
 
   def expandMacro node: Node, inline_type: ResolvedType
