@@ -296,7 +296,6 @@ class ClosureTest < Test::Unit::TestCase
   end
 
   def test_closing_over_self_call
-    return
     cls, = compile(%q{
       class SelfConscious
         def bar
@@ -312,7 +311,22 @@ class ClosureTest < Test::Unit::TestCase
     assert_run_output("SelfConscious\n", cls)
   end
 
-
+  def test_close_over_super_types_method
+    cls, = compile(%q{
+      class SClass
+        def foo
+          puts 'yay foo'
+        end
+      end
+      class SubClass < SClass
+        def bar
+          lambda(Runnable) { foo }.run
+        end
+      end
+      SubClass.new.bar
+    })
+    assert_run_output("yay foo\n", cls)
+  end
   # closure type method called
   # closed over method shadows closure type method
 end

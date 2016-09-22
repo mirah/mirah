@@ -493,7 +493,7 @@ class BindingAdjuster < NodeScanner
     # You have to do this right now.
     declaring_class = ResolvedCall(call_future.resolve).member.declaringClass
     if self_type.kind_of? MirrorProxy
-      return nil unless MirrorProxy(self_type).target == declaring_class
+      return nil unless declaring_class.assignableFrom MirrorProxy(self_type).target
     else
       raise "dont know how to handle a function call replacement with a self type of #{self_type.getClass}: #{self_type}."
     end
