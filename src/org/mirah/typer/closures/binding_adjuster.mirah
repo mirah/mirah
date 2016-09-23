@@ -488,6 +488,8 @@ class BindingAdjuster < NodeScanner
     self_type = @captured_self_type.resolve
     call_future = CallFuture(@builder.typer.getInferredType(call))
 
+    # If it's not a ResolvedCall, it's probably an error and will get picked up later.
+    return nil unless call_future.resolve.kind_of? ResolvedCall
     # For some reason, static imports don't get the right target type.
     # You'd think you'd use call_future's target, or call's target's future, but you'd be wrong.
     # You have to do this right now.
