@@ -581,13 +581,7 @@ class BetterClosureBuilder
   end
 
   def return_nodes(block: Node): List
-    #block.findDescendants { |c| c.kind_of? Return }
-    # from findDescendants
-    # from commented out code in the parser
-    # TODO(nh): put this back in the parser
-    finder = DescendentFinder2.new(false, false) { |c| c.kind_of? Return }
-    finder.scan(block, nil)
-    finder.results
+    block.findDescendants { |c| c.kind_of? Return }
   end
 
   def new_closure_call_node(block: Block, klass: Node): Call

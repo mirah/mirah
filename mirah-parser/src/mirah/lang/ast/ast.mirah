@@ -181,29 +181,29 @@ class NodeImpl implements Node
     @parent = parent
   end
 
-  # def findChild(filter:NodeFilter):Node
-  #   finder = DescendentFinder.new(true, true, filter)
-  #   finder.scan(self, nil)
-  #   finder.result
-  # end
-  # 
-  # def findChildren(filter:NodeFilter):List
-  #   finder = DescendentFinder.new(true, false, filter)
-  #   finder.scan(self, nil)
-  #   finder.results
-  # end
-  # 
-  # def findDescendant(filter:NodeFilter):Node
-  #   finder = DescendentFinder.new(false, true, filter)
-  #   finder.scan(self, nil)
-  #   finder.result
-  # end
-  # 
-  # def findDescendants(filter:NodeFilter):List
-  #   finder = DescendentFinder.new(false, false, filter)
-  #   finder.scan(self, nil)
-  #   finder.results
-  # end
+  def findChild(filter:NodeFilter):Node
+    finder = DescendentFinder.new(true, true, filter)
+    finder.scan(self, nil)
+    finder.result
+  end
+
+  def findChildren(filter:NodeFilter):List
+    finder = DescendentFinder.new(true, false, filter)
+    finder.scan(self, nil)
+    finder.results
+  end
+
+  def findDescendant(filter:NodeFilter):Node
+    finder = DescendentFinder.new(false, true, filter)
+    finder.scan(self, nil)
+    finder.result
+  end
+
+  def findDescendants(filter:NodeFilter):List
+    finder = DescendentFinder.new(false, false, filter)
+    finder.scan(self, nil)
+    finder.results
+  end
 
   def setOriginalNode(node:Node):void
     @originalNode = node
@@ -221,7 +221,7 @@ class NodeImpl implements Node
     @clone_listeners = LinkedList.new
     self.position = position
   end
-  
+
   def childAdded(child:Node):Node
     return child if child.nil?
     if child.parent && child.parent != self
@@ -242,7 +242,7 @@ class NodeImpl implements Node
       CloneListener(listener).wasCloned(self, clone)
     end
   end
-  
+
   # Should only be called during clone.
   def initCopy:void
     @parent = nil
@@ -250,35 +250,36 @@ class NodeImpl implements Node
   end
 end
 
-# class DescendentFinder < NodeScanner
-#   def initialize(children_only:boolean, only_one:boolean, filter:NodeFilter)
-#     @results = ArrayList.new
-#     @children = children_only
-#     @only_one = only_one
-#     @filter = filter
-#   end
-# 
-#   def enterDefault(node:Node, arg:Object):boolean
-#     return false if @results.size == 1 && @only_one
-#     if @filter.matchesNode(node)
-#       @results.add(node)
-#       return false if @only_one
-#     end
-#     return !@children
-#   end
-# 
-#   def results:List
-#     @results
-#   end
-# 
-#   def result:Node
-#     if @results.size == 0
-#       nil
-#     else
-#       Node(@results.get(0))
-#     end
-#   end
-# end
+ class DescendentFinder < NodeScanner
+
+   def initialize(children_only:boolean, only_one:boolean, filter:NodeFilter)
+     @results = ArrayList.new
+     @children = children_only
+     @only_one = only_one
+     @filter = filter
+   end
+
+   def enterDefault(node: Node, arg:Object): boolean
+     return false if @results.size == 1 && @only_one
+     if @filter.matchesNode(node)
+       @results.add(node)
+       return false if @only_one
+     end
+     return !@children
+   end
+
+   def results:List
+     @results
+   end
+
+   def result:Node
+     if @results.size == 0
+       nil
+     else
+       Node(@results.get(0))
+     end
+   end
+ end
 
 class ErrorNode < NodeImpl
   init_node
