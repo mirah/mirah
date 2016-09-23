@@ -85,9 +85,9 @@ class BetterClosureBuilder
     @macros = macros
   end
 
-  attr_accessor blockCloneMapOldNew:IdentityHashMap
-  attr_accessor blockCloneMapNewOld:IdentityHashMap
-  attr_accessor parent_scope_to_binding_name:Map
+  attr_accessor blockCloneMapOldNew: IdentityHashMap,
+                blockCloneMapNewOld: IdentityHashMap,
+                parent_scope_to_binding_name: Map
 
   def collect_closures scripts: List
     # returns closures in the reverse order from the scripts
@@ -116,10 +116,7 @@ class BetterClosureBuilder
     self.blockCloneMapOldNew = IdentityHashMap.new
     self.blockCloneMapNewOld = IdentityHashMap.new
 
-    selff = self
-
-    i = 0
-
+    selff = self # TODO rm this after the next release
     closures.each do |entry: Entry|
       block = Block(entry.getKey)
       on_clone = lambda(CloneListener) do |interim, new|
@@ -129,18 +126,18 @@ class BetterClosureBuilder
         new.whenCloned on_clone
       end
       block.whenCloned on_clone
-      blockCloneMapOldNew.put(block,block)
-      blockCloneMapNewOld.put(block,block)
+      blockCloneMapOldNew.put(block, block)
+      blockCloneMapNewOld.put(block, block)
     end
 
     self.parent_scope_to_binding_name = {}
 
+    i = 0
     closures.each do |entry: Entry|
       i += 1
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       uncloned_block = Block(entry.getKey)
       block = Block(blockCloneMapOldNew.get(uncloned_block))
-      @@log.fine "#{typer.sourceContent block}"
       enclosing_node = find_enclosing_node(block)
       if enclosing_node.nil?
         # this likely means a macro exists and made things confusing
@@ -149,6 +146,7 @@ class BetterClosureBuilder
         closures_to_skip.add entry
         next
       end
+      @@log.fine "#{typer.sourceContent block}"
       @@log.fine "enclosing node #{enclosing_node}"
       @@log.fine "#{typer.sourceContent enclosing_node}"
 
@@ -171,15 +169,6 @@ class BetterClosureBuilder
 
       adjuster.adjust enclosing_b, block
       @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
-#    end
-#
-#    # ignore closures with no parents, they aren't in the final AST, maybe
-#    closures.removeAll closures_to_skip
-#
-#    i = 0
-#    closures.each do |entry: Entry|
-#      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
-#      i += 1
 
       AstChecker.maybe_check(scripts)
 
@@ -283,14 +272,10 @@ class BetterClosureBuilder
       @typer.inferClosureBlock block, method_for(parent_type)
     end
 
-    script = block.findAncestor{ |n| n.kind_of? Script }
+    script = block.findAncestor { |n| n.kind_of? Script }
 
     @todo_closures[block] = parent_type
     @scripts.add script
-  end
-
-  def insert_closure(block: Block, parent_type: ResolvedType)
-    raise "BetterClosureBuilder doesn't support insert_closure"
   end
 
   def prepare_non_local_return_closure(block: Block, parent_type: ResolvedType): Node

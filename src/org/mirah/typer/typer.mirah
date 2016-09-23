@@ -1196,8 +1196,6 @@ class Typer < SimpleNodeVisitor
   def visitMethodDefinition(mdef, expression)
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
-
-
     if !isMethodInBlock(mdef)
       scope = addScopeForMethod(mdef)
 

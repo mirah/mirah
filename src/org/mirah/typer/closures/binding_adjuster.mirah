@@ -510,7 +510,6 @@ class BindingAdjuster < NodeScanner
 
     @@log.finest "exitFunctionalCall: replacing self.#{call.name} with #{@bindingName}.self.#{call.name}"
 
-
     maybeNoteBlockBinding
 
     call_params = []

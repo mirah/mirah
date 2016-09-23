@@ -20,7 +20,6 @@ import org.mirah.typer.TypeFuture
 import org.mirah.typer.ResolvedType
 
 interface ClosureBuilderer
-  def insert_closure(block: Block, parent_type: ResolvedType): TypeFuture; end
   def add_todo(block: Block, parent_type: ResolvedType): void; end
   def finish: void; end
 end

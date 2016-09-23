@@ -264,7 +264,6 @@ class ClosureTest < Test::Unit::TestCase
     assert_run_output("yay foo\n", cls)
   end
 
-
   def test_closing_over_field
     cls, = compile(%q{
       class Bar
@@ -277,7 +276,6 @@ class ClosureTest < Test::Unit::TestCase
     })
     assert_run_output("yay foo\n", cls)
   end
-
 
   def test_closing_over_self
     cls, = compile(%q{
