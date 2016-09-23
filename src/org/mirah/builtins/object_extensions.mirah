@@ -50,11 +50,8 @@ class ObjectExtensions
     end
   end
 
-  ## TODO handle the negation st def == will be called
+  ## TODO change != so that it does the below intrinsically.
   macro def !=(node)
-    # TODO this doesn't work, but should
-    #quote { ( `@call.target`.nil? && `node`.nil? ) || !`@call.target`.equals(`node`) }
-
     quote { !(`@call.target` == `node`)}
   end
   
