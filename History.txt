@@ -1,3 +1,35 @@
+0.2.1 Self Closure / 9-25-2016
+==========================
+
+cdd5e69 Bump versions to 0.2.1
+3577458 binding adjuster. If a fn call's unresolved, dont replace it
+67f0a03 clean up some object ext comments
+67a3c4e add == impl for arrays using java.util.Arrays
+25a3472 rm some dead code, clean up formatting in places
+8350ff3 Fix TODO for DescendentFinder rm duplicated code that was commented out in the parser
+c881333 should also be able to close over super type's methods
+7141cc4 fixes for compiling mirah with an older mirah
+bbf5f3a fix const lookups within the same compilation unit
+0e3c706 ensure double colon works atleast for previously compiled artifacts
+3143364 add self closing too
+4ae4f53 get most closure types to a working state!
+e499840 better exit failure message when running mirah
+7e1bfa5 field / self closures work. :)
+d91bc5a fix release link
+0200bb3 remove unused imports for SimpleScope(r)
+aeace8a Mirah run mode should not stop the process unless compile failed
+ad9b31d minor whitespace fixes
+7414af5 Really fix by changing builder's naming
+f74bf7a Change naming scheme for macros to use the macro name
+ccb3aba Fix metacircularity of the parser.
+6c09be2 just use test-unit at whatever version
+be6c757 Merge pull request #436 from KoKumagai/fix-typo
+63a6b62 Merge pull request #440 from uujava/fix_list_assignment_macro
+9175280 fix list assignment to use set instead of add (cherry picked from commit 5bd8af1)
+7dd1219 bump to 0.2.1.dev version
+d8fdbc1 Fix a typo
+
+
 0.2.0 Back In Action / 2016-8-6
 ===============================
 
