@@ -147,13 +147,13 @@ class NodeImpl implements Node
   attr_reader originalNode: Node
 
   def findAncestor(type:Class):Node
-    node = Node(self)
+    node = self.as!(Node)
     node = node.parent until node.nil? || type.isInstance(node)
     node
   end
 
   def findAncestor(filter:NodeFilter):Node
-    node = Node(self)
+    node = self.as!(Node)
     node = node.parent until node.nil? || filter.matchesNode(node)
     node
   end
@@ -225,7 +225,7 @@ class NodeImpl implements Node
   def childAdded(child:Node):Node
     return child if child.nil?
     if child.parent && child.parent != self
-      child = Node(child.clone)
+      child = child.clone.as!(Node)
     end
     child.setParent(self)
     child
@@ -276,7 +276,7 @@ end
      if @results.size == 0
        nil
      else
-       Node(@results.get(0))
+       @results.get(0).as!(Node)
      end
    end
  end

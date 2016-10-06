@@ -25,81 +25,82 @@ class Unquote < NodeImpl
     attr_accessor object: Object
   end
 
-  def identifier:String
+  def identifier: String
     obj = @object || @value
     identifierNode(obj).identifier
   end
 
-  def identifierNode(obj:Object):Identifier
+  def identifierNode(obj: Object): Identifier
     if obj.kind_of?(Identifier)
-      Identifier(obj)
+      obj.as!(Identifier)
     elsif obj.kind_of?(Named)
-      Named(obj).name
+      obj.as!(Named).name
     elsif obj.kind_of?(String)
-      SimpleString.new(String(obj))
+      SimpleString.new(obj.as!(String))
     else
       raise UnsupportedOperationException, "#{obj} is not an Identifier"
     end
   end
 
-  def typeref(obj=nil):TypeRef
+  def typeref(obj=nil): TypeRef
     obj ||= @object || @value
     if obj.kind_of?(TypeRef)
-      TypeRef(obj)
+      obj.as! TypeRef
     elsif obj.kind_of?(TypeName)
-      TypeName(obj).typeref
+      obj.as!(TypeName).typeref
     elsif obj.kind_of?(Identifier)
-      id = Identifier(obj)
+      id = obj.as! Identifier
       TypeRefImpl.new(id.identifier, false, false, id.position)
     elsif obj.kind_of?(String)
-      TypeRefImpl.new(String(obj))
+      TypeRefImpl.new(obj.as!(String))
     else
       raise UnsupportedOperationException, "#{obj} does not name a type"
     end
   end
 
-  def nodes:List
+  def nodes: List
     value = self.object
     return Collections.emptyList if value.nil?
     if value.kind_of?(Iterable) && !value.kind_of?(Hash) && !value.kind_of?(Node)
-      values = List(ArrayList.new)
-      Iterable(value).each {|o| values.add(nodeValue(o))}
+      values = ArrayList.new
+      value.as!(Iterable).each { |o| values.add(nodeValue(o))}
       values
     else
       Collections.singletonList(nodeValue(value))
     end
   end
 
-  def node:Node
+  def node: Node
     return nodeValue(object)
   end
 
-  def nodeValue(value:Object)
+  def nodeValue(value: Object)
     return nil if value.nil?
-    return Node(value) if value.kind_of?(Node)
-    return Fixnum.new(position, Integer(value).intValue) if value.kind_of?(Integer)
+    return value.as!(Node) if value.kind_of?(Node)
+    return Fixnum.new(position, value.as!(Integer).intValue) if value.kind_of?(Integer)
     unless value.kind_of?(String)
       raise IllegalArgumentException, "Bad unquote value for node #{value}  (#{value.getClass})"
     end
-    strvalue = String(value)
+
+    strvalue = value.as!(String)
     if '@'.equals(strvalue.substring(0, 1))
-      Node(FieldAccess.new(position, SimpleString.new(position, strvalue.substring(1))))
+      FieldAccess.new(position, SimpleString.new(position, strvalue.substring(1))).as!(Node)
     else
       strnode = SimpleString.new(position, strvalue)
       if Character.isUpperCase(strvalue.charAt(0)) || strvalue.indexOf('.') >= 0
-        Node(Constant.new(position, strnode))
+        Constant.new(position, strnode).as!(Node)
       else
         LocalAccess.new(position, strnode)
       end
     end
   end
 
-  def arguments:Arguments
+  def arguments: Arguments
     if object.kind_of?(Arguments) || object.nil?
-      Arguments(object)
+      object.as! Arguments
     elsif object.kind_of?(List)
       args = Arguments.empty(position)
-      List(object).each do |o|
+      object.as!(List).each do |o|
         add_arg(args, arg_item(o))
       end
       args
@@ -111,16 +112,16 @@ class Unquote < NodeImpl
   end
 
 #  private
-  def add_arg(args:Arguments, node:Node)
+  def add_arg(args: Arguments, node: Node)
     if node.kind_of?(OptionalArgument)
-      args.optional.add(OptionalArgument(node))
+      args.optional.add(node.as!(OptionalArgument))
     elsif node.kind_of?(RestArgument)
       # TODO check for multiples?
-      args.rest = RestArgument(node)
+      args.rest = node.as!(RestArgument)
     elsif node.kind_of?(BlockArgument)
-      args.block = BlockArgument(node)
+      args.block = node.as!(BlockArgument)
     else
-      arg = RequiredArgument(node)
+      arg = node.as!(RequiredArgument)
       if args.required2.size == 0 && args.rest.nil? && args.optional.size == 0
         args.required.add(arg)
       else
@@ -130,17 +131,19 @@ class Unquote < NodeImpl
     args
   end
 
-  def arg_item(object:Object):Node
-    if object.kind_of?(RequiredArgument) || object.kind_of?(OptionalArgument) ||
-        object.kind_of?(RestArgument) || object.kind_of?(BlockArgument)
-      Node(object)
+  def arg_item(object: Object): Node
+    if object.kind_of?(RequiredArgument) ||
+       object.kind_of?(OptionalArgument) ||
+       object.kind_of?(RestArgument)     ||
+       object.kind_of?(BlockArgument)
+      object.as!(Node)
     elsif object.kind_of?(Identifier)
-      id = Identifier(object)
+      id = object.as! Identifier
       RequiredArgument.new(id.position, id, nil)
     elsif object.kind_of?(String)
-      RequiredArgument.new(position, SimpleString.new(position, String(object)), nil)
+      RequiredArgument.new(position, SimpleString.new(position, object.as!(String)), nil)
     elsif object.kind_of?(List)
-      l = List(object)
+      l = object.as!(List)
       nameobj = l.get(0)
       type = l.size > 1 ? typeref(l.get(1)) : nil
       name = identifierNode(nameobj)
