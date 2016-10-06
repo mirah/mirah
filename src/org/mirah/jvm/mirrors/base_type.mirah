@@ -45,31 +45,31 @@ import org.mirah.typer.TypeFuture
 import org.mirah.util.Context
 
 interface MethodListener
-  def methodChanged(klass:JVMType, name:String):void; end
+  def methodChanged(klass:JVMType, name: String): void; end
 end
 
 interface MirrorType < JVMType, TypeMirror
-  def notifyOfIncompatibleChange:void; end
-  def onIncompatibleChange(listener:Runnable):void; end
-  def isFullyResolved():boolean; end # Whether the type itself is resolved and its superclasses and its superinterfaces.
-  def getDeclaredMethods(name:String):List; end  # List<Member>
-  def getAllDeclaredMethods:List; end
-  def addMethodListener(name:String, listener:MethodListener):void; end
-  def invalidateMethod(name:String):void; end
-  def add(member:JVMMethod):void; end
-  def hasMember(name:String):boolean; end
-  def declareField(field:JVMField):void; end
-  def unmeta:MirrorType; end
-  def isSameType(other:MirrorType):boolean; end
-  def isSupertypeOf(other:MirrorType):boolean; end
-  def directSupertypes:List; end
-  def erasure:TypeMirror; end
+  def notifyOfIncompatibleChange: void; end
+  def onIncompatibleChange(listener: Runnable): void; end
+  def isFullyResolved(): boolean; end # Whether the type itself is resolved and its superclasses and its superinterfaces.
+  def getDeclaredMethods(name: String): List; end  # List<Member>
+  def getAllDeclaredMethods: List; end
+  def addMethodListener(name: String, listener: MethodListener): void; end
+  def invalidateMethod(name: String): void; end
+  def add(member: JVMMethod): void; end
+  def hasMember(name: String): boolean; end
+  def declareField(field: JVMField): void; end
+  def unmeta: MirrorType; end
+  def isSameType(other: MirrorType): boolean; end
+  def isSupertypeOf(other: MirrorType): boolean; end
+  def directSupertypes: List; end
+  def erasure: TypeMirror; end
 end
 
 interface DeclaredMirrorType < MirrorType, DeclaredType
-  def ensure_linked:void; end
-  def signature:String; end
-  def getTypeVariableMap:Map; end
+  def ensure_linked: void; end
+  def signature: String; end
+  def getTypeVariableMap: Map; end
 end
 
 # package_private
@@ -89,11 +89,11 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     }
   end
 
-  def initialize(context:Context, type:Type, flags:int, superclass:JVMType)
+  def initialize(context: Context, type: Type, flags: int, superclass: JVMType)
     initialize(context, type.getClassName, type, flags, superclass)
   end
 
-  def initialize(context:Context, name:String, type:Type, flags:int, superclass:JVMType)
+  def initialize(context: Context, name: String, type: Type, flags: int, superclass: JVMType)
     @context = context
     @name = name
     @type = type
@@ -104,25 +104,21 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @compatibility_listeners = []
   end
 
-  attr_reader superclass:JVMType, name:String, type:Type, flags:int, context:Context
+  attr_reader superclass: JVMType, name: String, type: Type, flags: int, context: Context
 
-  def notifyOfIncompatibleChange:void
+  def notifyOfIncompatibleChange: void
     @cached_supertypes = List(nil)
     listeners = ArrayList.new(@compatibility_listeners)
-    listeners.each do |l: Runnable|
-      l.run()
-    end
+    listeners.each { |l: Runnable| l.run }
     methods = HashSet.new(@method_listeners.keySet)
-    methods.each do |n|
-      invalidateMethod(String(n))
-    end
+    methods.each { |n: String| invalidateMethod(n) }
   end
 
-  def onIncompatibleChange(listener:Runnable)
+  def onIncompatibleChange(listener: Runnable)
     @compatibility_listeners.add(listener)
   end
   
-  def isFullyResolved():boolean
+  def isFullyResolved(): boolean
     false
   end
 
@@ -137,31 +133,31 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
       other
     elsif self.box
       self.box.widen(other)
-    elsif other.kind_of?(MirrorType) && MirrorType(other).box
-      widen(MirrorType(other).box)
+    elsif other.kind_of?(MirrorType) && other.as!(MirrorType).box
+      widen(other.as!(MirrorType).box)
     else
       # This may spread intersection types to places java wouldn't allow them.
       # Do we care?
-      lub = MirrorType(Object(LubFinder.new(@context).leastUpperBound([self, other])))
+      lub = LubFinder.new(@context).leastUpperBound([self, other]).as!(Object).as!(MirrorType)
       lub || ErrorType.new([["Incompatible types #{self} and #{other}."]])
     end
   end
 
-  def isMeta:boolean; false; end
-  def isBlock:boolean; false; end
-  def isError:boolean; false; end
-  def matchesAnything:boolean; false; end
+  def isMeta: boolean; false; end
+  def isBlock: boolean; false; end
+  def isError: boolean; false; end
+  def matchesAnything: boolean; false; end
 
-  def getAsmType:Type; @type; end
+  def getAsmType: Type; @type; end
 
-  def isInterface:boolean
+  def isInterface: boolean
     0 != (self.flags & Opcodes.ACC_INTERFACE)
   end
 
-  def retention:String; nil; end
+  def retention: String; nil; end
 
   def getKind
-    TypeKind.DECLARED
+    TypeKind::DECLARED
   end
 
   def accept(v, p)
@@ -172,17 +168,17 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     Collections.emptyList
   end
 
-  def getComponentType:JVMType; nil; end
+  def getComponentType: JVMType; nil; end
 
-  def hasStaticField(name:String):boolean
+  def hasStaticField(name: String): boolean
     field = getDeclaredField(name)
     field && field.kind.name.startsWith("STATIC_")
   end
 
-  def getDeclaredMethods(name:String)
+  def getDeclaredMethods(name: String)
     @methods_loaded ||= load_methods
     # TODO: should this filter out fields?
-    List(@members[name]) || Collections.emptyList
+    @members[name].as!(List) || Collections.emptyList
   end
 
   def getAllDeclaredMethods
@@ -198,41 +194,41 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     methods
   end
 
-  def interfaces:TypeFuture[]
+  def interfaces: TypeFuture[]
     TypeFuture[0]
   end
 
-  def getDeclaredFields:JVMField[]
+  def getDeclaredFields: JVMField[]
     return JVMField[0]
   end
-  def getDeclaredField(name:String):JVMField; nil; end
+  def getDeclaredField(name: String): JVMField; nil; end
 
-  def add(member:JVMMethod):void
-    members = List(@members[member.name] ||= LinkedList.new)
-    members.add(Member(member))
+  def add(member:JVMMethod): void
+    members = (@members[member.name] ||= LinkedList.new).as!(List)
+    members.add(member.as!(Member))
     invalidateMethod(member.name)
   end
 
-  def addMethodListener(name:String, listener:MethodListener)
+  def addMethodListener(name: String, listener:MethodListener)
     @methods_loaded ||= load_methods
-    listeners = Set(@method_listeners[name] ||= HashSet.new)
+    listeners = (@method_listeners[name] ||= HashSet.new).as!(Set)
     listeners.add(listener)
     parent = superclass
     if parent && parent.kind_of?(MirrorType)
-      MirrorType(parent).addMethodListener(name, self)
+      parent.as!(MirrorType).addMethodListener(name, self)
     end
     interfaces.each do |future|
       if future.isResolved
         iface = future.resolve
         if iface.kind_of?(MirrorType)
-          MirrorType(iface).addMethodListener(name, self)
+          iface.as!(MirrorType).addMethodListener(name, self)
         end
       end
     end
   end
 
-  def invalidateMethod(name:String)
-    listeners = Set(@method_listeners[name])
+  def invalidateMethod(name: String)
+    listeners = @method_listeners[name].as! Set
     if listeners
       HashSet.new(listeners).each do |l: MethodListener|
         l.methodChanged(self, name)
@@ -244,7 +240,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     invalidateMethod(name)
   end
 
-  def declareField(field:JVMField):void
+  def declareField(field:JVMField): void
     raise IllegalArgumentException, "Cannot add fields to #{self}"
   end
 
@@ -253,7 +249,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
   end
 
   # Subclasses can override to add methods after construction.
-  def load_methods:boolean
+  def load_methods: boolean
     true
   end
 
@@ -261,23 +257,23 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     @name
   end
 
-  def box:JVMType
+  def box: JVMType
     @boxed
   end
 
   attr_writer boxed: JVMType
 
-  def unbox:JVMType
+  def unbox: JVMType
     @unboxed
   end
 
   attr_writer unboxed: JVMType
 
   def equals(other)
-    other.kind_of?(MirrorType) && isSameType(MirrorType(other))
+    other.kind_of?(MirrorType) && isSameType(other.as!(MirrorType))
   end
 
-  def hashCode:int
+  def hashCode: int
     hash = 23 + 37 * (getTypeArguments.hashCode)
     37 * hash + getAsmType.hashCode
   end
@@ -288,7 +284,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
     return false if other.getKind != TypeKind.DECLARED
     return false unless other.kind_of?(DeclaredType) &&
                         getTypeArguments.equals(
-                          DeclaredType(Object(other)).getTypeArguments)
+                          other.as!(Object).as!(DeclaredType).getTypeArguments)
     getAsmType().equals(other.getAsmType)
   end
 
@@ -301,9 +297,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
       elsif superclass
         supertypes.add superclass
       elsif @context
-        object_type = MirrorType(
-               @context[MirrorTypeSystem].loadNamedType(
-                  "java.lang.Object").resolve)
+        object_type = @context[MirrorTypeSystem].loadNamedType("java.lang.Object").resolve.as!(MirrorType)
         unless self.isSameType object_type
           supertypes.add(object_type)
         end
@@ -321,18 +315,18 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
 
   def isSupertypeOf(other)
     return true if getAsmType.equals(other.getAsmType)
-    other.directSupertypes.any? {|x| isSupertypeOf(MirrorType(x))}
+    other.directSupertypes.any? { |x: MirrorType| isSupertypeOf(x) }
   end
 
-  def getMembers(name:String)
-    List(@members[name])
+  def getMembers(name: String)
+    @members[name].as! List
   end
   
-  def hasMember(name:String)
+  def hasMember(name: String)
     @members[name] != nil
   end
 
-  def getMethod(name:String, params:List):JVMMethod
+  def getMethod(name: String, params: List): JVMMethod
     nil
   end
 
@@ -343,49 +337,48 @@ end
 
 class AsyncMirror < BaseType
 
-  def self.initialize:void
+  def self.initialize: void
     @@log = Logger.getLogger(AsyncMirror.class.getName)
   end
 
-  def initialize(context:Context, type:Type, flags:int, superclass:TypeFuture, interfaces:TypeFuture[])
+  def initialize(context: Context, type: Type, flags: int, superclass: TypeFuture, interfaces: TypeFuture[])
     super(context, type, flags, nil)
     @watched_methods = HashSet.new
     @fullyResolved = false
     setSupertypes(superclass, interfaces)
   end
 
-  def initialize(context:Context, type:Type, flags:int)
+  def initialize(context: Context, type: Type, flags: int)
     super(context, type, flags, nil)
     @fullyResolved = false
     @watched_methods = HashSet.new
   end
 
-  def setSupertypes(superclass:TypeFuture, interfaces:TypeFuture[]):void
-    mirror = self
+  def setSupertypes(superclass: TypeFuture, interfaces: TypeFuture[]): void
     @interfaces = interfaces
     @orig_superclass = superclass
     if superclass
       superclass.onUpdate do |x, resolved|
-        mirror.resolveSuperclass(JVMType(resolved))
+        self.resolveSuperclass(JVMType(resolved))
       end
     end
     @interfaces.each do |i|
       i.onUpdate do |x, resolved|
-        mirror.resolveSupertype(resolved)
+        self.resolveSupertype(resolved)
       end
     end
   end
 
-  def resolveSuperclass(resolved:JVMType):void
+  def resolveSuperclass(resolved: JVMType): void
     @@log.finest "[#{self}] resolving super class #{resolved}"
     @superclass = resolved
     resolveSupertype(resolved)
   end
 
-  def resolveSupertype(resolved:ResolvedType):void
+  def resolveSupertype(resolved: ResolvedType): void
     if resolved.kind_of?(MirrorType)
-      parent = MirrorType(resolved)
-      @watched_methods.each do |name:String|
+      parent = resolved.as!(MirrorType)
+      @watched_methods.each do |name: String|
         parent.addMethodListener(name, self)
       end
     end
@@ -401,15 +394,15 @@ class AsyncMirror < BaseType
     @superclass
   end
 
-  def interfaces:TypeFuture[]
+  def interfaces: TypeFuture[]
     @interfaces
   end
   
-  def isFullyResolved():boolean
+  def isFullyResolved(): boolean
     @fullyResolved
   end
 
-  def updateFullyResolved:void
+  def updateFullyResolved: void
     oldFullyResolved = @fullyResolved
     @fullyResolved = checkFullyResolved
     if oldFullyResolved!=@fullyResolved

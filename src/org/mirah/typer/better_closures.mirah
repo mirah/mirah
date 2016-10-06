@@ -116,13 +116,12 @@ class BetterClosureBuilder
     self.blockCloneMapOldNew = IdentityHashMap.new
     self.blockCloneMapNewOld = IdentityHashMap.new
 
-    selff = self # TODO rm this after the next release
     closures.each do |entry: Entry|
       block = Block(entry.getKey)
       on_clone = lambda(CloneListener) do |interim, new|
-        old = selff.blockCloneMapNewOld.get(interim)
-        selff.blockCloneMapNewOld.put(new, old)
-        selff.blockCloneMapOldNew.put(old, new)
+        old = self.blockCloneMapNewOld.get(interim)
+        self.blockCloneMapNewOld.put(new, old)
+        self.blockCloneMapOldNew.put(old, new)
         new.whenCloned on_clone
       end
       block.whenCloned on_clone

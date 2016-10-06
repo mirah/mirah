@@ -554,10 +554,9 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     getResolvedArrayType(componentType)
   end
 
-  def getArrayType(componentType:TypeFuture):TypeFuture
-    types = self
+  def getArrayType(componentType: TypeFuture): TypeFuture
     DerivedFuture.new(componentType) do |resolved|
-      types.getResolvedArrayType(resolved)
+      self.getResolvedArrayType(resolved)
     end
   end
 
@@ -670,12 +669,11 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     end
     member = MirahMethod.new(@context, position, flags, target, name, arguments, returnType, kind)
 
-    returnFuture = AssignableTypeFuture(member.asyncReturnType)
     log = @@log
-    me = self
+    returnFuture = member.asyncReturnType.as!(AssignableTypeFuture)
     returnFuture.onUpdate do |x, resolved|
       type = isMeta ? "static " : ""
-      formatted = me.format(target, name, arguments)
+      formatted = self.format(target, name, arguments)
       log.fine("Learned #{type}#{formatted}:#{resolved}")
     end
 
