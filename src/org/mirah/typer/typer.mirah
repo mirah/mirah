@@ -744,7 +744,7 @@ class Typer < SimpleNodeVisitor
     name = clause.name
     if name
       scope.shadow(name.identifier)
-      exceptionType = @types.getLocalType(scope, name.identifier, name.position)
+      exceptionType = scope.getLocalType(name.identifier, name.position)
       clause.types.each do |_t|
         t = TypeName(_t)
         exceptionType.assign(inferTypeName(t), t.position)
@@ -1459,7 +1459,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
-    @types.getLocalType(scopeOf(arg), identifier, arg.position)
+    scopeOf(arg).getLocalType(identifier, arg.position)
   end
 
   def getArgumentType(arg: FormalArgument)

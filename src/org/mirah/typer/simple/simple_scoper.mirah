@@ -27,32 +27,38 @@ import java.io.FileInputStream
 import java.io.PrintStream
 
 interface ScopeFactory do
-  def newScope(scoper:Scoper, node:Node):Scope; end
+  def newScope(scoper: Scoper, node: Node): Scope; end
 end
 
 # A minimal Scoper.
 class SimpleScoper; implements Scoper
+  attr_reader types: TypeSystem
   def initialize
     @scopes = {}
   end
-  def initialize(factory:ScopeFactory)
+
+  def initialize(factory: ScopeFactory)#, types: TypeSystem)
     @factory = factory
     @scopes = {}
+    @types = types
   end
+
   def getScope(node)
     orig = node
     until node.parent.nil?
       node = node.parent
-      scope = Scope(@scopes[node])
+      scope = getIntroducedScope node
       return scope if scope
     end
-    Scope(@scopes[node]) || addScope(node)
+    getIntroducedScope(node) || addScope(node)
   end
-  def getIntroducedScope(node:Node)
-    Scope(@scopes[node])
+
+  def getIntroducedScope(node: Node)
+    @scopes[node].as! Scope
   end
+
   def addScope(node)
-    Scope(@scopes[node]) || begin
+    @scopes[node].as!(Scope) || begin
       scope = if @factory
         @factory.newScope(self, node)
       else
@@ -62,9 +68,11 @@ class SimpleScoper; implements Scoper
       scope
     end
   end
-  def setScope(node:Node, scope:Scope)
+
+  def setScope(node: Node, scope: Scope)
     @scopes[node] = scope
   end
+
   def copyScopeFrom(from, to)
     @scopes[to] = getScope(from)
   end

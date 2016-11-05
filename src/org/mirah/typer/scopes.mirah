@@ -16,6 +16,8 @@
 package org.mirah.typer
 
 import mirah.lang.ast.Node
+import mirah.lang.ast.Position
+
 import java.util.List
 import java.util.Map
 
@@ -63,6 +65,8 @@ interface Scope do
   def selfUsed(): void; end
   def capturedSelf: boolean; end
   def hasSelf: boolean; end
+
+  def getLocalType(name: String, position: Position):LocalFuture; end
 end
 
 interface Scoper do

@@ -60,15 +60,16 @@ class Locals
   implements Iterable
   def initialize
     @defined_locals = HashSet.new
-    @local_types = {}
+    @local_types    = {}
   end
+
   def local_type(
     name: String,
     position: Position,
     parent: BetterScope,
     shadowed: boolean
   )
-    type = LocalFuture(@local_types[name])
+    type = @local_types[name].as!(LocalFuture)
     if type.nil?
       type = LocalFuture.new(name, position)
       locals = @defined_locals
@@ -81,7 +82,7 @@ class Locals
       end
 
       if parent && !shadowed
-        type.parent = BetterScope(parent).getLocalType(name, position)
+        type.parent = parent.as!(BetterScope).getLocalType(name, position)
       end
       @local_types[name] = type
     end
@@ -101,8 +102,8 @@ class ImportsAndSearchPackages
   attr_reader imports: Map, search_packages: List, staticImports: Set
   def initialize
     @search_packages = []
-    @imports = {}
-    @staticImports = HashSet.new
+    @imports         = {}
+    @staticImports   = HashSet.new
   end
 
   def add(fullname: String, shortname: String): void
@@ -186,8 +187,8 @@ class BetterScope
 
     @parent.removeChild(self) if @parent
 
-    BetterScope(new_parent).addChild(self)
-    @parent = BetterScope(new_parent)
+    new_parent.as!(BetterScope).addChild(self)
+    @parent = new_parent.as!(BetterScope)
 
     flush
   end
@@ -298,12 +299,12 @@ class BetterScope
   end
 
   #mirrorscope overrides
-  def getLocalType(name: String, position: Position):LocalFuture; raise "no locals for #{getClass}.getLocalType" end
+  def getLocalType(name, position); raise "no locals for #{getClass}.getLocalType" end
 
   def outer_scope: MirrorScope; raise "no outer_scope for #{getClass}" end 
   
-  def staticImports: Set; raise "no staticImports for #{getClass}" end
-  def fetch_imports(something: Map): Map; raise "no fetch_imports imports for #{getClass}"  end
+  def staticImports:                        Set; raise "no staticImports for #{getClass}" end
+  def fetch_imports(something: Map):        Map; raise "no fetch_imports imports for #{getClass}"  end
   def fetch_static_imports(something: Set): Set; raise "no fetch_static_imports for #{getClass}"  end
 
   def fetch_packages(list: List): List; raise "no fetch_packages for #{getClass}"  end
@@ -424,7 +425,7 @@ class BetterScope
   macro def self.defers_locals
     quote do
       def getLocalType(name, position)
-        MirrorScope(parent).getLocalType(name, position)
+        parent.as!(MirrorScope).getLocalType(name, position)
       end
 
       def hasLocal(name, includeParent:boolean=true)

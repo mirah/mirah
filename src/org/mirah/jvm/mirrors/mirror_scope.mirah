@@ -33,7 +33,6 @@ import org.mirah.typer.TypeFuture
 # mirror typesystem
 interface MirrorScope < Scope
 
-  def getLocalType(name: String, position: Position):LocalFuture; end
   # scope of the AST outside the current node. It may not be the parent scope.
   def outer_scope: MirrorScope; end
   # Currently available static imports
