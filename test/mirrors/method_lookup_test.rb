@@ -63,7 +63,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   end
 
   def new_scope opts={}
-    BetterScopeFactory.new.newScope(SimpleScoper.new, opts[:context] || Script.new)
+    BetterScopeFactory.new.newScope(SimpleScoper.new(nil), opts[:context] || Script.new)
   end
 
   def jvmtype(internal_name, flags=0, superclass=nil)

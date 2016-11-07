@@ -32,15 +32,10 @@ end
 
 # A minimal Scoper.
 class SimpleScoper; implements Scoper
-  attr_reader types: TypeSystem
-  def initialize
-    @scopes = {}
-  end
 
-  def initialize(factory: ScopeFactory)#, types: TypeSystem)
+  def initialize(factory: ScopeFactory)
     @factory = factory
     @scopes = {}
-    @types = types
   end
 
   def getScope(node)
@@ -59,11 +54,7 @@ class SimpleScoper; implements Scoper
 
   def addScope(node)
     @scopes[node].as!(Scope) || begin
-      scope = if @factory
-        @factory.newScope(self, node)
-      else
-        SimpleScope.new
-      end
+      scope = @factory.newScope(self, node)
       @scopes[node] = scope
       scope
     end
