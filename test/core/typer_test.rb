@@ -19,6 +19,7 @@ class TyperTest < Test::Unit::TestCase
   include Mirah::Util::ProcessErrors
   java_import 'org.mirah.typer.TypeFuture'
   java_import 'org.mirah.typer.simple.SimpleScoper'
+  java_import 'org.mirah.typer.simple.SimpleScope'
   java_import 'org.mirah.typer.simple.SimpleTypes'
   java_import 'mirah.lang.ast.VCall'
   java_import 'mirah.lang.ast.FunctionalCall'
@@ -31,7 +32,6 @@ class TyperTest < Test::Unit::TestCase
   end
 
   def setup
-    @scopes = SimpleScoper.new
     new_typer('Bar')
   end
 
@@ -40,7 +40,8 @@ class TyperTest < Test::Unit::TestCase
   end
 
   def new_typer(n)
-    @types = SimpleTypes.new(n.to_s)
+    @types = SimpleTypes.new(n)
+    @scopes = SimpleScoper.new { |scoper, node| SimpleScope.new @types }
     @typer = Mirah::Typer::Typer.new(@types, @scopes, nil, nil)
     @mirah = Transform::Transformer.new(@typer)
     @typer
@@ -309,12 +310,10 @@ class TyperTest < Test::Unit::TestCase
   end
 
   def test_import
-    pend_on_jruby "1.7.13" do
-      ast = parse("import FooBar")
-      assert_equal("Void", infer(ast).name)
-      ast = parse("import foobar")
-      infer(ast)
-      assert_errors_including("Cannot find class foobar", @typer, ast)
-    end
+    ast = parse("import FooBar")
+    assert_equal("Void", infer(ast).name)
+    ast = parse("import foobar")
+    infer(ast)
+    assert_errors_including("Cannot find class foobar", @typer, ast)
   end
 end

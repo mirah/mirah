@@ -398,7 +398,7 @@ class BetterScope
   macro def self.supports_locals
     quote do
       def getLocalType(name, position)
-        @locals.local_type name, position, BetterScope(parent), shadowed?(name)
+        @locals.local_type name, position, parent.as!(BetterScope), shadowed?(name)
       end
 
       def hasLocal(name, includeParent:boolean=true)
