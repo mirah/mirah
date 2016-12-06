@@ -445,8 +445,6 @@ def bootstrap_mirah_from(old_jar, new_jar)
       zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
       zipfileset 'src' => dist_mirah_parser_jar
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
-      metainf 'dir' => File.dirname(__FILE__)+'/src/org/mirah/builtins', 
-              'includes' => 'services/*'
 
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
