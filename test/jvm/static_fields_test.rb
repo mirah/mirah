@@ -155,4 +155,28 @@ class StaticFieldsTest < Test::Unit::TestCase
     EOF
     assert_run_output("42\n", cls)
   end
+  def test_on_static_init_macro
+    cls, = compile(<<-EOF)
+      interface SomeMacros
+        macro def self.on_static_init(block:Block)
+          ClassInitializer.new(block.position,[block.body])
+        end
+      end
+      
+      class Foo
+        implements SomeMacros
+        
+        class << self
+          attr_accessor bar:int
+        end
+        
+        on_static_init do
+          self.bar = 42
+        end
+      end
+      
+      puts Foo.bar
+    EOF
+    assert_run_output("42\n", cls)
+  end
 end
