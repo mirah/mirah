@@ -544,7 +544,6 @@ class Typer < SimpleNodeVisitor
        )
     ]
     newField.isStatic = true
-    newField.isFinal  = true
     newField.position = field.position
     
     # annotations to FieldAssign currently do not work, but FieldAnnotationRequests do work. 
