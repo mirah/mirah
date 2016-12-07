@@ -62,7 +62,6 @@ import org.mirah.typer.TypeFuture
 import org.mirah.typer.TypeFutureTypeRef
 import org.mirah.typer.TypeSystem
 import org.mirah.typer.UnreachableType
-import org.mirah.typer.simple.SimpleScope
 import org.mirah.util.Context
 
 import org.mirah.jvm.mirrors.generics.TypeInvoker
@@ -253,11 +252,12 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   def getMethodType(call)
-    future = DelegateFuture.new()
+    future = DelegateFuture.new
     if call.resolved_target
       if call.resolved_target.isError || call.resolved_target.kind_of?(UnreachableType)
-        return BaseTypeFuture.new().resolved(call.resolved_target)
+        return BaseTypeFuture.new.resolved(call.resolved_target)
       end
+
       target = MirrorType(call.resolved_target)
       method_name = resolveMethodName(call.scope, target, call.name)
       if "<init>".equals(method_name)
@@ -329,14 +329,14 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     AssignableTypeFuture(future)
   end
 
-  def getFieldTypeOrDeclare(target, isFinal, name, position)
+  def getFieldTypeOrDeclare(target, name, position, flags:int = Opcodes.ACC_PRIVATE)
     resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     future = if member
       AsyncMember(member).asyncReturnType
     else
-      createField(klass, name, resolved.isMeta, isFinal, position)
+      createField(klass, name, resolved.isMeta, position, flags)
     end
     AssignableTypeFuture(future)
   end
@@ -554,10 +554,9 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     getResolvedArrayType(componentType)
   end
 
-  def getArrayType(componentType:TypeFuture):TypeFuture
-    types = self
+  def getArrayType(componentType: TypeFuture): TypeFuture
     DerivedFuture.new(componentType) do |resolved|
-      types.getResolvedArrayType(resolved)
+      self.getResolvedArrayType(resolved)
     end
   end
 
@@ -670,12 +669,11 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     end
     member = MirahMethod.new(@context, position, flags, target, name, arguments, returnType, kind)
 
-    returnFuture = AssignableTypeFuture(member.asyncReturnType)
     log = @@log
-    me = self
+    returnFuture = member.asyncReturnType.as!(AssignableTypeFuture)
     returnFuture.onUpdate do |x, resolved|
       type = isMeta ? "static " : ""
-      formatted = me.format(target, name, arguments)
+      formatted = self.format(target, name, arguments)
       log.fine("Learned #{type}#{formatted}:#{resolved}")
     end
 
@@ -684,15 +682,10 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   def createField(target:MirrorType, name:String,
-                  isStatic:boolean, isFinal:boolean, position:Position):TypeFuture
-    flags = Opcodes.ACC_PRIVATE
+                  isStatic:boolean, position:Position, flags:int):TypeFuture
     if isStatic
       kind = MemberKind.STATIC_FIELD_ACCESS
-      if isFinal # result of a ConstantAssign
-        flags = Opcodes.ACC_PUBLIC|Opcodes.ACC_FINAL|Opcodes.ACC_STATIC
-      else
-        flags = Opcodes.ACC_PRIVATE|Opcodes.ACC_STATIC
-      end
+      flags |= Opcodes.ACC_STATIC
       access = "static"
     else
       kind = MemberKind.FIELD_ACCESS

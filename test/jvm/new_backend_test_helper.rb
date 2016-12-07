@@ -56,7 +56,6 @@ module JVMCompiler
 
     args = ["-d", TEST_DEST,
             "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF",
-           # "--verbose",
             "--classpath", Mirah::Env.encode_paths([FIXTURE_TEST_DEST, TEST_DEST]) ]
 
     java_version = options.fetch :java_version, JVMCompiler::JVM_VERSION

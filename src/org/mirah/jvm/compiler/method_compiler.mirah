@@ -279,8 +279,7 @@ class MethodCompiler < BaseCompiler
     if isCaptured
       @builder.loadLocal(@binding)
     end
-    future = typer.type_system.getLocalType(
-        getScope(local), name, local.position)
+    future = getScope(local).getLocalType(name, local.position)
     raise "error type found by compiler #{future.resolve}" if future.resolve.kind_of? ErrorType
 
     type = JVMType(

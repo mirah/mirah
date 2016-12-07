@@ -165,7 +165,7 @@ class SimpleTypes; implements TypeSystem
     t
   end
 
-  def getFieldTypeOrDeclare(target, isFinal, name, position)
+  def getFieldTypeOrDeclare(target, name, position)
     getFieldType(target, name, position)
   end
   def getFieldType(target, name, position)
@@ -179,9 +179,9 @@ class SimpleTypes; implements TypeSystem
   end
   def getLocalType(scope, name, position)
     key = [scope, name]
-    t = AssignableTypeFuture(@locals[key])
+    t = @locals[key].as! LocalFuture
     unless t
-      t = AssignableTypeFuture.new(position)
+      t = LocalFuture.new(name, position)
       @locals[key] = t
     end
     t

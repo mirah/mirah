@@ -83,7 +83,8 @@ interface TypeSystem do
   def getFieldType(target:TypeFuture, name:String, position:Position):AssignableTypeFuture; end
 
   # get the type of a field, and if it doesn't exist, declare it
-  def getFieldTypeOrDeclare(target:TypeFuture, isFinal:boolean, name:String, position:Position):AssignableTypeFuture; end
+  def getFieldTypeOrDeclare(target:TypeFuture, name:String, position:Position):AssignableTypeFuture; end
+  def getFieldTypeOrDeclare(target:TypeFuture, name:String, position:Position, flags:int):AssignableTypeFuture; end
 
 
   def getLocalType(scope:Scope, name:String, position:Position):AssignableTypeFuture; end

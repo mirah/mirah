@@ -19,6 +19,12 @@ import org.mirah.macros.anno.ExtensionsRegistration
 
 $ExtensionsRegistration[['[]']]
 class ArrayExtensions
+  macro def ==(other_array)
+    quote do
+     java::util::Arrays.equals `@call.target`, `other_array`
+    end
+  end
+
   macro def each(block:Block)
     if block.arguments && block.arguments.required_size() > 0
       arg = block.arguments.required(0)

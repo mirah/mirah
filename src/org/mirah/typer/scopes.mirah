@@ -16,6 +16,8 @@
 package org.mirah.typer
 
 import mirah.lang.ast.Node
+import mirah.lang.ast.Position
+
 import java.util.List
 import java.util.Map
 
@@ -48,6 +50,23 @@ interface Scope do
   # type of the binding for exactly this scope
   def declared_binding_type: ResolvedType; end
   def declared_binding_type=(type: ResolvedType): void; end
+
+  def hasField(name: String, includeParent:boolean=true): boolean; end
+  def fieldUsed(name: String): void; end
+  def capturedFields(): List; end
+  def isCapturedField(name: String): boolean; end
+
+  def hasMethodCall(name: String, includeParent:boolean=true): boolean; end
+  def methodUsed(name: String): void; end
+  def capturedMethods(): List; end
+  def isCapturedMethod(name: String): boolean; end
+
+
+  def selfUsed(): void; end
+  def capturedSelf: boolean; end
+  def hasSelf: boolean; end
+
+  def getLocalType(name: String, position: Position):LocalFuture; end
 end
 
 interface Scoper do

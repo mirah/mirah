@@ -34,6 +34,7 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.MemberKind
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
+import org.mirah.util.MirahModifiers
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodType
 import org.mirah.typer.Typer
@@ -60,30 +61,9 @@ class BaseCompiler < SimpleNodeVisitor
   end
   
   def self.initialize:void
-    @@ACCESS = {
-      PUBLIC: Opcodes.ACC_PUBLIC,
-      PRIVATE: Opcodes.ACC_PRIVATE,
-      PROTECTED: Opcodes.ACC_PROTECTED,
-      DEFAULT: 0
-    }
-    @@FLAGS = {
-      STATIC: Opcodes.ACC_STATIC,
-      FINAL: Opcodes.ACC_FINAL,
-      SUPER: Opcodes.ACC_SUPER,
-      SYNCHRONIZED: Opcodes.ACC_SYNCHRONIZED,
-      VOLATILE: Opcodes.ACC_VOLATILE,
-      BRIDGE: Opcodes.ACC_BRIDGE,
-      VARARGS: Opcodes.ACC_VARARGS,
-      TRANSIENT: Opcodes.ACC_TRANSIENT,
-      NATIVE: Opcodes.ACC_NATIVE,
-      INTERFACE: Opcodes.ACC_INTERFACE,
-      ABSTRACT: Opcodes.ACC_ABSTRACT,
-      STRICT: Opcodes.ACC_STRICT,
-      SYNTHETIC: Opcodes.ACC_SYNTHETIC,
-      ANNOTATION: Opcodes.ACC_ANNOTATION,
-      ENUM: Opcodes.ACC_ENUM,
-      DEPRECATED: Opcodes.ACC_DEPRECATED
-    }
+    @@ACCESS = MirahModifiers.access_modifiers
+    @@FLAGS = MirahModifiers.flag_modifiers
+
     @@log = Logger.getLogger(BaseCompiler.class.getName)
   end
   

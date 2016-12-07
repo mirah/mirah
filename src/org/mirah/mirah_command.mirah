@@ -36,7 +36,9 @@ class MirahCommand
   def self.main(args:String[]):void
     list = Arrays.asList(args)
     if list.size > 0 && "run".equals(list.get(0))
-      System.exit(run(list.subList(1, list.size)))
+      result = run(list.subList(1, list.size))
+      # NB only exit from a run if it failed.
+      System.exit(result) unless result == 0
     elsif list.size > 0 && "compile".equals(list.get(0))
       System.exit(compile(list.subList(1, list.size)))
     else

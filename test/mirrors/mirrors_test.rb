@@ -43,7 +43,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   end
 
   def new_scope opts={}
-    BetterScopeFactory.new.newScope(SimpleScoper.new, opts[:context] || Script.new)
+    BetterScopeFactory.new.newScope(SimpleScoper.new(nil), opts[:context] || Script.new)
   end
 
   def set_filename(filename)
@@ -385,23 +385,23 @@ class MirrorsTest < BaseMirrorsTest
   end
 
   def test_separate_fields_with_declare_return_separate_futures
-    a = @types.getFieldTypeOrDeclare(main_type, false, 'a', nil)
-    b = @types.getFieldTypeOrDeclare(main_type, false, 'b', nil)
+    a = @types.getFieldTypeOrDeclare(main_type, 'a', nil)
+    b = @types.getFieldTypeOrDeclare(main_type, 'b', nil)
     assert_not_same(a, b)
   end
 
   def test_declared_field_is_same_as_get_field_when_declared_first
-    a = @types.getFieldTypeOrDeclare(main_type, false, 'a', nil)
+    a = @types.getFieldTypeOrDeclare(main_type, 'a', nil)
     assert_same(a, @types.getFieldType(main_type, 'a', nil))
   end
 
   def test_declared_field_is_same_as_get_field_when_declared_second
     a = @types.getFieldType(main_type, 'a', nil)
-    assert_same(a, @types.getFieldTypeOrDeclare(main_type, false, 'a', nil))
+    assert_same(a, @types.getFieldTypeOrDeclare(main_type, 'a', nil))
   end
 
   def test_field_attrs_of_declared_field
-    a = @types.getFieldTypeOrDeclare(main_type, false, 'a', nil)
+    a = @types.getFieldTypeOrDeclare(main_type, 'a', nil)
     
     field = main_type.resolve.getDeclaredField('a')
 

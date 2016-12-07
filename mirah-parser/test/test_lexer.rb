@@ -1,14 +1,14 @@
 require 'test/unit'
 require 'java'
 
-$CLASSPATH << 'build/mirah-parser.jar'
+$CLASSPATH << 'dist/mirah-parser.jar'
 
 class TestLexer < Test::Unit::TestCase
-  java_import 'mirahparser.impl.MirahLexer'
-  java_import 'mirahparser.lang.ast.StringCodeSource'
-  java_import 'mirahparser.impl.MirahParser'
-  java_import 'mirahparser.impl.Tokens'
-  java_import 'org.mirahparser.mmeta.SyntaxError'
+  java_import 'mirah.impl.MirahLexer'
+  java_import 'mirah.lang.ast.StringCodeSource'
+  java_import 'mirah.impl.MirahParser'
+  java_import 'mirah.impl.Tokens'
+  java_import 'org.mirah.mmeta.SyntaxError'
 
   def parse(text, ignore_spaces, ignore_comments)
     parser = MirahParser.new

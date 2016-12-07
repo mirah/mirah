@@ -28,7 +28,7 @@ import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
 
-class Member implements GenericMethod,JVMField
+class Member implements GenericMethod, JVMField
   def self.initialize:void
     @@log = Logger.getLogger(Member.class.getName)
   end
@@ -58,6 +58,18 @@ class Member implements GenericMethod,JVMField
 
   def asyncReturnType:TypeFuture
     @returnFuture ||= BaseTypeFuture.new.resolved(@genericReturnType || @returnType)
+  end
+
+  def isStaticMethod
+    @kind.name.intern == 'STATIC_METHOD'
+  end
+
+  def isInstanceMethod
+    @kind.name.intern == 'METHOD'
+  end
+
+  def isStaticField
+    @kind.name.intern.startsWith 'STATIC_FIELD_'
   end
 
   def accept(visitor, expression):void
@@ -110,7 +122,15 @@ class Member implements GenericMethod,JVMField
   def toString
     result = StringBuilder.new
     result.append(declaringClass)
-    result.append('.')
+    if isStaticMethod
+      result.append('.')
+    elsif isInstanceMethod
+      result.append '#'
+    elsif isStaticField
+      result.append '::'
+    else
+      result.append('.')
+    end
     result.append(name)
     result.append('(')
     first = true
@@ -125,18 +145,18 @@ class Member implements GenericMethod,JVMField
 end
 
 class AsyncMember < Member
-  def self.initialize:void
+  def self.initialize: void
     @@log = Logger.getLogger(AsyncMember.class.getName)
   end
 
-  def initialize(flags:int, klass:MirrorType, name:String,
-                 argumentTypes:List /* of TypeFuture */,
-                 returnType:TypeFuture, kind:MemberKind)
+  def initialize(flags: int, klass: MirrorType, name: String,
+                 argumentTypes: List /* of TypeFuture */,
+                 returnType: TypeFuture, kind: MemberKind)
     super(flags, klass, name, Collections.emptyList, nil, kind)
     @futures = argumentTypes
     @resolvedArguments = ArrayList.new(argumentTypes.size)
     @returnType = returnType
-    argumentTypes.each {|a: TypeFuture| setupArgumentListener(a) }
+    argumentTypes.each { |a: TypeFuture| setupArgumentListener(a) }
   end
 
   def argumentTypes
@@ -145,33 +165,33 @@ class AsyncMember < Member
 
   def returnType
     # TODO: Should this convert errors?
-    JVMType(@returnType.resolve)
+    @returnType.resolve.as! JVMType
   end
 
   def asyncArgument(index)
-    TypeFuture(@futures.get(index))
+    @futures.get(index).as! TypeFuture
   end
 
   def asyncReturnType
     @returnType
   end
 
-  def setupArgumentListener(argument:TypeFuture):void
+  def setupArgumentListener(argument: TypeFuture): void
     resolvedArgs = @resolvedArguments
     index = @resolvedArguments.size
-    member = self
+
     log = @@log
     @resolvedArguments.add(argument.resolve)
     argument.onUpdate do |x, resolved|
       if resolved != resolvedArgs.get(index)
         log.fine("Argument #{index} changed from #{resolvedArgs.get(index)} to #{resolved}")
         resolvedArgs.set(index, resolved)
-        member.invalidate
+        self.invalidate
       end
     end
   end
 
   def invalidate:void
-    MirrorType(self.declaringClass).invalidateMethod(self.name)
+    self.declaringClass.as!(MirrorType).invalidateMethod(self.name)
   end
 end

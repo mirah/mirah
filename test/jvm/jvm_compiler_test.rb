@@ -1806,6 +1806,17 @@ class JVMCompilerTest < Test::Unit::TestCase
     assert_equal(entry, cls.foo(entry))
   end
 
+  def test_colon2_constant_ref
+    cls, = compile(<<-EOF)
+      def foo
+        Character::UnicodeBlock::ARROWS
+      end
+    EOF
+
+    subset = cls.foo
+    assert_equal("java.lang.Character$UnicodeBlock", subset.java_class.name)
+  end
+
   def test_covariant_arrays
     cls, = compile(<<-EOF)
       puts java::util::Arrays.toString(String[5])
@@ -2042,17 +2053,15 @@ class JVMCompilerTest < Test::Unit::TestCase
   end
 
   def test_double_equals_with_arrays
-    pend "arrays are tricky" do
-      cls, = compile(<<-EOF)
-        a = Object[1]
-        b = Object[1]
-        puts a == a
-        puts a == b
-        puts a != b
-        puts a != a
-      EOF
-      assert_run_output("true\true\nfalse\nfalse\n", cls)
-    end
+    cls, = compile(<<-EOF)
+      a = Object[1]
+      b = Object[1]
+      puts a == a
+      puts a == b
+      puts a != b
+      puts a != a
+    EOF
+    assert_run_output("true\ntrue\nfalse\nfalse\n", cls)
   end
 
   def test_field_setter_with_nil

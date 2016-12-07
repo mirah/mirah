@@ -17,6 +17,7 @@ package org.mirah.typer
 
 import java.util.*
 import org.mirah.util.Logger
+import org.mirah.util.MirahModifiers
 import mirah.lang.ast.*
 import mirah.impl.MirahParser
 import org.mirah.macros.JvmBackend
@@ -66,7 +67,7 @@ class Typer < SimpleNodeVisitor
     @types = types
     @scopes = scopes
     @macros = MacroBuilder.new(self, jvm_backend, parser)
-    
+
     # might want one of these for each script
     @closures = BetterClosureBuilder.new(self, @macros)
   end
@@ -252,10 +253,10 @@ class Typer < SimpleNodeVisitor
                                     true,
                                     parameters,
                                     call)
-    
+
     proxy = ProxyNode.new(self, call)
     children = ArrayList.new(2)
-    
+
     if  call.parameters.size == 1
       # This might actually be a cast or array instead of a method call, so try
       # both. If the cast works, we'll go with that. If not, we'll leave
@@ -436,7 +437,31 @@ class Typer < SimpleNodeVisitor
   end
 
   def visitColon2(colon2, expression)
-    @types.getMetaType(getTypeOf(colon2, colon2.typeref))
+    @futures[colon2] = @types.getMetaType(getTypeOf(colon2, colon2.typeref))
+
+    # A colon2 is either a type ref or a constant ref.
+    # If it's a constant, we need to use Call lookup to find it.
+    # Atleast that's my understanding based on reading Constant.
+    #
+    # This works for external constants, but not internal ones currently.
+    variants = [colon2]
+    if expression
+      call = Call.new(colon2.position,
+                      colon2.target,
+                      Identifier(colon2.name.clone),
+                      nil, nil)
+      call.setParent(colon2.parent)
+
+      methodType = callMethodType call, Collections.emptyList
+      targetType = infer(call.target)
+      @futures[call] = methodType
+      @futures[call.target] = targetType
+      variants.add call
+    end
+    proxy = ProxyNode.new self, colon2
+    proxy.setChildren(variants, 0)
+
+    @futures[proxy] = proxy.inferChildren(expression != nil)
   end
 
   def visitSuper(node, expression)
@@ -491,10 +516,10 @@ class Typer < SimpleNodeVisitor
   def visitFieldAnnotationRequest(decl, expression)
     @types.getNullType()
   end
-  
+
   def visitFieldDeclaration(decl, expression)
     inferAnnotations decl
-    getFieldTypeOrDeclare(decl, decl.isStatic, decl.isFinal).declare(
+    getFieldTypeOrDeclare(decl, decl.isStatic).declare(
                           getTypeOf(decl, decl.type.typeref),
                           decl.position)
   end
@@ -502,7 +527,10 @@ class Typer < SimpleNodeVisitor
   def visitFieldAssign(field, expression)
     inferAnnotations field
     value = infer(field.value, true)
-    getFieldTypeOrDeclare(field, field.isStatic, field.isFinal).assign(value, field.position)
+    unless field.isStatic # NB don't need to close over static ones--maybe
+      scopeOf(field).fieldUsed field.name.identifier # TODO do a better thing than this
+    end
+    getFieldTypeOrDeclare(field, field.isStatic).assign(value, field.position)
   end
 
   def visitConstantAssign(field, expression)
@@ -584,6 +612,24 @@ class Typer < SimpleNodeVisitor
     if targetType.nil?
       TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
     else
+      unless field.isStatic # NB don't need to close over static ones--maybe
+        s = scopeOf(field)
+        s.fieldUsed field.name.identifier # TODO do a better thing than this
+        @@log.fine "added field usage of #{field.name.identifier} to #{s}"
+        @@log.fine "parent of #{s}  is #{s.parent}"
+        if s.parent
+        @@log.fine "parent's captures:  is #{s.parent.capturedFields}"
+
+        if s.parent.parent
+          @@log.fine "parent of parent is #{s.parent.parent}"
+          @@log.fine "     captures:  is #{s.parent.parent.capturedFields}"
+        end
+        else
+          @@log.fine"parent's captures: has no parent"
+        end
+
+      end
+
       getFieldType field, targetType
     end
   end
@@ -691,7 +737,7 @@ class Typer < SimpleNodeVisitor
     #  - raise *args_for_default_exception_class_constructor
     # We need to figure out which one is being used, and replace the
     # args with a single exception node.
-    
+
     # TODO(ribrdb): Clean this up using ProxyNode.
 
     # Start by saving the old args and creating a new, empty arg list
@@ -758,7 +804,7 @@ class Typer < SimpleNodeVisitor
     name = clause.name
     if name
       scope.shadow(name.identifier)
-      exceptionType = @types.getLocalType(scope, name.identifier, name.position)
+      exceptionType = scope.getLocalType(name.identifier, name.position)
       clause.types.each do |_t|
         t = TypeName(_t)
         exceptionType.assign(inferTypeName(t), t.position)
@@ -841,7 +887,7 @@ class Typer < SimpleNodeVisitor
     end
     @types.getHashLiteralType(keyType, valueType, hash.position)
   end
-  
+
   def visitHashEntry(entry, expression)
     @types.getVoidType
   end
@@ -1121,13 +1167,9 @@ class Typer < SimpleNodeVisitor
     end
   end
 
-
-
-
-
   def addScopeForMethod(mdef: Block): void
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    addScopeUnder(mdef)
+    addNestedScope mdef
   end
 
   def selfTypeOf(mdef: Block): TypeFuture
@@ -1214,19 +1256,21 @@ class Typer < SimpleNodeVisitor
   def visitMethodDefinition(mdef, expression)
     @@log.entering("Typer", "visitMethodDefinition", mdef)
     # TODO optional arguments
-
-
     if !isMethodInBlock(mdef)
-      addScopeForMethod(mdef)
+      scope = addScopeForMethod(mdef)
+
+      # TODO this could be cleaner. This ensures that methods can be closed over
+      #BetterScope(scope).methodUsed(mdef.name.identifier) unless mdef.kind_of? StaticMethodDefinition
+
       @@log.finest "Normal method #{mdef}."
       inferAll(mdef.annotations)
       infer(mdef.arguments)
       parameters = inferAll(mdef.arguments)
-  
+
       if mdef.type
         returnType = getTypeOf(mdef, mdef.type.typeref)
       end
-  
+
       selfType = selfTypeOf(mdef)
       type = @types.getMethodDefType(selfType,
                                      mdef.name.identifier,
@@ -1238,7 +1282,7 @@ class Typer < SimpleNodeVisitor
                              mdef,
                              parameters,
                              type.returnType)
-  
+
       # TODO deal with overridden methods?
       # TODO throws
       # mdef.exceptions.each {|e| type.throws(@types.get(TypeName(e).typeref))}
@@ -1253,14 +1297,21 @@ class Typer < SimpleNodeVisitor
       block = Block(mdef.parent.parent)
       @@log.finest "Method #{mdef} is member of #{block}"
       scope_around_block = scopeOf(block)
-      scope              = addScopeUnder(mdef)
+      scope              = addNestedScope mdef
       scope.selfType     = scope_around_block.selfType
       scope.parent       = scope_around_block # We may want to access variables available in the scope outside of the block.
       infer(mdef.body, false)                 # We want to determine which free variables are referenced in the MethodDefinition.
-      nil                                     # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
+                                              # But we are actually not interested in the return type of the MethodDefintion, as this special MethodDefinition will be cloned into an AST of an anonymous class.
+
+      # TODO this could be cleaner. This ensures that methods can be closed over
+#      unless mdef.kind_of? StaticMethodDefinition
+#        @@log.fine "mark #{mdef.name.identifier} as used in #{scope} so that it can be captured by closures"
+#        BetterScope(scope).methodUsed(mdef.name.identifier)
+#      end
+      nil
     end
   end
-  
+
   def declareOptionalMethods(target:TypeFuture, mdef:MethodDefinition, argTypes:List, type:TypeFuture):void
     if mdef.arguments.optional_size > 0
       args = ArrayList.new(argTypes)
@@ -1340,7 +1391,7 @@ class Typer < SimpleNodeVisitor
     unquoted_args.setParent block
     block.body.removeChild block.body.get(0)
   end
-  
+
   def visitSyntheticLambdaDefinition(node, expression)
     supertype = infer(node.supertype)
     block     = BlockFuture(infer(node.block))
@@ -1468,7 +1519,7 @@ class Typer < SimpleNodeVisitor
   end
 
   def getLocalType(arg: Node, identifier: String): AssignableTypeFuture
-    @types.getLocalType(scopeOf(arg), identifier, arg.position)
+    scopeOf(arg).getLocalType(identifier, arg.position)
   end
 
   def getArgumentType(arg: FormalArgument)
@@ -1491,11 +1542,11 @@ class Typer < SimpleNodeVisitor
     targetType
   end
 
-  def addScopeForMethod(mdef: MethodDefinition): void
+  def addScopeForMethod(mdef: MethodDefinition)
     scope = addScopeWithSelfType(mdef, selfTypeOf(mdef))
-    addScopeUnder(mdef)
+    addNestedScope mdef
   end
-  
+
   def isMethodInBlock(mdef: MethodDefinition): boolean
     mdef.parent.kind_of?(NodeList) && mdef.parent.parent.kind_of?(Block)
   end
@@ -1571,15 +1622,55 @@ class Typer < SimpleNodeVisitor
                         field.position)
   end
 
-  def getFieldTypeOrDeclare(field: Named, isStatic: boolean, isFinal: boolean)
-    getFieldTypeOrDeclare(field, fieldTargetType(field, isStatic), isFinal)
+  def getFieldTypeOrDeclare(field: Named, isStatic: boolean)
+    getFieldTypeOrDeclare(field, fieldTargetType(field, isStatic))
   end
 
-  def getFieldTypeOrDeclare field: Named, targetType: TypeFuture, isFinal: boolean
-    @types.getFieldTypeOrDeclare(targetType,
-                        isFinal,
-                        field.name.identifier,
-                        field.position)
+  def getFieldTypeOrDeclare field: Named, targetType: TypeFuture
+    if field.kind_of? Annotated
+      # TODO make select work here
+      modifier_annotations = []
+      Annotated(Object(field)).annotations.each do |anno: Annotation|
+        modifier_annotations.add anno if anno.type.typeref.name == 'org.mirah.jvm.types.Modifiers'
+      end
+
+      flags = 0
+
+      modifier_annotations.each do |a: Annotation|
+        a.values.each do |entry: HashEntry|
+          key = SimpleString(entry.key).identifier
+
+          entries = if entry.value.kind_of? SimpleString
+            [entry.value]
+          elsif entry.value.kind_of? Array
+            values = entry.value
+            Array(values).values
+          else
+            raise "unexpected annotation contents #{a} #{a.getClass}"
+          end
+
+          entries.each do |value_ss: SimpleString|
+            value = value_ss.identifier
+            if key == 'access'
+              flags |= Integer(MirahModifiers.access_modifiers[value]).intValue
+            elsif key == 'flags'
+              flags |= Integer(MirahModifiers.flag_modifiers[value]).intValue
+            else
+              raise "Unexpected mirah modifier annotation #{key} = #{value}"
+            end
+          end
+        end
+      end
+      @types.getFieldTypeOrDeclare(targetType,
+                                   field.name.identifier,
+                                   field.position,
+                                   flags)
+    else
+      @types.getFieldTypeOrDeclare(targetType,
+                                   field.name.identifier,
+                                   field.position)
+
+    end
   end
 
   def expandMacro node: Node, inline_type: ResolvedType

@@ -20,7 +20,6 @@ class SimpleTypeTest < Test::Unit::TestCase
   java_import 'org.mirah.typer.TypeFuture'
   java_import 'org.mirah.typer.AssignableTypeFuture'
   java_import 'org.mirah.typer.SimpleFuture'
-  java_import 'org.mirah.typer.simple.SimpleScoper'
   java_import 'org.mirah.typer.simple.SimpleTypes'
   java_import 'org.mirah.typer.simple.SimpleType'
   java_import 'org.mirah.typer.ErrorType'

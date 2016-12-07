@@ -15,9 +15,8 @@
 
 package org.mirah.typer
 
-import mirah.lang.ast.*
+
 import java.util.logging.Level
-import org.mirah.util.Logger
 import java.util.Collections
 import java.util.Collection
 import java.util.LinkedHashMap
@@ -31,6 +30,9 @@ import java.util.Map.Entry
 import java.util.ArrayList
 import java.io.File
 
+import mirah.lang.ast.*
+
+import org.mirah.util.Logger
 import org.mirah.jvm.compiler.ProxyCleanup
 import org.mirah.jvm.mirrors.MirrorScope
 import org.mirah.jvm.mirrors.BaseType
@@ -77,23 +79,31 @@ class BetterClosureBuilder
     @typer = typer
     @types = typer.type_system
     @scoper = typer.scoper
-    
+
     @todo_closures = LinkedHashMap.new
     @scripts = LinkedHashSet.new
     @macros = macros
   end
 
-  attr_accessor blockCloneMapOldNew:IdentityHashMap
-  attr_accessor blockCloneMapNewOld:IdentityHashMap
-  attr_accessor parent_scope_to_binding_name:Map
+  attr_accessor blockCloneMapOldNew: IdentityHashMap,
+                blockCloneMapNewOld: IdentityHashMap,
+                parent_scope_to_binding_name: Map
 
-  def finish
+  def collect_closures scripts: List
+    # returns closures in the reverse order from the scripts
     closures = []
-    scripts = ArrayList.new(@scripts)
-    Collections.reverse(scripts)
     scripts.each do |s: Script|
       closures.addAll BlockFinder.new(@typer, @todo_closures).find(s).entrySet
     end
+    Collections.reverse(closures) # from outside to inside
+    closures
+  end
+
+  def finish
+    scripts = ArrayList.new(@scripts)
+    Collections.reverse(scripts)
+
+    closures = collect_closures scripts
 
     closures_to_skip = []
 
@@ -101,57 +111,54 @@ class BetterClosureBuilder
     bindingLocalNamesToTypes = LinkedHashMap.new
 
     bindingForBlocks = LinkedHashMap.new # the specific binding for a given block
-    Collections.reverse(closures) # from outside to inside
-    
+
+
     self.blockCloneMapOldNew = IdentityHashMap.new
     self.blockCloneMapNewOld = IdentityHashMap.new
-    
-    selff = self
-
-    i = 0
 
     closures.each do |entry: Entry|
       block = Block(entry.getKey)
-      on_clone = lambda(CloneListener) do |interim,new|
-        old = selff.blockCloneMapNewOld.get(interim)
-        selff.blockCloneMapNewOld.put(new,old)
-        selff.blockCloneMapOldNew.put(old,new)
+      on_clone = lambda(CloneListener) do |interim, new|
+        old = self.blockCloneMapNewOld.get(interim)
+        self.blockCloneMapNewOld.put(new, old)
+        self.blockCloneMapOldNew.put(old, new)
         new.whenCloned on_clone
       end
       block.whenCloned on_clone
-      blockCloneMapOldNew.put(block,block)
-      blockCloneMapNewOld.put(block,block)
+      blockCloneMapOldNew.put(block, block)
+      blockCloneMapNewOld.put(block, block)
     end
 
     self.parent_scope_to_binding_name = {}
 
+    i = 0
     closures.each do |entry: Entry|
       i += 1
       @@log.fine "adjust bindings for block #{entry.getKey} #{entry.getValue} #{i}"
       uncloned_block = Block(entry.getKey)
       block = Block(blockCloneMapOldNew.get(uncloned_block))
-      @@log.fine "#{typer.sourceContent block}"
       enclosing_node = find_enclosing_node(block)
       if enclosing_node.nil?
-        # this likely means a macro exists and made things confusing 
+        # this likely means a macro exists and made things confusing
         # by copying the tree
         @@log.fine "enclosing node was nil, removing  #{entry.getKey} #{entry.getValue} #{i}"
         closures_to_skip.add entry
         next
       end
+      @@log.fine "#{typer.sourceContent block}"
       @@log.fine "enclosing node #{enclosing_node}"
       @@log.fine "#{typer.sourceContent enclosing_node}"
 
       ProxyCleanup.new.scan enclosing_node
 
-      enclosing_b = get_body(enclosing_node)      
+      enclosing_b = get_body(enclosing_node)
       if enclosing_b.nil?
         closures_to_skip.add entry
         next
       end
       bindingName = "$b#{i}"
       bindingForBlocks.put uncloned_block, bindingName
-      parent_scope = MirrorScope(get_scope(block)) 
+      parent_scope = MirrorScope(get_scope(block))
       adjuster = BindingAdjuster.new(
         self,
         bindingName,
@@ -161,18 +168,9 @@ class BetterClosureBuilder
 
       adjuster.adjust enclosing_b, block
       @@log.log(Level.FINE, "After adjusting: #{AstFormatter.new(Node(scripts.get(0)))}")
-#    end
-#
-#    # ignore closures with no parents, they aren't in the final AST, maybe
-#    closures.removeAll closures_to_skip
-#
-#    i = 0
-#    closures.each do |entry: Entry|
-#      @@log.fine "insert_closure #{entry.getKey} #{entry.getValue} #{i}"
-#      i += 1
 
       AstChecker.maybe_check(scripts)
-  
+
       block = Block(blockCloneMapOldNew.get(entry.getKey))
       parent_type = ResolvedType(entry.getValue)
 
@@ -228,13 +226,13 @@ class BetterClosureBuilder
       target = makeTypeName(block.position, closure_type.resolve)
       new_node = Call.new(
         block.position, target,
-        SimpleString.new("new"), 
+        SimpleString.new("new"),
         binding_locals, nil)
 
       if block.parent.kind_of?(CallSite)
         parent = CallSite(block.parent)
         replace_block_with_closure_in_call parent, block, new_node
-      elsif block.parent.kind_of?(SyntheticLambdaDefinition) 
+      elsif block.parent.kind_of?(SyntheticLambdaDefinition)
         replace_synthetic_lambda_definiton_with_closure(SyntheticLambdaDefinition(block.parent),new_node)
       else
         raise "Cannot handle parent #{block.parent} of block #{block}."
@@ -248,7 +246,7 @@ class BetterClosureBuilder
       @@log.fine "done with #{enclosing_b}"
       @@log.log(Level.FINE, "Inferred AST:\n{0}", AstFormatter.new(enclosing_b))
       @@log.log(Level.FINE, "Inferred types:\n{0}", LazyTypePrinter.new(typer, enclosing_b))
-      
+
 
       buf = java::io::ByteArrayOutputStream.new
       ps = java::io::PrintStream.new(buf)
@@ -261,26 +259,22 @@ class BetterClosureBuilder
 
   def add_todo(block: Block, parent_type: ResolvedType)
     return if parent_type.isError || block.parent.nil?
-    
+
     rtype = BaseTypeFuture.new(block.position)
     rtype.resolved parent_type
-  
+
     new_scope = @typer.addNestedScope block
-    new_scope.selfType = rtype
+    ClosureScope(new_scope).closureType = rtype
     if contains_methods block
       @typer.infer block.body
     else
       @typer.inferClosureBlock block, method_for(parent_type)
     end
 
-    script = block.findAncestor{|n| n.kind_of? Script}
+    script = block.findAncestor { |n| n.kind_of? Script }
 
     @todo_closures[block] = parent_type
     @scripts.add script
-  end
-
-  def insert_closure(block: Block, parent_type: ResolvedType)
-    raise "BetterClosureBuilder doesn't support insert_closure"
   end
 
   def prepare_non_local_return_closure(block: Block, parent_type: ResolvedType): Node
@@ -316,7 +310,7 @@ class BetterClosureBuilder
     node_in_body = block.findAncestor { |node| node.parent.kind_of? NodeList }
     new_call = wrap_with_rescue block, nlr_klass, node_in_body, resolved
     node_in_body.parent.replaceChild node_in_body, new_call
-    
+
     finish_nlr_exception block, nlr_klass, resolved
     insert_into_body enclosing_body, nlr_klass
     infer(nlr_klass)
@@ -349,11 +343,11 @@ class BetterClosureBuilder
       parent.replaceChild(block, new_node)
     end
   end
-  
+
   def replace_synthetic_lambda_definiton_with_closure(parent: SyntheticLambdaDefinition, new_node: Node): void
     parentparent = parent.parent
     new_node.setParent(nil)
-    if parentparent.kind_of?(CallSite) && CallSite(parentparent).target!=parent # then the SyntheticLambdaDefinition is not a child of the CallSite itself, but (most likely?) a child of its arguments. FIXME: It is weird that the parent of a child of X is not X. 
+    if parentparent.kind_of?(CallSite) && CallSite(parentparent).target!=parent # then the SyntheticLambdaDefinition is not a child of the CallSite itself, but (most likely?) a child of its arguments. FIXME: It is weird that the parent of a child of X is not X.
       CallSite(parentparent).parameters.replaceChild(parent,new_node)
     else
       parentparent.replaceChild(parent,new_node)
@@ -462,53 +456,35 @@ class BetterClosureBuilder
   def nlr_prepare(block: Block, parent_type: ResolvedType, nlr_klass: Node): Node
     parent_scope = get_scope block
     klass = build_closure_class block, parent_type, parent_scope
-    
+
     build_and_inject_methods(klass, block, parent_type, parent_scope)
-  
+
     new_closure_call_node(block, klass)
   end
 
   def build_closure_class block: Block, parent_type: ResolvedType, parent_scope: Scope
 
     klass = build_class(block.position, parent_type, temp_name_from_outer_scope(block, "Closure"))
-    
-    enclosing_body  = find_enclosing_body block
 
-    block_scope = get_scope block.body
-    @@log.fine "block body scope #{block_scope.getClass} #{MirrorScope(block_scope).capturedLocals}"
+    enclosing_body  = find_enclosing_body block
 
 
     block_scope = get_scope block
-    @@log.fine "block scope #{block_scope} #{MirrorScope(block_scope).capturedLocals}"
-    @@log.fine "parent scope #{parent_scope} #{MirrorScope(parent_scope).capturedLocals}"
     enclosing_scope = get_scope(enclosing_body)
-    @@log.fine "enclosing scope #{enclosing_scope} #{MirrorScope(enclosing_scope).capturedLocals}"
+    block_body_scope = get_scope block.body
+
     parent_scope.binding_type ||= begin
                                     name = temp_name_from_outer_scope(block, "Binding")
-                                    captures = MirrorScope(parent_scope).capturedLocals
-                                    @@log.fine("building binding #{name} with captures #{captures}")
                                     binding_klass = build_class(klass.position,
                                                                 nil,
                                                                 name)
                                     insert_into_body enclosing_body, binding_klass
-
-              # add methods for captures
-              # typer doesn't understand unquoted return types yet, perhaps
-              # TODO write visitor to replace locals w/ calls to bound locals
-             # captures.each do |bound_var: String|
-             #   bound_type = MirrorScope(parent_scope).getLocalType(bound_var, block.position).resolve
-             #   attr_def = @macros.quote do
-             #     attr_accessor `bound_var` => `Constant.new(SimpleString.new(bound_type.name))`
-             #   end
-             #   binding_klass.body.insert(0, attr_def)
-             # end
 
                                     infer(binding_klass).resolve
                                   end
     binding_type_name = makeTypeName(klass.position, parent_scope.binding_type)
 
     build_constructor(klass, binding_type_name)
-
 
     insert_into_body enclosing_body, klass
     klass
@@ -524,11 +500,11 @@ class BetterClosureBuilder
 
   def wrap_with_rescue block: Node, nlr_klass: ClosureDefinition, call: Node, nlr_return_type: ResolvedType
     return_value = unless void_type? nlr_return_type
-      Node(Call.new(block.position, 
-                      LocalAccess.new(SimpleString.new 'ret_error'), 
+      Node(Call.new(block.position,
+                      LocalAccess.new(SimpleString.new 'ret_error'),
                       SimpleString.new("return_value"),
                       Collections.emptyList,
-                      nil 
+                      nil
                       ))
     else
       Node(ImplicitNil.new)
@@ -589,13 +565,7 @@ class BetterClosureBuilder
   end
 
   def return_nodes(block: Node): List
-    #block.findDescendants { |c| c.kind_of? Return }
-    # from findDescendants
-    # from commented out code in the parser
-    # TODO(nh): put this back in the parser
-    finder = DescendentFinder2.new(false, false) { |c| c.kind_of? Return }
-    finder.scan(block, nil)
-    finder.results
+    block.findDescendants { |c| c.kind_of? Return }
   end
 
   def new_closure_call_node(block: Block, klass: Node): Call
@@ -669,7 +639,7 @@ class BetterClosureBuilder
     MethodType(List(methods).get(0))
   end
 
-  # builds the method definitios for inserting into the closure class
+  # builds the method definitions for inserting into the closure class
   def build_methods_for(mtype: MethodType, block: Block, parent_scope: Scope): List #<MethodDefinition>
     methods = []
     name = SimpleString.new(block.position, mtype.name)
@@ -689,8 +659,6 @@ class BetterClosureBuilder
     return_type = makeSimpleTypeName(block.position, mtype.returnType)
     block_method = MethodDefinition.new(block.position, name, args, return_type, nil, nil)
 
-    closure_scope = ClosureScope(get_inner_scope(block))
-
     block_method.body = block.body
 
     m_types= mtype.parameterTypes
@@ -703,16 +671,17 @@ class BetterClosureBuilder
         m_type = MirrorType(m_types[i])
         a_type = @types.get(parent_scope, a.type.typeref).resolve
         if !a_type.equals(m_type) # && BaseType(m_type).assignableFrom(a_type) # could do this, then it'd only add the checkcast if it will fail...
-          block_method.body.insert(0, 
-            Cast.new(a.position, 
+          block_method.body.insert(0,
+            Cast.new(a.position,
               Constant.new(SimpleString.new(m_type.name)), LocalAccess.new(a.position, a.name))
             )
         end
       end
       i+=1
     end
-    
-    method_scope = MethodScope.new(closure_scope,block_method)
+
+    closure_scope = ClosureScope(get_inner_scope(block))
+    method_scope = MethodScope.new(closure_scope, block_method)
 #   @scoper.setScope(block_method,method_scope)
 
     methods.add(block_method)
@@ -757,7 +726,7 @@ class BetterClosureBuilder
                 end
         call.parameters.add param
       end
-        
+
       bridge_method = MethodDefinition.new(args.position, name, bridge_args, return_type, nil, nil)
       bridge_method.body = NodeList.new(args.position, [call])
       anno = Annotation.new(args.position, Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
@@ -791,7 +760,13 @@ class BetterClosureBuilder
   end
 
   def insert_into_body enclosing_body: NodeList, node: Node
-    enclosing_body.insert(0, node)
+    index = if enclosing_body.parent.kind_of?(ConstructorDefinition) &&
+               enclosing_body.get(0).kind_of?(Super)
+              1
+            else
+              0
+            end
+    enclosing_body.insert index, node
   end
 
   def infer node: Node

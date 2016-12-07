@@ -291,9 +291,8 @@ class MirrorFuture < BaseTypeFuture
   def initialize(type:MirrorType, position:Position=nil)
     super(position)
     @type = type
-    future = self
     type.onIncompatibleChange do
-      future.maybeResolved
+      self.maybeResolved
     end
     maybeResolved
   end
