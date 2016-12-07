@@ -34,6 +34,7 @@ import org.mirah.jvm.mirrors.MirrorType
 import org.mirah.jvm.model.Cycle
 import org.mirah.jvm.model.IntersectionType
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.BaseTypeFuture
 import org.mirah.util.Context
 
 class IgnoredTypeBuilder < SignatureVisitor
@@ -42,21 +43,14 @@ class IgnoredTypeBuilder < SignatureVisitor
   end
 end
 
-class TypeInvoker < BaseSignatureReader
+class AbstractTypeInvoker < BaseSignatureReader
   def initialize(context:Context, typeVars:Map, args:List, processed_signatures:Map)
     super(context, typeVars, processed_signatures)
-    @typeParams = LinkedList.new
-    @args = LinkedList.new(args)
     @interfaces = []
   end
 
   def getTypeVariableMap:Map
     typeVariables
-  end
-
-  def saveTypeParam(var)
-    typeVariables[var.toString] = @args.removeFirst unless @args.isEmpty
-    @typeParams.add(var)
   end
 
   def visitSuperclass
@@ -86,9 +80,32 @@ class TypeInvoker < BaseSignatureReader
     end
     array
   end
+end
+
+class GenericsCapableSignatureReader  < AbstractTypeInvoker
+  def initialize(context:Context)
+    super(context, nil, [], {})
+    @typeParams = LinkedList.new
+  end
+  
+  def saveTypeParam(var)
+    @typeParams.add(var)
+  end
 
   def getFormalTypeParameters:List
     @typeParams
+  end
+end
+
+
+class TypeInvoker < AbstractTypeInvoker
+  def initialize(context:Context, typeVars:Map, args:List, processed_signatures:Map)
+    super
+    @args = LinkedList.new(args)
+  end
+  
+  def saveTypeParam(var)
+    typeVariables[var.toString] = @args.removeFirst
   end
 
   def self.invoke(context:Context, type:MirrorType, args:List,
@@ -109,3 +126,4 @@ class TypeInvoker < BaseSignatureReader
     end
   end
 end
+

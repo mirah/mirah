@@ -27,7 +27,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.objectweb.asm.tree.FieldNode
 import org.objectweb.asm.tree.InnerClassNode
 import org.objectweb.asm.tree.MethodNode
-import org.mirah.jvm.mirrors.generics.TypeInvoker
+import org.mirah.jvm.mirrors.generics.GenericsCapableSignatureReader
 import org.mirah.jvm.types.JVMType
 import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMField
@@ -82,10 +82,10 @@ class BytecodeMirror < AsyncMirror implements DeclaredMirrorType
   def link_internal:void
     types = @context[MirrorTypeSystem]
     if @signature
-      invoker = TypeInvoker.new(@context, nil, [], {})
-      invoker.read(@signature)
-      setSupertypes(invoker.superclass, invoker.interfaces)
-      invoker.getFormalTypeParameters.each do |var|
+      signature_reader = GenericsCapableSignatureReader.new(@context)
+      signature_reader.read(@signature)
+      setSupertypes(signature_reader.superclass, signature_reader.interfaces)
+      signature_reader.getFormalTypeParameters.each do |var|
         @typeParams[var.toString] = BaseTypeFuture.new.resolved(MirrorType(var))
       end
     else

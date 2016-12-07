@@ -200,8 +200,8 @@ class ObjectExtensions
         end
       end
     end
-    methods_proxy.get(0).setParent(nil)
-    methods_proxy.get(0) # FIXME: if we used methods_proxy instead of methods_proxy.get(0) as return value, then the annotation is not effective
+    methods_proxy.setParent(nil)
+    methods_proxy
   end
   
   macro def self.attr_accessor(hash:Hash)
