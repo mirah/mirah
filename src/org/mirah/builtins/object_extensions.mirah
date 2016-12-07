@@ -42,15 +42,16 @@ class ObjectExtensions
     quote do
       `left`  = `@call.target`
       `right` = `node`
-      `left`.nil? ? `right`.nil? : `left`.equals(`right`)
+       if `left` === nil
+         `right` === nil
+       else
+         `left`.equals `right`
+       end
     end
   end
 
-  ## TODO handle the negation st def == will be called
+  ## TODO change != so that it does the below intrinsically.
   macro def !=(node)
-    # TODO this doesn't work, but should
-    #quote { ( `@call.target`.nil? && `node`.nil? ) || !`@call.target`.equals(`node`) }
-
     quote { !(`@call.target` == `node`)}
   end
   
@@ -89,6 +90,11 @@ class ObjectExtensions
   end
   macro def self.loop(block:Block)
     quote { while true do `block.body` end }
+  end
+
+  # Casts the target of the call to the type_name.
+  macro def as!(type_name: TypeName)
+    Cast.new(type_name, @call.target)
   end
 
   macro def self.transient(s:SimpleString)

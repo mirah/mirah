@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.mirah</groupId>
     <artifactId>shared</artifactId>
-    <version>0.1.5-SNAPSHOT</version>
+    <version>0.2.2-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -12,16 +12,8 @@
   <groupId>org.mirah</groupId>
   <artifactId>mirah</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.5-SNAPSHOT</version>
+  <version>0.2.2-SNAPSHOT</version>
   <name>Mirah</name>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.jruby</groupId>
-      <artifactId>jruby-complete</artifactId>
-      <version>${jruby.version}</version>
-    </dependency>
-  </dependencies>
 
   <build>
     <directory>../../dist</directory>

@@ -51,8 +51,7 @@ module Mirah
           @typer = typer
         end
         def exitDefault(node, arg)
-          type = @typer.getInferredType(node)
-          type = type.resolve if type
+          type = @typer.getResolvedType(node)
           if (type && type.isError)
             @errors[type] ||= begin
               if type.message.size == 1

@@ -31,6 +31,7 @@ import mirah.lang.ast.Position
 import org.mirah.jvm.types.CallType
 import org.mirah.jvm.types.GenericMethod
 import org.mirah.jvm.types.JVMMethod
+import org.mirah.jvm.types.JVMField
 import org.mirah.jvm.types.JVMType
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.TypeFuture
@@ -135,7 +136,7 @@ class MirrorProxy implements MirrorType,
   def getMethod(name, params)
     @target.getMethod(name, params)
   end
-  def getDeclaredFields:JVMMethod[]
+  def getDeclaredFields:JVMField[]
     @target.getDeclaredFields
   end
   def getDeclaredField(name)
@@ -271,9 +272,9 @@ class MirrorProxy implements MirrorType,
     end
   end
 
-  def link
+  def ensure_linked
     if @target.kind_of?(DeclaredMirrorType)
-      DeclaredMirrorType(@target).link
+      DeclaredMirrorType(@target).ensure_linked
     end
   end
 
@@ -290,9 +291,8 @@ class MirrorFuture < BaseTypeFuture
   def initialize(type:MirrorType, position:Position=nil)
     super(position)
     @type = type
-    future = self
     type.onIncompatibleChange do
-      future.maybeResolved
+      self.maybeResolved
     end
     maybeResolved
   end

@@ -22,6 +22,7 @@ import java.util.ArrayList
 import java.util.Collections
 import java.util.LinkedList
 import java.util.List
+import java.util.Map
 import org.mirah.util.Logger
 import java.util.logging.Level
 
@@ -58,9 +59,9 @@ import org.mirah.typer.PickFirst
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
 import org.mirah.typer.TypeFuture
+import org.mirah.typer.TypeFutureTypeRef
 import org.mirah.typer.TypeSystem
 import org.mirah.typer.UnreachableType
-import org.mirah.typer.simple.SimpleScope
 import org.mirah.util.Context
 
 import org.mirah.jvm.mirrors.generics.TypeInvoker
@@ -114,15 +115,13 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)
   end
 
-  def parameterize(type:TypeFuture, args:List)
-    last_resolved = nil
+  def parameterize(type:TypeFuture, args:List, seen_signatures:Map = {})
     context = @context
-    invocation = nil
     future = DelegateFuture.new
     future.type = type
     type.onUpdate do |x, resolved|
       future.type = MirrorFuture.new(
-          TypeInvoker.invoke(context, MirrorType(resolved), args, nil))
+          TypeInvoker.invoke(context, MirrorType(resolved), args, nil, seen_signatures))
     end
     future
   end
@@ -253,11 +252,12 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   def getMethodType(call)
-    future = DelegateFuture.new()
+    future = DelegateFuture.new
     if call.resolved_target
       if call.resolved_target.isError || call.resolved_target.kind_of?(UnreachableType)
-        return BaseTypeFuture.new().resolved(call.resolved_target)
+        return BaseTypeFuture.new.resolved(call.resolved_target)
       end
+
       target = MirrorType(call.resolved_target)
       method_name = resolveMethodName(call.scope, target, call.name)
       if "<init>".equals(method_name)
@@ -329,14 +329,14 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     AssignableTypeFuture(future)
   end
 
-  def getFieldTypeOrDeclare(target, name, position)
+  def getFieldTypeOrDeclare(target, name, position, flags=Opcodes.ACC_PRIVATE)
     resolved = MirrorType(target.peekInferredType)
     klass = MirrorType(resolved.unmeta)
     member = klass.getDeclaredField(name)
     future = if member
       AsyncMember(member).asyncReturnType
     else
-      createField(klass, name, resolved.isMeta, position)
+      createField klass, name, resolved.isMeta, position, flags
     end
     AssignableTypeFuture(future)
   end
@@ -485,6 +485,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
   
   def get(scope, typeref)
+    return TypeFutureTypeRef(typeref).type_future if typeref.kind_of?(TypeFutureTypeRef)
     name = resolveName(scope, typeref.name)
     type = if scope.nil?
       loadNamedType(name)
@@ -553,10 +554,9 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     getResolvedArrayType(componentType)
   end
 
-  def getArrayType(componentType:TypeFuture):TypeFuture
-    types = self
+  def getArrayType(componentType: TypeFuture): TypeFuture
     DerivedFuture.new(componentType) do |resolved|
-      types.getResolvedArrayType(resolved)
+      self.getResolvedArrayType(resolved)
     end
   end
 
@@ -669,12 +669,11 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     end
     member = MirahMethod.new(@context, position, flags, target, name, arguments, returnType, kind)
 
-    returnFuture = AssignableTypeFuture(member.asyncReturnType)
     log = @@log
-    me = self
+    returnFuture = member.asyncReturnType.as!(AssignableTypeFuture)
     returnFuture.onUpdate do |x, resolved|
       type = isMeta ? "static " : ""
-      formatted = me.format(target, name, arguments)
+      formatted = self.format(target, name, arguments)
       log.fine("Learned #{type}#{formatted}:#{resolved}")
     end
 
@@ -683,8 +682,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   def createField(target:MirrorType, name:String,
-                  isStatic:boolean, position:Position):TypeFuture
-    flags = Opcodes.ACC_PRIVATE
+                  isStatic:boolean, position:Position, flags:int=Opcodes.ACC_PRIVATE):TypeFuture
     if isStatic
       kind = MemberKind.STATIC_FIELD_ACCESS
       flags |= Opcodes.ACC_STATIC

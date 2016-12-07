@@ -1,0 +1,1 @@
+{{TYPE}}.new(makePosition(_start, _pos){{#CHILD}}, {{CHILD}}{{/CHILD}})

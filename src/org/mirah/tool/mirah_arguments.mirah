@@ -47,7 +47,6 @@ import org.mirah.jvm.mirrors.debug.ConsoleDebugger
 import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.macros.JvmBackend
 import org.mirah.mmeta.BaseParser
-import org.mirah.typer.simple.SimpleScoper
 import org.mirah.typer.Scoper
 import org.mirah.typer.Typer
 import org.mirah.typer.TypeSystem
@@ -60,7 +59,7 @@ import org.mirah.util.Context
 import org.mirah.util.OptionParser
 
 class MirahArguments
-  @@VERSION = "0.1.5.dev"
+  @@VERSION = "0.2.2.dev"
 
   attr_accessor logger_color: boolean,
                 code_sources: List,

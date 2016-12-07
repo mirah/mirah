@@ -168,5 +168,28 @@ class CollectionExtensionsTest < Test::Unit::TestCase
     })
     assert_run_output("[a, b, c, d, e]\n", cls)
   end
+ 
+  def test_mapa_on_java_array_with_complex_basetype_returning_type_defined_later
+    cls, = compile(%q[
+      x = ["a","b","c","d"].mapa do |s|
+        TypeDefinedLater.new(s)
+      end
+      puts x[2]
+      puts x.getClass.getName
+      
+      class TypeDefinedLater
+        attr_accessor foo:Object
+        
+        def initialize(foo:Object)
+          self.foo = foo
+        end
+        
+        def toString
+          "TypeDefinedLater(#{foo})"
+        end
+      end
+    ])
+    assert_run_output("TypeDefinedLater(c)\n[LTypeDefinedLater;\n", cls)
+  end
 end
 

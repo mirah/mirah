@@ -24,14 +24,14 @@ import org.mirah.jvm.types.JVMTypeUtils
 
 # Runs class cleanup on any enclosed classes.
 class MethodCleanup < NodeScanner
-  def initialize(context:Context, method:MethodDefinition)
+  def initialize(context: Context, method: MethodDefinition)
     @context = context
     @typer = context[Typer]
     @scope = @typer.scoper.getIntroducedScope(method)
     @method = method
   end
 
-  def clean:void
+  def clean: void
     scan(@method.body, nil)
   end
 
@@ -45,14 +45,16 @@ class MethodCleanup < NodeScanner
   end
 
   def enterClosureDefinition(node, arg)
-    if @typer.getInferredType(node).resolve.equals(@scope.binding_type) && node.body_size == 0
-      @scope.capturedLocals.each do |name|
-        type = JVMType(@typer.type_system.getLocalType(@scope, String(name), node.position).resolve)
-        if type.kind_of?(MirrorType)
-          type = JVMType(Object(MirrorType(type).erasure))
+    if @typer.getResolvedType(node).equals(@scope.binding_type) && node.body_size == 0
+      @scope.capturedLocals.each do |name: String|
+        type = @scope.getLocalType(name, node.position).resolve.as!(JVMType)
+
+        #type = JVMType(@typer.type_system.getLocalType(@scope, String(name), node.position).resolve)
+        if type.kind_of? MirrorType
+          type = type.as!(MirrorType).erasure.as!(Object).as!(JVMType)
         end
         typeref = TypeRefImpl.new(type.name, JVMTypeUtils.isArray(type), false, node.position)
-        decl = FieldDeclaration.new(SimpleString.new(String(name)), typeref, nil, [
+        decl = FieldDeclaration.new(SimpleString.new(name), typeref, nil, [
           Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
             HashEntry.new(SimpleString.new('access'), SimpleString.new('PROTECTED')),
             ])

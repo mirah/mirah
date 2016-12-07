@@ -84,11 +84,10 @@ class MirahMethod < AsyncMember implements MethodListener
     @error ||= ErrorType.new([['Does not override a method from a supertype.', @position]]) 
   end
 
-  def wrap(target:TypeFuture):TypeFuture
-    me = self
+  def wrap(target: TypeFuture): TypeFuture
     DerivedFuture.new(target) do |resolved|
       if resolved.kind_of?(ErrorType)
-        me.wrap_error(resolved)
+        self.wrap_error(resolved)
       else
         resolved
       end
@@ -96,7 +95,7 @@ class MirahMethod < AsyncMember implements MethodListener
   end
 
   def wrap_error(type:ResolvedType):ResolvedType
-    JvmErrorType.new(@context, ErrorType(type))
+    JvmErrorType.new(@context, type.as!(ErrorType))
   end
 
   def setupOverrides(argumentTypes:List):void

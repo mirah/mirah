@@ -212,12 +212,20 @@ class CallFuture < BaseTypeFuture
           @method = new_method
           resolved_target = @resolved_target
           void_type = @types.getVoidType().resolve
+          scope = @scope
+          _log = log
           @method.onUpdate do |m, type|
             if m == call.currentMethodType
               if type.kind_of?(MethodType)
                 mtype = MethodType(type)
                 call.resolveBlocks(mtype, nil)
                 is_void = void_type.equals(mtype.returnType)
+
+                if scope.selfType.resolve == resolved_target
+                  scope.methodUsed(call.name)
+                  _log.fine "got here for #{call} with scope #{scope}"
+                end
+
                 if is_void
                   call.resolved(resolved_target)
                 else
@@ -227,6 +235,9 @@ class CallFuture < BaseTypeFuture
                 unless type.isError
                   raise IllegalArgumentException, "Expected MethodType, got #{type}"
                 end
+                # TODO(ndh) maybe undo the scope.methodUsed here.
+                #      I'm not 100% sure of the circumstances where that'd be necessary,
+                #      so I should come up with a test case.
                 # TODO(ribrdb) should resolve blocks, return type
                 error = call.getArgError || type
                 call.resolveBlocks(nil, error)

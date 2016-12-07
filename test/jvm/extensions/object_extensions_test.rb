@@ -90,4 +90,33 @@ class ObjectExtensionsTest < Test::Unit::TestCase
     ])
     assert_run_output("false\n", cls)
   end
+
+  def test_boxing_for_equals
+    cls, = compile(%q[
+      puts true==true
+      puts false==true
+      puts nil==true
+
+      obj = Boolean true
+      puts obj == true
+      puts obj == false
+
+      b = true
+      puts obj == b
+      puts obj == 1
+      puts true == obj
+    ])
+    assert_run_output("true\nfalse\nfalse\ntrue\nfalse\ntrue\nfalse\ntrue\n", cls)
+  end
+
+  def test_boxing_for_numerics
+    cls, = compile(%q[
+      puts 1==Long.new(1)
+      puts Long(nil)==Long.new(1)
+      puts 1==Long.new(2)
+      puts nil == Long.new(2)
+    ])
+    assert_run_output("true\nfalse\nfalse\nfalse\n", cls)
+  end
+
 end

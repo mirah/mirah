@@ -1,0 +1,1379 @@
+# Copyright (c) 2010 The Mirah project authors. All Rights Reserved.
+# All contributing project authors may be found in the NOTICE file.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+package mirahparser.impl;
+
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.io.InputStream
+import java.io.FileInputStream
+import java.util.ArrayList
+import java.util.List
+import java.util.LinkedList
+import java.util.Collections
+import java.util.EnumSet
+import mmeta.BaseParser.Token
+import mmeta.SyntaxError
+import mirahparser.lang.ast.*
+import mirahparser.lang.ast.Position as IPosition
+import mirahparser.lang.ast.Float
+import mirahparser.lang.ast.Boolean
+import mirahparser.lang.ast.Package
+
+
+public class FArglistReturn {
+  def initialize(args:Arguments, returnType:TypeName)
+    @args = args
+    @returnType = returnType
+  end
+  def args
+    @args
+  end
+  def returnType
+    @returnType
+  end
+}
+
+public class FNormArgReturn {
+  def initialize(name:Identifier)
+    @name = name
+  end
+  def initialize(name:Identifier, type:TypeName)
+    @name = name
+    @type = type
+  end
+  def name; @name end
+  def type; @type end
+}
+
+parser MirahParser {
+  rlistOf(r:String): h=apply(r) t=(comma apply(r))* { [h] + t };
+  listOf(e:String): rlistOf(e)
+                  | empty                                               { ArrayList.new } ;
+  peektoken: &{_lex};
+  nosp: t=peektoken ?{Token(t).startpos == _start};
+
+  start: ! prog=compstmt $EOF -> ^(Script prog);
+
+  $Scope[@cond]
+  $Returns[List]
+  compstmt: UNCOND
+            terms? a=(s=statement terms {s})*
+            b=statement?
+            {addToBlock(a, b)};
+
+  $Returns[NodeList]
+  compstmt2: c=compstmt -> ^(NodeList c);
+
+  $Returns[List]
+  bodystmt: b=compstmt r=Rescue? e=Else? f=Ensure? {
+    list = b
+    if r != nil
+      list = [Rescue.new(makePosition(_start, _pos), b, r, e)]
+    elsif e != nil
+      # Warning?
+      list = addToBlock(b, e)
+    end
+    unless f.nil?
+      list = [Ensure.new(makePosition(_start, _pos), list, f)]
+    end
+    list
+  };
+
+  term: ($NL|$HereDocBegin)=>nl
+      | $Semi;
+  terms: ( ($NL|$HereDocBegin)=>nl
+         | $Semi
+         )+;
+
+  $Memo[Token]
+  nl: $NL
+    | heredoc {nil};
+
+  $Memo[Node]
+  statement: f=statement2
+             ( ($If)=> $If c=value(expr) f=-> ^(If c [f] nil)
+             | ($Unless)=> $Unless c=value(expr) f=-> ^(If c nil [f])
+             | ($While)=> $While c=value(expr) f=-> ^(Loop c [f] false false)
+             | ($Until)=> $Until c=value(expr) f=-> ^(Loop c [f] true false)
+             | ($Rescue)=> $Rescue r=statement f=-> ^(Rescue [f] [^(RescueClause [] nil [r])] nil)
+             )* {f};
+
+  $Returns[Node]
+  statement2: ( l=var_lhs ( $AndEq opt_nl r=command_call
+                            b=assign(l, r)
+                            -> ^(If gettable2(l) [b] [gettable2(l)])
+                          | $OrEq opt_nl r=command_call
+                            b=assign(l, r)
+                            -> ^(If gettable2(l) [gettable2(l)] [b])
+                          | op=op_assign r=command_call
+                            b2= -> ^(Call gettable2(l) op [r] nil)
+                            assign(l, b2)
+                          )
+              )
+            | ( l=lhs $EQ opt_nl r=command_call assign(l, r)
+              | t=value(primary) (($LBrack)=> tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=op_assign v=command_call
+                                              f={makeIdentifier(makePosition(tok), "[]")}
+                                              op_attr_assign(t, f, a, op, v)
+                                 | ($Colons)=> colons f=identifier op=op_assign v=command_call
+                                               op_attr_assign(t, f, [], op, v)
+                                 | dot f=(constant | identifier) op=op_assign v=command_call
+                                   op_attr_assign(t, f, [], op, v)
+                                 )
+              )
+            | expr
+            ;
+
+  value(v:Object) : {checkExpression(v)};
+
+  $Memo[Node]
+  expr: a=( ($Not)=> $Not opt_nl e=expr node=-> ^(Not e) {Node(node)}
+          | ($Bang)=> ($Bang e=command_call -> ^(Not e) | arg12)
+          | ( c=variable $Question opt_nl t=arg opt_nl $Colon opt_nl e=arg -> ^(If c [t] [e])
+            | command_call
+            | arg
+            )
+          )
+        (
+            ($Ampers)=> $Ampers opt_nl b=expr a=-> ^(If a [b] nil)
+          | ($Pipes)=> $Pipes opt_nl b=expr a=make_or(a, b)
+          | ($And)=> $And opt_nl b=expr a=-> ^(If a [b] nil)
+          | ($Or)=> $Or opt_nl b=expr a=make_or(a, b)
+        )* {a};
+
+  make_or(a:Node, b:Node): t={makeIdentifier(a.position, temp(:or))}
+    ->^(NodeList [^(LocalAssignment t a), ^(If ^(LocalAccess clone(t)) [^(LocalAccess clone(t))] [b])]);
+
+  # Node:command - fcall/call/yield/super [!null]
+  $Memo[Node]
+  command: ($Super)=> $Super a=command_args -> ^(Super a nil)
+  #       | ($Yield)=> $Yield a=command_args -> ^(Yield a)
+         | (op=operation a=command_args b=cmd_brace_block?-> ^(FunctionalCall op a b)
+           | $Raise a=command_args -> ^(Raise a)
+           | t=value(primary) dot_or_colon op=operation2 a=command_args b=cmd_brace_block?-> ^(Call t op a b)
+           );
+
+  # Node:command - call with or without block on end [!null]
+  $Scope[@BEG]
+  $Returns[Node]
+  command_call: block_command
+              | command
+              | $Return ~($If|$Unless) BEG a=expr -> ^(Return a);
+              # | $Break a=call_args -> ^(Break a+)
+              # | $Next a=call_args -> ^(Next a+)
+
+  # Node:block_command - A call with a block (foo.bar {...}, foo::bar {...}, bar {...}) [!null]
+  $Returns[Node]
+  block_command: h=block_call (dot_or_colon op=operation2 a=command_args
+                               h=-> ^(Call h op a nil))* {h};
+  $Memo[Node]
+  primary: h=value(primary2) ( (dot_or_colon $LParen)=> t=dot_or_colon a=paren_args iter=brace_block?
+                                                        h=-> ^(Call h makeIdentifier(makePosition(t), "call") a iter)
+                             | (dot)=> dot op=operation2 a=opt_paren_args iter=brace_block? h=-> ^(Call h op a iter)
+                             | (colons)=> colons (op=operation2 a=paren_args iter=brace_block? h=-> ^(Call h op a iter)
+                                                  |b=constant ~(paren_args|call_args|$EQ..$OpAssign) h=-> ^(Colon2 h b)
+                                                  |op=operation3 ~($EQ..$OpAssign) iter=brace_block? h=-> ^(Call h op [] iter)
+                                                  )
+                             | ($LBrack)=> t=$LBrack opt_nl a=call_args? opt_nl $RBrack iter=brace_block? ~($EQ..$OpAssign)
+                                           h=-> ^(Call h makeIdentifier(makePosition(t), "[]") a iter)
+                             )* {h};
+
+# primary2 is the main entrance into most expression types
+
+  $Returns[Node]
+  primary2: ($Super)=> primary2_super
+          | ($LParen)=> primary2_lparen
+          | ($Begin)=> primary2_begin
+          | ($LBrack)=> primary2_lbrack
+          | ($LBrace)=> primary2_lbrace
+  #        | ($Yield)=> primary2_yield
+          | ($Bang)=> primary2_bang
+          | ($If)=> primary2_if
+          | ($Case) => primary2_case
+          | ($Unless)=> primary2_unless
+          | ($While)=> primary2_while
+          | ($Until)=> primary2_until
+          | ($For)=> primary2_for
+          | ($Class)=> primary2_class
+          | ($Interface)=> primary2_interface
+          | ($Import)=> primary2_import
+          | ($Package)=> primary2_package
+          | ($Def)=> primary2_def
+          | ($Macro|$Defmacro)=> primary2_macro
+          | ($Dollar)=> (primary2_class | primary2_interface | primary2_def | primary2_macro)
+          | (java_doc) => (primary2_class | primary2_interface | primary2_def | primary2_macro)
+          | ($Break)=> primary2_break
+          | ($Next)=> primary2_next
+          | ($Redo)=> primary2_redo
+  #        | ($Retry)=> primary2_retry
+          | ($Return)=> primary2_return
+          | ($DQuote|$SQuote|$Character|$HereDocId)=> string
+          | ($RegexBegin)=> regexp
+          | ($Backtick)=> unquote
+          | primary2_id
+          ;
+  $Returns[Node]
+  primary2_super
+         : $Super ( a=paren_args iter=brace_block? -> ^(Super a iter)
+                  | iter=brace_block -> ^(Super [] iter)
+                  | -> ^(ZSuper)
+                  );
+  $Returns[Node]
+  primary2_lparen
+         : $LParen opt_nl e=compstmt opt_nl $RParen -> ^(NodeList e);
+  $Returns[Node]
+  primary2_begin
+         : t=$Begin s=block_start(t)! b=bodystmt verify_end(s)! $End
+           ( type=($While|$Until) c=value(expr)
+             {neg=type.type == Tokens.tUntil} -> ^(Loop c b neg true)
+           | ?{b.size == 1} {b.get(0)}
+           | -> ^(NodeList b)
+           );
+  $Returns[Node]
+  primary2_lbrack
+         : isBEG $LBrack opt_nl $RBrack -> ^(Array [])
+         | isBEG $LBrack opt_nl a=args trailer opt_nl $RBrack -> ^(Array a+);
+  $Scope[@BEG]
+  $Returns[Node]
+  primary2_lbrace
+         : $LBrace opt_nl ( $RBrace -> ^(Hash)
+                          | a=listOf(:assoc) trailer opt_nl $RBrace -> ^(Hash a+)
+                          );
+  # primary2_yield
+  #        : $Yield ( $LParen opt_nl ( $RParen -> ^(Yield)
+  #                                  | a=call_args opt_nl $RParen -> ^(Yield a+)
+  #                                  )
+  #                 | -> ^(Yield)
+  #                 );
+  $Returns[Node]
+  primary2_bang
+         : $Bang $LParen opt_nl ($RParen -> ^(Not ^(Null))
+                                | e=value(expr) opt_nl $RParen -> ^(Not e)
+                                );
+  $Returns[Node]
+  primary2_if
+         : isBEG2 t=$If s=block_start(t)! opt_nl cond=value(expr)!
+           Then! body=compstmt! tail=if_tail verify_end(s)! $End
+           -> ^(If cond body tail);
+  $Returns[Node]
+  primary2_unless
+         : isBEG2 t=$Unless s=block_start(t)! opt_nl cond=value(expr)!
+           Then! body=compstmt! tail=Else? verify_end(s)! $End
+           -> ^(If cond tail body);
+
+  $Returns[Node]
+  primary2_case
+         : isBEG2 t=$Case s=block_start(t)! cond=(value(expr) | { nil }) term!
+           w=when_clauses els=Else? verify_end(s)! $End
+           -> ^(Case cond w els);
+
+  $Scope[@cond]
+  $Returns[Node]
+  primary2_while
+         : isBEG2 t=$While s=block_start(t)! opt_nl COND cond=value(expr)!
+           Do! body=compstmt! verify_end(s)! $End
+           -> ^(Loop cond body false false);
+  $Scope[@cond]
+  $Returns[Node]
+  primary2_until
+         : isBEG2 t=$Until s=block_start(t)! opt_nl COND cond=value(expr)!
+           Do! body=compstmt! verify_end(s)! $End
+           l= -> ^(Loop cond body true false);
+  $Scope[@cond]
+  $Returns[Node]
+  primary2_for
+         : t=$For s=block_start(t)! opt_nl var=identifier! $In opt_nl COND!
+           list=value(expr)! Do! body=compstmt verify_end(s)! $End op={makeIdentifier(makePosition(t), 'each')}
+           -> ^(Call list op [] ^(Block ^(Arguments [^(RequiredArgument var nil)] nil nil nil nil) body));
+  $Scope[@BEG]
+  $Returns[Node]
+  primary2_class
+         : jdoc = java_doc?
+		   annotations=annotation_list
+           t=$Class sp=block_start(t)!
+           ( $LShift! BEG e=$Self
+             term! b=compstmt! verify_end(sp)! $End
+             !"no annotations" ?{annotations.isEmpty}
+             -> ^(ClassAppendSelf b)
+           | n=cname! s=superclass! ifaces=opt_implements
+             b=compstmt!  # JRuby has bodystmt, but that doesn't make much
+                          # sense for mirah. Maybe rescuing exceptions
+                          # in the static initializer?
+             verify_end(sp)! $End
+             -> ^(ClassDefinition n s b ifaces annotations jdoc)
+           );
+  $Scope[@cond]
+  $Returns[Node]
+  primary2_interface
+         : jdoc = java_doc?
+		   annotations=annotation_list
+           t=$Interface!
+           sp=block_start(t)
+           n=cname! ifaces=($LT! rlistOf(:cpath)
+                           | {[]}
+                           )
+           Do!
+           b=compstmt!
+           verify_end(sp) $End
+            -> ^(InterfaceDeclaration n nil b ifaces annotations jdoc)
+           ;
+  $Returns[Node]
+  primary2_import
+         : $Import! ( as=$IDENTIFIER ?{"static".equals(as.text)}! fullname=dotted_name
+                      (
+                        $Dot $Star
+                          -> ^(Import fullname ^(SimpleString ".*"))
+                        | short=getStaticImportName(fullname)
+                          -> ^(Import fullname short)
+                      )
+                    | fullname=dotted_name
+                        ( as=$IDENTIFIER ?{"as".equals(as.text)} short=identifier4
+                          -> ^(Import fullname short)
+                        | $Dot $Star
+                          -> ^(Import fullname ^(SimpleString "*"))
+                        | short=getSimpleName(fullname)
+                          -> ^(Import fullname short)
+                        )
+                    | s1=simplestring ( comma! s2=simplestring
+                                        -> ^(Import s2 s1)
+                                      | short=getSimpleName(s1)
+                                        -> ^(Import s1 short)
+                                      )
+                    | u1=unquote! comma ( s2=simplestring -> ^(Import s2 u1)
+                                        | u2=unquote -> ^(Import u2 u1)
+                                        )
+                    );
+  $Returns[Node]
+  primary2_package
+        : $Package! name=dotted_name ( block=brace_block body={block.body}
+                                       -> ^(Package name body)
+                                     | -> ^(Package name nil)
+                                     );
+  $Scope[@BEG]
+  $Returns[Node]
+  primary2_def
+         : jdoc = java_doc?
+		   annotations=annotation_list
+           t=$Def s=block_start(t)!
+           ( $Self! dot_or_colon! name=fname!
+             arglist=f_arglist! body=bodystmt! verify_end(s)! $End
+             {args = arglist.args; type=arglist.returnType}
+             -> ^(StaticMethodDefinition name args type body annotations jdoc)
+           | name=fname! arglist=f_arglist! body=bodystmt! verify_end(s)! $End
+             {args = arglist.args; type=arglist.returnType}
+             ( ?{nameIs(name, "initialize")}
+               -> ^(ConstructorDefinition name args type body annotations jdoc)
+             | -> ^(MethodDefinition name args type body annotations jdoc)
+             )
+           );
+  $Scope[@BEG]
+  $Returns[Node]
+  primary2_macro
+         : jdoc = java_doc?
+           annotations=annotation_list
+           (t=$Defmacro! | t=$Macro! $Def) s=block_start(t)
+           isStatic=($Self dot_or_colon)?
+           name=fname!
+           ($LParen! opt_nl args=f_args opt_nl $RParen)?
+           (?{t == Tokens.tDefmacro} $Do)?
+           body=bodystmt! verify_end(s)! $End
+           node=-> ^(MacroDefinition name args body annotations jdoc)
+           {node.isStatic = (isStatic != nil); node}
+         ;
+  primary2_break: $Break -> ^(Break);
+  primary2_next: $Next -> ^(Next);
+  primary2_redo: $Redo -> ^(Redo);
+  #primary2_retry: $Retry -> ^(Retry);
+  primary2_return: $Return -> ^(Return ^(ImplicitNil));
+  $Returns[Node]
+  primary2_id: ($Colons)=> colon3 c=constant ~($EQ..$OpAssign) -> ^(Colon3 c)
+             | ($Integer)=> fixnum
+             | ($Float)=> floatLiteral
+             | ($Colon)=> symbol
+             | ($Raise $LParen)=> $Raise a=paren_args -> ^(Raise a)
+             | (($FID|$CONSTANT|$IDENTIFIER) ($LParen|$LBrace|$Do))=>
+               ( op=operation ( ($LParen)=>
+                                a=paren_args iter=brace_block? -> ^(FunctionalCall op a iter)
+                              | ($LBrace|$Do)=>
+                                iter=brace_block -> ^(FunctionalCall op [] iter)
+                              )
+               | variable
+               )
+             | variable;
+
+  $Returns[Identifier]
+  dotted_name: h=identifier2 t=(nosp dot identifier3)* n={join(concat([h],t), ".")} -> ^(SimpleString n);
+
+  $Returns[FArglistReturn]
+  f_arglist: $LParen! opt_nl a=f_args opt_nl $RParen ($Colon type=type)? BEG {FArglistReturn.new(a, type)}
+           | a=f_args ($Colon type=type)? term {FArglistReturn.new(a, type)};
+
+  $Memo
+  comma: $Comma opt_nl;
+  $Returns[Arguments]
+  f_args: req=f_arg! opt=(comma f_optarg)? rest=(comma f_rest_arg)? req2=(comma f_arg)? block=(comma f_block_arg)?
+            -> ^(Arguments req opt rest req2 block)
+        | opt=f_optarg! rest=(comma f_rest_arg)? req=(comma f_arg)? block=(comma f_block_arg)?
+            -> ^(Arguments nil opt rest req block)
+        | rest=f_rest_arg! req=(comma f_arg)? block=(comma f_block_arg)?
+            -> ^(Arguments nil nil rest req block)
+        | block=f_block_arg -> ^(Arguments nil nil nil nil block)
+        | -> ^(Arguments nil nil nil nil nil);
+
+  f_bad_arg: &constant !"formal argument not a constant" ?{false}
+           | &ivar !"formal argument not an instance variable" ?{false}
+           | &cvar !"formal argument not a class variable" ?{false};
+
+  $Returns[FNormArgReturn]
+  f_norm_arg: f_bad_arg
+            | l=label BEG t=type { FNormArgReturn.new(l, t) }
+            | u=unquote ($Colon BEG t=type)? { FNormArgReturn.new(u, t) }
+            | n=identifier { FNormArgReturn.new(n) };
+
+  $Returns[RequiredArgument]
+  f_arg_item: ~f_opt n=f_norm_arg {name=n.name; type=n.type } -> ^(RequiredArgument name type);
+            # | $LParen f_margs $RParen
+
+  $Returns[List]
+  f_arg: rlistOf(:f_arg_item);
+
+  $Memo[OptionalArgument]
+  f_opt: n=f_norm_arg $EQ! opt_nl v=arg_value {name=n.name; type=n.type } -> ^(OptionalArgument name type v);
+
+  $Returns[List]
+  f_optarg: rlistOf(:f_opt);
+
+  $Returns[RestArgument]
+  f_rest_arg: $Star n=f_norm_arg {name=n.name; type=n.type } -> ^(RestArgument name type)
+            | $Star -> ^(RestArgument nil nil);
+
+  $Returns[BlockArgument]
+  f_block_arg: $Amper n=f_norm_arg {name=n.name; type=n.type } arg=-> ^(BlockArgument name type)
+               ($EQ! opt_nl $Nil {arg.optional = true; arg}
+               | # empty
+               ) {arg};
+
+  block_arg: isBEG $Amper ~sp v=arg_value -> ^(BlockPass v);
+
+  # :brace_block - [!null]
+  cmd_brace_block: brace_block;
+  $Scope[@BEG]
+  $Returns[Block]
+  brace_block: $LBrace opt_nl (p=block_param !"statement" b=compstmt2 opt_nl $RBrace
+                              |p={nil} b=compstmt2 opt_nl $RBrace) -> ^(Block p b)
+             | do_block;
+
+  $Scope[@BEG]
+  $Returns[Block]
+  do_block: ~?{@cond} t=$Do s=block_start(t)! opt_nl p=block_param?! b=compstmt2 verify_end(s)! $End -> ^(Block p b);
+
+  # Do we need bv_decls?
+  $Returns[Arguments]
+  block_param: $Pipe opt_nl a=f_args opt_nl $Pipe BEG {a}
+             | $Pipes BEG -> ^(Arguments nil nil nil nil nil);
+
+  $Returns[Node]
+  block_call: c=command b=do_block {
+                if c.kind_of?(Call)
+                  Call(c).block = b
+                elsif c.kind_of?(Super)
+                  Super(c).block = b
+                else
+                  FunctionalCall(c).block = b
+                end
+                h = Node(c)
+              }
+              (dot_or_colon op=operation2 a=opt_paren_args h=-> ^(Call h op a nil))* {h};
+
+  paren_args: $LParen! opt_nl c=call_args? opt_nl $RParen {c.nil? ? List(ArrayList.new) : c};
+  opt_paren_args: ($EOF)=> {List(nil)}
+                | ($LParen)=> paren_args
+                | ~(call_args | $EQ..$OpAssign) { List(nil) };
+
+  $Returns[Node]
+  maybe_rescue: a=arg $Rescue b=value(arg)
+                -> ^(Rescue [a] [^(RescueClause [] nil [b])] nil)
+              | arg;
+
+  $Returns[Assignment]
+  assign(lhs:Assignment, rhs:Node) : {
+    lhs.value = rhs
+    lhs
+  }
+  ;
+
+  $Memo[Node]
+  $Scope[@BEG]
+  arg: h=arg0 ($Question opt_nl t=arg opt_nl $Colon opt_nl e=arg
+               h=-> ^(If h [t] [e]))* {h};
+  $Returns[Node]
+  arg0: ( l=var_lhs ( $AndEq! opt_nl r=arg
+                      b1=assign(l, r)
+                      -> ^(If gettable2(l) [b1] [gettable2(l)])
+                    | $OrEq! opt_nl r=arg
+                      b1=assign(l, r)
+                      -> ^(If gettable2(l) [gettable2(l)] [b1])
+                    | op=op_assign! r=arg
+                      b2= -> ^(Call gettable2(l) op [r] nil)
+                      assign(l, b2)
+                    )
+        | ( l=lhs $EQ opt_nl r=maybe_rescue assign(l, r)
+          | t=value(primary) (tok=$LBrack opt_nl a=call_args? opt_nl $RBrack op=op_assign v=arg
+                              f={makeIdentifier(makePosition(tok), "[]")}
+                              op_attr_assign(t, f, a, op, v)
+                             |colons constant assignment_op arg
+                               !"constant re-assignment prohibited" ?{false}
+                             |dot_or_colon f=(constant | identifier) op=op_assign v=arg
+                              op_attr_assign(t, f, [], op, v)
+                             )
+          | colon3 constant assignment_op arg
+             !"constant re-assignment prohibited" ?{false}
+          | arg2
+          )
+        );
+
+  $Returns[Node]
+  arg2: &($Bang..$Tilde|primary)
+        a=arg3 t=($Pipes opt_nl BEG b=arg3 a=make_or(a, b) )* {a};
+  $Returns[Node]
+  arg3: a=arg4 t=($Ampers opt_nl BEG b=arg4 a=-> ^(If a [b] nil))* {a};
+  $Returns[Node]
+  arg4: a=arg5 t=(tok=($Match..$EEEQ) op={makeIdentifier(tok)} opt_nl BEG b=arg5
+                   a=-> ^(Call a op [b] nil)
+                 |tok=$NMatch opt_nl BEG b=arg5 a=-> ^(Not ^(Call a makeIdentifier(makePosition(tok), "=~") [b] nil)))* {a};
+  $Returns[Node]
+  arg5: a=arg6 t=(tok=($Pipe|$Caret) opt_nl BEG b=arg6 a=-> ^(Call a makeIdentifier(tok) [b] nil))* {a};
+  $Returns[Node]
+  arg6: a=arg7 t=(tok=$Amper opt_nl BEG b=arg7 a=-> ^(Call a makeIdentifier(tok) [b] nil))* {a};
+  $Returns[Node]
+  arg7: a=arg8 t=(tok=($LShift..$RShift) op={makeIdentifier(tok)} opt_nl BEG b=arg8 a=-> ^(Call a op [b] nil))* {a};
+  $Returns[Node]
+  arg8: a=arg9 t=(tok=($Plus|$Minus) opt_nl BEG b=arg9 a=-> ^(Call a makeIdentifier(tok) [b] nil))* {a};
+  $Returns[Node]
+  arg9: a=arg10 t=(tok=($Star|$Slash|$Percent) op={makeIdentifier(tok)} opt_nl BEG b=arg10 a=-> ^(Call a op [b] nil))* {a};
+  $Returns[Node]
+  arg10: tok=uminus BEG v=arg11 ( ?{v.kind_of?(Fixnum)} -> ^(Fixnum negateFixnum(v))
+                                | ?{v.kind_of?(Float)} -> ^(Float negateFloat(v))
+                                | op={makeIdentifier(makePosition(tok), "-@")} -> ^(Call v op [] nil)
+                                )
+       | arg11;
+  $Returns[Node]
+  arg11: a=arg12 tok=$Stars opt_nl BEG b=arg11 -> ^(Call a makeIdentifier(tok) [b] nil)
+       | arg12;
+  $Returns[Node]
+  arg12: tok=$Tilde opt_nl BEG v=arg12 -> ^(Call v makeIdentifier(tok) [] nil)
+       | $Bang opt_nl BEG v=arg12 -> ^(Not v)
+       | tok=uplus BEG v=arg12 -> ^(Call v makeIdentifier(makePosition(tok), "+@") [] nil)
+       | value(primary);
+
+  arg_value: a=arg {checkExpression(a)};
+
+  trailer: ($Comma | nl)? {Object(nil)};
+  $Returns[Identifier]
+  operation: ($FID)=>fid
+           | ($CONSTANT)=>constant
+           | ($IDENTIFIER|lastdot)=> identifier
+           | ($Backtick)=> unquote;
+  $Returns[Identifier]
+  operation2: ($FID)=>fid
+            | ($CONSTANT)=>constant
+            | ($IDENTIFIER)=>identifier
+            | ($Backtick)=> unquote
+            | (lastdot)=> (identifier | op)
+            | op;
+  $Returns[Identifier]
+  operation3: ($FID)=>fid
+            | ($IDENTIFIER)=>identifier
+            | ($Backtick)=> unquote
+            | (lastdot)=> (identifier | op)
+            | op;
+  dot: opt_nl t=$Dot opt_nl {t};
+  colons: t=$Colons opt_nl {t};
+  dot_or_colon: dot | colons;
+  opt_nl: ($NL|$HereDocBegin)=>nl+|;
+
+  # This marks the beginning of an expression. It must be used inside
+  # a rule with scope(@BEG).
+  BEG: {@BEG = _pos;nil};
+  isBEG: (isBEG2 | &oneOf(" \t\f\r\v")) {nil};
+  isBEG2: ?{_pos == @BEG}
+        | ?{Integer.valueOf(0).equals(col())}
+        | ?{@begchars.indexOf(_rpeek) > 0};
+  COND: {@cond = true;nil};
+  UNCOND: {@cond = false;nil};
+
+  colon3: isBEG  tok=$Colons opt_nl {tok};
+  uminus: isBEG2 tok=$Minus  opt_nl {tok};
+  uplus:  isBEG2 tok=$Plus   opt_nl {tok};
+
+  one_arg: v=arg_value ~$Rocket {v};
+  args: l=rlistOf(:one_arg);
+      #  (comma s=splat {l+s} | { l })
+      #| splat;
+
+  $Scope[@BEG]
+  call_assocs: l=rlistOf(:assoc) -> ^(Hash l+);
+  $Returns[List]
+  call_args: c=command { [c] }
+           | a=args h=(comma call_assocs)? b=(comma! block_arg)? l={ a }
+             ( ?{h} l={ a + [h] } )?
+             ( ?{b} l={ l + [b] } )?
+             { l }
+           | h=call_assocs b=(comma! block_arg)? l={ [h] }
+             ( ?{b} l={l+[b]} )?
+             { l }
+           | b=block_arg { [b] };
+  $Scope[@cond]
+  command_args: ~$LParen COND call_args;
+
+  op_assign: t=$AndEq..$OpAssign opt_nl {makeIdentifier(t, 0, -1)};
+  assignment_op: op_assign | $EQ opt_nl {makeIdentifier(makePosition(_start, _pos), "=")};
+
+  $Memo[Assignment]
+  lhs: (($ClassVar|$InstVar|$CONSTANT|$IDENTIFIER) $EQ)=> var_lhs
+     | ($Dollar|$Backtick|$ClassVarBacktick|$InstVarBacktick)=> (var_lhs | lhs2)
+  #   | ($Colons $CONSTANT)=> colon3 n=constant -> ^(ConstantAssign ^(Colon3 n))
+     | lhs2;
+  $Returns[Assignment]
+  lhs2: t=value(primary) (($LBrack)=> tok=$LBrack opt_nl k=call_args? opt_nl $RBrack
+                                      -> ^(ElemAssign t k nil)
+                         | dot_or_colon (n=identifier
+                                         -> ^(AttrAssign t n nil)
+  #                                      |($CONSTANT)=> n=constant -> ^(ConstantAssign ^(Colon2 t n))
+                                        )
+                         );
+
+  $Returns[Assignment]
+  var_lhs: ( annotations=annotation_list
+             ( ($ClassVar|$ClassVarBacktick)=> n=cvar -> ^(FieldAssign n annotations true)
+             | ($InstVar|$InstVarBacktick)=> n=ivar -> ^(FieldAssign n annotations false)
+             | ($CONSTANT)=> n=constant -> ^(ConstantAssign n nil annotations)
+             )
+           )
+         | ($IDENTIFIER)=> n=identifier -> ^(LocalAssignment n nil)
+         | ($Backtick)=> u=unquote -> ^(UnquoteAssign u nil)
+         ;
+
+  assoc: a=arg_value $Rocket! opt_nl BEG b=arg_value -> ^(HashEntry a b)
+       | l=label BEG v=arg_value -> ^(HashEntry l v)
+       | l=string $Colon! BEG v=arg_value -> ^(HashEntry l v);
+
+  label: n=identifier2 nosp $Colon opt_nl -> ^(SimpleString n);
+
+  constant: t=$CONSTANT ~(nosp $Colon) {makeIdentifier(t)};
+  identifier: t=( $IDENTIFIER
+                | lastdot $BEGIN..$Yield
+                ) ~(nosp $Colon) {makeIdentifier(t)};
+  unquote: $Backtick e=expr $Backtick -> ^(Unquote e);
+  identifier2: t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  identifier3: nosp t=($InstVar|$ClassVar|$IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { Token(t).text };
+  identifier4: t=($IDENTIFIER|$CONSTANT|$BEGIN..$Yield) { makeIdentifier(t) };
+  cvar: t=$ClassVar {makeIdentifier(t, 2)}
+      | $ClassVarBacktick e=expr $Backtick -> ^(Unquote e);
+  ivar: t=$InstVar {makeIdentifier(t, 1)}
+      | $InstVarBacktick e=expr $Backtick -> ^(Unquote e);
+  fid: t=$FID {makeIdentifier(t)};
+  $Memo[Identifier]
+  fname: ($FID)=> fid
+       | ($Backtick)=> unquote
+       | ( n=identifier2 t=( nosp $EQ {"="}
+                           | {""}
+                           )
+           {makeIdentifier(makePosition(_start, _pos), "#{n}#{t}")}
+         | op
+         );
+
+  $Scope[@BEG]
+  annotation: $Dollar nosp n=cpath
+              arg=(($LBrack)=> $LBrack opt_nl ( e=expr opt_nl $RBrack -> [^(HashEntry ^(SimpleString "value") e)]
+                                              | a=listOf(:assoc) trailer opt_nl $RBrack {a}
+                                              | i=args trailer opt_nl $RBrack -> [^(HashEntry ^(SimpleString "value") ^(Array i+))]
+                                              | $RBrack {nil}
+                                              )
+                  | {nil} )
+              -> ^(Annotation n arg);
+
+  $Returns[List]
+  annotation_list: (a=annotation opt_nl {a})*;
+
+  $Returns[Node]
+  java_doc: txt = (s = $JavaDoc opt_nl {Token(s).text}) -> ^(JavaDoc txt);
+
+  op: text=($LT {"<"}
+           | $LE {"<="}
+           | $LEG {"<=>"}
+           | $GT {">"}
+           | $GE {">="}
+           | $LShift {"<<"}
+           | $RRShift {">>>"}
+           | $RShift {">>"}
+           | $Bang {"!"}
+           | $NE {"!="}
+           | $NEE {"!=="}
+           | $NMatch {"!~"}
+           | $Slash {"/"}
+           | $Pipe {"|"}
+           | $Amper {"&"}
+           | $Star {"*"}
+           | $Stars {"**"}
+           | $EEQ {"=="}
+           | $EEEQ {"==="}
+           | $Match {"=~"}
+           | $LBrack nosp $RBrack (nosp $EQ {"[]="}
+                                  | {"[]"})
+           | $Plus (nosp $At {"+@"}
+                   | {"+"})
+           | $Minus (nosp $At {"-@"}
+                   | {"-"})
+           | $Caret {"^"}
+           | $Percent {"%"}
+           | $Tilde {"~"}
+           ) {makeIdentifier(makePosition(_start, _pos), text)}
+    ;
+
+  $Returns[Identifier]
+  cname: c=constant -> ^(Constant c)
+       | unquote
+       | i=identifier -> ^(Constant i);
+
+  # NB: more explicit widening of casts that don't necessarily typecheck
+  # JRuby allows primary_value in cpath. Do we want that?
+  $Returns[TypeName]
+  cpath: colon3 n=cname -> ^(Colon3 n)
+       | n=cname {a=TypeName(Object(n))} (dot_or_colon b=cname a=->^(Colon2 a b))* {a}
+       ;
+
+  $Returns[TypeName]
+  type: n=(cpath)
+        ( $LBrack $RBrack {TypeRefImpl.new(TypeName(Object(n)).typeref.name, true, false, n.position)}
+        | {TypeName(Object(n))}
+        );
+
+  superclass: $LT cpath # Should this be expr_value instead of cpath?
+            | # empty
+            ;
+
+  $Returns[List]
+  opt_implements
+          : terms? $Implements! l=rlistOf(:cpath) term {l}
+          | term {nil}
+          ;
+
+  $Returns[Node]
+  variable: ($Nil)=> $Nil                             -> ^(Null)
+          | ($Self)=> $Self                           -> ^(Self)
+          | ($True)=> $True                           -> ^(Boolean true)
+          | ($False)=> $False                         -> ^(Boolean false)
+          | ($ClassVar|$ClassVarBacktick)=> v=cvar    -> ^(FieldAccess v true)
+          | ($InstVar|$InstVarBacktick)=> v=ivar      -> ^(FieldAccess v)
+          | ($Dollar)=> annotation
+          | ($Raise)=> $Raise                         -> ^(Raise nil)
+          | ($FID)=> n=fid                            -> ^(VCall n)
+          | ($CONSTANT)=> c=constant                  -> ^(Constant c)
+          | ($IDENTIFIER)=> n=identifier              -> ^(VCall n)
+          | (lastdot)=> n=identifier                  -> ^(VCall n);
+
+  symbol: $Colon n=identifier3 -> ^(SimpleString n);
+
+  $Memo[Node]
+  string: character
+        | strings=string1+ {combineStrings(strings)};
+  $Returns[Node]
+  string1: simplestring
+         | $DQuote! c=(dquote_contents | str_ev2)* $DQuote -> ^(StringConcat c+)
+         | heredoc_id n= -> ^(StringConcat nil) { @heredocs.addLast(n); n }
+         ;
+  simplestring
+         : $SQuote! s=squote_contents* $SQuote -> ^(SimpleString join(s))
+         | $DQuote $DQuote -> ^(SimpleString "")
+         | $DQuote dc=dquote_contents $DQuote {dc}
+         ;
+
+  regexp: $RegexBegin c=(regexp_contents | str_ev2)* e=$RegexEnd options={makeIdentifier(e, 1)}
+          -> ^(Regex c options);
+
+  str_ev: "\#@@"! nosp n=identifier2 -> ^(StringEval ^(FieldAccess makeIdentifier(makePosition(_start, _pos), n) true))
+        | "\#@"!  nosp n=identifier2 -> ^(StringEval ^(FieldAccess makeIdentifier(makePosition(_start, _pos), n)))
+        | "\#{"! c=compstmt "}" -> ^(StringEval ^(NodeList c));
+
+  str_ev2: $StrEvBegin c=compstmt $RBrace -> ^(StringEval ^(NodeList c))
+         | $StrEvBegin cv=cvar -> ^(StringEval ^(FieldAccess cv true))
+         | $StrEvBegin iv=ivar -> ^(StringEval ^(FieldAccess iv))
+         ;
+
+  heredoc_id: $HereDocId;
+
+  squote_contents: e=$Escape {Token(e).text.substring(1)}
+                 | s=$StringContent {Token(s).text}
+                 ;
+  dquote_contents: c=(t=$Escape e={parse_escape(Token(t).text)}
+                     |t=$StringContent {Token(t).text}
+                     )+ -> ^(SimpleString join(c));
+  regexp_contents: c=(t=$Escape e={parse_escape(Token(t).text, 'regex')}
+                     |t=$StringContent {Token(t).text}
+                     )+ -> ^(SimpleString join(c));
+
+  squote_heredoc: s=(t=$StringContent {Token(t).text})* heredoc_marker {join(s)};
+  dquote_heredoc: n=( str_ev
+                    | t=$StringContent s={Token(t).text} -> ^(SimpleString s)
+                    )* heredoc_marker {n};
+
+  heredoc_marker: $HereDocEnd (nl | end) {nil};
+
+  character: t=$Character
+             e={parse_escape(Token(t).text.substring(1))}
+             -> ^(CharLiteral getCodePoint(e));
+
+  escape: unicode_escape
+        | "\\"! ("n" {"\n"}
+                |"s" {"\s"}
+                |"r" {"\r"}
+                |"t" {"\t"}
+                |"v" {"\v"}
+                |"f" {"\f"}
+                |"b" {"\b"}
+                |"a" {"\a"}
+                |"e" {"\e"}
+                |"\n" {""}
+                |codepoint
+                );
+
+  unicode_escape: "\\" ( "\n" {""}
+                       | "\\" {"\\"}
+                       | a=oneOf(@OCTAL) b=oneOf(@OCTAL) c=oneOf(@OCTAL)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}#{c}", 8)))}
+                       |"x"! a=oneOf(@HEX) b=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}", 16)))}
+                       |"u"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}", 16)))}
+                       |"U"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                             c5=oneOf(@HEX) c6=oneOf(@HEX) c7=oneOf(@HEX) c8=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
+                       );
+
+  Then: (term? $Then | term) {nil};
+  Ensure: $Ensure! compstmt;
+  Else: $Else! compstmt;
+  Do: ($Do | term) UNCOND;
+
+  $Returns[List]
+  if_tail: Else
+         | $Elsif! opt_nl cond=value(expr) Then body=compstmt tail=if_tail
+           -> [^(If cond body tail)]
+         | {nil};
+
+  Rescue: ($Rescue! c=listOf(:cpath) ($Rocket opt_nl n=identifier)?
+           Then b=compstmt -> ^(RescueClause c n b))+;
+
+# case sub components
+  when_clauses: ($When! a=when_args Then! b=compstmt! -> ^(WhenClause a b))+;
+
+  $Returns[List]
+  when_args: c=command { [c] }
+           | a=args { a };
+
+# numeric literals
+  fixnum: t=$Integer { n=parseInt(Token(t).text) } -> ^(Fixnum n);
+
+  floatLiteral: t=$Float { f=parseFloat(Token(t).text) } -> ^(Float f);
+
+# helper functions
+
+  lastdot: ?{_rpeek.indexOf(".") == 0};
+
+  $Returns[Node]
+  clone(node:Node): {node.clone};
+  $Returns[Identifier]
+  clone(node:Identifier): {node.clone};
+
+  op_attr_assign(target:Node, attr:Identifier, args:List, op:Identifier, value:Node)
+               : temp={makeIdentifier(target.position, self.temp)}
+                 target2=-> ^(LocalAssignment temp target)
+                 args2=save_temps(args)
+                 fetch=-> ^(Call ^(LocalAccess clone(temp)) attr get_temps(args2) nil)
+                 assign=op_attr_assignment(temp, attr, args2, value)
+                 body=op_attr_assign_body(op, fetch, assign)
+                 l={[target2] + args2 + [body]}
+                 -> ^(NodeList l+);
+  $Returns[Assignment]
+  op_attr_assignment(target:Identifier, attr:Identifier, args:List, value:Node)
+        : ?{nameIs(attr, '[]')}
+          -> ^(ElemAssign ^(LocalAccess clone(target)) get_temps(args) value)
+        | -> ^(AttrAssign ^(LocalAccess clone(target)) clone(attr) value)
+        ;
+  $Returns[Node]
+  op_attr_assign_body(op:Identifier, fetch:Node, assignment:Assignment)
+      : ?{nameIs(op, '&&')}
+           -> ^(If fetch
+                   [assignment]
+                   nil
+               )
+      | ?{nameIs(op, '||')}
+        make_or(fetch, assignment)
+      | old_val={assignment.value}
+        new_val=-> ^(Call fetch op [old_val] nil)
+        {assignment.value = new_val; assignment}
+      ;
+
+  assign_temp(value:Node): temp={makeIdentifier(value.position, self.temp)}
+                           -> ^(LocalAssignment temp value);
+
+  block_start(token:Token) : {pos(token.startpos)};
+  verify_end(start:Position) : ( t=&$End {verify_columns(start, pos(t.startpos));nil}
+                             | {nil});
+
+  tokenpos(pos:int): &{self._pos = pos; pos(_lex.startpos)};
+
+  def makeIdentifier(position:IPosition, text:String) {
+    Identifier(SimpleString.new(position, text))
+  }
+
+  def makeIdentifier(token:Token, offset=0, endOffset=0) {
+    startPos = pos(token.startpos + offset)
+    endPos = pos(token.endpos + endOffset)
+    position = makePosition(startPos, endPos)
+    makeIdentifier(position, token.text.substring(offset, token.text.length + endOffset))
+  }
+
+  def makePosition(token:Token) {
+    startPos = pos(token.startpos)
+    endPos = pos(token.endpos)
+    makePosition(startPos, endPos)
+  }
+
+  def makePosition(startpos:int, endpos:int) {
+    startPosition = tokenpos(startpos)
+    endPosition = pos(endpos)
+    makePosition(startPosition, endPosition)
+  }
+
+  def makePosition(startPos:Position, endPos:Position) {
+    startLine = startPos.line + @source.initialLine - 1
+    startCol = startPos.col
+    startCol += @source.initialColumn - 1 if startPos.line == 1
+    endLine = endPos.line + @source.initialLine - 1
+    endCol = endPos.col
+    endCol += @source.initialColumn - 1 if endPos.line == 1
+
+    PositionImpl.new(@source, startPos.pos, startLine, startCol, endPos.pos, endLine, endCol)
+  }
+
+#-  def makePosition(startPos:IPosition, endPos:IPosition) {
+#-    PositionImpl.new(@source, startPos.startChar, startPos.startLine, startPos.#startColumn, endPos.endChar, endPos.endLine, e
+#-  }
+
+  $Memo[Token]
+  _lex: {@lexer.lex(_pos, @skipWhitespaceAndComments, @skipJavaDoc)};
+
+  def _lex(type:Tokens) {
+    token = _lex
+    unless token.type == type
+      self._pos = token.pos
+      @error.last = type.name
+      raise @error
+    end
+    token
+  }
+
+  def parse(codesource, rule) {
+    @source = CodeSource(codesource)
+    super(@source.contents, rule)
+  }
+
+  def getDiagnosticSource {
+    Object(@source)
+  }
+
+  def self.readToString(stream:InputStream) {
+    reader = BufferedReader.new(InputStreamReader.new(stream))
+    buffer = char[8192]
+    builder = StringBuilder.new
+    while (read = reader.read(buffer, 0, buffer.length)) > 0
+      builder.append(buffer, 0, read);
+    end
+    return builder.toString
+  }
+
+  def self.parse_args(args:String[]) {
+    argc = args.length
+    source = CodeSource(nil)
+    if args[0].equals "-v"
+      BaseParser.tracing = true
+      argc -= 1
+    elsif args[0].equals "--tree"
+      BaseParser.debug_parse_tree = true
+      argc -= 1
+    elsif args[0].equals "-e"
+      source = StringCodeSource.new("-e", args[1])
+    end
+    source ||= if argc > 0
+      filename = args[args.length - 1]
+      StreamCodeSource.new(filename)
+    else
+      StreamCodeSource.new('-', System.in)
+    end
+    source
+  }
+
+  def self.main(args:String[]) {
+      parser = MirahParser.new
+      code = parse_args(args)
+      begin
+        result = parser.parse(code)
+        puts BaseParser.print_r(result) unless BaseParser.debug_parse_tree
+      ensure
+        unless BaseParser.debug_parse_tree
+          mb = 1024 * 1024
+          runtime = Runtime.getRuntime
+          puts "##### Heap utilization statistics [MB] #####"
+          puts "Used Memory: #{(runtime.totalMemory - runtime.freeMemory) / mb}"
+          puts "Total Memory: #{runtime.totalMemory / mb}"
+          puts "Free Memory: #{runtime.freeMemory / mb}"
+          puts "Max Memory: #{runtime.maxMemory / mb}"
+        end
+      end
+      System.exit(0)
+      raise
+  }
+
+  def initialize {
+    @BEG = 0
+    @begchars = " ([{,;=" #}
+    @HEX = "0123456789abcdefABCDEF"
+    @DECIMAL = "0123456789"
+    @OCTAL = "01234567"
+    @BINARY = "01"
+    @reserved = EnumSet.range(Tokens.tBEGIN, Tokens.tYield)
+    @heredocs = LinkedList.new
+    @escape = EscapeParser.new
+    @skipWhitespaceAndComments = true
+    @skipJavaDoc = true
+  }
+
+  def skip_whitespace(skip:boolean=true) {
+    @skipWhitespaceAndComments = skip
+  }
+
+  def skip_java_doc(skip:boolean=true) {
+    @skipJavaDoc = skip
+  }
+
+  def init {
+    @lexer = MirahLexer.new(_string, @chars, self)
+    @temps = 0
+  }
+
+  def temp(name="ptemp") {
+    "$#{name}$#{@temps += 1}"
+  }
+
+  def save_temps(items:List) {
+    temps = ArrayList.new
+    items.each do |item|
+      temps.add(assign_temp(Node(item)))
+    end
+    temps
+  }
+
+  def get_temps(items:List, value:Object=nil) {
+    gets = ArrayList.new
+    items.each do |item|
+      gets.add(gettable2(Node(item)))
+    end
+    gets.add(value) if value
+    gets
+  }
+
+  def parse_escape(character:String, rule:String=nil) {
+    if character.startsWith('\\')
+      begin
+        String(@escape.parse(character, rule))
+      rescue SyntaxError
+        raise SyntaxError.new("valid escape", nil, _pos, _string, _list);
+      end
+    else
+      character
+    end
+  }
+
+  def oneOf(chars:String) {
+    _char(chars)
+  }
+
+  def _codepoint() {
+    begin
+      t = _any
+    rescue RuleFailure
+      return (-1)
+    end
+    character = Character(t).charValue
+    if character >= 0xd800 && character <= 0xdbff
+      begin
+        t = _any
+      rescue RuleFailure
+        return (-1)
+      end
+      return Character.toCodePoint(character, Character(t).charValue)
+    else
+      return int(character)
+    end
+  }
+
+  def codepoint {
+    start = _pos
+    t = _codepoint
+    if t == -1
+      self._pos = start
+      raise @error
+    else
+      return String.new(Character.toChars(t))
+    end
+  }
+
+  def identifierChar() {
+    start = _pos
+    c = _codepoint
+    if c == 95 || Character.isLetterOrDigit(c)
+      String.new(Character.toChars(c))
+    else
+      self._pos = start
+      raise @error
+    end
+  }
+
+  def nameIs(name:Identifier, string:String) {
+    begin
+      string.equals(name.identifier)
+    rescue UnsupportedOperationException
+      false
+    end
+  }
+
+  def getSimpleName(fullname:Identifier) {
+    pieces = fullname.identifier.split('\.')
+    short = pieces[pieces.length - 1]
+    start = fullname.position.endColumn - short.length
+    position = PositionImpl.new(fullname.position.source, fullname.position.startChar,
+                                fullname.position.startLine, start, fullname.position.endChar,
+                                fullname.position.endLine, fullname.position.endColumn)
+    Identifier(SimpleString.new(position, short))
+  }
+  
+  def getStaticImportName(fullname:Identifier) {
+    short = getSimpleName(fullname)
+    Identifier(SimpleString.new(short.position, ".#{short.identifier}"))
+  }
+
+  heredoc: $HereDocBegin!
+           n={StringConcat(@heredocs.removeFirst)}
+           c=heredoc1
+           heredoc_marker
+           {c.each {|p| n.strings.add(StringPiece(p))}; "\n"}
+         ;
+  $Scope[@heredocs]
+  heredoc1: {@heredocs = LinkedList.new} heredoc2;
+  heredoc2:  t=$StringContent s={Token(t).text} &$HereDocEnd -> [^(SimpleString s)]
+          | c=(str_ev | t=$StringContent s={Token(t).text} -> ^(SimpleString s))+
+          | /* empty */ -> [^(SimpleString "")]
+          ;
+
+  def parseInt(string:String) {
+    radix = 10
+    if string.length > 1 && string.charAt(0) == 48 # '0'
+      type = string.toLowerCase.substring(1, 2)
+      if 'x'.equals(type)
+        radix = 16
+        string = string.substring(2)
+      elsif 'o'.equals(type)
+        radix = 8
+        string = string.substring(2)
+      elsif 'b'.equals(type)
+        radix = 2
+        string = string.substring(2)
+      elsif 'd'.equals(type)
+        string = string.substring(2)
+      else
+        radix = 8
+      end
+    end
+    begin
+      Long.parseLong(string.replace('_', ''), radix)
+    rescue NumberFormatException
+      raise SyntaxError.new('valid number', nil, _pos, _string, _list)
+    end
+  }
+
+  def parseFloat(string:String) {
+    Double.parseDouble(string.replace('_', ''))
+  }
+
+  def combineStrings(strings:List) {
+    result = Node(nil)
+    List(strings).each do |s|
+      result = self.combineStrings(result, Node(s))
+    end
+    result
+  }
+
+  def combineStrings(a:Node, b:Node) {
+    return a if b.nil?
+    return b if a.nil?
+    if a.kind_of?(StringConcat)
+      result = StringConcat(a)
+      result.position += Node(b).position
+    else
+      result = StringConcat.new(a.position + b.position)
+      result.strings.add(StringPiece(a))
+    end
+    if b.kind_of?(StringConcat)
+      result.addAll(StringConcat(b))
+    else
+      result.add(StringPiece(b))
+    end
+    Node(result)
+  }
+
+  def getCodePoint(c:String) {
+    c.codePointAt(0)
+  }
+
+  def addToBlock(a:List, b:Object) {
+    if b.kind_of?(List)
+      a.addAll(List(b))
+    elsif b
+      a.add(b)
+    end
+    a
+  }
+
+  def checkExpression(e:Object) {
+    # TODO actually check
+    Node(e)
+  }
+
+  def gettable2(e:Node) {
+    name = Identifier(Named(e).name.clone)
+    if e.kind_of?(ConstantAssign)
+      Node(Constant.new(e.position, name))
+    elsif e.kind_of?(FieldAssign)
+      Node(FieldAccess.new(e.position, name))
+    elsif e.kind_of?(LocalAssignment)
+      Node(LocalAccess.new(e.position, name))
+    else
+      raise IllegalArgumentException, "Unsupported node #{e.getClass}"
+    end
+  }
+
+  def negateFixnum(f:Object) {
+    -Fixnum(f).value
+  }
+
+  def negateFloat(f:Object) {
+    -Float(f).value
+  }
+
+  def verify_columns(_start:Object, _end:Object) {
+    if false # disable veriy_columns for the time being, as it is incompatible with "quote do\n  class Foo\n    def bar; end\n  end\nend", as the inner class statement is converted to "class Foo\n    def bar; end\n  end" and the spaces "  " before "class" are missing then. 
+      start_pos = Position(_start)
+      end_pos = Position(_end)
+      if (end_pos.col != start_pos.col) && (end_pos.line != start_pos.line) # either one line "def ...; ...; end" or multiline, but correct column is required in multiline variant
+        warn("Misaligned end", "closes block", start_pos.pos)
+      end
+    end
+  }
+
+  def start_of_line(position:Position) {
+    1.upto(position.col - 1) do |n|
+      c = _string.charAt(position.pos - n)
+      if " \t\f\r\v".indexOf(c) == -1
+        return false
+      end
+    end
+    return true
+  }
+}
+
+parser EscapeParser {
+  def initialize {
+    @HEX = "0123456789abcdefABCDEF"
+    @OCTAL = "01234567"
+  }
+
+  def oneOf(chars:String) {
+    _char(chars)
+  }
+
+  start: escape;
+  unicode_escape: "\\" ( "\n" {""}
+                       | "\\" {"\\"}
+                       | a=oneOf(@OCTAL) b=oneOf(@OCTAL) c=oneOf(@OCTAL)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}#{c}", 8)))}
+                       |"x"! a=oneOf(@HEX) b=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{a}#{b}", 16)))}
+                       |"u"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}", 16)))}
+                       |"U"! c1=oneOf(@HEX) c2=oneOf(@HEX) c3=oneOf(@HEX) c4=oneOf(@HEX)
+                             c5=oneOf(@HEX) c6=oneOf(@HEX) c7=oneOf(@HEX) c8=oneOf(@HEX)
+                         {String.new(Character.toChars(Integer.parseInt("#{c1}#{c2}#{c3}#{c4}#{c5}#{c6}#{c7}#{c8}", 16)))}
+                       );
+
+  escape: unicode_escape
+        | "\\"! ("n" {"\n"}
+                |"s" {"\s"}
+                |"r" {"\r"}
+                |"t" {"\t"}
+                |"v" {"\v"}
+                |"f" {"\f"}
+                |"b" {"\b"}
+                |"a" {"\a"}
+                |"e" {"\e"}
+                |"\n" {""}
+                |codepoint
+                );
+
+  regex: "\\\\" {"\\\\"}
+       | unicode_escape
+       | "\\"! c=codepoint {"\\#{c}"};
+
+  def _codepoint() {
+    begin
+      t = _any
+    rescue RuleFailure
+      return (-1)
+    end
+    character = Character(t).charValue
+    if character >= 0xd800 && character <= 0xdbff
+      begin
+        t = _any
+      rescue RuleFailure
+        return (-1)
+      end
+      return Character.toCodePoint(character, Character(t).charValue)
+    else
+      return int(character)
+    end
+  }
+
+  def codepoint {
+    start = _pos
+    t = _codepoint
+    if t == -1
+      self._pos = start
+      raise @error
+    else
+      return String.new(Character.toChars(t))
+    end
+  }
+}

@@ -361,7 +361,7 @@ class ModelState
       end
     end
     ast << mdef
-    @get_properties = Body(Node(mdef.child_nodes.get(2)).child_nodes.get(1))
+    @get_properties = mdef.child_nodes.get(2).as!(Node).child_nodes.get(1).as!(Body)
 
     mdef = mirah.quote do
       def update(properties:`map`):void

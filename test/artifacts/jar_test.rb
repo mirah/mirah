@@ -20,4 +20,9 @@ class JarTest < Test::Unit::TestCase
   	out = `java -jar dist/mirahc.jar run -e 'puts 1'`
     assert_equal "1\n", out
   end
+
+  def test_run_doesnt_exit_early
+    out = `java -jar dist/mirahc.jar run -e 'Thread.new {Thread.sleep(1); puts 1}.start'`
+    assert_equal "1\n", out
+  end
 end

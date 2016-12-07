@@ -63,7 +63,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   end
 
   def new_scope opts={}
-    BetterScopeFactory.new.newScope(SimpleScoper.new, opts[:context] || Script.new)
+    BetterScopeFactory.new.newScope(SimpleScoper.new(nil), opts[:context] || Script.new)
   end
 
   def jvmtype(internal_name, flags=0, superclass=nil)
@@ -557,10 +557,10 @@ class FieldTest < BaseMethodLookupTest
     a_foo = @a.add_field("foo")
     a_bar = @a.add_field("bar")
     b_foo = @b.add_field("foo")
-    foos = @lookup.gatherFields(@b, 'foo').to_a
+    foos = @lookup.gatherFields(@b, 'foo', []).to_a
  
     assert_equal([b_foo, a_foo], foos)
-    assert_equal([a_bar], @lookup.gatherFields(@b, 'bar').to_a)
+    assert_equal([a_bar], @lookup.gatherFields(@b, 'bar', []).to_a)
   end
 
   def test_find_super_field

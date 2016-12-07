@@ -43,12 +43,15 @@ class BlockFinder < NodeScanner
     type = if @todo_closures[node]
       @todo_closures[node]
     else
-      #t = @typer.getInferredType(node).resolve
+      #t = @typer.getResolvedType(node)
       #if t.kind_of? MethodType
         parent_type_future = @typer.getInferredType(node.parent)
         unless parent_type_future
-          puts "#{CallSite(node.parent).name} call with block has no type at #{node.parent.position}"
+          puts "#{CallSite(node.parent).name.identifier} call with block has no type at #{node.parent.position}"
           puts "  block type: #{@typer.getInferredType(node)}"
+          # If parent_type_future is nil, then there's likely another type error somewhere.
+          # So just ignore this block and it'll bubble up.
+          return nil
         end
         fs = CallFuture(parent_type_future).futures
         TypeFuture(fs.get(fs.size-1)).resolve

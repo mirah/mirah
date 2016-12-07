@@ -81,19 +81,19 @@ class MirahCompiler implements JvmBackend
     @macro_destination = macro_destination
     @debugger = debugger
 
-    @context = context = Context.new
-    context[JvmBackend] = self
+    @context          = context = Context.new
+    context[JvmBackend]         = self
     context[DiagnosticListener] = @diagnostics
-    context[SimpleDiagnostics] = @diagnostics
-    context[JvmVersion] = @jvm
-    context[DebuggerInterface] = debugger
+    context[SimpleDiagnostics]  = @diagnostics
+    context[JvmVersion]         = @jvm
+    context[DebuggerInterface]  = debugger
 
-    @macro_context = Context.new
-    @macro_context[JvmBackend] = self
+    @macro_context                     = Context.new
+    @macro_context[JvmBackend]         = self
     @macro_context[DiagnosticListener] = @diagnostics
-    @macro_context[SimpleDiagnostics] = @diagnostics
-    @macro_context[JvmVersion] = @jvm
-    @macro_context[DebuggerInterface] = debugger
+    @macro_context[SimpleDiagnostics]  = @diagnostics
+    @macro_context[JvmVersion]         = @jvm
+    @macro_context[DebuggerInterface]  = debugger
 
     # The main type system needs access to the macro one to call macros.
     @context[Context] = @macro_context
@@ -145,7 +145,11 @@ class MirahCompiler implements JvmBackend
   end
 
   def parse(code:CodeSource)
-    node = Node(@parser.parse(code))
+    begin
+      node = Node(@parser.parse(code))
+    rescue org.mirah.mmeta.SyntaxError => e
+      raise Exception.new("#{code.name} failed to parse.",e)
+    end
     if node.nil?
       puts "#{code.name} failed to parse."
     else

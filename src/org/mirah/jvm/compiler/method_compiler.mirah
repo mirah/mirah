@@ -279,8 +279,7 @@ class MethodCompiler < BaseCompiler
     if isCaptured
       @builder.loadLocal(@binding)
     end
-    future = typer.type_system.getLocalType(
-        getScope(local), name, local.position)
+    future = getScope(local).getLocalType(name, local.position)
     raise "error type found by compiler #{future.resolve}" if future.resolve.kind_of? ErrorType
 
     type = JVMType(
@@ -414,6 +413,8 @@ class MethodCompiler < BaseCompiler
   def visitReturn(node, expression)
     compile(node.value) unless isVoid
     handleEnsures(node, MethodDefinition.class)
+    type = getInferredType node.value
+    @builder.convertValue(type, @returnType) unless isVoid || type.nil?
     @builder.returnValue
   end
   

@@ -52,7 +52,12 @@ class AssignableTypeFuture < BaseTypeFuture
       @declarations[type] = self
       TypeFuture(self)
     else
-      earlier_declarations = declarations.keySet.map{ |future: TypeFuture| future.resolve }
+      earlier_declarations = declarations.keySet.map { |future: TypeFuture| future.resolve }
+      # TODO string comparison here is not the right call. ResolvedTypes should have good equals impls.
+      if earlier_declarations.all? { |r: ResolvedType| r.toString == type.resolve.toString }
+        @@log.warning("Type redeclared with same type TODO report source")
+        return TypeFuture(@declarations.values.iterator.next)
+      end
       msg = "Type redeclared as #{type.resolve} from #{earlier_declarations}"
       @@log.finest(msg)
       declared_type_error = ErrorType.new([[msg, position], ['First declared', self.position]])

@@ -56,7 +56,6 @@ module JVMCompiler
 
     args = ["-d", TEST_DEST,
             "--vmodule", "org.mirah.jvm.compiler.ClassCompiler=OFF",
-           # "--verbose",
             "--classpath", Mirah::Env.encode_paths([FIXTURE_TEST_DEST, TEST_DEST]) ]
 
     java_version = options.fetch :java_version, JVMCompiler::JVM_VERSION
@@ -97,9 +96,6 @@ module JVMCompiler
     if 0 != cmd.compile(args)
       raise Mirah::MirahError, "Compilation failed"
     end
-  rescue => e
-    raise e.cause if e.respond_to?(:cause) && e.cause
-    raise e
   end
 
   def compiler_name

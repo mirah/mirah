@@ -19,12 +19,29 @@ class ListExtensionsTest < Test::Unit::TestCase
     cls, = compile(<<-EOF)
       import java.util.ArrayList
       x = ArrayList.new
+      x.add "1"
+      x[0]= "2"
+      x[0]= "3"
+      puts x
+    EOF
+    assert_run_output("[3]\n", cls)
+  end
+
+  def test_bracket_out_of_range_exception_at_assign
+    java_import 'java.lang.IndexOutOfBoundsException'
+    cls, = compile(<<-EOF)
+      import java.util.ArrayList
+      x = ArrayList.new
       x[0]= "2"
       puts x
     EOF
-    assert_run_output("[2]\n", cls)
+    begin
+     assert_run_output("xxxx", cls)
+     fail "should rise IndexOutOfBoundsException"
+    rescue IndexOutOfBoundsException => ex
+    end
   end
-  
+
   def test_sort_with_block
     cls, = compile(<<-EOF)
       puts ([3,1,2].sort do |o0:Comparable,o1:Comparable|

@@ -12,67 +12,68 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+require 'test_helper'
 
 class CastTest < Test::Unit::TestCase
 
   def test_cast
     cls, = compile(<<-EOF)
-      def f2b; byte(1.0); end
-      def f2s; short(1.0); end
-      def f2c; char(1.0); end
-      def f2i; int(1.0); end
-      def f2l; long(1.0); end
-      def f2d; int(1.0); end
+      def f2b; 1.0.as!(byte); end
+      def f2s; 1.0.as!(short); end
+      def f2c; 1.0.as!(char); end
+      def f2i; 1.0.as!(int); end
+      def f2l; 1.0.as!(long); end
+      def f2d; 1.0.as!(int); end
 
-      def i2b; byte(1); end
-      def i2s; short(1); end
-      def i2c; char(1); end
-      def i2l; long(1); end
-      def i2f; float(1); end
-      def i2d; int(1); end
+      def i2b; 1.as!(byte); end
+      def i2s; 1.as!(short); end
+      def i2c; 1.as!(char); end
+      def i2l; 1.as!(long); end
+      def i2f; 1.as!(float); end
+      def i2d; 1.as!(int); end
 
-      def b2s; short(byte(1)); end
-      def b2c; char(byte(1)); end
-      def b2i; int(byte(1)); end
-      def b2l; long(byte(1)); end
-      def b2f; float(byte(1)); end
-      def b2d; double(byte(1)); end
+      def b2s; 1.as!(byte).as!(short); end
+      def b2c; 1.as!(byte).as!(char); end
+      def b2i; 1.as!(byte).as!(int); end
+      def b2l; 1.as!(byte).as!(long); end
+      def b2f; 1.as!(byte).as!(float); end
+      def b2d; 1.as!(byte).as!(double); end
 
-      def s2b; byte(short(1)); end
-      def s2c; char(short(1)); end
-      def s2i; int(short(1)); end
-      def s2l; long(short(1)); end
-      def s2f; float(short(1)); end
-      def s2d; double(short(1)); end
+      def s2b; 1.as!(short).as!(byte); end
+      def s2c; 1.as!(short).as!(char); end
+      def s2i; 1.as!(short).as!(int); end
+      def s2l; 1.as!(short).as!(long); end
+      def s2f; 1.as!(short).as!(float); end
+      def s2d; 1.as!(short).as!(double); end
 
-      def c2b; byte(char(1)); end
-      def c2s; short(char(1)); end
-      def c2i; int(char(1)); end
-      def c2l; long(char(1)); end
-      def c2f; float(char(1)); end
-      def c2d; double(char(1)); end
+      def c2b; 1.as!(char).as!(byte); end
+      def c2s; 1.as!(char).as!(short); end
+      def c2i; 1.as!(char).as!(int); end
+      def c2l; 1.as!(char).as!(long); end
+      def c2f; 1.as!(char).as!(float); end
+      def c2d; 1.as!(char).as!(double); end
 
-      def l2b; byte(long(1)); end
-      def l2c; char(long(1)); end
-      def l2i; int(long(1)); end
-      def l2l; long(long(1)); end
-      def l2f; float(long(1)); end
-      def l2d; double(long(1)); end
+      def l2b; 1.as!(long).as!(byte); end
+      def l2c; 1.as!(long).as!(char); end
+      def l2i; 1.as!(long).as!(int); end
+      def l2l; 1.as!(long).as!(long); end
+      def l2f; 1.as!(long).as!(float); end
+      def l2d; 1.as!(long).as!(double); end
 
-      def d2b; byte(1.0); end
-      def d2s; short(1.0); end
-      def d2c; char(1.0); end
-      def d2i; int(1.0); end
-      def d2l; long(1.0); end
-      def d2f; float(1.0); end
+      def d2b; 1.0.as!(byte); end
+      def d2s; 1.0.as!(short); end
+      def d2c; 1.0.as!(char); end
+      def d2i; 1.0.as!(int); end
+      def d2l; 1.0.as!(long); end
+      def d2f; 1.0.as!(float); end
 
       def hard_i2f(a:int)
-        float(if a < 0
+        if a < 0
           a *= -1
           a * 2
         else
           a * 2
-        end)
+        end.as! float
       end
     EOF
 
@@ -134,6 +135,22 @@ class CastTest < Test::Unit::TestCase
 
   def test_array_cast
     cls, = compile(<<-EOF)
+      def foo(a: Object)
+        bar(a.as!(String[]))
+      end
+
+      def bar(a: String[])
+        a[0]
+      end
+    EOF
+
+    assert_equal("foo", cls.foo(["foo", "bar"].to_java(:string)))
+  end
+
+
+  def test_warn_on_array_cast
+    # TODO
+    cls, = compile(<<-EOF)
       def foo(a:Object)
         bar(String[].cast(a))
       end
@@ -144,6 +161,20 @@ class CastTest < Test::Unit::TestCase
     EOF
 
     assert_equal("foo", cls.foo(["foo", "bar"].to_java(:string)))
+  end
+
+  def test_cast_array_as_primitive
+    cls, = compile(<<-EOF)
+      def foo(a:Object)
+        bar(a.as!(int[]))
+      end
+
+      def bar(a:int[])
+        a[0]
+      end
+    EOF
+
+    assert_equal(2, cls.foo([2, 3].to_java(:int)))
   end
 
   def test_array_cast_primitive
@@ -181,6 +212,20 @@ class CastTest < Test::Unit::TestCase
         m = 0
         list.each do |x|
           m = int(x) + m
+        end
+        return m
+      end
+    EOF
+    assert_equal 6, cls.foo
+  end
+
+  def test_explicit_as_macro_cast_in_array_iteration
+     cls, = compile(<<-EOF)
+      def foo():int
+        list = [1,2,3]
+        m = 0
+        list.each do |x|
+          m = x.as!(int) + m
         end
         return m
       end

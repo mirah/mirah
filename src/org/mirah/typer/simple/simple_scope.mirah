@@ -29,10 +29,11 @@ import java.io.PrintStream
 # Minimal Scope implementation for SimpleScoper.
 # The main Scopes are is BetterScope in src/org/mirah/jvm/mirrors/better_scope.mirah.
 class SimpleScope; implements Scope
-  def initialize
+  def initialize types: TypeSystem
     @nextTemp = -1
     @imports = HashMap.new
     @search_packages = ArrayList.new
+    @types = types
   end
   def context:Node
     @node
@@ -59,6 +60,11 @@ class SimpleScope; implements Scope
       @imports[shortname] = fullname
     end
   end
+
+  def getLocalType name, position
+    @types.getLocalType( self, name, position).as! LocalFuture
+  end
+
   def imports
     @imports
   end
@@ -76,5 +82,9 @@ class SimpleScope; implements Scope
   end
   def shadow(name:String):void
     raise UnsupportedOperationException, "Simple scope doesn't know how to shadow."
+  end
+
+  def methodUsed name
+    # ignored
   end
 end

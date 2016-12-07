@@ -45,7 +45,7 @@ INSTALL
 
 ### RUBY
 
-If your gem and rake are not from from JRuby, prefix the commands with `jruby -S`
+If your gem and rake are not from JRuby, prefix the commands with `jruby -S`
 
     $ gem install mirah
 
@@ -57,7 +57,7 @@ Mirah is distributed as a jar through maven central. You can download the latest
 ### ZIP
 
 You can also install Mirah from a zip file. Download the latest stable
-release from https://github.com/mirah/mirah/downloads. 
+release from https://github.com/mirah/mirah/releases.
 Extract it, and add `bin` to your `$PATH` to be able to use `mirah`, `mirahc`, etc.
 
 ### SOURCE

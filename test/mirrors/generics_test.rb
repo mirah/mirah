@@ -39,6 +39,7 @@ class GenericsTest < Test::Unit::TestCase
   java_import 'org.mirah.typer.BaseTypeFuture'
 
   def setup
+    super
     @types = MirrorTypeSystem.new
     @type_utils = @types.context.get(Types.java_class)
     @tpi = TypeParameterInference.new(@type_utils)
@@ -60,7 +61,7 @@ class GenericsTest < Test::Unit::TestCase
   def g(name, params)
     klass = future(name)
     params = params.map {|x| future(x)}
-    @types.parameterize(klass, params).resolve
+    @types.parameterize(klass, params, {}).resolve
   end
 
   def future(x)
@@ -313,7 +314,7 @@ class GenericsTest < Test::Unit::TestCase
     assert_nil(@tpi.findMatchingSupertype(string, abstract_list))
     
     array_list = @types.loadNamedType('java.util.ArrayList').resolve
-    assert_equal(abstract_list, @tpi.findMatchingSupertype(array_list, abstract_list))
+    assert_equal(abstract_list.name, @tpi.findMatchingSupertype(array_list, abstract_list).name)
   end
 
   def test_equal_variable
@@ -796,16 +797,66 @@ class GenericsTest < Test::Unit::TestCase
     assert_equal(1,invoker.getFormalTypeParameters.size)
   end
   
-  def test_type_invoker_recursive_reference_signature
-    if JVMCompiler::JVM_VERSION.to_f >= 1.8 # Stream API is needed here
-      invoker = invoker_for_signature('<T:Ljava/lang/Object;S::Ljava/util/stream/BaseStream<TT;TS;>;>Ljava/lang/Object;Ljava/lang/AutoCloseable;')
-      assert_equal(2,invoker.getFormalTypeParameters.size)
+  def test_type_invoker_class_with_self_referential_bounds
+    invoker = invoker_for_signature('<P:LAnotherClassWithSelfReferencingTypeParameter<TP;>;>Ljava/lang/Object;')
+    assert_equal(1,invoker.getFormalTypeParameters.size)
+  end
+  
+  def test_ClassWithSelfReferencingTypeParameter
+    cls, = compile(%q[
+      import org.foo.ClassWithSelfReferencingTypeParameter
+      
+      ClassWithSelfReferencingTypeParameter.new.foo.bar.baz
+    ])
+    assert_run_output("baz\n", cls)
+  end
+  
+  def test_issue_417_npe
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+    pend "fix NPE in generic inference" do
+    cls, = compile(%q[
+      import org.foo.TypeFixtureJava8
+      import java.util.function.BiConsumer
+      import java.util.Map
+      import java.util.List
+
+      class Issue417Test
+
+         def initialize(filters:List, flags:int)
+            @filters = filters
+            @flags = flags
+            @loader = TypeFixtureJava8.new
+            @future = nil
+         end
+
+         def run():void
+             @future = @loader.load(@filters, @flags)
+         end
+
+         def handle(block:BiConsumer):Issue417Test
+            @future.whenComplete(block)
+            self
+         end
+
+         def join():void
+            @future.join
+         end
+
+      end
+    ])
     end
+  end
+  
+  def test_type_invoker_recursive_reference_signature
+    omit_if JVMCompiler::JVM_VERSION.to_f < 1.8
+    # Stream API is needed here
+    invoker = invoker_for_signature('<T:Ljava/lang/Object;S::Ljava/util/stream/BaseStream<TT;TS;>;>Ljava/lang/Object;Ljava/lang/AutoCloseable;')
+    assert_equal(2,invoker.getFormalTypeParameters.size)
   end
   
   def invoker_for_signature(signature)
     context   = @types.context
-    invoker   = TypeInvoker.new(context, nil, [])
+    invoker   = TypeInvoker.new(context, nil, [], {})
     invoker.read(signature)
     invoker
   end

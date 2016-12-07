@@ -43,7 +43,7 @@ class BaseMirrorsTest < Test::Unit::TestCase
   end
 
   def new_scope opts={}
-    BetterScopeFactory.new.newScope(SimpleScoper.new, opts[:context] || Script.new)
+    BetterScopeFactory.new.newScope(SimpleScoper.new(nil), opts[:context] || Script.new)
   end
 
   def set_filename(filename)
