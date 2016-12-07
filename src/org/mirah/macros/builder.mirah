@@ -47,6 +47,7 @@ import mirah.lang.ast.SimpleString
 import mirah.lang.ast.StringCodeSource
 import mirah.lang.ast.StringConcat
 import mirah.lang.ast.TypeName
+import mirah.lang.ast.TypeRefImpl
 import mirah.lang.ast.Unquote
 import mirah.lang.ast.FunctionalCall
 import mirah.lang.ast.TypeRefImpl
@@ -421,7 +422,11 @@ class MacroBuilder; implements org.mirah.macros.Compiler
       if i == args.required_size() - 1 && arg.type.typeref.name.endsWith("Block")
         casts.add(fetchMacroBlock)
       else
-        casts.add(Cast.new(TypeName(arg.type.clone), fetchMacroArg(i)))
+        macro_arg_node = fetchMacroArg(i)
+        # Hack to allow chained macro invocations on macro invocations on MethodDefinitions.
+        # To remove this hack, https://github.com/mirah/mirah/issues/423 needs to be fixed.
+        macro_arg_node = wrap_dereference(macro_arg_node) if arg.type.typeref.name.endsWith("MethodDefinition")   
+        casts.add(Cast.new(TypeName(arg.type.clone), macro_arg_node))
       end
       i += 1
     end
@@ -469,6 +474,17 @@ class MacroBuilder; implements org.mirah.macros.Compiler
     index = Fixnum.new(i)
     clazz = Call.new(type, SimpleString.new('class'), Collections.emptyList, nil)
     FunctionalCall.new(SimpleString.new('_varargs'), [Fixnum.new(i), clazz], nil)
+  end
+
+  def wrap_dereference(node: Node): Node
+    Call.new(
+      TypeRefImpl.new('org.mirah.typer.ProxyNode', false, false, nil),
+      SimpleString.new('dereference'),
+      [
+        node,
+      ],
+      nil
+    )
   end
 
   def fetchMacroBlock: Node

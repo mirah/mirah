@@ -190,4 +190,16 @@ class ProxyNode < NodeList implements TypeName, Identifier
   def toString
     "<org.mirah.typer.ProxyNode: selected:#{@selectedNode}>"
   end
+  
+  def self.dereference(node:Node)
+    if node.kind_of?(ProxyNode)
+      ProxyNode(node).dereference
+    else
+      node
+    end
+  end
+  
+  def dereference
+    dereference(@selectedNode)
+  end
 end
