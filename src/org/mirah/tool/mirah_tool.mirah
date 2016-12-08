@@ -25,6 +25,9 @@ import java.util.List
 import org.mirah.util.Logger
 import java.util.logging.Level
 import java.util.regex.Pattern
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.Callable
 import javax.tools.DiagnosticListener
 import mirah.impl.MirahParser
 import mirah.lang.ast.CodeSource
@@ -154,11 +157,49 @@ abstract class MirahTool implements BytecodeConsumer
   end
 
   def parseAllFiles
+    if @compiler_args.code_sources.size <= 1
+      parseAllFilesSequentially
+    else
+      parseAllFilesParallely
+    end
+  end
+  
+  def parseAllFilesSequentially
     @compiler_args.code_sources.each do |c:CodeSource|
-      @compiler.parse(c)
+      @compiler.addToAst(@compiler.parse(c))
     end
   end
 
+  def parseAllFilesParallely
+    executor_service = Executors.newFixedThreadPool(Math.min(Runtime.getRuntime.availableProcessors, @compiler_args.code_sources.size))
+    
+    begin
+      @compiler_args.code_sources.map do |code_source:CodeSource|
+        executor_service.submit(MirahTool_ParseRunner.new(compiler,code_source))
+      end.each do |future:Future|
+        @compiler.addToAst(Node(future.get)) # also obtain exceptions, if there were any
+      end
+    ensure
+      pending = executor_service.shutdownNow # the list of pending parses may not be empty in case we have encountered an exception
+    end
+  end
+  
+  class MirahTool_ParseRunner
+    implements Callable
+    
+    attr_accessor compiler:MirahCompiler
+    attr_accessor code_source:CodeSource
+    
+    def initialize(compiler:MirahCompiler, code_source:CodeSource)
+      self.compiler    = compiler
+      self.code_source = code_source
+    end
+    
+    def call:Object # ideally, a synthetic bridge method would be generated here, such that we would not need to make the return type explicitly be of type Object
+      compiler.parse(code_source)
+    end
+  end
+  
   def compiler
     @compiler
   end
