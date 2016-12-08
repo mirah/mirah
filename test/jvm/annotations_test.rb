@@ -71,4 +71,67 @@ class AnnotationsTest < Test::Unit::TestCase
     assert_run_output("1\n", cls)
   end
 
+  
+  def test_override_def_method_does_not_fire_on_actual_override
+    cls, = compile(%q'
+      class AnySuper
+        def foo(a:int, b:java::util::List = nil)
+          "abc"
+        end
+      end
+      
+      class TestOverrideAnnotation < AnySuper
+
+        $java.lang.Override # <- this is ugly
+        def foo(a:int)
+          "xy#{a}z"
+        end
+        
+        $java.lang.Override
+        def foo(a:int, b:java::util::List)
+          "xy#{a}z#{b.size}"
+        end
+        
+        $java.lang.Override
+        def hashCode:int
+          7
+        end
+        
+        $java.lang.Override
+        def equals(o:Object):boolean
+          false
+        end
+      end
+      
+      a = TestOverrideAnnotation.new
+      puts a.foo(4)
+      puts a.foo(5, [])
+      puts a.hashCode
+      puts a.equals(a)
+    ')
+    assert_run_output("xy4z\nxy5z0\n7\nfalse\n", cls)
+  end
+  
+  def test_override_def_method_does_fire_on_missing_override
+    assert_raise_java(Mirah::MirahError, /requires to override a method, but no matching method is actually overridden/) do
+      cls, = compile(%q'
+        class AnySuper
+          def foo(a:int, b:java::util::List = nil)
+            "abc"
+          end
+        end
+        
+        class TestOverrideAnnotation < AnySuper
+
+          $java.lang.Override
+          def foo(a:int, b:java::util::ArrayList)
+            "xy#{a}z#{b.size}"
+          end
+        end
+        
+        a = TestOverrideAnnotation.new
+        puts a.foo(5, [])
+      ')
+    end
+  end
 end

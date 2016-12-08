@@ -133,9 +133,15 @@ module JVMCompiler
     ex = ex.cause if ex.is_a? NativeException
     assert_equal type, ex.class
     if message
-      assert_equal message,
-                   ex.message.to_s,
-                  "expected error message to be '#{message}' but was '#{ex.message}'"
+      if message.kind_of?(Regexp)
+        assert_match message,
+                     ex.message.to_s,
+                    "expected error message to match #{message} but was '#{ex.message}'"
+      else
+        assert_equal message,
+                     ex.message.to_s,
+                    "expected error message to be '#{message}' but was '#{ex.message}'"
+      end
     end
     ex
   end
