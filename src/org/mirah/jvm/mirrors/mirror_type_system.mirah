@@ -111,6 +111,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
   end
 
   attr_reader context:Context
+  attr_accessor loader:SimpleAsyncMirrorLoader
 
   def self.initialize:void
     @@log = Logger.getLogger(MirrorTypeSystem.class.getName)
