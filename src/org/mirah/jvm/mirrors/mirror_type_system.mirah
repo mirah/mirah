@@ -837,7 +837,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
 end
 
 class FakeMember < Member
-  def self.create(types: MirrorTypeSystem, description: String, flags:int=-1)
+  def self.create(types: MirrorTypeSystem, description: String, flags:int=Opcodes.ACC_PUBLIC)
     m = /^(@)?([^.]+)\.(.+)$/.matcher(description)
     unless m.matches
       raise IllegalArgumentException, "Invalid method specification #{description}"
@@ -845,18 +845,20 @@ class FakeMember < Member
     abstract = !m.group(1).nil?
     klass = wrap(types, Type.getType(m.group(2)))
     method = Type.getType(m.group(3))
+
     returnType = wrap(types, method.getReturnType)
+
     args = LinkedList.new
     method.getArgumentTypes.each do |arg|
       args.add(wrap(types, arg))
     end
-    flags = Opcodes.ACC_PUBLIC if flags == -1
+
     flags |= Opcodes.ACC_ABSTRACT if abstract
     FakeMember.new(description, flags, klass, returnType, args)
   end
 
   def self.wrap(types: MirrorTypeSystem, type: Type)
-    JVMType(types.wrap(type).resolve)
+    types.wrap(type).resolve.as!(JVMType)
   end
 
   def initialize(description: String, flags: int,
