@@ -913,6 +913,19 @@ class BlocksTest < Test::Unit::TestCase
     EOF
     assert_run_output("yay\n", cls)
   end
+  
+  def test_anonymous_class_by_block
+    cls, = compile('
+      import java.util.Collections
+      import java.util.ArrayList
+      
+      list = ArrayList.new [9,5,2,6,8,5,0,3,6,1,8,3,6,4,7,5,0,8,5,6,7,2,3]
+      puts "unsorted: #{list}"
+      Collections.sort(list) {|a: Integer, b: Integer| a.compareTo(b)}
+      puts "sorted: #{list}"
+    ')
+    assert_run_output("unsorted: [9, 5, 2, 6, 8, 5, 0, 3, 6, 1, 8, 3, 6, 4, 7, 5, 0, 8, 5, 6, 7, 2, 3]\nsorted: [0, 0, 1, 2, 2, 3, 3, 3, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 8, 8, 8, 9]\n", cls)
+  end
 
 
   def test_binding_in_class_definition_has_right_namespace
