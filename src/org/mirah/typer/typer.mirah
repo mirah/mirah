@@ -1262,7 +1262,7 @@ class Typer < SimpleNodeVisitor
       #BetterScope(scope).methodUsed(mdef.name.identifier) unless mdef.kind_of? StaticMethodDefinition
 
       @@log.finest "Normal method #{mdef}."
-      inferAll(mdef.annotations)
+      inferAnnotations(mdef)
       infer(mdef.arguments)
       parameters = inferAll(mdef.arguments)
 

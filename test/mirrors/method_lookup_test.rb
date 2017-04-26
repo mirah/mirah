@@ -78,7 +78,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
     @types.wrap(type).resolve
   end
 
-  def make_method(tag, flags=-1)
+  def make_method(tag, flags=Opcodes.ACC_PUBLIC)
     FakeMember.create(@types, tag, flags)
   end
 end

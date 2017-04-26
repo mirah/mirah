@@ -146,7 +146,7 @@ class MirahCompiler implements JvmBackend
 
   def parse(code:CodeSource)
     begin
-      node = Node(@parser.parse(code))
+      node = @parser.parse(code).as!(Node)
     rescue org.mirah.mmeta.SyntaxError => e
       raise Exception.new("#{code.name} failed to parse.",e)
     end
@@ -164,7 +164,6 @@ class MirahCompiler implements JvmBackend
 
   def infer
     sorted_asts = @asts # ImportSorter.new.sort(@asts)
-
 
     sorted_asts.each do |node: Node|
       begin
@@ -240,6 +239,27 @@ class MirahCompiler implements JvmBackend
     @backend.generate(generator)
   end
 
+  def createTypeSystems(classpath: URL[], bootcp: URL[], macrocp: URL[]): void
+    # Now one for macros: These will be loaded into this JVM,
+    # so we don't support bootclasspath.
+    macrocp ||= classpath
+
+    macro_class_loader = createMacroClassLoader macrocp
+    @context[ClassLoader] = macro_class_loader
+    @macro_context[ClassLoader] = macro_class_loader
+
+    @extension_classes = {}
+    @extension_loader = createExtensionClassLoader macrocp, @extension_classes
+
+    macroloader = createMacroLoader(macrocp)
+    @macro_context[TypeSystem] = @macro_types = MirrorTypeSystem.new(
+        @macro_context, macroloader)
+
+    # Construct a loader with the standard Java classes plus the classpath
+    classloader = createClassLoader classpath, bootcp
+    @context[TypeSystem] = @types = MirrorTypeSystem.new(
+        @context, classloader)
+  end
 
   def createBootLoader(bootcp: URL[])
     # Construct a loader with the standard Java classes plus the classpath
@@ -257,42 +277,28 @@ class MirahCompiler implements JvmBackend
         Pattern.compile("^/?org/mirah/jvm/(types/(Flags|Member|Modifiers))|compiler/Cleaned"), bootloader)
   end
 
+  def createExtensionClassLoader(macrocp: URL[], extension_class_map: Map): MirahClassLoader
+    extension_parent = URLClassLoader.new(macrocp, Mirahc.class.getClassLoader())
+    MirahClassLoader.new(extension_parent, extension_class_map)
+  end
+
+  def createMacroClassLoader(macrocp: URL[]): ClassLoader
+    URLClassLoader.new(macrocp, MirahCompiler.class.getClassLoader())
+  end
+
+  def createClassLoader(classpath: URL[], bootcp: URL[])
+    bootloader = createBootLoader(bootcp)
+
+    ClassLoaderResourceLoader.new(IsolatedResourceLoader.new(classpath), bootloader)
+  end
+
   def createMacroLoader(macrocp: URL[])
     bootloader = ClassResourceLoader.new(System.class)
-    macroloader = ClassLoaderResourceLoader.new(
+    ClassLoaderResourceLoader.new(
         IsolatedResourceLoader.new(macrocp),
         FilteredResources.new(
             ClassResourceLoader.new(Mirahc.class),
             Pattern.compile("^/?(mirah/|org/mirah)"),
             bootloader))
-  end
-
-  def createTypeSystems(classpath: URL[], bootcp: URL[], macrocp: URL[]): void
-    # Construct a loader with the standard Java classes plus the classpath
-    bootloader = createBootLoader(bootcp)
-
-    classloader = ClassLoaderResourceLoader.new(
-        IsolatedResourceLoader.new(classpath), bootloader)
-
-    # Now one for macros: These will be loaded into this JVM,
-    # so we don't support bootclasspath.
-    macrocp ||= classpath
-    macroloader = createMacroLoader(macrocp)
-
-    macro_class_loader = URLClassLoader.new(
-        macrocp, MirahCompiler.class.getClassLoader())
-    @context[ClassLoader] = macro_class_loader
-    @macro_context[ClassLoader] = macro_class_loader
-
-    @extension_classes = {}
-    extension_parent = URLClassLoader.new(
-       macrocp, Mirahc.class.getClassLoader())
-    @extension_loader = MirahClassLoader.new(
-       extension_parent, @extension_classes)
-
-    @macro_context[TypeSystem] = @macro_types = MirrorTypeSystem.new(
-        @macro_context, macroloader)
-    @context[TypeSystem] = @types = MirrorTypeSystem.new(
-        @context, classloader)
   end
 end
