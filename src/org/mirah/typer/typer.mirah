@@ -537,14 +537,73 @@ class Typer < SimpleNodeVisitor
     newField = FieldAssign.new field.name, field.value, [
       Annotation.new(field.name.position,
         Constant.new(SimpleString.new('org.mirah.jvm.types.Modifiers')),
-        [HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC'))])
+        [
+          HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC')),
+          HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new('FINAL')])),
+        ]
+       )
     ]
     newField.isStatic = true
     newField.position = field.position
+    
+    # annotations to FieldAssign currently do not work, but FieldAnnotationRequests do work. 
+    field_annotation_request = FieldAnnotationRequest.new(field.name,nil,[Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+      HashEntry.new(SimpleString.new('access'), SimpleString.new('PUBLIC')),
+      HashEntry.new(SimpleString.new('flags'), Array.new([SimpleString.new("FINAL")])),
+    ])])
 
-    replaceSelf field, newField
+    destination_body = nil
+    field_parent = field.parent
+    if field_parent.kind_of?(NodeList)
+      field_parent_parent = field_parent.parent
+      if field_parent_parent.kind_of?(ClassDefinition)
+        destination_body = ClassDefinition(field_parent_parent).body
+      elsif field_parent_parent.kind_of?(Script)
+        destination_body = Script(field_parent_parent).body
+      end
+    end
 
-    infer(newField, expression != nil)
+    # we are in class or script context
+    if destination_body
+      # We perform AST transformation early here (and not later in ClassCleanup),
+      # because otherwise local variables declared and used within the construction of the constant have weird scope.
+      #
+      # We transform each ConstantAssign in class context into a method + a ClassInitializer which calls this method.
+      # The method performs the right-hand-side of the ConstantAssign, and then assigns the result to final static field for the constant.
+      # This is allowed per JVM spec. The JVM spec requires that such an "instruction must occur in the <clinit> method".
+      # Whether this means
+      # 1. just in the body of the <clinit> method (not in methods called by <clinit>) or
+      # 2. during the call of the <clinit> method (also in methods called by <clinit>)
+      # is not very clear. Actual tests show that variant (2) seems to be supported.
+      # Hence, the more simple variant (2) is implemented: one method per constant. 
+      initializer_method_name = self.scoper.getScope(field).temp("$static_initializer_#{field.name.identifier}_")
+      initializer_method      = StaticMethodDefinition.new(
+        field.position,
+        SimpleString.new(initializer_method_name),
+        Arguments.new(field.position, Collections.emptyList, Collections.emptyList, nil, Collections.emptyList, nil),
+        Constant.new(SimpleString.new('void')),
+        [newField],
+        [Annotation.new(SimpleString.new('org.mirah.jvm.types.Modifiers'), [
+          HashEntry.new(SimpleString.new('access'), SimpleString.new('PRIVATE')),
+        ])]
+      )
+      initializer_method_call = ClassInitializer.new([
+        Call.new(Self.new, SimpleString.new(initializer_method_name), [], nil)
+      ])
+
+      replaceSelf field, NodeList.new([]) # Do not just remove the field, but replace it with a noop-entry such that the iteration indices do not need to change. Else the iteration which currently happens over exactly the list of children skips one of the new children.
+      destination_body.add(initializer_method)
+      destination_body.add(initializer_method_call)
+      destination_body.add(field_annotation_request)
+  
+      @types.getNullType() # nothing to infer now
+    else # we are in some other context, maybe method
+      infer(newField, expression != nil) # keep old behavior, for now
+    end
+  end
+  
+  def visitClassInitializer(field, expression)
+    @types.getNullType() # do nothing here, the body of the ClassInitializer will be inferred during ClassCleanup
   end
 
   def visitFieldAccess(field, expression)

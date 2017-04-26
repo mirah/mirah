@@ -337,14 +337,14 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
     future.as!(AssignableTypeFuture)
   end
 
-  def getFieldTypeOrDeclare(target, name, position, flags=Opcodes.ACC_PRIVATE)
+  def getFieldTypeOrDeclare(target, name, position, flags:int = Opcodes.ACC_PRIVATE)
     resolved = target.peekInferredType.as!(MirrorType)
     klass = resolved.unmeta.as!(MirrorType)
     member = klass.getDeclaredField(name)
     future = if member
       member.as!(AsyncMember).asyncReturnType
     else
-      createField klass, name, resolved.isMeta, position, flags
+      createField(klass, name, resolved.isMeta, position, flags)
     end
     future.as!(AssignableTypeFuture)
   end

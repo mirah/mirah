@@ -122,3 +122,73 @@ class ConstructorDefinition < MethodDefinition
       initialize(name, arguments, type, body, annotations, Node(nil))
   end
 end
+
+class Initializer < NodeImpl
+  init_node do
+    child_list body: Node
+  end
+end
+
+# A node directly below a ClassDefinition node.
+# The body is executed once per class initialization.
+# This is used for dynamically initializing static fields.
+#
+# This is also useful for class-level macros which need to generate code
+# which is to be executed once.
+#
+# For example, consider a class
+#
+#     class Foo
+#       
+#       class << self
+#         attr_accessor bar:int
+#       end
+#       
+#       on_static_init do
+#         self.bar = 42
+#       end
+#     end
+#
+# Using the on_static_init macro, code can be executed once.
+#
+# This way, functionality of a static initializer as per https://docs.oracle.com/javase/specs/jls/se7/html/jls-8.html#jls-8.7 and as of this example  
+#
+#     class Foo {
+#
+#       static int bar;
+#
+#       static {
+#         Foo.bar = 42;
+#       }
+#     }
+#
+# can be achieved.
+#
+class ClassInitializer < Initializer
+  init_subclass(Initializer)
+end
+
+# A node directly below a ClassDefinition node.
+# The body is to be executed once per object initialization.
+#
+# This is useful for class-level macros which need to generate code
+# which is to be executed once per instance.
+#
+# The functionality should be similar to an instance initializer as per https://docs.oracle.com/javase/specs/jls/se7/html/jls-8.html#jls-8.6 and as of this example  
+#
+#     class Foo {
+#
+#       int bar;
+#
+#       {
+#         this.bar = 42;
+#       }
+#     }
+#
+#
+# However, support for ObjectInitializer is currently not implemented.
+#
+# class ObjectInitializer < Initializer
+#   init_subclass(Initializer)
+# end
+

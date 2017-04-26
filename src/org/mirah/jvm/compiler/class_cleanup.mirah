@@ -66,8 +66,10 @@ class ClassCleanup < NodeScanner
       end
       nodes = NodeList.new
       @static_init_nodes.each do |node: Node|
-        node.parent.removeChild(node)
-        node.setParent(nil)  # TODO: ast bug
+        if node.parent
+          node.parent.removeChild(node)
+          node.setParent(nil)  # TODO: ast bug
+        end
         nodes.add(node)
       end
       old_body = @cinit.body
@@ -252,6 +254,13 @@ class ClassCleanup < NodeScanner
   def enterClassAppendSelf(node, arg)
     # Scan the children
     true
+  end
+  def enterClassInitializer(node, arg)
+    node.parent.replaceChild(node, NodeList.new) # the ClassInitializer object fulfilled its duty, so replace it by a noop-object
+    body = node.body
+    body.setParent(nil)
+    @static_init_nodes.add(node.body)
+    false
   end
   def enterConstantAssign(node, arg)
     @static_init_nodes.add(node)
