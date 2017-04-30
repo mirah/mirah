@@ -776,13 +776,13 @@ class BlocksTest < Test::Unit::TestCase
         end
       end
       class Huh
-      def wut(i: InitWithRunnable)
-        puts i.finish
+        def wut(i: InitWithRunnable)
+          puts i.finish
+        end
+        def regular
+          InitWithRunnable.new { puts "Closure!"; nil }
+        end
       end
-      def regular
-        InitWithRunnable.new { puts "Closure!"; nil }
-      end
-    end
       Huh.new.wut(Huh.new.regular)
     EOF
 
