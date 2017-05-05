@@ -89,6 +89,17 @@ class ArrayExtensions
   end
   
   #
+  # int[].new(5)
+  #
+  macro def self.new(size)
+    array_type    = call.target
+    # basetype    = TypeName(arraytype).typeref.array_basetype
+    array_typeref = TypeName(array_type).typeref
+    basetype      = TypeRefImpl.new(array_typeref.name,false,array_typeref.isStatic,array_typeref.position)
+    EmptyArray.new(call.position, basetype, size)
+  end
+
+  #
   # int[].new(5) do |i|
   #   i+3
   # end
@@ -102,11 +113,8 @@ class ArrayExtensions
     end
     res           = gensym
     arraytype     = @call.target
-    # basetype    = TypeName(arraytype).typeref.array_basetype
-    array_typeref = TypeName(arraytype).typeref
-    basetype      = TypeRefImpl.new(array_typeref.name,false,array_typeref.isStatic,array_typeref.position)
     quote do
-      `res` = `basetype`[`size`]
+      `res` = `arraytype`.new(`size`)
       `size`.times do |`i`|
 #       `res`[`i`] = `block.body`
         `Call.new(quote{`res`},SimpleString.new('[]='),[quote{`i`},quote{`block.body`}],nil)`

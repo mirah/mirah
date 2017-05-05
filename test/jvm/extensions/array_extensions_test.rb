@@ -192,6 +192,22 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     assert_run_output("4\n", cls)
   end
   
+  def test_int_array_new
+    cls, = compile(<<-EOF)
+      x = int[].new(5)
+      puts x.join(",")
+    EOF
+    assert_run_output("0,0,0,0,0\n", cls)
+  end
+
+  def test_ArrayList_array_new
+    cls, = compile(<<-EOF)
+      x = java::util::ArrayList[].new(5)
+      puts x.join(",")
+    EOF
+    assert_run_output("null,null,null,null,null\n", cls)
+  end
+
   def test_array_new
     cls, = compile(<<-EOF)
       x = int[].new(5) do |i|
