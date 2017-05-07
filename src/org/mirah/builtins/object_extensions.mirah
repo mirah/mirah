@@ -204,6 +204,14 @@ class ObjectExtensions
     methods_proxy
   end
   
+  macro def self.re(mthd:MethodDefinition)
+    anno = Annotation.new(@call.name.position, Constant.new(SimpleString.new('java.lang.Override')),[])
+    mthd.annotations.add(anno)
+    mirah.typer.infer(anno)
+    mthd.setParent(nil)
+    mthd
+  end
+  
   macro def self.attr_accessor(hash:Hash)
     args = [hash]
     quote do
