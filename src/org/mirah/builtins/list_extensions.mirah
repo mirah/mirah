@@ -95,4 +95,38 @@ class ListExtensions
       `result`
     end
   end
+
+  # Use as follows:
+  #   [7,3,4].as(short[])   # returns a short[] array with 3 elements
+  #   ["foo","bar"].as(String[])
+  macro def as(type)
+    import org.mirah.typer.ProxyNode
+
+    type_future        = @mirah.typer.infer(type)
+    # This code fails in case we cannot resolve the type at the time the macro is invoked
+    # (e.g. in case the type is defined after the macro invocation).
+    # We should modify the compiler to allow for a TypeFuture to be used as typeref instead.
+    arraytype_name     = type_future.resolve.name
+    arraytype_basename = arraytype_name.substring(0,arraytype_name.length-2) # remove trailing "[]", should be improved once mirah's array support is improved
+    typeref            = TypeRefImpl.new(arraytype_basename,false,false,@call.target.position)
+
+    array              = gensym
+    entries            = Array(@call.target).values
+    length             = Fixnum.new(entries.size)
+    assignments        = NodeList.new
+    
+    i = 0
+    while i < entries.size
+      entry = entries.get(i)
+      assignments.add(Call.new(quote{`array`},SimpleString.new('[]='),[Fixnum.new(i),Cast.new(entry.position,typeref,quote{`entry`})],nil))
+      i+=1
+    end
+  
+    quote do
+      `typeref`[`length`].tap do |`array`|
+        `assignments`
+      end
+    end
+  end
+
 end
