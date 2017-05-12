@@ -14,8 +14,8 @@
 # limitations under the License.
 begin
   require 'bundler/setup'
-rescue LoadError
-  puts "couldn't load bundler. Check your environment."
+rescue LoadError => e
+  puts "couldn't load bundler (#{e}). Check your environment."
 end
 require 'rake'
 require 'rake/testtask'
