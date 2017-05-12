@@ -133,5 +133,14 @@ class AnnotationsTest < Test::Unit::TestCase
         puts a.foo(5, [])
       ')
     end
+    assert_raise_java(Mirah::MirahError, /requires to override a method, but no matching method is actually overridden/) do
+      cls, = compile(%q'
+        class A
+          $Override # Try without fully qualified class name.
+          def go
+          end
+        end
+      ')
+    end
   end
 end

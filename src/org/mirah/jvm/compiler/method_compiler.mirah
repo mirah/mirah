@@ -93,7 +93,7 @@ class MethodCompiler < BaseCompiler
     annotations.size.times do |i|
       anno = annotations.get(i)
       
-      if anno.type.typeref.name.equals("java.lang.Override")
+      if typer.getTypeOf(anno,anno.type.typeref).resolve.name.equals("java.lang.Override") # actually resolve the type, such that "$Override" also works and not only "$java.lang.Override"
         checkOverride(mdef)
       end
     end
