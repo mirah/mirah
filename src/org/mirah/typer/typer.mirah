@@ -164,7 +164,7 @@ class Typer < SimpleNodeVisitor
   def defaultNode(node, expression)
     return TypeFutureTypeRef(node).type_future if node.kind_of?(TypeFutureTypeRef)
 
-    ErrorType.new([["Inference error: unsupported node #{node}", node.position]])
+    ErrorType.new([ErrorMessage.new("Inference error: unsupported node #{node}", node.position)])
   end
 
   def logger
@@ -371,7 +371,10 @@ class Typer < SimpleNodeVisitor
       # fine, but may need to undo erroring
       future.type = cast_future
     else
-      future.type = ErrorType.new([["Cannot cast #{resolved_value_type} to #{resolved_cast_type}.", cast_position]])
+      future.type = ErrorType.new([
+        ErrorMessage.new(
+          "Cannot cast #{resolved_value_type} to #{resolved_cast_type}.",
+          cast_position)])
     end
   end
 
@@ -609,7 +612,8 @@ class Typer < SimpleNodeVisitor
   def visitFieldAccess(field, expression)
     targetType = fieldTargetType field, field.isStatic
     if targetType.nil?
-      TypeFuture(ErrorType.new([["Cannot find declaring class for field.", field.position]]))
+      # TODO add field name to error message
+      ErrorType.new([ErrorMessage.new("Cannot find declaring class for field.", field.position)]).as!(TypeFuture)
     else
       unless field.isStatic # NB don't need to close over static ones--maybe
         s = scopeOf(field)
@@ -869,7 +873,7 @@ class Typer < SimpleNodeVisitor
           boolean_type.assignableFrom(resolved))
         type.resolved(boolean_type)
       else
-        type.resolved(ErrorType.new([["#{resolved} not compatible with boolean", node.position]]))
+        type.resolved(ErrorType.new([ErrorMessage.new("#{resolved} not compatible with boolean", node.position)]))
       end
     end
     type
@@ -1198,7 +1202,8 @@ class Typer < SimpleNodeVisitor
       position = block.arguments.position if block.arguments
       position ||= block.position
       return @futures[block] = ErrorType.new([
-        ["Wrong number of methods for block implementing #{method_type}", position]])
+        ErrorMessage.new("Wrong number of methods for block implementing #{method_type}", position)
+      ])
 
     end
     # parameters.zip(method_type.parameterTypes).each do |...
@@ -1457,7 +1462,7 @@ class Typer < SimpleNodeVisitor
     exception_node = Node(old_args.clone)
     exception_node.setParent(node)
     new_type = BaseTypeFuture.new(exception_node.position)
-    error = ErrorType.new([["Not an expression", exception_node.position]])
+    error = ErrorType.new([ErrorMessage.new("Not an expression", exception_node.position)])
     infer(exception_node).onUpdate do |x, resolvedType|
       # We need to make sure they passed an object, not just a class name
       if resolvedType.isMeta

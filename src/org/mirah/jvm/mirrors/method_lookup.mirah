@@ -36,6 +36,7 @@ import org.mirah.jvm.types.MemberKind
 import org.mirah.jvm.mirrors.debug.DebuggerInterface
 import org.mirah.typer.DerivedFuture
 import org.mirah.typer.ErrorType
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.InlineCode
 import org.mirah.typer.MethodType
 import org.mirah.typer.ResolvedType
@@ -61,8 +62,8 @@ class Phase2Checker implements SubtypeChecker
 end
 
 class DebugError < ErrorType
-  def initialize(message:List, context:Context, state:LookupState)
-    super(message)
+  def initialize(messages: List, context: Context, state: LookupState)
+    super(messages)
     if context[DebuggerInterface]
       @state = state
     end
@@ -340,8 +341,8 @@ class MethodLookup
 
   def inaccessible(scope:Scope, method:Member, position:Position, state:LookupState):TypeFuture
     DebugError.new(
-        [["Cannot access #{method} from #{scope.selfType.resolve}",
-          position]], @context, state)
+        [ErrorMessage.new("Cannot access #{method} from #{scope.selfType.resolve}", position)],
+        @context, state)
   end
 
   def gatherMethods(target:MirrorType, name:String):List
@@ -717,7 +718,9 @@ class LookupState
         @context[MethodLookup].inaccessible(
             @scope, Member(@inaccessible.get(0)), @position, self)
       elsif @context[DebuggerInterface]
-        DebugError.new([["Can't find method #{@target}#{@params} II #{@methods}"]], @context, self)
+        DebugError.new([ErrorMessage.new("Can't find method #{@target}#{@params} II #{@methods}")],
+                       @context,
+                       self)
       else
         nil
       end
@@ -735,7 +738,7 @@ class LookupState
       @context[MethodLookup].makeFuture(
           @target, Member(methods[0]), params, @position, self)
     else
-      DebugError.new([["Ambiguous methods #{methods}", @position]], @context, self)
+      DebugError.new([ErrorMessage.new("Ambiguous methods #{methods}", @position)], @context, self)
     end
   end
 

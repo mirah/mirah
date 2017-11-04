@@ -39,6 +39,7 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.jvm.types.JVMField
 import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.BaseTypeFuture
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
@@ -139,7 +140,7 @@ class BaseType implements MirrorType, DeclaredType, MethodListener
       # This may spread intersection types to places java wouldn't allow them.
       # Do we care?
       lub = LubFinder.new(@context).leastUpperBound([self, other]).as!(Object).as!(MirrorType)
-      lub || ErrorType.new([["Incompatible types #{self} and #{other}."]])
+      lub || ErrorType.new([ErrorMessage.new("Incompatible types #{self} and #{other}.")])
     end
   end
 

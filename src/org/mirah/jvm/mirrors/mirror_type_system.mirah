@@ -50,6 +50,7 @@ import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.CallFuture
 import org.mirah.typer.DelegateFuture
 import org.mirah.typer.DerivedFuture
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.ErrorType
 import org.mirah.typer.GenericTypeFuture
 import org.mirah.typer.MethodFuture
@@ -272,8 +273,8 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
         target = target.unmeta
       end
       error = JvmErrorType.new([
-        ["Can't find method #{format(target, call.name, call.resolved_parameters)}",
-         call.position]], Type.getType("V"), nil)
+        ErrorMessage.new("Can't find method #{format(target, call.name, call.resolved_parameters)}",
+                 call.position)], Type.getType("V"), nil)
       macro_params = LinkedList.new
       nodes = call.parameterNodes
       unless nodes.nil?
@@ -647,7 +648,7 @@ class MirrorTypeSystem implements TypeSystem, ExtensionsService
       type.as!(MirrorType)
     else
       JvmErrorType.new(
-          type.as!(ErrorType).message, Type.getType("Ljava/lang/Object;"), @object)
+          type.as!(ErrorType).messages, Type.getType("Ljava/lang/Object;"), @object)
     end
   end
 

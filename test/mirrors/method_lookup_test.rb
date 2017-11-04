@@ -30,6 +30,7 @@ class BaseMethodLookupTest <  Test::Unit::TestCase
   java_import 'org.mirah.jvm.mirrors.NullType'
   java_import 'org.mirah.jvm.types.MemberKind'
   java_import 'org.mirah.typer.BaseTypeFuture'
+  java_import 'org.mirah.typer.ErrorMessage'
   java_import 'org.mirah.typer.ErrorType'
   java_import 'org.mirah.typer.simple.SimpleScoper'
   java_import 'mirah.lang.ast.Script'
@@ -93,7 +94,7 @@ class MethodLookupTest < BaseMethodLookupTest
     assert(MethodLookup.isSubType(main, object))
     assert_false(MethodLookup.isSubType(object, main))
 
-    error = ErrorType.new([['Error']])
+    error = ErrorType.new([ErrorMessage.new('Error')])
 
     assert(MethodLookup.isSubType(error, main))
     assert(MethodLookup.isSubType(main, error))
@@ -345,11 +346,11 @@ class MethodLookupTest < BaseMethodLookupTest
     assert_nil(@lookup.findMethod(@scope, wrap('Ljava/lang/String;'), 'foobar', [], nil, nil, false))
     type = @lookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'registerNatives', [], nil, nil, false).resolve
     assert(type.isError)
-    assert_equal('Cannot access java.lang.Object.registerNatives() from Foo', type.message[0][0])
+    assert_equal('Cannot access java.lang.Object.registerNatives() from Foo', type.messages[0].message)
     pend "Can't tell the difference between 'super' random protected methods" do
       type = @lookup.findMethod(@scope, wrap('Ljava/lang/Object;'), 'clone', [], nil, nil, false).resolve
       assert(type.isError)
-      assert_equal('Cannot access java.lang.Object.clone() from Foo', type.message[0][0])
+      assert_equal('Cannot access java.lang.Object.clone() from Foo', type.messages[0].message)
     end
     # TODO test ambiguous
     # TODO check calling instance method from static scope.
@@ -530,7 +531,7 @@ class Phase1Test < BaseMethodLookupTest
 
   def test_error_least_specific
     error_member = Member.new(
-        Opcodes.ACC_PUBLIC, wrap('I'), 'foo', [ErrorType.new([['Error']])], wrap('I'),
+        Opcodes.ACC_PUBLIC, wrap('I'), 'foo', [ErrorType.new([ErrorMessage.new('Error')])], wrap('I'),
         MemberKind::METHOD)
     # The method should match
     assert_equal([error_member],

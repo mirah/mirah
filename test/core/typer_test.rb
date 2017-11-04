@@ -69,7 +69,7 @@ class TyperTest < Test::Unit::TestCase
       actual_errors += errors
     end
     fail("no errors") if actual_errors.empty?
-    assert actual_errors.any?{|error| error.message.join("\n").include? message },
+    assert actual_errors.any?{|error| error.messages.map(&:message).join("\n").include? message },
            "no errors with message \"#{message}\" in [#{actual_errors}"
   end
 

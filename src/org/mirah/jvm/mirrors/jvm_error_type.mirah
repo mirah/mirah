@@ -28,15 +28,15 @@ import org.mirah.jvm.types.JVMMethod
 import org.mirah.util.Context
 
 class JvmErrorType < ErrorType implements MirrorType, ErrorTypeModel
-  def initialize(message:List, type:Type, supertype:MirrorType)
-    super(message)
+  def initialize(messages:List, type:Type, supertype:MirrorType)
+    super(messages)
     @supertype = supertype
     @type = type
   end
 
   def initialize(context:Context, error:ErrorType)
     initialize(
-        error.message,
+        error.messages,
         Type.getType("Lmirah/lang/errors/UnknownType;"),
         MirrorType(
             context[MirrorTypeSystem].loadNamedType(

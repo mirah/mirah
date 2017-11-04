@@ -67,7 +67,7 @@ class BaseTypeFuture; implements TypeFuture
   def resolve
     unless @resolved
       @@log.finest("#{self}: error: #{error_message}")
-      @resolved = ErrorType.new([[error_message, @position]])
+      @resolved = ErrorType.new([ErrorMessage.new(error_message, @position)])
       notifyListeners
     end
     @resolved

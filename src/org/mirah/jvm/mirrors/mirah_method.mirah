@@ -22,6 +22,7 @@ import org.mirah.jvm.types.MemberKind
 import org.mirah.typer.AssignableTypeFuture
 import org.mirah.typer.DelegateFuture
 import org.mirah.typer.DerivedFuture
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.TypeFuture
@@ -57,7 +58,9 @@ class ReturnTypeFuture < AssignableTypeFuture
   end
 
   def incompatibleWith(value: ResolvedType, position: Position)
-    ErrorType.new([["Invalid return type #{value}, expected #{inferredType}", position]])
+    ErrorType.new([
+      ErrorMessage.new("Invalid return type #{value}, expected #{inferredType}",
+                       position)])
   end
 end
 
@@ -79,9 +82,9 @@ class MirahMethod < AsyncMember implements MethodListener
     @arity = argumentTypes.size
     setupOverrides(argumentTypes)
   end
-  
+
   def generate_error
-    @error ||= ErrorType.new([['Does not override a method from a supertype.', @position]]) 
+    @error ||= ErrorType.new([ErrorMessage.new('Does not override a method from a supertype.', @position)])
   end
 
   def wrap(target: TypeFuture): TypeFuture
@@ -150,7 +153,7 @@ class MirahMethod < AsyncMember implements MethodListener
       error = if supertype_methods.isEmpty
         generate_error
       else
-        ErrorType.new([["Ambiguous override: #{supertype_methods}", @position]])
+        ErrorType.new([ErrorMessage.new("Ambiguous override: #{supertype_methods}", @position)])
       end
       @arguments.each do |arg|
         arg.type = error

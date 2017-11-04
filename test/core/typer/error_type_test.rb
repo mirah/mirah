@@ -22,6 +22,7 @@ class ErrorTypeTest < Test::Unit::TestCase
   java_import 'org.mirah.typer.SimpleFuture'
   java_import 'org.mirah.typer.simple.SimpleTypes'
   java_import 'org.mirah.typer.simple.SimpleType'
+  java_import 'org.mirah.typer.ErrorMessage'
   java_import 'org.mirah.typer.ErrorType'
   java_import 'mirah.lang.ast.VCall'
   java_import 'mirah.lang.ast.FunctionalCall'
@@ -37,24 +38,24 @@ class ErrorTypeTest < Test::Unit::TestCase
   POS = PositionImpl.new(nil, 0, 0, 0, 0, 0, 0)
   
   def test_error_type_matches_anything
-    type = ErrorType.new [["",POS]]
+    type = ErrorType.new [ErrorMessage.new("",POS)]
     assert type.matchesAnything, "errors match any type"
   end
 
   def test_error_type_is_not_assignable_from
-    type = ErrorType.new [["",POS]]
+    type = ErrorType.new [ErrorMessage.new("",POS)]
     assert !type.assignableFrom(SimpleType.new("Object",false,false))
   end
 
   def test_error_type_equal_to_another_error_type_when_message_same
-    type = ErrorType.new [["message one",POS]]
-    type2 = ErrorType.new [["message one",POS]]
+    type = ErrorType.new [ErrorMessage.new("message one",POS)]
+    type2 = ErrorType.new [ErrorMessage.new("message one",POS)]
     assert_equal type, type2
   end
 
   def test_error_type_not_equal_to_another_error_type_when_message_differs
-    type = ErrorType.new [["message one",POS]]
-    type2 = ErrorType.new [["message two",POS]]
+    type = ErrorType.new [ErrorMessage.new("message one",POS)]
+    type2 = ErrorType.new [ErrorMessage.new("message two",POS)]
     assert_not_equal type, type2
   end
 end

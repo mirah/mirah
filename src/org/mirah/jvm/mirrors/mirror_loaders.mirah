@@ -30,6 +30,7 @@ import org.objectweb.asm.tree.ClassNode
 import org.mirah.typer.BaseTypeFuture
 import org.mirah.typer.DelegateFuture
 import org.mirah.typer.DerivedFuture
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.TypeFuture
 
 import org.mirah.util.Context
@@ -198,7 +199,7 @@ class SimpleAsyncMirrorLoader implements AsyncMirrorLoader
       MirrorType(loadMirrorAsync(
         Type.getType("Ljava/lang/Object;")).resolve) rescue nil
     end
-    JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type, object)
+    JvmErrorType.new([ErrorMessage.new("Cannot find class #{type.getClassName}")], type, object)
   end
 
   def findArrayMirrorAsync(type:Type):TypeFuture
@@ -247,7 +248,7 @@ class OrErrorLoader < SimpleMirrorLoader
     else
       loadMirror(Type.getType("Ljava/lang/Object;"))
     end
-    JvmErrorType.new([["Cannot find class #{type.getClassName}"]], type, object)
+    JvmErrorType.new([ErrorMessage.new("Cannot find class #{type.getClassName}")], type, object)
   end
 end
 

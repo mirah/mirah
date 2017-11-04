@@ -36,7 +36,7 @@ class SimpleType < SpecialType
 
   def widen(other)
     return self if other.matchesAnything
-    return ErrorType.new([["Incompatible types"]]) unless equals(other)
+    return ErrorType.new([ErrorMessage.new("Incompatible types")]) unless equals(other)
     self
   end
   def assignableFrom(other)

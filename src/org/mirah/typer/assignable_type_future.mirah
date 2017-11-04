@@ -19,6 +19,7 @@ import java.util.*
 import java.util.concurrent.locks.ReentrantLock
 import org.mirah.util.Logger
 import java.util.logging.Level
+
 import mirah.lang.ast.*
 
 # A TypeFuture that can be assigned to several times, and widens to a type
@@ -60,7 +61,8 @@ class AssignableTypeFuture < BaseTypeFuture
       end
       msg = "Type redeclared as #{type.resolve} from #{earlier_declarations}"
       @@log.finest(msg)
-      declared_type_error = ErrorType.new([[msg, position], ['First declared', self.position]])
+      declared_type_error = ErrorType.new([ErrorMessage.new(msg, position),
+                                           ErrorMessage.new('First declared', self.position)])
 
       @declarations[type] = declared_type_error
       resolved declared_type_error
@@ -94,7 +96,10 @@ class AssignableTypeFuture < BaseTypeFuture
   # Returns an error type for an incompatible assignment.
   # Subclasses may override this to customize the error message.
   def incompatibleWith(value: ResolvedType, position: Position)
-    ErrorType.new([["Cannot assign #{value} to #{inferredType}", position]])
+    ErrorType.new([
+      ErrorMessage.new(
+        "Cannot assign #{value} to #{inferredType}", position
+      )])
   end
 
   def hasDeclaration: boolean

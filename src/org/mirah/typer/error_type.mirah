@@ -18,19 +18,52 @@ package org.mirah.typer
 import java.util.*
 import mirah.lang.ast.*
 
+class ErrorMessage
+  attr_reader message: String, position: Position
+  #attr_writer position: Position
+
+  def initialize message: String, position: Position=nil
+    @message = message
+    @position = position
+  end
+
+  def hasPosition
+    !@position.nil?
+  end
+
+  def setPosition(position: Position): void
+    @position = position
+  end
+
+  def equals other
+    other.kind_of?(ErrorMessage) &&
+    Objects.equals(@message, other.as!(ErrorMessage).message) &&
+    Objects.equals(@position, other.as!(ErrorMessage).position)
+  end
+
+  def hashCode
+    Objects.hash(@message, @position)
+  end
+end
+
+
 # An error.
 class ErrorType < SpecialType
 
-  # message is a list of [message, position] pairs. Typically there's only one
-  # item in list, but multiple is possible (for example an error that refers
-  # to both the beginning and end of a block)
-  def initialize(message:List)
-    super(":error")
-    @message = checkMessage(message)
+  def self.empty
+    new(Collections.emptyList)
   end
 
-  def message:List
-    @message
+  # message is a list of ErrorMessages. Typically there's only one
+  # item in list, but multiple is possible (for example an error that refers
+  # to both the beginning and end of a block)
+  def initialize(messages: List)
+    super(":error")
+    @messages = checkMessage(messages)
+  end
+
+  def messages:List
+    @messages
   end
 
   def matchesAnything; true; end
@@ -40,31 +73,31 @@ class ErrorType < SpecialType
   end
 
   def toString:String
-    "<Error: #{message}>"
+    "<Error: #{messages}>"
+  end
+
+  def getMessageString: String
+    messages.toString
   end
 
   def equals(other:Object)
-    other.kind_of?(ErrorType) && message.equals(ErrorType(other).message)
+    other.kind_of?(ErrorType) && messages.equals(other.as!(ErrorType).messages)
   end
 
   def hashCode
-    message.hashCode
+    messages.hashCode
   end
 
   # private
 
-  def checkMessage(message:List)
-    new_message = ArrayList.new(message.size)
-    message.each do |_pair|
-      pair = List(_pair)
-      text = String(pair.get(0))
-      position = pair.size > 1 ? Position(pair.get(1)) : nil
-      new_pair = ArrayList.new(2)
-      new_pair.add(text)
-      new_pair.add(position)
-      new_message.add(new_pair)
+  def checkMessage(messages: List)
+    messages.each do |error: ErrorMessage|
+      # type check
+      text = error.message
+      position = error.position
+
     end
-    new_message
+    messages
   end
 
   def isFullyResolved:boolean

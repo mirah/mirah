@@ -23,6 +23,7 @@ import mirah.lang.ast.NodeScanner
 import mirah.lang.ast.Position
 import mirah.lang.ast.Node
 import org.mirah.jvm.mirrors.debug.DebuggerInterface
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.ErrorType
 import org.mirah.typer.FuturePrinter
 import org.mirah.typer.Typer
@@ -48,7 +49,7 @@ class ErrorCollector < NodeScanner
     type = future.nil? ? nil : future.resolve
     if (type && type.isError)
       if @errors.add(type)
-        messages = ErrorType(type).message
+        messages = type.as!(ErrorType).messages
         diagnostic = build_diagnostic messages, node
         @reporter.report(diagnostic)
         debug = FuturePrinter.new
@@ -68,16 +69,14 @@ class ErrorCollector < NodeScanner
   end
 
   def build_diagnostic(messages: List, node: Node)
-    if messages.size >= 1
-      items = List(messages[0])
-      text = items[0].toString
-      position = node.position
-      if items.size == 1 && items[1]
-        position = Position(items[1])
-      end
+    if messages.empty?
+      return MirahDiagnostic.error(node.position, "Error")
+    elsif messages.size == 1 || messages.size > 1 # TODO if there is more than one message, do something better.
+      error_msg = messages[0].as!(ErrorMessage)
+      text = error_msg.message
+      position = error_msg.position || node.position
+
       MirahDiagnostic.error(position, text)
-    else messages.size == 0
-      MirahDiagnostic.error(node.position, "Error")
     end
   end
 end

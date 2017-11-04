@@ -35,6 +35,7 @@ import org.mirah.jvm.types.MemberKind
 import org.mirah.util.Context
 import org.mirah.util.MirahDiagnostic
 import org.mirah.util.MirahModifiers
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.ErrorType
 import org.mirah.typer.MethodType
 import org.mirah.typer.Typer
@@ -102,16 +103,16 @@ class BaseCompiler < SimpleNodeVisitor
     type = @typer.getResolvedType(node)
     return nil if type.kind_of?(UnreachableType)
     if type.kind_of?(ErrorType)
-      reportError(ErrorType(type).message.toString, node.position)
+      reportError(type.as!(ErrorType).getMessageString, node.position)
     end
-    JVMType(type)
+    type.as!(JVMType)
   rescue Exception => ex
     @@log.log Level.SEVERE, "this node: #{node}, #{node.position}"
     raise reportICE(ex, node.position)
   end
 
   def getInferredType(mdef:MethodDefinition):MethodType
-    MethodType(@typer.getResolvedType(mdef))
+    @typer.getResolvedType(mdef).as!(MethodType)
   rescue Exception => ex
     raise reportICE(ex, mdef.name.position)
   end
@@ -122,10 +123,10 @@ class BaseCompiler < SimpleNodeVisitor
       begin
         args[i] = JVMType(argTypes[i]).getAsmType
       rescue ClassCastException
-        error = ErrorType(argTypes[i])
-        e = List(error.message.get(0))
-        ex = IllegalArgumentException.new(String(e.get(0)))
-        raise reportICE(ex, Position(e.get(1)))
+        error = argTypes[i].as!(ErrorType)
+        e = error.messages.get(0).as!(ErrorMessage)
+        ex = IllegalArgumentException.new(e.message)
+        raise reportICE(ex, e.position)
       end
     end
     Method.new(name, returnType.getAsmType, args)

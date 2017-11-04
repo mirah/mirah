@@ -22,20 +22,20 @@ module Mirah
       def process_errors(errors)
         errors.each do |ex|
           if ex.kind_of?(ErrorType)
-            ex.message.each do |pair|
-              message, position = pair.to_a
+            ex.messages.each do |error_message|
+              message, position = error_message.message, error_message.position
               if position
                 Mirah.print_error(message, position)
               else
                 puts message
               end
-            end if ex.message
+            end if ex.messages
           else
             puts ex
             if ex.respond_to?(:node) && ex.node
-              Mirah.print_error(ex.message, ex.position)
+              Mirah.print_error(ex.messages.first, ex.position)
             else
-              puts ex.message
+              puts ex.messages
             end
             error(ex.backtrace.join("\n")) if self.logging?
           end
@@ -54,15 +54,21 @@ module Mirah
           type = @typer.getResolvedType(node)
           if (type && type.isError)
             @errors[type] ||= begin
-              if type.message.size == 1
-                m = type.message[0]
-                if m.size == 1
-                  m << node rescue nil
-                elsif m.size == 2 && m[1] == nil
-                  m[1] = node.position rescue nil
+              case type.messages.size
+              when 1
+                m = type.messages[0]
+                #if !m.has_position?
+                #  m.position = node rescue nil
+                #elsif m.size == 2 && m[1] == nil
+                #  m[1] = node.position rescue nil
+                #end
+                if !m.has_position?
+                  m.position = node.position rescue nil
                 end
-              elsif type.message.size == 0
-                type.message << ["Error", node.position]
+              when 0
+                type.messages << ["Error", node.position]
+              else
+                # pass
               end
               type
             end

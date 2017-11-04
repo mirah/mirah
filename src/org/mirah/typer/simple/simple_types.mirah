@@ -111,9 +111,9 @@ class SimpleTypes; implements TypeSystem
   end
   def createType(name:String)
     if name.equals(name.toLowerCase())
-      TypeFuture(ErrorType.new([["Cannot find class #{name}"]]))
+      ErrorType.new([ErrorMessage.new("Cannot find class #{name}")]).as!(TypeFuture)
     else
-      TypeFuture(SimpleType.new(name, false, false))
+      SimpleType.new(name, false, false).as!(TypeFuture)
     end
   end
   
@@ -130,7 +130,7 @@ class SimpleTypes; implements TypeSystem
     raise IllegalArgumentException if target.nil?
     unless argTypes.all?
       error = BaseTypeFuture.new(call.position)
-      error.resolved(ErrorType.new([["Unresolved args", call.position]]))
+      error.resolved(ErrorType.new([ErrorMessage.new("Unresolved args", call.position)]))
       return error
     end
     getMethodTypeInternal(target, call.name, argTypes, call.position)
@@ -157,8 +157,10 @@ class SimpleTypes; implements TypeSystem
     t = MethodFuture(@methods[key])
     unless t
       # Start with an error message in case it isn't found.
-      return_type = AssignableTypeFuture.new(nil).resolved(ErrorType.new([
-          ["Cannot find method #{target}.#{name}#{argTypes}", position]]))
+      return_type = AssignableTypeFuture.new(nil).resolved(
+        ErrorType.new([
+          ErrorMessage.new("Cannot find method #{target}.#{name}#{argTypes}", position)])
+      )
       t = MethodFuture.new(name, argTypes, return_type, false, position)
       @methods[key] = t
     end

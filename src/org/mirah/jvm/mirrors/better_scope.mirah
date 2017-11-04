@@ -32,6 +32,7 @@ import mirah.lang.ast.Script
 import mirah.lang.ast.Package
 
 import org.mirah.typer.LocalFuture
+import org.mirah.typer.ErrorMessage
 import org.mirah.typer.ErrorType
 import org.mirah.typer.ResolvedType
 import org.mirah.typer.Scope
@@ -412,7 +413,9 @@ class BetterScope
       def getLocalType(name, position)
         future = LocalFuture.new name, position
         # TODO This error message could be better.
-        future.resolved ErrorType.new([["can't use local '#{name}'. (#{getClass} doesn't support locals)", position]])
+        future.resolved ErrorType.new([
+          ErrorMessage.new("can't use local '#{name}'. (#{getClass} doesn't support locals)",
+                           position)])
         future
       end
 
