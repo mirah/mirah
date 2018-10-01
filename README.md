@@ -1,7 +1,9 @@
 Mirah
 ================
 
-[![Build Status](https://secure.travis-ci.org/mirah/mirah.png)](http://travis-ci.org/mirah/mirah)
+| **Tarvis** |
+|------------|
+| [![Build Status](https://secure.travis-ci.org/mirah/mirah.png)](http://travis-ci.org/mirah/mirah) |
 
 * http://groups.google.com/group/mirah
 * http://github.com/mirah/mirah/issues
