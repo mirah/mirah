@@ -1,7 +1,7 @@
 Mirah
 ================
 
-| **Tarvis** |
+| **Travis** |
 |------------|
 | [![Build Status](https://secure.travis-ci.org/mirah/mirah.png)](http://travis-ci.org/mirah/mirah) |
 
