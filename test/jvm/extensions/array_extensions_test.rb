@@ -217,4 +217,14 @@ class ArrayExtensionsTest < Test::Unit::TestCase
     EOF
     assert_run_output("1,3,5,7,9\n", cls)
   end
+  
+  def test_array_slice
+    cls, = compile(<<-EOF)
+      a = [5,7,4,8,1,6,0,9,2].to_array(int)
+      puts a.slice(1,2).join(",")
+      puts a[3,3].join(",")
+    EOF
+    assert_run_output("7,4\n8,1,6\n", cls)
+  end
+  
 end

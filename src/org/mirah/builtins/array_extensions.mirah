@@ -206,4 +206,32 @@ class ArrayExtensions
   macro def self.cast(array)
     Cast.new(@call.position, TypeName(@call.target), array)
   end
+
+  macro def slice(start_expression,length_expression)
+    type_future        = @mirah.typer.infer(@call.target)
+    # This code fails in case we cannot resolve the type at the time the macro is invoked
+    # (e.g. in case the type is defined after the macro invocation).
+    # We should modify the compiler to allow for a TypeFuture to be used as typeref instead.
+    arraytype_name     = type_future.resolve.name
+    arraytype_basename = arraytype_name.substring(0,arraytype_name.length-2) # remove trailing "[]", should be improved once mirah's array support is improved
+    typeref            = TypeRefImpl.new(arraytype_basename,false,false,@call.target.position)
+    
+    result             = gensym
+    length             = gensym
+    
+    quote do
+      begin
+        `length` = `length_expression` 
+        `result` = `typeref`[`length`]
+        System.arraycopy(`call.target`,`start_expression`,`result`,0,`length`)
+        `result`
+      end
+    end
+  end
+  
+  macro def [](start_expression,length_expression)
+    quote do
+      `call.target`.slice(`start_expression`,`length_expression`)
+    end
+  end
 end
