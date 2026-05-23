@@ -164,7 +164,7 @@ desc "clean downloaded dependencies"
 task :clean_downloads do
   rm_f "javalib/mirahc-prev.jar"
   rm_f 'javalib/jruby-complete.jar'
-  rm_f 'javalib/asm-5.jar'
+  rm_f 'javalib/asm-9.jar'
 end
 
 task :compile => 'dist/mirahc.jar'
@@ -186,10 +186,10 @@ end
 
 namespace :jar do
   desc "build self-contained, complete ruby jar"
-  task :complete => [:jar, 'javalib/asm-5.jar'] do
+  task :complete => [:jar, 'javalib/asm-9.jar'] do
     ant.jar 'jarfile' => 'dist/mirah-complete.jar' do
       zipfileset 'src' => 'dist/mirah.jar'
-      zipfileset 'src' => 'javalib/asm-5.jar'
+      zipfileset 'src' => 'javalib/asm-9.jar'
       manifest do
         attribute 'name' => 'Main-Class', 'value' => 'org.mirah.MirahCommand'
       end
@@ -220,12 +220,12 @@ end
 desc "Build all redistributable files"
 task :dist => [:gem, :zip]
 
-file_create 'javalib/asm-5.jar' do
+file_create 'javalib/asm-9.jar' do
   require 'open-uri'
-  puts "Downloading asm-5.jar"
-  url = 'https://search.maven.org/remotecontent?filepath=org/ow2/asm/asm-all/5.0.4/asm-all-5.0.4.jar'
-  open(url, 'rb') do |src|
-    open('javalib/asm-5.jar', 'wb') do |dest|
+  puts "Downloading asm-9.jar"
+  url = 'https://repo1.maven.org/maven2/org/ow2/asm/asm/9.10/asm-9.10.jar'
+  URI.open(url) do |src|
+    open('javalib/asm-9.jar', 'wb') do |dest|
       dest.write(src.read)
     end
   end
@@ -233,11 +233,11 @@ end
 
 file_create 'javalib/mirahc-prev.jar' do
   require 'open-uri'
-  url = 'https://search.maven.org/remotecontent?filepath=org/mirah/mirah/0.2.1/mirah-0.2.1.jar'
+  url = 'https://repo1.maven.org/maven2/org/mirah/mirah/0.2.1/mirah-0.2.1.jar'
 
   puts "Downloading mirahc-prev.jar from #{url}"
 
-  open(url, 'rb') do |src|
+  URI.open(url) do |src|
     open('javalib/mirahc-prev.jar', 'wb') do |dest|
       dest.write(src.read)
     end
@@ -332,8 +332,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
   file parser_lexer_class => parser_java_impl_src do
     ant.javac 'srcDir' => 'mirah-parser/src',
         'destDir' => mirah_parser_build_dir,
-        'source' => '1.6',
-        'target' => '1.6',
+        'source' => '1.8',
+        'target' => '1.8',
         'debug' => true do
       include 'name' => 'mirahparser/impl/Tokens.java'
       include 'name' => 'mirahparser/impl/MirahLexer.java'
@@ -357,8 +357,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
     mkdir_p java_build_dir
 
     # Compile Java sources
-    ant.javac 'source' => '1.6',
-              'target' => '1.6',
+    ant.javac 'source' => '1.8',
+              'target' => '1.8',
               'destdir' => java_build_dir,
               'srcdir' => 'src',
               'includeantruntime' => false,
@@ -378,8 +378,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
                      # org.mirah.MirahCommand depends on .tool., so remove from core
                     ['src/org/mirah/mirah_command.mirah']
 
-  file core_jar => core_mirah_srcs + [java_jar, old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
-    compile_mirah_with_jar old_jar, core_build_dir, core_mirah_srcs, [java_jar, dist_mirah_parser_jar, 'javalib/asm-5.jar']
+  file core_jar => core_mirah_srcs + [java_jar, old_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar] do
+    compile_mirah_with_jar old_jar, core_build_dir, core_mirah_srcs, [java_jar, dist_mirah_parser_jar, 'javalib/asm-9.jar']
     ant.jar 'jarfile' => core_jar do
       fileset 'dir' => core_build_dir
     end
@@ -390,8 +390,8 @@ def bootstrap_mirah_from(old_jar, new_jar)
                     ['src/org/mirah/mirah_command.mirah'] # add it back in here.
   tool_build_dir = "build/#{name}-tool"
   tool_jar = "#{tool_build_dir}.jar"
-  file tool_jar => tool_mirah_srcs + [core_jar, old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
-    compile_mirah_with_jar old_jar, tool_build_dir, tool_mirah_srcs, [core_jar, java_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar]
+  file tool_jar => tool_mirah_srcs + [core_jar, old_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar] do
+    compile_mirah_with_jar old_jar, tool_build_dir, tool_mirah_srcs, [core_jar, java_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar]
     ant.jar 'jarfile' => tool_jar do
       fileset 'dir' => tool_build_dir
     end
@@ -401,9 +401,9 @@ def bootstrap_mirah_from(old_jar, new_jar)
   ant_mirah_srcs = Dir['src/org/mirah/ant/*.mirah'].sort
   ant_build_dir = "build/#{name}-ant"
   ant_jar = "#{ant_build_dir}.jar"
-  file ant_jar => ant_mirah_srcs + [core_jar, tool_jar, java_jar, old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
+  file ant_jar => ant_mirah_srcs + [core_jar, tool_jar, java_jar, old_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar] do
     ant_classpath = $CLASSPATH.grep(/ant/).map{|x| x.sub(/^file:/,'')}
-    compile_mirah_with_jar old_jar, ant_build_dir, ant_mirah_srcs, [core_jar, tool_jar, java_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] + ant_classpath
+    compile_mirah_with_jar old_jar, ant_build_dir, ant_mirah_srcs, [core_jar, tool_jar, java_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar] + ant_classpath
     ant.jar 'jarfile' => ant_jar do
       fileset 'dir' => ant_build_dir
     end
@@ -415,11 +415,11 @@ def bootstrap_mirah_from(old_jar, new_jar)
   extensions_mirah_srcs = Dir['src/org/mirah/builtins/*.mirah'].sort
   extensions_build_dir = "build/#{name}-extensions"
   extensions_jar = "#{extensions_build_dir}.jar"
-  file extensions_jar => extensions_mirah_srcs + [core_jar, tool_jar, java_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
+  file extensions_jar => extensions_mirah_srcs + [core_jar, tool_jar, java_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar] do
 
     classpath = [core_jar, tool_jar, java_jar,
                  dist_mirah_parser_jar,
-                 "javalib/asm-5.jar"].join(File::PATH_SEPARATOR)
+                 "javalib/asm-9.jar"].join(File::PATH_SEPARATOR)
 
     runjava('-Xmx512m', 
             '-classpath', classpath,
@@ -438,11 +438,11 @@ def bootstrap_mirah_from(old_jar, new_jar)
   end
   jars = [java_jar, core_jar, tool_jar, ant_jar, extensions_jar]
   file new_jar => jars +
-                  [old_jar, 'javalib/asm-5.jar', dist_mirah_parser_jar] do
-    # TODO use ant.jarjarto shade asm-5 in the fat jar
+                  [old_jar, 'javalib/asm-9.jar', dist_mirah_parser_jar] do
+    # TODO use ant.jarjarto shade asm-9 in the fat jar
     ant.jar 'jarfile' => new_jar do
       jars.each {|j| zipfileset 'src' => j }
-      zipfileset 'src' => 'javalib/asm-5.jar', 'includes' => 'org/objectweb/**/*'
+      zipfileset 'src' => 'javalib/asm-9.jar', 'includes' => 'org/objectweb/**/*'
       zipfileset 'src' => dist_mirah_parser_jar
       metainf 'dir' => File.dirname(__FILE__), 'includes' => 'LICENSE,COPYING,NOTICE'
 

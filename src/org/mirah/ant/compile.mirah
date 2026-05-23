@@ -35,7 +35,7 @@ class Compile < Task
     @dir = '.'
     @bytecode = true
     @verbose = false
-    @jvm_version = '1.6'
+    @jvm_version = '1.8'
   end
 
   def execute:void
